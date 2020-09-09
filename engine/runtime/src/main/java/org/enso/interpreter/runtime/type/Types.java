@@ -5,14 +5,13 @@ import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.RuntimeError;
-
-import java.util.Optional;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -33,7 +32,8 @@ import java.util.Optional;
   AtomConstructor.class,
   Thunk.class,
   RuntimeError.class,
-  Vector.class
+  UnresolvedSymbol.class,
+  Array.class
 })
 public class Types {
 
@@ -118,8 +118,8 @@ public class Types {
       return "Thunk";
     } else if (TypesGen.isRuntimeError(value)) {
       return "Error " + TypesGen.asRuntimeError(value).getPayload().toString();
-    } else if (TypesGen.isVector(value)) {
-      return "Vector";
+    } else if (TypesGen.isArray(value)) {
+      return "Array";
     } else {
       return null;
     }

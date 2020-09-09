@@ -21,7 +21,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "echo" [] "" False False False
+          |    result = System.create_process "echo" Array.empty "" False False False
           |    result.exit_code
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -32,7 +32,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error when creating nonexistent command" in {
       val code =
         """from Builtins import all
-          |main = System.create_process "nonexistentcommandxyz" [] "" False False False
+          |main = System.create_process "nonexistentcommandxyz" Array.empty "" False False False
           |""".stripMargin
 
       val error = the[InterpreterException] thrownBy eval(code)
@@ -46,7 +46,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "ls" ["--gibberish"] "" False False False
+          |    result = System.create_process "ls" (Array.new_1 "--gibberish") "" False False False
           |    result.exit_code
           |""".stripMargin
 
@@ -60,7 +60,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "read line; echo $line") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -75,7 +75,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True
+          |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::ReadLine()") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -91,7 +91,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "wc -c") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -106,7 +106,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "echo" ["42"] "" True True True
+          |    result = System.create_process "echo" (Array.new_1 "42") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -121,7 +121,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "echo" ["9"] "" True True True
+          |    result = System.create_process "echo" (Array.new_1 "9") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -135,7 +135,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "read line; printf $line"] "hello" False False False
+          |    result = System.create_process "bash" (Array.new_2 "-c" "read line; printf $line") "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -149,7 +149,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "hello" False False False
+          |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::ReadLine()") "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -163,7 +163,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "echo" ["foobar"] "" False True True
+          |    result = System.create_process "echo" (Array.new_1 "foobar") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -177,7 +177,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf '%b' '\\x01\\x0F\\x10'"] "" False True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\\x01\\x0F\\x10'") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -191,7 +191,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "echo" ["foobar"] "" False False False
+          |    result = System.create_process "echo" (Array.new_1 "foobar") "" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -205,7 +205,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "printf err 1>&2") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -219,7 +219,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False True True
+          |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::Error.WriteLine('err')") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -233,7 +233,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -247,7 +247,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False False False
+          |    result = System.create_process "bash" (Array.new_2 "-c" "printf err 1>&2") "" False False False
           |    result.stderr
           |""".stripMargin
 
@@ -261,7 +261,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Builtins import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False False False
+          |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::Error.WriteLine('err')") "" False False False
           |    result.stderr
           |""".stripMargin
 

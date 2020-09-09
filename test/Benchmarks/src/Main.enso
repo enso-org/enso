@@ -1,5 +1,7 @@
 import Base.Bench_Utils
-import Base.List
+from Base import all
+
+polyglot java import java.lang.Long
 
 type Counter
 type Sum
@@ -7,6 +9,12 @@ type Sum
 sum_tco = sum_to ->
     summator = acc -> current ->
         if current == 0 then acc else summator acc+current current-1
+    res = summator 0 sum_to
+    res
+
+sum_tco_java = sum_to ->
+    summator = acc -> current ->
+        if current == 0 then acc else summator (Long.sum [acc, current]) (current - 1)
     res = summator 0 sum_to
     res
 
@@ -34,6 +42,8 @@ main =
     hundred_mil = 100000000
     IO.println "Measuring SumTCO"
     Bench_Utils.measure (here.sum_tco hundred_mil) "sum_tco" 100 10
+    IO.println "Measuring SumTCO Java"
+    Bench_Utils.measure (here.sum_tco_java hundred_mil) "sum_tco" 100 10
     IO.println "Measuring State"
     Bench_Utils.measure (here.sum_state hundred_mil) "sum_state" 100 10
     IO.println "Measuring Co-State"

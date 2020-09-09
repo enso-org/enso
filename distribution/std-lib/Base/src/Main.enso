@@ -1,6 +1,46 @@
 import Base.List
-import Builtins
+import Base.Vector
+from Builtins import Number, Unit
 
 from Builtins export all
 
 from Base.List export Nil, Cons
+from Base.Vector export Vector
+
+## Represents a right-exclusive range of integer values.
+type Range
+    type Range start end
+
+    ## Applies a function to each element in the range.
+
+       > Example
+         To print all the numbers from 1 to 100 use:
+         1.upto 101 . each IO.println
+    each function =
+        it start end = if start == end then Unit else
+            function start
+            it start+1 end
+        it this.start this.end
+        Unit
+
+    ## Combines all the elements of the range, by iteratively applying the
+       passed function with next elements of the range.
+
+       In general, the result of
+           Range start end . fold init f
+       is the same as
+           f (...(f (f init start) start+1)...) end-1
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         range:
+             Range 0 100 . fold 0 (+)
+    fold initial function =
+        it acc start end = if start == end then acc else
+            new_acc = function acc start
+            it new_acc start+1 end
+        res = it initial this.start this.end
+        res
+
+## Creates a new right-exclusive range of integers from `this` to `n`.
+Number.upto n = Range this n

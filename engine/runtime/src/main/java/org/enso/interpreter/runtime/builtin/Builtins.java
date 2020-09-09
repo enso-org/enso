@@ -22,6 +22,7 @@ import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerM
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -52,6 +53,7 @@ public class Builtins {
   private final Error error;
   private final Bool bool;
   private final System system;
+  private final Array array;
 
   private final RootCallTarget interopDispatchRoot;
   private final FunctionSchema interopDispatchSchema;
@@ -72,6 +74,7 @@ public class Builtins {
     number = new AtomConstructor("Number", scope).initializeFields();
     bool = new Bool(language, scope);
     error = new Error(language, scope);
+    array = new Array(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new AtomConstructor("Text", scope).initializeFields();
     debug = new AtomConstructor("Debug", scope).initializeFields();
@@ -258,6 +261,10 @@ public class Builtins {
     return system;
   }
 
+  /** @return the container for array-related builtins. */
+  public Array array() {
+    return array;
+  }
 
   /**
    * Returns the builtin module scope.
@@ -275,10 +282,10 @@ public class Builtins {
   /**
    * Builds a function dispatching to a polyglot method call.
    *
-   * @param method the name of the method this function will dispatch to.
+   * @param method the name and scope of the method this function will dispatch to.
    * @return a function calling {@code method} with given arguments.
    */
-  public Function buildPolyglotMethodDispatch(String method) {
+  public Function buildPolyglotMethodDispatch(UnresolvedSymbol method) {
     Object[] preAppliedArr = new Object[] {null, method, null};
     return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
   }

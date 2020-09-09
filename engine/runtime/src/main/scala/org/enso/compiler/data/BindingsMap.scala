@@ -57,14 +57,13 @@ case class BindingsMap(
   }
 
   private def findLocalCandidates(name: String): List[ResolvedName] = {
-    if (currentModule.getName.item == name) {
+    val conses   = findConstructorCandidates(name)
+    val polyglot = findPolyglotCandidates(name)
+    val methods  = findMethodCandidates(name)
+    val all      = conses ++ polyglot ++ methods
+    if (all.isEmpty && currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
-    } else {
-      val conses   = findConstructorCandidates(name)
-      val polyglot = findPolyglotCandidates(name)
-      val methods  = findMethodCandidates(name)
-      conses ++ polyglot ++ methods
-    }
+    } else { all }
   }
 
   private def findQualifiedImportCandidates(

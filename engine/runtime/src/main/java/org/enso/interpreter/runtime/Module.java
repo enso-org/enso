@@ -24,7 +24,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
@@ -454,7 +454,7 @@ public class Module implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Vector(
+    return new Array(
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.GET_CONSTRUCTOR,
         MethodNames.Module.REPARSE,
