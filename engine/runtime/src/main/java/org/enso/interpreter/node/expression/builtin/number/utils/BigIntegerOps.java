@@ -56,6 +56,26 @@ public class BigIntegerOps {
   }
 
   @CompilerDirectives.TruffleBoundary
+  public static BigInteger divide(BigInteger a, long b) {
+    return a.divide(BigInteger.valueOf(b));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger divide(BigInteger a, BigInteger b) {
+    return a.divide(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger modulo(BigInteger a, long b) {
+    return a.mod(BigInteger.valueOf(b));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger modulo(BigInteger a, BigInteger b) {
+    return a.mod(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
   public static BigInteger negate(BigInteger a) {
     return a.negate();
   }
