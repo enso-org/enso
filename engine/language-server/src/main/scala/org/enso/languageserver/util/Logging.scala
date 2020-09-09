@@ -3,8 +3,8 @@ package org.enso.languageserver.util
 import java.util
 
 import cats.syntax.either._
-import ch.qos.logback.classic.{Level, LoggerContext}
-import org.slf4j.LoggerFactory
+import ch.qos.logback.classic.{Level, Logger, LoggerContext}
+import org.slf4j.{event, LoggerFactory}
 
 object Logging {
 
@@ -28,16 +28,6 @@ object Logging {
         case Trace   => Level.TRACE
       }
 
-    /** Convert to java util logging level. */
-    def toJava(level: LogLevel): util.logging.Level =
-      level match {
-        case Error   => util.logging.Level.SEVERE
-        case Warning => util.logging.Level.WARNING
-        case Info    => util.logging.Level.INFO
-        case Debug   => util.logging.Level.FINE
-        case Trace   => util.logging.Level.FINEST
-      }
-
     /** Convert from logback log level. */
     def fromLogback(level: Level): LogLevel = {
       level match {
@@ -48,6 +38,38 @@ object Logging {
         case Level.`TRACE` => Trace
       }
     }
+
+    /** Convert to java util logging level. */
+    def toJava(level: LogLevel): util.logging.Level =
+      level match {
+        case Error   => util.logging.Level.SEVERE
+        case Warning => util.logging.Level.WARNING
+        case Info    => util.logging.Level.INFO
+        case Debug   => util.logging.Level.FINE
+        case Trace   => util.logging.Level.FINEST
+      }
+
+    /** Convert from java util logging level. */
+    def fromJava(level: util.logging.Level): LogLevel =
+      level match {
+        case util.logging.Level.`SEVERE`  => LogLevel.Error
+        case util.logging.Level.`WARNING` => LogLevel.Warning
+        case util.logging.Level.`INFO`    => LogLevel.Info
+        case util.logging.Level.`CONFIG`  => LogLevel.Debug
+        case util.logging.Level.`FINE`    => LogLevel.Debug
+        case util.logging.Level.`FINER`   => LogLevel.Debug
+        case util.logging.Level.`FINEST`  => LogLevel.Trace
+      }
+
+    /** Convert to slf4j logging level. */
+    def toSlf4j(level: LogLevel): event.Level =
+      level match {
+        case Error   => event.Level.ERROR
+        case Warning => event.Level.WARN
+        case Info    => event.Level.INFO
+        case Debug   => event.Level.DEBUG
+        case Trace   => event.Level.TRACE
+      }
   }
 
   private val ROOT_LOGGER = "org.enso"
@@ -75,4 +97,29 @@ object Logging {
     }
   }
 
+  /** Get the application logger.
+    *
+    * @param name the logger name
+    * @return the application logger
+    */
+  def getLogger(name: String): Either[Throwable, Logger] = {
+    Either.catchNonFatal {
+      val ctx = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+      ctx.getLogger(name)
+    }
+  }
+
+  /** Get the java log handler instance backed by the application logger.
+    *
+    * @param name the logger name
+    * @return the application log handler
+    */
+  def getLogHandler(name: String): Either[Throwable, LogHandler] =
+    for {
+      level  <- Logging.getLogLevel
+      logger <- Logging.getLogger(name)
+    } yield {
+      logger.setLevel(Logging.LogLevel.toLogback(level))
+      new LogHandler(logger)
+    }
 }
