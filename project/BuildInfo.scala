@@ -41,7 +41,7 @@ object BuildInfo {
          |  val graalVersion  = "$graalVersion"
          |
          |  // Git Info
-         |  val commit            = "${gitInfo.commit}"
+         |  val commit            = "${gitInfo.commitHash}"
          |  val ref               = "${gitInfo.ref}"
          |  val isDirty           = ${gitInfo.isDirty}
          |  val latestCommitDate  = "${gitInfo.latestCommitDate}"
@@ -59,12 +59,23 @@ object BuildInfo {
   private def isReleaseMode: Boolean =
     if (sys.env.get("ENSO_RELEASE_MODE").contains("true")) true else false
 
+  /**
+    * Information regarding the Git repository that was used in the build.
+    *
+    * @param ref if available, name of the branch that was checked out; if a
+    *            branch is not available, but the current commit is tagged, name
+    *            of that tag is used, otherwise falls back to `HEAD`
+    * @param commitHash hash of the currently checked out commit
+    * @param isDirty indicates if there are any uncommitted changes
+    * @param latestCommitDate date of the current commit
+    */
   private case class GitInformation(
     ref: String,
-    commit: String,
+    commitHash: String,
     isDirty: Boolean,
     latestCommitDate: String
   )
+
   private def getGitInformation(log: ManagedLogger): Option[GitInformation] =
     try {
       val hash = ("git rev-parse HEAD" !!).trim
@@ -85,7 +96,14 @@ object BuildInfo {
         }
       val isDirty          = !("git status --porcelain" !!).trim.isEmpty
       val latestCommitDate = ("git log HEAD -1 --format=%cd" !!).trim
-      Some(GitInformation(ref, hash, isDirty, latestCommitDate))
+      Some(
+        GitInformation(
+          ref              = ref,
+          commitHash       = hash,
+          isDirty          = isDirty,
+          latestCommitDate = latestCommitDate
+        )
+      )
     } catch {
       case e: Exception =>
         log.warn(
@@ -94,6 +112,12 @@ object BuildInfo {
         )
         None
     }
+
+  /**
+    * Fallback instance of [[GitInformation]] that can be used if the build is
+    * outside of a repository or the git information cannot be obtained for
+    * other reasons.
+    */
   private def fallbackGitInformation: GitInformation =
     GitInformation(
       "<built outside of a git repository>",
