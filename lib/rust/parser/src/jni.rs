@@ -50,6 +50,7 @@ use jni::JNIEnv;
 use jni::objects::*;
 use jni::sys::*;
 use std::time::Instant;
+use ast::ffi::Object;
 
 
 // ======================
@@ -114,11 +115,21 @@ pub extern "system" fn Java_org_enso_parser_Parser_bench(
 ) -> jweak {
     let now = Instant::now();
     let ast = tree(&ast::Rust, 20);
-    println!("Rust AST build time: {}ms ({})", now.elapsed().as_millis(), ast.len);
+    println!("Rust AST build time: {}ms", now.elapsed().as_millis());
+    println!("{}",format!("{:?}", ast).len());
 
+
+    let api = ast::Scala::new(&env);
     let now = Instant::now();
-    let ast = tree(&ast::Scala::new(&env), 20);
+    let ast = tree(&api, 20);
+    println!("Scala AST build time:: {}ms", now.elapsed().as_millis());
+
+    let api = Env::new(&env);
+    let now = Instant::now();
+    let ast = api.tree(20);
     println!("Scala AST build time: {}ms", now.elapsed().as_millis());
+
+
 
     ast.into_inner()
 }
@@ -126,11 +137,53 @@ pub extern "system" fn Java_org_enso_parser_Parser_bench(
 /// Creates a prefix tree of given depth.
 pub fn tree<Api:ast::Api>(api:&Api, depth:usize) -> Api::AstShape {
     if depth == 0 {
-        return api.ast_shape(None, 0, 0, api.shape_number(api.number("0".to_string())));
+        return api.ast_shape(None, 0, 0, api.shape_number(api.number(0)));
     }
 
     let fun = Box::new(tree(api, depth-1));
     let arg = Box::new(tree(api, depth-1));
 
     api.ast_shape(None, 0, 0, api.shape_prefix(api.prefix(fun, arg)))
+}
+
+struct Env<'a> {
+    env:&'a JNIEnv<'a>,
+    ast:Object<'a>,
+    app:Object<'a>,
+    num:Object<'a>,
+    non:JObject<'a>,
+}
+
+impl<'a> Env<'a> {
+    pub fn new(env:&'a JNIEnv<'a>) -> Self {
+        let non = env.get_static_field(
+            env.find_class("scala/None$").unwrap(),
+            "MODULE$",
+            "Lscala/None$;",
+        ).unwrap().l().unwrap();
+        Env {
+            env,
+            ast: Object::new(env, "org/enso/ast/Ast$Ast",  "(Lscala/Option;JJLjava/lang/Object;)V"),
+            app: Object::new(env, "org/enso/ast/Ast$App$Prefix",  "(Lorg/enso/ast/Ast$Ast;Lorg/enso/ast/Ast$Ast;)V"),
+            num: Object::new(env, "org/enso/ast/Ast$Num$Number",  "(J)V"),
+            non
+        }
+    }
+    pub fn ast(&self, val:JObject) -> JObject {
+        self.ast.init(&[self.non.into(), 0.into(), 0.into(), val.into()])
+    }
+    pub fn app(&self, fun:Box<JObject>, arg:Box<JObject>) -> JObject {
+        self.app.init(&[(*fun).into(), (*arg).into()])
+    }
+
+    pub fn tree(&self, depth:usize) -> JObject {
+        if depth == 0 {
+            return self.ast(self.num.init(&[0.into()]))
+        }
+        let fun = Box::new(self.tree(depth-1));
+        let arg = Box::new(self.tree(depth-1));
+
+        let app = self.app(fun, arg);
+        self.ast(app)
+    }
 }

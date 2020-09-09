@@ -2,11 +2,11 @@
 
 #![allow(missing_debug_implementations)]
 
-use super::ast::Name;
-use super::ast::Type;
+use crate::api;
+use crate::ast::Name;
+use crate::ast::Type;
 
 use std::collections::BTreeSet as Set;
-
 
 
 // =====================
@@ -18,7 +18,7 @@ pub fn jni_name(mut name:String, typ:&Type, package:&str) -> String {
     name += package;
     name += "$";
     for path in &typ.path {
-        name += path.str.as_str();
+        name += api::name::typ(&path).str.as_str();
         name += "$";
     }
     name + typ.name.str.as_str()
@@ -75,7 +75,7 @@ pub fn builtin(name:&Name) -> Option<JName> {
 pub fn stdlib(name:&Name) -> Option<JName> {
     let name = match name.str.as_str() {
         "Object"                          => JName {jni:"Ljava/lang/Object;",   scala:"Object" },
-        "Vec"                             => JName {jni:"Lscala/Vector;",       scala:"Vector" },
+        "Vec"                             => JName {jni:"Lscala/collection/mutable/ArrayBuffer;",       scala:"ArrayBuffer" },
         "Option"                          => JName {jni:"Lscala/Option;",       scala:"Option" },
         "Uuid"                            => JName {jni:"Ljava/util/UUID;",     scala:"UUID"   },
         "String"                          => JName {jni:"Ljava/lang/String;",   scala:"String" },

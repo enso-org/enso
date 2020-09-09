@@ -209,7 +209,7 @@ pub mod num {
     /// The ast node for a number.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
-    pub struct Number { pub number: String }
+    pub struct Number { pub number: i64 }
 }
 
 
@@ -283,7 +283,7 @@ impl Ast<Shape> {
 
     /// Creates a new ast node with `Shape::Number`.
     pub fn num(number:i64) -> Self {
-        Self::new(Number{number:number.to_string()})
+        Self::new(Number{number})
     }
 
     /// Creates a new ast node with `Shape::Text`.

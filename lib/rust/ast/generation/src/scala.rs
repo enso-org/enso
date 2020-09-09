@@ -80,7 +80,8 @@ impl Generator<Source> for &File {
 
 impl Generator<Source> for Stdlib {
     fn write(self, source:&mut Source) {
-        write!(source, "import java.util.UUID");
+        write!(source, "import java.util.UUID\n");
+        write!(source, "import scala.collection.mutable.ArrayBuffer\n");
     }
 }
 

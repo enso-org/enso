@@ -16,10 +16,10 @@ object GenerateAST {
     Tracked.diffInputs(cache, FileInfo.lastModified)(Set(source))
     { source: ChangeReport[File] =>
       val rustVersion = Cargo.rustVersion.value
-      if (source.modified.nonEmpty) {
+//      if (source.modified.nonEmpty) {
           output.getParentFile.mkdirs
           generateAST(rustVersion, output, log)
-      }
+//      }
     }
 
     Seq(output)

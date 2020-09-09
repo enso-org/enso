@@ -807,11 +807,11 @@ lazy val parser = (project in file("lib/scala/parser"))
     fork := true,
     Cargo.rustVersion := rustVersion,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(Cargo("build --package parser"))
+      .dependsOn(Cargo("build --release --package parser"))
       .value,
     javaOptions += {
       val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
-      s"-Djava.library.path=$root/target/rust/debug"
+      s"-Djava.library.path=$root/target/rust/release"
     },
     libraryDependencies ++= Seq(
       "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",

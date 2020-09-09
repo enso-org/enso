@@ -19,6 +19,8 @@ use itertools::Itertools;
 /// A representation of rust module.
 #[derive(Debug,Clone,Default)]
 pub struct Collector {
+    /// File name.
+    pub file_name: String,
     /// Package name.
     pub package: String,
     /// Currently active module.
@@ -38,7 +40,7 @@ impl Collector {
             (name.clone(), self.monomorphize(&typ).1)
         ).collect();
         let arg_types  = class.args.into_iter().map(|(_,typ)| typ);
-        class.typ.path = self.module.clone();
+        class.typ.path = self.module[1..].into();
         let class      = Class{typ:class.typ, args, named:class.named};
         self.classes.push((class.clone(),arg_types.collect(),extends));
     }
@@ -68,6 +70,7 @@ impl Collector {
 impl Generator<Collector> for &File {
     fn write(self, source:&mut Collector) {
         source.package = self.package.clone();
+        source.file_name = self.name.clone().str;
         Module {name:self.name.clone(), lines:&self.content.items[..]}.write(source);
     }
 }
@@ -208,9 +211,9 @@ impl Source {
                 Type{name:typ.name.clone(), path:vec![], args}
             }
         }
-
-        let mut classes = vec![];
-        let mut types   = vec![];
+        let     package = collector.package.replace('.', "/") + "/" + &collector.file_name;
+        let mut classes = Vec::with_capacity(10);
+        let mut types   = Vec::with_capacity(10);
         for (class, args, extends) in collector.classes {
             let (name, variant) = if let Some(name) = extends {
                 ( name.clone()          , Some(class.typ.name.clone()) )
@@ -231,7 +234,7 @@ impl Source {
                 classes.push(Class{typ:class.typ, args, named:class.named})
             }
         }
-        Self{class_names:collector.types, classes, package:collector.package, types, generics:collector.generics}
+        Self{class_names:collector.types, classes, package, types, generics:collector.generics}
     }
 
     /// Generates the AST trait.
@@ -649,7 +652,7 @@ mod tests {
     #[test]
     fn test_scala_box() {
         let source = Source::new(File::new("Ast", "ast", parse!{
-            struct A(Box<B>);
+            struct A(Box<i32>);
         }).into());
         let expected = quote! {
             use crate::ffi::Object;
@@ -658,15 +661,23 @@ mod tests {
 
             #[allow(missing_debug_implementations)]
             #[derive(Clone)]
-            pub struct Scala<'a> { pub env: &'a JNIEnv<'a>, pub lib: StdLib<'a>, }
+            pub struct Scala<'a> {
+                pub env: &'a JNIEnv<'a>,
+                pub lib: StdLib<'a>,
+                pub a: Object<'a>
+            }
 
             impl<'a> Scala<'a> {
                 pub fn new(env: &'a JNIEnv<'a>) -> Self {
-                    Self { env, lib: StdLib::new(env), }
+                    Self {
+                        env,
+                        lib: StdLib::new(env),
+                        a: Object::new(&env, "ast/Ast$A", "(I)V")
+                    }
                 }
             }
         };
 
-        assert_eq!(source.scala_impl().to_string(), expected.to_string())
+        assert_eq!(source.scala_struct().to_string(), expected.to_string())
     }
 }
