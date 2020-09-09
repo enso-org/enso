@@ -55,11 +55,21 @@ public class Module implements TruffleObject {
     /**
      * Checks whether the current compilation stage is at least as advanced as the provided one.
      *
-     * @param stage the stage to compare to
+     * @param stage the stage to compare to.
      * @return whether or not {@code this} is at least as advanced as {@code stage}.
      */
     public boolean isAtLeast(CompilationStage stage) {
       return ordinal >= stage.ordinal;
+    }
+
+    /**
+     * Checks that the current compilation stage is before the provided one.
+     *
+     * @param stage the stage to compare to.
+     * @return whether or not {@code this} is before then {@code stage}.
+     */
+    public boolean isBefore(CompilationStage stage) {
+      return ordinal < stage.ordinal;
     }
   }
 
