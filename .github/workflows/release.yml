@@ -86,6 +86,8 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
+      - name: Enable Release Mode
+        run: echo ::set-env name=ENSO_RELEASE_MODE::true
       - name: Bootstrap the Project
         working-directory: repo
         run: |
@@ -111,12 +113,13 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors launcher/buildNativeImage
-      - name: Build the Manifest
+      - name: Build the Manifests
         working-directory: repo
         run: |
           cp distribution/manifest.template.yaml manifest.yaml
           echo "graal-vm-version: ${{ env.graalVersion }}" >> manifest.yaml
           echo "graal-java-version: ${{ env.javaVersion }}" >> manifest.yaml
+          cp distribution/launcher-manifest.yaml launcher-manifest.yaml
 
       # Prepare distributions
       - name: Prepare Distribution Version (Unix)
@@ -240,6 +243,11 @@ jobs:
         with:
           name: manifest
           path: repo/manifest.yaml
+      - name: Upload the Launcher Manifest Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: launcher-manifest
+          path: repo/launcher-manifest.yaml
 
   create-release:
     name: Prepare Release
@@ -443,4 +451,13 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: artifacts/manifest/manifest.yaml
           asset_name: manifest.yaml
+          asset_content_type: application/yaml
+      - name: Publish the Launcher Manifest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/launcher-manifest/launcher-manifest.yaml
+          asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml

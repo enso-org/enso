@@ -1,11 +1,11 @@
 package org.enso.launcher.releases.github
 
-import org.enso.launcher.releases.{Release, ReleaseProvider}
+import org.enso.launcher.releases.{Release, SimpleReleaseProvider}
 
 import scala.util.Try
 
 /**
-  * Implements [[ReleaseProvider]] providing releases from a specified GitHub
+  * Implements [[SimpleReleaseProvider]] providing releases from a specified GitHub
   * repository using the GitHub Release API.
   *
   * @param owner owner of the repository
@@ -14,7 +14,7 @@ import scala.util.Try
 class GithubReleaseProvider(
   owner: String,
   repositoryName: String
-) extends ReleaseProvider {
+) extends SimpleReleaseProvider {
   private val repo = GithubAPI.Repository(owner, repositoryName)
 
   /**

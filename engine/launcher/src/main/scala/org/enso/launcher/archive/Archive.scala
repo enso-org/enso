@@ -3,7 +3,10 @@ package org.enso.launcher.archive
 import java.io.BufferedInputStream
 import java.nio.file.{Files, Path}
 
-import org.apache.commons.compress.archivers.{ArchiveEntry, ArchiveInputStream}
+import org.apache.commons.compress.archivers.{
+  ArchiveEntry => ApacheArchiveEntry,
+  ArchiveInputStream
+}
 import org.apache.commons.compress.archivers.tar.{
   TarArchiveEntry,
   TarArchiveInputStream
@@ -49,18 +52,22 @@ object Archive {
     renameRootFolder: Option[Path]
   ): TaskProgress[Unit] = {
     val format = ArchiveFormat.detect(archivePath)
-    format
-      .map(
-        extractArchive(archivePath, _, destinationDirectory, renameRootFolder)
-      )
-      .getOrElse {
+    format match {
+      case Some(archiveFormat) =>
+        extractArchive(
+          archivePath,
+          archiveFormat,
+          destinationDirectory,
+          renameRootFolder
+        )
+      case None =>
         TaskProgress.immediateFailure(
           new IllegalArgumentException(
             s"Could not detect archive format for " +
             s"${archivePath.getFileName}"
           )
         )
-      }
+    }
   }
 
   /**
@@ -90,54 +97,128 @@ object Archive {
     destinationDirectory: Path,
     renameRootFolder: Option[Path]
   ): TaskProgress[Unit] = {
+    val rewritePath: Path => Path = renameRootFolder match {
+      case Some(value) => new BaseRenamer(value)
+      case None        => identity[Path]
+    }
+
+    iterateArchive(archivePath, format) { entry =>
+      val destinationPath =
+        destinationDirectory.resolve(rewritePath(entry.relativePath))
+      entry.extractTo(destinationPath)
+      true
+    }
+  }
+
+  /**
+    * Iterates over entries of the archive at `archivePath`.
+    *
+    * The iteration is run in a background thread, the function returns
+    * immediately with a [[TaskProgress]] instance that can be used to track
+    * iteration progress (for example by displaying a progress bar or just
+    * waiting for it to complete).
+    *
+    * Tries to detect the archive format automatically.
+    *
+    * @param archivePath path to the archive file
+    * @return an instance indicating the progress of iteration
+    */
+  def iterateArchive(archivePath: Path)(
+    callback: ArchiveEntry => Boolean
+  ): TaskProgress[Unit] = {
+    val format = ArchiveFormat.detect(archivePath)
+    format match {
+      case Some(archiveFormat) =>
+        iterateArchive(archivePath, archiveFormat)(callback)
+      case None =>
+        TaskProgress.immediateFailure(
+          new IllegalArgumentException(
+            s"Could not detect archive format for " +
+            s"${archivePath.getFileName}"
+          )
+        )
+    }
+  }
+
+  /**
+    * Iterates over entries of the archive at `archivePath`.
+    *
+    * The iteration is run in a background thread, the function returns
+    * immediately with a [[TaskProgress]] instance that can be used to track
+    * iteration progress (for example by displaying a progress bar or just
+    * waiting for it to complete).
+    *
+    * The callback is called for each encountered archive entry. If the callback
+    * returns false, iteration is stopped.
+    *
+    * @param archivePath path to the archive file
+    * @param format format of the archive
+    * @param callback callback to call for each archive entry; if it returns
+    *                 false, iteration is stopped
+    * @return an instance indicating the progress of iteration
+    */
+  def iterateArchive(archivePath: Path, format: ArchiveFormat)(
+    callback: ArchiveEntry => Boolean
+  ): TaskProgress[Unit] = {
     val taskProgress = new TaskProgressImplementation[Unit]
 
     def runExtraction(): Unit = {
-      val rewritePath: Path => Path = renameRootFolder match {
-        case Some(value) => new BaseRenamer(value)
-        case None        => identity[Path]
-      }
-
-      Logger.debug(s"Extracting `$archivePath` to `$destinationDirectory`.")
+      Logger.debug(s"Opening `$archivePath`.")
       var missingPermissions: Int = 0
 
       val result = withOpenArchive(archivePath, format) { (archive, progress) =>
-        for (entry <- ArchiveIterator(archive)) {
-          if (!archive.canReadEntryData(entry)) {
+        def processEntry(entry: ApacheArchiveEntry): Boolean = {
+          val continue = if (!archive.canReadEntryData(entry)) {
             throw new RuntimeException(
               s"Cannot read ${entry.getName} from $archivePath. " +
               s"The archive may be corrupted."
             )
           } else {
             val path = parseArchiveEntryName(entry.getName)
-            val destinationPath =
-              destinationDirectory.resolve(rewritePath(path))
-            if (entry.isDirectory) {
-              Files.createDirectories(destinationPath)
-            } else {
-              val parent = destinationPath.getParent
-              Files.createDirectories(parent)
-              Using(Files.newOutputStream(destinationPath)) { out =>
-                IOUtils.copy(archive, out)
+            val decoratedEntry = new ArchiveEntry {
+              override def isDirectory: Boolean = entry.isDirectory
+              override def relativePath: Path   = path
+              override def extractTo(destinationPath: Path): Unit = {
+                if (entry.isDirectory) {
+                  Files.createDirectories(destinationPath)
+                } else {
+                  val parent = destinationPath.getParent
+                  Files.createDirectories(parent)
+                  Using(Files.newOutputStream(destinationPath)) { out =>
+                    IOUtils.copy(archive, out)
+                  }
+                }
+
+                if (OS.isUNIX) {
+                  getMode(entry) match {
+                    case Some(mode) =>
+                      val permissions = FileSystem.decodePOSIXPermissions(mode)
+                      Files.setPosixFilePermissions(
+                        destinationPath,
+                        permissions
+                      )
+                    case None =>
+                      missingPermissions += 1
+                  }
+                }
               }
             }
 
-            if (OS.isUNIX) {
-              getMode(entry) match {
-                case Some(mode) =>
-                  val permissions = FileSystem.decodePOSIXPermissions(mode)
-                  Files.setPosixFilePermissions(destinationPath, permissions)
-                case None =>
-                  missingPermissions += 1
-              }
-            }
+            callback(decoratedEntry)
           }
 
           taskProgress.reportProgress(
             progress.alreadyRead(),
             progress.total()
           )
+
+          continue
         }
+
+        val iterator = ArchiveIterator(archive)
+        val _        = iterator.takeWhile(processEntry).length
+
+        ()
       }
 
       if (missingPermissions > 0) {
@@ -150,7 +231,7 @@ object Archive {
 
       taskProgress.setComplete(result)
     }
-    val thread = new Thread(() => runExtraction(), "Extracting-Archive")
+    val thread = new Thread(() => runExtraction(), "Reading-Archive")
     thread.start()
     taskProgress
   }
@@ -158,7 +239,7 @@ object Archive {
   /**
     * Tries to get the POSIX file permissions associated with that `entry`.
     */
-  private def getMode(entry: ArchiveEntry): Option[Int] =
+  private def getMode(entry: ApacheArchiveEntry): Option[Int] =
     entry match {
       case entry: TarArchiveEntry =>
         Some(entry.getMode)
