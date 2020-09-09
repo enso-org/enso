@@ -18,6 +18,8 @@ that we have a well-defined release policy. This document defines said policy.
 - [Release Branches](#release-branches)
 - [Release Workflow](#release-workflow)
   - [Tag Naming](#tag-naming)
+  - [Manifest Files](#manifest-files)
+  - [Breaking Changes to Launcher Upgrade](#breaking-changes-to-launcher-upgrade)
   - [GitHub Releases](#github-releases)
   - [Release Notes](#release-notes)
 - [Version Support](#version-support)
@@ -86,15 +88,9 @@ Tags for releases are named as follows `enso-version`, where `version` is the
 semver string (see [versioning](#versioning)) representing the version being
 released.
 
-### GitHub Releases
+### Manifest Files
 
-A release is considered _official_ once it has been made into a release on
-[GitHub](https://github.com/enso-org/enso/releases). Once official, a release
-may not be changed in any way, except to mark it as broken.
-
-#### Manifest Files
-
-##### Engine Manifest
+#### Engine Manifest
 
 Each GitHub release contains an asset named `manifest.yaml` which is a YAML file
 containing metadata regarding the release. The manifest is also included in the
@@ -144,19 +140,19 @@ stored in
 [`distribution/manifest.template.yaml`](../../distribution/manifest.template.yaml)
 and other values are added to this template at build time.
 
-##### Launcher Manifest
+#### Launcher Manifest
 
 Additionally, each release should contain an asset named
 `launcher-manifest.yaml` which contains launcher-specific release metadata.
 
 It contains the following fields:
 
-- `minimum-version-to-upgrade` - specifies the minimum version of the launcher
+- `minimum-version-for-upgrade` - specifies the minimum version of the launcher
   that is allowed to upgrade to this launcher version. If a launcher is older
   than the version specified here it must perform the upgrade in steps, first
-  upgrading to an older version newer than `minimum-version-to-upgrade` and only
-  then, using that version, to the target version. This logic ensures that if a
-  newer launcher version required custom upgrade logic not present in older
+  upgrading to an older version newer than `minimum-version-for-upgrade` and
+  only then, using that version, to the target version. This logic ensures that
+  if a newer launcher version required custom upgrade logic not present in older
   versions, the upgrade can still be performed by first upgrading to a newer
   version that does not require the new logic but knows about it and continuing
   the upgrade with that knowledge.
@@ -167,6 +163,34 @@ It contains the following fields:
   the upgrade (but it should be reported).
 - `directories-to-copy` - a list of directories that should be copied into the
   distribution's data root. Acts similarly to `files-to-copy`.
+
+A template manifest file, located in
+[`distribution/launcher-manifest.yaml`](../../distribution/launcher-manifest.yaml),
+is automatically copied to the release. If any new files or directories are
+added or a breaking change to the upgrade mechanism is being made, this manifest
+template must be updated accordingly.
+
+### Breaking Changes to Launcher Upgrade
+
+If at any point the launcher's upgrade mechanism needs an update, i.e.
+additional logic must be added that was not present before, special action is
+required.
+
+First, the additional logic has to be implemented and a new launcher version
+should be released which includes this additional logic, but does not require it
+yet. Then, another version can be released that can depend on this new logic and
+its `minimum-version-for-upgrade` has to be bumped to that previous version
+which already includes new logic but does not depend on it.
+
+This way, old launcher versions can first upgrade to a version that contains the
+new logic (as it does not depend on it yet, the upgrade is possible) and using
+that new version, upgrade to the target version that depends on that logic.
+
+### GitHub Releases
+
+A release is considered _official_ once it has been made into a release on
+[GitHub](https://github.com/enso-org/enso/releases). Once official, a release
+may not be changed in any way, except to mark it as broken.
 
 #### Release Assets Structure
 

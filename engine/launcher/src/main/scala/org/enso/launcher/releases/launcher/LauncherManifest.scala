@@ -10,7 +10,7 @@ import scala.util.{Failure, Try}
 /**
   * Contains release metadata associated with a launcher release.
   *
-  * @param minimumVersionToUpgrade minimum version of the current launcher that
+  * @param minimumVersionForUpgrade minimum version of the current launcher that
   *                                is required to upgrade to this version; if
   *                                current launcher is older than that provided
   *                                version, a multi-step upgrade must be
@@ -21,7 +21,7 @@ import scala.util.{Failure, Try}
   *                          updated in the data root
   */
 case class LauncherManifest(
-  minimumVersionToUpgrade: SemVer,
+  minimumVersionForUpgrade: SemVer,
   filesToCopy: Seq[String],
   directoriesToCopy: Seq[String]
 )
@@ -34,9 +34,9 @@ object LauncherManifest {
   val assetName: String = "launcher-manifest.yaml"
 
   private object Fields {
-    val minimumVersionToUpgrade = "minimum-version-to-upgrade"
-    val filesToCopy             = "files-to-copy"
-    val directoriesToCopy       = "directories-to-copy"
+    val minimumVersionForUpgrade = "minimum-version-for-upgrade"
+    val filesToCopy              = "files-to-copy"
+    val directoriesToCopy        = "directories-to-copy"
   }
 
   /**
@@ -45,14 +45,14 @@ object LauncherManifest {
   implicit val decoder: Decoder[LauncherManifest] = { json =>
     for {
       minimumVersionToUpgrade <-
-        json.get[SemVer](Fields.minimumVersionToUpgrade)
+        json.get[SemVer](Fields.minimumVersionForUpgrade)
       files <- json.getOrElse[Seq[String]](Fields.filesToCopy)(Seq())
       directories <-
         json.getOrElse[Seq[String]](Fields.directoriesToCopy)(Seq())
     } yield LauncherManifest(
-      minimumVersionToUpgrade = minimumVersionToUpgrade,
-      filesToCopy             = files,
-      directoriesToCopy       = directories
+      minimumVersionForUpgrade = minimumVersionToUpgrade,
+      filesToCopy              = files,
+      directoriesToCopy        = directories
     )
   }
 

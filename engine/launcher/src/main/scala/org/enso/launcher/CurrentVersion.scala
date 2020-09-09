@@ -29,7 +29,8 @@ object CurrentVersion {
   def internalOverrideVersion(newVersion: SemVer): Unit =
     if (Info.isRelease)
       throw new IllegalStateException(
-        "Internal testing function used in a release build."
+        "Internal testing function internalOverrideVersion used in a " +
+        "release build."
       )
     else {
       Logger.debug(s"[TEST] Overriding version to $newVersion.")

@@ -146,10 +146,7 @@ class ComponentsManager(
       }
       .recoverWith {
         case _: ComponentMissingError        => Success(None)
-        case e: LauncherUpgradeRequiredError =>
-          // TODO [RW] consider offering to upgrade automatically (but make sure
-          //  that an upgrade is not triggered in the middle of installation)
-          Failure(e)
+        case e: LauncherUpgradeRequiredError => Failure(e)
         case e: Exception =>
           Failure(
             UnrecognizedComponentError(

@@ -163,7 +163,7 @@ class LauncherUpgrader(
     val nextStepRelease   = nextVersionToUpgradeTo(release, availableVersions)
     Logger.info(
       s"Cannot upgrade to ${release.version} directly, " +
-      s"multiple-step upgrade will be peformed, first upgrading to " +
+      s"so a multiple-step upgrade will be performed, first upgrading to " +
       s"${nextStepRelease.version}."
     )
 
@@ -184,8 +184,8 @@ class LauncherUpgrader(
       extractExecutable(packagePath, temporaryExecutable)
 
       Logger.info(
-        s"Upgraded to ${nextStepRelease.version}, " +
-        s"proceeding to the next step of the upgrade."
+        s"Upgraded to ${nextStepRelease.version}. " +
+        s"Proceeding to the next step of the upgrade."
       )
       runNextUpgradeStep(temporaryExecutable, release.version)
     }
@@ -200,7 +200,7 @@ class LauncherUpgrader(
       availableVersions.filter(_ >= release.minimumVersionToPerformUpgrade)
     val minimumValidVersion = recentEnoughVersions.sorted.headOption.getOrElse {
       throw UpgradeError(
-        s"Upgrade failed: To continue upgrade, version at least " +
+        s"Upgrade failed: To continue upgrade, a version at least " +
         s"${release.minimumVersionToPerformUpgrade} is required, but no " +
         s"valid version satisfying this requirement could be found."
       )
@@ -208,7 +208,7 @@ class LauncherUpgrader(
     val nextRelease = releaseProvider.fetchRelease(minimumValidVersion).get
     Logger.debug(
       s"To upgrade to ${release.version}, " +
-      s"will have to upgrade to ${nextRelease.version} first."
+      s"the launcher will have to upgrade to ${nextRelease.version} first."
     )
     if (nextRelease.canPerformUpgradeFromCurrentVersion)
       nextRelease
@@ -306,9 +306,13 @@ class LauncherUpgrader(
 
       copyNonEssentialFiles(extractedRoot, release)
 
-      Logger.info("Replacing old launcher executable with the new one.")
+      Logger.info("Replacing the old launcher executable with the new one.")
       replaceLauncherExecutable(temporaryExecutable)
-      Logger.info(s"Successfully upgraded launcher to ${release.version}.")
+
+      val verb =
+        if (release.version >= CurrentVersion.version) "upgraded"
+        else "downgraded"
+      Logger.info(s"Successfully $verb launcher to ${release.version}.")
     }
   }
 

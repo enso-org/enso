@@ -237,18 +237,18 @@ re-run the current command.
 ### Step-by-Step Upgrade
 
 It is possible that in the future, new launcher versions will require some
-additional logic when upgrading that we did not think of currently. To maintain
-future-compatibility, each launcher version can define in its manifest a minimum
-launcher version that can be used to upgrade to it. Any new upgrade logic can
-then be introduced gradually (by first releasing a new version which knows this
-new logic but does not require it and later releasing another version that can
-require this new logic). In that case, updates are performed step-by-step -
-first this new version that does not require new logic is downloaded and it is
-used to upgrade to the new version which requires the new logic. If necessary,
-such upgrade steps can be chained.
+additional logic when upgrading that has not currently been considered. To
+maintain future-compatibility, each launcher version can define in its manifest
+a minimum launcher version that can be used to upgrade to it. Any new upgrade
+logic can then be introduced gradually (by first releasing a new version which
+knows this new logic but does not require it and later releasing another version
+that can require this new logic). In that case, updates are performed
+step-by-step - first this new version that does not require new logic is
+downloaded and it is used to upgrade to the new version which requires the new
+logic. If necessary, such upgrade steps can be chained.
 
 The step-by-step upgrade logic is implemented by checking the
-`minimum-version-to-upgrade` property in the new launcher's manifest. If the
+`minimum-version-for-upgrade` property in the new launcher's manifest. If the
 current version is greater or equal to that version, the upgrade proceeds
 normally. Otherwise, the launcher tries to upgrade to this minimum version (or
 the closest to it newer non-broken version), recursively - i.e. if this upgrade

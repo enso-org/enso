@@ -177,7 +177,8 @@ object Environment extends Environment {
   def internalOverrideExecutableLocation(newLocation: Path): Unit =
     if (buildinfo.Info.isRelease)
       throw new IllegalStateException(
-        "Internal testing function used in a release build."
+        "Internal testing function internalOverrideExecutableLocation used " +
+        "in a release build."
       )
     else {
       Logger.debug(s"[TEST] Overriding location to $newLocation.")

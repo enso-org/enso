@@ -21,7 +21,7 @@ trait LauncherRelease {
     * release.
     */
   def minimumVersionToPerformUpgrade: SemVer =
-    manifest.minimumVersionToUpgrade
+    manifest.minimumVersionForUpgrade
 
   /**
     * Manifest associated with the release.

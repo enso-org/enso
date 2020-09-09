@@ -53,7 +53,8 @@ object EnsoRepository {
   def internalUseFakeRepository(fakeRepositoryRoot: Path): Unit =
     if (buildinfo.Info.isRelease)
       throw new IllegalStateException(
-        "Internal testing function used in a release build."
+        "Internal testing function internalUseFakeRepository used in a " +
+        "release build."
       )
     else {
       Logger.debug(s"[TEST] Using a fake repository at $fakeRepositoryRoot.")
