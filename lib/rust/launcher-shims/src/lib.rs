@@ -11,9 +11,9 @@ use std::process::{Command, exit};
 // === WrapLauncher ===
 // ====================
 
-/// Runs the wrapped launcher overriding its reported version to the provided version.
+/// Run the wrapped launcher overriding its reported version to the provided version.
 ///
-/// The launcher's executable locations is also overridden to point to this executable. The launcher
+/// The launcher's executable location is also overridden to point to this executable. The launcher
 /// is passed all the original arguments plus the arguments that handle the version and location
 /// override. The location of the original launcher executable that is wrapped is determined by the
 /// environment variable `ENSO_LAUNCHER_LOCATION` that should be set at build-time.
