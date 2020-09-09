@@ -8,7 +8,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToLongNode;
 
 import java.math.BigInteger;
 
-@BuiltinMethod(type = "Number", name = "-", description = "Subtraction of numbers.")
+@BuiltinMethod(type = "Int_64", name = "-", description = "Subtraction of numbers.")
 public abstract class SubtractNode extends Node {
   private @Child ToLongNode toLongNode = ToLongNode.build();
 

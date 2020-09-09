@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 import java.math.BigInteger;
 
-@BuiltinMethod(type = "Big_Integer", name = "==", description = "Equality on numbers.")
+@BuiltinMethod(type = "Big_Integer", name = "==", description = "Big integer equality.")
 public abstract class EqualsNode extends Node {
 
   abstract boolean execute(BigInteger _this, Object that);

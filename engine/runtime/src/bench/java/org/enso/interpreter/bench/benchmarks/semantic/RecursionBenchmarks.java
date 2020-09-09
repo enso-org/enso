@@ -1,6 +1,5 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.bench.fixtures.semantic.RecursionFixtures;
 import org.enso.interpreter.test.DefaultInterpreterRunner;
@@ -22,39 +21,6 @@ public class RecursionBenchmarks {
 
   private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundredMillion());
-  }
-
-  private static final long hundredMil = 100000000;
-
-  public long javaNormal() {
-    long res = 0;
-    for (long i = 0; i < hundredMil; i++) {
-      res += i;
-    }
-    return res;
-  }
-
-  public long javaExact() {
-    long res = 0;
-    for (long i = 0; i < hundredMil; i = Math.addExact(i, 1)) {
-      res = Math.addExact(res, i);
-    }
-    return res;
-  }
-
-  public BigInteger javaBig() {
-    BigInteger res = BigInteger.valueOf(0);
-    BigInteger one = BigInteger.valueOf(1);
-    BigInteger million = BigInteger.valueOf(1000000);
-    for (BigInteger i = BigInteger.valueOf(0); i.compareTo(million) < 0; i = i.add(one)) {
-      res = res.add(one);
-    }
-    return res;
-  }
-
-  @Benchmark
-  public void benchJavaBig() {
-    javaBig();
   }
 
   @Benchmark

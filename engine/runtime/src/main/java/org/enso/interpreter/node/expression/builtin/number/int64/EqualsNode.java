@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
-@BuiltinMethod(type = "Number", name = "==", description = "Equality on numbers.")
+@BuiltinMethod(type = "Int_64", name = "==", description = "Equality on numbers.")
 public abstract class EqualsNode extends Node {
 
   abstract boolean execute(long _this, Object that);
