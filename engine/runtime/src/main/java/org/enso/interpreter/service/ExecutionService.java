@@ -5,7 +5,7 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.compiler.context.Changeset;
+import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
@@ -29,10 +29,12 @@ import org.enso.text.editing.TextEditor;
 import org.enso.text.editing.model;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -204,7 +206,7 @@ public class ExecutionService {
    */
   public void setModuleSources(File path, String contents, boolean isIndexed) {
     Optional<Module> module = context.getModuleForFile(path);
-    if (!module.isPresent()) {
+    if (module.isEmpty()) {
       module = context.createModuleForFile(path);
     }
     module.ifPresent(
@@ -241,23 +243,29 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public Optional<Changeset<Rope>> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public Optional<ChangesetBuilder<Rope>> modifyModuleSources(File path, List<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
-    if (!moduleMay.isPresent()) {
+    if (moduleMay.isEmpty()) {
+      logger.severe("Failed to get module for file: " + path);
       return Optional.empty();
     }
     Module module = moduleMay.get();
-    if (module.getLiteralSource() == null) {
+    try {
+      module.getSource();
+    } catch (IOException e) {
+      logger.log(Level.SEVERE, "Failed to get source for file: " + path, e);
       return Optional.empty();
     }
-    Changeset<Rope> changeset =
-        new Changeset<>(
+    ChangesetBuilder<Rope> changesetBuilder =
+        new ChangesetBuilder<>(
             module.getLiteralSource(),
             module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
-    editedSource.ifPresent(module::setLiteralSource);
-    return Optional.of(changeset);
+    editedSource.ifPresentOrElse(
+        module::setLiteralSource,
+        () -> logger.severe("Failed to apply edits for file: " + path + ", " + edits));
+    return Optional.of(changesetBuilder);
   }
 }

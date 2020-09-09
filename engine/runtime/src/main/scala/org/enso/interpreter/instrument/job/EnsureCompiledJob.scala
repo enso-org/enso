@@ -3,7 +3,12 @@ package org.enso.interpreter.instrument.job
 import java.io.File
 import java.util.Optional
 
-import org.enso.compiler.context.{Changeset, SuggestionBuilder}
+import org.enso.compiler.context.{
+  Changeset,
+  ChangesetBuilder,
+  SuggestionBuilder
+}
+import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
@@ -56,31 +61,67 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     files.foreach { file =>
       compile(file).foreach { module =>
         applyEdits(file).ifPresent {
-          case (changeset, edits) =>
-            val moduleName = module.getName.toString
+          case (changesetBuilder, edits) =>
+            val changeset = changesetBuilder.build(edits)
+            compile(module)
             runInvalidationCommands(
-              buildCacheInvalidationCommands(changeset, edits)
+              buildCacheInvalidationCommands(changeset)
             )
-            if (module.isIndexed) {
-              val removedSuggestions = SuggestionBuilder(changeset.source)
-                .build(moduleName, module.getIr)
-              compile(module)
-              val addedSuggestions =
-                SuggestionBuilder(changeset.applyEdits(edits))
-                  .build(moduleName, module.getIr)
-              sendSuggestionsUpdateNotification(
-                removedSuggestions diff addedSuggestions,
-                addedSuggestions diff removedSuggestions
-              )
-            } else {
-              val addedSuggestions =
-                SuggestionBuilder(changeset.applyEdits(edits))
-                  .build(moduleName, module.getIr)
-              sendReIndexNotification(moduleName, addedSuggestions)
-              module.setIndexed(true)
-            }
+            analyzeModule(module, changeset)
+            // println(s"ensureCompiled=${(module.getName, module.getCompilationStage)}")
+            val scopeModules =
+              ctx.executionService.getContext.getTopScope.getModules.asScala
+            println(
+              s"SCOPE_MODULES=${scopeModules.map(m => (m.getName, m.getLiteralSource != null))}"
+            )
+            val importedModules =
+              new ImportResolver(ctx.executionService.getContext.getCompiler)
+                .mapImports(module)
+                .filter(_.getName != module.getName)
+            println(
+              s"IMPORTED_MODULES=${importedModules.map(m => (m.getName, m.getLiteralSource != null))}"
+            )
+            importedModules.foreach(analyzeImport)
         }
       }
+    }
+  }
+
+  private def analyzeImport(
+    module: Module
+  )(implicit ctx: RuntimeContext): Unit = {
+    if (!module.isIndexed && (module.getLiteralSource ne null)) {
+      println(s"analyzeImport=${(module.getName, module.getCompilationStage)}")
+      val moduleName = module.getName.toString
+      val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
+        .build(module.getName.toString, module.getIr)
+      sendReIndexNotification(moduleName, addedSuggestions)
+      module.setIndexed(true)
+    }
+  }
+
+  private def analyzeModule(
+    module: Module,
+    changeset: Changeset[Rope]
+  )(implicit ctx: RuntimeContext): Unit = {
+    val moduleName = module.getName.toString
+    if (module.isIndexed) {
+      val removedSuggestions = SuggestionBuilder(changeset.source)
+        .build(moduleName, changeset.ir)
+      // compile(module)
+      val addedSuggestions =
+        SuggestionBuilder(module.getLiteralSource)
+          .build(moduleName, module.getIr)
+      sendSuggestionsUpdateNotification(
+        removedSuggestions diff addedSuggestions,
+        addedSuggestions diff removedSuggestions
+      )
+    } else {
+      val addedSuggestions =
+        SuggestionBuilder(module.getLiteralSource)
+          .build(moduleName, module.getIr)
+      sendReIndexNotification(moduleName, addedSuggestions)
+      module.setIndexed(true)
     }
   }
 
@@ -107,21 +148,25 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param ctx the runtime context
     * @return the compiled module
     */
-  private def compile(module: Module)(implicit ctx: RuntimeContext): Module =
+  private def compile(module: Module)(implicit ctx: RuntimeContext): Module = {
     module.compileScope(ctx.executionService.getContext).getModule
+    ctx.executionService.getLogger
+      .finer(s"Compiled ${module.getName} to ${module.getCompilationStage}")
+    module
+  }
 
   /**
     * Apply pending edits to the file.
     *
     * @param file the file to apply edits to
     * @param ctx the runtime context
-    * @return the [[Changeset]] object and the list of applied edits
+    * @return the [[ChangesetBuilder]] object and the list of applied edits
     */
   private def applyEdits(
     file: File
   )(implicit
     ctx: RuntimeContext
-  ): Optional[(Changeset[Rope], Seq[TextEdit])] = {
+  ): Optional[(ChangesetBuilder[Rope], Seq[TextEdit])] = {
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
     try {
@@ -138,19 +183,18 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /**
     * Create cache invalidation commands after applying the edits.
     *
-    * @param changeset the [[Changeset]] object capturing the previous version
+    * @param changeset the [[ChangesetBuilder]] object capturing the previous version
     * of IR
-    * @param edits the list of applied edits
     * @param ctx the runtime context
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
-    changeset: Changeset[Rope],
-    edits: Seq[TextEdit]
+    changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
-      CacheInvalidation.Command.InvalidateKeys(changeset.compute(edits))
+      CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
     val scopeIds = ctx.executionService.getContext.getCompiler
+      // TODO: module.getLiteralSource
       .parseMeta(changeset.source.toString)
       .map(_._2)
     val invalidateStaleCommand =

@@ -2,7 +2,6 @@ package org.enso.interpreter;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

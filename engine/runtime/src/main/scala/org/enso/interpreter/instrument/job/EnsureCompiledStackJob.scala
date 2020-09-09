@@ -44,7 +44,7 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
             module.getIr
               .unsafeGetMetadata(
                 CachePreferenceAnalysis,
-                "Empty cache preference metadata"
+                s"Empty cache preference metadata ${module.getName}"
               )
         }
       case _ => None
