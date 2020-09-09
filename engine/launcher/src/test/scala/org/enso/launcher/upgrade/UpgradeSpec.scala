@@ -68,6 +68,7 @@ class UpgradeSpec
     prepareLauncherBinary(SemVer(0, 0, 1))
     prepareLauncherBinary(SemVer(0, 0, 2))
     prepareLauncherBinary(SemVer(0, 0, 3))
+    prepareLauncherBinary(SemVer(0, 0, 4))
   }
 
   /**
@@ -144,25 +145,36 @@ class UpgradeSpec
   }
 
   "upgrade" should {
-    "upgrade/downgrade to latest version (excluding broken)" in {
-      // precondition for the test to make sense
-      SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 3)
-
-      prepareDistribution(portable = true)
-      run(Seq("upgrade")) should returnSuccess
-
-      checkVersion() shouldEqual SemVer(0, 0, 3)
-    }
-
-    "upgrade or downgrade to a specific version " +
-    "(and update necessary files)" in {
+    "upgrade to latest version (excluding broken)" in {
       prepareDistribution(
         portable        = true,
-        launcherVersion = Some(SemVer(0, 0, 0))
+        launcherVersion = Some(SemVer(0, 0, 2))
+      )
+      run(Seq("upgrade")) should returnSuccess
+
+      checkVersion() shouldEqual SemVer(0, 0, 4)
+    }
+
+    "not downgrade without being explicitly asked to do so" in {
+      // precondition for the test to make sense
+      SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
+
+      prepareDistribution(
+        portable = true
+      )
+      run(Seq("upgrade")).exitCode shouldEqual 1
+    }
+
+    "upgrade/downgrade to a specific version " +
+    "(and update necessary files)" in {
+      // precondition for the test to make sense
+      SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
+
+      prepareDistribution(
+        portable = true
       )
       val root = launcherPath.getParent.getParent
       FileSystem.writeTextFile(root / "README.md", "Old readme")
-      checkVersion() shouldEqual SemVer(0, 0, 0)
       run(Seq("upgrade", "0.0.1")) should returnSuccess
       checkVersion() shouldEqual SemVer(0, 0, 1)
       TestHelpers.readFileContent(root / "README.md").trim shouldEqual "Content"

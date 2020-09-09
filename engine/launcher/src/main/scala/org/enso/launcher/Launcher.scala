@@ -387,12 +387,24 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *
     * If a `version` is specified, installs that version. If the version is
     * older than the current one, a downgrade is performed. If no `version` is
-    * specified, the latest available version is chosen.
+    * specified, the latest available version is chosen, unless it is older than
+    * the current one.
     */
   def upgrade(version: Option[SemVer]): Unit = {
-    val targetVersion = version.getOrElse(upgrader.latestVersion().get)
+    val targetVersion       = version.getOrElse(upgrader.latestVersion().get)
+    val isManuallyRequested = version.isDefined
     if (targetVersion == CurrentVersion.version) {
       Logger.info("Already up-to-date.")
+    } else if (targetVersion < CurrentVersion.version && !isManuallyRequested) {
+      Logger.warn(
+        s"The latest available version is $targetVersion, but you are " +
+        s"running ${CurrentVersion.version} which is more recent."
+      )
+      Logger.info(
+        s"If you really want to downgrade, please run " +
+        s"`enso upgrade $targetVersion`."
+      )
+      sys.exit(1)
     } else {
       upgrader.upgrade(targetVersion)
     }
