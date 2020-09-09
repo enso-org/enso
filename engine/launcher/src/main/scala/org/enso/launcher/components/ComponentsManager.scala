@@ -8,12 +8,13 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.releases.{
-  EngineReleaseProvider,
+import org.enso.launcher.releases.engine.EngineRelease
+import org.enso.launcher.releases.runtime.{
   GraalCEReleaseProvider,
   RuntimeReleaseProvider
 }
-import org.enso.launcher.{FileSystem, Launcher, Logger}
+import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
+import org.enso.launcher.{FileSystem, Logger}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -32,7 +33,7 @@ import scala.util.{Failure, Success, Try, Using}
 class ComponentsManager(
   cliOptions: GlobalCLIOptions,
   distributionManager: DistributionManager,
-  engineReleaseProvider: EngineReleaseProvider,
+  engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: RuntimeReleaseProvider
 ) {
   private val showProgress = !cliOptions.hideProgress
@@ -238,7 +239,7 @@ class ComponentsManager(
     * [[engineReleaseProvider]].
     */
   def fetchLatestEngineVersion(): SemVer =
-    engineReleaseProvider.findLatest().get
+    engineReleaseProvider.findLatestVersion().get
 
   /**
     * Uninstalls the engine with the provided `version` (if it was installed).
@@ -266,7 +267,13 @@ class ComponentsManager(
     * the actual directory after doing simple sanity checks.
     */
   private def installEngine(version: SemVer): Engine = {
-    val engineRelease = engineReleaseProvider.getRelease(version).get
+    val engineRelease = engineReleaseProvider.fetchRelease(version).get
+    if (!engineRelease.manifest.isUsableWithCurrentVersion) {
+      throw LauncherUpgradeRequiredError(
+        engineRelease.manifest.minimumLauncherVersion,
+        cliOptions
+      )
+    }
     if (engineRelease.isBroken) {
       if (cliOptions.autoConfirm) {
         Logger.warn(
@@ -296,8 +303,8 @@ class ComponentsManager(
       Logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
       Logger.info(s"Downloading ${enginePackage.getFileName}.")
-      engineReleaseProvider
-        .downloadPackage(engineRelease, enginePackage)
+      engineRelease
+        .downloadPackage(enginePackage)
         .waitForResult(showProgress)
         .get
 
@@ -492,8 +499,13 @@ class ComponentsManager(
     */
   private def loadAndCheckEngineManifest(path: Path): Try[Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
-      if (manifest.minimumLauncherVersion > Launcher.version) {
-        Failure(LauncherUpgradeRequiredError(manifest.minimumLauncherVersion))
+      if (!manifest.isUsableWithCurrentVersion) {
+        Failure(
+          LauncherUpgradeRequiredError(
+            manifest.minimumLauncherVersion,
+            cliOptions
+          )
+        )
       } else Success(manifest)
     }
   }
@@ -609,17 +621,20 @@ class ComponentsManager(
   }
 }
 
-/**
-  * Default [[ComponentsManager]] using the default [[DistributionManager]] and
-  * release providers.
-  *
-  * @param cliOptions options from the CLI setting verbosity of the executed
-  *                   actions
-  */
-case class DefaultComponentsManager(cliOptions: GlobalCLIOptions)
-    extends ComponentsManager(
-      cliOptions,
+object ComponentsManager {
+
+  /**
+    * Creates a [[ComponentsManager]] using the default [[DistributionManager]]
+    * and release providers.
+    *
+    * @param globalCLIOptions options from the CLI setting verbosity of the
+    *                         executed actions
+    */
+  def makeDefault(globalCLIOptions: GlobalCLIOptions): ComponentsManager =
+    new ComponentsManager(
+      globalCLIOptions,
       DistributionManager,
-      EngineReleaseProvider,
+      EnsoRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider
     )
+}

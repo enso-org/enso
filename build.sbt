@@ -1061,6 +1061,9 @@ lazy val launcher = project
             "enso"
           )
         )
+        .dependsOn(
+          LauncherShimsForTest.prepare(rustcVersion = rustVersion)
+        )
         .value
   )
   .settings(licenseSettings)

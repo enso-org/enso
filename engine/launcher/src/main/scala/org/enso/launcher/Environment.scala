@@ -138,7 +138,21 @@ trait Environment {
     * returns a path to the root of the classpath for the `org.enso.launcher`
     * package or a built JAR.
     */
-  def getPathToRunningExecutable: Path = {
+  def getPathToRunningExecutable: Path
+}
+
+/**
+  * The default [[Environment]] implementation.
+  */
+object Environment extends Environment {
+
+  /**
+    * @inheritdoc
+    */
+  override def getPathToRunningExecutable: Path =
+    executablePathOverride.getOrElse(executablePath)
+
+  private def executablePath: Path =
     try {
       val codeSource =
         this.getClass.getProtectionDomain.getCodeSource
@@ -150,10 +164,24 @@ trait Environment {
           e
         )
     }
-  }
-}
 
-/**
-  * The default [[Environment]] implementation.
-  */
-object Environment extends Environment
+  private var executablePathOverride: Option[Path] = None
+
+  /**
+    * Overrides the return value of [[getPathToRunningExecutable]] with the
+    * provided path.
+    *
+    * Internal method used for testing. It should be called as early as
+    * possible, before [[getPathToRunningExecutable]] is called.
+    */
+  def internalOverrideExecutableLocation(newLocation: Path): Unit =
+    if (buildinfo.Info.isRelease)
+      throw new IllegalStateException(
+        "Internal testing function internalOverrideExecutableLocation used " +
+        "in a release build."
+      )
+    else {
+      Logger.debug(s"[TEST] Overriding location to $newLocation.")
+      executablePathOverride = Some(newLocation)
+    }
+}

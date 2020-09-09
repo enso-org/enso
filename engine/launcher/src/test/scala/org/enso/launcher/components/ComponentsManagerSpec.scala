@@ -71,7 +71,7 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
     "preserve the broken mark when installing a broken release" in {
       Logger.suppressWarnings {
         val componentsManager = makeComponentsManager()
-        val brokenVersion     = SemVer(0, 1, 0, Some("marked-broken"))
+        val brokenVersion     = SemVer(0, 999, 0, Some("marked-broken"))
         componentsManager.findOrInstallEngine(
           brokenVersion,
           complain = false
@@ -92,7 +92,7 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
           new GlobalConfigurationManager(componentsManager, distributionManager)
 
         val validVersion          = SemVer(0, 0, 1)
-        val newerButBrokenVersion = SemVer(0, 1, 0, Some("marked-broken"))
+        val newerButBrokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
         componentsManager.findOrInstallEngine(validVersion)
         componentsManager.findOrInstallEngine(newerButBrokenVersion)
 
@@ -105,7 +105,7 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
       Console.withErr(stream) {
         val componentsManager = makeComponentsManager()
 
-        val brokenVersion = SemVer(0, 1, 0, Some("marked-broken"))
+        val brokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
         componentsManager.findOrInstallEngine(brokenVersion)
 
         componentsManager.findEngine(brokenVersion).value

@@ -159,12 +159,17 @@ object NativeImage {
   private def isLinux: Boolean =
     sys.props("os.name").toLowerCase().contains("linux")
 
-  private def artifactFile(name: String): File =
+  /**
+    * [[File]] representing the artifact called `name` built with the Native
+    * Image.
+    */
+  def artifactFile(name: String): File =
     if (isWindows) file(name + ".exe")
     else file(name)
 
   private val muslBundleUrl =
-    "https://github.com/gradinac/musl-bundle-example/releases/download/v1.0/musl.tar.gz"
+    "https://github.com/gradinac/musl-bundle-example/releases/download/" +
+    "v1.0/musl.tar.gz"
 
   /**
     * Ensures that the `musl` bundle is installed.

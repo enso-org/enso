@@ -1,4 +1,4 @@
-package org.enso.launcher.components
+package org.enso.launcher.releases.testing
 
 import java.nio.file.{Files, Path, StandardCopyOption}
 
@@ -6,8 +6,8 @@ import org.enso.cli.{ProgressListener, TaskProgress}
 import org.enso.launcher.releases.{
   Asset,
   Release,
-  ReleaseProvider,
-  ReleaseProviderException
+  ReleaseProviderException,
+  SimpleReleaseProvider
 }
 import org.enso.launcher.{FileSystem, OS}
 
@@ -16,7 +16,7 @@ import scala.sys.process._
 import scala.util.{Success, Try, Using}
 
 /**
-  * A release provider that creates fake releases from the defined resources.
+  * A release provider that creates fake releases from the specified files.
   *
   * @param releasesRoot path to the directory containing subdirectories for each
   *                     release
@@ -26,7 +26,7 @@ import scala.util.{Success, Try, Using}
 case class FakeReleaseProvider(
   releasesRoot: Path,
   copyIntoArchiveRoot: Seq[String] = Seq.empty
-) extends ReleaseProvider {
+) extends SimpleReleaseProvider {
   private val releases =
     FileSystem
       .listDirectory(releasesRoot)

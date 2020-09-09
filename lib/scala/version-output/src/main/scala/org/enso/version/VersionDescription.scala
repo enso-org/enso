@@ -2,6 +2,10 @@ package org.enso.version
 
 import buildinfo.Info
 
+/**
+  * Represents a description of a version string that can be rendered as a
+  * human-readable string or in JSON format.
+  */
 trait VersionDescription {
   def asHumanReadableString: String
   def asJSONString:          String
@@ -27,22 +31,35 @@ case class VersionDescriptionParameter(
 )
 
 object VersionDescription {
-  def formatParameterAsJSONString(
-    parameter: VersionDescriptionParameter
-  ): String =
-    s""""${parameter.jsonName}": ${parameter.value}"""
-  def formatParameterAsHumanReadableString(
-    parameter: VersionDescriptionParameter
-  ): String =
-    s"${parameter.humanReadableName}: ${parameter.value}"
 
+  /**
+    * Creates a [[VersionDescription]] instance.
+    *
+    * @param header header displayed as the first line of the human-readable
+    *               representation
+    * @param includeRuntimeJVMInfo if set to true, includes information about
+    *                              the JVM that is running the program
+    * @param enableNativeImageOSWorkaround if set to true, changes how the OS
+    *                                      information is displayed; this is a
+    *                                      temporary workaround caused by the
+    *                                      Native Image OS returning the value
+    *                                      known at build-time and not at
+    *                                      runtime
+    * @param additionalParameters a sequence of additional
+    *                             [[VersionDescriptionParameter]] to include in
+    *                             the version string
+    * @param customVersion if provided, overrides the version string from
+    *                      [[buildinfo]]; used for testing purposes
+    * @return
+    */
   def make(
     header: String,
     includeRuntimeJVMInfo: Boolean,
     enableNativeImageOSWorkaround: Boolean                 = false,
-    additionalParameters: Seq[VersionDescriptionParameter] = Seq.empty
+    additionalParameters: Seq[VersionDescriptionParameter] = Seq.empty,
+    customVersion: Option[String]                          = None
   ): VersionDescription = {
-    val version   = Info.ensoVersion
+    val version   = customVersion.getOrElse(Info.ensoVersion)
     val osArch    = System.getProperty("os.arch")
     val osName    = System.getProperty("os.name")
     val osVersion = System.getProperty("os.version")
@@ -106,4 +123,13 @@ object VersionDescription {
       }
     }
   }
+
+  private def formatParameterAsJSONString(
+    parameter: VersionDescriptionParameter
+  ): String =
+    s""""${parameter.jsonName}": ${parameter.value}"""
+  private def formatParameterAsHumanReadableString(
+    parameter: VersionDescriptionParameter
+  ): String =
+    s"${parameter.humanReadableName}: ${parameter.value}"
 }

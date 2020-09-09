@@ -2,11 +2,10 @@ package org.enso.launcher
 
 import java.nio.file.Path
 
-import buildinfo.Info
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
-import org.enso.launcher.components.DefaultComponentsManager
+import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.components.runner.{
   JVMSettings,
   LanguageServerOptions,
@@ -16,6 +15,7 @@ import org.enso.launcher.components.runner.{
 import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
+import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /**
@@ -25,7 +25,7 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
   * @param cliOptions the global CLI options to use for the commands
   */
 case class Launcher(cliOptions: GlobalCLIOptions) {
-  private lazy val componentsManager = DefaultComponentsManager(cliOptions)
+  private lazy val componentsManager = ComponentsManager.makeDefault(cliOptions)
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
@@ -36,6 +36,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       componentsManager,
       Environment
     )
+  private lazy val upgrader = LauncherUpgrader.makeDefault(cliOptions)
+  upgrader.runCleanup(isStartup = true)
 
   /**
     * Creates a new project with the given `name` in the given `path`.
@@ -342,7 +344,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       "Enso Launcher",
       includeRuntimeJVMInfo         = false,
       enableNativeImageOSWorkaround = true,
-      additionalParameters          = runtimeVersionParameter.toSeq
+      additionalParameters          = runtimeVersionParameter.toSeq,
+      customVersion                 = Some(CurrentVersion.version.toString)
     )
 
     println(versionDescription.asString(useJSON))
@@ -378,20 +381,40 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       value    = runtimeVersionString
     )
   }
+
+  /**
+    * Performs a self-upgrade.
+    *
+    * If a `version` is specified, installs that version. If the version is
+    * older than the current one, a downgrade is performed. If no `version` is
+    * specified, the latest available version is chosen, unless it is older than
+    * the current one.
+    */
+  def upgrade(version: Option[SemVer]): Unit = {
+    val targetVersion       = version.getOrElse(upgrader.latestVersion().get)
+    val isManuallyRequested = version.isDefined
+    if (targetVersion == CurrentVersion.version) {
+      Logger.info("Already up-to-date.")
+    } else if (targetVersion < CurrentVersion.version && !isManuallyRequested) {
+      Logger.warn(
+        s"The latest available version is $targetVersion, but you are " +
+        s"running ${CurrentVersion.version} which is more recent."
+      )
+      Logger.info(
+        s"If you really want to downgrade, please run " +
+        s"`enso upgrade $targetVersion`."
+      )
+      sys.exit(1)
+    } else {
+      upgrader.upgrade(targetVersion)
+    }
+  }
 }
 
 /**
   * Gathers launcher commands which do not depend on the global CLI options.
   */
 object Launcher {
-
-  /**
-    * Version of the launcher.
-    */
-  val version: SemVer = SemVer(Info.ensoVersion).getOrElse {
-    throw new IllegalStateException("Cannot parse the built-in version.")
-  }
-
   private val workingDirectory: Path = Path.of(".")
 
   /**
