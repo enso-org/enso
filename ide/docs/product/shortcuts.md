@@ -57,7 +57,7 @@ tags: [product,ui]
 | -------- | ------ |
 | <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>space</kbd> | Toggle visualization visibility of the selected node. |
 | <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>f</kbd>     | Cycle visualizations of the selected node. |
-| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>\\</kbd>    | Toggle documentation view visibility |
+| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>\</kbd>     | Toggle documentation view visibility |
 
 ### Debug
 | Shortcut | Action |

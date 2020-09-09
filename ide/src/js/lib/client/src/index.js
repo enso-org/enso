@@ -341,9 +341,9 @@ function createWindow() {
         windowPreferences.vibrancy = 'fullscreen-ui'
     }
 
-    Electron.Menu.setApplicationMenu(null);
     const window = new Electron.BrowserWindow(windowPreferences)
 
+    window.setMenuBarVisibility(false)
 
     if (args.dev) {
         window.webContents.openDevTools()
