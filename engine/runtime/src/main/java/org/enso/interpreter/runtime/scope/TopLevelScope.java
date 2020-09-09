@@ -12,7 +12,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
@@ -130,8 +130,8 @@ public class TopLevelScope implements TruffleObject {
    * @return a collection of all the exported members.
    */
   @ExportMessage
-  Vector getMembers(boolean includeInternal) {
-    return new Vector(
+  Array getMembers(boolean includeInternal) {
+    return new Array(
         MethodNames.TopScope.GET_MODULE,
         MethodNames.TopScope.CREATE_MODULE,
         MethodNames.TopScope.REGISTER_MODULE,

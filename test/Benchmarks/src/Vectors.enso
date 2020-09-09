@@ -15,5 +15,5 @@ main =
     mil = 1000000
     list = here.gen_list mil
     vec = Vector.new mil (ix -> ix + 1)
-    Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 100 10
-    Bench_Utils.measure (list.fold 0 (+)) "list fold" 100 10
+    Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 1000 10
+    Bench_Utils.measure (list.fold 0 (+)) "list fold" 1000 10

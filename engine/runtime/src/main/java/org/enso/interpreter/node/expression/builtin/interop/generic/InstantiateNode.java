@@ -8,7 +8,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -21,7 +21,7 @@ public class InstantiateNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object constructor, Vector arguments) {
+  Object execute(Object _this, Object constructor, Array arguments) {
     try {
       return library.instantiate(constructor, arguments.getItems());
     } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {

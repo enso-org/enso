@@ -1,31 +1,35 @@
 package org.enso.interpreter.runtime.data;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 
-/** An immutable array-like collection. */
+/** A primitve boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
-public class Vector implements TruffleObject {
+public class Array implements TruffleObject {
   private final Object[] items;
 
   /**
-   * Creates a new Vector
+   * Creates a new array
    *
    * @param items the element values
    */
-  public Vector(Object... items) {
+  public Array(Object... items) {
     this.items = items;
   }
 
-  public Vector(long size) {
-    this.items = new Object[(int)size];
+  /**
+   * Creates an uninitialized array of the given size.
+   *
+   * @param size the size of the created array.
+   */
+  public Array(long size) {
+    this.items = new Object[(int) size];
   }
 
-  /** @return the elements of this vector as an array. */
+  /** @return the elements of this array as a java array. */
   public Object[] getItems() {
     return items;
   }
@@ -61,7 +65,7 @@ public class Vector implements TruffleObject {
    * @return
    */
   @ExportMessage
-  public long getArraySize() {
+  long getArraySize() {
     return items.length;
   }
 
@@ -72,22 +76,22 @@ public class Vector implements TruffleObject {
    * @return {@code true} if the index is valid, {@code false} otherwise.
    */
   @ExportMessage
-  public boolean isArrayElementReadable(long index) {
+  boolean isArrayElementReadable(long index) {
     return index < getArraySize() && index >= 0;
   }
 
   @ExportMessage
-  public void writeArrayElement(long index, Object value) {
+  void writeArrayElement(long index, Object value) {
     items[(int) index] = value;
   }
 
   @ExportMessage
-  final boolean isArrayElementModifiable(long index) {
+  boolean isArrayElementModifiable(long index) {
     return isArrayElementReadable(index);
   }
 
   @ExportMessage
-  final boolean isArrayElementInsertable(long index) {
+  boolean isArrayElementInsertable(long index) {
     return false;
   }
 }

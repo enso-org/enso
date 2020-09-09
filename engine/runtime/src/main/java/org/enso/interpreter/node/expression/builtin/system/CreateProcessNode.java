@@ -8,7 +8,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import java.io.*;
@@ -26,7 +26,7 @@ public abstract class CreateProcessNode extends Node {
   abstract Object execute(
       Object _this,
       String command,
-      Vector arguments,
+      Array arguments,
       String input,
       boolean redirectIn,
       boolean redirectOut,
@@ -37,7 +37,7 @@ public abstract class CreateProcessNode extends Node {
   Object doCreate(
       Object _this,
       String command,
-      Vector arguments,
+      Array arguments,
       String input,
       boolean redirectIn,
       boolean redirectOut,

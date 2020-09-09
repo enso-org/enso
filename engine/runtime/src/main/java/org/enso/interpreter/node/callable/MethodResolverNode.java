@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 
@@ -161,7 +161,7 @@ public abstract class MethodResolverNode extends Node {
   @Specialization(guards = "cachedSymbol == symbol")
   Function resolveArray(
       UnresolvedSymbol symbol,
-      Vector self,
+      Array self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
       @Cached(value = "resolveMethodOnArray(cachedSymbol)", allowUncached = true)
           Function function) {
