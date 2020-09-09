@@ -13,6 +13,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.RuntimeError;
 
+import java.math.BigInteger;
+
 /**
  * This class defines the interpreter-level type system for Enso.
  *
@@ -33,7 +35,8 @@ import org.enso.interpreter.runtime.error.RuntimeError;
   Thunk.class,
   RuntimeError.class,
   UnresolvedSymbol.class,
-  Array.class
+  Array.class,
+  BigInteger.class
 })
 public class Types {
 

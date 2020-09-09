@@ -1,5 +1,7 @@
 package org.enso.compiler.codegen
 
+import java.math.BigInteger
+
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
@@ -41,6 +43,7 @@ import org.enso.interpreter.node.expression.constant.{
   ErrorNode
 }
 import org.enso.interpreter.node.expression.literal.{
+  BigIntegerLiteralNode,
   IntegerLiteralNode,
   TextLiteralNode
 }
@@ -857,7 +860,10 @@ class IrToTruffle(
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
         case IR.Literal.Number(value, location, _, _) =>
-          setLocation(IntegerLiteralNode.build(value.toLong), location)
+          val node = value.toLongOption
+            .map(IntegerLiteralNode.build)
+            .getOrElse(BigIntegerLiteralNode.build(new BigInteger(value)))
+          setLocation(node, location)
         case IR.Literal.Text(text, location, _, _) =>
           setLocation(TextLiteralNode.build(text), location)
       }

@@ -1,0 +1,15 @@
+from Base import all
+
+import Base.Test
+
+spec =
+    almost_max_long = 9223372036854775806
+    almost_max_long_times_three = 27670116110564327418
+    hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+    describe "Integers" <|
+        it "should be of unbound size when multiplied" <|
+            1.upto 101 . fold 1 (*) . should_equal hundred_factorial
+        it "should be of unbound size when added" <|
+            (almost_max_long + almost_max_long + almost_max_long).should_equal almost_max_long_times_three
+        it "should be of unbound size when subtracted" <|
+            (0 - almost_max_long - almost_max_long - almost_max_long).should_equal almost_max_long_times_three.negate

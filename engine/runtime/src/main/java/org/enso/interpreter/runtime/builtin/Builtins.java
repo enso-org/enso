@@ -12,7 +12,6 @@ import org.enso.interpreter.node.expression.builtin.interop.generic.*;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.*;
-import org.enso.interpreter.node.expression.builtin.number.*;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.*;
@@ -46,7 +45,7 @@ public class Builtins {
   private final ModuleScope scope;
   private final AtomConstructor unit;
   private final AtomConstructor any;
-  private final AtomConstructor number;
+  private final Number number;
   private final AtomConstructor function;
   private final AtomConstructor text;
   private final AtomConstructor debug;
@@ -71,7 +70,6 @@ public class Builtins {
     scope = module.compileScope(context);
     unit = new AtomConstructor("Unit", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
-    number = new AtomConstructor("Number", scope).initializeFields();
     bool = new Bool(language, scope);
     error = new Error(language, scope);
     array = new Array(language, scope);
@@ -79,6 +77,7 @@ public class Builtins {
     text = new AtomConstructor("Text", scope).initializeFields();
     debug = new AtomConstructor("Debug", scope).initializeFields();
     system = new System(language, scope);
+    number = new Number(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -96,10 +95,8 @@ public class Builtins {
     AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
 
     AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
-
     scope.registerConstructor(unit);
     scope.registerConstructor(any);
-    scope.registerConstructor(number);
     scope.registerConstructor(function);
     scope.registerConstructor(text);
 
@@ -130,14 +127,6 @@ public class Builtins {
     scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
     scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch", CatchErrorMethodGen.makeFunction(language));
-
-    scope.registerMethod(number, "+", AddMethodGen.makeFunction(language));
-    scope.registerMethod(number, "-", SubtractMethodGen.makeFunction(language));
-    scope.registerMethod(number, "*", MultiplyMethodGen.makeFunction(language));
-    scope.registerMethod(number, "/", DivideMethodGen.makeFunction(language));
-    scope.registerMethod(number, "%", ModMethodGen.makeFunction(language));
-    scope.registerMethod(number, "negate", NegateMethodGen.makeFunction(language));
-    scope.registerMethod(number, "==", EqualsMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
@@ -220,11 +209,11 @@ public class Builtins {
   }
 
   /**
-   * Returns the {@code Number} atom constructor.
+   * Returns the number-related entities.
    *
-   * @return the {@code Number} atom constructor
+   * @return the number-related part of builtins.
    */
-  public AtomConstructor number() {
+  public Number number() {
     return number;
   }
 

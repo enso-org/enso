@@ -23,6 +23,43 @@ public class RecursionBenchmarks {
     main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundredMillion());
   }
 
+  private static final long hundredMil = 100000000;
+
+  public long javaNormal() {
+    long res = 0;
+    for (long i = 0; i < hundredMil; i++) {
+      res += i;
+    }
+    return res;
+  }
+
+  public long doAdd(long a, long b) {
+    try {
+      return Math.addExact(a, b);
+    } catch (ArithmeticException e) {
+      e.printStackTrace();
+      return 0;
+    }
+  }
+
+  public long javaExact() {
+    long res = 0;
+    for (long i = 0; i < hundredMil; i = doAdd(i, 1)) {
+      res = doAdd(res, i);
+    }
+    return res;
+  }
+
+  @Benchmark
+  public void benchJavaNormal() {
+    javaNormal();
+  }
+
+  @Benchmark
+  public void benchJavaExact() {
+    javaExact();
+  }
+
   @Benchmark
   public void benchSumTCO() {
     runOnHundredMillion(recursionFixtures.sumTCO());
