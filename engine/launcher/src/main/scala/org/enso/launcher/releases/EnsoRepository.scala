@@ -34,14 +34,6 @@ object EnsoRepository {
     "launcher"
   )
 
-  private val defaultEngineRepository = githubRepository
-  private val defaultLauncherRepository = new SimpleReleaseProviderWithFallback(
-    baseProvider     = githubRepository,
-    fallbackProvider = launcherS3Fallback
-  )
-  private var launcherRepository: SimpleReleaseProvider =
-    defaultLauncherRepository
-
   /**
     * Default provider of engine releases.
     */
@@ -72,6 +64,14 @@ object EnsoRepository {
       Logger.debug(s"[TEST] Using a fake repository at $fakeRepositoryRoot.")
       launcherRepository = makeFakeRepository(fakeRepositoryRoot)
     }
+
+  private val defaultEngineRepository = githubRepository
+  private val defaultLauncherRepository = new SimpleReleaseProviderWithFallback(
+    baseProvider     = githubRepository,
+    fallbackProvider = launcherS3Fallback
+  )
+  private var launcherRepository: SimpleReleaseProvider =
+    defaultLauncherRepository
 
   private def makeFakeRepository(
     fakeRepositoryRoot: Path
