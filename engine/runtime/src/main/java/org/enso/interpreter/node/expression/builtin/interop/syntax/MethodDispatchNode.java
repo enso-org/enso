@@ -65,7 +65,7 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
     Object arguments = args[2];
     Stateful casted = invokeCallableNode.execute(toArray, frame, state, new Object[] {arguments});
     try {
-      Object[] castedArgs = TypesGen.expectVector(casted.getValue()).getItems();
+      Object[] castedArgs = TypesGen.expectArray(casted.getValue()).getItems();
       Object res = library.invokeMember(callable, symbol.getName(), castedArgs);
       return new Stateful(casted.getState(), res);
     } catch (UnsupportedMessageException

@@ -118,8 +118,8 @@ public class Types {
       return "Thunk";
     } else if (TypesGen.isRuntimeError(value)) {
       return "Error " + TypesGen.asRuntimeError(value).getPayload().toString();
-    } else if (TypesGen.isVector(value)) {
-      return "Vector";
+    } else if (TypesGen.isArray(value)) {
+      return "Array";
     } else {
       return null;
     }

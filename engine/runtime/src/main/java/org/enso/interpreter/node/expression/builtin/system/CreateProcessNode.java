@@ -43,9 +43,9 @@ public abstract class CreateProcessNode extends Node {
       boolean redirectOut,
       boolean redirectErr,
       @CachedContext(Language.class) Context ctx) {
-    String[] cmd = new String[(int) arguments.getArraySize() + 1];
+    String[] cmd = new String[(int) arguments.getItems().length + 1];
     cmd[0] = command;
-    System.arraycopy(arguments.getItems(), 0, cmd, 1, (int) arguments.getArraySize());
+    System.arraycopy(arguments.getItems(), 0, cmd, 1, (int) arguments.getItems().length);
     TruffleProcessBuilder pb = ctx.getEnvironment().newProcessBuilder(cmd);
 
     try {
