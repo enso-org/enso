@@ -261,6 +261,7 @@ public class Builtins {
     return system;
   }
 
+  /** @return the container for array-related builtins. */
   public Array array() {
     return array;
   }
@@ -281,7 +282,7 @@ public class Builtins {
   /**
    * Builds a function dispatching to a polyglot method call.
    *
-   * @param method the name of the method this function will dispatch to.
+   * @param method the name and scope of the method this function will dispatch to.
    * @return a function calling {@code method} with given arguments.
    */
   public Function buildPolyglotMethodDispatch(UnresolvedSymbol method) {

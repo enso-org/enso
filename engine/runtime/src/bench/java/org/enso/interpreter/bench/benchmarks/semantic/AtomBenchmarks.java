@@ -17,26 +17,6 @@ import org.openjdk.jmh.annotations.Warmup;
 @Measurement(iterations = 5)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class AtomBenchmarks {
-  private static int mil = 1000000;
-
-  private static Long[] build() {
-    Long[] res = new Long[mil];
-    for (int i = 0; i < mil; i++) {
-      res[i] = (long) i + 1;
-    }
-    return res;
-  }
-
-  private static Long[] input = build();
-
-  @Benchmark
-  public void javaSum() {
-    Long res = 0L;
-    for (int i = 0; i < mil; i++) {
-      res += input[i];
-    }
-  }
-
   private static AtomFixtures fixtures = new AtomFixtures();
 
   @Benchmark
