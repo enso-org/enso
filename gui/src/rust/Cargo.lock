@@ -1152,6 +1152,7 @@ dependencies = [
  "enso-protocol 0.1.0",
  "enso-shapely 0.1.0",
  "ensogl 0.1.0",
+ "ensogl-examples 0.1.0",
  "ensogl-system-web 0.1.0",
  "ensogl-text-msdf-sys 0.1.0",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
