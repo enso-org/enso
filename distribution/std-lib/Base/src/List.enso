@@ -72,9 +72,12 @@ type List
          list:
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
-    fold init f = case this of
-        Nil -> init
-        Cons h t -> t.fold (f init h) f
+    fold init f =
+        go acc list = case list of
+            Nil -> acc
+            Cons h t -> go (f acc h) t
+        res = go init this
+        res
 
     ## Reverses the list, returning a list with the same elements, but in the
        opposite order.

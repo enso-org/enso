@@ -33,13 +33,15 @@ public class UnresolvedSymbol implements TruffleObject {
   /**
    * Gets the symbol name.
    *
-   * <p>All names for dynamic symbols are interned, making it safe to compare symbol names using the
-   * standard {@code ==} equality operator.
-   *
    * @return the name of this symbol
    */
   public String getName() {
     return name;
+  }
+
+  /** @return the scope this symbol was used in. */
+  public ModuleScope getScope() {
+    return scope;
   }
 
   /**

@@ -1,0 +1,19 @@
+from Base import all
+import Base.Bench_Utils
+
+gen_list len = 0.upto len . fold Nil (l -> i -> Cons i+1 l)
+
+sum_vec vec =
+    arr = vec.to_array
+    len = vec.length
+    sumator = acc -> idx ->
+        if idx == len then acc else sumator (acc + arr.at idx) idx+1
+    res = sumator 0 0
+    res
+
+main =
+    mil = 1000000
+    list = here.gen_list mil
+    vec = Vector.new mil (ix -> ix + 1)
+    Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 1000 10
+    Bench_Utils.measure (list.fold 0 (+)) "list fold" 1000 10

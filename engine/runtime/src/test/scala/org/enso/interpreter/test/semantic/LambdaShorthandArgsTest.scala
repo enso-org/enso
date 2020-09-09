@@ -139,23 +139,6 @@ class LambdaShorthandArgsTest extends InterpreterTest {
       eval(code) shouldEqual 15
     }
 
-    "work properly with vector literals" in {
-      val code =
-        """from Builtins import all
-          |
-          |main =
-          |    fun = [1, _, (1 + 2), _]
-          |    vec = fun 2 4
-          |    IO.println (Polyglot.get_array_element vec 0)
-          |    IO.println (Polyglot.get_array_element vec 1)
-          |    IO.println (Polyglot.get_array_element vec 2)
-          |    IO.println (Polyglot.get_array_element vec 3)
-          |
-          |""".stripMargin
-      eval(code)
-      consumeOut shouldEqual List("1", "2", "3", "4")
-    }
-
     "work properly when used with dot notation" in {
       val code =
         """

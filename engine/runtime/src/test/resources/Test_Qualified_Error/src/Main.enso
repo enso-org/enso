@@ -1,3 +1,3 @@
 import Test_Qualified_Error.Atom
 
-Main.main = (X 1).method
+main = (X 1).method

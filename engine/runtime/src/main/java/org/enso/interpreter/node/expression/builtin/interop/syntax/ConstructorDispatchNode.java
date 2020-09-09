@@ -54,7 +54,7 @@ public class ConstructorDispatchNode extends BuiltinRootNode {
     Object cons = args[0];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
-      Object[] arguments = TypesGen.expectVector(args[1]).getItems();
+      Object[] arguments = TypesGen.expectArray(args[1]).getItems();
       Object res = library.instantiate(cons, arguments);
       return new Stateful(state, res);
     } catch (UnsupportedMessageException

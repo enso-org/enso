@@ -1197,10 +1197,10 @@ class RuntimeServerTest
     val idMain   = metadata.addItem(32, 35)
     val idMainA  = metadata.addItem(41, 8)
     val idMainP  = metadata.addItem(54, 12)
-    val idPie    = metadata.addItem(71 + 8, 1)
-    val idUwu    = metadata.addItem(84 + 8, 1)
-    val idHie    = metadata.addItem(97 + 8, 6)
-    val idXxx    = metadata.addItem(117 + 8, 1)
+    val idPie    = metadata.addItem(66 + 8, 1)
+    val idUwu    = metadata.addItem(74 + 8, 1)
+    val idHie    = metadata.addItem(82 + 8, 6)
+    val idXxx    = metadata.addItem(102 + 8, 1)
     val code =
       """from Builtins import all
         |
@@ -1208,9 +1208,9 @@ class RuntimeServerTest
         |    a = 123 + 21
         |    IO.println a
         |
-        |Main.pie = 3
-        |Main.uwu = 7
-        |Main.hie = "hie!"
+        |pie = 3
+        |uwu = 7
+        |hie = "hie!"
         |Number.x y = y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -1399,7 +1399,7 @@ class RuntimeServerTest
           Seq(
             TextEdit(
               model.Range(model.Position(3, 8), model.Position(3, 16)),
-              "Main.pie"
+              "here.pie"
             )
           )
         )
@@ -1430,7 +1430,7 @@ class RuntimeServerTest
           Seq(
             TextEdit(
               model.Range(model.Position(3, 8), model.Position(3, 16)),
-              "Main.uwu"
+              "here.uwu"
             )
           )
         )
@@ -1461,7 +1461,7 @@ class RuntimeServerTest
           Seq(
             TextEdit(
               model.Range(model.Position(3, 8), model.Position(3, 16)),
-              "Main.hie"
+              "here.hie"
             )
           )
         )

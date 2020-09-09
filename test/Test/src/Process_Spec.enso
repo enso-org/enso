@@ -1,3 +1,4 @@
+from Base import all
 import Base.Process
 from Base.Process.Exit_Code import Exit_Success, Exit_Failure
 import Base.System.Platform
