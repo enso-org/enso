@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-callback            = { version = "0.1.0"  , path = "../lib/callback"             }
 ensogl                   = { version = "0.1.0"  , path = "../ensogl"                   }
+ensogl-examples          = { version = "0.1.0"  , path = "../ensogl/example"           }
 ensogl-text-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/lib/text/msdf-sys" }
 ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"           }
 fuzzly                   = { version = "0.1.0"  , path = "../lib/fuzzly"               }
