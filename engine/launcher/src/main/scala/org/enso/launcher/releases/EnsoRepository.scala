@@ -3,7 +3,10 @@ package org.enso.launcher.releases
 import java.nio.file.Path
 
 import org.enso.launcher.Logger
+import org.enso.launcher.http.URIBuilder
 import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
+import org.enso.launcher.releases.fallback.SimpleReleaseProviderWithFallback
+import org.enso.launcher.releases.fallback.staticwebsite.StaticWebsiteFallbackReleaseProvider
 import org.enso.launcher.releases.github.GithubReleaseProvider
 import org.enso.launcher.releases.launcher.{
   LauncherRelease,
@@ -19,34 +22,43 @@ import org.enso.launcher.releases.testing.FakeReleaseProvider
   * filesystem-backed repository.
   */
 object EnsoRepository {
-  private var currentRepository: SimpleReleaseProvider =
-    // TODO [RW] The release provider will be moved from staging to the main
-    //  repository, when the first official Enso release is released.
-    new GithubReleaseProvider(
-      "enso-org",
-      "enso-staging"
-    )
+  // TODO [RW] The release provider will be moved from staging to the main
+  //  repository, when the first official Enso release is released.
+  private val githubRepository = new GithubReleaseProvider(
+    "enso-org",
+    "enso-staging"
+  )
 
-  /**
-    * Default repository for Enso releases.
-    */
-  def defaultReleaseRepository: SimpleReleaseProvider = currentRepository
+  private val launcherS3Fallback = new StaticWebsiteFallbackReleaseProvider(
+    URIBuilder.fromHost("launcherfallback.release.enso.org") / "bucket",
+    "launcher"
+  )
+
+  private val defaultEngineRepository = githubRepository
+  private val defaultLauncherRepository = new SimpleReleaseProviderWithFallback(
+    baseProvider     = githubRepository,
+    fallbackProvider = launcherS3Fallback
+  )
+  private var launcherRepository: SimpleReleaseProvider =
+    defaultLauncherRepository
 
   /**
     * Default provider of engine releases.
     */
   def defaultEngineReleaseProvider: ReleaseProvider[EngineRelease] =
-    new EngineReleaseProvider(defaultReleaseRepository)
+    new EngineReleaseProvider(defaultEngineRepository)
 
   /**
     * Default provider of launcher releases.
     */
   def defaultLauncherReleaseProvider: ReleaseProvider[LauncherRelease] =
-    new LauncherReleaseProvider(defaultReleaseRepository)
+    new LauncherReleaseProvider(launcherRepository)
 
   /**
     * Overrides the default repository with a local filesystem based fake
     * repository.
+    *
+    * Currently only the launcher repository is overridden.
     *
     * Internal method used for testing.
     */
@@ -58,7 +70,7 @@ object EnsoRepository {
       )
     else {
       Logger.debug(s"[TEST] Using a fake repository at $fakeRepositoryRoot.")
-      currentRepository = makeFakeRepository(fakeRepositoryRoot)
+      launcherRepository = makeFakeRepository(fakeRepositoryRoot)
     }
 
   private def makeFakeRepository(
