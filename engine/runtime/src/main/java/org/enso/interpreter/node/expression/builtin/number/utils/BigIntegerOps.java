@@ -4,6 +4,9 @@ import com.oracle.truffle.api.CompilerDirectives;
 
 import java.math.BigInteger;
 
+/**
+ * Re-exposes big-integer operations behind a truffle boundary.
+ */
 public class BigIntegerOps {
   @CompilerDirectives.TruffleBoundary
   public static BigInteger multiply(long a, long b) {
