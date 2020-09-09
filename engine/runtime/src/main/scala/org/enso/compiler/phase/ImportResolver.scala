@@ -6,7 +6,6 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
-import util.control.Breaks._
 import scala.collection.mutable
 
 /**
@@ -30,43 +29,54 @@ class ImportResolver(compiler: Compiler) {
     *         the program.
     */
   def mapImports(module: Module): List[Module] = {
-    val seen: mutable.Set[Module] = mutable.Set()
-    var stack: List[Module]       = List(module)
-    while (stack.nonEmpty) {
-      val current = stack.head
-      stack = stack.tail
-      breakable {
-        if (
-          seen.contains(current) || current.getCompilationStage.isAtLeast(
-            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+    @scala.annotation.tailrec
+    def go(
+      stack: mutable.Stack[Module],
+      seen: mutable.Set[Module]
+    ): List[Module] = {
+      if (stack.isEmpty) {
+        seen.toList
+      } else {
+        val current = stack.pop()
+        if (seen.contains(current)) {
+          go(stack, seen)
+        } else {
+          // get module metadata
+          compiler.ensureParsed(current)
+          val ir = current.getIr
+          val currentLocal = ir.unsafeGetMetadata(
+            BindingAnalysis,
+            "Non-parsed module used in ImportResolver"
           )
-        ) {
-          break()
+          // put the list of resolved imports in the module metadata
+          if (
+            current.getCompilationStage
+              .isBefore(Module.CompilationStage.AFTER_IMPORT_RESOLUTION)
+          ) {
+            val importedModules = ir.imports.flatMap {
+              case imp: IR.Module.Scope.Import.Module =>
+                val impName = imp.name.name
+                val exp     = ir.exports.find(_.name.name == impName)
+                compiler
+                  .getModule(impName)
+                  .map(BindingsMap.ResolvedImport(imp, exp, _))
+              case _ => None
+            }
+            currentLocal.resolvedImports = importedModules
+            current.unsafeSetCompilationStage(
+              Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+            )
+          }
+          // continue with updated stack
+          go(
+            stack.pushAll(currentLocal.resolvedImports.map(_.module)),
+            seen += current
+          )
         }
-        compiler.ensureParsed(current)
-        val ir = current.getIr
-        val currentLocal = ir.unsafeGetMetadata(
-          BindingAnalysis,
-          "Non-parsed module used in ImportResolver"
-        )
-        val importedModules = ir.imports.flatMap {
-          case imp: IR.Module.Scope.Import.Module =>
-            val impName = imp.name.name
-            val exp     = ir.exports.find(_.name.name == impName)
-            compiler
-              .getModule(impName)
-              .map(BindingsMap.ResolvedImport(imp, exp, _))
-          case _ => None
-        }
-
-        currentLocal.resolvedImports = importedModules
-        current.unsafeSetCompilationStage(
-          Module.CompilationStage.AFTER_IMPORT_RESOLUTION
-        )
-        stack = currentLocal.resolvedImports.map(_.module) ++ stack
       }
-      seen += current
     }
-    seen.toList
+
+    go(mutable.Stack(module), mutable.Set())
   }
+
 }
