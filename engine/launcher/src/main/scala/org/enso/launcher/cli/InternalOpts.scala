@@ -4,10 +4,14 @@ import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
 
 import cats.implicits._
+import nl.gn0s1s.bump.SemVer
 import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.{FileSystem, OS}
+import org.enso.launcher.cli.Arguments._
+import org.enso.launcher.releases.EnsoRepository
+import org.enso.launcher.upgrade.LauncherUpgrader
+import org.enso.launcher.{CurrentVersion, Environment, FileSystem, OS}
 
 /**
   * Implements internal options that the launcher may use when running another
@@ -17,7 +21,7 @@ import org.enso.launcher.{FileSystem, OS}
   * Windows-specific filesystem limitations. They should not be used by the
   * users directly, so they are not displayed in the help text.
   *
-  * The implemented workarounds are following:
+  * The implemented features are following:
   *
   * 1. Remove Old Executable
   *    On Windows, if an executable is running, its file is locked, so it is
@@ -36,11 +40,72 @@ import org.enso.launcher.{FileSystem, OS}
   *    when the system removes temporary files) and uses it to remove the
   *    original binary. It then can also remove the (now empty) installation
   *    directory if necessary.
+  * 3. Continue Upgrade
+  *    This one is not a Windows-specific workaround but a way for the launcher
+  *    to perform multi-step upgrade. If the launcher cannot upgrade directly to
+  *    a newer version (because, for example, it requires some additional
+  *    upgrade logic), it will first download some version 'in the middle' that
+  *    is old enough that it can upgrade to it directly, but new enough that it
+  *    has some new upgrade logic. It will extract it and run this temporary
+  *    launcher executable, telling it to continue the upgrade. This can be
+  *    repeated multiple times if multiple steps are required to reach the
+  *    target version. InternalOpts are used to run the new executable with all
+  *    the necessary options and to handle the upgrade continuation request.
+  * 4. Version and Repository Emulation
+  *    To be able to test the upgrade mechanism, we need to run it as built
+  *    native executables. But we do not want to do any network requests inside
+  *    of the tests because of their instability. Instead, we add internal
+  *    options that allow to override the default, network-backed repository
+  *    with a fake repository backed by the filesystem. Moreover, to avoid
+  *    building multiple fat launcher executables, we provide an internal option
+  *    to override its version (and executable location). This option is used by
+  *    thin wrappers written in Rust which run the original launcher but
+  *    overriding its version. This mechanism is used for testing the multi-step
+  *    upgrade. These emulation options are only enabled in development builds.
   */
 object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE   = "internal-remove-old-executable"
   private val FINISH_UNINSTALL        = "internal-finish-uninstall"
   private val FINISH_UNINSTALL_PARENT = "internal-finish-uninstall-parent"
+  private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
+  private val UPGRADE_ORIGINAL_PATH   = "internal-upgrade-original-path"
+
+  private val EMULATE_VERSION    = "internal-emulate-version"
+  private val EMULATE_LOCATION   = "internal-emulate-location"
+  private val EMULATE_REPOSITORY = "internal-emulate-repository"
+
+  private var inheritEmulateRepository: Option[Path] = None
+
+  /**
+    * Removes internal testing options that should not be preserved in the called executable.
+    *
+    * In release mode, this is an identity function, since these internal options are not permitted anyway.
+    */
+  def removeInternalTestOptions(args: Seq[String]): Seq[String] =
+    if (buildinfo.Info.isRelease) args
+    else {
+      (removeOption(EMULATE_VERSION) andThen removeOption(EMULATE_LOCATION))(
+        args
+      )
+    }
+
+  private def removeOption(name: String): Seq[String] => Seq[String] = {
+    args: Seq[String] =>
+      val indexedArgs = args.zipWithIndex
+      def dropArguments(fromIdx: Int, howMany: Int = 1): Seq[String] =
+        args.take(fromIdx) ++ args.drop(fromIdx + howMany)
+      indexedArgs.find(_._1.startsWith(s"--$name=")) match {
+        case Some((_, idx)) =>
+          dropArguments(idx)
+        case None =>
+          indexedArgs.find(_._1 == s"--$name") match {
+            case Some((_, idx)) =>
+              dropArguments(idx, howMany = 2)
+            case None =>
+              args
+          }
+      }
+  }
 
   /**
     * Additional top level options that are internal to the launcher and should
@@ -48,7 +113,7 @@ object InternalOpts {
     *
     * They are used to implement workarounds for install / upgrade on Windows.
     */
-  def topLevelOptions: Opts[Unit] = {
+  def topLevelOptions: Opts[GlobalCLIOptions => Unit] = {
     val removeOldExecutableOpt = Opts
       .optionalParameter[Path](
         REMOVE_OLD_EXECUTABLE,
@@ -75,12 +140,34 @@ object InternalOpts {
       )
       .hidden
 
+    val continueUpgrade = Opts
+      .optionalParameter[SemVer](
+        CONTINUE_UPGRADE,
+        "VERSION",
+        "Executes next step of the upgrade that should finally result in " +
+        "upgrading to the provided VERSION."
+      )
+      .hidden
+
+    val originalPath =
+      Opts.optionalParameter[Path](UPGRADE_ORIGINAL_PATH, "PATH", "").hidden
+
     (
+      testingOptions,
       removeOldExecutableOpt,
       finishUninstallOpt,
-      finishUninstallParentOpt
+      finishUninstallParentOpt,
+      continueUpgrade,
+      originalPath
     ) mapN {
-      (removeOldExecutableOpt, finishUninstallOpt, finishUninstallParentOpt) =>
+      (
+        _,
+        removeOldExecutableOpt,
+        finishUninstallOpt,
+        finishUninstallParentOpt,
+        continueUpgrade,
+        originalPath
+      ) => (config: GlobalCLIOptions) =>
         removeOldExecutableOpt.foreach { oldExecutablePath =>
           removeOldExecutable(oldExecutablePath)
           sys.exit(0)
@@ -90,8 +177,55 @@ object InternalOpts {
           finishUninstall(executablePath, finishUninstallParentOpt)
           sys.exit(0)
         }
+
+        continueUpgrade.foreach { version =>
+          LauncherUpgrader
+            .makeDefault(config, originalExecutablePath = originalPath)
+            .internalContinueUpgrade(version)
+          sys.exit(0)
+        }
     }
   }
+
+  /**
+    * Internal options used for testing.
+    *
+    * Disabled in release mode.
+    */
+  private def testingOptions: Opts[Unit] =
+    if (buildinfo.Info.isRelease) Opts.pure(())
+    else {
+      val emulateVersion =
+        Opts.optionalParameter[SemVer](EMULATE_VERSION, "VERSION", "").hidden
+      val emulateLocation =
+        Opts.optionalParameter[Path](EMULATE_LOCATION, "PATH", "").hidden
+      val emulateRepository =
+        Opts.optionalParameter[Path](EMULATE_REPOSITORY, "PATH", "").hidden
+
+      (emulateVersion, emulateLocation, emulateRepository) mapN {
+        (emulateVersion, emulateLocation, emulateRepository) =>
+          emulateVersion.foreach { version =>
+            CurrentVersion.internalOverrideVersion(version)
+          }
+
+          emulateLocation.foreach { location =>
+            Environment.internalOverrideExecutableLocation(location)
+          }
+
+          emulateRepository.foreach { repositoryPath =>
+            inheritEmulateRepository = Some(repositoryPath)
+            EnsoRepository.internalUseFakeRepository(repositoryPath)
+          }
+      }
+
+    }
+
+  private def optionsToInherit: Seq[String] =
+    inheritEmulateRepository
+      .map { path =>
+        Seq(s"--$EMULATE_REPOSITORY", path.toAbsolutePath.toString)
+      }
+      .getOrElse(Seq())
 
   /**
     * Returns a helper class that allows to run the launcher located at the
@@ -147,6 +281,35 @@ object InternalOpts {
           executablePath.toAbsolutePath.toString
         ) ++ parentParam.getOrElse(Seq())
       runDetachedAndExit(command)
+    }
+
+    /**
+      * Tells the launcher to continue a multi-step upgrade.
+      *
+      * Creates an instance of [[LauncherUpgrader]] and invokes
+      * [[LauncherUpgrader.internalContinueUpgrade]].
+      *
+      * @param targetVersion target version to upgrade to
+      * @param originalPath path to the original launcher executable that should
+      *                     be replaced with the final executable
+      * @param globalCLIOptions cli options that should be inherited
+      * @return exit code of the child process
+      */
+    def continueUpgrade(
+      targetVersion: SemVer,
+      originalPath: Path,
+      globalCLIOptions: GlobalCLIOptions
+    ): Int = {
+      val inheritOpts =
+        GlobalCLIOptions.toOptions(globalCLIOptions) ++ optionsToInherit
+      val command = Seq(
+          pathToNewLauncher.toAbsolutePath.toString,
+          s"--$CONTINUE_UPGRADE",
+          targetVersion.toString,
+          s"--$UPGRADE_ORIGINAL_PATH",
+          originalPath.toAbsolutePath.normalize.toString
+        ) ++ inheritOpts
+      runAndWaitForResult(command)
     }
   }
 
@@ -206,6 +369,12 @@ object InternalOpts {
     }
   }
 
+  private def runAndWaitForResult(command: Seq[String]): Int = {
+    val pb = new java.lang.ProcessBuilder(command: _*)
+    pb.inheritIO()
+    pb.start().waitFor()
+  }
+
   private def runDetachedAndExit(command: Seq[String]): Nothing = {
     if (!OS.isWindows) {
       throw new IllegalStateException(
@@ -215,7 +384,7 @@ object InternalOpts {
     }
 
     val pb = new java.lang.ProcessBuilder(command: _*)
-    pb.redirectOutput(java.lang.ProcessBuilder.Redirect.INHERIT)
+    pb.inheritIO()
     pb.start()
     sys.exit()
   }

@@ -1,7 +1,8 @@
 package org.enso.launcher.components
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.Launcher
+import org.enso.launcher.CurrentVersion
+import org.enso.launcher.cli.GlobalCLIOptions
 
 /**
   * A base class for exceptions caused by [[ComponentsManager]] logic.
@@ -32,20 +33,31 @@ case class InstallationError(message: String, cause: Throwable = null)
 
 /**
   * Indicates that a requested engine version requires a newer launcher version.
+  *
+  * This error can be recovered by
+  * [[org.enso.launcher.upgrade.LauncherUpgrader.recoverUpgradeRequiredErrors]]
+  * which can perform the upgrade and re-run the requested command with the
+  * newer version.
+  *
+  * @param expectedLauncherVersion the minimum launcher version that is required
+  * @param globalCLIOptions the CLI options that should be passed to an upgrader
+  *                         if an upgrade is requested
   */
-case class LauncherUpgradeRequiredError(expectedVersion: SemVer)
-    extends ComponentsException(
+case class LauncherUpgradeRequiredError(
+  expectedLauncherVersion: SemVer,
+  globalCLIOptions: GlobalCLIOptions
+) extends ComponentsException(
       s"Minimum launcher version required to use this engine is " +
-      s"$expectedVersion"
+      s"$expectedLauncherVersion"
     ) {
 
   /**
     * @inheritdoc
     */
   override def toString: String =
-    s"This launcher version is ${Launcher.version}, but $expectedVersion " +
-    s"is required to run this engine. If you want to use it, upgrade the " +
-    s"launcher with `enso upgrade`."
+    s"This launcher version is ${CurrentVersion.version}, but " +
+    s"$expectedLauncherVersion is required to run this engine. If you want " +
+    s"to use it, upgrade the launcher with `enso upgrade`."
 }
 
 /**

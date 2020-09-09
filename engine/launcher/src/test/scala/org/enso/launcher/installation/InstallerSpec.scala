@@ -2,10 +2,8 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.{FileSystem, NativeTest, OS, WithTemporaryDirectory}
 import org.enso.launcher.FileSystem.PathSyntax
-
-import scala.io.Source
+import org.enso.launcher._
 
 class InstallerSpec extends NativeTest with WithTemporaryDirectory {
   def portableRoot = getTestDirectory / "portable"
@@ -41,15 +39,6 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
     FileSystem.writeTextFile(runtimeBundle / "jvm.txt", "")
   }
 
-  def readFileContent(path: Path): String = {
-    val source = Source.fromFile(path.toFile)
-    try {
-      source.getLines().mkString("\n")
-    } finally {
-      source.close()
-    }
-  }
-
   /**
     * Checks if the file does not exist, retrying `retry` times with a 200ms
     * delay between retries.
@@ -82,7 +71,9 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
 
       val config = installedRoot / "config" / "global-config.yaml"
       config.toFile should exist
-      readFileContent(config).stripTrailing() shouldEqual "what: ever"
+      TestHelpers
+        .readFileContent(config)
+        .stripTrailing() shouldEqual "what: ever"
 
       assert(
         Files.notExists(portableLauncher),

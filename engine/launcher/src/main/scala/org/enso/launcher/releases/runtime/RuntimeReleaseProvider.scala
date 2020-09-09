@@ -1,4 +1,4 @@
-package org.enso.launcher.releases
+package org.enso.launcher.releases.runtime
 
 import java.nio.file.Path
 

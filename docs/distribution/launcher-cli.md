@@ -218,9 +218,11 @@ Examples:
 
 ```bash
 > enso upgrade
-Launcher has been upgraded to the latest (3.0.2) version.
+...
+[info] Successfully upgraded launcher to 3.0.2.
 > enso upgrade 2.0.1
-Launcher has been downgraded to version 2.0.1.
+...
+[info] Successfully upgraded launcher to 2.0.1.
 ```
 
 ### `version`
@@ -234,17 +236,17 @@ human-readable format that is the default.
 ```bash
 > enso version
 Enso Launcher
-Version:    0.0.1
-Built with: scala-2.13.3 for GraalVM 20.1.0
-Built from: main @ 919ffbdfacc44cc35a1b38f1bad5b573acdbe358
-Running on: Linux 4.15.0-109-generic (amd64)
-Currently selected Enso version:
+Version:    0.1.0
+Built with: scala-2.13.3 for GraalVM 20.2.0
+Built from: wip/rw/launcher-self-update* @ c76f7fe6a9e9f37cd8a296c615b7515d1b896d73
+Built on:   Linux (amd64)
+Current default Enso engine:
 Enso Compiler and Runtime
-Version:    0.0.1
+Version:    0.1.1-rc5
 Built with: scala-2.13.3 for GraalVM 20.1.0
-Built from: main @ 919ffbdfacc44cc35a1b38f1bad5b573acdbe358
+Built from: enso-0.1.1-rc5 @ 391eca6de06b0c642cf7868db62209a9af3d241d
 Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.7+10-jvmci-20.1-b02
-            Linux 4.15.0-108-generic (amd64)
+            Linux 4.15.0-112-generic (amd64)
 ```
 
 Besides `enso version`, `enso --version` is also supported and yields the same
