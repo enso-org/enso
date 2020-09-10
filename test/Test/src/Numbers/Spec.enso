@@ -32,4 +32,6 @@ spec =
         it "should handle equality between small and big integers" <|
             (1 == hundred_factorial).should_be_false
             (hundred_factorial == 1).should_be_false
+        it "should properly handle going to big numbers and back" <|
+            ((almost_max_long * 3) / 3) . should_equal almost_max_long
 
