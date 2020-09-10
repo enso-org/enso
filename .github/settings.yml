@@ -63,6 +63,9 @@ labels:
   - name: "Category: Semantics"
     color: "#d1f0fd"
     description: Language semantics
+  - name: "Category: Stdlib"
+    color: "#d1f0fd"
+    description: The Enso standard library
   - name: "Category: Syntax"
     color: "#d1f0fd"
     description: Language syntax
