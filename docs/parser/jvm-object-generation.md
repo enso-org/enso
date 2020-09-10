@@ -3,7 +3,7 @@ layout: developer-doc
 title: JVM Object Generation
 category: parser
 tags: [parser, jvm, object-generation]
-order: 10
+order: 9
 ---
 
 # JVM Object Generation
@@ -13,8 +13,6 @@ representing the parser AST from the rust-native AST. This is required to allow
 the compiler and runtime to work with the AST.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
-
-- [Overall Architecture](#overall-architecture)
 
 <!-- /MarkdownTOC -->
 

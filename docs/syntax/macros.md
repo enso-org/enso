@@ -28,6 +28,7 @@ provide their users with access to the compilation and type-checking phases
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Annotations](#annotations)
+  - [Annotation Naming](#annotation-naming)
 - [Automatic Deriving](#automatic-deriving)
 
 <!-- /MarkdownTOC -->
@@ -65,6 +66,13 @@ In the presence of annotations and macros, it becomes more and more important
 that we are able to reserve words such as `type` to ensure that users can always
 have a good sense of what the most common constructs in the language mean,
 rather than allowing them to be overridden outside of the stdlib.
+
+### Annotation Naming
+
+The naming of annotations follows the standard rules that Enso uses for naming
+its [identifiers](./naming.md#naming-constructs). This means that they can be in
+both referent or variable form as the annotation head is _not_ a
+[pattern context](./naming.md#pattern-contexts).
 
 ## Automatic Deriving
 

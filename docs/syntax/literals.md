@@ -17,6 +17,8 @@ types in literal form in the source code.
 - [Text Literals](#text-literals)
   - [Inline Text Literals](#inline-text-literals)
   - [Text Block Literals](#text-block-literals)
+  - [Inline Block Literals](#inline-block-literals)
+  - [Escape Sequences](#escape-sequences)
 - [Vector Literals](#vector-literals)
 
 <!-- /MarkdownTOC -->
@@ -65,7 +67,7 @@ Enso provides rich support for textual literals in the language, supporting both
 raw and interpolated strings natively.
 
 - **Raw Strings:** Raw strings are delimited using the standard double-quote
-  character (`"`). Raw strings have support for escape sequences.
+  character (`"`). Raw strings don't support escape sequences except for `\"`.
 
   ```ruby
   raw_string = "Hello, world!"
@@ -75,7 +77,8 @@ raw and interpolated strings natively.
   executable Enso expressions into the string. Such strings are delimited using
   the single-quote (`'`) character, and splices are delimited using the backtick
   (`` ` ``) character. Splices are run, and then the result is converted to a
-  string using `show`. These strings also have support for escape sequences.
+  string using `show`. These strings also have support for all kinds of
+  [escape sequences](#escape-sequences).
 
   ```ruby
   fmt_string = 'Hello, my age is `time.now.year - person.birthday.year`'
@@ -104,7 +107,7 @@ following layout rules:
 - Any indentation further than this baseline will be retained as part of the
   text literal.
 - The literal is _closed_ by the first line with a _lower_ level of indentation
-  than the first child lineand will not contain the final blank line.
+  than the first child line and will not contain the final blank line.
 
 ```
 block_raw = '''
@@ -115,6 +118,48 @@ block_raw = '''
 
 not_string_expr = foo bar
 ```
+
+### Inline Block Literals
+
+In order to easily transition between using text blocks and single-line
+literals, we allow for defining an inline block literal. This is a literal that
+uses the same start delimiter as a block literal (see above), but rather than
+ending the literal through de-indenting from the block's level of indentation,
+the literal is ended upon the line ending.
+
+```
+inline_block =
+    """this is all part of the literal
+    but_this_is_not
+```
+
+### Escape Sequences
+
+Format literals in Enso support many kinds of escape sequence. These are
+described below.
+
+| Name         | Escape Sequence |  Unicode   | Notes                                                                                     |
+| :----------- | :-------------: | :--------: | :---------------------------------------------------------------------------------------- |
+| Byte Escape  |     `\x##`      |  `U+00##`  | 8-bit character specification.                                                            |
+| U16 Escape   |    `\u####`     |  `U+####`  | 16-bit unicode character, where each `#` is a hex digit.                                  |
+| U21 Escape   |  `\u{######}`   | `U+######` | 21-bit unicode character, where `######` is 1-6 hex digits.                               |
+| U32 Escape   |  `\U########`   | `U+######` | 32-bit unicode character, where each `#` is a hex digit and the first two bytes are `00`. |
+| Null         |      `\0`       |  `U+0000`  | The null character.                                                                       |
+| Alert        |      `\a`       |  `U+0007`  | The bell/alert character.                                                                 |
+| Backspace    |      `\b`       |  `U+0008`  | The backspace character.                                                                  |
+| Form Feed    |      `\f`       |  `U+000C`  | The form-feed character.                                                                  |
+| LF           |      `\n`       |  `U+000A`  | The line-feed character (newline on unix systems).                                        |
+| CR           |      `\r`       |  `U+000D`  | The carriage return character (part of newline on windows systems).                       |
+| Tab          |      `\t`       |  `U+0009`  | The horizontal tab character.                                                             |
+| Vertical Tab |      `\v`       |  `U+000B`  | The vertical tab character.                                                               |
+| Backslash    |      `\\`       |  `U+005C`  | A literal backslash character.                                                            |
+| Double Quote |      `\"`       |  `U+0022`  | A literal double quote character.                                                         |
+| Single Quote |      `\'`       |  `U+0027`  | A literal single quote character.                                                         |
+| Backtick     |    `` \` ``     |  `U+0060`  | A literal backtick character.                                                             |
+
+The only one of the above escape sequences that is supported in a raw text
+literal is `\"`. All other occurrences of `\` in such literals are treated as a
+literal backslash.
 
 ## Vector Literals
 

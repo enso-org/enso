@@ -3,7 +3,7 @@ layout: developer-doc
 title: Lexer
 category: syntax
 tags: [parser, lexer]
-order: 4
+order: 3
 ---
 
 # Lexer
@@ -19,6 +19,9 @@ identify blocks
   - [Libraries in the Lexer Definition](#libraries-in-the-lexer-definition)
 - [Lexer Functionality](#lexer-functionality)
 - [The Lexer AST](#the-lexer-ast)
+- [Benchmarking the Lexer](#benchmarking-the-lexer)
+  - [Running a Subset of the Benchmarks](#running-a-subset-of-the-benchmarks)
+  - [Changing the Lexer](#changing-the-lexer)
 
 <!-- /MarkdownTOC -->
 
@@ -43,12 +46,12 @@ paths directly from the crate root.
 
 ## Lexer Functionality
 
-The lexer needs to provide the following functionality as part of the parser.
+The lexer provides the following functionality as part of the parser.
 
 - It consumes the source lazily, character by character, and produces a
   structured token stream consisting of the lexer [ast](#the-lexer-ast).
-- It must succeed on _any_ input, even if there are invalid constructs in the
-  token stream, represented by `Invalid` tokens.
+- It succeeds _any_ input, even if there are invalid constructs in the token
+  stream, represented by `Invalid` tokens.
 
 ## The Lexer AST
 
@@ -69,15 +72,29 @@ It contains the following constructs:
 - `Blank`: The blank name `_`.
 - `Operator`: Operator identifiers (e.g. `-->>`).
 - `Modifier`: Modifier operators (e.g. `+=`).
+- `Annotation`: An annotation (e.g. `@Tail_Call`).
 - `Number`: Numbers (`16_FFFF`).
 - `DanglingBase`: An explicit base without an associated number (e.g. `16_`).
-- `Text`: Text (e.g. `"Some text goes here."`).
+- `TextLine`: A single-line text literal.
+- `TextInlineBlock`: An inline block text literal.
+- `TextBlock`: A text block literal.
+- `InvalidQuote`: An invalid set of quotes for a text literal.
+- `TextSegmentRaw`: A raw text segment in which the contents should be
+  interpreted literally.
+- `TextSegmentEscape:` A text segment containing an escape sequence.
+- `TextSegmentInterpolate:` A text segment containing an arbitrary interpolated
+  expression.
+- `TextSegmentUnclosedInterpolate`: An unclosed interpolation text segment.
 - `Line`: A line in a block that contains tokens.
 - `BlankLine`: A line in a block that contains only whitespace.
 - `Block`: Syntactic blocks in the language.
 - `InvalidSuffix`: Invalid tokens when in a given state that would otherwise be
   valid.
 - `Unrecognized`: Tokens that the lexer doesn't recognise.
+- `DisableComment`: A standard comment that disables interpretation of the
+  commented code (i.e. `#`).
+- `DocComment:` A documentation comment (e.g. `##`). Documentation syntax is
+  _not_ lexed by this lexer.
 
 The distinction is made here between the various kinds of identifiers in order
 to keep lexing fast, but also in order to allow macros to switch on the kinds of
@@ -87,3 +104,61 @@ identifiers.
 >
 > - Determine if we want to have separate ASTs for the lexer and the parser, or
 >   not.
+
+## Benchmarking the Lexer
+
+As the lexer is the first port of call when getting an Enso program to run it
+needs to be quick. To that end, we insist on comprehensive benchmarks for any
+change made to the lexer. The lexer benchmarks are written using
+[criterion.rs](https://github.com/bheisler/criterion.rs), and include both
+examples of whole program definitions and more specific benchmark examples.
+
+**Baseline Commit:** TBC (use head of this branch for now).
+
+The benchmarking process for the lexer is as follows:
+
+1. Check out the current _baseline commit_, listed above.
+2. In `lexer_bench_sources.rs` change the line that reads `.retain_baseline` to
+   instead read `.save_baseline`. This will save the current baseline (taken on
+   your machine).
+3. Run the benchmarks using `cargo bench`. Please note that running these
+   benchmarks takes approximately two hours, so sufficient time should be
+   allotted.
+4. Once the baseline run has completed, change the above-mentioned line back to
+   `.retain_baseline`. This will disable overwriting the saved baseline, and
+   will perform its regression reporting against it.
+5. Make your changes.
+6. Run the benchmark suite again. It will report any performance regressions in
+   the benchmark report, measured against your saved baseline.
+
+Unfortunately, the use of time-based benchmarks means that we can't commit the
+baseline to the repository. There is far too much variance between machines for
+this to be useful.
+
+### Running a Subset of the Benchmarks
+
+The benchmarks are very comprehensive, running a wide range of program text
+through the lexer while replicating it out to various sizes (see
+`lexer_bench_sources.rs` for the full list). However, in order to decrease
+iteration time it can be useful to run a subset of these.
+
+There are two main tuning points for this:
+
+1. The _sizes_ of inputs being executed on.
+2. The benchmarks being executed.
+
+The sizes can be tuned by editing the `SIZES` array in the
+`lexer_bench_sources.rs` file. The benchmarks themselves are best tuned by
+changing the macro definitions in `lexer_time_bench.rs` to exclude certain
+benchmarks or groups of benchmarks.
+
+While it is _possible_ to tune the benchmarking config (`bench_config` in
+`lexer_bench_sources.rs`) to decrease benchmarking time, this is not
+recommended. The current settings are tuned to provide reliable results.
+
+### Changing the Lexer
+
+When changing the lexer the _full_ benchmark suite must be run against the
+current baseline before the changes can be merged. This suite run must use the
+provided settings for the benchmarking library, and should be performed using
+the process described above.

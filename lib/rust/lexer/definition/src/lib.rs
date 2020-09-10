@@ -12,6 +12,7 @@
 
 pub mod lexer;
 pub mod token;
+pub mod escape;
 
 /// A module that can be re-exported under the same name in the generation crate.
 ///
@@ -20,10 +21,11 @@ pub mod token;
 /// _except_ through use of this `library` module.
 pub mod library {
     pub use crate::token;
+    pub use crate::escape;
 }
 
 /// A collection of functionality for working with the lexer definition.
 pub mod prelude {
-    pub use flexer::prelude::*;
-    pub use flexer::prelude::logger::*;
+    pub use enso_flexer::prelude::*;
+    pub use enso_flexer::prelude::logger::*;
 }
