@@ -1,10 +1,12 @@
-//! This module exports generator ast.
+//! This module exports an internal AST of Rust source code.
 
 use itertools::Itertools;
-use syn;
-use syn::{Ident, ItemMod};
 use quote::quote;
 use std::ops::Add;
+use syn;
+use syn::Ident;
+use syn::ItemMod;
+
 
 
 // =================
@@ -44,12 +46,15 @@ pub struct Module<'a> {
     pub lines : &'a [syn::Item],
 }
 
-/// Represents a class `class Name[Generics](field:Field, ...)`
+/// Represents a class `class Name[Generics](field:Field, ...)`.
+///
+/// This can either correspond to a Rust struct or a single enum variant.
 #[allow(missing_docs)]
 #[derive(Debug,Clone,Ord,PartialOrd,Eq,PartialEq)]
 pub struct Class {
     pub typ   : Type,
     pub args  : Vec<(Name,Type)>,
+    /// True iff the class fields have user defined names.
     pub named : bool,
 }
 
@@ -84,8 +89,8 @@ pub struct Type {
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub struct TypeAlias {
-    pub typ : Type,
-    pub val : Type,
+    pub name : Type,
+    pub typ  : Type,
 }
 
 /// Represents a type name or a variable name.
@@ -105,10 +110,24 @@ impl Add<&Name> for Name {
 
 // === Constructors ===
 
+impl<'a> Module<'a> {
+    /// Creates a new Module instance.
+    pub fn new(name:Name, lines:&'a [syn::Item]) -> Self {
+        Module{name,lines}
+    }
+}
+
 /// Name constructor.
 #[allow(non_snake_case)]
 pub fn Name<T:Into<Name>>(t:T) -> Name {
     t.into()
+}
+
+impl Class {
+    /// Create a new Class instance.
+    pub fn new(typ:Type, args:Vec<(Name,Type)>, named:bool) -> Self {
+        Self{typ,args,named}
+    }
 }
 
 /// Class constructor.
@@ -123,16 +142,23 @@ pub fn Class(name:Type, fields:&syn::Fields) -> Class {
     Class{typ:name, args, named}
 }
 
+impl Type {
+    /// Create a new Type instance.
+    pub fn new(name:Name, path:Vec<Name>, args:Vec<Type>) -> Self {
+        Self{name,path,args}
+    }
+}
+
 /// Type constructor.
 #[allow(non_snake_case)]
 pub fn Type(name:impl Into<Name>,  generics:&syn::Generics) -> Type {
-    let mut args = vec![];
+    let mut args = Vec::default();
     for arg in generics.params.iter() {
         if let syn::GenericParam::Type(typ) = arg {
             args.push(Type::from(Name(&typ.ident)))
         }
     }
-    Type{name:name.into(), path:vec![], args}
+    Type{name:name.into(), path:Default::default(), args}
 }
 
 
@@ -164,7 +190,7 @@ impl From<&Ident> for Name {
 
 impl From<&syn::ItemType> for TypeAlias {
     fn from(ty:&syn::ItemType) -> Self {
-        Self{typ:Type(&ty.ident, &ty.generics), val:Type::from(ty.ty.as_ref())}
+        Self{ name:Type(&ty.ident, &ty.generics), typ:Type::from(ty.ty.as_ref())}
     }
 }
 
@@ -186,18 +212,19 @@ impl<'a> From<&'a syn::ItemMod> for Module<'a> {
 impl From<&syn::ItemEnum> for Enum {
     fn from(val:&syn::ItemEnum) -> Self {
         let     generics = &val.generics;
-        let mut variants = vec![];
+        let mut variants = Vec::default();
         for var in val.variants.iter() {
             match &var.fields {
                 syn::Fields::Named(_) =>
                     variants.push((None, Class(Type(&var.ident, generics), &var.fields))),
                 syn::Fields::Unnamed(fields) => {
                     if let syn::Type::Path(val) = fields.unnamed.first().unwrap().ty.clone() {
-                        let segments             = val.path.segments.iter().rev().take(2);
-                        let (name, object)       = segments.map(|s|Name(&s.ident)).collect_tuple().expect("Unnamed fields in enum must be qualified.");
-                        let args                 = vec![(Name("variant"), Type::from(name))];
-                        let typ                  = Type(&var.ident,generics);
-                        variants.push((Some(object), Class{typ, args, named:false}));
+                        let err        = "Unnamed fields in enum must be qualified.";
+                        let path       = val.path.segments.iter().rev().take(2);
+                        let (typ,name) = path.map(|s|Name(&s.ident)).collect_tuple().expect(err);
+                        let args       = vec![("variant".into(), typ.into())];
+                        let typ        = Type(&var.ident,generics);
+                        variants.push((Some(name), Class{typ, args, named:false}));
                     }
                 }
                 _ => (),
@@ -209,15 +236,21 @@ impl From<&syn::ItemEnum> for Enum {
 
 impl From<Name> for Type {
     fn from(name:Name) -> Self {
-        Type{name, path:vec![], args:vec![]}
+        Type{name, path:Default::default(), args:Default::default()}
+    }
+}
+
+impl From<&str> for Type {
+    fn from(name:&str) -> Self {
+        Type::from(Name::from(name))
     }
 }
 
 impl From<&syn::Type> for Type {
     fn from(typ:&syn::Type) -> Self {
-        let mut name = Name("");
-        let mut path = vec![];
-        let mut args = vec![];
+        let mut name = Name::default();
+        let mut path = Vec::default();
+        let mut args = Vec::default();
         if let syn::Type::Path(typ) = typ {
             path    = typ.path.segments.iter().dropping_back(1).map(|s|Name(&s.ident)).collect();
             let typ = typ.path.segments.last().unwrap();

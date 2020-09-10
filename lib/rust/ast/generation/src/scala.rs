@@ -1,11 +1,14 @@
 //! This module exports scala ast generator.
 
-use std::collections::HashMap;
-use std::fs;
-use syn;
-use std::io::Read;
+#![allow(clippy::write_with_newline)]
+
 use crate::generator::*;
 use crate::ast::*;
+
+use std::collections::HashMap as Map;
+use std::fs;
+use std::io::Read;
+use syn;
 
 
 
@@ -32,7 +35,7 @@ pub struct Source {
     /// Current indentation.
     indent:usize,
     /// Inheritance hierarchy.
-    extends:HashMap<Name,Name>,
+    extends:Map<Name,Name>,
 }
 
 impl Source {
@@ -72,7 +75,7 @@ impl Generator<Source> for Tab {
 
 impl Generator<Source> for &File {
     fn write(self, source:&mut Source) {
-        let content = Module {name:self.name.clone(), lines:&self.content.items[..]};
+        let content = Module::new(self.name.clone(), &self.content.items[..]);
         write!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n\n\n");
         write!(source, &content, "\n");
     }
@@ -114,7 +117,7 @@ impl<'a> Generator<Source> for &Module<'a> {
 
 impl Generator<Source> for &TypeAlias {
     fn write(self, source:&mut Source) {
-        write!(source, TAB, "type ", &self.val, " = ", &self.val, "\n");
+        write!(source, TAB, "type ", &self.typ, " = ", &self.typ, "\n");
     }
 }
 

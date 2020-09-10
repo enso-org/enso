@@ -12,10 +12,10 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
   it should "parse file" in {
     val expected = Ast.Ast(uid=None, len=0, off=0, ast=Ast.Txt.Text("Hello!"))
-    assert(expected == parser.parseStr("Hello!"))
-    assert(expected == parser.parseFile("Hello!"))
-    assert(expected == parser.lexStr("Hello!"))
-    assert(expected == parser.lexFile("Hello!"))
-    assert(parser.bench().ast.isInstanceOf[Ast.App.Prefix])
+    expected shouldBe parser.parseStr("Hello!")
+    expected shouldBe parser.parseFile("Hello!")
+    expected shouldBe parser.lexStr("Hello!")
+    expected shouldBe parser.lexFile("Hello!")
+    parser.bench().ast shouldBe an[Ast.App.Prefix]
   }
 }

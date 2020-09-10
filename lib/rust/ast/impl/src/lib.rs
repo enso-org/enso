@@ -8,7 +8,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This module exports the implementation of the enso abstract syntax tree.
+//! This module exports the implementation of the Enso abstract syntax tree.
 
 pub mod ffi;
 pub mod ast;

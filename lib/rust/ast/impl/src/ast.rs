@@ -208,7 +208,7 @@ pub mod invalid {
 pub mod num {
     /// The ast node for a number.
     #[allow(missing_docs)]
-    #[derive(Debug,Clone)]
+    #[derive(Debug,Clone,Copy)]
     pub struct Number { pub number: i64 }
 }
 

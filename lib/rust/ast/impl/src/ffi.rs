@@ -16,7 +16,7 @@ pub use stdlib::StdLib;
 
 // === User Defined Types ===
 
-/// Ergonomic JObject constructor.
+/// Wrapper around a Java object constructor.
 #[derive(Clone)]
 pub struct Object<'a> {
     /// JNI Environment.
@@ -28,18 +28,21 @@ pub struct Object<'a> {
 }
 
 impl<'a> Object<'a> {
-    /// Looks up a JObject constructor by type and constructor arguments.
+    /// Look up a JObject constructor by type and constructor arguments.
     ///
-    /// Example: `Object::new(env, "org/enso/ast/Ast$Ast", "(Lscala/Option;JJLjava/lang/Object;)V")`
+    /// Example:
+    /// ```rust,ignore
+    /// Object::new(env, "org/enso/ast/Ast$Ast", "(Lscala/Option;JJLjava/lang/Object;)V")
+    /// ```
     pub fn new(env:&'a JNIEnv<'a>, typ:&str, args:&str) -> Self {
         let err = "Could not find class ".to_string() + typ;
-        let obj = env.find_class(typ).expect(&err.clone());
+        let obj = env.find_class(typ).expect(&err);
         let fun = env.get_method_id(typ, "<init>", args).expect(&(err+" method "+args));
 
         Self{env,obj,fun}
     }
 
-    /// Creates a new instance of the given object.
+    /// Create a new instance of the given Java object.
     pub fn init(&self, args:&[JValue]) -> JObject<'a> {
         self.env.new_object_unchecked(self.obj, self.fun, args).unwrap()
     }
@@ -50,7 +53,7 @@ impl<'a> Object<'a> {
 
 /// Trait for creating builtin objects from standard library.
 pub trait ToJValue<'a> {
-    /// JValue construct.
+    /// Convert this type into JValue.
     fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a>;
 }
 
@@ -95,14 +98,6 @@ impl<'a> ToJValue<'a> for f64 {
         self.into()
     }
 }
-
-// impl<'a> ToJValue<'a> for &[bool] {
-//     fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
-//         let array = lib.env.new_boolean_array(self.len() as i32).unwrap();
-//         lib.env.set_boolean_array_region(array, 0, self).unwrap();
-//         array.into()
-//     }
-// }
 
 impl<'a> ToJValue<'a> for &[u8] {
     fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
@@ -178,7 +173,7 @@ impl<'a,T:ToJValue<'a>> ToJValue<'a> for Vec<T> {
 impl<'a,T:ToJValue<'a>> ToJValue<'a> for Option<T> {
     fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
         match self {
-            None    => lib.option.none.clone(),
+            None    => lib.option.none,
             Some(t) => lib.option.some.init(&[t.jvalue(lib)]),
         }.into()
     }
@@ -190,13 +185,11 @@ impl<'a,T:ToJValue<'a>> ToJValue<'a> for Box<T> {
     }
 }
 
-
 impl<'a> ToJValue<'a> for uuid::Uuid {
     fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
         lib.uuid.obj.init(&[self.as_bytes().jvalue(lib)]).into()
     }
 }
-
 
 /// Scala standard library.
 mod stdlib {
@@ -204,7 +197,7 @@ mod stdlib {
 
 
 
-    /// Constructors of types in scala strandard library.
+    /// Holds jni constructors of types in the Scala strandard library.
     #[allow(missing_docs)]
     #[derive(Clone)]
     pub struct StdLib<'a> {
@@ -216,7 +209,7 @@ mod stdlib {
     }
 
     impl<'a> StdLib<'a> {
-        /// Creates a new instance of `StdLib`.
+        /// Create a new instance of `StdLib`.
         pub fn new(env:&'a JNIEnv<'a>) -> Self {
             Self {
                 env,
@@ -232,7 +225,7 @@ mod stdlib {
     #[derive(Clone)]
     pub struct Vector<'a> { pub obj:Object<'a> }
     impl<'a> Vector<'a> {
-        /// Constructs a new Vector.
+        /// Create a new Vector instance.
         pub fn new(env:&'a JNIEnv<'a>) -> Self {
             Self{obj:Object::new(env, "scala/collection/mutable/ArrayBuffer", "()V")}
         }
@@ -242,16 +235,14 @@ mod stdlib {
     #[derive(Clone)]
     pub struct Option<'a> { pub none:JObject<'a>, pub some:Object<'a> }
     impl<'a> Option<'a> {
-        /// Constructs a new Option.
+        /// Create a new Option instance.
         pub fn new(env:&'a JNIEnv<'a>) -> Self {
             let none = env.get_static_field(
                env.find_class("scala/None$").unwrap(),
                "MODULE$",
                "Lscala/None$;",
             ).unwrap().l().unwrap();
-
             let some = Object::new(env, "scala/Some", "(Ljava/lang/Object;)V");
-
             Self{none, some}
         }
     }
@@ -260,10 +251,9 @@ mod stdlib {
     #[derive(Clone)]
     pub struct Uuid<'a> { pub obj:Object<'a> }
     impl<'a> Uuid<'a> {
-        /// Constructs a new Uuid.
+        /// Create a new Uuid instance.
         pub fn new(env:&'a JNIEnv<'a>) -> Self {
             Self{obj:Object::new(env, "java/util/UUID", "([B)V")}
         }
     }
-
 }

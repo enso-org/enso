@@ -29,7 +29,10 @@ impl<S,T:Generator<S>> Generator<S> for Option<T> {
 }
 
 
-// == Tab ==
+
+// ===========
+// === Tab ===
+// ===========
 
 /// Writes an amount of spaces corresponding to the current indent.
 #[derive(Debug,Clone,Copy,Default)]
@@ -39,7 +42,10 @@ pub struct Tab();
 pub const TAB:Tab = Tab();
 
 
-// == When ==
+
+// ============
+// === When ===
+// ============
 
 /// A trait for wrapping a value in Option.
 pub trait When : Sized {

@@ -1,11 +1,11 @@
-use std::fs::File;
-use std::io::prelude::*;
 use ast_generation::api;
 
+use std::fs::File;
+use std::io::prelude::*;
 
-/// Generates the AST API  and saves the result into the file `src/api.rs`.
-///
-/// The content of the generated file can be used with the `include!` macro.
+
+
+/// Generates the AST API and saves the result into the file `src/api.rs`.
 fn generate_api() {
     let ast_path     = "src/ast.rs";
     let api_path     = "src/api.rs";
@@ -21,5 +21,6 @@ fn generate_api() {
 }
 
 fn main() {
+    println!("cargo:rerun-if-changed=src/ast.rs");
     generate_api()
 }
