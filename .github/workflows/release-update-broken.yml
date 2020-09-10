@@ -4,7 +4,6 @@ on:
   release:
     types: [edited]
 
-
 jobs:
   update-s3:
     name: Update S3
@@ -14,11 +13,15 @@ jobs:
       - name: Check if Broken Mark is Present
         shell: bash
         run: >
-          curl https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref }}
-          | jq -re ".assets[] | select(.name == \"broken\") | .url | \"::set-env name=BROKEN_URL::\" + . "
-          && echo ::set-env name=IS_BROKEN::true
-          || echo ::set-env name=IS_BROKEN::false
+          curl https://api.github.com/repos/${{ github.repository
+          }}/releases/tags/${{ github.ref }} | jq -re ".assets[] | select(.name
+          == \"broken\") | .url | \"::set-env name=BROKEN_URL::\" + . " && echo
+          ::set-env name=IS_BROKEN::true || echo ::set-env name=IS_BROKEN::false
 
+      - name: Download yq
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: pip3 install yq
       - name: Prepare AWS Session
         if: env.IS_BROKEN == 'true'
         shell: bash
@@ -40,8 +43,8 @@ jobs:
         shell: bash
         run: |
           aws s3 cp s3://launcherfallback/release-list.yaml release-list.yaml
-          # TODO update it
-          aws s3 cp release-list.yaml s3://launcherfallback/release-list.yaml
+          cat release-list.yaml | yq -Y '.releases | map(if .tag=="${{ github.ref }}" then .assets |= ["broken"] + . else . end)' > updated.yaml
+          aws s3 cp updated.yaml s3://launcherfallback/release-list.yaml
       - name: Teardown AWS Session
         if: env.IS_BROKEN == 'true'
         shell: bash
@@ -52,4 +55,3 @@ jobs:
           null
           text
           EOF
-
