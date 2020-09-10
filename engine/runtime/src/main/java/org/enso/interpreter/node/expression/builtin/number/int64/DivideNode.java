@@ -3,8 +3,7 @@ package org.enso.interpreter.node.expression.builtin.number.int64;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-
-import java.math.BigInteger;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Int_64", name = "/", description = "Division of numbers.")
 public abstract class DivideNode extends Node {
@@ -20,7 +19,7 @@ public abstract class DivideNode extends Node {
   }
 
   @Specialization
-  long doBigInteger(long _this, BigInteger that) {
+  long doBigInteger(long _this, EnsoBigInteger that) {
     return 0L;
   }
 }

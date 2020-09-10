@@ -20,8 +20,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.RuntimeError;
-
-import java.math.BigInteger;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 /**
  * A node performing lookups of method definitions.
@@ -81,7 +80,7 @@ public abstract class MethodResolverNode extends Node {
   @Specialization(guards = "cachedSymbol == symbol")
   Function resolveBigInteger(
       UnresolvedSymbol symbol,
-      BigInteger self,
+      EnsoBigInteger self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
       @Cached(value = "resolveMethodOnBigInteger(cachedSymbol)", allowUncached = true)
           Function function) {

@@ -4,27 +4,26 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.ToLongNode;
-
-import java.math.BigInteger;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "*", description = "Big integer multiplication.")
 public abstract class MultiplyNode extends Node {
-  private @Child ToLongNode toLongNode = ToLongNode.build();
+  private @Child ToEnsoNumberNode toLongNode = ToEnsoNumberNode.build();
 
-  abstract Object execute(BigInteger _this, Object that);
+  abstract Object execute(EnsoBigInteger _this, Object that);
 
   static MultiplyNode build() {
     return MultiplyNodeGen.create();
   }
 
   @Specialization
-  Object doLong(BigInteger _this, long that) {
-    return toLongNode.execute(BigIntegerOps.multiply(_this, that));
+  Object doLong(EnsoBigInteger _this, long that) {
+    return toLongNode.execute(BigIntegerOps.multiply(_this.getValue(), that));
   }
 
   @Specialization
-  Object doBigInteger(BigInteger _this, BigInteger that) {
-    return toLongNode.execute(BigIntegerOps.multiply(_this, that));
+  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
+    return toLongNode.execute(BigIntegerOps.multiply(_this.getValue(), that.getValue()));
   }
 }

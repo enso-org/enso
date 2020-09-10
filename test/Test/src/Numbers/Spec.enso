@@ -24,3 +24,12 @@ spec =
         it "should allow defining extension methods through the Integer type for any number size" <|
             876543.is_even.should_be_false
             (1.upto 101 . fold 1 (*)).is_even.should_be_true
+        it "should handle the negation edge cases" <|
+            x = 9223372036854775808
+            y = -x
+            z = -9223372036854775808
+            y.should_equal z
+        it "should handle equality between small and big integers" <|
+            (1 == hundred_factorial).should_be_false
+            (hundred_factorial == 1).should_be_false
+

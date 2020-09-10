@@ -4,13 +4,12 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.ToLongNode;
-
-import java.math.BigInteger;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Int_64", name = "*", description = "Multiplication of numbers.")
 public abstract class MultiplyNode extends Node {
-  private @Child ToLongNode toLongNode = ToLongNode.build();
+  private @Child ToEnsoNumberNode toLongNode = ToEnsoNumberNode.build();
 
   abstract Object execute(long _this, Object that);
 
@@ -29,7 +28,7 @@ public abstract class MultiplyNode extends Node {
   }
 
   @Specialization
-  Object doBigInteger(long _this, BigInteger that) {
-    return toLongNode.execute(BigIntegerOps.multiply(that, _this));
+  Object doBigInteger(long _this, EnsoBigInteger that) {
+    return toLongNode.execute(BigIntegerOps.multiply(that.getValue(), _this));
   }
 }
