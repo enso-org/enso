@@ -179,6 +179,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexResponse],
         name  = "invalidateModulesIndexResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CreateModulesIndexRequest],
+        name  = "createModulesIndexRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CreateModulesIndexResponse],
+        name  = "createModulesIndexResponse"
       )
     )
   )
@@ -726,17 +734,23 @@ object Runtime {
       updates: Seq[SuggestionsDatabaseUpdate.Add]
     ) extends ApiNotification
 
-    private lazy val mapper = {
-      val factory = new CBORFactory()
-      val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
-      mapper.registerModule(DefaultScalaModule)
-    }
-
     /** A request to invalidate the indexed flag of the modules. */
     case class InvalidateModulesIndexRequest() extends ApiRequest
 
     /** Signals that the module indexes has been invalidated. */
     case class InvalidateModulesIndexResponse() extends ApiResponse
+
+    case class CreateModulesIndexRequest() extends ApiRequest
+
+    case class CreateModulesIndexResponse(
+      updates: Iterable[SuggestionsDatabaseReIndexNotification]
+    ) extends ApiResponse
+
+    private lazy val mapper = {
+      val factory = new CBORFactory()
+      val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
+      mapper.registerModule(DefaultScalaModule)
+    }
 
     /**
       * Serializes a Request into a byte buffer.

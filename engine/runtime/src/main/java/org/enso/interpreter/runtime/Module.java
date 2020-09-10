@@ -230,7 +230,7 @@ public class Module implements TruffleObject {
     } else if (sourceFile != null) {
       cachedSource = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
     }
-    if (cachedSource != null) {
+    if (cachedSource != null && literalSource == null) {
       literalSource = Rope.apply(cachedSource.getCharacters().toString());
     }
     return cachedSource;

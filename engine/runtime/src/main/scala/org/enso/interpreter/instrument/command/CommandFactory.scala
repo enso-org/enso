@@ -49,6 +49,9 @@ object CommandFactory {
       case payload: Api.InvalidateModulesIndexRequest =>
         new InvalidateModulesIndexCmd(request.requestId, payload)
 
+      case payload: Api.CreateModulesIndexRequest =>
+        new CreateModulesIndexCmd(request.requestId, payload)
+
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"

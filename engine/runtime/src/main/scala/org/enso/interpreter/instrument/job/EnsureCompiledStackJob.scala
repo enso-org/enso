@@ -19,7 +19,7 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
 ) extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
 
   /** @inheritdoc */
-  override def ensureCompiled(
+  override protected def ensureCompiled(
     files: Iterable[File]
   )(implicit ctx: RuntimeContext): Unit = {
     super.ensureCompiled(files)

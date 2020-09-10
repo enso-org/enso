@@ -33,7 +33,6 @@ class StdlibRuntimeServerTest
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val stdlib: File =
       Paths.get("../../distribution/std-lib/Base").toFile.getAbsoluteFile
-    println(s"HOM=${stdlib.exists()} ${stdlib.list().toVector}")
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir, packageName, "0.0.1")
@@ -96,8 +95,16 @@ class StdlibRuntimeServerTest
       Option(messageQueue.poll(3, TimeUnit.SECONDS))
     }
 
-    def receive(n: Int): List[Api.Response] = {
+    def receive(timeout: Long): Option[Api.Response] = {
+      Option(messageQueue.poll(timeout, TimeUnit.SECONDS))
+    }
+
+    def receiveN(n: Int): List[Api.Response] = {
       Iterator.continually(receive).take(n).flatten.toList
+    }
+
+    def receiveN(n: Int, timeout: Long): List[Api.Response] = {
+      Iterator.continually(receive(timeout)).take(n).flatten.toList
     }
 
     def consumeOut: List[String] = {
@@ -116,6 +123,38 @@ class StdlibRuntimeServerTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  val StdlibModules = Seq(
+    "Base.Bench_Utils",
+    "Base.Boolean",
+    "Base.List",
+    "Base.Main",
+    "Base.Maybe",
+    "Base.Process.Exit_Code",
+    "Base.Process",
+    "Base.System.Platform",
+    "Base.Test",
+    "Base.Vector",
+    "Test.Main"
+  )
+
+  it should "re-index" in {
+    val requestId = UUID.randomUUID()
+
+    context.send(Api.Request(requestId, Api.CreateModulesIndexRequest()))
+    context.receive(10) match {
+      case Some(
+            Api.Response(Some(`requestId`), Api.CreateModulesIndexResponse(xs))
+          ) =>
+        xs.map(_.moduleName) should contain theSameElementsAs StdlibModules
+      case other => fail(s"Unexpected response $other")
+    }
+
+    context.send(Api.Request(requestId, Api.CreateModulesIndexRequest()))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateModulesIndexResponse(Seq()))
+    )
+  }
+
   it should "import Base" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -126,11 +165,20 @@ class StdlibRuntimeServerTest
     val code =
       """from Base import all
         |
-        |main = IO.println "Hello!"
+        |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     @scala.annotation.unused
     val mainFile = context.writeMain(contents)
+
+    context.send(Api.Request(requestId, Api.CreateModulesIndexRequest()))
+    context.receive(10) match {
+      case Some(
+            Api.Response(Some(`requestId`), Api.CreateModulesIndexResponse(xs))
+          ) =>
+        xs.map(_.moduleName) should contain theSameElementsAs StdlibModules
+      case other => fail(s"Unexpected response $other")
+    }
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -139,10 +187,10 @@ class StdlibRuntimeServerTest
     )
 
     // open file
-//    context.send(
-//      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
-//    )
-//    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -158,30 +206,30 @@ class StdlibRuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-//      Api.Response(
-//        Api.SuggestionsDatabaseReIndexNotification(
-//          moduleName,
-//          Seq(
-//            Api.SuggestionsDatabaseUpdate.Add(
-//              Suggestion.Method(
-//                None,
-//                moduleName,
-//                "main",
-//                List(Suggestion.Argument("this", "Any", false, false, None)),
-//                "Main",
-//                "Any",
-//                None
-//              )
-//            )
-//          )
-//        )
-//      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "main",
+                List(Suggestion.Argument("this", "Any", false, false, None)),
+                "Main",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      ),
       context.executionSuccessful(contextId)
     )
 
-    context.consumeOut shouldEqual List("Hello!")
+    context.consumeOut shouldEqual List("Hello World!")
   }
 
 }

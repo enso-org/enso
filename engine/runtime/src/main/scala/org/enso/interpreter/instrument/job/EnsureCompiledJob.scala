@@ -72,7 +72,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             val scopeModules =
               ctx.executionService.getContext.getTopScope.getModules.asScala
             println(
-              s"SCOPE_MODULES=${scopeModules.map(m => (m.getName, m.getLiteralSource != null))}"
+              s"SCOPE_MODULES=${scopeModules.map(m => (m.getName, m.getLiteralSource != null, m.getCompilationStage))}"
             )
             val importedModules =
               new ImportResolver(ctx.executionService.getContext.getCompiler)
