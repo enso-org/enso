@@ -127,7 +127,7 @@ class MethodsTest extends InterpreterTest {
         """
           |main = foo 7
           |""".stripMargin
-      the[InterpreterException] thrownBy eval(code) should have message "Object Number does not define method foo."
+      the[InterpreterException] thrownBy eval(code) should have message "Object Integer does not define method foo."
     }
 
     "be callable for any type when defined on Any" in {

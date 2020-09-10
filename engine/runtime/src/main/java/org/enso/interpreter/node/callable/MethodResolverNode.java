@@ -12,6 +12,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.builtin.Bool;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -19,6 +20,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.RuntimeError;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 /**
  * A node performing lookups of method definitions.
@@ -76,11 +78,21 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveNumber(
+  Function resolveBigInteger(
+      UnresolvedSymbol symbol,
+      EnsoBigInteger self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "resolveMethodOnBigInteger(cachedSymbol)", allowUncached = true)
+          Function function) {
+    return function;
+  }
+
+  @Specialization(guards = "cachedSymbol == symbol")
+  Function resolveLong(
       UnresolvedSymbol symbol,
       long self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
-      @Cached(value = "resolveMethodOnNumber(cachedSymbol)", allowUncached = true)
+      @Cached(value = "resolveMethodOnLong(cachedSymbol)", allowUncached = true)
           Function function) {
     return function;
   }
@@ -190,9 +202,22 @@ public abstract class MethodResolverNode extends Node {
     return ensureMethodExists(symbol.resolveFor(cons, getBuiltins().any()), cons, symbol);
   }
 
-  Function resolveMethodOnNumber(UnresolvedSymbol symbol) {
+  Function resolveMethodOnLong(UnresolvedSymbol symbol) {
+    Number number = getBuiltins().number();
     return ensureMethodExists(
-        symbol.resolveFor(getBuiltins().number(), getBuiltins().any()), "Number", symbol);
+        symbol.resolveFor(
+            number.getSmallInteger(), number.getInteger(), number.getNumber(), getBuiltins().any()),
+        "Integer",
+        symbol);
+  }
+
+  Function resolveMethodOnBigInteger(UnresolvedSymbol symbol) {
+    Number number = getBuiltins().number();
+    return ensureMethodExists(
+        symbol.resolveFor(
+            number.getBigInteger(), number.getInteger(), number.getNumber(), getBuiltins().any()),
+        "Integer",
+        symbol);
   }
 
   @CompilerDirectives.TruffleBoundary

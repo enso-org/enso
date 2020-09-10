@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.RuntimeError;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -33,7 +34,8 @@ import org.enso.interpreter.runtime.error.RuntimeError;
   Thunk.class,
   RuntimeError.class,
   UnresolvedSymbol.class,
-  Array.class
+  Array.class,
+  EnsoBigInteger.class
 })
 public class Types {
 
