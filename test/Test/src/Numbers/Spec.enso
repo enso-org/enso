@@ -34,4 +34,7 @@ spec =
             (hundred_factorial == 1).should_be_false
         it "should properly handle going to big numbers and back" <|
             ((almost_max_long * 3) / 3) . should_equal almost_max_long
-
+    describe "Decimals" <|
+        epsilon = 0.000001
+        it "should exist and expose basic arithmetic operations" <|
+            ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=epsilon

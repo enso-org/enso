@@ -10,6 +10,7 @@ public class Number {
   private final AtomConstructor bigInteger;
   private final AtomConstructor integer;
   private final AtomConstructor number;
+  private final AtomConstructor decimal;
 
   /**
    * Creates and registers number builtins.
@@ -22,14 +23,17 @@ public class Number {
     smallInteger = new AtomConstructor("Small_Integer", scope).initializeFields();
     integer = new AtomConstructor("Integer", scope).initializeFields();
     bigInteger = new AtomConstructor("Big_Integer", scope).initializeFields();
+    decimal = new AtomConstructor("Decimal", scope).initializeFields();
 
     registerInt64Methods(language, scope);
     registerBigIntegerMethods(language, scope);
+    registerDecimalMethods(language, scope);
 
     scope.registerConstructor(number);
     scope.registerConstructor(smallInteger);
     scope.registerConstructor(integer);
     scope.registerConstructor(bigInteger);
+    scope.registerConstructor(decimal);
   }
 
   private void registerInt64Methods(Language language, ModuleScope scope) {
@@ -109,6 +113,65 @@ public class Number {
             language));
   }
 
+  private void registerDecimalMethods(Language language, ModuleScope scope) {
+
+    scope.registerMethod(
+        decimal,
+        "+",
+        org.enso.interpreter.node.expression.builtin.number.decimal.AddMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "-",
+        org.enso.interpreter.node.expression.builtin.number.decimal.SubtractMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "*",
+        org.enso.interpreter.node.expression.builtin.number.decimal.MultiplyMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "/",
+        org.enso.interpreter.node.expression.builtin.number.decimal.DivideMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "negate",
+        org.enso.interpreter.node.expression.builtin.number.decimal.NegateMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "abs",
+        org.enso.interpreter.node.expression.builtin.number.decimal.AbsMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "==",
+        org.enso.interpreter.node.expression.builtin.number.decimal.EqualsMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        ">",
+        org.enso.interpreter.node.expression.builtin.number.decimal.GreaterMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        ">=",
+        org.enso.interpreter.node.expression.builtin.number.decimal.GreaterOrEqualMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "<",
+        org.enso.interpreter.node.expression.builtin.number.decimal.LessMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "<=",
+        org.enso.interpreter.node.expression.builtin.number.decimal.LessOrEqualMethodGen.makeFunction(
+            language));
+  }
+
   /** @return the Int64 atom constructor. */
   public AtomConstructor getSmallInteger() {
     return smallInteger;
@@ -127,5 +190,10 @@ public class Number {
   /** @return the Number atom constructor */
   public AtomConstructor getNumber() {
     return number;
+  }
+
+  /** @return the Decimal atom constructor */
+  public AtomConstructor getDecimal() {
+    return decimal;
   }
 }

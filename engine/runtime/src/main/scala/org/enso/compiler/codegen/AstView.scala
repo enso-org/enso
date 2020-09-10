@@ -842,6 +842,19 @@ object AstView {
     }
   }
 
+  object DecimalLiteral {
+    def unapply(ast: AST): Option[(AST.Literal.Number, AST.Literal.Number)] =
+      ast match {
+        case AST.App.Infix(
+              AST.Literal.Number.any(int),
+              AST.Ident.Opr("."),
+              AST.Literal.Number.any(frac)
+            ) =>
+          Some((int, frac))
+        case _ => None
+      }
+  }
+
   object UnaryMinus {
     def minusSymbol: String = "-"
 

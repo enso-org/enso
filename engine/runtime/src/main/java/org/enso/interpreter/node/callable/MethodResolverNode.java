@@ -97,6 +97,16 @@ public abstract class MethodResolverNode extends Node {
     return function;
   }
 
+  @Specialization(guards = "cachedSymbol == symbol")
+  Function resolveDouble(
+      UnresolvedSymbol symbol,
+      double self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "resolveMethodOnDouble(cachedSymbol)", allowUncached = true)
+          Function function) {
+    return function;
+  }
+
   @Specialization(guards = {"cachedSymbol == symbol", "function != null"})
   Function resolveBoolean(
       UnresolvedSymbol symbol,
@@ -217,6 +227,14 @@ public abstract class MethodResolverNode extends Node {
         symbol.resolveFor(
             number.getBigInteger(), number.getInteger(), number.getNumber(), getBuiltins().any()),
         "Integer",
+        symbol);
+  }
+
+  Function resolveMethodOnDouble(UnresolvedSymbol symbol) {
+    Number number = getBuiltins().number();
+    return ensureMethodExists(
+        symbol.resolveFor(number.getDecimal(), number.getNumber(), getBuiltins().any()),
+        "Decimal",
         symbol);
   }
 

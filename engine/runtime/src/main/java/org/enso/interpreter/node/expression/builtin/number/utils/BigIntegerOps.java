@@ -90,4 +90,9 @@ public class BigIntegerOps {
   public static boolean equals(BigInteger a, BigInteger b) {
     return a.equals(b);
   }
+
+  @CompilerDirectives.TruffleBoundary
+  public static double toDouble(BigInteger a) {
+    return a.doubleValue();
+  }
 }

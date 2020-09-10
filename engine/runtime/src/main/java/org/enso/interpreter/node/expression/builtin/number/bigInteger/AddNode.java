@@ -29,6 +29,11 @@ public abstract class AddNode extends Node {
     return toEnsoNumberNode.execute(BigIntegerOps.add(_this.getValue(), that.getValue()));
   }
 
+  @Specialization
+  double doDouble(EnsoBigInteger _this, double that) {
+    return BigIntegerOps.toDouble(_this.getValue()) + that;
+  }
+
   @Fallback
   Object doOther(EnsoBigInteger _this, Object that) {
     throw new TypeError("Unexpected type provided for argument `that` in Integer.+", this);

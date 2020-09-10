@@ -30,6 +30,11 @@ public abstract class AddNode extends Node {
   }
 
   @Specialization
+  double doDouble(long _this, double that) {
+    return _this + that;
+  }
+
+  @Specialization
   Object doBigInteger(long _this, EnsoBigInteger that) {
     return toEnsoNumberNode.execute(BigIntegerOps.add(that.getValue(), _this));
   }

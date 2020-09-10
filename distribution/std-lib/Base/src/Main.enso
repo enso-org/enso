@@ -1,6 +1,6 @@
 import Base.List
 import Base.Vector
-from Builtins import Number, Unit
+from Builtins import Number, Unit, Decimal
 
 from Builtins export all
 
@@ -44,3 +44,5 @@ type Range
 
 ## Creates a new right-exclusive range of integers from `this` to `n`.
 Number.upto n = Range this n
+
+Decimal.equals that epsilon = (this - that).abs <= epsilon
