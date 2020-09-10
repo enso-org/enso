@@ -233,9 +233,13 @@ project specifies _an exact version match_, and it _must not_ be used in new
 projects by the launcher unless _explicitly_ specified by the user as an exact
 version match.
 
-When the release is marked as broken at GitHub, a GitHub Action Workflow is
-triggered that also updates the release in the
-[S3 fallback mechanism](fallback-launcher-release-infrastructure.md#current-fallback-infrastructure-implementation).
+When the release is marked as broken at GitHub, a GitHub Actions
+[Workflow](fallback-launcher-release-infrastructure.md#marking-the-release-as-broken)
+is triggered that also updates the release in the fallback mechanism. Given its
+current implementation is prone to race conditions when updating releases, the
+`broken` file should be added to releases one by one, making sure that only one
+update workflow is running at the same time and that no release workflows are
+running in parallel with it.
 
 ### Release Notes
 

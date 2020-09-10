@@ -15,8 +15,10 @@ launcher updates functioning even if the primary release provider stops working.
 
 - [Fallback Mechanism in the Launcher](#fallback-mechanism-in-the-launcher)
 - [Fallback Infrastructure Specification](#fallback-infrastructure-specification)
+  - [Requirements Inherited from Current Launcher Upgrade Scheme](#requirements-inherited-from-current-launcher-upgrade-scheme)
 - [Current Fallback Infrastructure Implementation](#current-fallback-infrastructure-implementation)
   - [Updating the Release List](#updating-the-release-list)
+  - [Marking the Release As Broken](#marking-the-release-as-broken)
 
 <!-- /MarkdownTOC -->
 
@@ -39,7 +41,7 @@ that will know about the new engine provider.
 The launcher assumes that the fallback infrastructure is located at the URL
 [`https://launcherfallback.release.enso.org/`](https://launcherfallback.release.enso.org/)
 and is accessible over HTTPS. This URL should not change to ensure that old
-version of the launcher can be upgraded.
+versions of the launcher can be upgraded.
 
 Following files are required under that URL:
 
@@ -80,6 +82,22 @@ since its release to do a
 [step-by-step upgrade](launcher.md#step-by-step-upgrade) to the latest available
 version.
 
+### Requirements Inherited from Current Launcher Upgrade Scheme
+
+The fallback releases must also adhere to the release scheme as it was defined
+when the first launcher version was released. That brings the following
+requirements:
+
+- The version is a semantic versioning string.
+- The tag has format `enso-<version>`.
+- The release contains an asset called `launcher-manifest.yaml` which contains
+  at least one key, `minimum-version-for-upgrade` which is a semantic versioning
+  string.
+- The release contains the following packages:
+  - `enso-launcher-<version>-linux-amd64.tar.gz`
+  - `enso-launcher-<version>-macos-amd64.tar.gz`
+  - `enso-launcher-<version>-windows-amd64.zip`
+
 ## Current Fallback Infrastructure Implementation
 
 Currently the fallback mechanism is disabled, as it should only be enabled in
@@ -107,3 +125,12 @@ time, so we require that release jobs are invoked serially (and since new
 releases are not added extremely frequently, this should not be an issue
 currently). If this ever becomes a problem, a more complex solution can be
 developed which synchronizes access to the release list.
+
+### Marking the Release As Broken
+
+When a release is marked as broken on GitHub (by uploading a file called
+`broken` to the assets), a GitHub Action is triggered which uploads the same
+file to the release and modifies the `release-list.yaml` to include the `broken`
+asset.
+
+<!-- TODO [RW] -->
