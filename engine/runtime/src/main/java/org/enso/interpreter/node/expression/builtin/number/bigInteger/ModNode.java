@@ -31,6 +31,6 @@ public abstract class ModNode extends Node {
 
   @Fallback
   Object doOther(EnsoBigInteger _this, Object that) {
-    throw new TypeError("Unexpected type provided for argument `that` in Big_Integer.%", this);
+    throw new TypeError("Unexpected type provided for argument `that` in Integer.%", this);
   }
 }

@@ -206,8 +206,8 @@ public abstract class MethodResolverNode extends Node {
     Number number = getBuiltins().number();
     return ensureMethodExists(
         symbol.resolveFor(
-            number.getInt64(), number.getInteger(), number.getNumber(), getBuiltins().any()),
-        "Int_64",
+            number.getSmallInteger(), number.getInteger(), number.getNumber(), getBuiltins().any()),
+        "Integer",
         symbol);
   }
 
@@ -216,7 +216,7 @@ public abstract class MethodResolverNode extends Node {
     return ensureMethodExists(
         symbol.resolveFor(
             number.getBigInteger(), number.getInteger(), number.getNumber(), getBuiltins().any()),
-        "Big_Integer",
+        "Integer",
         symbol);
   }
 

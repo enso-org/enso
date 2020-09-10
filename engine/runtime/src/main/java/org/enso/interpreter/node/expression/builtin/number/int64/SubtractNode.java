@@ -36,6 +36,6 @@ public abstract class SubtractNode extends Node {
 
   @Fallback
   Object doOther(long _this, Object that) {
-    throw new TypeError("Unexpected type provided for argument `that` in Int_64.-", this);
+    throw new TypeError("Unexpected type provided for argument `that` in Integer.-", this);
   }
 }

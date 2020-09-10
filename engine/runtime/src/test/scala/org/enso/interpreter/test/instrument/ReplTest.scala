@@ -239,7 +239,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
       }
       eval(code)
       val errorMsg =
-        "Unexpected type provided for argument `that` in Int_64.+"
+        "Unexpected type provided for argument `that` in Integer.+"
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 

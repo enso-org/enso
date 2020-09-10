@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A container for all number-related builtins. */
 public class Number {
-  private final AtomConstructor int64;
+  private final AtomConstructor smallInteger;
   private final AtomConstructor bigInteger;
   private final AtomConstructor integer;
   private final AtomConstructor number;
@@ -19,7 +19,7 @@ public class Number {
    */
   public Number(Language language, ModuleScope scope) {
     number = new AtomConstructor("Number", scope).initializeFields();
-    int64 = new AtomConstructor("Int_64", scope).initializeFields();
+    smallInteger = new AtomConstructor("Small_Integer", scope).initializeFields();
     integer = new AtomConstructor("Integer", scope).initializeFields();
     bigInteger = new AtomConstructor("Big_Integer", scope).initializeFields();
 
@@ -27,44 +27,44 @@ public class Number {
     registerBigIntegerMethods(language, scope);
 
     scope.registerConstructor(number);
-    scope.registerConstructor(int64);
+    scope.registerConstructor(smallInteger);
     scope.registerConstructor(integer);
     scope.registerConstructor(bigInteger);
   }
 
   private void registerInt64Methods(Language language, ModuleScope scope) {
     scope.registerMethod(
-        int64,
+        smallInteger,
         "+",
         org.enso.interpreter.node.expression.builtin.number.int64.AddMethodGen.makeFunction(
             language));
     scope.registerMethod(
-        int64,
+        smallInteger,
         "-",
         org.enso.interpreter.node.expression.builtin.number.int64.SubtractMethodGen.makeFunction(
             language));
     scope.registerMethod(
-        int64,
+        smallInteger,
         "*",
         org.enso.interpreter.node.expression.builtin.number.int64.MultiplyMethodGen.makeFunction(
             language));
     scope.registerMethod(
-        int64,
+        smallInteger,
         "/",
         org.enso.interpreter.node.expression.builtin.number.int64.DivideMethodGen.makeFunction(
             language));
     scope.registerMethod(
-        int64,
+        smallInteger,
         "%",
         org.enso.interpreter.node.expression.builtin.number.int64.ModMethodGen.makeFunction(
             language));
     scope.registerMethod(
-        int64,
+        smallInteger,
         "negate",
         org.enso.interpreter.node.expression.builtin.number.int64.NegateMethodGen.makeFunction(
             language));
     scope.registerMethod(
-        int64,
+        smallInteger,
         "==",
         org.enso.interpreter.node.expression.builtin.number.int64.EqualsMethodGen.makeFunction(
             language));
@@ -110,8 +110,8 @@ public class Number {
   }
 
   /** @return the Int64 atom constructor. */
-  public AtomConstructor getInt64() {
-    return int64;
+  public AtomConstructor getSmallInteger() {
+    return smallInteger;
   }
 
   /** @return the Big_Integer atom constructor. */
