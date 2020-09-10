@@ -11,6 +11,15 @@ order: 3
 As an open-source project and programming language, it is incredibly important
 that we have a well-defined release policy. This document defines said policy.
 
+> **Once a release has been made it is immutable. The release should only ever
+> be edited to mark it as broken. Nothing else should ever be changed.**
+>
+> **No two release workflows can be running at once, to avoid race conditions
+> since releases
+> [must update files in S3](fallback-launcher-release-infrastructure.md#updating-the-release-list).
+> Make sure that tags which trigger release builds are pushed sequentially, only
+> pushing the next one after the previous build has finished.**
+
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Versioning](#versioning)
@@ -223,6 +232,10 @@ A broken release is one that _must not_ be downloaded by the launcher unless a
 project specifies _an exact version match_, and it _must not_ be used in new
 projects by the launcher unless _explicitly_ specified by the user as an exact
 version match.
+
+When the release is marked as broken at GitHub, a GitHub Action Workflow is
+triggered that also updates the release in the
+[S3 fallback mechanism](fallback-launcher-release-infrastructure.md#current-fallback-infrastructure-implementation).
 
 ### Release Notes
 

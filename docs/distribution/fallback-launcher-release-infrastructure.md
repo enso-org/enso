@@ -13,6 +13,11 @@ launcher updates functioning even if the primary release provider stops working.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Fallback Mechanism in the Launcher](#fallback-mechanism-in-the-launcher)
+- [Fallback Infrastructure Specification](#fallback-infrastructure-specification)
+- [Current Fallback Infrastructure Implementation](#current-fallback-infrastructure-implementation)
+  - [Updating the Release List](#updating-the-release-list)
+
 <!-- /MarkdownTOC -->
 
 ## Fallback Mechanism in the Launcher
@@ -87,5 +92,18 @@ in a working state. It is built on top of an AWS S3 bucket which provides the
 files explained in the
 [specification above](#fallback-infrastructure-specification). Each release
 uploaded to GitHub Releases is automatically uploaded to this S3 bucket so it
-also acts as a backup, and if it is necessary, all that needs to be done to
-enable the fallback is to set the `enabled` property in the manifest to `true`.
+also acts as a backup.
+
+If it is necessary, all that needs to be done to enable the fallback is to set
+the `enabled` property in the manifest to `true`.
+
+### Updating the Release List
+
+When a new release is built on the CI, its packages are uploaded to the S3
+bucket, but also the `release-list.yaml` has to be updated. This is handled by
+downloading the file, appending to it and re-uploading it. This mechanism is not
+safe from race conditions if multiple release jobs were running at the same
+time, so we require that release jobs are invoked serially (and since new
+releases are not added extremely frequently, this should not be an issue
+currently). If this ever becomes a problem, a more complex solution can be
+developed which synchronizes access to the release list.
