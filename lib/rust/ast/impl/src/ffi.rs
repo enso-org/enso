@@ -163,7 +163,6 @@ impl<'a> ToJValue<'a> for String {
     }
 }
 
-// TODO[JV] implement stdlib constructors
 impl<'a,T:ToJValue<'a>> ToJValue<'a> for Vec<T> {
     fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
         lib.vector.obj.init(&[]).into()
@@ -197,7 +196,7 @@ mod stdlib {
 
 
 
-    /// Holds jni constructors of types in the Scala strandard library.
+    /// Holds jni constructors of types from the Scala strandard library.
     #[allow(missing_docs)]
     #[derive(Clone)]
     pub struct StdLib<'a> {

@@ -6,6 +6,8 @@ use std::process::Command;
 
 
 /// Generates the AST API and saves the result into the file `src/api.rs`.
+///
+/// Should be replaced by proc macro once IDE gets proper support for them (autocomplete etc.).
 fn generate_api() {
     let ast_path     = "src/ast.rs";
     let api_path     = "src/api.rs";
