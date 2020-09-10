@@ -10,12 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Prepare Repository Name
+        shell: bash
+        run: |
+          ref=${{ github.ref }}
+          tag=${ref#"refs/tags/"}
+          echo ::set-env name=TAG::$tag
       - name: Check if Broken Mark is Present
         shell: bash
         run: >
           curl https://api.github.com/repos/${{ github.repository
-          }}/releases/tags/${{ github.ref }} | jq -re ".assets[] | select(.name
-          == \"broken\") | .url | \"::set-env name=BROKEN_URL::\" + . " && echo
+          }}/releases/tags/${{ env.TAG }} | jq -re ".assets[] | select(.name ==
+          \"broken\") | .url | \"::set-env name=BROKEN_URL::\" + . " && echo
           ::set-env name=IS_BROKEN::true || echo ::set-env name=IS_BROKEN::false
 
       - name: Download yq
@@ -37,13 +43,13 @@ jobs:
         shell: bash
         run: |
           wget --header "Accept: application/octet-stream" -O broken $BROKEN_URL
-          aws s3 cp broken s3://launcherfallback/launcher/${{ github.ref }}/ --profile s3-upload --acl public-read
+          aws s3 cp broken s3://launcherfallback/launcher/${{ env.TAG }}/ --profile s3-upload --acl public-read
       - name: Update the Release List in S3
         if: env.IS_BROKEN == 'true'
         shell: bash
         run: |
           aws s3 cp s3://launcherfallback/release-list.yaml release-list.yaml
-          cat release-list.yaml | yq -Y '.releases | map(if .tag=="${{ github.ref }}" then .assets |= ["broken"] + . else . end)' > updated.yaml
+          cat release-list.yaml | yq -Y '.releases | map(if .tag=="${{ env.TAG }}" then .assets |= ["broken"] + . else . end)' > updated.yaml
           aws s3 cp updated.yaml s3://launcherfallback/release-list.yaml
       - name: Teardown AWS Session
         if: env.IS_BROKEN == 'true'
