@@ -241,6 +241,11 @@ current implementation is prone to race conditions when updating releases, the
 update workflow is running at the same time and that no release workflows are
 running in parallel with it.
 
+In an unusual situation in which you want to upload a release that is marked as
+broken from the start, you should first publish it in a non-broken state and
+only mark it as broken after publishing. That is because the GitHub Workflow
+that will persist the broken mark to S3 is not triggered for release drafts.
+
 ### Release Notes
 
 Release notes should contain a summary of the changes made between the last

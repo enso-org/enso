@@ -1,0 +1,55 @@
+name: Update Broken Release
+
+on:
+  release:
+    types: [edited]
+
+
+jobs:
+  update-s3:
+    name: Update S3
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check if Broken Mark is Present
+        shell: bash
+        run: >
+          curl https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref }}
+          | jq -re ".assets[] | select(.name == \"broken\") | .url | \"::set-env name=BROKEN_URL::\" + . "
+          && echo ::set-env name=IS_BROKEN::true
+          || echo ::set-env name=IS_BROKEN::false
+
+      - name: Prepare AWS Session
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
+          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+      - name: Upload Broken Mark to S3
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          wget --header "Accept: application/octet-stream" -O broken $BROKEN_URL
+          aws s3 cp broken s3://launcherfallback/launcher/${{ github.ref }}/ --profile s3-upload --acl public-read
+      - name: Update the Release List in S3
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          aws s3 cp s3://launcherfallback/release-list.yaml release-list.yaml
+          # TODO update it
+          aws s3 cp release-list.yaml s3://launcherfallback/release-list.yaml
+      - name: Teardown AWS Session
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF
+
