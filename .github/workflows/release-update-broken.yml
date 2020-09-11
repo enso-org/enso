@@ -43,14 +43,14 @@ jobs:
         shell: bash
         run: |
           wget --header "Accept: application/octet-stream" -O broken $BROKEN_URL
-          aws s3 cp broken s3://launcherfallback/launcher/${{ env.TAG }}/ --profile s3-upload
+          aws s3 cp broken s3://launcherfallback/launcher/${{ env.TAG }}/ --profile s3-upload --acl public-read
       - name: Update the Release List in S3
         if: env.IS_BROKEN == 'true'
         shell: bash
         run: |
           aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
           ./repo/tools/ci/releases/mark-broken.js release-list.json "${{ env.TAG }}"
-          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload
+          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload --acl public-read
       - name: Teardown AWS Session
         if: env.IS_BROKEN == 'true'
         shell: bash
