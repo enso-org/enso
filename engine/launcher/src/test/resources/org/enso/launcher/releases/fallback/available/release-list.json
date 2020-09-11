@@ -2,16 +2,11 @@
   "releases": [
     {
       "tag": "enso-0.0.0",
-      "assets": [
-        "broken",
-        "data.txt"
-      ]
+      "assets": ["broken", "data.txt"]
     },
     {
       "tag": "enso-0.0.1",
-      "assets": [
-        "data.txt"
-      ]
+      "assets": ["data.txt"]
     }
   ]
 }
