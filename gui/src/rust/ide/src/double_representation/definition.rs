@@ -143,7 +143,7 @@ impl DefinitionName {
                 }
 
                 let mut pieces = Vec::new();
-                for piece in accessor_chain.enumerate_operands() {
+                for piece in accessor_chain.enumerate_non_empty_operands() {
                     let name = ast::identifier::name(&piece.item.arg)?.to_owned();
                     pieces.push(piece.map(|_| name));
                 }

@@ -1,14 +1,17 @@
 use super::prelude::*;
 
+use crate::controller::graph::NodeTrees;
 use crate::transport::test_utils::TestWithMockedTransport;
 use crate::ide::IdeInitializer;
 
 use enso_protocol::project_manager;
 use json_rpc::expect_call;
 use json_rpc::test_util::transport::mock::MockTransport;
+use serde_json::json;
+use span_tree::node::InsertType;
+use span_tree::node::Kind;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 use wasm_bindgen_test::wasm_bindgen_test;
-use serde_json::json;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
@@ -74,4 +77,96 @@ async fn get_most_recent_project_or_create_new() {
         (&logger,&mock_client,"TestProject");
     let project = project.await;
     assert_eq!(expected_project, project.expect("Couldn't get project."))
+}
+
+#[wasm_bindgen_test]
+fn span_tree_args() {
+    use crate::test::mock::*;
+    use span_tree::Node;
+
+    let data    = Unified::new();
+    let fixture = data.fixture_customize(|_,json_client| {
+        // Additional completion request happens after picking completion.
+        controller::searcher::test::expect_completion(json_client,&[1]);
+    });
+    let Fixture{graph,executed_graph,searcher,suggestion_db,..} = &fixture;
+    let entry = suggestion_db.lookup(1).unwrap();
+    searcher.pick_completion(entry.clone_ref()).unwrap();
+    let id = searcher.commit_node().unwrap();
+
+    let get_node   = || graph.node(id).unwrap();
+    let get_inputs = || NodeTrees::new(&get_node().info,executed_graph).unwrap().inputs;
+    let get_param  = |n| get_inputs().root_ref().leaf_iter().nth(n).and_then(|node| {
+        node.parameter_info.clone()
+    });
+    let expected_this_param = model::suggestion_database::to_span_tree_param(&entry.arguments[0]);
+    let expected_arg1_param = model::suggestion_database::to_span_tree_param(&entry.arguments[1]);
+
+
+    // === Method notation, without prefix application ===
+    assert_eq!(get_node().info.expression().repr(), "Base.foo");
+    match get_inputs().root.children.as_slice() {
+        // The tree here should have two nodes under root - one with given Ast and second for
+        // an additional prefix application argument.
+        [_,second] => {
+            let Node{children,kind,parameter_info,..} = &second.node;
+            assert!(children.is_empty());
+            assert_eq!(kind,&Kind::Empty(InsertType::ExpectedArgument(0)));
+            assert_eq!(parameter_info,&Some(expected_arg1_param.clone()));
+        }
+        _ => panic!("Expected only two children in the span tree's root"),
+    };
+
+
+    // === Method notation, with prefix application ===
+    graph.set_expression(id,"Base.foo 50").unwrap();
+    match get_inputs().root.children.as_slice() {
+        // The tree here should have two nodes under root - one with given Ast and second for
+        // an additional prefix application argument.
+        [_,second] => {
+            let Node{children,kind,parameter_info,..} = &second.node;
+            assert!(children.is_empty());
+            assert_eq!(kind,&Kind::Argument{is_removable:false});
+            assert_eq!(parameter_info,&Some(expected_arg1_param.clone()));
+        }
+        _ => panic!("Expected only two children in the span tree's root"),
+    };
+
+
+    // === Function notation, without prefix application ===
+    assert_eq!(entry.name,"foo");
+    graph.set_expression(id,"foo").unwrap();
+    assert_eq!(get_param(1).as_ref(),Some(&expected_this_param));
+    assert_eq!(get_param(2).as_ref(),Some(&expected_arg1_param));
+    assert_eq!(get_param(3).as_ref(),None);
+
+
+    // === Function notation, with prefix application ===
+    graph.set_expression(id,"foo Base").unwrap();
+    assert_eq!(get_param(1).as_ref(),Some(&expected_this_param));
+    assert_eq!(get_param(2).as_ref(),Some(&expected_arg1_param));
+    assert_eq!(get_param(3).as_ref(),None);
+
+
+    // === Changed function name, should not have known parameters ===
+    graph.set_expression(id,"bar").unwrap();
+    assert_eq!(get_param(1),None);
+    assert_eq!(get_param(2),None);
+    assert_eq!(get_param(3),None);
+
+    graph.set_expression(id,"bar Base").unwrap();
+    assert_eq!(get_param(1),None);
+    assert_eq!(get_param(2),None);
+    assert_eq!(get_param(3),None);
+
+    graph.set_expression(id,"Base.bar").unwrap();
+    assert_eq!(get_param(1),None);
+    assert_eq!(get_param(2),None);
+    assert_eq!(get_param(3),None);
+
+    // === Oversaturated call ===
+    graph.set_expression(id,"foo Base 10 20 30").unwrap();
+    assert_eq!(get_param(1).as_ref(),Some(&expected_this_param));
+    assert_eq!(get_param(2).as_ref(),Some(&expected_arg1_param));
+    assert_eq!(get_param(3).as_ref(),None);
 }

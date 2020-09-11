@@ -761,7 +761,7 @@ impl SimpleFunctionCall {
 // =============
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
@@ -774,11 +774,16 @@ mod test {
     use utils::test::traits::*;
     use enso_protocol::language_server::SuggestionId;
 
-    fn completion_response(results:&[SuggestionId]) -> language_server::response::Completion {
+    pub fn completion_response(results:&[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
             results         : results.to_vec(),
             current_version : default(),
         }
+    }
+
+    pub fn expect_completion(client:&mut language_server::MockClient, results:&[SuggestionId]) {
+        let response = completion_response(results);
+        client.expect.completion(|_,_,_,_,_| Ok(response))
     }
 
     #[derive(Debug,Derivative)]

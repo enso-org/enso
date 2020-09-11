@@ -14,6 +14,7 @@
 #![feature(matches_macro)]
 #![feature(result_cloned)]
 #![feature(slice_patterns)]
+#![feature(result_map_or_else)]
 #![recursion_limit="256"]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

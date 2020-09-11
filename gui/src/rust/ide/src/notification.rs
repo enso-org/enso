@@ -61,4 +61,10 @@ where Message                        : 'static + Send,
     pub fn subscribe(&self) -> Subscriber<Message> {
         self.0.borrow_mut().subscribe()
     }
+
+    /// Use global executor to publish a message.
+    pub fn notify(&self, message:Message) {
+        let notify  = self.publish(message);
+        executor::global::spawn(notify);
+    }
 }

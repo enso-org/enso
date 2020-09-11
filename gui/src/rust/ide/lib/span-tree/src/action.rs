@@ -12,6 +12,7 @@ use ast::crumbs::*;
 use ast::opr::ArgWithOffset;
 
 
+
 /// ==============
 /// === Errors ===
 /// ==============
@@ -126,6 +127,8 @@ impl<'a> Implementation for node::Ref<'a> {
                         BeforeTarget | AfterTarget               => infix.target = Some(item),
                         Append                     if has_arg    => infix.push_operand(item),
                         Append                                   => *last_arg = Some(item),
+                        // TODO? below should never happen, as operator arity is always fixed to 2?
+                        ExpectedArgument(i)                      => infix.insert_operand(*i, item),
                     };
                     infix.into_ast()
                 } else {
@@ -135,9 +138,10 @@ impl<'a> Implementation for node::Ref<'a> {
                         prefix_id : None,
                     };
                     match ins_type {
-                        BeforeTarget => prefix.args.insert(0,item),
-                        AfterTarget  => prefix.args.insert(1,item),
-                        Append       => prefix.args.push(item),
+                        BeforeTarget        => prefix.insert_arg(0,item),
+                        AfterTarget         => prefix.insert_arg(1,item),
+                        Append              => prefix.args.push(item),
+                        ExpectedArgument(i) => prefix.insert_arg(*i, item),
                     }
                     prefix.into_ast()
                 };
@@ -197,12 +201,18 @@ mod test {
 
     use Action::*;
 
-    use wasm_bindgen_test::wasm_bindgen_test;
-    use parser::Parser;
+    use crate::builder::TreeBuilder;
+    use crate::generate::context;
+    use crate::node::Kind::Operation;
+    use crate::node::Kind::Target;
+    use crate::node::InsertType::ExpectedArgument;
+
     use ast::HasRepr;
     use data::text::Index;
     use data::text::Span;
     use std::ops::Range;
+    use parser::Parser;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
     fn actions_in_span_tree() {
@@ -217,7 +227,7 @@ mod test {
         impl Case {
             fn run(&self, parser:&Parser) {
                 let ast        = parser.parse_line(self.expr).unwrap();
-                let tree       = ast.generate_tree().unwrap();
+                let tree       = ast.generate_tree(&context::Empty).unwrap();
                 let span_begin = Index::new(self.span.start);
                 let span_end   = Index::new(self.span.end);
                 let span       = Span::from_indices(span_begin,span_end);
@@ -299,7 +309,7 @@ mod test {
         impl Case {
             fn run(&self, parser:&Parser) {
                 let ast        = parser.parse_line(self.expr).unwrap();
-                let tree       = ast.generate_tree().unwrap();
+                let tree       = ast.generate_tree(&context::Empty).unwrap();
                 let span_begin = Index::new(self.span.start);
                 let span_end   = Index::new(self.span.end);
                 let span       = Span::from_indices(span_begin,span_end);
@@ -344,5 +354,31 @@ mod test {
             ];
         let parser = Parser::new_or_panic();
         for case in cases { case.run(&parser); }
+    }
+
+    #[test]
+    fn setting_positional_arguments() {
+        // Consider Span Tree for `foo bar` where `foo` is a method known to take 3 parameters.
+        // We can try setting each of 3 arguments to `baz`.
+        let is_removable = false;
+        let tree         = TreeBuilder::new(7)
+            .add_leaf(0,3,Operation           ,PrefixCrumb::Func)
+            .add_leaf(4,7,Target{is_removable},PrefixCrumb::Arg)
+            .add_empty_child(7, ExpectedArgument(1))
+            .add_empty_child(7, ExpectedArgument(2))
+            .build();
+
+        let ast    = Ast::prefix(Ast::var("foo"), Ast::var("bar"));
+        assert_eq!(ast.repr(),"foo bar");
+        let baz    = Ast::var("baz");
+
+        let after = tree.root_ref().child(1).unwrap().set(&ast,baz.clone_ref()).unwrap();
+        assert_eq!(after.repr(),"foo baz");
+
+        let after = tree.root_ref().child(2).unwrap().set(&ast,baz.clone_ref()).unwrap();
+        assert_eq!(after.repr(),"foo bar baz");
+
+        let after = tree.root_ref().child(3).unwrap().set(&ast,baz.clone_ref()).unwrap();
+        assert_eq!(after.repr(),"foo bar _ baz");
     }
 }

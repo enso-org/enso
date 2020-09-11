@@ -246,7 +246,7 @@ impl AliasAnalyzer {
             // (the possibility of definition has been already excluded)
             if let Some(infix_chain) = ast::opr::Chain::try_new(ast) {
                 // Infix always acts as pattern-match in left-side.
-                for operand in infix_chain.enumerate_operands() {
+                for operand in infix_chain.enumerate_non_empty_operands() {
                     self.process_located_ast(&operand.map(|operand| &operand.arg))
                 }
                 for operator in infix_chain.enumerate_operators() {

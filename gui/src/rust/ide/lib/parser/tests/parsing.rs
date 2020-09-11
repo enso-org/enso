@@ -32,6 +32,12 @@ fn assert_opr<StringLike:Into<String>>(ast:&Ast, name:StringLike) {
     assert_eq!(*actual,expected);
 }
 
+fn roundtrip_program(program:&str) {
+    let parser = parser::Parser::new_or_panic();
+    let ast    = parser.parse(program.to_string(), Default::default()).unwrap();
+    assert_eq!(ast.repr(), program, "{:#?}", ast);
+}
+
 
 
 // ===============
@@ -435,4 +441,19 @@ impl Fixture {
 #[wasm_bindgen_test]
 fn parser_tests() {
     Fixture::new().run()
+}
+
+/// Test case for https://github.com/enso-org/ide/issues/296
+#[wasm_bindgen_test]
+fn block_roundtrip() {
+    let programs = vec![
+        "main = 10 + 10",
+        "main =\n    a = 10\n    b = 20\n    a * b",
+        "main =\n    foo a =\n        a * 10\n    foo 10\n    print \"hello\"",
+        "main =\n    foo\n    \n    bar",
+        "main =\n    \n    foo\n    \n    bar"
+    ];
+    for program in programs {
+        roundtrip_program(program);
+    }
 }

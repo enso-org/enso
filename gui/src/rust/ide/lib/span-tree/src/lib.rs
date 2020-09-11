@@ -9,6 +9,8 @@
 #![feature(associated_type_bounds)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+#![feature(matches_macro)]
+#![feature(exact_size_is_empty)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -46,6 +48,22 @@ pub mod prelude {
 use traits::*;
 use prelude::*;
 
+use crate::generate::Context;
+
+
+
+// =====================
+// === ParameterInfo ===
+// =====================
+
+/// Additional information available for nodes being function arguments or their placeholders.
+#[derive(Clone,Debug,Eq,PartialEq)]
+#[allow(missing_docs)]
+pub struct ParameterInfo {
+    pub name     : Option<String>,
+    pub typename : Option<String>,
+}
+
 
 
 // ================
@@ -64,8 +82,8 @@ pub struct SpanTree {
 
 impl SpanTree {
     /// Create span tree from something that could generate it (usually AST).
-    pub fn new(generator:&impl SpanTreeGenerator) -> FallibleResult<Self> {
-        generator.generate_tree()
+    pub fn new(generator:&impl SpanTreeGenerator, context:&impl Context) -> FallibleResult<Self> {
+        generator.generate_tree(context)
     }
 
     /// Get the `NodeRef` of root node.
@@ -87,11 +105,12 @@ impl SpanTree {
 
 impl Default for SpanTree {
     fn default() -> Self {
-        let expression_id = None;
-        let kind          = node::Kind::Root;
-        let size          = default();
-        let children      = default();
-        let root          = Node {kind,size,children,expression_id};
+        let expression_id  = None;
+        let kind           = node::Kind::Root;
+        let size           = default();
+        let children       = default();
+        let parameter_info = default();
+        let root          = Node {kind,size,children,expression_id,parameter_info};
         Self {root}
     }
 }
