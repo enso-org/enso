@@ -54,6 +54,11 @@ public class Number {
             language));
     scope.registerMethod(
         smallInteger,
+        "^",
+        org.enso.interpreter.node.expression.builtin.number.int64.PowMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
         "/",
         org.enso.interpreter.node.expression.builtin.number.int64.DivideMethodGen.makeFunction(
             language));
@@ -123,6 +128,11 @@ public class Number {
             .makeFunction(language));
     scope.registerMethod(
         bigInteger,
+        "^",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.PowMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
         "/",
         org.enso.interpreter.node.expression.builtin.number.bigInteger.DivideMethodGen.makeFunction(
             language));
@@ -189,6 +199,11 @@ public class Number {
         decimal,
         "*",
         org.enso.interpreter.node.expression.builtin.number.decimal.MultiplyMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "^",
+        org.enso.interpreter.node.expression.builtin.number.decimal.PowMethodGen.makeFunction(
             language));
     scope.registerMethod(
         decimal,

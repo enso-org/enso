@@ -3,6 +3,8 @@ from Base import all
 import Base.Test
 
 Integer.is_even = this % 2 == 0
+Decimal.get_fun_factor = "Wow, " + this.to_text + " is such a fun number!"
+Number.foo = "Foo!" + this.to_text
 
 spec =
     eps = 0.000001
@@ -41,3 +43,22 @@ spec =
     describe "Decimals" <|
         it "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
+        it "should allow defining extension methods through the Decimal type" <|
+            32.5.get_fun_factor.should_equal "Wow, 32.5 is such a fun number!"
+    describe "Numbers" <|
+        it "should expose comparison operators" <|
+            (3 < hundred_factorial).should_be_true
+            (hundred_factorial < 3).should_be_false
+            (3.0 < hundred_factorial).should_be_true
+            (3.0 <= 3.4).should_be_true
+            (3.0 >= 2).should_be_true
+            (-hundred_factorial > 0).should_be_false
+        it "should expose exponentiation operations" <|
+            (3.14 ^ 2.71).should_equal 22.216689546 epsilon=eps
+            (3.14 ^ 14).should_equal 9057640.36635 epsilon=eps
+            a = almost_max_long
+            (a ^ 4).should_equal (a * a * a * a)
+            (2 ^ 10).should_equal 1024
+            (2 ^ 0.5).should_equal 1.41421356237 epsilon=eps
+            (a^2)^0.5 . should_equal a epsilon=eps
+

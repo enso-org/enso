@@ -9,33 +9,45 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Big_Integer", name = "*", description = "Big integer multiplication.")
-public abstract class MultiplyNode extends Node {
+@BuiltinMethod(type = "Big_Integer", name = "^", description = "Big integer exponentiation.")
+public abstract class PowNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
   public abstract Object execute(EnsoBigInteger _this, Object that);
 
-  public static MultiplyNode build() {
-    return MultiplyNodeGen.create();
+  public static PowNode build() {
+    return PowNodeGen.create();
   }
 
   @Specialization
   Object doLong(EnsoBigInteger _this, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.multiply(_this.getValue(), that));
+    if (that == 0) {
+      return 1L;
+    } else if (that > 0) {
+      return toEnsoNumberNode.execute(BigIntegerOps.pow(_this.getValue(), that));
+    } else {
+      return Math.pow(BigIntegerOps.toDouble(_this.getValue()), that);
+    }
   }
 
   @Specialization
   Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.multiply(_this.getValue(), that.getValue()));
+    if (that.getValue().signum() > 0) {
+      return Double.POSITIVE_INFINITY;
+    } else if (that.getValue().signum() == 0) {
+      return 1L;
+    } else {
+      return 0L;
+    }
   }
 
   @Specialization
   double doDouble(EnsoBigInteger _this, double that) {
-    return BigIntegerOps.toDouble(_this.getValue()) * that;
+    return Math.pow(BigIntegerOps.toDouble(_this.getValue()), that);
   }
 
   @Fallback
   Object doOther(EnsoBigInteger _this, Object that) {
-    throw new TypeError("Unexpected type provided for argument `that` in Integer.*", this);
+    throw new TypeError("Unexpected type provided for argument `that` in Integer.^", this);
   }
 }
