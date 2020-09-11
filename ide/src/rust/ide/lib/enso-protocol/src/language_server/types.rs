@@ -656,4 +656,14 @@ pub mod test {
             method_pointer : None,
         }
     }
+
+    /// Generate `ExpressionValueUpdate` with update for a single expression bringing only the
+    /// method pointer.
+    pub fn value_update_with_method_ptr(id:ExpressionId, method_pointer:SuggestionId) -> ExpressionValueUpdate {
+        ExpressionValueUpdate {
+            expression_id  : id,
+            typename       : None,
+            method_pointer : Some(method_pointer),
+        }
+    }
 }

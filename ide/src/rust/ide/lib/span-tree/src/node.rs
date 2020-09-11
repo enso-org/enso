@@ -9,6 +9,7 @@ use data::text::Index;
 use data::text::Size;
 
 
+
 // ====================
 // === Helper Types ===
 // ====================
@@ -53,7 +54,16 @@ impl Kind {
 /// module.
 #[allow(missing_docs)]
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
-pub enum InsertType {BeforeTarget,AfterTarget,Append}
+pub enum InsertType {
+    BeforeTarget,
+    AfterTarget,
+    Append,
+    /// Ast should be inserted as an argument at given index into the chain.
+    /// Note that this is just argument index in the application, it may be not the same as the
+    /// index of the function parameter, as `this` argument might be passed using the `this.func`
+    /// notation.
+    ExpectedArgument(usize),
+}
 
 
 // === Errors ===
@@ -91,20 +101,22 @@ pub fn parent_crumbs(crumbs:&[Crumb]) -> Option<&[Crumb]> {
 #[derive(Clone,Debug,Eq,PartialEq)]
 #[allow(missing_docs)]
 pub struct Node {
-    pub kind          : Kind,
-    pub size          : Size,
-    pub children      : Vec<Child>,
-    pub expression_id : Option<ast::Id>,
+    pub kind           : Kind,
+    pub size           : Size,
+    pub children       : Vec<Child>,
+    pub expression_id  : Option<ast::Id>,
+    pub parameter_info : Option<crate::ParameterInfo>,
 }
 
 impl Node {
     /// Create Empty node.
     pub fn new_empty(insert_type:InsertType) -> Self {
         Node {
-            kind          : Kind::Empty(insert_type),
-            size          : Size::new(0),
-            children      : Vec::new(),
-            expression_id : None,
+            kind           : Kind::Empty(insert_type),
+            size           : Size::new(0),
+            children       : Vec::new(),
+            expression_id  : None,
+            parameter_info : None,
         }
     }
 

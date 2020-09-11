@@ -56,6 +56,32 @@ pub trait StreamTestExt<S:?Sized + Stream> {
                 panic!("Stream has terminated, while it should be waiting for the next value."),
         }
     }
+
+    /// Asserts that the stream has two values ready. First needs to match against any of the
+    /// given predicates, the second one against the other predicate.
+    ///
+    /// The order of these two values is irrelevant.
+    fn expect_both(&mut self, one:impl Fn(&S::Item) -> bool, other:impl Fn(&S::Item) -> bool)
+    where S::Item:Debug {
+        self.expect_many(vec![Box::new(one),Box::new(other)])
+    }
+
+    /// Expect many items being ready but in arbitrary order.
+    ///
+    /// Takes a list of predicates. Items are matched against them, after predicate succeeds match
+    /// it is removed from the list.
+    fn expect_many<'a>(&mut self, mut expected:Vec<Box<dyn Fn(&S::Item) -> bool + 'a>>)
+    where S::Item:Debug {
+        while !expected.is_empty() {
+            let item = self.expect_next();
+            match expected.iter().find_position(|expected_predicate| expected_predicate(&item)) {
+                Some((index,_)) => { let _ = expected.remove(index); }
+                _               =>
+                    panic!("Stream yielded item that did not match to any of the given predicates. \
+                    Item: {:?}",item),
+            }
+        }
+    }
 }
 
 impl<P,S> StreamTestExt<S> for Pin<P>

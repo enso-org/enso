@@ -109,4 +109,20 @@ pub mod test {
     pub fn expect_root_id(project:&mut MockAPI, root_id:Uuid) {
         project.expect_content_root_id().return_const(root_id);
     }
+
+    /// Sets up module expectation on the mock project, returning a given module.
+    pub fn expect_suggestion_db(project:&mut MockAPI, suggestion_db:Rc<model::SuggestionDatabase>) {
+        project.expect_suggestion_db().returning_st(move || suggestion_db.clone_ref());
+    }
+
+    /// Sets up module expectation on the mock project, returning a give module.
+    pub fn expect_json_rpc(project:&mut MockAPI, json_rpc:Rc<language_server::Connection>) {
+        project.expect_json_rpc().returning_st(move || json_rpc.clone_ref());
+    }
+
+    /// Sets up module expectation on the mock project, returning a give module.
+    pub fn expect_name(project:&mut MockAPI, name:impl Into<String>) {
+        let name = ImString::new(name);
+        project.expect_name().returning_st(move || name.clone_ref());
+    }
 }

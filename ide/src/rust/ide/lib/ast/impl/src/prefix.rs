@@ -30,11 +30,21 @@ pub struct Argument {
     pub prefix_id : Option<Id>,
 }
 
+impl Argument {
+    /// Make an argument consisting of a single blank placeholder: `_`.
+    pub fn new_blank(offset:usize, prefix_id:Option<Id>) -> Self {
+        let sast = Shifted::new(offset,Ast::blank());
+        Self {sast,prefix_id}
+    }
+}
+
 impl HasTokens for Argument {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
         self.sast.feed_to(consumer)
     }
 }
+
+
 
 // ====================
 // === Prefix Chain ===
@@ -156,6 +166,27 @@ impl Chain {
         }
         self.func
     }
+
+    /// Get the ID of the Ast represented by this chain.
+    pub fn id(&self) -> Option<Id> {
+        match self.args.last() {
+            Some(last_arg) => last_arg.prefix_id,
+            None           => self.func.id,
+        }
+    }
+
+    /// Insert argument at given position in the prefix chain. If index is out of bounds,
+    /// additional blank `_` arguments will be placed.
+    pub fn insert_arg(&mut self, index:usize, argument:Argument) {
+        if let Some(blanks_to_add) = index.checked_sub(self.args.len()) {
+            let make_blank = || {
+                let prefix_id = argument.prefix_id.map(|_| Id::new_v4());
+                Argument::new_blank(argument.sast.off,prefix_id)
+            };
+            self.args.extend(std::iter::repeat_with(make_blank).take(blanks_to_add));
+        }
+        self.args.insert(index,argument);
+    }
 }
 
 impl HasTokens for Chain {
@@ -207,6 +238,44 @@ mod tests {
         let c     = Ast::var("c");
         let chain = Chain::new(a,vec![b,c]);
         assert_eq!(chain.into_ast().repr(), "a b c");
+    }
+
+    #[test]
+    fn inserting_arg() {
+        let a     = Ast::var("a");
+        let b     = Ast::var("b");
+        let c     = Ast::var("c");
+        let chain = Chain::new(a,vec![b,c]);
+        assert_eq!(chain.repr(), "a b c");
+
+        let arg = |text:&str| Argument {
+            prefix_id : None,
+            sast      : Shifted::new(1,Ast::var(text)),
+        };
+
+        {
+            let mut chain = chain.clone();
+            chain.insert_arg(0, arg("arg"));
+            assert_eq!(chain.repr(), "a arg b c");
+        }
+
+        {
+            let mut chain = chain.clone();
+            chain.insert_arg(2, arg("arg"));
+            assert_eq!(chain.repr(), "a b c arg");
+        }
+
+        {
+            let mut chain = chain.clone();
+            chain.insert_arg(3, arg("arg"));
+            assert_eq!(chain.repr(), "a b c _ arg");
+        }
+
+        {
+            let mut chain = chain.clone();
+            chain.insert_arg(4, arg("arg"));
+            assert_eq!(chain.repr(), "a b c _ _ arg");
+        }
     }
 
     // TODO[ao] add tests for modifying chain.

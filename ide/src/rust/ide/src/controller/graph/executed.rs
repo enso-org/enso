@@ -12,6 +12,11 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
 use enso_protocol::language_server::MethodPointer;
+use span_tree::generate::context::Context;
+use span_tree::generate::context::CalledMethodInfo;
+
+pub use crate::controller::graph::Connection;
+pub use crate::controller::graph::Connections;
 
 
 
@@ -56,6 +61,7 @@ pub enum Notification {
 // ==============
 // === Handle ===
 // ==============
+
 /// Handle providing executed graph controller interface.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
@@ -141,8 +147,32 @@ impl Handle {
         let value_stream = registry.subscribe().map(Notification::ComputedValueInfo).boxed_local();
         let graph_stream = self.graph().subscribe().map(Notification::Graph).boxed_local();
         let self_stream  = self.notifier.subscribe().boxed_local();
-        futures::stream::select_all(vec![value_stream,graph_stream,self_stream])
+
+        // Note: [Argument Names-related invalidations]
+        let db_stream = self.project.suggestion_db().subscribe().map(|notification| {
+            match notification {
+                model::suggestion_database::Notification::Updated =>
+                    Notification::Graph(controller::graph::Notification::Invalidate),
+            }
+        }).boxed_local();
+        let update_stream = registry.subscribe().map(|_| {
+            Notification::Graph(controller::graph::Notification::Invalidate)
+        }).boxed_local();
+
+        let streams = vec![value_stream,graph_stream,self_stream,db_stream,update_stream];
+        futures::stream::select_all(streams)
     }
+
+    // Note [Argument Names-related invalidations]
+    // ===========================================
+    // Currently the shape of span tree depends on how method calls are recognized and resolved.
+    // This involves lookups in the metadata, computed values registry and suggestion database.
+    // As such, any of these will lead to emission of invalidation signal, as span tree shape
+    // affects the connection identifiers.
+    //
+    // This is inefficient and should be addressed in the future.
+    // See: https://github.com/enso-org/ide/issues/787
+
 
     /// Get a type of the given expression as soon as it is available.
     pub fn expression_type(&self, id:ast::Id) -> StaticBoxFuture<Option<ImString>> {
@@ -217,6 +247,42 @@ impl Handle {
     pub fn graph(&self) -> controller::Graph {
         self.graph.borrow().clone_ref()
     }
+
+    /// Returns information about all the connections between graph's nodes.
+    ///
+    /// In contrast with the `controller::Graph::connections` this uses information received from
+    /// the LS to enrich the generated span trees with function signatures (arity and argument
+    /// names).
+    pub fn connections(&self) -> FallibleResult<Connections> {
+        self.graph.borrow().connections(self)
+    }
+
+    /// Create connection in graph.
+    pub fn connect(&self, connection:&Connection) -> FallibleResult<()> {
+        self.graph.borrow().connect(connection,self)
+    }
+
+    /// Remove the connections from the graph.
+    pub fn disconnect(&self, connection:&Connection) -> FallibleResult<()> {
+        self.graph.borrow().disconnect(connection,self)
+    }
+}
+
+
+// === Span Tree Context ===
+
+/// Span Tree generation context for a graph that does not know about execution.
+/// Provides information based on computed value registry, using metadata as a fallback.
+impl Context for Handle {
+    fn call_info(&self, id:ast::Id, name:Option<&str>) -> Option<CalledMethodInfo> {
+        let lookup_registry = || {
+            let info  = self.computed_value_info_registry().get(&id)?;
+            let entry = self.project.suggestion_db().lookup(info.method_call?).ok()?;
+            Some(entry.invocation_info())
+        };
+        let fallback = || self.graph.borrow().call_info(id, name);
+        lookup_registry().or_else(fallback)
+    }
 }
 
 
@@ -229,13 +295,15 @@ impl Handle {
 pub mod tests {
     use super::*;
 
-    use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::ExpressionId;
 
     use enso_protocol::language_server::types::test::value_update_with_type;
+    use enso_protocol::language_server::types::test::value_update_with_method_ptr;
     use utils::test::traits::*;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
+    use crate::model::module::NodeMetadata;
+    use logger::enabled::Logger;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -258,6 +326,9 @@ pub mod tests {
             model::project::test::expect_execution_ctx(&mut project,ctx);
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project,crate::test::mock::data::ROOT_ID);
+            // Both graph controllers need suggestion DB to provide context to their span trees.
+            let suggestion_db = self.graph.suggestion_db();
+            model::project::test::expect_suggestion_db(&mut project,suggestion_db);
 
             let project = Rc::new(project);
             Handle::new(Logger::default(),project.clone_ref(),method).boxed_local().expect_ok()
@@ -267,14 +338,10 @@ pub mod tests {
     // Test that checks that value computed notification is properly relayed by the executed graph.
     #[wasm_bindgen_test]
     fn dispatching_value_computed_notification() {
+        use crate::test::mock::Fixture;
         // Setup the controller.
-        let mut fixture    = TestWithLocalPoolExecutor::set_up();
-        let graph_data     = controller::graph::tests::MockData::new();
-        let graph          = graph_data.graph();
-        let execution_data = model::execution_context::plain::test::MockData::new();
-        let execution      = Rc::new(execution_data.create());
-        let project        = Rc::new(model::project::MockAPI::new());
-        let executed_graph = Handle::new_internal(graph,project,execution.clone_ref());
+        let mut fixture = crate::test::mock::Unified::new().fixture();
+        let Fixture{executed_graph,execution,executor,..} = &mut fixture;
 
         // Generate notification.
         let updated_id = ExpressionId::new_v4();
@@ -288,15 +355,61 @@ pub mod tests {
         assert!(registry.get(&updated_id).is_none());
 
         // Sending notification.
-        execution.computed_value_info_registry.apply_updates(vec![update]);
-        fixture.run_until_stalled();
+        execution.computed_value_info_registry().apply_updates(vec![update]);
+        executor.run_until_stalled();
 
         // Observing that notification was relayed.
-        let observed_notification = notifications.expect_next();
-        let typename_in_registry  = registry.get(&updated_id).unwrap().typename.clone();
-        let expected_typename     = Some(ImString::new(typename));
-        assert_eq!(observed_notification,Notification::ComputedValueInfo(vec![updated_id]));
-        assert_eq!(typename_in_registry,expected_typename);
+        // Both computed values update and graph invalidation are expected, in any order.
+        notifications.expect_both(
+            |notification| match notification {
+                Notification::ComputedValueInfo(updated_ids) => {
+                    assert_eq!(updated_ids,&vec![updated_id]);
+                    let typename_in_registry = registry.get(&updated_id).unwrap().typename.clone();
+                    let expected_typename    = Some(ImString::new(typename));
+                    assert_eq!(typename_in_registry,expected_typename);
+                    true
+                }
+                _ => false,
+            },
+            |notification| match notification {
+                Notification::Graph(graph_notification) => {
+                    assert_eq!(graph_notification,&controller::graph::Notification::Invalidate);
+                    true
+                }
+                _ => false,
+            });
+
         notifications.expect_pending();
+    }
+
+    #[wasm_bindgen_test]
+    fn span_tree_context() {
+        use crate::test::mock;
+        use crate::test::assert_call_info;
+
+        let mut data = mock::Unified::new();
+        let entry1   = data.suggestions.get(&1).unwrap().clone();
+        let entry2   = data.suggestions.get(&2).unwrap().clone();
+        data.set_inline_code(&entry1.name);
+
+        let mock::Fixture{graph,executed_graph,module,..} = &data.fixture();
+        let id                  = graph.nodes().unwrap()[0].info.id();
+        let get_invocation_info = || executed_graph.call_info(id,Some(&entry1.name));
+        assert!(get_invocation_info().is_none());
+
+        // Check that if we set metadata, executed graph can see this info.
+        module.set_node_metadata(id,NodeMetadata {
+            position        : None,
+            intended_method : entry1.method_id(),
+        });
+        let info = get_invocation_info().unwrap();
+        assert_call_info(info,&entry1);
+
+        // Now send update that expression actually was computed to be a call to the second
+        // suggestion entry and check that executed graph provides this info over the metadata one.
+        let update = value_update_with_method_ptr(id,2);
+        executed_graph.computed_value_info_registry().apply_updates(vec![update]);
+        let info = get_invocation_info().unwrap();
+        assert_call_info(info,&entry2);
     }
 }

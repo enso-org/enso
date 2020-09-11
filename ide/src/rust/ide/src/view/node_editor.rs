@@ -348,7 +348,7 @@ impl GraphEditorIntegratedWithControllerModel {
     pub fn refresh_graph_view(&self) -> FallibleResult<()> {
         info!(self.logger, "Refreshing the graph view.");
         use controller::graph::Connections;
-        let Connections{trees,connections} = self.controller.graph().connections()?;
+        let Connections{trees,connections} = self.controller.connections()?;
         self.refresh_node_views(trees)?;
         self.refresh_connection_views(connections)?;
         Ok(())
@@ -439,32 +439,26 @@ impl GraphEditorIntegratedWithControllerModel {
             self.view.graph().frp.inputs.set_node_position.emit_event(&(id, position.vector));
         }
         let expression = node.info.expression().repr();
-        let expression_changed = with(self.expression_views.borrow(), |expression_views| {
-            let expression_view = expression_views.get(&id);
-            // The node expression will newer contain spaces at the both ends, however user could
-            // decide to put some in node's edited expression; thus we should not eagerly remove
-            // those spaces.
-            let trimmed_view    = expression_view.map(|e| e.trim());
-            !trimmed_view.contains(&expression)
-        });
-        if expression_changed {
-            let code_and_trees = graph_editor::component::node::port::Expression {
-                code             : expression.clone(),
-                input_span_tree  : trees.inputs,
-                output_span_tree : trees.outputs.unwrap_or_else(default)
-            };
-            self.view.graph().frp.inputs.set_node_expression.emit_event(&(id, code_and_trees));
-            self.expression_views.borrow_mut().insert(id, expression);
 
-            // Set initially available type information on ports (identifiable expression's
-            // sub-parts).
-            for expression_part in node.info.expression().iter_recursive() {
-                if let Some(id) = expression_part.id {
-                    self.refresh_computed_info(id);
-                }
+        // TODO [MWU]
+        //  Currently we cannot limit updates, as each invalidation can affect span tree generation
+        //  context and as such may require updating span trees. So no matter whether expression
+        //  changed or not, we shall emit the updates.
+        //  This should be addressed as part of https://github.com/enso-org/ide/issues/787
+        let code_and_trees = graph_editor::component::node::port::Expression {
+            code             : expression.clone(),
+            input_span_tree  : trees.inputs,
+            output_span_tree : trees.outputs.unwrap_or_else(default)
+        };
+        self.view.graph().frp.inputs.set_node_expression.emit_event(&(id, code_and_trees));
+        self.expression_views.borrow_mut().insert(id, expression);
+
+        // Set initially available type information on ports (identifiable expression's sub-parts).
+        for expression_part in node.info.expression().iter_recursive() {
+            if let Some(id) = expression_part.id {
+                self.refresh_computed_info(id);
             }
         }
-
     }
 
     /// Like `refresh_computed_info` but for multiple expressions.
@@ -672,14 +666,14 @@ impl GraphEditorIntegratedWithControllerModel {
             internal_warning!(self.logger,"Created connection {edge_id} overwrite some old \
                 mappings in GraphEditorIntegration.")
         }
-        self.controller.graph().connect(&con)?;
+        self.controller.connect(&con)?;
         Ok(())
     }
 
     fn connection_removed_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult<()> {
         let connection = self.get_controller_connection(*edge_id)?;
         self.connection_views.borrow_mut().remove_by_left(&connection);
-        self.controller.graph().disconnect(&connection)?;
+        self.controller.disconnect(&connection)?;
         Ok(())
     }
 

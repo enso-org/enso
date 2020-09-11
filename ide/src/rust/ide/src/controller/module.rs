@@ -95,16 +95,19 @@ impl Handle {
 
     /// Returns a graph controller for graph in this module's subtree identified by `id`.
     pub fn graph_controller
-    (&self, id:double_representation::graph::Id) -> FallibleResult<controller::Graph> {
-        controller::Graph::new(&self.logger, self.model.clone_ref(), self.parser.clone_ref(), id)
+    (&self, id:double_representation::graph::Id, suggestion_db:Rc<model::SuggestionDatabase>)
+    -> FallibleResult<controller::Graph> {
+        controller::Graph::new(&self.logger,self.model.clone_ref(),suggestion_db,
+            self.parser.clone_ref(),id)
     }
 
     /// Returns a graph controller for graph in this module's subtree identified by `id` without
     /// checking if the graph exists.
     pub fn graph_controller_unchecked
-    (&self, id:double_representation::graph::Id) -> controller::Graph {
-        controller::Graph::new_unchecked(&self.logger, self.model.clone_ref(),
-                                         self.parser.clone_ref(), id)
+    (&self, id:double_representation::graph::Id, suggestion_db:Rc<model::SuggestionDatabase>)
+    -> controller::Graph {
+        controller::Graph::new_unchecked(&self.logger,self.model.clone_ref(),suggestion_db,
+            self.parser.clone_ref(),id)
     }
 
     /// Get the module's qualified name.
