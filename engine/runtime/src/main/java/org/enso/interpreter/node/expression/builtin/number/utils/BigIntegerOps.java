@@ -87,6 +87,16 @@ public class BigIntegerOps {
   }
 
   @CompilerDirectives.TruffleBoundary
+  public static BigInteger abs(BigInteger a) {
+    return a.abs();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger abs(long a) {
+    return BigInteger.valueOf(a).abs();
+  }
+
+  @CompilerDirectives.TruffleBoundary
   public static boolean equals(BigInteger a, BigInteger b) {
     return a.equals(b);
   }
@@ -94,5 +104,10 @@ public class BigIntegerOps {
   @CompilerDirectives.TruffleBoundary
   public static double toDouble(BigInteger a) {
     return a.doubleValue();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static int compare(BigInteger a, BigInteger b) {
+    return a.compareTo(b);
   }
 }

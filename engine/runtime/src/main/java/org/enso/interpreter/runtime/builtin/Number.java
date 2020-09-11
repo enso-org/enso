@@ -59,6 +59,11 @@ public class Number {
             language));
     scope.registerMethod(
         smallInteger,
+        "div",
+        org.enso.interpreter.node.expression.builtin.number.int64.DivMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
         "%",
         org.enso.interpreter.node.expression.builtin.number.int64.ModMethodGen.makeFunction(
             language));
@@ -69,8 +74,33 @@ public class Number {
             language));
     scope.registerMethod(
         smallInteger,
+        "abs",
+        org.enso.interpreter.node.expression.builtin.number.int64.AbsMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
         "==",
         org.enso.interpreter.node.expression.builtin.number.int64.EqualsMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
+        ">",
+        org.enso.interpreter.node.expression.builtin.number.int64.GreaterMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
+        ">=",
+        org.enso.interpreter.node.expression.builtin.number.int64.GreaterOrEqualMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
+        "<",
+        org.enso.interpreter.node.expression.builtin.number.int64.LessMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
+        "<=",
+        org.enso.interpreter.node.expression.builtin.number.int64.LessOrEqualMethodGen.makeFunction(
             language));
   }
 
@@ -98,6 +128,11 @@ public class Number {
             language));
     scope.registerMethod(
         bigInteger,
+        "div",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.DivMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
         "%",
         org.enso.interpreter.node.expression.builtin.number.bigInteger.ModMethodGen.makeFunction(
             language));
@@ -108,8 +143,33 @@ public class Number {
             language));
     scope.registerMethod(
         bigInteger,
+        "abs",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.AbsMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
         "==",
         org.enso.interpreter.node.expression.builtin.number.bigInteger.EqualsMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        ">",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        ">=",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterOrEqualMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        "<",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.LessMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        "<=",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.LessOrEqualMethodGen.makeFunction(
             language));
   }
 

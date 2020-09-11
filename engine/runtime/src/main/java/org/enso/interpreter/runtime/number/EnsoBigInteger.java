@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.number;
 
+import com.oracle.truffle.api.CompilerDirectives;
+
 import java.math.BigInteger;
 
 /** Internal wrapper for a {@link BigInteger}. */
@@ -18,5 +20,11 @@ public class EnsoBigInteger {
   /** @return the contained {@link BigInteger}. */
   public BigInteger getValue() {
     return value;
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String toString() {
+    return value.toString();
   }
 }
