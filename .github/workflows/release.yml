@@ -396,16 +396,14 @@ jobs:
       - name: Update the Release List in S3
         shell: bash
         run: |
-          aws s3 cp s3://launcherfallback/release-list.yaml release-list.yaml
-          cat <<-EOF >> release-list.yaml
-          - tag: enso-${{ env.DIST_VERSION }}
-            assets:
-            - enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
-            - enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
-            - enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
-            - launcher-manifest.yaml
-          EOF
-          aws s3 cp release-list.yaml s3://launcherfallback/release-list.yaml
+          aws s3 cp s3://launcherfallback/release-list.json release-list.json
+          TAG="enso-${{ env.DIST_VERSION }}"
+          ./repo/tools/ci/releases/add-release.js release-list.json "$TAG" \
+          launcher-manifest.yaml \
+          "enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz" \
+          "enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz" \
+          "enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip"
+          aws s3 cp release-list.json s3://launcherfallback/release-list.json
       - name: Teardown AWS Session
         shell: bash
         run: |

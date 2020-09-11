@@ -48,8 +48,8 @@ Following files are required under that URL:
 - `fallback-manifest.yaml` - determines if the fallback mechanism is enabled.
   Should contain a single key `enabled` that should be set to `true` to enable
   the fallback.
-- `release-list.yaml` - contains a list of all available releases. It should
-  contain a single key `releases` that is a list of entries. Each entry should
+- `release-list.json` - contains a list of all available releases. It should
+  contain a single field `releases` that is a list of entries. Each entry should
   have the following fields:
   - `tag` - tag associated with the release
   - `assets` - a list of filenames of assets available in the release, including
@@ -62,14 +62,21 @@ directory is named after the release's `tag`. This directory should contain the
 assets listed in the release list. So assets are accessible under the URL
 `https://launcherfallback.release.enso.org/launcher/<release-tag>/<asset-filename>`.
 
-So for example, if the `release-list.yaml` has the following contents:
+So for example, if the `release-list.json` has the following contents:
 
-```yaml
-releases:
-  - tag: "0.1.0-test"
-    assets:
-      - broken
-      - enso-launcher-0.1.0-test-linux-amd64.tar.gz
+```json
+{
+  "releases": [
+    {
+      "tag": "0.1.0-test",
+      "assets": [
+        "broken",
+        "launcher-manifest.yaml",
+        "enso-launcher-0.1.0-test-linux-amd64.tar.gz"
+      ]
+    }
+  ]
+}
 ```
 
 The launcher package should be accessible under the URL
@@ -118,7 +125,7 @@ the `enabled` property in the manifest to `true`.
 ### Updating the Release List
 
 When a new release is built on the CI, its packages are uploaded to the S3
-bucket, but also the `release-list.yaml` has to be updated. This is handled by
+bucket, but also the `release-list.json` has to be updated. This is handled by
 downloading the file, appending to it and re-uploading it. This mechanism is not
 safe from race conditions if multiple release jobs were running at the same
 time, so we require that release jobs are invoked serially (and since new
@@ -130,7 +137,7 @@ developed which synchronizes access to the release list.
 
 When a release is marked as broken on GitHub (by uploading a file called
 `broken` to the assets), a GitHub Action is triggered which uploads the same
-file to the release and modifies the `release-list.yaml` to include the `broken`
+file to the release and modifies the `release-list.json` to include the `broken`
 asset.
 
 <!-- TODO [RW] -->

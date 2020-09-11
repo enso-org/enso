@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: repo
       - name: Prepare Repository Name
         shell: bash
         run: |
@@ -18,16 +22,12 @@ jobs:
           echo ::set-env name=TAG::$tag
       - name: Check if Broken Mark is Present
         shell: bash
-        run: >
-          curl https://api.github.com/repos/${{ github.repository
-          }}/releases/tags/${{ env.TAG }} | jq -re ".assets[] | select(.name ==
-          \"broken\") | .url | \"::set-env name=BROKEN_URL::\" + . " && echo
-          ::set-env name=IS_BROKEN::true || echo ::set-env name=IS_BROKEN::false
-
-      - name: Download yq
-        if: env.IS_BROKEN == 'true'
-        shell: bash
-        run: pip3 install yq
+        run: |
+          BROKEN="::set-env name=IS_BROKEN::true"
+          NOT_BROKEN="::set-env name=IS_BROKEN::false"
+          curl https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.TAG }} > release.json
+          ./repo/tools/ci/releases/is-broken.js release.json > url.txt && echo $BROKEN || echo $NOT_BROKEN
+          echo ::set-env name=BROKEN_URL::$(cat url.txt)
       - name: Prepare AWS Session
         if: env.IS_BROKEN == 'true'
         shell: bash
@@ -43,14 +43,14 @@ jobs:
         shell: bash
         run: |
           wget --header "Accept: application/octet-stream" -O broken $BROKEN_URL
-          aws s3 cp broken s3://launcherfallback/launcher/${{ env.TAG }}/ --profile s3-upload --acl public-read
+          aws s3 cp broken s3://launcherfallback/launcher/${{ env.TAG }}/ --profile s3-upload
       - name: Update the Release List in S3
         if: env.IS_BROKEN == 'true'
         shell: bash
         run: |
-          aws s3 cp s3://launcherfallback/release-list.yaml release-list.yaml
-          cat release-list.yaml | yq -Y '.releases | map(if .tag=="${{ env.TAG }}" then .assets |= ["broken"] + . else . end)' > updated.yaml
-          aws s3 cp updated.yaml s3://launcherfallback/release-list.yaml
+          aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
+          ./repo/tools/ci/releases/mark-broken.js release-list.json "${{ env.TAG }}"
+          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload
       - name: Teardown AWS Session
         if: env.IS_BROKEN == 'true'
         shell: bash
