@@ -29,8 +29,11 @@ object EnsoRepository {
     "enso-staging"
   )
 
+  private val launcherFallbackProviderHostname =
+    "launcherfallback.release.enso.org"
+
   private val launcherS3Fallback = new StaticWebsiteFallbackReleaseProvider(
-    URIBuilder.fromHost("launcherfallback.release.enso.org") / "bucket",
+    URIBuilder.fromHost(launcherFallbackProviderHostname),
     "launcher"
   )
 

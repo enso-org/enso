@@ -117,6 +117,7 @@ class SimpleReleaseProviderWithFallbackSpec
         fallbackBroken    = true
       )
       broken.listReleases() shouldEqual Failure(BaseProviderException)
+      broken.releaseForTag("v1") shouldEqual Failure(BaseProviderException)
     }
   }
 }

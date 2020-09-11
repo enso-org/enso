@@ -3,24 +3,25 @@ package org.enso.launcher.releases.fallback.staticwebsite
 import java.nio.file.Path
 
 import org.enso.cli.TaskProgress
-import org.enso.launcher.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
 import org.enso.launcher.releases.Asset
 
-case class FallbackAsset(fileName: String, releaseRoot: URIBuilder)
-    extends Asset {
+case class FallbackAsset(
+  fileName: String,
+  storage: FileStorage,
+  releaseRoot: Seq[String]
+) extends Asset {
 
   /**
     * @inheritdoc
     */
   override def downloadTo(path: Path): TaskProgress[Unit] =
-    HTTPDownload.download(request, destination = path).map(_ => ())
+    storage.download(storagePath, destination = path)
 
   /**
     * @inheritdoc
     */
   override def fetchAsText(): TaskProgress[String] =
-    HTTPDownload.fetchString(request).map(_.content)
+    storage.fetchString(storagePath)
 
-  private def request =
-    HTTPRequestBuilder.fromURI((releaseRoot / fileName).build()).GET
+  private def storagePath = releaseRoot ++ Seq(fileName)
 }

@@ -246,6 +246,9 @@ broken from the start, you should first publish it in a non-broken state and
 only mark it as broken after publishing. That is because the GitHub Workflow
 that will persist the broken mark to S3 is not triggered for release drafts.
 
+> **When marking the release as broken, you should make sure that the workflow
+> persisting the broken mark to Se has succeeded and re-run it if necessary.**
+
 ### Release Notes
 
 Release notes should contain a summary of the changes made between the last

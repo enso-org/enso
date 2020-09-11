@@ -8,7 +8,7 @@ case class ReleaseDescription(tag: String, assetNames: Seq[String])
 case class ReleaseList(releases: Seq[ReleaseDescription])
 
 object ReleaseList {
-  val fileName = "releases-list.yaml"
+  val fileName = "release-list.json"
 
   private object Fields {
     val releases = "releases"
@@ -29,6 +29,6 @@ object ReleaseList {
     } yield ReleaseList(releases)
   }
 
-  def parseYAML(string: String): Try[ReleaseList] =
-    io.circe.yaml.parser.parse(string).flatMap(_.as[ReleaseList]).toTry
+  def parseString(string: String): Try[ReleaseList] =
+    io.circe.parser.parse(string).flatMap(_.as[ReleaseList]).toTry
 }

@@ -20,6 +20,6 @@ object FallbackManifest {
     } yield FallbackManifest(enabled)
   }
 
-  def parseYAML(string: String): Try[FallbackManifest] =
+  def parseString(string: String): Try[FallbackManifest] =
     io.circe.yaml.parser.parse(string).flatMap(_.as[FallbackManifest]).toTry
 }
