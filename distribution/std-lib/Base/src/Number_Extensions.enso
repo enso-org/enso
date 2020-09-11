@@ -1,0 +1,25 @@
+from Base import all
+polyglot java import java.lang.Math
+
+Number.asin = Math.asin [this.to_decimal]
+Number.acos = Math.acos [this.to_decimal]
+Number.atan = Math.atan [this.to_decimal]
+Number.atan_2 y = Math.atan2 [this.to_decimal, y.to_decimal]
+
+Number.sin = Math.sin [this.to_decimal]
+Number.cos = Math.cos [this.to_decimal]
+Number.tan = Math.tan [this.to_decimal]
+
+Number.sinh = Math.sinh [this.to_decimal]
+Number.cosh = Math.cosh [this.to_decimal]
+Number.tanh = Math.tanh [this.to_decimal]
+
+Number.exp = Math.exp [this.to_decimal]
+Number.ln = Math.log [this.to_decimal]
+Number.sqrt = Math.sqrt [this.to_decimal]
+Number.log base = this.ln / base.ln
+
+## Creates a new right-exclusive range of integers from `this` to `n`.
+Integer.upto n = Range this n
+
+Number.equals that epsilon = (this - that).abs <= epsilon

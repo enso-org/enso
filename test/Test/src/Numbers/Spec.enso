@@ -4,7 +4,6 @@ import Base.Test
 
 Integer.is_even = this % 2 == 0
 Decimal.get_fun_factor = "Wow, " + this.to_text + " is such a fun number!"
-Number.foo = "Foo!" + this.to_text
 
 spec =
     eps = 0.000001
@@ -61,4 +60,9 @@ spec =
             (2 ^ 10).should_equal 1024
             (2 ^ 0.5).should_equal 1.41421356237 epsilon=eps
             (a^2)^0.5 . should_equal a epsilon=eps
-
+        it "should expose more involved mathematical functions" <|
+            Math.Pi.sin.should_equal 0 epsilon=eps
+            (Math.Pi / 4).sin.should_equal (2 ^ 0.5)/2 epsilon=eps
+            (Math.Pi / 6).cos.should_equal (3.sqrt / 2) epsilon=eps
+            (17 ^ 0.13).log base=17 . should_equal 0.13 epsilon=eps
+            0.exp.should_equal 1

@@ -1,9 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -29,6 +26,7 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
 
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private @Child HostValueToEnsoNode hostValueToEnsoNode = HostValueToEnsoNode.build();
   private final BranchProfile err = BranchProfile.create();
 
   private @Child InvokeCallableNode invokeCallableNode =
@@ -53,7 +51,7 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
    * @param frame current execution frame.
    * @return the result of converting input into a string.
    */
-  @Specialization(guards = "symbol == cachedSymbol")
+  @Specialization(guards = "symbol.getScope() == cachedSymbol.getScope()")
   public Stateful run(
       VirtualFrame frame,
       @Bind("getSymbol(frame)") UnresolvedSymbol symbol,
@@ -66,7 +64,8 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
     Stateful casted = invokeCallableNode.execute(toArray, frame, state, new Object[] {arguments});
     try {
       Object[] castedArgs = TypesGen.expectArray(casted.getValue()).getItems();
-      Object res = library.invokeMember(callable, symbol.getName(), castedArgs);
+      Object res =
+          hostValueToEnsoNode.execute(library.invokeMember(callable, symbol.getName(), castedArgs));
       return new Stateful(casted.getState(), res);
     } catch (UnsupportedMessageException
         | ArityException
@@ -76,6 +75,12 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
       err.enter();
       throw new PanicException(e.getMessage(), this);
     }
+  }
+
+  @Specialization
+  public Stateful runUncached(VirtualFrame frame) {
+    UnresolvedSymbol sym = getSymbol(frame);
+    return run(frame, sym, sym, buildToArray(sym));
   }
 
   UnresolvedSymbol buildToArray(UnresolvedSymbol originalSymbol) {

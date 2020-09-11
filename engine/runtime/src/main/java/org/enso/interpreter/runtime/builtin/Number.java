@@ -95,8 +95,8 @@ public class Number {
     scope.registerMethod(
         smallInteger,
         ">=",
-        org.enso.interpreter.node.expression.builtin.number.int64.GreaterOrEqualMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.int64.GreaterOrEqualMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         "<",
@@ -106,6 +106,11 @@ public class Number {
         smallInteger,
         "<=",
         org.enso.interpreter.node.expression.builtin.number.int64.LessOrEqualMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        smallInteger,
+        "to_decimal",
+        org.enso.interpreter.node.expression.builtin.number.int64.ToDecimalMethodGen.makeFunction(
             language));
   }
 
@@ -164,13 +169,13 @@ public class Number {
     scope.registerMethod(
         bigInteger,
         ">",
-        org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         bigInteger,
         ">=",
-        org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterOrEqualMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterOrEqualMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         bigInteger,
         "<",
@@ -179,8 +184,13 @@ public class Number {
     scope.registerMethod(
         bigInteger,
         "<=",
-        org.enso.interpreter.node.expression.builtin.number.bigInteger.LessOrEqualMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.LessOrEqualMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        bigInteger,
+        "to_decimal",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.ToDecimalMethodGen
+            .makeFunction(language));
   }
 
   private void registerDecimalMethods(Language language, ModuleScope scope) {
@@ -233,8 +243,8 @@ public class Number {
     scope.registerMethod(
         decimal,
         ">=",
-        org.enso.interpreter.node.expression.builtin.number.decimal.GreaterOrEqualMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.decimal.GreaterOrEqualMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         decimal,
         "<",
@@ -243,7 +253,12 @@ public class Number {
     scope.registerMethod(
         decimal,
         "<=",
-        org.enso.interpreter.node.expression.builtin.number.decimal.LessOrEqualMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.decimal.LessOrEqualMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        decimal,
+        "to_decimal",
+        org.enso.interpreter.node.expression.builtin.number.decimal.ToDecimalMethodGen.makeFunction(
             language));
   }
 
