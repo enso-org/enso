@@ -1,7 +1,8 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
+import java.io.{File, IOException}
 import java.util.Optional
+import java.util.logging.Level
 
 import org.enso.compiler.context.{
   Changeset,
@@ -13,7 +14,7 @@ import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.{Api, ApiNotification}
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.TextEdit
 
@@ -29,24 +30,32 @@ import scala.jdk.OptionConverters._
 class EnsureCompiledJob(protected val files: Iterable[File])
     extends Job[Unit](List.empty, true, false) {
 
-  /**
-    * Create a job ensuring that files are compiled after applying the edits.
-    *
-    * @param file a file to compile
-    */
-  def this(file: File, edits: Seq[TextEdit]) = {
-    this(List(file))
-    EnsureCompiledJob.enqueueEdits(file, edits)
-  }
-
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireWriteCompilationLock()
     try {
-      ensureCompiled(files)
+      ensureCompiledScope()
+      ensureCompiledFiles(files)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
     }
+  }
+
+  /**
+    * Compile the modules in the scope and send the extracted suggestions.
+    *
+    * @param ctx the runtime context
+    */
+  protected def ensureCompiledScope()(implicit ctx: RuntimeContext): Unit = {
+    val modulesInScope =
+      ctx.executionService.getContext.getTopScope.getModules.asScala
+    val updates = modulesInScope.flatMap { module =>
+      compile(module)
+      analyzeModuleInScope(module)
+    }
+    sendNotificationToClient(
+      Api.SuggestionsDatabaseIndexUpdateNotification(updates)
+    )
   }
 
   /**
@@ -55,7 +64,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param files the list of files to compile
     * @param ctx the runtime context
     */
-  protected def ensureCompiled(
+  protected def ensureCompiledFiles(
     files: Iterable[File]
   )(implicit ctx: RuntimeContext): Unit = {
     files.foreach { file =>
@@ -68,19 +77,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
               buildCacheInvalidationCommands(changeset)
             )
             analyzeModule(module, changeset)
-            // println(s"ensureCompiled=${(module.getName, module.getCompilationStage)}")
-            val scopeModules =
-              ctx.executionService.getContext.getTopScope.getModules.asScala
-            println(
-              s"SCOPE_MODULES=${scopeModules.map(m => (m.getName, m.getLiteralSource != null, m.getCompilationStage))}"
-            )
             val importedModules =
               new ImportResolver(ctx.executionService.getContext.getCompiler)
                 .mapImports(module)
                 .filter(_.getName != module.getName)
-            println(
-              s"IMPORTED_MODULES=${importedModules.map(m => (m.getName, m.getLiteralSource != null))}"
-            )
             importedModules.foreach(analyzeImport)
         }
       }
@@ -90,13 +90,47 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def analyzeImport(
     module: Module
   )(implicit ctx: RuntimeContext): Unit = {
-    if (!module.isIndexed && (module.getLiteralSource ne null)) {
+    if (!module.isIndexed && module.getLiteralSource != null) {
       println(s"analyzeImport=${(module.getName, module.getCompilationStage)}")
       val moduleName = module.getName.toString
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(module.getName.toString, module.getIr)
       sendReIndexNotification(moduleName, addedSuggestions)
       module.setIndexed(true)
+    }
+  }
+
+  private def analyzeModuleInScope(module: Module)(implicit
+    ctx: RuntimeContext
+  ): Option[Api.IndexedModule] = {
+    try module.getSource
+    catch {
+      case e: IOException =>
+        ctx.executionService.getLogger.log(
+          Level.SEVERE,
+          s"Failed to get module source to analyze ${module.getName}",
+          e
+        )
+    }
+    if (
+      !module.isIndexed &&
+      module.getLiteralSource != null &&
+      module.getPath != null
+    ) {
+      ctx.executionService.getLogger.finest(s"Analyzing ${module.getName}")
+      val moduleName = module.getName.toString
+      val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
+        .build(moduleName, module.getIr)
+      module.setIndexed(true)
+      Some(
+        Api.IndexedModule(
+          new File(module.getPath),
+          module.getSource.getCharacters.toString,
+          addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
+        )
+      )
+    } else {
+      None
     }
   }
 
@@ -148,7 +182,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param ctx the runtime context
     * @return the compiled module
     */
-  private def compile(module: Module)(implicit ctx: RuntimeContext): Module = {
+  private def compile(
+    module: Module
+  )(implicit ctx: RuntimeContext): Module = {
     module.compileScope(ctx.executionService.getContext).getModule
     ctx.executionService.getLogger
       .finer(s"Compiled ${module.getName} to ${module.getCompilationStage}")
@@ -261,7 +297,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendReIndexNotification(
     moduleName: String,
     added: Seq[Suggestion]
-  )(implicit ctx: RuntimeContext): Unit =
+  )(implicit ctx: RuntimeContext): Unit = {
     ctx.endpoint.sendToClient(
       Api.Response(
         Api.SuggestionsDatabaseReIndexNotification(
@@ -270,6 +306,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         )
       )
     )
+  }
+
+  private def sendNotificationToClient(msg: ApiNotification)(implicit
+    ctx: RuntimeContext
+  ): Unit = {
+    ctx.endpoint.sendToClient(Api.Response(msg))
+  }
 }
 
 object EnsureCompiledJob {
@@ -285,4 +328,45 @@ object EnsureCompiledJob {
       case Some(v) => Some(v :++ edits)
       case None    => Some(edits)
     }
+
+  /**
+    * Create a job ensuring that files are compiled.
+    *
+    * @param files the list of files to compile
+    * @return a new job
+    */
+  def apply(files: Iterable[File]): EnsureCompiledJob = {
+    new EnsureCompiledJob(files)
+  }
+
+  /**
+    * Create a job ensuring that files are compiled after applying the edits.
+    *
+    * @param file a file to compile
+    * @return a new job
+    */
+  def apply(file: File, edits: Seq[TextEdit]): EnsureCompiledJob = {
+    EnsureCompiledJob.enqueueEdits(file, edits)
+    EnsureCompiledJob(List(file))
+  }
+
+  /**
+    * Create a job ensuring that modules are compiled.
+    *
+    * @param modules a list of modules to compile
+    * @return a new job
+    */
+  def apply(
+    modules: Iterable[Module]
+  )(implicit ctx: RuntimeContext): EnsureCompiledJob = {
+    val files = modules.flatMap { module =>
+      val file = Option(module.getPath).map(new File(_))
+      if (file.isEmpty) {
+        ctx.executionService.getLogger
+          .severe(s"Failed to get file for module ${module.getName}")
+      }
+      file
+    }
+    new EnsureCompiledJob(files)
+  }
 }

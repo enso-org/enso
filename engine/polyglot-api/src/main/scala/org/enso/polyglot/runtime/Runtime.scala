@@ -181,12 +181,8 @@ object Runtime {
         name  = "invalidateModulesIndexResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.CreateModulesIndexRequest],
-        name  = "createModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.CreateModulesIndexResponse],
-        name  = "createModulesIndexResponse"
+        value = classOf[Api.SuggestionsDatabaseIndexUpdateNotification],
+        name  = "suggestionsDatabaseIndexUpdateNotification"
       )
     )
   )
@@ -740,11 +736,15 @@ object Runtime {
     /** Signals that the module indexes has been invalidated. */
     case class InvalidateModulesIndexResponse() extends ApiResponse
 
-    case class CreateModulesIndexRequest() extends ApiRequest
+    case class IndexedModule(
+      file: File,
+      contents: String,
+      updates: Seq[SuggestionsDatabaseUpdate.Add]
+    ) extends ApiNotification
 
-    case class CreateModulesIndexResponse(
-      updates: Iterable[SuggestionsDatabaseReIndexNotification]
-    ) extends ApiResponse
+    case class SuggestionsDatabaseIndexUpdateNotification(
+      updates: Iterable[IndexedModule]
+    ) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()

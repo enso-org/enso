@@ -19,10 +19,10 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
 ) extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
 
   /** @inheritdoc */
-  override protected def ensureCompiled(
+  override protected def ensureCompiledFiles(
     files: Iterable[File]
   )(implicit ctx: RuntimeContext): Unit = {
-    super.ensureCompiled(files)
+    super.ensureCompiledFiles(files)
     getCacheMetadata(stack).foreach { metadata =>
       CacheInvalidation.run(
         stack,
@@ -68,7 +68,14 @@ object EnsureCompiledStackJob {
         case Api.StackItem.ExplicitCall(methodPointer, _, _) =>
           ctx.executionService.getContext
             .findModule(methodPointer.module)
-            .flatMap(module => java.util.Optional.ofNullable(module.getPath))
+            .flatMap { module =>
+              val path = java.util.Optional.ofNullable(module.getPath)
+              if (path.isEmpty) {
+                ctx.executionService.getLogger
+                  .severe(s"${module.getName} module path is empty")
+              }
+              path
+            }
             .map(path => new File(path))
             .toScala
         case _ =>

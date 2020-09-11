@@ -10,6 +10,7 @@ import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.BeforeAndAfterEach
@@ -20,7 +21,11 @@ import org.scalatest.matchers.should.Matchers
 class StdlibRuntimeServerTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with OsSpec {
+
+  final val ContextPathSeparator: String =
+    if (isWindows) ";" else ":"
 
   var context: TestContext = _
 
@@ -72,7 +77,7 @@ class StdlibRuntimeServerTest
     executionContext.context.initialize(LanguageInfo.ID)
 
     def toPackagesPath(paths: String*): String =
-      paths.mkString(":")
+      paths.mkString(ContextPathSeparator)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -123,7 +128,7 @@ class StdlibRuntimeServerTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  val StdlibModules = Seq(
+  val ModulesInScope = Seq(
     "Base.Bench_Utils",
     "Base.Boolean",
     "Base.List",
@@ -136,24 +141,6 @@ class StdlibRuntimeServerTest
     "Base.Vector",
     "Test.Main"
   )
-
-  it should "re-index" in {
-    val requestId = UUID.randomUUID()
-
-    context.send(Api.Request(requestId, Api.CreateModulesIndexRequest()))
-    context.receive(10) match {
-      case Some(
-            Api.Response(Some(`requestId`), Api.CreateModulesIndexResponse(xs))
-          ) =>
-        xs.map(_.moduleName) should contain theSameElementsAs StdlibModules
-      case other => fail(s"Unexpected response $other")
-    }
-
-    context.send(Api.Request(requestId, Api.CreateModulesIndexRequest()))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateModulesIndexResponse(Seq()))
-    )
-  }
 
   it should "import Base" in {
     val contextId  = UUID.randomUUID()
@@ -168,17 +155,7 @@ class StdlibRuntimeServerTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    @scala.annotation.unused
     val mainFile = context.writeMain(contents)
-
-    context.send(Api.Request(requestId, Api.CreateModulesIndexRequest()))
-    context.receive(10) match {
-      case Some(
-            Api.Response(Some(`requestId`), Api.CreateModulesIndexResponse(xs))
-          ) =>
-        xs.map(_.moduleName) should contain theSameElementsAs StdlibModules
-      case other => fail(s"Unexpected response $other")
-    }
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -188,7 +165,7 @@ class StdlibRuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -206,28 +183,21 @@ class StdlibRuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    val response = context.receiveN(3, timeout = 30)
+    response.length shouldEqual 3
+    response should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "main",
-                List(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            )
-          )
-        )
-      ),
       context.executionSuccessful(contextId)
     )
+    response.collect {
+      case Api.Response(
+            Some(`requestId`),
+            Api.SuggestionsDatabaseIndexUpdateNotification(xs)
+          ) =>
+        xs.flatMap(
+          _.updates.headOption.map(_.suggestion.module)
+        ) should contain theSameElementsAs ModulesInScope
+    }
 
     context.consumeOut shouldEqual List("Hello World!")
   }

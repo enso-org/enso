@@ -73,6 +73,13 @@ trait SuggestionsRepo[F[_]] {
     */
   def removeByModule(name: String): F[(Long, Seq[Long])]
 
+  /** Remove all suggestions by module name.
+    *
+    * @param modules the list of modules to remove
+    * @return the current database version and a list of removed suggestion ids
+    */
+  def removeAllByModule(modules: Seq[String]): F[(Long, Seq[Long])]
+
   /** Remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
