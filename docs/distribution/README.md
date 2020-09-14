@@ -23,3 +23,7 @@ dependencies, and Enso projects for use by our users.
   interface of the launcher.
 - [**Licences:**](licences.md) Information on gathering license information of
   dependencies included in the distribution.
+- [**Fallback Launcher Release Infrastructure:**](fallback-launcher-release-infrastructure.md)
+  Explanation of the fallback infrastructure that can be enabled to keep
+  launcher updates functioning even if the primary release provider stops
+  working.

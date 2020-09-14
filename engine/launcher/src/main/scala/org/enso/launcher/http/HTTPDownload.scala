@@ -108,7 +108,7 @@ object HTTPDownload {
         Using(client.execute(request)) { response =>
           val result = handler(response, update)
           task.setComplete(Success(result))
-        }
+        }.get
       } catch {
         case NonFatal(e) => task.setComplete(Failure(e))
       }

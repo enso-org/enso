@@ -312,7 +312,7 @@ class LauncherUpgrader(
       val verb =
         if (release.version >= CurrentVersion.version) "upgraded"
         else "downgraded"
-      Logger.info(s"Successfully $verb launcher to ${release.version}.")
+      Logger.info(s"Successfully $verb the launcher to ${release.version}.")
     }
   }
 
@@ -386,7 +386,10 @@ object LauncherUpgrader {
             )
             true
           } else {
-            Logger.warn("A more recent launcher version is required.")
+            Logger.warn(
+              s"A more recent launcher version (at least " +
+              s"${e.expectedLauncherVersion}) is required to continue."
+            )
             CLIOutput.askConfirmation(
               "Do you want to upgrade the launcher and continue?",
               yesDefault = true

@@ -29,7 +29,7 @@ Enso project:
 
 It is broken up into categories as follows:
 
-- [**Distribution:**](./distirbution) Information on how we distribute Enso to
+- [**Distribution:**](./distribution) Information on how we distribute Enso to
   our users, and how Enso packages themselves work.
 - [**Language Server:**](./language-server) Information on the Enso language
   server, its protocol, and how it integrates with the runtime.

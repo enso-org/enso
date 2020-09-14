@@ -60,11 +60,12 @@ class ProjectFileRepository[
   override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
     fileSystem
       .list(storageConfig.userProjectsPath)
+      .map(_.filter(_.isDirectory))
       .recover {
         case FileNotFound | NotDirectory => Nil
       }
       .mapError(th => StorageFailure(th.toString))
-      .flatMap(s => Traverse[List].traverse(s)(loadProject).map(_.flatten))
+      .flatMap(s => Traverse[List].traverse(s)(tryLoadProject).map(_.flatten))
 
   /** @inheritdoc */
   override def findById(
@@ -84,15 +85,18 @@ class ProjectFileRepository[
         .mapError(th => StorageFailure(th.toString))
     } yield ()
 
-  private def loadProject(
+  private def tryLoadProject(
     directory: File
-  ): F[ProjectRepositoryFailure, Option[Project]] =
+  ): F[ProjectRepositoryFailure, Option[Project]] = {
+    val noop: F[ProjectRepositoryFailure, Option[ProjectMetadata]] =
+      Applicative[F].pure(None)
     for {
-      pkgOpt <- loadPackage(directory)
-      meta <- metadataStorage(directory)
-        .load()
-        .mapError(_.fold(convertFileStorageFailure))
-    } yield pkgOpt.map { pkg =>
+      pkgOpt  <- loadPackage(directory)
+      metaOpt <- pkgOpt.fold(noop)(_ => loadMetadata(directory))
+    } yield for {
+      pkg  <- pkgOpt
+      meta <- metaOpt
+    } yield {
       Project(
         id         = meta.id,
         name       = pkg.name,
@@ -102,6 +106,15 @@ class ProjectFileRepository[
         path       = Some(directory.toString)
       )
     }
+  }
+
+  private def loadMetadata(
+    directory: File
+  ): F[ProjectRepositoryFailure, Option[ProjectMetadata]] =
+    metadataStorage(directory)
+      .load()
+      .map(Some(_))
+      .mapError(_.fold(convertFileStorageFailure))
 
   private def createProjectStructure(
     project: Project,

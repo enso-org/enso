@@ -186,7 +186,7 @@ object Archive {
                   Files.createDirectories(parent)
                   Using(Files.newOutputStream(destinationPath)) { out =>
                     IOUtils.copy(archive, out)
-                  }
+                  }.get
                 }
 
                 if (OS.isUNIX) {
