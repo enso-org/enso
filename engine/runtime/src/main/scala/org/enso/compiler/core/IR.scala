@@ -1582,6 +1582,11 @@ object IR {
 
       override def showCode(indent: Int): String = value
 
+      /**
+        * Checks whether the literal represents a fractional value.
+        *
+        * @return `true` if the value is fractional, `false` otherwise.
+        */
       def isFractional: Boolean = value.contains(".")
     }
 

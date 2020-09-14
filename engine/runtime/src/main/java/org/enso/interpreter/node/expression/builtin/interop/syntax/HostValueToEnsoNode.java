@@ -5,12 +5,22 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 
+/**
+ * Converts a value returned by a polyglot call back to a value that can be further used within Enso
+ * programs.
+ */
 @ReportPolymorphism
 public abstract class HostValueToEnsoNode extends Node {
   public static HostValueToEnsoNode build() {
     return HostValueToEnsoNodeGen.create();
   }
 
+  /**
+   * Converts an arbitrary value to a value usable within Enso code.
+   *
+   * @param o the value to convert.
+   * @return the Enso counterpart of the value.
+   */
   public abstract Object execute(Object o);
 
   @Specialization

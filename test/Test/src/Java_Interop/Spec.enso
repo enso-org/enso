@@ -8,7 +8,7 @@ polyglot java import java.lang.Float
 spec = describe "Java FFI" <|
     it "should call methods imported from Java" <|
         Long.sum [1, 2] . should_equal 3
-    it "auto-convert numeric types across the polyglot boundary" <|
+    it "should auto-convert numeric types across the polyglot boundary" <|
         (Float.valueOf ["123.3"] + 5).should_equal 128.3 epsilon=0.0001
         (Integer.sum [1, 2] + 3) . should_equal 6
 

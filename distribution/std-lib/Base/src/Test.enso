@@ -37,6 +37,7 @@ Any.should_equal that = case this == that of
         msg = this.to_text + " did not equal " + that.to_text + "."
         Panic.throw (Failure msg)
 
+## Asserts that `this` is within `epsilon` from `that`.
 Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
     True -> Success
     False ->

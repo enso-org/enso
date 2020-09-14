@@ -23,19 +23,6 @@ public class RecursionBenchmarks {
     main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundredMillion());
   }
 
-  public double sumJava() {
-    double res = 0;
-    for (double i = 0; i <= 100000000.0; i+=1.0) {
-      res += i;
-    }
-    return res;
-  }
-
-  @Benchmark
-  public void benchSumJava() {
-    sumJava();
-  }
-
   @Benchmark
   public void benchSumTCO() {
     runOnHundredMillion(recursionFixtures.sumTCO());
