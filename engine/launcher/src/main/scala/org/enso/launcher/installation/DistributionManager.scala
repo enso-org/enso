@@ -17,6 +17,8 @@ import scala.util.Try
   * @param engines location of engine versions, corresponding to `dist`
   *                directory
   * @param config location of configuration
+  * @param locks a directory for storing lockfiles that are used to synchronize
+  *              access to the various components
   * @param tmp a directory for storing temporary files that is located on the
   *            same filesystem as `runtimes` and `engines`, used during
   *            installation to decrease the possibility of getting a broken
@@ -31,6 +33,7 @@ case class DistributionPaths(
   runtimes: Path,
   engines: Path,
   config: Path,
+  locks: Path,
   private val tmp: Path
 ) {
 
@@ -43,6 +46,7 @@ case class DistributionPaths(
        |  runtimes = $runtimes,
        |  engines  = $engines,
        |  config   = $config,
+       |  locks    = $locks,
        |  tmp      = $tmp
        |)""".stripMargin
 
@@ -117,6 +121,7 @@ class DistributionManager(val env: Environment) {
   val RUNTIMES_DIRECTORY             = "runtime"
   val CONFIG_DIRECTORY               = "config"
   val BIN_DIRECTORY                  = "bin"
+  private val LOCK_DIRECTORY         = "lock"
   private val TMP_DIRECTORY          = "tmp"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
@@ -134,16 +139,19 @@ class DistributionManager(val env: Environment) {
         runtimes = root / RUNTIMES_DIRECTORY,
         engines  = root / ENGINES_DIRECTORY,
         config   = root / CONFIG_DIRECTORY,
+        locks    = root / LOCK_DIRECTORY,
         tmp      = root / TMP_DIRECTORY
       )
     } else {
       val dataRoot   = LocallyInstalledDirectories.dataDirectory
       val configRoot = LocallyInstalledDirectories.configDirectory
+      val runRoot    = LocallyInstalledDirectories.runtimeDirectory
       DistributionPaths(
         dataRoot = dataRoot,
         runtimes = dataRoot / RUNTIMES_DIRECTORY,
         engines  = dataRoot / ENGINES_DIRECTORY,
         config   = configRoot,
+        locks    = runRoot / LOCK_DIRECTORY,
         tmp      = dataRoot / TMP_DIRECTORY
       )
     }
@@ -156,13 +164,15 @@ class DistributionManager(val env: Environment) {
     * to determine destination for installed files.
     */
   object LocallyInstalledDirectories {
-    val ENSO_DATA_DIRECTORY   = "ENSO_DATA_DIRECTORY"
-    val ENSO_CONFIG_DIRECTORY = "ENSO_CONFIG_DIRECTORY"
-    val ENSO_BIN_DIRECTORY    = "ENSO_BIN_DIRECTORY"
+    val ENSO_DATA_DIRECTORY    = "ENSO_DATA_DIRECTORY"
+    val ENSO_CONFIG_DIRECTORY  = "ENSO_CONFIG_DIRECTORY"
+    val ENSO_BIN_DIRECTORY     = "ENSO_BIN_DIRECTORY"
+    val ENSO_RUNTIME_DIRECTORY = "ENSO_RUNTIME_DIRECTORY"
 
-    private val XDG_DATA_DIRECTORY   = "XDG_DATA_DIRECTORY"
-    private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_DIRECTORY"
-    private val XDG_BIN_DIRECTORY    = "XDG_BIN_DIRECTORY"
+    private val XDG_DATA_DIRECTORY   = "XDG_DATA_HOME"
+    private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_HOME"
+    private val XDG_BIN_DIRECTORY    = "XDG_BIN_HOME"
+    private val XDG_RUN_DIRECTORY    = "XDG_RUNTIME_DIR"
 
     private val LINUX_ENSO_DIRECTORY   = "enso"
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
@@ -236,6 +246,20 @@ class DistributionManager(val env: Environment) {
           }
         }
         .toAbsolutePath
+
+    /**
+      * The directory where runtime-synchronization files are stored.
+      */
+    def runtimeDirectory: Path =
+      env
+        .getEnvPath(ENSO_RUNTIME_DIRECTORY)
+        .getOrElse {
+          OS.operatingSystem match {
+            case OS.Linux =>
+              env.getEnvPath(XDG_RUN_DIRECTORY).getOrElse(dataDirectory)
+            case _ => dataDirectory
+          }
+        }
 
     private def executableName: String =
       OS.executableName("enso")
