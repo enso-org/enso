@@ -20,11 +20,11 @@ pub use stdlib::StdLib;
 #[derive(Clone)]
 pub struct Object<'a> {
     /// JNI Environment.
-    pub env:&'a JNIEnv<'a>,
+    pub env : &'a JNIEnv<'a>,
     /// JNI Object ID.
-    pub obj:JClass<'a>,
+    pub obj : JClass<'a>,
     /// JNI Method ID.
-    pub fun:JMethodID<'a>,
+    pub fun : JMethodID<'a>,
 }
 
 impl<'a> Object<'a> {
@@ -38,7 +38,6 @@ impl<'a> Object<'a> {
         let err = "Could not find class ".to_string() + typ;
         let obj = env.find_class(typ).expect(&err);
         let fun = env.get_method_id(typ, "<init>", args).expect(&(err+" method "+args));
-
         Self{env,obj,fun}
     }
 

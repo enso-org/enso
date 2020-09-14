@@ -24,7 +24,9 @@ pub trait Generator<Source> : Sized {
 
 impl<S,T:Generator<S>> Generator<S> for Option<T> {
     fn write(self, source:&mut S) {
-        if let Some(t) = self { t.write(source) }
+        if let Some(t) = self {
+            t.write(source)
+        }
     }
 }
 

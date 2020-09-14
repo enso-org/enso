@@ -17,7 +17,6 @@ use syn::ItemMod;
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub struct File {
-    pub lib     : Stdlib,
     pub package : String,
     pub name    : Name,
     pub content : syn::File,
@@ -30,13 +29,9 @@ impl File {
     /// `object FileName { content.. }`, because Scala (compared to Rust) doesn't support
     /// top level type aliases.
     pub fn new(name:&str, package:&str, content:syn::File) -> Self {
-        Self{lib:Stdlib(), package:package.into(), name:name.into(), content}
+        Self{package:package.into(),name:name.into(),content}
     }
 }
-
-/// Represents a modified standard library.
-#[derive(Debug,Clone,Copy,Default)]
-pub struct Stdlib();
 
 /// Represents an object `object Name { line; ... }`.
 #[allow(missing_docs)]
@@ -52,10 +47,19 @@ pub struct Module<'a> {
 #[allow(missing_docs)]
 #[derive(Debug,Clone,Ord,PartialOrd,Eq,PartialEq)]
 pub struct Class {
+    pub doc   : String,
     pub typ   : Type,
-    pub args  : Vec<(Name,Type)>,
-    /// True iff the class fields have user defined names.
+    pub args  : Vec<Field>,
+    /// The class fields have user defined names.
     pub named : bool,
+}
+
+/// A single class field.
+#[allow(missing_docs)]
+#[derive(Debug,Clone,Ord,PartialOrd,Eq,PartialEq)]
+pub struct Field {
+    pub name : Name,
+    pub typ  : Type,
 }
 
 /// Represents a set of classes extending a sealed trait.
@@ -63,7 +67,15 @@ pub struct Class {
 #[derive(Debug,Clone)]
 pub struct Enum {
     pub typ      : Type,
-    pub variants : Vec<(Option<Name>, Class)>,
+    pub variants : Vec<Variant>,
+}
+
+/// A single enum variant.
+#[allow(missing_docs)]
+#[derive(Debug,Clone)]
+pub struct Variant {
+    pub module : Option<Name>,
+    pub class  : Class,
 }
 
 /// Represents the `extends Name` statement.
@@ -125,21 +137,28 @@ pub fn Name<T:Into<Name>>(t:T) -> Name {
 
 impl Class {
     /// Create a new Class instance.
-    pub fn new(typ:Type, args:Vec<(Name,Type)>, named:bool) -> Self {
-        Self{typ,args,named}
+    pub fn new(doc:String, typ:Type, args:Vec<Field>, named:bool) -> Self {
+        Self{doc,typ,args,named}
     }
 }
 
 /// Class constructor.
 #[allow(non_snake_case)]
-pub fn Class(name:Type, fields:&syn::Fields) -> Class {
+pub fn Class(name:Type, fields:&syn::Fields, attrs:&Vec<syn::Attribute>) -> Class {
     let named = if let syn::Fields::Named{..} = fields {true} else {false};
     let args  = fields.iter().enumerate().map(|(i,arg)| {
         let name = arg.ident.as_ref().map_or(Name(format!("val{}",i)),Name);
-        (name, Type::from(&arg.ty))
+        Field{name,typ:Type::from(&arg.ty)}
     }).collect();
-
-    Class{typ:name, args, named}
+    let doc_atr = attrs.iter().find(|atr| match atr.path.get_ident() {
+        Some(ident) => ident.to_string().as_str() == "doc",
+        None        => false,
+    });
+    let doc = if let Some(doc_atr) = doc_atr {
+        let tokens = doc_atr.tokens.to_string();
+        tokens.chars().skip(4).take(tokens.len()-5).collect()
+    } else { "".to_string() };
+    Class::new(doc,name,args,named)
 }
 
 impl Type {
@@ -158,7 +177,7 @@ pub fn Type(name:impl Into<Name>,  generics:&syn::Generics) -> Type {
             args.push(Type::from(Name(&typ.ident)))
         }
     }
-    Type{name:name.into(), path:Default::default(), args}
+    Type::new(name.into(),Default::default(),args)
 }
 
 
@@ -196,7 +215,7 @@ impl From<&syn::ItemType> for TypeAlias {
 
 impl From<&syn::ItemStruct> for Class {
     fn from(val:&syn::ItemStruct) -> Self {
-        Class(Type(&val.ident, &val.generics), &val.fields)
+        Class(Type(&val.ident, &val.generics), &val.fields, &val.attrs)
     }
 }
 
@@ -204,8 +223,7 @@ impl From<&syn::ItemStruct> for Class {
 impl<'a> From<&'a syn::ItemMod> for Module<'a> {
     fn from(val:&'a ItemMod) -> Self {
         let lines = if let Some((_,lines)) = &val.content {&lines[..]} else {&[]};
-
-        Module{name:Name(&val.ident), lines}
+        Module{name:Name(&val.ident),lines}
     }
 }
 
@@ -214,23 +232,22 @@ impl From<&syn::ItemEnum> for Enum {
         let     generics = &val.generics;
         let mut variants = Vec::default();
         for var in val.variants.iter() {
-            match &var.fields {
-                syn::Fields::Named(_) =>
-                    variants.push((None, Class(Type(&var.ident, generics), &var.fields))),
+            let (module,typ) = match &var.fields {
                 syn::Fields::Unnamed(fields) => {
                     if let syn::Type::Path(val) = fields.unnamed.first().unwrap().ty.clone() {
-                        let err        = "Unnamed fields in enum must be qualified.";
-                        let path       = val.path.segments.iter().rev().take(2);
-                        let (typ,name) = path.map(|s|Name(&s.ident)).collect_tuple().expect(err);
-                        let args       = vec![("variant".into(), typ.into())];
-                        let typ        = Type(&var.ident,generics);
-                        variants.push((Some(name), Class{typ, args, named:false}));
+                        let err      = "Unnamed fields in enum must be qualified.";
+                        let path     = val.path.segments.iter().rev().take(2);
+                        let (_,name) = path.map(|s|Name(&s.ident)).collect_tuple().expect(err);
+                        (Some(name),Type(&var.ident,generics))
+                    } else {
+                        (None,Type(&var.ident,generics))
                     }
                 }
-                _ => (),
-            }
+                _ => (None,Type(&var.ident,generics)),
+            };
+            variants.push(Variant{module,class:Class(typ,&var.fields,&var.attrs)});
         }
-        Self{typ:Type(&val.ident, generics), variants}
+        Self{typ:Type(&val.ident,generics),variants}
     }
 }
 
@@ -263,6 +280,6 @@ impl From<&syn::Type> for Type {
                 }
             }
         }
-        Self{name, path, args}
+        Self{name,path,args}
     }
 }

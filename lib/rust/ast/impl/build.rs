@@ -16,11 +16,9 @@ fn generate_api() {
     let mut ast_file = File::open(ast_path).expect(ast_error.as_str());
     let mut api_file = File::create(api_path).expect(api_error.as_str());
     let mut ast_str  = String::new();
-
     ast_file.read_to_string(&mut ast_str).expect("Unable to read AST definition.");
     let api = api::Source::api(ast_str.as_str());
     api_file.write_all(api.as_bytes()).expect("Unable to write API definition.");
-
     if let Ok(result) = Command::new("rustfmt").args(&["src/api.rs"]).output() {
         if !result.status.success() {
             println!("cargo:warning=Couldn't format generated AST API.");

@@ -12,48 +12,64 @@ use quote::quote;
 use itertools::Itertools;
 
 
+// ===========================
+// === File Representation ===
+// ===========================
 
-// =============================
-// === Module Representation ===
-// =============================
+
+/// Class with monomorphized type arguments.
+#[allow(missing_docs)]
+#[derive(Debug,Clone)]
+pub struct MonomorphizedClass {
+    pub class   : Class,
+    pub args    : Vec<Type>,
+    pub extends : Option<Name>,
+}
+
+impl MonomorphizedClass {
+    /// Construct a new instance.
+    pub fn new(class:Class, args:Vec<Type>, extends:Option<Name>) -> Self {
+        Self{class,args,extends}
+    }
+}
 
 /// A representation of rust file with additional lookup tables.
 #[derive(Debug,Clone,Default)]
 pub struct PreprocessedFile {
     /// File name.
-    pub file_name: String,
+    pub file_name : String,
     /// Package name.
-    pub package: String,
+    pub package : String,
     /// Currently active module.
-    pub module: Vec<Name>,
+    pub module : Vec<Name>,
     /// Set of all class names.
-    pub class_names: Set<Name>,
+    pub class_names : Set<Name>,
     /// Vector of all available classes and their arguments.
-    pub classes: Vec<(Class, Vec<Type>, Option<Name>)>,
+    pub classes : Vec<MonomorphizedClass>,
     /// Set of generic parameters a type is used with.
-    pub generics: Map<Name,Set<Type>>,
+    pub generics : Map<Name,Set<Type>>,
 }
 
 impl PreprocessedFile {
-    /// Add a class to the list of classes and monomorphizes the types of it's arguments.
+    /// Add a class to the list of classes and monomorphize the types of it's arguments.
     pub fn add_class(&mut self, mut class:Class, extends:Option<Name>) {
-        let args = class.args.iter().map(|(name, typ)|
-            (name.clone(), self.monomorphize(&typ).typ)
+        let args = class.args.iter().map(|Field{name,typ}|
+            Field{name:name.clone(), typ:self.monomorphize(&typ).typ}
         ).collect();
-        let arg_types  = class.args.into_iter().map(|(_,typ)| typ);
+        let arg_types  = class.args.into_iter().map(|field| field.typ);
         class.typ.path = self.module[1..].into();
-        let class      = Class::new(class.typ, args, class.named);
-        self.classes.push((class, arg_types.collect(), extends));
+        let class      = Class::new(class.doc,class.typ,args,class.named);
+        self.classes.push(MonomorphizedClass::new(class, arg_types.collect(), extends));
     }
 
-    /// Return a monomorphized name and the original type with monorphized arguments.
+    /// Return a monomorphized name and the original type with monomorphized arguments.
     pub fn monomorphize(&mut self, typ:&Type) -> UniqueType {
         let mut uid  = typ.name.str.clone();
         let mut args = vec![];
         let     path = vec![];
         for arg in typ.args.iter() {
             let typ = self.monomorphize(&arg);
-            uid.push_str(&typ.uid.str);
+            uid.push_str(&typ.unique_name.str);
             args.push(typ.typ);
         }
         if args.is_empty() || types::builtin(&typ.name).is_some() {
@@ -69,15 +85,15 @@ impl PreprocessedFile {
 #[derive(Debug,Clone)]
 pub struct UniqueType {
     /// Unique name of this type.
-    uid: Name,
+    unique_name: Name,
     /// The type itself.
-    typ: Type,
+    typ : Type,
 }
 
 impl UniqueType {
     /// Return a new UniqueType instance.
-    pub fn new(uid:Name, typ:Type) -> Self {
-        Self{uid,typ}
+    pub fn new(unique_name:Name, typ:Type) -> Self {
+        Self{unique_name,typ}
     }
 }
 
@@ -85,9 +101,9 @@ impl UniqueType {
 
 impl Generator<PreprocessedFile> for &File {
     fn write(self, source:&mut PreprocessedFile) {
-        source.package = self.package.clone();
+        source.package   = self.package.clone();
         source.file_name = self.name.clone().str;
-        Module::new(self.name.clone(), &self.content.items[..]).write(source);
+        Module::new(self.name.clone(),&self.content.items[..]).write(source);
     }
 }
 
@@ -127,8 +143,8 @@ impl Generator<PreprocessedFile> for &Class {
 
 impl Generator<PreprocessedFile> for &Enum {
     fn write(self, source:&mut PreprocessedFile) {
-        for (_, variant) in self.variants.iter().cloned() {
-            source.add_class(variant, Some(self.typ.name.clone()));
+        for Variant{class,..} in self.variants.iter().cloned() {
+            source.add_class(class,Some(self.typ.name.clone()));
         }
         source.class_names.insert(self.typ.name.clone());
         if self.typ.args.is_empty() {
@@ -142,7 +158,7 @@ impl Generator<PreprocessedFile> for &Enum {
 
 impl ToTokens for Name {
     fn to_tokens(&self, tokens:&mut TokenStream) {
-        syn::Ident::new(&self.str, proc_macro2::Span::call_site()).to_tokens(tokens)
+        syn::Ident::new(&self.str,proc_macro2::Span::call_site()).to_tokens(tokens)
     }
 }
 
@@ -156,11 +172,11 @@ impl ToTokens for Name {
 #[derive(Debug,Clone)]
 pub struct AssociatedType {
     /// Name of the associated type.
-    pub name: Name,
+    pub name : Name,
     /// Name of the enum variant if any.
-    pub variant: Option<Name>,
+    pub variant : Option<Name>,
     /// The class the associated type represents.
-    pub class: Class,
+    pub class : Class,
 }
 
 impl AssociatedType {
@@ -171,15 +187,16 @@ impl AssociatedType {
 
     /// Generate a type signature of a type in trait.
     ///
-    /// For builtin types this returns `Name<typ(arg1), typ(arg2)..>`, for anything else
-    /// `<Self as Api>::Name`.
+    /// For builtin types this returns `#name<typ(#(#args),*>`, for anything else `Api::#name`.
     pub fn typ(typ:&Type) -> TokenStream {
         let args = typ.args.iter().map(Self::typ);
         let name = &typ.name;
         if types::builtin(&name).is_none() {
             quote!(<Self as Api>::#name)
-        } else {
+        } else if !typ.args.is_empty() {
             quote!(#name<#(#args),*>)
+        } else {
+            quote!(#name)
         }
     }
 
@@ -192,7 +209,7 @@ impl AssociatedType {
     /// use quote::quote;
     ///
     /// let args  = vec![("x", "i64").into(), ("y", "Y").into()];
-    /// let class = Class::new("".into(), args, true);
+    /// let class = Class::new("".into(), "".into(), args, true);
     /// let typ   = AssociatedType::new(Name("Name"), None, class);
     ///
     /// assert_eq!(typ.fun(), quote!(name(x:i64, y:<Self as Api>::Y) -> <Self as Api>::Name))
@@ -200,12 +217,11 @@ impl AssociatedType {
     pub fn fun(&self) -> TokenStream {
         let typ  = &self.name;
         let name = &name::var(&if let Some(var) = &self.variant {typ.clone()+var} else {typ.clone()});
-        let args = self.class.args.iter().map(|(ref name, ref typ)| {
+        let args = self.class.args.iter().map(|Field{ref name,ref typ}| {
             let typ = Self::typ(typ);
             quote!(#name:#typ)
         });
-
-        quote!(fn #name(&self, #(#args),*) -> <Self as Api>::#typ)
+        quote!(fn #name(&self,#(#args),*) -> <Self as Api>::#typ)
     }
 
 }
@@ -229,55 +245,63 @@ impl Source {
     /// Generate API definition for the given AST definition.
     pub fn api(ast:&str) -> String {
         let input = syn::parse_str(ast).unwrap();
-        let file  = File::new("Ast", "org.enso.ast", input);
+        let file  = File::new("Ast","org.enso.ast",input);
         let api   = Self::new(file.into()).ast_api();
-
         api.to_string()
     }
 
     /// Create a new instance from `Collector`.
-    pub fn new(collector: PreprocessedFile) -> Self {
+    pub fn new(file:PreprocessedFile) -> Self {
         fn apply(typ:&Type, vars:&Map<&Name,&Type>) -> Type {
             if let Some(&typ) = vars.get(&typ.name) { typ.clone() } else {
                 let args = typ.args.iter().map(|typ| apply(typ,&vars)).collect();
-                Type::new(typ.name.clone(), vec![], args)
+                Type::new(typ.name.clone(),Vec::default(),args)
             }
         }
-        let     package = collector.package.replace('.', "/") + "/" + &collector.file_name;
+        let     package = file.package.replace('.',"/") + "/" + &file.file_name;
         let mut classes = Vec::default();
         let mut types   = Vec::default();
-        for (class, args, extends) in collector.classes {
-            let (name, variant) = if let Some(name) = extends {
+        for MonomorphizedClass{class,args,extends} in file.classes {
+            let (name,variant) = if let Some(name) = extends {
                 ( name.clone()          , Some(class.typ.name.clone()) )
             } else {
                 ( class.typ.name.clone(), None                         )
             };
-            for mut typ in collector.generics.get(&name).cloned().unwrap_or_default() {
-                let name = std::mem::replace(&mut typ.name, name.clone());
+            for mut typ in file.generics.get(&name).cloned().unwrap_or_default() {
+                let name = std::mem::replace(&mut typ.name,name.clone());
                 let vars = class.typ.args.iter().map(|t| &t.name).zip(&typ.args).collect();
-                let args = class.args.iter().map(|(name,typ)|
-                    (name.clone(), apply(&typ, &vars))
+                let args = class.args.iter().map(|Field{name,typ}|
+                    Field{name:name.clone(),typ:apply(&typ,&vars)}
                 ).collect();
-                let named   = class.named;
-                types.push(AssociatedType::new(name, variant.clone(), Class::new(typ,args,named)));
+                let class = Class::new(class.doc.clone(),typ,args,class.named);
+                types.push(AssociatedType::new(name,variant.clone(),class));
             }
-            let args = args.into_iter().map(|typ| (Name(""),typ)).collect();
+            let args = args.into_iter().map(|typ| Field{name:Name(""),typ}).collect();
             if variant.is_none() || class.named {
-                classes.push(Class::new(class.typ, args, class.named))
+                classes.push(Class::new("".to_string(),class.typ,args,class.named))
             }
         }
-        Self{class_names:collector.class_names, classes, package, types, generics:collector.generics}
+        Self{class_names:file.class_names,classes,package,types,generics:file.generics}
     }
 
     /// Generate the AST trait.
     pub fn ast_trait(&self) -> TokenStream {
-        let types = self.generics.iter().flat_map(|(_,typ)| typ.iter().map(|typ| &typ.name));
-        let funs  = self.types.iter().map(|obj| obj.fun());
+        let typs      = self.generics.iter().flat_map(|(_,typ)| typ.iter().map(|typ| &typ.name));
+        let funs      = self.types.iter().map(|obj| obj.fun());
+        let typ_docs  = self.generics.iter().flat_map(|(typ,args)| args.iter().map(move |arg| {
+            let args  = arg.args.iter().map(AssociatedType::typ);
+            let typ   = if arg.args.is_empty() { quote!(#typ) } else {
+                quote!(#typ<#(#args),*>)
+            };
+            format!("The AST Node {}.",typ.to_string().replace(" ",""))
+        })).collect_vec();
+        let fun_docs  = self.types.iter().map(|obj| {
+            format!("Construct Self::{}.{}",obj.name.str,obj.class.doc)
+        });
         quote! {
             pub trait Api {
-                #(type #types);*;
-
-                #(#funs);*;
+                #( #[doc=#typ_docs] type #typs );*;
+                #( #[doc=#fun_docs]      #funs );*;
             }
         }
     }
@@ -299,7 +323,7 @@ impl Source {
         }));
         let funs     = self.types.iter().map(|obj| {
             let fun  = obj.fun();
-            let args = obj.class.args.iter().map(|(name,_)| name);
+            let args = obj.class.args.iter().map(|Field{name,..}| name);
             let args = quote!(#(#args),*);
             let name = &obj.class.typ.name;
             let name = if let Some(variant) = &obj.variant { quote!(#name::#variant) } else {
@@ -324,10 +348,10 @@ impl Source {
     pub fn scala_struct(&self) -> TokenStream {
         let fields  = self.classes.iter().map(|obj| name::var(&obj.typ.name)).collect_vec();
         let objects = self.classes.iter().map(|obj| {
-            let     name = types::jni_name("".to_string(), &obj.typ, self.package.as_str());
+            let     name = types::jni_name("".to_string(),&obj.typ,self.package.as_str());
             let mut args = String::from("(");
-            for (_, typ) in &obj.args {
-                args = types::jni_arg(args, &typ, self.package.as_str(), &self.class_names);
+            for Field{typ,..} in &obj.args {
+                args = types::jni_arg(args,&typ,self.package.as_str(),&self.class_names);
             }
             args += ")V";
             quote!(Object::new(&env,#name,#args))
@@ -347,7 +371,7 @@ impl Source {
 
             impl<'a> Scala<'a> {
                 pub fn new(env:&'a JNIEnv<'a>) -> Self {
-                    Self { env, lib:StdLib::new(env), #(#fields:#objects),* }
+                    Self { env,lib:StdLib::new(env),#(#fields:#objects),* }
                 }
             }
         }
@@ -359,10 +383,10 @@ impl Source {
         let funs     = self.types.iter().map(|obj| {
             let fun  = obj.fun();
             if obj.variant.is_some() && !obj.class.named {
-                return quote!(#fun { variant })
+                return quote!(#fun { val0 })
             }
             let typ  = &name::var(obj.variant.as_ref().unwrap_or_else(||&obj.class.typ.name));
-            let args = obj.class.args.iter().map(|(name,_)| quote!(#name.jvalue(&self.lib)));
+            let args = obj.class.args.iter().map(|Field{name,..}| quote!(#name.jvalue(&self.lib)));
             quote!(#fun { self.#typ.init(&[#(#args),*]) })
         });
         quote! {
@@ -454,43 +478,49 @@ mod tests {
 
     #[test]
     fn test_monomorphization() {
-        let     generics = PreprocessedFile::from(File::new("", "", parse!{
-            struct A(B<X,Y>, C<B<X,Box<i32>>>);
+        let     generics = PreprocessedFile::from(File::new("","",parse!{
+            struct A(B<X,Y>,C<B<X,Box<i32>>>);
         })).generics;
-        let     boxi32   = Type::new(Name("Box"), vec![], vec![Name("i32").into()]);
+        let     boxi32   = Type::new(Name("Box"),vec![],vec![Name("i32").into()]);
         let mut expected = Map::new();
         let mut set      = Set::new();
-        set.insert(Type::new(Name("BXY"), vec![], vec![Name("X").into(), Name("Y").into()]));
-        set.insert(Type::new(Name("BXBoxi32"), vec![], vec![Name("X").into(), boxi32]));
-        expected.insert(Name("B"), std::mem::replace(&mut set, Set::new()));
-        set.insert(Type::new(Name("CBXBoxi32"), vec![], vec![Name("BXBoxi32").into()]));
-        expected.insert(Name("C"), std::mem::replace(&mut set, Set::new()));
+        set.insert(Type::new(Name("BXY"),vec![],vec![Name("X").into(),Name("Y").into()]));
+        set.insert(Type::new(Name("BXBoxi32"),vec![],vec![Name("X").into(),boxi32]));
+        expected.insert(Name("B"),std::mem::replace(&mut set,Set::new()));
+        set.insert(Type::new(Name("CBXBoxi32"),vec![],vec![Name("BXBoxi32").into()]));
+        expected.insert(Name("C"),std::mem::replace(&mut set,Set::new()));
         set.insert(Name("A").into());
-        expected.insert(Name("A"), std::mem::replace(&mut set, Set::new()));
-        assert_eq!(generics, expected);
+        expected.insert(Name("A"),std::mem::replace(&mut set,Set::new()));
+        assert_eq!(generics,expected);
     }
 
     #[test]
     fn test_trait_generics() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
+        let source = Source::new(File::new("Ast","ast",parse!{
+            /// Generic wrapper.
             struct A<T>(T);
+            /// Wrapper around A<i32>.
             struct B(A<i32>);
         }).into());
         let expected = quote! {
             pub trait Api {
+                #[doc="The AST Node A<i32>."]
                 type Ai32;
+                #[doc="The AST Node B."]
                 type B;
 
-                fn ai_32(&self, val0:i32<>              ) -> <Self as Api>::Ai32;
-                fn b    (&self, val0:<Self as Api>::Ai32) -> <Self as Api>::B;
+                #[doc="Construct Self::Ai32. Generic wrapper."]
+                fn ai_32(&self,val0:i32              ) -> <Self as Api>::Ai32;
+                #[doc="Construct Self::B. Wrapper around A<i32>."]
+                fn b    (&self,val0:<Self as Api>::Ai32) -> <Self as Api>::B;
             }
         };
-        assert_eq!(source.ast_trait().to_string(), expected.to_string())
+        assert_eq!(source.ast_trait().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_trait_nested_generics() {
-        let source = Source::new(File::new("", "", parse!{
+        let source = Source::new(File::new("","",parse!{
             struct A(B<X,Y>, C<B<X,Box<i32>>>);
             struct B<X,Y>(X,Y);
             struct C<T>(T);
@@ -512,12 +542,12 @@ mod tests {
                 (&self, val0:<Self as Api>::BXBoxi32) -> <Self as Api>::CBXBoxi32;
             }
         };
-        assert_eq!(source.ast_trait().to_string(), expected.to_string())
+        assert_eq!(source.ast_trait().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_rust_nested_generics() {
-        let source = Source::new(File::new("", "", parse!{
+        let source = Source::new(File::new("","",parse!{
             struct A(B<X,Y>, C<B<X,Box<i32>>>);
             struct B<X,Y>(X,Y);
             struct C<T>(T);
@@ -525,14 +555,14 @@ mod tests {
         let expected = quote! {
             impl Api for Rust {
                 type A         = A<>;
-                type BXBoxi32  = B< <Self as Api>::X, Box<i32 <> > >;
+                type BXBoxi32  = B< <Self as Api>::X, Box<i32> >;
                 type BXY       = B< <Self as Api>::X, <Self as Api>::Y>;
                 type CBXBoxi32 = C< <Self as Api>::BXBoxi32>;
 
                 fn a(&self, val0:<Self as Api>::BXY, val1:<Self as Api>::CBXBoxi32) -> <Self as Api>::A {
                     A(val0, val1)
                 }
-                fn bx_boxi_32(&self, val0:<Self as Api>::X, val1:Box<i32 <> >) -> <Self as Api>::BXBoxi32 {
+                fn bx_boxi_32(&self, val0:<Self as Api>::X, val1:Box<i32>) -> <Self as Api>::BXBoxi32 {
                     B(val0, val1)
                 }
                 fn bxy(&self, val0:<Self as Api>::X, val1:<Self as Api>::Y) -> <Self as Api>::BXY {
@@ -543,12 +573,12 @@ mod tests {
                 }
             }
         };
-        assert_eq!(source.rust_impl().to_string(), expected.to_string())
+        assert_eq!(source.rust_impl().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_scala_nested_generics_struct() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
+        let source = Source::new(File::new("Ast","ast",parse!{
             struct A(B<i8,u8>, C<B<i32,Vec<i64>>>);
             struct B<X,Y>(X,Y);
             struct C<T>(T);
@@ -580,12 +610,12 @@ mod tests {
                 }
             }
         };
-        assert_eq!(source.scala_struct().to_string(), expected.to_string())
+        assert_eq!(source.scala_struct().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_scala_nested_generics_impl() {
-        let source = Source::new(File::new("", "", parse!{
+        let source = Source::new(File::new("","",parse!{
             struct A(B<X,Y>, C<B<X,Box<i32>>>);
             struct B<X,Y>(X,Y);
             struct C<T>(T);
@@ -603,7 +633,7 @@ mod tests {
                 fn a(&self, val0:<Self as Api>::BXY, val1:<Self as Api>::CBXBoxi32) -> <Self as Api>::A {
                     self.a.init(&[val0.jvalue(&self.lib), val1.jvalue(&self.lib)])
                 }
-                fn bx_boxi_32(&self, val0:<Self as Api>::X, val1:Box<i32 <> >) -> <Self as Api>::BXBoxi32 {
+                fn bx_boxi_32(&self, val0:<Self as Api>::X, val1:Box<i32>) -> <Self as Api>::BXBoxi32 {
                     self.b.init(&[val0.jvalue(&self.lib), val1.jvalue(&self.lib)])
                 }
                 fn bxy(&self, val0:<Self as Api>::X, val1:<Self as Api>::Y) -> <Self as Api>::BXY {
@@ -614,27 +644,27 @@ mod tests {
                 }
             }
         };
-        assert_eq!(source.scala_impl().to_string(), expected.to_string())
+        assert_eq!(source.scala_impl().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_rust_unnamed_enum_impl() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
+        let source = Source::new(File::new("Ast","ast",parse!{
             enum Enum { A(a::AA), B(a::AA) }
         }).into());
         let expected = quote! {
             impl Api for Rust {
                 type Enum = Enum<>;
-                fn enum_a(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { Enum::A(variant) }
-                fn enum_b(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { Enum::B(variant) }
+                fn enum_a(&self, val0:<Self as Api>::AA) -> <Self as Api>::Enum { Enum::A(val0) }
+                fn enum_b(&self, val0:<Self as Api>::AA) -> <Self as Api>::Enum { Enum::B(val0) }
             }
         };
-        assert_eq!(source.rust_impl().to_string(), expected.to_string())
+        assert_eq!(source.rust_impl().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_scala_unnamed_enum_impl() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
+        let source = Source::new(File::new("Ast","ast",parse!{
             enum Enum { A(a::AA), B(a::AA) }
         }).into());
         let expected = quote! {
@@ -643,16 +673,16 @@ mod tests {
 
             impl<'a> Api for Scala<'a> {
                 type Enum = JObject<'a>;
-                fn enum_a(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { variant }
-                fn enum_b(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { variant }
+                fn enum_a(&self, val0:<Self as Api>::AA) -> <Self as Api>::Enum { val0 }
+                fn enum_b(&self, val0:<Self as Api>::AA) -> <Self as Api>::Enum { val0 }
             }
         };
-        assert_eq!(source.scala_impl().to_string(), expected.to_string())
+        assert_eq!(source.scala_impl().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_scala_unnamed_enum_struct() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
+        let source = Source::new(File::new("Ast","ast",parse!{
             enum Enum { A(a::AA), B(a::AA) }
         }).into());
         let expected = quote! {
@@ -670,12 +700,12 @@ mod tests {
                 }
             }
         };
-        assert_eq!(source.scala_struct().to_string(), expected.to_string())
+        assert_eq!(source.scala_struct().to_string(),expected.to_string())
     }
 
     #[test]
     fn test_scala_box() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
+        let source = Source::new(File::new("Ast","ast",parse!{
             struct A(Box<i32>);
         }).into());
         let expected = quote! {
@@ -701,6 +731,6 @@ mod tests {
                 }
             }
         };
-        assert_eq!(source.scala_struct().to_string(), expected.to_string())
+        assert_eq!(source.scala_struct().to_string(),expected.to_string())
     }
 }

@@ -31,11 +31,11 @@ macro_rules! write {
 #[derive(Debug,Clone,Default)]
 pub struct Source {
     /// The content of the file.
-    code:String,
+    code : String,
     /// Current indentation.
-    indent:usize,
+    indent : usize,
     /// Inheritance hierarchy.
-    extends:Map<Name,Name>,
+    extends : Map<Name,Name>,
 }
 
 impl Source {
@@ -49,10 +49,8 @@ impl Source {
         let mut content = String::new();
         let mut file    = fs::File::open("lib/rust/ast/impl/src/ast.rs")?;
         file.read_to_string(&mut content)?;
-
         let file      = syn::parse_file(content.as_str()).unwrap();
         let this:Self = File::new("Ast", "org.enso.ast", file).source();
-
         Ok(this.code)
     }
 }
@@ -76,26 +74,19 @@ impl Generator<Source> for Tab {
 impl Generator<Source> for &File {
     fn write(self, source:&mut Source) {
         let content = Module::new(self.name.clone(), &self.content.items[..]);
-        write!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n\n\n");
-        write!(source, &content, "\n");
-    }
-}
-
-impl Generator<Source> for Stdlib {
-    fn write(self, source:&mut Source) {
+        write!(source, "package ", self.package.as_str(), "\n\n");
         write!(source, "import java.util.UUID\n");
         write!(source, "import scala.collection.mutable.ArrayBuffer\n");
+        write!(source, "\n\n\n");
+        write!(source, &content, "\n");
     }
 }
 
 impl<'a> Generator<Source> for &Module<'a> {
     fn write(self, source:&mut Source) {
         let name = name::typ(&self.name);
-
         write!(source, TAB, "object ", &name, " {\n");
-
         source.indent += 2;
-
         if source.extends.contains_key(&name) {
             write!(source, TAB, "sealed trait ", &name, extends(&name));
         }
@@ -108,9 +99,7 @@ impl<'a> Generator<Source> for &Module<'a> {
                 _                      => { }
             }
         }
-
         source.indent -= 2;
-
         write!(source, TAB, "}\n");
     }
 }
@@ -124,11 +113,9 @@ impl Generator<Source> for &TypeAlias {
 impl Generator<Source> for &Class {
     fn write(self, source:&mut Source) {
         write!(source, TAB, "case class ", &self.typ, "(");
-
-        for (i, (name,typ)) in self.args.iter().enumerate() {
+        for (i,Field{name,typ}) in self.args.iter().enumerate() {
             write!(source, ", ".when(i!=0), &name::var(name), ":", typ);
         }
-
         write!(source, ")", extends(&self.typ.name));
     }
 }
@@ -136,12 +123,12 @@ impl Generator<Source> for &Class {
 impl Generator<Source> for &Enum {
     fn write(self, source:&mut Source) {
         write!(source, TAB, "sealed trait ", &self.typ, extends(&self.typ.name));
-        for (object, class) in self.variants.iter() {
+        for Variant{module,class} in self.variants.iter() {
             let name = class.typ.name.clone();
-            match object {
-                Some(object) => {
-                    source.extends.insert(name::typ(&object), self.typ.name.clone());
-                    source.extends.insert(name, name::typ(&object));
+            match module {
+                Some(module) => {
+                    source.extends.insert(name::typ(&module), self.typ.name.clone());
+                    source.extends.insert(name,name::typ(&module));
                 }
                 None => {
                     source.extends.insert(name, self.typ.name.clone());
@@ -202,7 +189,6 @@ pub mod name {
     /// Creates a Scala type name `foo_bar => FooBar`
     pub fn typ(name:&Name) -> Name {
         if let Some(name) = types::builtin(name) { return name.scala.into() }
-
         let mut string = name.str.to_camel_case();
         string[0..1].make_ascii_uppercase();
         string.into()
@@ -277,7 +263,6 @@ object Ast {
 
 ";
         let src: Source = File::new("Ast", "org.enso.ast".into(), rust).source();
-
         assert_eq!(src.code, scala);
     }
 }
