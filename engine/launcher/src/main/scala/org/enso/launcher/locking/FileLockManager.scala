@@ -15,14 +15,14 @@ class FileLockManager(distributionManager: DistributionManager)
   /**
     * @inheritdoc
     */
-  override def acquireLock(resourceName: String, shared: Boolean): Lock = {
+  override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val channel = FileChannel.open(
       lockPath(resourceName),
       StandardOpenOption.CREATE,
       StandardOpenOption.WRITE
     )
     try {
-      lockChannel(channel, shared)
+      lockChannel(channel, lockType)
     } catch {
       case NonFatal(e) =>
         channel.close()
@@ -35,7 +35,7 @@ class FileLockManager(distributionManager: DistributionManager)
     */
   override def tryAcquireLock(
     resourceName: String,
-    shared: Boolean
+    lockType: LockType
   ): Option[Lock] = {
     val channel = FileChannel.open(
       lockPath(resourceName),
@@ -43,7 +43,7 @@ class FileLockManager(distributionManager: DistributionManager)
       StandardOpenOption.WRITE
     )
     try {
-      tryLockChannel(channel, shared)
+      tryLockChannel(channel, lockType)
     } catch {
       case NonFatal(e) =>
         channel.close()
@@ -54,16 +54,22 @@ class FileLockManager(distributionManager: DistributionManager)
   private def lockPath(resourceName: String): Path =
     distributionManager.paths.locks.resolve(resourceName + ".lock")
 
-  private def lockChannel(channel: FileChannel, shared: Boolean): Lock =
-    WrapLock(channel.lock(0L, Long.MaxValue, shared))
+  private def isShared(lockType: LockType): Boolean =
+    lockType match {
+      case LockType.Exclusive => false
+      case LockType.Shared    => true
+    }
+
+  private def lockChannel(channel: FileChannel, lockType: LockType): Lock =
+    WrapLock(channel.lock(0L, Long.MaxValue, isShared(lockType)))
 
   private def tryLockChannel(
     channel: FileChannel,
-    shared: Boolean
+    lockType: LockType
   ): Option[Lock] =
-    Option(channel.tryLock(0L, Long.MaxValue, shared)).map(WrapLock)
+    Option(channel.tryLock(0L, Long.MaxValue, isShared(lockType))).map(WrapLock)
 
   private case class WrapLock(fileLock: FileLock) extends Lock {
-    override def close(): Unit = fileLock.release()
+    override def release(): Unit = fileLock.release()
   }
 }

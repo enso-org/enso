@@ -11,6 +11,7 @@ import org.enso.launcher.components.LauncherUpgradeRequiredError
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.locking.{
   DefaultResourceManager,
+  LockType,
   Resource,
   ResourceManager
 }
@@ -46,7 +47,7 @@ class LauncherUpgrader(
   def upgrade(targetVersion: SemVer): Unit = {
     resourceManager.withResource(
       Resource.LauncherExecutable,
-      exclusive = true
+      LockType.Exclusive
     ) {
       runCleanup(isStartup = true)
       val release = releaseProvider.fetchRelease(targetVersion).get

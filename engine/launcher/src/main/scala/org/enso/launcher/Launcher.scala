@@ -63,7 +63,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val globalConfig = configurationManager.getConfig
 
     val exitCode = runner
-      .createCommand(
+      .withCommand(
         runner
           .newProject(
             path                = actualPath,
@@ -75,9 +75,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           )
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
-      )
-      .run()
-      .get
+      ) { command =>
+        command.run().get
+      }
 
     if (exitCode == 0) {
       Logger.info(s"Project created in `$actualPath` using version $version.")
@@ -183,12 +183,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     additionalArguments: Seq[String]
   ): Unit = {
     val exitCode = runner
-      .createCommand(
+      .withCommand(
         runner.repl(projectPath, versionOverride, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
-      )
-      .run()
-      .get
+      ) { command =>
+        command.run().get
+      }
     sys.exit(exitCode)
   }
 
@@ -217,12 +217,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     additionalArguments: Seq[String]
   ): Unit = {
     val exitCode = runner
-      .createCommand(
+      .withCommand(
         runner.run(path, versionOverride, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
-      )
-      .run()
-      .get
+      ) { command =>
+        command.run().get
+      }
     sys.exit(exitCode)
   }
 
@@ -248,14 +248,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     additionalArguments: Seq[String]
   ): Unit = {
     val exitCode = runner
-      .createCommand(
+      .withCommand(
         runner
           .languageServer(options, versionOverride, additionalArguments)
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
-      )
-      .run()
-      .get
+      ) { command =>
+        command.run().get
+      }
     sys.exit(exitCode)
   }
 
@@ -359,12 +359,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val isEngineInstalled =
       componentsManager.findEngine(runtimeVersionRunSettings.version).isDefined
     val runtimeVersionString = if (isEngineInstalled) {
-      val runtimeVersionCommand = runner.createCommand(
+      val output = runner.withCommand(
         runtimeVersionRunSettings,
         JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
-      )
+      ) { runtimeVersionCommand =>
+        runtimeVersionCommand.captureOutput().get
+      }
 
-      val output = runtimeVersionCommand.captureOutput().get
       if (useJSON) output else "\n" + output.stripTrailing()
     } else {
       if (useJSON) "null"

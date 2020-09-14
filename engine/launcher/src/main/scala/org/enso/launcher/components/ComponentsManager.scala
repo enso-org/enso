@@ -8,6 +8,12 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.locking.{
+  DefaultResourceManager,
+  LockType,
+  Resource,
+  ResourceManager
+}
 import org.enso.launcher.releases.engine.EngineRelease
 import org.enso.launcher.releases.runtime.{
   GraalCEReleaseProvider,
@@ -24,6 +30,8 @@ import scala.util.{Failure, Success, Try, Using}
   *
   * Allows to find, list, install and uninstall components.
   *
+  * See Note [Components Manager Concurrency Model]
+  *
   * @param cliOptions options from the CLI setting verbosity of the executed
   *                   actions
   * @param distributionManager the [[DistributionManager]] to use
@@ -33,6 +41,7 @@ import scala.util.{Failure, Success, Try, Using}
 class ComponentsManager(
   cliOptions: GlobalCLIOptions,
   distributionManager: DistributionManager,
+  resourceManager: ResourceManager,
   engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: RuntimeReleaseProvider
 ) {
@@ -51,7 +60,7 @@ class ComponentsManager(
     *
     * Returns None if that version is not installed.
     */
-  def findRuntime(version: RuntimeVersion): Option[Runtime] = {
+  private def findRuntime(version: RuntimeVersion): Option[Runtime] = {
     val name = runtimeNameForVersion(version)
     val path = distributionManager.paths.runtimes / name
     if (Files.exists(path)) {
@@ -76,6 +85,47 @@ class ComponentsManager(
     } else None
   }
 
+  def withEngine[R](engineVersion: SemVer)(
+    action: Engine => R
+  ): R = {
+    val engine = findOrInstallEngine(version = engineVersion)
+    resourceManager.withResources(
+      (Resource.Engine(engineVersion), LockType.Shared)
+    ) {
+      if (!engine.isValid) {
+        throw new IllegalStateException(
+          "Engine has become invalid before a lock has been acquired."
+        )
+      }
+
+      action(engine)
+    }
+  }
+
+  def withEngineAndRuntime[R](engineVersion: SemVer)(
+    action: (Engine, Runtime) => R
+  ): R = {
+    val engine  = findOrInstallEngine(version = engineVersion)
+    val runtime = findOrInstallRuntime(engine)
+    resourceManager.withResources(
+      (Resource.Engine(engineVersion), LockType.Shared),
+      (Resource.Runtime(runtime.version), LockType.Shared)
+    ) {
+      if (!engine.isValid) {
+        throw new IllegalStateException(
+          "Engine has become invalid before a lock has been acquired."
+        )
+      }
+      if (runtime.isValid) {
+        throw new IllegalStateException(
+          "Engine has become invalid before a lock has been acquired."
+        )
+      }
+
+      action(engine, runtime)
+    }
+  }
+
   /**
     * Returns the runtime needed for the given engine, trying to install it if
     * it is missing.
@@ -86,7 +136,7 @@ class ComponentsManager(
     *                 [[cliOptions.autoConfirm]] is set, in which case it
     *                 installs it without asking)
     */
-  def findOrInstallRuntime(
+  private def findOrInstallRuntime(
     engine: Engine,
     complain: Boolean = true
   ): Runtime =
@@ -115,7 +165,7 @@ class ComponentsManager(
   /**
     * Finds an installed engine with the given `version` and reports any errors.
     */
-  def getEngine(version: SemVer): Try[Engine] = {
+  private def getEngine(version: SemVer): Try[Engine] = {
     val name = engineNameForVersion(version)
     val path = distributionManager.paths.engines / name
     if (Files.exists(path)) {
@@ -183,7 +233,14 @@ class ComponentsManager(
         }
 
         if (!complain || complainAndAsk()) {
-          installEngine(version)
+          resourceManager.withResources(
+            (Resource.AddOrRemoveComponents, LockType.Shared),
+            (Resource.Engine(version), LockType.Exclusive)
+          ) {
+            findEngine(version).getOrElse {
+              installEngine(version)
+            }
+          }
         } else {
           throw ComponentMissingError(s"No engine $version. Cannot continue.")
         }
@@ -244,16 +301,20 @@ class ComponentsManager(
   /**
     * Uninstalls the engine with the provided `version` (if it was installed).
     */
-  def uninstallEngine(version: SemVer): Unit = {
-    val engine = getEngine(version).getOrElse {
-      Logger.warn(s"Enso Engine $version is not installed.")
-      sys.exit(1)
-    }
+  def uninstallEngine(version: SemVer): Unit =
+    resourceManager.withResources(
+      (Resource.AddOrRemoveComponents, LockType.Exclusive),
+      (Resource.Engine(version), LockType.Exclusive)
+    ) {
+      val engine = getEngine(version).getOrElse {
+        Logger.warn(s"Enso Engine $version is not installed.")
+        throw ComponentMissingError(s"Enso Engine $version is not installed.")
+      }
 
-    safelyRemoveComponent(engine.path)
-    Logger.info(s"Uninstalled $engine.")
-    cleanupRuntimes()
-  }
+      safelyRemoveComponent(engine.path)
+      Logger.info(s"Uninstalled $engine.")
+      cleanupRuntimes()
+    }
 
   /**
     * Installs the engine with the provided version.
@@ -265,6 +326,10 @@ class ComponentsManager(
     * package is extracted to a temporary directory next to the `engines`
     * directory (to ensure that they are on the same filesystem) and is moved to
     * the actual directory after doing simple sanity checks.
+    *
+    * The caller should hold a shared lock on [[Resource.AddOrRemoveComponents]]
+    * and an exclusive lock on [[Resource.Engine]]. The function itself acquires
+    * [[Resource.Runtime]], but it is released before it returns.
     */
   private def installEngine(version: SemVer): Engine = {
     val engineRelease = engineReleaseProvider.fetchRelease(version).get
@@ -371,24 +436,37 @@ class ComponentsManager(
           )
         }
 
-        findOrInstallRuntime(temporaryEngine, complain = false)
+        val runtimeVersion = temporaryEngine.graalRuntimeVersion
+        resourceManager.withResource(
+          Resource.Runtime(runtimeVersion),
+          LockType.Exclusive
+        ) {
+          val runtime = findRuntime(runtimeVersion).getOrElse {
+            installRuntime(runtimeVersion)
+          }
 
-        val enginePath = distributionManager.paths.engines / engineDirectoryName
-        FileSystem.atomicMove(engineTemporaryPath, enginePath)
-        val engine = getEngine(version).getOrElse {
-          Logger.error(
-            "fatal: Could not load the installed engine." +
-            "Reverting the installation."
-          )
-          FileSystem.removeDirectory(enginePath)
-          cleanupRuntimes()
-          throw InstallationError(
-            "fatal: Could not load the installed engine"
-          )
+          val enginePath =
+            distributionManager.paths.engines / engineDirectoryName
+          FileSystem.atomicMove(engineTemporaryPath, enginePath)
+          val engine = getEngine(version).getOrElse {
+            Logger.error(
+              "fatal: Could not load the installed engine." +
+              "Reverting the installation."
+            )
+            FileSystem.removeDirectory(enginePath)
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !! !!
+            if (findEnginesUsingRuntime(runtime).isEmpty) {
+              safelyRemoveComponent(runtime.path)
+            }
+
+            throw InstallationError(
+              "fatal: Could not load the installed engine"
+            )
+          }
+
+          Logger.info(s"Installed $engine.")
+          engine
         }
-
-        Logger.info(s"Installed $engine.")
-        engine
       } catch {
         case e: Exception =>
           undoTemporaryEngine()
@@ -513,13 +591,16 @@ class ComponentsManager(
   /**
     * Installs the runtime with the provided version.
     *
-    * Used internally by [[findOrInstallRuntime]]. Does not check if the runtime
-    * is already installed.
+    * Does not check if the runtime is already installed.
     *
     * The installation tries as much as possible to be robust - the downloaded
     * package is extracted to a temporary directory next to the `runtimes`
     * directory (to ensure that they are on the same filesystem) and is moved to
     * the actual directory after doing simple sanity checks.
+    *
+    * The caller should hold a shared lock fo
+    * [[Resource.AddOrRemoveComponents]] and an exclusive lock for
+    * [[Resource.Runtime]].
     */
   private def installRuntime(runtimeVersion: RuntimeVersion): Runtime =
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
@@ -588,8 +669,10 @@ class ComponentsManager(
 
   /**
     * Removes runtimes that are not used by any installed engines.
+    *
+    * The caller must hold [[Resource.AddOrRemoveComponents]] exclusively.
     */
-  def cleanupRuntimes(): Unit = {
+  private def cleanupRuntimes(): Unit = {
     for (runtime <- listInstalledRuntimes()) {
       if (findEnginesUsingRuntime(runtime).isEmpty) {
         Logger.info(
@@ -621,6 +704,60 @@ class ComponentsManager(
   }
 }
 
+/* Note [Components Manager Concurrency Model]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The [[ComponentsManager]] itself is not synchronized as it should be used in
+ * the launcher from a single thread. However, multiple launcher instances may
+ * run at the same time and their operations have to be synchronized to some
+ * extent, especially to avoid two processes modifying the same engine version.
+ *
+ * The concurrency is managed as follows:
+ * 1. `withEngine` and `withEngineAndRuntime` acquire shared locks for the
+ *    engine (and in the second case also for the runtime) and can be used to
+ *    safely run a process using the engine ensuring that the engine will not be
+ *    uninstalled while that process is running. As the locks are shared,
+ *    multiple processes can use the same engine or runtime for running. These
+ *    functions may install the missing engine or runtime as described below.
+ *    The installation acquires an exclusive lock for the component, but to
+ *    avoid keeping that lock when launching a possibly long-running process, it
+ *    is released and a shared lock is re-acquired, so that other processes can
+ *    start using the newly installed engine in parallel. As the underlying
+ *    mechanism does not support lock downgrade, the lock is released for a very
+ *    short time. Theoretically, it is possible for an uninstall command to
+ *    start in this short time-window and remove the just-installed component.
+ *    To avoid errors, after re-acquiring the shared lock, the engine and
+ *    runtime components are re-checked to ensure that they have not been
+ *    uninstalled in the meantime. In the unlikely case that one of them was
+ *    removed, an error is reported and execution is terminated.
+ * 2. `uninstallEngine` acquires an exclusive lock on the affected engine (so no
+ *    other process can be using it) and removes it. Additionally it runs a
+ *    runtime cleanup, removing any runtimes that are not used anymore. For that
+ *    cleanup to be safe, add-remove-components lock is acquired which
+ *    guarantees that no other installations are run in parallel.
+ * 2. `findOrInstallEngine` and `findOrInstallRuntime` do not normally use
+ *    locking, so their result is immediately invalidated - if the caller wants
+ *    to have any guarantees they have to acquire a lock *after* getting the
+ *    result and re-check its validity, as described in (1). In case the
+ *    requested component is missing, an exclusive lock for it is acquired along
+ *    with a shared lock for add-remove-components for the time of the
+ *    installation, but all locks are released before returning from this
+ *    function.
+ * 3. `installRuntime` does not acquire any locks, it relies on its caller to
+ *    acquire an exclusive lock for add-remove-components and the affected
+ *    runtime.
+ * 4. `installEngine` relies on the caller to an exclusive lock for
+ *    add-remove-components and the affected engine, but it may itself acquire a
+ *    ????? TODO
+ * 5. Other functions do not acquire or require any locks. Their results are
+ *    immediately invalidated, so they should only be used for non-safety
+ *    critical operations, like listing available engines.
+ *
+ * To summarize, components management (install and uninstall) is synchronized
+ * for safety. Other operations are mostly unsynchronized. If a guarantee is
+ * expected that the engine (and possibly its runtime) are not modified when
+ * running a command, `withEngine` or `withEngineAndRuntime` should be used.
+ */
+
 object ComponentsManager {
 
   /**
@@ -634,6 +771,7 @@ object ComponentsManager {
     new ComponentsManager(
       globalCLIOptions,
       DistributionManager,
+      DefaultResourceManager,
       EnsoRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider
     )
