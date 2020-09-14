@@ -37,7 +37,7 @@ object FileSystem {
     * necessary.
     */
   def writeTextFile(path: Path, content: String): Unit = {
-    Using(new PrintWriter(path.toFile)) { writer => writer.write(content) }
+    Using(new PrintWriter(path.toFile)) { writer => writer.write(content) }.get
   }
 
   /**

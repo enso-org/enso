@@ -166,7 +166,7 @@ object GlobalConfigurationManager {
       Files.createDirectories(path.getParent)
       Files.newBufferedWriter(path)
     }
-    def writeConfig =
+    def writeConfig: Try[Unit] =
       Using(bufferedWriter) { writer =>
         val string = yaml.Printer.spaces2
           .copy(preserveOrder = true)

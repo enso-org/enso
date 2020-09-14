@@ -11,6 +11,15 @@ order: 3
 As an open-source project and programming language, it is incredibly important
 that we have a well-defined release policy. This document defines said policy.
 
+> **Once a release has been made it is immutable. The release should only ever
+> be edited to mark it as broken. Nothing else should ever be changed.**
+>
+> **No two release workflows can be running at once, to avoid race conditions
+> since releases
+> [must update files in S3](fallback-launcher-release-infrastructure.md#updating-the-release-list).
+> Make sure that tags which trigger release builds are pushed sequentially, only
+> pushing the next one after the previous build has finished.**
+
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Versioning](#versioning)
@@ -223,6 +232,22 @@ A broken release is one that _must not_ be downloaded by the launcher unless a
 project specifies _an exact version match_, and it _must not_ be used in new
 projects by the launcher unless _explicitly_ specified by the user as an exact
 version match.
+
+When the release is marked as broken at GitHub, a GitHub Actions
+[Workflow](fallback-launcher-release-infrastructure.md#marking-the-release-as-broken)
+is triggered that also updates the release in the fallback mechanism. Given its
+current implementation is prone to race conditions when updating releases, the
+`broken` file should be added to releases one by one, making sure that only one
+update workflow is running at the same time and that no release workflows are
+running in parallel with it.
+
+In an unusual situation in which you want to upload a release that is marked as
+broken from the start, you should first publish it in a non-broken state and
+only mark it as broken after publishing. That is because the GitHub Workflow
+that will persist the broken mark to S3 is not triggered for release drafts.
+
+> **When marking the release as broken, you should make sure that the workflow
+> persisting the broken mark to Se has succeeded and re-run it if necessary.**
 
 ### Release Notes
 

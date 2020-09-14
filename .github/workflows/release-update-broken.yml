@@ -1,0 +1,63 @@
+name: Update Broken Release
+
+on:
+  release:
+    types: [edited]
+
+jobs:
+  update-s3:
+    name: Update S3
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: repo
+      - name: Prepare Repository Name
+        shell: bash
+        run: |
+          ref=${{ github.ref }}
+          tag=${ref#"refs/tags/"}
+          echo ::set-env name=TAG::$tag
+      - name: Check if Broken Mark is Present
+        shell: bash
+        run: |
+          BROKEN="::set-env name=IS_BROKEN::true"
+          NOT_BROKEN="::set-env name=IS_BROKEN::false"
+          curl https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.TAG }} > release.json
+          ./repo/tools/ci/releases/is-broken.js release.json > url.txt && echo $BROKEN || echo $NOT_BROKEN
+          echo ::set-env name=BROKEN_URL::$(cat url.txt)
+      - name: Prepare AWS Session
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
+          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+      - name: Upload Broken Mark to S3
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          wget --header "Accept: application/octet-stream" -O broken $BROKEN_URL
+          aws s3 cp broken s3://launcherfallback/launcher/${{ env.TAG }}/ --profile s3-upload --acl public-read
+      - name: Update the Release List in S3
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
+          ./repo/tools/ci/releases/mark-broken.js release-list.json "${{ env.TAG }}"
+          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload --acl public-read
+      - name: Teardown AWS Session
+        if: env.IS_BROKEN == 'true'
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF

@@ -256,6 +256,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          path: repo
       # Without specifying options, it downloads all artifacts
       - uses: actions/download-artifact@v2
         with:
@@ -359,6 +361,62 @@ jobs:
           draft: true
           prerelease: true
 
+      # Publish the launcher packages to the backup/fallback S3 bucket
+      - name: Prepare AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
+          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+      - name: Upload the Linux Launcher Package to S3
+        shell: bash
+        run: >
+          aws s3 cp enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION }}/ --profile
+          s3-upload --acl public-read
+      - name: Upload the macOS Launcher Package to S3
+        shell: bash
+        run: >
+          aws s3 cp enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION }}/ --profile
+          s3-upload --acl public-read
+      - name: Upload the Windows Launcher Package to S3
+        shell: bash
+        run: >
+          aws s3 cp enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION }}/ --profile
+          s3-upload --acl public-read
+      - name: Upload the Launcher Manifest to S3
+        shell: bash
+        run: >
+          aws s3 cp artifacts/launcher-manifest/launcher-manifest.yaml
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION
+          }}/launcher-manifest.yaml --profile s3-upload --acl public-read
+      - name: Update the Release List in S3
+        shell: bash
+        run: |
+          aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
+          TAG="enso-${{ env.DIST_VERSION }}"
+          ./repo/tools/ci/releases/add-release.js release-list.json "$TAG" \
+          launcher-manifest.yaml \
+          "enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz" \
+          "enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz" \
+          "enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip"
+          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload --acl public-read
+      - name: Teardown AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF
+
+      # Upload the assets to the created release
       - name: Publish the Engine (Linux)
         uses: actions/upload-release-asset@v1
         env:

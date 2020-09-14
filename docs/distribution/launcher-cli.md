@@ -219,10 +219,10 @@ Examples:
 ```bash
 > enso upgrade
 ...
-[info] Successfully upgraded launcher to 3.0.2.
+[info] Successfully upgraded the launcher to 3.0.2.
 > enso upgrade 2.0.1
 ...
-[info] Successfully upgraded launcher to 2.0.1.
+[info] Successfully upgraded the launcher to 2.0.1.
 ```
 
 ### `version`
