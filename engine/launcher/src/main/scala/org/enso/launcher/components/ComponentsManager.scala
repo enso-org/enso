@@ -436,15 +436,16 @@ class ComponentsManager(
           )
         }
 
-        val runtimeVersion = temporaryEngine.graalRuntimeVersion
-        resourceManager.withResource(
-          Resource.Runtime(runtimeVersion),
-          LockType.Exclusive
-        ) {
-          val runtime = findRuntime(runtimeVersion).getOrElse {
-            installRuntime(runtimeVersion)
-          }
-
+        /**
+          * Finalizes the installation.
+          *
+          * Has to be called with an acquired lock for the runtime. If
+          * `wasJustInstalled` is true, the lock must be exclusive.
+          */
+        def finishInstallation(
+          runtime: Runtime,
+          wasJustInstalled: Boolean
+        ): Engine = {
           val enginePath =
             distributionManager.paths.engines / engineDirectoryName
           FileSystem.atomicMove(engineTemporaryPath, enginePath)
@@ -454,8 +455,7 @@ class ComponentsManager(
               "Reverting the installation."
             )
             FileSystem.removeDirectory(enginePath)
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !! !!
-            if (findEnginesUsingRuntime(runtime).isEmpty) {
+            if (wasJustInstalled && findEnginesUsingRuntime(runtime).isEmpty) {
               safelyRemoveComponent(runtime.path)
             }
 
@@ -467,6 +467,41 @@ class ComponentsManager(
           Logger.info(s"Installed $engine.")
           engine
         }
+
+        val runtimeVersion = temporaryEngine.graalRuntimeVersion
+
+        /**
+          * Tries to finalize the installation assuming that the runtime was
+          * installed and without acquiring an unnecessary exclusive lock.
+          */
+        def getEngineIfRuntimeIsInstalled: Option[Engine] =
+          resourceManager.withResource(
+            Resource.Runtime(runtimeVersion),
+            LockType.Shared
+          ) {
+            findRuntime(runtimeVersion).map { runtime =>
+              finishInstallation(runtime, wasJustInstalled = false)
+            }
+          }
+
+        /**
+          * Finalizes the installation, installing the runtime if necessary.
+          * This variant acquires an exclusive lock on the runtime (but it
+          * should generally be called only if the runtime was not installed).
+          */
+        def getEngineOtherwise: Engine =
+          resourceManager.withResource(
+            Resource.Runtime(runtimeVersion),
+            LockType.Exclusive
+          ) {
+            val (runtime, wasInstalled) = findRuntime(runtimeVersion)
+              .map((_, false))
+              .getOrElse((installRuntime(runtimeVersion), true))
+
+            finishInstallation(runtime, wasJustInstalled = wasInstalled)
+          }
+
+        getEngineIfRuntimeIsInstalled.getOrElse(getEngineOtherwise)
       } catch {
         case e: Exception =>
           undoTemporaryEngine()
@@ -745,9 +780,10 @@ class ComponentsManager(
  * 3. `installRuntime` does not acquire any locks, it relies on its caller to
  *    acquire an exclusive lock for add-remove-components and the affected
  *    runtime.
- * 4. `installEngine` relies on the caller to an exclusive lock for
+ * 4. `installEngine` relies on the caller to acquire an exclusive lock for
  *    add-remove-components and the affected engine, but it may itself acquire a
- *    ????? TODO
+ *    a shared or exclusive lock for the runtime (the exclusive lock is acquired
+ *    if the runtime is missing and has to be installed).
  * 5. Other functions do not acquire or require any locks. Their results are
  *    immediately invalidated, so they should only be used for non-safety
  *    critical operations, like listing available engines.
