@@ -46,4 +46,6 @@ type Range
 
 type Math
 
+## The mathematical constant pi, equal to the ratio of a circle circumference
+    to its diameter.
 Math.pi = 3.141592653589793
