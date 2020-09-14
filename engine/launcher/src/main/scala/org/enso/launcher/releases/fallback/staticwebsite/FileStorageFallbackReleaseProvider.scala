@@ -12,13 +12,16 @@ import scala.util.{Failure, Success, Try}
   *
   * It has the following requirements:
   * 1. It should contain a file `fallback-manifest.yaml` with a key `enabled` in
-  *    the root directory. This key determines if the provider [[isAvailable]].
+  *    the root directory. This key determines if the provider [[isEnabled]].
   * 2. It should contain a file `release-list.json` in the root directory.
   *    That file should contain a key `releases` which should contain a list of
   *    keys whose names are tags of the releases and their values are lists of
   *    their assets.
   * 3. A directory [[releasesDirectory]] that contains subdirectories for each
   *    release tag which contain the listed assets.
+  *
+  * It must adhere to the fallback mechanism specification as defined at
+  * [[https://dev.enso.org/docs/enso/distribution/fallback-launcher-release-infrastructure.html#fallback-infrastructure-specification]].
   */
 class FileStorageFallbackReleaseProvider(
   storage: FileStorage,
@@ -28,13 +31,13 @@ class FileStorageFallbackReleaseProvider(
   /**
     * @inheritdoc
     */
-  override def isAvailable: Boolean = isAvailableCached
+  override def isEnabled: Boolean = isEnabledCached
 
   /**
     * @inheritdoc
     */
   override def releaseForTag(tag: String): Try[Release] =
-    if (!isAvailable) {
+    if (!isEnabled) {
       Failure(new IllegalStateException("The provider is unavailable."))
     } else
       cachedReleaseList.flatMap { releases =>
@@ -54,15 +57,15 @@ class FileStorageFallbackReleaseProvider(
     * @inheritdoc
     */
   override def listReleases(): Try[Seq[Release]] =
-    if (!isAvailable) {
+    if (!isEnabled) {
       Failure(new IllegalStateException("The provider is unavailable."))
     } else cachedReleaseList
 
   private def fetchAsString(fileName: String): String =
     storage.fetchString(Seq(fileName)).waitForResult().get
 
-  private lazy val isAvailableCached = queryIsAvailable()
-  private def queryIsAvailable(): Boolean =
+  private lazy val isEnabledCached = queryIsEnabled()
+  private def queryIsEnabled(): Boolean =
     try {
       val content  = fetchAsString(FallbackManifest.fileName)
       val manifest = FallbackManifest.parseString(content).get

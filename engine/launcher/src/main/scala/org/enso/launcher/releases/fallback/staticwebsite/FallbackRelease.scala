@@ -2,6 +2,15 @@ package org.enso.launcher.releases.fallback.staticwebsite
 
 import org.enso.launcher.releases.{Asset, Release}
 
+/**
+  * A [[Release]] provided by the [[FileStorageFallbackReleaseProvider]].
+  *
+  * @param tag tag identifying the release
+  * @param assetNames filenames of assets included in the release
+  * @param storage reference to the underlying [[FileStorage]] that provides the
+  *                assets
+  * @param root path to the release directory in the [[storage]]
+  */
 case class FallbackRelease(
   tag: String,
   assetNames: Seq[String],

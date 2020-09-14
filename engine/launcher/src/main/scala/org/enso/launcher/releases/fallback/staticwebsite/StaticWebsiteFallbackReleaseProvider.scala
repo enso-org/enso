@@ -14,13 +14,16 @@ import scala.util.Try
   *
   * It has the following requirements:
   * 1. It should contain a file `fallback-manifest.yaml` with a key `enabled` in
-  *    the root directory. This key determines if the provider [[isAvailable]].
+  *    the root directory. This key determines if the provider [[isEnabled]].
   * 2. It should contain a file `release-list.json` in the root directory.
   *    That file should contain a key `releases` which should contain a list of
   *    keys whose names are tags of the releases and their values are lists of
   *    their assets.
   * 3. A directory [[releasesDirectory]] that contains subdirectories for each
   *    release tag which contain the listed assets.
+  *
+  * It must adhere to the fallback mechanism specification as defined at
+  * [[https://dev.enso.org/docs/enso/distribution/fallback-launcher-release-infrastructure.html#fallback-infrastructure-specification]].
   *
   * @param bucketRoot root URI that should contain the described files
   */
@@ -35,7 +38,7 @@ class StaticWebsiteFallbackReleaseProvider(
   /**
     * @inheritdoc
     */
-  override def isAvailable: Boolean = provider.isAvailable
+  override def isEnabled: Boolean = provider.isEnabled
 
   /**
     * @inheritdoc

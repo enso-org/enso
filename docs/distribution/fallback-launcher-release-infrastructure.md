@@ -32,9 +32,9 @@ release provider becomes permanently disabled, the fallback mechanism can be
 enabled allowing launcher updates to function without forcing the users to do
 the update manually.
 
-Currently a fallback mechanism for engine releases is not provided, since if the
-engine release provider becomes obsolete, a new launcher version can be released
-that will know about the new engine provider.
+Currently a fallback mechanism for engine releases is not provided and there are
+no plans to do so, since if the engine release provider becomes obsolete, a new
+launcher version can be released that will know about the new engine provider.
 
 ## Fallback Infrastructure Specification
 
@@ -82,12 +82,8 @@ So for example, if the `release-list.json` has the following contents:
 The launcher package should be accessible under the URL
 `https://launcherfallback.release.enso.org/launcher/0.1.0-test/enso-launcher-0.1.0-test-linux-amd64.tar.gz`.
 
-The fallback infrastructure should be able to provide all available launcher
-releases. If for some reason that were infeasible, the absolute minimum is to
-provide at least such a set of releases that will allow every launcher version
-since its release to do a
-[step-by-step upgrade](launcher.md#step-by-step-upgrade) to the latest available
-version.
+The fallback infrastructure must be able to provide all released launcher
+versions.
 
 ### Requirements Inherited from Current Launcher Upgrade Scheme
 
@@ -100,7 +96,7 @@ requirements:
 - The release contains an asset called `launcher-manifest.yaml` which contains
   at least one key, `minimum-version-for-upgrade` which is a semantic versioning
   string.
-- The release contains the following packages:
+- The release contains at least the following packages:
   - `enso-launcher-<version>-linux-amd64.tar.gz`
   - `enso-launcher-<version>-macos-amd64.tar.gz`
   - `enso-launcher-<version>-windows-amd64.zip`
@@ -113,8 +109,8 @@ in case the unavailability is not temporary and is known to span a long enough
 time-frame that a decision is made that the fallback is necessary).
 
 However, to be sure that we can easily enable it, the infrastructure is already
-in a working state. It is built on top of an AWS S3 bucket which provides the
-files explained in the
+in a working state. It is currently built on top of an AWS S3 bucket which
+provides the files explained in the
 [specification above](#fallback-infrastructure-specification). Each release
 uploaded to GitHub Releases is automatically uploaded to this S3 bucket so it
 also acts as a backup.
@@ -140,4 +136,9 @@ When a release is marked as broken on GitHub (by uploading a file called
 file to the release and modifies the `release-list.json` to include the `broken`
 asset.
 
-<!-- TODO [RW] -->
+The action uploads the added `broken` file to the release's files on S3 and
+updates the `release-list.json` to include the broken mark in the asset list.
+The update is done in the same way as
+[described above](#updating-the-release-list), so broken marks should also be
+added one at a time and not at the same time as releases are made to avoid race
+conditions.

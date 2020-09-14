@@ -29,12 +29,27 @@ object EnsoRepository {
     "enso-staging"
   )
 
+  /**
+    * Defines the URL of the fallback mechanism.
+    *
+    * That URL must *never* be changed to ensure that all older launcher
+    * versions can be upgraded.
+    */
   private val launcherFallbackProviderHostname =
     "launcherfallback.release.enso.org"
 
+  /**
+    * Defines a part of the URL scheme of the fallback mechanism - the name of
+    * the directory that holds the releases.
+    *
+    * That must *never* be changed to ensure that all older launcher versions
+    * can be upgraded.
+    */
+  private val launcherFallbackReleaseDirectory = "launcher"
+
   private val launcherS3Fallback = new StaticWebsiteFallbackReleaseProvider(
     URIBuilder.fromHost(launcherFallbackProviderHostname),
-    "launcher"
+    launcherFallbackReleaseDirectory
   )
 
   /**

@@ -41,8 +41,8 @@ class FileStorageFallbackReleaseProviderSpec
 
   "FileStorageFallbackReleaseProvider" should {
     "correctly report available" in {
-      makeProvider(Provider.Available).isAvailable shouldEqual true
-      makeProvider(Provider.Unavailable).isAvailable shouldEqual false
+      makeProvider(Provider.Available).isEnabled shouldEqual true
+      makeProvider(Provider.Unavailable).isEnabled shouldEqual false
     }
 
     "fail with IllegalStateException if it is queried but unavailable" in {

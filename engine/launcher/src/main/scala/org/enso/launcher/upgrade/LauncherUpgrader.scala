@@ -312,7 +312,7 @@ class LauncherUpgrader(
       val verb =
         if (release.version >= CurrentVersion.version) "upgraded"
         else "downgraded"
-      Logger.info(s"Successfully $verb launcher to ${release.version}.")
+      Logger.info(s"Successfully $verb the launcher to ${release.version}.")
     }
   }
 

@@ -21,7 +21,7 @@ class SimpleReleaseProviderWithFallback(
     */
   override def releaseForTag(tag: String): Try[Release] =
     baseProvider.releaseForTag(tag).recoverWith { error =>
-      if (fallbackProvider.isAvailable)
+      if (fallbackProvider.isEnabled)
         fallbackProvider.releaseForTag(tag)
       else Failure(error)
     }
@@ -31,7 +31,7 @@ class SimpleReleaseProviderWithFallback(
     */
   override def listReleases(): Try[Seq[Release]] =
     baseProvider.listReleases().recoverWith { error =>
-      if (fallbackProvider.isAvailable)
+      if (fallbackProvider.isEnabled)
         fallbackProvider.listReleases()
       else Failure(error)
     }

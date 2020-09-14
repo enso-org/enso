@@ -38,7 +38,7 @@ class SimpleReleaseProviderWithFallbackSpec
     broken: Boolean,
     releases: Seq[TestRelease]
   ) extends FallbackReleaseProvider {
-    override def isAvailable: Boolean = enabled
+    override def isEnabled: Boolean = enabled
     override def releaseForTag(tag: String): Try[Release] =
       listReleases().flatMap { releases =>
         releases
@@ -48,7 +48,7 @@ class SimpleReleaseProviderWithFallbackSpec
       }
 
     override def listReleases(): Try[Seq[Release]] =
-      if (broken || !isAvailable) Failure(FallbackProviderException)
+      if (broken || !isEnabled) Failure(FallbackProviderException)
       else Success(releases)
   }
 
