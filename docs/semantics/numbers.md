@@ -58,9 +58,9 @@ division and always returns a decimal. If the desired behavior is integral
 division instead, the `Integer.div` method implements it.
 
 Another operator worth noting is the exponentiation operator (`^`). It will
-always result in a decimal whenever either operand is decimal or the exponent
-is negative. It will also return a float result when the exponent is outside
-the 64-bit integer range.
+always result in a decimal whenever either operand is decimal or the exponent is
+negative. It will also return a float result when the exponent is outside the
+64-bit integer range.
 
 There is a `Number.to_decimal` method, that allows converting any number to a
 decimal. This is useful in certain high-performance and polyglot applications.
