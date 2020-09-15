@@ -1,11 +1,13 @@
 import Base.List
 import Base.Vector
-from Builtins import Number, Unit
+import Base.Number.Extensions
+from Builtins import Unit, Number, Integer
 
 from Builtins export all
 
 from Base.List export Nil, Cons
 from Base.Vector export Vector
+from Base.Number.Extensions export all hiding Math
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -42,5 +44,9 @@ type Range
         res = it initial this.start this.end
         res
 
-## Creates a new right-exclusive range of integers from `this` to `n`.
-Number.upto n = Range this n
+type Math
+
+## The mathematical constant pi, equal to the ratio of a circle circumference
+    to its diameter.
+Math.pi : Decimal
+Math.pi = 3.141592653589793

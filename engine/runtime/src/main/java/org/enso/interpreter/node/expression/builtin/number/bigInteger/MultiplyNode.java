@@ -13,9 +13,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class MultiplyNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  abstract Object execute(EnsoBigInteger _this, Object that);
+  public abstract Object execute(EnsoBigInteger _this, Object that);
 
-  static MultiplyNode build() {
+  public static MultiplyNode build() {
     return MultiplyNodeGen.create();
   }
 
@@ -27,6 +27,11 @@ public abstract class MultiplyNode extends Node {
   @Specialization
   Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
     return toEnsoNumberNode.execute(BigIntegerOps.multiply(_this.getValue(), that.getValue()));
+  }
+
+  @Specialization
+  double doDouble(EnsoBigInteger _this, double that) {
+    return BigIntegerOps.toDouble(_this.getValue()) * that;
   }
 
   @Fallback

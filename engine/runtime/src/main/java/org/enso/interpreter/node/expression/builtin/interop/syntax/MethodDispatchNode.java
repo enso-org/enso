@@ -1,9 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -17,6 +14,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -29,6 +27,7 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
 
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private @Child HostValueToEnsoNode hostValueToEnsoNode = HostValueToEnsoNode.build();
   private final BranchProfile err = BranchProfile.create();
 
   private @Child InvokeCallableNode invokeCallableNode =
@@ -53,12 +52,12 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
    * @param frame current execution frame.
    * @return the result of converting input into a string.
    */
-  @Specialization(guards = "symbol == cachedSymbol")
+  @Specialization(guards = "symbol.getScope() == cachedScope")
   public Stateful run(
       VirtualFrame frame,
       @Bind("getSymbol(frame)") UnresolvedSymbol symbol,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("buildToArray(cachedSymbol)") UnresolvedSymbol toArray) {
+      @Cached("symbol.getScope()") ModuleScope cachedScope,
+      @Cached("buildToArray(cachedScope)") UnresolvedSymbol toArray) {
     Object[] args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
     Object callable = args[0];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
@@ -66,7 +65,8 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
     Stateful casted = invokeCallableNode.execute(toArray, frame, state, new Object[] {arguments});
     try {
       Object[] castedArgs = TypesGen.expectArray(casted.getValue()).getItems();
-      Object res = library.invokeMember(callable, symbol.getName(), castedArgs);
+      Object res =
+          hostValueToEnsoNode.execute(library.invokeMember(callable, symbol.getName(), castedArgs));
       return new Stateful(casted.getState(), res);
     } catch (UnsupportedMessageException
         | ArityException
@@ -78,8 +78,14 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
     }
   }
 
-  UnresolvedSymbol buildToArray(UnresolvedSymbol originalSymbol) {
-    return UnresolvedSymbol.build("to_array", originalSymbol.getScope());
+  @Specialization
+  public Stateful runUncached(VirtualFrame frame) {
+    UnresolvedSymbol sym = getSymbol(frame);
+    return run(frame, sym, sym.getScope(), buildToArray(sym.getScope()));
+  }
+
+  UnresolvedSymbol buildToArray(ModuleScope scope) {
+    return UnresolvedSymbol.build("to_array", scope);
   }
 
   UnresolvedSymbol getSymbol(VirtualFrame frame) {

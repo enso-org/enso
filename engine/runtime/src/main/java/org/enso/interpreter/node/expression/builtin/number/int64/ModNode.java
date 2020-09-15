@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Int_64", name = "%", description = "Modulo division of numbers.")
+@BuiltinMethod(type = "Small_Integer", name = "%", description = "Modulo division of numbers.")
 public abstract class ModNode extends Node {
   abstract Object execute(long _this, Object that);
 

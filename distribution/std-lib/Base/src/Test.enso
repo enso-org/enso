@@ -1,5 +1,4 @@
-import Base.List
-from Builtins import all
+from Base import all
 
 ## The top-level entry point for a test suite.
 type Suite specs
@@ -33,6 +32,13 @@ fail message = Panic.throw (Failure message)
 
 ## Asserts that `this` value is equal to the expected value.
 Any.should_equal that = case this == that of
+    True -> Success
+    False ->
+        msg = this.to_text + " did not equal " + that.to_text + "."
+        Panic.throw (Failure msg)
+
+## Asserts that `this` is within `epsilon` from `that`.
+Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
     True -> Success
     False ->
         msg = this.to_text + " did not equal " + that.to_text + "."

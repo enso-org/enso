@@ -6,7 +6,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 
-@BuiltinMethod(type = "Int_64", name = "negate", description = "Negation for numbers.")
+@BuiltinMethod(type = "Small_Integer", name = "negate", description = "Negation for numbers.")
 public abstract class NegateNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 

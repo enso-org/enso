@@ -26,11 +26,6 @@ Number.times = act ->
     res = here.reverse_list (go Nil this)
     res
 
-zeropad number =
-    txt = number.to_text
-    if number % 10 == number then "00" + txt else
-        if number % 100 == number then "0" + txt else txt
-
 measure = ~act -> label -> iter_size -> num_iters ->
     single_call = _ ->
         x1 = System.nano_time
@@ -41,6 +36,6 @@ measure = ~act -> label -> iter_size -> num_iters ->
         act_it_num = num_iters - it_num
         res = iter_size.times single_call
         avg = here.avg_list res
-        fmt = (avg / 1000000).to_text + "." + here.zeropad ((avg / 1000) % 1000)
+        fmt = (avg / 1000000).format "%.2f"
         IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
     num_iters.times iteration

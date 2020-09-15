@@ -21,6 +21,11 @@ public abstract class EqualsNode extends Node {
     return BigIntegerOps.equals(_this.getValue(), that.getValue());
   }
 
+  @Specialization
+  boolean doDouble(EnsoBigInteger _this, double that) {
+    return BigIntegerOps.toDouble(_this.getValue()) == that;
+  }
+
   @Fallback
   boolean doOther(EnsoBigInteger _this, Object that) {
     return false;

@@ -44,6 +44,7 @@ import org.enso.interpreter.node.expression.constant.{
 }
 import org.enso.interpreter.node.expression.literal.{
   BigIntegerLiteralNode,
+  DecimalLiteralNode,
   IntegerLiteralNode,
   TextLiteralNode
 }
@@ -859,10 +860,14 @@ class IrToTruffle(
       */
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
-        case IR.Literal.Number(value, location, _, _) =>
-          val node = value.toLongOption
-            .map(IntegerLiteralNode.build)
-            .getOrElse(BigIntegerLiteralNode.build(new BigInteger(value)))
+        case lit @ IR.Literal.Number(value, location, _, _) =>
+          val node = if (lit.isFractional) {
+            DecimalLiteralNode.build(value.toDouble)
+          } else {
+            value.toLongOption
+              .map(IntegerLiteralNode.build)
+              .getOrElse(BigIntegerLiteralNode.build(new BigInteger(value)))
+          }
           setLocation(node, location)
         case IR.Literal.Text(text, location, _, _) =>
           setLocation(TextLiteralNode.build(text), location)

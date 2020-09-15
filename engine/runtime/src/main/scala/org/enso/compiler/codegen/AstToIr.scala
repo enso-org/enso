@@ -377,6 +377,8 @@ object AstToIr {
           allBranches,
           getIdentifiedLocation(inputAst)
         )
+      case AstView.DecimalLiteral(intPart, fracPart) =>
+        translateDecimalLiteral(inputAst, intPart, fracPart)
       case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
       case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
@@ -420,6 +422,26 @@ object AstToIr {
    * This means that it is a purely _positional_ conversion on the first
    * argument and cannot be performed any other way.
    */
+
+  def translateDecimalLiteral(
+    ast: AST,
+    int: AST.Literal.Number,
+    frac: AST.Literal.Number
+  ): Expression = {
+    if (int.base.isDefined && int.base.get != "10") {
+      Error.Syntax(
+        int,
+        Error.Syntax.UnsupportedSyntax("non-base-10 number literals")
+      )
+    } else if (frac.base.isDefined && frac.base.get != "10") {
+      Error.Syntax(frac, Error.Syntax.InvalidBaseInDecimalLiteral)
+    } else {
+      Literal.Number(
+        s"${int.shape.int}.${frac.shape.int}",
+        getIdentifiedLocation(ast)
+      )
+    }
+  }
 
   /** Translates a program literal from its [[AST]] representation into
     * [[IR]].

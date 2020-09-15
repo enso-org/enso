@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
-@BuiltinMethod(type = "Int_64", name = "==", description = "Equality on numbers.")
+@BuiltinMethod(type = "Small_Integer", name = "==", description = "Equality on numbers.")
 public abstract class EqualsNode extends Node {
 
   abstract boolean execute(long _this, Object that);
@@ -17,6 +17,11 @@ public abstract class EqualsNode extends Node {
   @Specialization
   boolean doLong(long _this, long that) {
     return _this == that;
+  }
+
+  @Specialization
+  boolean doDouble(long _this, double that) {
+    return (double) _this == that;
   }
 
   @Fallback

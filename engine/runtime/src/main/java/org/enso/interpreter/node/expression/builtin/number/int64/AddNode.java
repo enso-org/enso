@@ -9,7 +9,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Int_64", name = "+", description = "Addition of numbers.")
+@BuiltinMethod(type = "Small_Integer", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
@@ -27,6 +27,11 @@ public abstract class AddNode extends Node {
   @Specialization
   Object doOverflow(long _this, long that) {
     return toEnsoNumberNode.execute(BigIntegerOps.add(_this, that));
+  }
+
+  @Specialization
+  double doDouble(long _this, double that) {
+    return _this + that;
   }
 
   @Specialization

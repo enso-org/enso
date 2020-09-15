@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @TypeSystem({
   long.class,
   boolean.class,
+  double.class,
   String.class,
   Function.class,
   Atom.class,

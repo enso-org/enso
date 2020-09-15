@@ -1581,6 +1581,13 @@ object IR {
       override def children: List[IR] = List()
 
       override def showCode(indent: Int): String = value
+
+      /**
+        * Checks whether the literal represents a fractional value.
+        *
+        * @return `true` if the value is fractional, `false` otherwise.
+        */
+      def isFractional: Boolean = value.contains(".")
     }
 
     /** A textual Enso literal.
@@ -5561,6 +5568,11 @@ object IR {
           * @return a human-readable description of the error.
           */
         def explanation: String
+      }
+
+      case object InvalidBaseInDecimalLiteral extends Reason {
+        override def explanation: String =
+          "Cannot change base of the fractional part of a number literal."
       }
 
       case class UnsupportedSyntax(syntaxName: String) extends Reason {
