@@ -320,11 +320,8 @@ object LauncherApplication {
           new DistributionInstaller(
             DistributionManager,
             config.autoConfirm,
-            removeOldLauncher = !doNotRemoveOldLauncher,
-            bundleActionOption =
-              if (config.autoConfirm)
-                Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
-              else bundleAction
+            removeOldLauncher  = !doNotRemoveOldLauncher,
+            bundleActionOption = bundleAction
           ).install()
       }
     }

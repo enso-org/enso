@@ -1,11 +1,16 @@
 package org.enso.launcher.installation
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.cli.InternalOpts
 import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.launcher.installation.DistributionInstaller.{
+  BundleAction,
+  IgnoreBundles,
+  MoveBundles
+}
 import org.enso.launcher.{FileSystem, Logger, OS}
 
 import scala.util.control.NonFatal
@@ -56,12 +61,15 @@ class DistributionInstaller(
     */
   def install(): Unit = {
     try {
-      prepare()
+      val settings = prepare()
       installBinary()
       createDirectoryStructure()
-      installBundles()
+      installBundles(settings.bundleAction)
       Logger.info("Installation succeeded.")
-      maybeRemoveInstaller()
+
+      if (settings.removeInstaller) {
+        removeInstaller()
+      }
     } catch {
       case NonFatal(e) =>
         val message = s"Installation failed with error: $e."
@@ -69,8 +77,12 @@ class DistributionInstaller(
         CLIOutput.println(message)
         sys.exit(1)
     }
-
   }
+
+  private case class InstallationSettings(
+    bundleAction: BundleAction,
+    removeInstaller: Boolean
+  )
 
   private val currentLauncherPath   = env.getPathToRunningExecutable
   private val installedLauncherPath = installed.binaryExecutable
@@ -82,7 +94,7 @@ class DistributionInstaller(
     * proceed (unless [[autoConfirm]] is set, in which case it only reports
     * conflicts).
     */
-  private def prepare(): Unit = {
+  private def prepare(): InstallationSettings = {
     if (installedLauncherPath == currentLauncherPath) {
       Logger.error(
         "The installation source and destination are the same. Nothing to " +
@@ -92,15 +104,13 @@ class DistributionInstaller(
     }
 
     if (Files.exists(installed.dataDirectory)) {
-      Logger.warn(s"${installed.dataDirectory} already exists.")
-      if (!Files.isDirectory(installed.dataDirectory)) {
-        Logger.error(
-          s"${installed.dataDirectory} already exists but is not a " +
-          s"directory. Please remove it or change the installation " +
-          s"location by setting `${installed.ENSO_DATA_DIRECTORY}`."
-        )
-        sys.exit(1)
-      }
+      Logger.error(
+        s"${installed.dataDirectory} already exists. " +
+        s"Please uninstall the already existing distribution. " +
+        s"If no distribution is installed, please remove the directory " +
+        s"${installed.dataDirectory} before installing."
+      )
+      sys.exit(1)
     }
 
     if (
@@ -159,6 +169,9 @@ class DistributionInstaller(
     Logger.info(message)
     additionalMessages.foreach(msg => Logger.warn(msg))
 
+    val removeInstaller = decideIfInstallerShouldBeRemoved()
+    val bundleAction    = decideBundleAction()
+
     if (!autoConfirm) {
       CLIOutput.println(message + additionalMessages.map("\n" + _).mkString)
       val proceed = CLIOutput.askConfirmation(
@@ -170,6 +183,8 @@ class DistributionInstaller(
         sys.exit(1)
       }
     }
+
+    InstallationSettings(bundleAction, removeInstaller)
   }
 
   /**
@@ -255,34 +270,59 @@ class DistributionInstaller(
     }
   }
 
+  private def findBundles(): (Seq[Path], Seq[Path]) = {
+    val runtimes =
+      if (runtimesDirectory != manager.paths.runtimes)
+        FileSystem.listDirectory(manager.paths.runtimes)
+      else Seq()
+    val engines =
+      if (enginesDirectory != manager.paths.engines)
+        FileSystem.listDirectory(manager.paths.engines)
+      else Seq()
+
+    (runtimes, engines)
+  }
+
+  private def decideBundleAction(): BundleAction =
+    if (manager.isRunningPortable) {
+      val (runtimes, engines) = findBundles()
+      if (runtimes.length + engines.length > 0)
+        bundleActionOption.getOrElse {
+          if (autoConfirm) MoveBundles
+          else
+            CLIOutput.askQuestion(
+              "Found engine/runtime components bundled with the installation. " +
+              "How do you want to proceed?",
+              Seq(
+                DistributionInstaller.MoveBundles,
+                DistributionInstaller.CopyBundles,
+                DistributionInstaller.IgnoreBundles
+              )
+            )
+        }
+      else IgnoreBundles
+    } else {
+      bundleActionOption match {
+        case Some(value) if value != DistributionInstaller.IgnoreBundles =>
+          Logger.warn(
+            s"Installer was asked to ${value.description}, but it seems to " +
+            s"not be running from a bundle package."
+          )
+        case None =>
+      }
+
+      IgnoreBundles
+    }
+
   /**
     * Copies (and possibly removes the originals) bundled engine and runtime
     * components.
     */
-  private def installBundles(): Unit = {
+  private def installBundles(bundleAction: BundleAction): Unit = {
     if (manager.isRunningPortable) {
-      val runtimes =
-        if (runtimesDirectory != manager.paths.runtimes)
-          FileSystem.listDirectory(manager.paths.runtimes)
-        else Seq()
-      val engines =
-        if (enginesDirectory != manager.paths.engines)
-          FileSystem.listDirectory(manager.paths.engines)
-        else Seq()
+      val (runtimes, engines) = findBundles()
 
       if (runtimes.length + engines.length > 0) {
-        val bundleAction = bundleActionOption.getOrElse {
-          CLIOutput.askQuestion(
-            "Found engine/runtime components bundled with the installation. " +
-            "How do you want to proceed?",
-            Seq(
-              DistributionInstaller.MoveBundles,
-              DistributionInstaller.CopyBundles,
-              DistributionInstaller.IgnoreBundles
-            )
-          )
-        }
-
         if (bundleAction.copy) {
           for (engine <- engines) {
             Logger.info(s"Copying bundled Enso engine ${engine.getFileName}.")
@@ -309,44 +349,39 @@ class DistributionInstaller(
           )
         }
       }
-    } else {
-      bundleActionOption match {
-        case Some(value) if value != DistributionInstaller.IgnoreBundles =>
-          Logger.warn(
-            s"Installer was asked to ${value.description}, but it seems to " +
-            s"not be running from a bundle package."
-          )
-        case None =>
-      }
+    } else if (bundleAction != IgnoreBundles) {
+      throw new IllegalStateException(
+        s"Internal error: The runner is not run in portable mode, " +
+        s"but the final bundle action was not Ignore, but $bundleAction."
+      )
     }
+  }
+
+  private def decideIfInstallerShouldBeRemoved(): Boolean = {
+    def askForRemoval(): Boolean =
+      CLIOutput.askConfirmation(
+        s"Do you want to remove the original launcher after " +
+        s"the installation? (It will not be needed anymore, as the launcher " +
+        s"will be copied to `${installed.binaryExecutable}`)",
+        yesDefault = true
+      )
+
+    if (installedLauncherPath != currentLauncherPath) {
+      if (autoConfirm) removeOldLauncher
+      else askForRemoval()
+    } else false
   }
 
   /**
     * If the user wants to, removes the installer.
     */
-  private def maybeRemoveInstaller(): Nothing = {
-    def askForRemoval(): Boolean =
-      CLIOutput.askConfirmation(
-        s"Do you want to remove the original launcher that was used for " +
-        s"installation? (It is not needed anymore, as the launcher has been " +
-        s"copied to `${installed.binaryExecutable}`)",
-        yesDefault = true
-      )
-
-    if (installedLauncherPath != currentLauncherPath) {
-      def shouldRemove(): Boolean =
-        if (autoConfirm) removeOldLauncher
-        else askForRemoval()
-
-      if (shouldRemove()) {
-        if (OS.isWindows) {
-          InternalOpts
-            .runWithNewLauncher(installedLauncherPath)
-            .removeOldExecutableAndExit(currentLauncherPath)
-        } else {
-          Files.delete(currentLauncherPath)
-        }
-      }
+  private def removeInstaller(): Nothing = {
+    if (OS.isWindows) {
+      InternalOpts
+        .runWithNewLauncher(installedLauncherPath)
+        .removeOldExecutableAndExit(currentLauncherPath)
+    } else {
+      Files.delete(currentLauncherPath)
     }
     sys.exit()
   }
