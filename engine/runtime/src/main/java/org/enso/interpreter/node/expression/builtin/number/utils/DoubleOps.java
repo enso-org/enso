@@ -8,7 +8,7 @@ public class DoubleOps {
   }
 
   public static boolean lessOrEqual(double a, double b) {
-    return a <= b;
+    return a <= b || equal(a, b);
   }
 
   public static boolean less(double a, double b) {
@@ -16,7 +16,7 @@ public class DoubleOps {
   }
 
   public static boolean greaterOrEqual(double a, double b) {
-    return a >= b;
+    return a >= b || equal(a, b);
   }
 
   public static boolean greater(double a, double b) {

@@ -8,7 +8,7 @@ order: 8
 
 # Numbers
 
-In order to enahnce the user experience, Enso provides a number hierarchy,
+In order to enhance the user experience, Enso provides a number hierarchy,
 encompassing both integers of unbound size and floating-point decimals
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
@@ -27,8 +27,8 @@ numerical computations are performed. Any method defined on the type `Number` is
 automatically available on all types of numeric values.
 
 The hierarchy is further split into the `Integer` and `Decimal` types. `Integer`
-is capable of representing values of unbound length. `Decimal` wraps 64-bit
-floating-point numbers.
+is capable of representing values of unbound length. `Decimal` is capable of
+representing IEEE 64-bit (double precision) floating numbers.
 
 Any method defined on `Integer` is available for all integers, while any method
 defined on `Decimal` is available on all floating-point numbers. Methods defined
@@ -53,9 +53,14 @@ Other literals are interpreted as decimals (even if the fractional part is 0).
 Any arithmetic operation where at least one of the operands is a decimal will
 result in a decimal result.
 
-Moreover, the default division operator `/` is implemented as mathematical
+Moreover, the default division operator `/` is implemented as floating-point
 division and always returns a decimal. If the desired behavior is integral
 division instead, the `Integer.div` method implements it.
+
+Another operator worth noting is the exponentiation operator (`^`). It will
+always result in a decimal whenever either operand is decimal or the exponent
+is negative. It will also return a float result when the exponent is outside
+the 64-bit integer range.
 
 There is a `Number.to_decimal` method, that allows converting any number to a
 decimal. This is useful in certain high-performance and polyglot applications.

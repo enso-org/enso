@@ -14,6 +14,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -51,12 +52,12 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
    * @param frame current execution frame.
    * @return the result of converting input into a string.
    */
-  @Specialization(guards = "symbol.getScope() == cachedSymbol.getScope()")
+  @Specialization(guards = "symbol.getScope() == cachedScope")
   public Stateful run(
       VirtualFrame frame,
       @Bind("getSymbol(frame)") UnresolvedSymbol symbol,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("buildToArray(cachedSymbol)") UnresolvedSymbol toArray) {
+      @Cached("symbol.getScope()") ModuleScope cachedScope,
+      @Cached("buildToArray(cachedScope)") UnresolvedSymbol toArray) {
     Object[] args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
     Object callable = args[0];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
@@ -80,11 +81,11 @@ public abstract class MethodDispatchNode extends BuiltinRootNode {
   @Specialization
   public Stateful runUncached(VirtualFrame frame) {
     UnresolvedSymbol sym = getSymbol(frame);
-    return run(frame, sym, sym, buildToArray(sym));
+    return run(frame, sym, sym.getScope(), buildToArray(sym.getScope()));
   }
 
-  UnresolvedSymbol buildToArray(UnresolvedSymbol originalSymbol) {
-    return UnresolvedSymbol.build("to_array", originalSymbol.getScope());
+  UnresolvedSymbol buildToArray(ModuleScope scope) {
+    return UnresolvedSymbol.build("to_array", scope);
   }
 
   UnresolvedSymbol getSymbol(VirtualFrame frame) {

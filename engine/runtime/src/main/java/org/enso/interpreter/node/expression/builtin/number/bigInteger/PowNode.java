@@ -33,11 +33,12 @@ public abstract class PowNode extends Node {
   @Specialization
   Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
     if (that.getValue().signum() > 0) {
-      return Double.POSITIVE_INFINITY;
+      return Math.pow(
+          BigIntegerOps.toDouble(_this.getValue()), BigIntegerOps.toDouble(that.getValue()));
     } else if (that.getValue().signum() == 0) {
-      return 1L;
+      return 1.0D;
     } else {
-      return 0L;
+      return 0.0D;
     }
   }
 

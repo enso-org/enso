@@ -80,6 +80,6 @@ Integer.upto n = Range this n
 
 ## Checks equality of numbers, using an `epsilon` value.
 
-   Returns `True` when `this` and `that` are at mose `epsilon` apart.
+   Returns `True` when `this` and `that` are at most `epsilon` apart.
 Number.equals : Number -> Number -> Boolean
 Number.equals that epsilon = (this - that).abs <= epsilon
