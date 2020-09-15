@@ -9,7 +9,7 @@ order: 8
 # Numbers
 
 In order to enhance the user experience, Enso provides a number hierarchy,
-encompassing both integers of unbound size and floating-point decimals
+encompassing both integers of unbound size and floating-point decimals.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
