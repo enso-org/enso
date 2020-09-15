@@ -42,10 +42,12 @@ trait FakeEnvironment { self: WithTemporaryDirectory =>
     val dataDir    = getTestDirectory / "test_data"
     val configDir  = getTestDirectory / "test_config"
     val binDir     = getTestDirectory / "test_bin"
+    val runDir     = getTestDirectory / "test_run"
     val env = extraOverrides
       .updated("ENSO_DATA_DIRECTORY", dataDir.toString)
       .updated("ENSO_CONFIG_DIRECTORY", configDir.toString)
       .updated("ENSO_BIN_DIRECTORY", binDir.toString)
+      .updated("ENSO_RUNTIME_DIRECTORY", runDir.toString)
     val fakeEnvironment = new Environment {
       override def getPathToRunningExecutable: Path = executable
 

@@ -121,8 +121,8 @@ class DistributionManager(val env: Environment) {
   val RUNTIMES_DIRECTORY             = "runtime"
   val CONFIG_DIRECTORY               = "config"
   val BIN_DIRECTORY                  = "bin"
-  private val LOCK_DIRECTORY         = "lock"
-  private val TMP_DIRECTORY          = "tmp"
+  val LOCK_DIRECTORY                 = "lock"
+  val TMP_DIRECTORY                  = "tmp"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
   private def possiblePortableRoot: Path =

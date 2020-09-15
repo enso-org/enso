@@ -31,7 +31,7 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
   /**
     * Returns the temporary directory for this test.
     */
-  def getTestDirectory: Path = testDirectory.toAbsolutePath
+  def getTestDirectory: Path = testDirectory.toAbsolutePath.normalize
 
   /**
     * Tries to remove the directory, retrying every 100ms for 3 seconds.

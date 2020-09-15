@@ -40,21 +40,6 @@ class RunnerSpec extends ComponentsManagerTest {
 
         val runSettings = RunSettings(SemVer(0, 0, 0), Seq("arg1", "--flag2"))
         val jvmOptions  = Seq(("locally-added-options", "value1"))
-        val systemCommand = runner.createCommand(
-          runSettings,
-          JVMSettings(useSystemJVM = true, jvmOptions = jvmOptions)
-        )
-
-        systemCommand.command.head shouldEqual "java"
-
-        val managedCommand = runner.createCommand(
-          runSettings,
-          JVMSettings(useSystemJVM = false, jvmOptions = jvmOptions)
-        )
-
-        managedCommand.command.head should include("java")
-        managedCommand.extraEnv.find(_._1 == "JAVA_HOME").value._2 should
-        include("graalvm-ce")
 
         val enginePath =
           getTestDirectory / "test_data" / "dist" / "0.0.0"
@@ -63,7 +48,7 @@ class RunnerSpec extends ComponentsManagerTest {
         val runnerPath =
           (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
 
-        for (command <- Seq(systemCommand, managedCommand)) {
+        def checkCommandLine(command: Command): Unit = {
           val commandLine = command.command.mkString(" ")
           val arguments   = command.command.tail
           arguments should contain("-Xfrom-env")
@@ -80,6 +65,24 @@ class RunnerSpec extends ComponentsManagerTest {
           ) should have length 1
 
           commandLine should include(s"-jar $runnerPath")
+        }
+
+        runner.withCommand(
+          runSettings,
+          JVMSettings(useSystemJVM = true, jvmOptions = jvmOptions)
+        ) { systemCommand =>
+          systemCommand.command.head shouldEqual "java"
+          checkCommandLine(systemCommand)
+        }
+
+        runner.withCommand(
+          runSettings,
+          JVMSettings(useSystemJVM = false, jvmOptions = jvmOptions)
+        ) { managedCommand =>
+          managedCommand.command.head should include("java")
+          val javaHome =
+            managedCommand.extraEnv.find(_._1 == "JAVA_HOME").value._2
+          javaHome should include("graalvm-ce")
         }
       }
     }

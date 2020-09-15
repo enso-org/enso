@@ -5,6 +5,7 @@ import java.nio.file.Path
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.locking.TestLocalResourceManager
 import org.enso.launcher.releases.engine.EngineReleaseProvider
 import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.releases.testing.FakeReleaseProvider
@@ -58,6 +59,7 @@ class ComponentsManagerTest
         useJSON      = false
       ),
       distributionManager,
+      TestLocalResourceManager,
       engineProvider,
       runtimeProvider
     )

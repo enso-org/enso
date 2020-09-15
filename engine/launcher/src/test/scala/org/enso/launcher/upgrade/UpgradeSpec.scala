@@ -192,9 +192,11 @@ class UpgradeSpec
       val configRoot = getTestDirectory / "config"
       checkVersion() shouldEqual SemVer(0, 0, 0)
       val env = Map(
-        "ENSO_DATA_DIRECTORY"   -> dataRoot.toString,
-        "ENSO_CONFIG_DIRECTORY" -> configRoot.toString
+        "ENSO_DATA_DIRECTORY"    -> dataRoot.toString,
+        "ENSO_CONFIG_DIRECTORY"  -> configRoot.toString,
+        "ENSO_RUNTIME_DIRECTORY" -> (getTestDirectory / "run").toString
       )
+
       run(
         Seq("upgrade", "0.0.1"),
         extraEnv = env

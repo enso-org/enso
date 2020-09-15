@@ -23,9 +23,10 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
   def installedRoot = getTestDirectory / "installed"
   def env =
     Map(
-      "ENSO_DATA_DIRECTORY"   -> (installedRoot / "data").toString,
-      "ENSO_CONFIG_DIRECTORY" -> (installedRoot / "config").toString,
-      "ENSO_BIN_DIRECTORY"    -> (installedRoot / "bin").toString
+      "ENSO_DATA_DIRECTORY"    -> (installedRoot / "data").toString,
+      "ENSO_CONFIG_DIRECTORY"  -> (installedRoot / "config").toString,
+      "ENSO_BIN_DIRECTORY"     -> (installedRoot / "bin").toString,
+      "ENSO_RUNTIME_DIRECTORY" -> (installedRoot / "run").toString
     )
 
   def prepareBundles(): Unit = {

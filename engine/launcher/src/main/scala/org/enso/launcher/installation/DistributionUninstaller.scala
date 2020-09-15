@@ -162,7 +162,12 @@ class DistributionUninstaller(
   /**
     * Directories that are expected to be inside of the data root.
     */
-  private val knownDataDirectories = Seq("tmp", "components-licences", "config")
+  private val knownDataDirectories = Seq(
+    manager.TMP_DIRECTORY,
+    manager.LOCK_DIRECTORY,
+    manager.CONFIG_DIRECTORY,
+    "components-licences"
+  )
 
   /**
     * Removes all files contained in the ENSO_DATA_DIRECTORY and possibly the

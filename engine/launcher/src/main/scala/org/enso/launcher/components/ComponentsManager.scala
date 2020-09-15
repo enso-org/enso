@@ -60,7 +60,7 @@ class ComponentsManager(
     *
     * Returns None if that version is not installed.
     */
-  private def findRuntime(version: RuntimeVersion): Option[Runtime] = {
+  def findRuntime(version: RuntimeVersion): Option[Runtime] = {
     val name = runtimeNameForVersion(version)
     val path = distributionManager.paths.runtimes / name
     if (Files.exists(path)) {
@@ -92,11 +92,17 @@ class ComponentsManager(
     resourceManager.withResources(
       (Resource.Engine(engineVersion), LockType.Shared)
     ) {
-      if (!engine.isValid) {
-        throw new IllegalStateException(
-          "Engine has become invalid before a lock has been acquired."
-        )
-      }
+      engine
+        .ensureValid()
+        .recoverWith { error =>
+          Failure(
+            ComponentMissingError(
+              "The engine has been removed before the command could be started.",
+              error
+            )
+          )
+        }
+        .get
 
       action(engine)
     }
@@ -111,16 +117,29 @@ class ComponentsManager(
       (Resource.Engine(engineVersion), LockType.Shared),
       (Resource.Runtime(runtime.version), LockType.Shared)
     ) {
-      if (!engine.isValid) {
-        throw new IllegalStateException(
-          "Engine has become invalid before a lock has been acquired."
-        )
-      }
-      if (runtime.isValid) {
-        throw new IllegalStateException(
-          "Engine has become invalid before a lock has been acquired."
-        )
-      }
+      engine
+        .ensureValid()
+        .recoverWith { error =>
+          Failure(
+            ComponentMissingError(
+              "The engine has been removed before the command could be started.",
+              error
+            )
+          )
+        }
+        .get
+
+      runtime
+        .ensureValid()
+        .recoverWith { error =>
+          Failure(
+            ComponentMissingError(
+              "The runtime has been removed before the command could be started.",
+              error
+            )
+          )
+        }
+        .get
 
       action(engine, runtime)
     }
@@ -527,13 +546,6 @@ class ComponentsManager(
     */
   private def loadGraalRuntime(path: Path): Try[Runtime] = {
     val name = path.getFileName.toString
-    def verifyRuntime(runtime: Runtime): Try[Unit] =
-      if (runtime.isValid) {
-        Success(())
-      } else {
-        Failure(CorruptedComponentError(s"Runtime $runtime is corrupted."))
-      }
-
     for {
       version <- parseGraalRuntimeVersionString(name)
         .toRight(
@@ -541,7 +553,7 @@ class ComponentsManager(
         )
         .toTry
       runtime = Runtime(version, path)
-      _ <- verifyRuntime(runtime)
+      _ <- runtime.ensureValid()
     } yield runtime
   }
 
@@ -574,23 +586,13 @@ class ComponentsManager(
   /**
     * Loads the engine definition.
     */
-  private def loadEngine(path: Path): Try[Engine] = {
-    def verifyEngine(engine: Engine): Try[Unit] =
-      if (!engine.isValid) {
-        Failure(
-          CorruptedComponentError(s"Engine ${engine.version} is corrupted.")
-        )
-      } else {
-        Success(())
-      }
-
+  private def loadEngine(path: Path): Try[Engine] =
     for {
       version  <- parseEngineVersion(path)
       manifest <- loadAndCheckEngineManifest(path)
       engine = Engine(version, path, manifest)
-      _ <- verifyEngine(engine)
+      _ <- engine.ensureValid()
     } yield engine
-  }
 
   /**
     * Gets the engine version from its path.
@@ -747,6 +749,7 @@ class ComponentsManager(
  * extent, especially to avoid two processes modifying the same engine version.
  *
  * The concurrency is managed as follows:
+ *
  * 1. `withEngine` and `withEngineAndRuntime` acquire shared locks for the
  *    engine (and in the second case also for the runtime) and can be used to
  *    safely run a process using the engine ensuring that the engine will not be
