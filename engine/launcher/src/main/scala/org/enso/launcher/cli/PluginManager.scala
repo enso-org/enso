@@ -24,11 +24,10 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
   override def runPlugin(
     name: String,
     args: Seq[String]
-  ): Nothing =
+  ): Int =
     findPlugin(name) match {
       case Some(PluginDescription(commandName, _)) =>
-        val exitCode = (Seq(commandName) ++ args).!
-        sys.exit(exitCode)
+        (Seq(commandName) ++ args).!
       case None =>
         throw new RuntimeException(
           "Internal error: Could not find the plugin. " +

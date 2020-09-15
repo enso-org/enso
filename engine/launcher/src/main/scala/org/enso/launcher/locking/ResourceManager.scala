@@ -24,13 +24,45 @@ class ResourceManager(lockManager: LockManager) {
         action
     }
 
-//  def lock(resource: Resource, exclusive: Boolean): Lock =
-//    lockManager.acquireLockWithWaitingAction(
-//      resource.name,
-//      shared = !exclusive,
-//      () => Logger.warn(resource.waitMessage)
-//    )
-//
-//  def tryLock(resource: Resource, exclusive: Boolean): Option[Lock] =
-//    lockManager.tryAcquireLock(resource.name, shared = !exclusive)
+  private case object MainResource extends Resource {
+    override def name: String = "launcher-main"
+    override def waitMessage: String =
+      "Another process is installing or uninstalling the current " +
+      "distribution. Please wait until that finishes."
+  }
+
+  private var mainLock: Option[Lock] = None
+
+  def initializeMainLock(): Unit = {
+    val lock =
+      lockManager.tryAcquireLock(MainResource.name, LockType.Shared).getOrElse {
+        Logger.error(MainResource.waitMessage)
+        sys.exit(1)
+      }
+    mainLock = Some(lock)
+  }
+
+  def acquireExclusiveMainLock(waitAction: () => Unit): Unit = {
+    mainLock match {
+      case Some(lock) =>
+        lock.release()
+        mainLock = None
+      case None =>
+    }
+
+    val lock = lockManager.acquireLockWithWaitingAction(
+      MainResource.name,
+      LockType.Exclusive,
+      waitAction
+    )
+    mainLock = Some(lock)
+  }
+
+  def releaseMainLock(): Unit =
+    mainLock match {
+      case Some(lock) =>
+        lock.release()
+        mainLock = None
+      case None =>
+    }
 }

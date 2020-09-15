@@ -26,5 +26,5 @@ object TopLevelBehavior {
     * parsed further. This can be useful to implement top-level options like
     * `--version`.
     */
-  case object Halt extends TopLevelBehavior[Nothing]
+  case class Halt(exitCode: Int) extends TopLevelBehavior[Nothing]
 }

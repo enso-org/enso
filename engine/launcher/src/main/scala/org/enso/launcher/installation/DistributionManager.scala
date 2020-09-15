@@ -256,7 +256,10 @@ class DistributionManager(val env: Environment) {
         .getOrElse {
           OS.operatingSystem match {
             case OS.Linux =>
-              env.getEnvPath(XDG_RUN_DIRECTORY).getOrElse(dataDirectory)
+              env
+                .getEnvPath(XDG_RUN_DIRECTORY)
+                .map(_ / LINUX_ENSO_DIRECTORY)
+                .getOrElse(dataDirectory)
             case _ => dataDirectory
           }
         }

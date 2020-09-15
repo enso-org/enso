@@ -245,7 +245,9 @@ object InternalOpts {
       * executable.
       *
       * It retries for a few seconds to give the process running the old
-      * launcher to terminate and release the lock on its file.
+      * launcher to terminate and release the lock on its file. It overrides the
+      * ENSO_RUNTIME_DIRECTORY for the launched executable to the temporary
+      * directory it resides in, so that the lock can be safely taken.
       */
     def removeOldExecutableAndExit(oldExecutablePath: Path): Nothing = {
       val command = Seq(
@@ -253,7 +255,12 @@ object InternalOpts {
         s"--$REMOVE_OLD_EXECUTABLE",
         oldExecutablePath.toAbsolutePath.toString
       )
-      runDetachedAndExit(command)
+      val temporaryRuntimeDirectory =
+        pathToNewLauncher.getParent.toAbsolutePath.normalize
+      runDetachedAndExit(
+        command,
+        "ENSO_RUNTIME_DIRECTORY" -> temporaryRuntimeDirectory.toString
+      )
     }
 
     /**
@@ -375,7 +382,10 @@ object InternalOpts {
     pb.start().waitFor()
   }
 
-  private def runDetachedAndExit(command: Seq[String]): Nothing = {
+  private def runDetachedAndExit(
+    command: Seq[String],
+    extraEnv: (String, String)*
+  ): Nothing = {
     if (!OS.isWindows) {
       throw new IllegalStateException(
         "Internal error: Detached process workarounds are only available on " +
@@ -384,6 +394,7 @@ object InternalOpts {
     }
 
     val pb = new java.lang.ProcessBuilder(command: _*)
+    extraEnv.foreach(envPair => pb.environment().put(envPair._1, envPair._2))
     pb.inheritIO()
     pb.start()
     sys.exit()

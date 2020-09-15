@@ -5,8 +5,9 @@ import java.nio.file.{Files, Path}
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.cli.InternalOpts
+import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
 import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{FileSystem, Logger, OS}
 
 /**
@@ -19,6 +20,7 @@ import org.enso.launcher.{FileSystem, Logger, OS}
   */
 class DistributionUninstaller(
   manager: DistributionManager,
+  resourceManager: ResourceManager,
   autoConfirm: Boolean
 ) {
 
@@ -35,6 +37,13 @@ class DistributionUninstaller(
   def uninstall(): Unit = {
     checkPortable()
     askConfirmation()
+    resourceManager.acquireExclusiveMainLock(waitAction = () => {
+      Logger.warn(
+        "Please ensure that no other Enso processes are using this " +
+        "distribution before uninstalling. The uninstaller will resume once " +
+        "all related Enso processes exit."
+      )
+    })
     if (OS.isWindows) uninstallWindows()
     else uninstallUNIX()
   }
@@ -65,13 +74,15 @@ class DistributionUninstaller(
   private def uninstallWindows(): Unit = {
     val deferRootRemoval = isBinaryInsideData
     uninstallConfig()
+    val newPath = partiallyUninstallExecutableWindows()
     uninstallDataContents(deferRootRemoval)
     Logger.info(
       "Successfully uninstalled the distribution but for the launcher " +
       "executable. It will be removed in a moment after this program " +
       "terminates."
     )
-    uninstallExecutableWindows(
+    finishUninstallExecutableWindows(
+      newPath,
       if (deferRootRemoval) Some(manager.paths.dataRoot) else None
     )
   }
@@ -190,6 +201,8 @@ class DistributionUninstaller(
       FileSystem.removeFileIfExists(dataRoot / fileName)
     }
 
+    resourceManager.releaseMainLock()
+
     if (!deferDataRootRemoval) {
       val nestedBinDirectory = dataRoot / "bin"
       if (Files.exists(nestedBinDirectory))
@@ -267,21 +280,51 @@ class DistributionUninstaller(
   }
 
   /**
+    * Moves the current launcher executable, so other processes cannot start it
+    * while uninstallation is in progress.
+    *
+    * It will be removed at the last stage of the uninstallation.
+    *
+    * @return new path of the executable
+    */
+  private def partiallyUninstallExecutableWindows(): Path = {
+    val currentPath = manager.env.getPathToRunningExecutable
+
+    val newPath = currentPath.getParent.resolve(OS.executableName("enso.old"))
+    Files.move(currentPath, newPath)
+    newPath
+  }
+
+  /**
     * Uninstalls the executable on Windows where it is impossible to remove an
     * executable that is running.
     *
     * Uses a workaround implemented in [[InternalOpts]]. Has to be run at the
     * very end as it has to terminate the current executable.
+    *
+    * @param myNewPath path to the current (possibly moved) executable
+    * @param parentToRemove optional path to the parent directory that should be
+    *                       removed alongside the executable
     */
-  private def uninstallExecutableWindows(
+  private def finishUninstallExecutableWindows(
+    myNewPath: Path,
     parentToRemove: Option[Path]
   ): Nothing = {
     val temporaryLauncher =
       Files.createTempDirectory("enso-uninstall") / OS.executableName("enso")
-    val oldLauncher = manager.env.getPathToRunningExecutable
+    val oldLauncher = myNewPath
     Files.copy(oldLauncher, temporaryLauncher)
     InternalOpts
       .runWithNewLauncher(temporaryLauncher)
       .finishUninstall(oldLauncher, parentToRemove)
   }
+}
+
+object DistributionUninstaller {
+  def makeDefault(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =
+    new DistributionUninstaller(
+      DistributionManager,
+      DefaultResourceManager,
+      globalCLIOptions.autoConfirm
+    )
 }

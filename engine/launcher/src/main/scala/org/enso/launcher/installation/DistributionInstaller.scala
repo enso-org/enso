@@ -4,13 +4,14 @@ import java.nio.file.{Files, Path}
 
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.cli.InternalOpts
+import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.installation.DistributionInstaller.{
   BundleAction,
   IgnoreBundles,
   MoveBundles
 }
+import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{FileSystem, Logger, OS}
 
 import scala.util.control.NonFatal
@@ -32,6 +33,7 @@ import scala.util.control.NonFatal
   */
 class DistributionInstaller(
   manager: DistributionManager,
+  resourceManager: ResourceManager,
   autoConfirm: Boolean,
   removeOldLauncher: Boolean,
   bundleActionOption: Option[DistributionInstaller.BundleAction]
@@ -62,6 +64,13 @@ class DistributionInstaller(
   def install(): Unit = {
     try {
       val settings = prepare()
+      resourceManager.acquireExclusiveMainLock(waitAction = () => {
+        Logger.warn(
+          "No other Enso processes associated with this distribution can be " +
+          "running during the installation. The installer will wait until " +
+          "other Enso processes are terminated."
+        )
+      })
       installBinary()
       createDirectoryStructure()
       installBundles(settings.bundleAction)
@@ -389,6 +398,19 @@ class DistributionInstaller(
 }
 
 object DistributionInstaller {
+
+  def makeDefault(
+    globalCLIOptions: GlobalCLIOptions,
+    removeOldLauncher: Boolean,
+    bundleActionOption: Option[BundleAction]
+  ): DistributionInstaller =
+    new DistributionInstaller(
+      DistributionManager,
+      DefaultResourceManager,
+      globalCLIOptions.autoConfirm,
+      removeOldLauncher  = removeOldLauncher,
+      bundleActionOption = bundleActionOption
+    )
 
   /**
     * Defines the set of possible actions to take when installing the bundled

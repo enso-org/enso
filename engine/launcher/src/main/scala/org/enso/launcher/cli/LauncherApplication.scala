@@ -16,7 +16,6 @@ import org.enso.launcher.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
-  DistributionManager,
   DistributionUninstaller
 }
 
@@ -26,7 +25,7 @@ import org.enso.launcher.installation.{
 object LauncherApplication {
   type Config = GlobalCLIOptions
 
-  private def versionCommand: Command[Config => Unit] =
+  private def versionCommand: Command[Config => Int] =
     Command(
       "version",
       "Print version of the launcher and currently selected Enso distribution."
@@ -45,7 +44,7 @@ object LauncherApplication {
       }
     }
 
-  private def newCommand: Command[Config => Unit] =
+  private def newCommand: Command[Config => Int] =
     Command("new", "Create a new Enso project.", related = Seq("create")) {
       val nameOpt = Opts.positionalArgument[String]("PROJECT-NAME")
       val pathOpt = Opts.optionalArgument[Path](
@@ -102,7 +101,7 @@ object LauncherApplication {
       "Override the Enso version that would normally be used."
     )
 
-  private def runCommand: Command[Config => Unit] =
+  private def runCommand: Command[Config => Int] =
     Command(
       "run",
       "Run an Enso project or script. " +
@@ -138,7 +137,7 @@ object LauncherApplication {
       }
     }
 
-  private def languageServerCommand: Command[Config => Unit] =
+  private def languageServerCommand: Command[Config => Int] =
     Command(
       "language-server",
       "Launch the Language Server for a given project. " +
@@ -207,7 +206,7 @@ object LauncherApplication {
       }
     }
 
-  private def replCommand: Command[Config => Unit] =
+  private def replCommand: Command[Config => Int] =
     Command(
       "repl",
       "Launch an Enso REPL. " +
@@ -235,7 +234,7 @@ object LauncherApplication {
       }
     }
 
-  private def defaultCommand: Command[Config => Unit] =
+  private def defaultCommand: Command[Config => Int] =
     Command("default", "Print or change the default Enso version.") {
       val version = Opts.optionalArgument[DefaultVersion](
         "VERSION",
@@ -254,7 +253,7 @@ object LauncherApplication {
       }
     }
 
-  private def upgradeCommand: Command[Config => Unit] =
+  private def upgradeCommand: Command[Config => Int] =
     Command("upgrade", "Upgrade the launcher.") {
       val version = Opts.optionalArgument[SemVer](
         "VERSION",
@@ -266,7 +265,7 @@ object LauncherApplication {
       }
     }
 
-  private def installEngineCommand: Command[Config => Unit] =
+  private def installEngineCommand: Command[Config => Int] =
     Command(
       "engine",
       "Install the specified engine VERSION, defaulting to the latest if " +
@@ -283,7 +282,7 @@ object LauncherApplication {
       }
     }
 
-  private def installDistributionCommand: Command[Config => Unit] =
+  private def installDistributionCommand: Command[Config => Int] =
     Command(
       "distribution",
       "Install Enso on the system, deactivating portable mode."
@@ -317,16 +316,18 @@ object LauncherApplication {
 
       (bundleAction, doNotRemoveOldLauncher) mapN {
         (bundleAction, doNotRemoveOldLauncher) => (config: Config) =>
-          new DistributionInstaller(
-            DistributionManager,
-            config.autoConfirm,
-            removeOldLauncher  = !doNotRemoveOldLauncher,
-            bundleActionOption = bundleAction
-          ).install()
+          DistributionInstaller
+            .makeDefault(
+              config,
+              removeOldLauncher  = !doNotRemoveOldLauncher,
+              bundleActionOption = bundleAction
+            )
+            .install()
+          0
       }
     }
 
-  private def installCommand: Command[Config => Unit] =
+  private def installCommand: Command[Config => Int] =
     Command(
       "install",
       "Install a new version of engine or install the distribution locally."
@@ -334,7 +335,7 @@ object LauncherApplication {
       Opts.subcommands(installEngineCommand, installDistributionCommand)
     }
 
-  private def uninstallEngineCommand: Command[Config => Unit] =
+  private def uninstallEngineCommand: Command[Config => Int] =
     Command(
       "engine",
       "Uninstall the provided engine version. If the corresponding runtime " +
@@ -346,7 +347,7 @@ object LauncherApplication {
       }
     }
 
-  private def uninstallDistributionCommand: Command[Config => Unit] =
+  private def uninstallDistributionCommand: Command[Config => Int] =
     Command(
       "distribution",
       "Uninstall whole Enso distribution and all components managed by " +
@@ -355,14 +356,12 @@ object LauncherApplication {
       "unexpected files."
     ) {
       Opts.pure(()) map { (_: Unit) => (config: Config) =>
-        new DistributionUninstaller(
-          DistributionManager,
-          autoConfirm = config.autoConfirm
-        ).uninstall()
+        DistributionUninstaller.makeDefault(config).uninstall()
+        0
       }
     }
 
-  private def uninstallCommand: Command[Config => Unit] =
+  private def uninstallCommand: Command[Config => Int] =
     Command(
       "uninstall",
       "Uninstall an Enso component."
@@ -370,7 +369,7 @@ object LauncherApplication {
       Opts.subcommands(uninstallEngineCommand, uninstallDistributionCommand)
     }
 
-  private def listCommand: Command[Config => Unit] =
+  private def listCommand: Command[Config => Int] =
     Command("list", "List installed components.") {
       sealed trait Components
       case object EnsoComponents    extends Components
@@ -399,7 +398,7 @@ object LauncherApplication {
       }
     }
 
-  private def configCommand: Command[Config => Unit] =
+  private def configCommand: Command[Config => Int] =
     Command("config", "Modify global user configuration.") {
       val key = Opts.positionalArgument[String](
         "KEY",
@@ -420,9 +419,9 @@ object LauncherApplication {
       }
     }
 
-  private def helpCommand: Command[Config => Unit] =
+  private def helpCommand: Command[Config => Int] =
     Command("help", "Display summary of available commands.") {
-      Opts.pure(()) map { _ => (_: Config) => printTopLevelHelp() }
+      Opts.pure(()) map { _ => (_: Config) => printTopLevelHelp(); 0 }
     }
 
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {
@@ -483,7 +482,7 @@ object LauncherApplication {
 
         if (version) {
           Launcher(globalCLIOptions).displayVersion(useJSON)
-          TopLevelBehavior.Halt
+          TopLevelBehavior.Halt(0)
         } else
           TopLevelBehavior.Continue(globalCLIOptions)
     }

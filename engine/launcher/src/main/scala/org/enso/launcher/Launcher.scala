@@ -56,7 +56,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
-  ): Unit = {
+  ): Int = {
     val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
     val version =
       versionOverride.getOrElse(configurationManager.defaultVersion)
@@ -83,24 +83,26 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       Logger.info(s"Project created in `$actualPath` using version $version.")
     } else {
       Logger.error("Project creation failed.")
-      sys.exit(exitCode)
     }
+
+    exitCode
   }
 
   /**
     * Prints a list of installed engines.
     */
-  def listEngines(): Unit = {
+  def listEngines(): Int = {
     for (engine <- componentsManager.listInstalledEngines()) {
       val broken = if (engine.isMarkedBroken) " (broken)" else ""
       println(engine.version.toString + broken)
     }
+    0
   }
 
   /**
     * Prints a list of installed runtimes.
     */
-  def listRuntimes(): Unit = {
+  def listRuntimes(): Int = {
     for (runtime <- componentsManager.listInstalledRuntimes()) {
       val engines = componentsManager.findEnginesUsingRuntime(runtime)
       val usedBy = {
@@ -111,12 +113,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       }
       println(s"$runtime $usedBy")
     }
+    0
   }
 
   /**
     * Prints a summary of installed components and their dependencies.
     */
-  def listSummary(): Unit = {
+  def listSummary(): Int = {
     for (engine <- componentsManager.listInstalledEngines()) {
       val runtime = componentsManager.findRuntime(engine)
       val runtimeName = runtime
@@ -125,6 +128,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       val broken = if (engine.isMarkedBroken) " (broken)" else ""
       println(s"Enso ${engine.version}$broken -> $runtimeName")
     }
+    0
   }
 
   /**
@@ -132,13 +136,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *
     * Also installs the required runtime if it wasn't already installed.
     */
-  def installEngine(version: SemVer): Unit = {
+  def installEngine(version: SemVer): Int = {
     val existing = componentsManager.findEngine(version)
     if (existing.isDefined) {
       Logger.info(s"Engine $version is already installed.")
     } else {
       componentsManager.findOrInstallEngine(version, complain = false)
     }
+    0
   }
 
   /**
@@ -146,7 +151,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *
     * Also installs the required runtime if it wasn't already installed.
     */
-  def installLatestEngine(): Unit = {
+  def installLatestEngine(): Int = {
     val latest = componentsManager.fetchLatestEngineVersion()
     Logger.info(s"Installing Enso engine $latest.")
     installEngine(latest)
@@ -157,8 +162,10 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *
     * If a runtime is not used by any engines anymore, it is also removed.
     */
-  def uninstallEngine(version: SemVer): Unit =
+  def uninstallEngine(version: SemVer): Int = {
     componentsManager.uninstallEngine(version)
+    0
+  }
 
   /**
     * Runs the Enso REPL.
@@ -181,7 +188,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
-  ): Unit = {
+  ): Int = {
     val exitCode = runner
       .withCommand(
         runner.repl(projectPath, versionOverride, additionalArguments).get,
@@ -189,7 +196,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
-    sys.exit(exitCode)
+    exitCode
   }
 
   /**
@@ -215,7 +222,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
-  ): Unit = {
+  ): Int = {
     val exitCode = runner
       .withCommand(
         runner.run(path, versionOverride, additionalArguments).get,
@@ -223,7 +230,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
-    sys.exit(exitCode)
+    exitCode
   }
 
   /**
@@ -246,7 +253,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
-  ): Unit = {
+  ): Int = {
     val exitCode = runner
       .withCommand(
         runner
@@ -256,7 +263,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       ) { command =>
         command.run().get
       }
-    sys.exit(exitCode)
+    exitCode
   }
 
   /**
@@ -267,7 +274,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * config. Any updates that set a known key to an invalid value which would
     * prevent from loading the config are cancelled.
     */
-  def updateConfig(key: String, value: String): Unit = {
+  def updateConfig(key: String, value: String): Int = {
     if (value.isEmpty) {
       configurationManager.removeFromConfig(key)
       Logger.info(
@@ -281,6 +288,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"(${configurationManager.configLocation.toAbsolutePath})."
       )
     }
+    0
   }
 
   /**
@@ -289,26 +297,26 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * If the `key` is not set in the config, sets exit code to 1 and prints a
     * warning.
     */
-  def printConfig(key: String): Unit = {
+  def printConfig(key: String): Int = {
     configurationManager.getConfig.original.apply(key) match {
       case Some(value) =>
         println(value)
-        sys.exit()
+        0
       case None =>
         Logger.warn(s"Key $key is not set in the global config.")
-        sys.exit(1)
+        1
     }
   }
 
   /**
     * Sets the default Enso version.
     */
-  def setDefaultVersion(version: DefaultVersion): Unit = {
+  def setDefaultVersion(defaultVersion: DefaultVersion): Int = {
     configurationManager.updateConfig { config =>
-      config.copy(defaultVersion = version)
+      config.copy(defaultVersion = defaultVersion)
     }
 
-    version match {
+    defaultVersion match {
       case DefaultVersion.LatestInstalled =>
         Logger.info(
           s"Default Enso version set to the latest installed version, " +
@@ -317,13 +325,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       case DefaultVersion.Exact(version) =>
         Logger.info(s"Default Enso version set to $version.")
     }
+
+    0
   }
 
   /**
     * Prints the default Enso version.
     */
-  def printDefaultVersion(): Unit = {
+  def printDefaultVersion(): Int = {
     println(configurationManager.defaultVersion)
+    0
   }
 
   /**
@@ -335,7 +346,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def displayVersion(
     hideEngineVersion: Boolean = false
-  ): Unit = {
+  ): Int = {
     val useJSON = cliOptions.useJSON
     val runtimeVersionParameter =
       if (hideEngineVersion) None else Some(getEngineVersion(useJSON))
@@ -349,6 +360,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     )
 
     println(versionDescription.asString(useJSON))
+    0
   }
 
   private def getEngineVersion(
@@ -391,11 +403,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * specified, the latest available version is chosen, unless it is older than
     * the current one.
     */
-  def upgrade(version: Option[SemVer]): Unit = {
+  def upgrade(version: Option[SemVer]): Int = {
     val targetVersion       = version.getOrElse(upgrader.latestVersion().get)
     val isManuallyRequested = version.isDefined
     if (targetVersion == CurrentVersion.version) {
       Logger.info("Already up-to-date.")
+      0
     } else if (targetVersion < CurrentVersion.version && !isManuallyRequested) {
       Logger.warn(
         s"The latest available version is $targetVersion, but you are " +
@@ -405,9 +418,10 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         s"If you really want to downgrade, please run " +
         s"`enso upgrade $targetVersion`."
       )
-      sys.exit(1)
+      1
     } else {
       upgrader.upgrade(targetVersion)
+      0
     }
   }
 }

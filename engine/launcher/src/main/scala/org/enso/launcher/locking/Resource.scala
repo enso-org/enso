@@ -3,7 +3,7 @@ package org.enso.launcher.locking
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.components.RuntimeVersion
 
-sealed trait Resource {
+trait Resource {
   def name:        String
   def waitMessage: String
 }

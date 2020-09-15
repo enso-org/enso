@@ -14,7 +14,7 @@ trait PluginManager {
     * @param name name of the plugin
     * @param args arguments that should be passed to it
     */
-  def runPlugin(name: String, args: Seq[String]): Nothing
+  def runPlugin(name: String, args: Seq[String]): Int
 
   /**
     * Returns whether the plugin of the given `name` is available in the system.

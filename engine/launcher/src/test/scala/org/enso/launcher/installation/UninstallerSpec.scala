@@ -27,7 +27,7 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
       if (everythingInsideData) installedRoot / "config"
       else getTestDirectory / "enso-config"
     val dataDirectory    = installedRoot
-    val runDirectory     = installedRoot / "run"
+    val runDirectory     = installedRoot
     val portableLauncher = binDirectory / OS.executableName("enso")
     copyLauncherTo(portableLauncher)
     Files.createDirectories(dataDirectory / "dist")

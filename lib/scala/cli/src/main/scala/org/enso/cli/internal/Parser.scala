@@ -22,7 +22,7 @@ object Parser {
     tokens: Seq[Token],
     additionalArguments: Seq[String],
     applicationName: String
-  ): Either[OptsParseError, (A, Option[() => Nothing])] = {
+  ): Either[OptsParseError, (A, Option[() => Int])] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
@@ -82,8 +82,8 @@ object Parser {
     opts.reset()
     val tokenProvider = new TokenStream(tokens, addError)
 
-    var escapeParsing: Option[(Seq[Token], Seq[String]) => Nothing] = None
-    var parsingStopped: Boolean                                     = false
+    var escapeParsing: Option[(Seq[Token], Seq[String]) => Int] = None
+    var parsingStopped: Boolean                                 = false
 
     while (!parsingStopped && tokenProvider.hasTokens) {
       tokenProvider.consumeToken() match {
