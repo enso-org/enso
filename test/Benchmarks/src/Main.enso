@@ -13,7 +13,7 @@ sum_tco = sum_to ->
     res
 
 sum_tco_decimal = sum_to ->
-    s = sum_to + 0.0
+    s = sum_to.to_decimal
     summator = acc -> current ->
         if current >= s then acc else summator acc+current current+1.0
     res = summator 0.0 0.0

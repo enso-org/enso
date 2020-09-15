@@ -4,7 +4,6 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.DoubleOps;
 
 @BuiltinMethod(type = "Small_Integer", name = "==", description = "Equality on numbers.")
 public abstract class EqualsNode extends Node {
@@ -22,7 +21,7 @@ public abstract class EqualsNode extends Node {
 
   @Specialization
   boolean doDouble(long _this, double that) {
-    return DoubleOps.equal(_this, that);
+    return (double) _this == that;
   }
 
   @Fallback

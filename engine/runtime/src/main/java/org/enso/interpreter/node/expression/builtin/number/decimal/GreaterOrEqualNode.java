@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.DoubleOps;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -20,17 +19,17 @@ public abstract class GreaterOrEqualNode extends Node {
 
   @Specialization
   boolean doDouble(double _this, double that) {
-    return DoubleOps.greaterOrEqual(_this, that);
+    return _this >= that;
   }
 
   @Specialization
   boolean doLong(double _this, long that) {
-    return DoubleOps.greaterOrEqual(_this, that);
+    return _this >= (double) that;
   }
 
   @Specialization
   boolean doBigInteger(double _this, EnsoBigInteger that) {
-    return DoubleOps.greaterOrEqual(_this, BigIntegerOps.toDouble(that.getValue()));
+    return _this >= BigIntegerOps.toDouble(that.getValue());
   }
 
   @Fallback
