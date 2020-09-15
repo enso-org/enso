@@ -23,8 +23,7 @@ use syn;
 #[proc_macro]
 pub fn generate_ast_api(input:proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(input as syn::File);
-    let file  = ast::File::new("Ast", "org.enso.ast", input.clone());
+    let file  = ast::File::new("Ast","org.enso.ast",input.clone());
     let api   = api::Source::new(file.into()).ast_api();
-
     quote!(#input #api).into()
 }
