@@ -1,5 +1,6 @@
 package org.enso.launcher.locking
 
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.{
   ReadWriteLock,
   ReentrantReadWriteLock,
@@ -15,7 +16,13 @@ import java.util.concurrent.locks.{
   */
 object TestLocalLockManager extends LockManager {
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
-    val lock = getLock(resourceName, lockType)
+    val lock   = getLock(resourceName, lockType)
+    val locked = lock.tryLock(10, TimeUnit.SECONDS)
+    if (!locked) {
+      throw new RuntimeException(
+        "Acquiring the lock took more than 10s, perhaps a deadlock?"
+      )
+    }
     WrapLock(lock)
   }
 
@@ -28,7 +35,7 @@ object TestLocalLockManager extends LockManager {
     else None
   }
 
-  private case class WrapLock(lock: JLock) extends Lock {
+  case class WrapLock(lock: JLock) extends Lock {
     override def release(): Unit = lock.unlock()
   }
 

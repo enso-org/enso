@@ -26,9 +26,9 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     setup()
-    DefaultResourceManager.initializeMainLock()
     val exitCode =
       try {
+        DefaultResourceManager.initializeMainLock()
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {
           runAppHandlingParseErrors(args)
         }

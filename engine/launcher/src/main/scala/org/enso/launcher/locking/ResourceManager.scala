@@ -31,21 +31,20 @@ class ResourceManager(lockManager: LockManager) {
       "distribution. Please wait until that finishes."
   }
 
-  private var mainLock: Option[Lock] = None
+  var mainLock: Option[Lock] = None
 
   def initializeMainLock(): Unit = {
     val lock =
       lockManager.tryAcquireLock(MainResource.name, LockType.Shared).getOrElse {
-        Logger.error(MainResource.waitMessage)
-        sys.exit(1)
+        throw new RuntimeException(MainResource.waitMessage) // TODO custom exc
       }
     mainLock = Some(lock)
   }
 
   def acquireExclusiveMainLock(waitAction: () => Unit): Unit = {
     mainLock match {
-      case Some(lock) =>
-        lock.release()
+      case Some(oldLock) =>
+        oldLock.release()
         mainLock = None
       case None =>
     }
