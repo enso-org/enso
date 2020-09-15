@@ -144,11 +144,11 @@ impl Class {
 
 /// Class constructor.
 #[allow(non_snake_case)]
-pub fn Class(name:Type, fields:&syn::Fields, attrs:&Vec<syn::Attribute>) -> Class {
+pub fn Class(name:Type, fields:&syn::Fields, attrs:&[syn::Attribute]) -> Class {
     let named = if let syn::Fields::Named{..} = fields {true} else {false};
     let args  = fields.iter().enumerate().map(|(i,arg)| {
         let name = arg.ident.as_ref().map_or(Name(format!("val{}",i)),Name);
-        Field{name,typ:Type::from(&arg.ty)}
+        Field::new(name,Type::from(&arg.ty))
     }).collect();
     let doc_atr = attrs.iter().find(|atr| match atr.path.get_ident() {
         Some(ident) => ident.to_string().as_str() == "doc",
@@ -156,9 +156,16 @@ pub fn Class(name:Type, fields:&syn::Fields, attrs:&Vec<syn::Attribute>) -> Clas
     });
     let doc = if let Some(doc_atr) = doc_atr {
         let tokens = doc_atr.tokens.to_string();
-        tokens.chars().skip(4).take(tokens.len()-5).collect()
+        tokens.chars().skip(3).take(tokens.len()-3).collect()
     } else { "".to_string() };
     Class::new(doc,name,args,named)
+}
+
+impl Field {
+    /// Create a new Field instance.
+    pub fn new(name:Name, typ:Type) -> Self {
+        Field{name,typ}
+    }
 }
 
 impl Type {
@@ -266,8 +273,8 @@ impl From<&str> for Type {
 impl From<&syn::Type> for Type {
     fn from(typ:&syn::Type) -> Self {
         let mut name = Name::default();
-        let mut path = Vec::default();
-        let mut args = Vec::default();
+        let mut path = Vec ::default();
+        let mut args = Vec ::default();
         if let syn::Type::Path(typ) = typ {
             path    = typ.path.segments.iter().dropping_back(1).map(|s|Name(&s.ident)).collect();
             let typ = typ.path.segments.last().unwrap();

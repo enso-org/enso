@@ -15,4 +15,3 @@ pub mod ast;
 pub mod generator;
 pub mod scala;
 pub mod types;
-

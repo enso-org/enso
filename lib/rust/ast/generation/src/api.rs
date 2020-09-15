@@ -54,7 +54,7 @@ impl PreprocessedFile {
     /// Add a class to the list of classes and monomorphize the types of it's arguments.
     pub fn add_class(&mut self, mut class:Class, extends:Option<Name>) {
         let args = class.args.iter().map(|Field{name,typ}|
-            Field{name:name.clone(), typ:self.monomorphize(&typ).typ}
+            Field::new(name.clone(), self.monomorphize(&typ).typ)
         ).collect();
         let arg_types  = class.args.into_iter().map(|field| field.typ);
         class.typ.path = self.module[1..].into();
@@ -73,11 +73,11 @@ impl PreprocessedFile {
             args.push(typ.typ);
         }
         if args.is_empty() || types::builtin(&typ.name).is_some() {
-            return UniqueType::new(Name(uid), Type::new(typ.name.clone(), path, args));
+            return UniqueType::new(Name(uid), Type::new(typ.name.clone(),path,args));
         }
-        let alias = Type::new(Name(&uid), path, args);
+        let alias = Type::new(Name(&uid),path,args);
         self.generics.entry(typ.name.clone()).or_insert_with(Set::new).insert(alias);
-        UniqueType::new(Name(&uid), Type::from(Name(&uid)))
+        UniqueType::new(Name(&uid),Type::from(Name(&uid)))
     }
 }
 
@@ -133,7 +133,7 @@ impl Generator<PreprocessedFile> for &TypeAlias {
 
 impl Generator<PreprocessedFile> for &Class {
     fn write(self, source:&mut PreprocessedFile) {
-        source.add_class(self.clone(), None);
+        source.add_class(self.clone(),None);
         source.class_names.insert(self.typ.name.clone());
         if self.typ.args.is_empty() {
             source.generics.entry(self.typ.name.clone()).or_default().insert(self.typ.clone());
@@ -271,12 +271,12 @@ impl Source {
                 let name = std::mem::replace(&mut typ.name,name.clone());
                 let vars = class.typ.args.iter().map(|t| &t.name).zip(&typ.args).collect();
                 let args = class.args.iter().map(|Field{name,typ}|
-                    Field{name:name.clone(),typ:apply(&typ,&vars)}
+                    Field::new(name.clone(),apply(&typ,&vars))
                 ).collect();
                 let class = Class::new(class.doc.clone(),typ,args,class.named);
                 types.push(AssociatedType::new(name,variant.clone(),class));
             }
-            let args = args.into_iter().map(|typ| Field{name:Name(""),typ}).collect();
+            let args = args.into_iter().map(|typ| Field::new(Name(""),typ)).collect();
             if variant.is_none() || class.named {
                 classes.push(Class::new("".to_string(),class.typ,args,class.named))
             }
@@ -293,7 +293,7 @@ impl Source {
             let typ   = if arg.args.is_empty() { quote!(#typ) } else {
                 quote!(#typ<#(#args),*>)
             };
-            format!("The AST Node {}.",typ.to_string().replace(" ",""))
+            format!("The AST Node {}.",typ.to_string())
         })).collect_vec();
         let fun_docs  = self.types.iter().map(|obj| {
             format!("Construct Self::{}.{}",obj.name.str,obj.class.doc)

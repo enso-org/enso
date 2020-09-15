@@ -78,7 +78,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_parseFile(
     this     : JClass,
     filename : JString,
 ) -> jweak {
-    Java_org_enso_parser_Parser_parseStr(env, this, filename)
+    Java_org_enso_parser_Parser_parseStr(env,this,filename)
 }
 
 
@@ -91,7 +91,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_lexStr(
     this  : JClass,
     input : JString,
 ) -> jweak {
-    Java_org_enso_parser_Parser_parseStr(env, this, input)
+    Java_org_enso_parser_Parser_parseStr(env,this,input)
 }
 
 /// Parses a single source file into a stream of tokens.
@@ -101,29 +101,25 @@ pub extern "system" fn Java_org_enso_parser_Parser_lexFile(
     this     : JClass,
     filename : JString,
 ) -> jweak {
-    Java_org_enso_parser_Parser_parseStr(env, this, filename)
+    Java_org_enso_parser_Parser_parseStr(env,this,filename)
 }
 
 
 // === Benchmark ===
 
-/// Creates a prefix tree of depth 20 and prints the it took.
+/// Creates a prefix tree of depth 20 and prints the time it took.
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_bench(
-    env      : JNIEnv,
-    _this    : JClass,
+    env   : JNIEnv,
+    _this : JClass,
 ) -> jweak {
     let now = Instant::now();
-    let ast = tree(&ast::Rust, 20);
+    let _   = tree(&ast::Rust, 20);
     println!("Rust AST build time: {}ms", now.elapsed().as_millis());
-    println!("{}",format!("{:?}", ast).len());
-
-
     let api = ast::Scala::new(&env);
     let now = Instant::now();
     let ast = tree(&api, 20);
     println!("Scala AST build time: {}ms", now.elapsed().as_millis());
-
     ast.into_inner()
 }
 
@@ -132,9 +128,7 @@ pub fn tree<Api:ast::Api>(api:&Api, depth:usize) -> Api::AstShape {
     if depth == 0 {
         return api.ast_shape(None, 0, 0, api.shape_number(api.number(0)));
     }
-
     let fun = Box::new(tree(api, depth-1));
     let arg = Box::new(tree(api, depth-1));
-
-    api.ast_shape(None, 0, 0, api.shape_prefix(api.prefix(fun, arg)))
+    api.ast_shape(None, 0, 0, api.shape_prefix(api.prefix(fun,arg)))
 }
