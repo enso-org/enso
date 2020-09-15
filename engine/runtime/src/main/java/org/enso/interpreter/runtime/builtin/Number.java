@@ -40,77 +40,77 @@ public class Number {
     scope.registerMethod(
         smallInteger,
         "+",
-        org.enso.interpreter.node.expression.builtin.number.int64.AddMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.AddMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "-",
-        org.enso.interpreter.node.expression.builtin.number.int64.SubtractMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.SubtractMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "*",
-        org.enso.interpreter.node.expression.builtin.number.int64.MultiplyMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "^",
-        org.enso.interpreter.node.expression.builtin.number.int64.PowMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.PowMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "/",
-        org.enso.interpreter.node.expression.builtin.number.int64.DivideMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.DivideMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "div",
-        org.enso.interpreter.node.expression.builtin.number.int64.DivMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.DivMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "%",
-        org.enso.interpreter.node.expression.builtin.number.int64.ModMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.ModMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "negate",
-        org.enso.interpreter.node.expression.builtin.number.int64.NegateMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.NegateMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "abs",
-        org.enso.interpreter.node.expression.builtin.number.int64.AbsMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.AbsMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "==",
-        org.enso.interpreter.node.expression.builtin.number.int64.EqualsMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.EqualsMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         ">",
-        org.enso.interpreter.node.expression.builtin.number.int64.GreaterMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         ">=",
-        org.enso.interpreter.node.expression.builtin.number.int64.GreaterOrEqualMethodGen
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterOrEqualMethodGen
             .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         "<",
-        org.enso.interpreter.node.expression.builtin.number.int64.LessMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.LessMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "<=",
-        org.enso.interpreter.node.expression.builtin.number.int64.LessOrEqualMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.LessOrEqualMethodGen.makeFunction(
             language));
     scope.registerMethod(
         smallInteger,
         "to_decimal",
-        org.enso.interpreter.node.expression.builtin.number.int64.ToDecimalMethodGen.makeFunction(
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.ToDecimalMethodGen.makeFunction(
             language));
   }
 

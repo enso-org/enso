@@ -1,23 +1,21 @@
-package org.enso.interpreter.node.expression.builtin.number.int64;
+package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.math.BigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "^", description = "Exponentation of numbers.")
 public abstract class PowNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
-  private @Child org.enso.interpreter.node.expression.builtin.number.int64.MultiplyNode
+  private @Child org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyNode
       longMultiplyNode =
-          org.enso.interpreter.node.expression.builtin.number.int64.MultiplyNode.build();
+          org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyNode.build();
   private @Child org.enso.interpreter.node.expression.builtin.number.bigInteger.MultiplyNode
       bigIntMultiplyNode =
           org.enso.interpreter.node.expression.builtin.number.bigInteger.MultiplyNode.build();
