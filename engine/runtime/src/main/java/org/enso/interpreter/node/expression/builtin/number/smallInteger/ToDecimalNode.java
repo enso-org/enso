@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.int64;
+package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;

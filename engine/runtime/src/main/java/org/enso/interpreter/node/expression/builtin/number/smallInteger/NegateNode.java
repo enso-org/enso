@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.int64;
+package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -7,26 +7,22 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 
 @BuiltinMethod(type = "Small_Integer", name = "negate", description = "Negation for numbers.")
-public abstract class AbsNode extends Node {
+public abstract class NegateNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  static AbsNode build() {
-    return AbsNodeGen.create();
+  static NegateNode build() {
+    return NegateNodeGen.create();
   }
 
   abstract Object execute(long _this);
 
   @Specialization(rewriteOn = ArithmeticException.class)
   long doNormal(long _this) {
-    if (_this < 0) {
-      return Math.negateExact(_this);
-    } else {
-      return _this;
-    }
+    return Math.negateExact(_this);
   }
 
   @Specialization
   Object doOverflow(long _this) {
-    return toEnsoNumberNode.execute(BigIntegerOps.abs(_this));
+    return toEnsoNumberNode.execute(BigIntegerOps.negate(_this));
   }
 }
