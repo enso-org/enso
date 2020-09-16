@@ -513,11 +513,11 @@ class ComponentsManager(
             Resource.Runtime(runtimeVersion),
             LockType.Exclusive
           ) {
-            val (runtime, wasInstalled) = findRuntime(runtimeVersion)
+            val (runtime, wasJustInstalled) = findRuntime(runtimeVersion)
               .map((_, false))
               .getOrElse((installRuntime(runtimeVersion), true))
 
-            finishInstallation(runtime, wasJustInstalled = wasInstalled)
+            finishInstallation(runtime, wasJustInstalled = wasJustInstalled)
           }
 
         getEngineIfRuntimeIsInstalled.getOrElse(getEngineOtherwise)

@@ -138,6 +138,10 @@ class ConcurrencyTest
       Files.createDirectories(tmpRoot)
       val garbage = tmpRoot / "garbage.txt"
       FileSystem.writeTextFile(garbage, "Garbage")
+      // we need to wait a short moment after creating the `tmp` directory as
+      // otherwise it may be busy and the cleaner won't try to clean it
+      Thread.sleep(1000) // does not work
+      // WHY?
 
       sync.startThread("t1") {
         val componentsManager = makeComponentsManager(

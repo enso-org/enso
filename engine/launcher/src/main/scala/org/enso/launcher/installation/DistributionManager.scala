@@ -55,6 +55,7 @@ case class DistributionPaths(
        |)""".stripMargin
 
   lazy val temporaryDirectory: Path = {
+    System.err.println(s"TMP !!!!!!!!! $tmp first access from this DM")
     tryCleaningTemporaryDirectory()
     resourceManager.startUsingTemporaryDirectory()
     tmp
@@ -63,6 +64,7 @@ case class DistributionPaths(
   def tryCleaningTemporaryDirectory(): Unit = {
     if (Files.exists(tmp)) {
       resourceManager.tryWithExclusiveTemporaryDirectory {
+        System.err.println(s"!!!!!!!!!!!!!!!!!! TMP $tmp cleaning")
         if (!FileSystem.isDirectoryEmpty(tmp)) {
           Logger.info(
             "Cleaning up temporary files from a previous installation."
@@ -71,7 +73,13 @@ case class DistributionPaths(
         FileSystem.removeDirectory(tmp)
         Files.createDirectories(tmp)
         FileSystem.removeEmptyDirectoryOnExit(tmp)
+      } match {
+        case Some(_) =>
+        case None =>
+          System.err.println(s"!!!!!!!!!!!!!!!!!! TMP $tmp was busy")
       }
+    } else {
+      System.err.println(s"!!!!!!!!!!!!!!!!!! TMP $tmp was empty")
     }
   }
 }
