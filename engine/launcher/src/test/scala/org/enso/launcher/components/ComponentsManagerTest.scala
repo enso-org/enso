@@ -35,8 +35,9 @@ class ComponentsManagerTest
   def makeManagers(
     environmentOverrides: Map[String, String] = Map.empty
   ): (DistributionManager, ComponentsManager, Environment) = {
-    val env                 = fakeInstalledEnvironment(environmentOverrides)
-    val distributionManager = new DistributionManager(env)
+    val env = fakeInstalledEnvironment(environmentOverrides)
+    val distributionManager =
+      new DistributionManager(env, TestLocalResourceManager)
     val fakeReleasesRoot =
       Path.of(
         getClass

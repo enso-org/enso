@@ -5,14 +5,21 @@ import org.enso.launcher.Logger
 import scala.util.Using
 
 class ResourceManager(lockManager: LockManager) {
-  def withResource[R](resource: Resource, lockType: LockType)(
+  def withResource[R](
+    resource: Resource,
+    lockType: LockType,
+    waitingAction: Option[Resource => Unit] = None
+  )(
     action: => R
   ): R =
     Using {
       lockManager.acquireLockWithWaitingAction(
         resource.name,
         lockType = lockType,
-        () => Logger.warn(resource.waitMessage)
+        () =>
+          waitingAction
+            .map(_.apply(resource))
+            .getOrElse(Logger.warn(resource.waitMessage))
       )
     } { _ => action }.get
 
@@ -64,4 +71,32 @@ class ResourceManager(lockManager: LockManager) {
         mainLock = None
       case None =>
     }
+
+  private case object TemporaryDirectory extends Resource {
+    override def name: String = "temporary-files"
+    override def waitMessage: String =
+      "Another process is cleaning temporary files, " +
+      "the installation has to wait until that is complete to avoid " +
+      "conflicts. It should not take a long time."
+  }
+
+  def tryWithExclusiveTemporaryDirectory[R](action: => R): Option[R] = {
+    lockManager.tryAcquireLock(
+      TemporaryDirectory.name,
+      LockType.Exclusive
+    ) match {
+      case Some(lock) =>
+        try Some(action)
+        finally lock.release()
+      case None => None
+    }
+  }
+
+  def startUsingTemporaryDirectory(): Unit = {
+    lockManager.acquireLockWithWaitingAction(
+      TemporaryDirectory.name,
+      LockType.Shared,
+      () => Logger.warn(TemporaryDirectory.waitMessage)
+    )
+  }
 }

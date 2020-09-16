@@ -3,6 +3,7 @@ package org.enso.launcher.installation
 import java.nio.file.{Files, Path}
 
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{Environment, FileSystem, Logger, OS}
 
 import scala.util.Try
@@ -27,6 +28,8 @@ import scala.util.Try
   *            requested for the first time) and is removed if the application
   *            exits normally (as long as it is empty, but normal termination of
   *            the installation process should ensure that).
+  * @param resourceManager reference to the resource manager used for
+  *                        synchronizing access to the temporary files
   */
 case class DistributionPaths(
   dataRoot: Path,
@@ -34,7 +37,8 @@ case class DistributionPaths(
   engines: Path,
   config: Path,
   locks: Path,
-  private val tmp: Path
+  tmp: Path,
+  resourceManager: ResourceManager
 ) {
 
   /**
@@ -51,18 +55,23 @@ case class DistributionPaths(
        |)""".stripMargin
 
   lazy val temporaryDirectory: Path = {
-    runCleanup()
+    tryCleaningTemporaryDirectory()
+    resourceManager.startUsingTemporaryDirectory()
     tmp
   }
 
-  private def runCleanup(): Unit = {
+  def tryCleaningTemporaryDirectory(): Unit = {
     if (Files.exists(tmp)) {
-      if (!FileSystem.isDirectoryEmpty(tmp)) {
-        Logger.info("Cleaning up temporary files from a previous installation.")
+      resourceManager.tryWithExclusiveTemporaryDirectory {
+        if (!FileSystem.isDirectoryEmpty(tmp)) {
+          Logger.info(
+            "Cleaning up temporary files from a previous installation."
+          )
+        }
+        FileSystem.removeDirectory(tmp)
+        Files.createDirectories(tmp)
+        FileSystem.removeEmptyDirectoryOnExit(tmp)
       }
-      FileSystem.removeDirectory(tmp)
-      Files.createDirectories(tmp)
-      FileSystem.removeEmptyDirectoryOnExit(tmp)
     }
   }
 }
@@ -71,7 +80,10 @@ case class DistributionPaths(
   * A helper class that detects if a portable or installed distribution is run
   * and encapsulates management of paths to components of the distribution.
   */
-class DistributionManager(val env: Environment) {
+class DistributionManager(
+  val env: Environment,
+  resourceManager: ResourceManager
+) {
 
   /**
     * Specifies whether the launcher has been run as a portable distribution or
@@ -140,7 +152,8 @@ class DistributionManager(val env: Environment) {
         engines  = root / ENGINES_DIRECTORY,
         config   = root / CONFIG_DIRECTORY,
         locks    = root / LOCK_DIRECTORY,
-        tmp      = root / TMP_DIRECTORY
+        tmp      = root / TMP_DIRECTORY,
+        resourceManager
       )
     } else {
       val dataRoot   = LocallyInstalledDirectories.dataDirectory
@@ -152,7 +165,8 @@ class DistributionManager(val env: Environment) {
         engines  = dataRoot / ENGINES_DIRECTORY,
         config   = configRoot,
         locks    = runRoot / LOCK_DIRECTORY,
-        tmp      = dataRoot / TMP_DIRECTORY
+        tmp      = dataRoot / TMP_DIRECTORY,
+        resourceManager
       )
     }
 
@@ -297,4 +311,5 @@ class DistributionManager(val env: Environment) {
 /**
   * A default DistributionManager using the default environment.
   */
-object DistributionManager extends DistributionManager(Environment)
+object DistributionManager
+    extends DistributionManager(Environment, DefaultResourceManager)
