@@ -1,5 +1,6 @@
 package org.enso.launcher
 
+import java.io.{BufferedReader, InputStreamReader}
 import java.nio.file.{Files, Path}
 import java.lang.{ProcessBuilder => JProcessBuilder}
 
@@ -8,7 +9,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.time.Span
 import org.scalatest.wordspec.AnyWordSpec
-
 import org.scalatest.time.SpanSugar._
 
 import scala.collection.Factory
@@ -150,7 +150,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
   }
 
   /**
-    * Runs the provided `command`.
+    * Starts the provided `command`.
     *
     * `extraEnv` may be provided to extend the environment. Care must be taken
     * on Windows where environment variables are (mostly) case-insensitive.
@@ -159,11 +159,10 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     * launched process to finish too. Especially important on Windows where
     * child processes may run after the launcher parent has been terminated.
     */
-  private def run(
+  def start(
     command: Seq[String],
-    extraEnv: Seq[(String, String)],
-    waitForDescendants: Boolean = true
-  ): RunResult = {
+    extraEnv: Seq[(String, String)]
+  ): WrappedProcess = {
     val builder = new JProcessBuilder(command: _*)
     val newKeys = extraEnv.map(_._1.toLowerCase)
     if (newKeys.distinct.size < newKeys.size) {
@@ -193,7 +192,40 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
     try {
       val process = builder.start()
+      WrappedProcess(command, process)
+    } catch {
+      case e: Exception =>
+        throw new RuntimeException("Cannot run the Native Image binary", e)
+    }
+  }
 
+  case class WrappedProcess(command: Seq[String], process: Process) {
+
+    /**
+      * Waits for a message on the stderr to appear.
+      *
+      * May result in the `stderr` of [[join]]'s result being incomplete.
+      */
+    def waitForMessageOnErrorStream(message: String): Unit = {
+      val reader = new BufferedReader(
+        new InputStreamReader(process.getErrorStream)
+      )
+      var line: String = null
+      while ({ line = reader.readLine(); line != null }) {
+        System.out.println(">>> " + line)
+        if (line.contains(message)) return
+      }
+      throw new RuntimeException("The requested line did not appear in stderr.")
+    }
+
+    /**
+      * Waits for the process to finish and returns its [[RunResult]].
+      *
+      * If `waitForDescendants` is set, tries to wait for descendants of the
+      * launched process to finish too. Especially important on Windows where
+      * child processes may run after the launcher parent has been terminated.
+      */
+    def join(waitForDescendants: Boolean = true): RunResult =
       try {
         val exitCode = process.waitFor()
         if (waitForDescendants) {
@@ -211,11 +243,19 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
           }
           throw e
       }
-    } catch {
-      case e: Exception =>
-        throw new RuntimeException("Cannot run the Native Image binary", e)
-    }
   }
+
+  /**
+    * Runs the provided `command`.
+    *
+    * `extraEnv` may be provided to extend the environment. Care must be taken
+    * on Windows where environment variables are (mostly) case-insensitive.
+    */
+  private def run(
+    command: Seq[String],
+    extraEnv: Seq[(String, String)],
+    waitForDescendants: Boolean = true
+  ): RunResult = start(command, extraEnv).join(waitForDescendants)
 }
 
 /* Note [Windows Path]

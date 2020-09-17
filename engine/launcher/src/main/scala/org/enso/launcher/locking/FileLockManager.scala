@@ -3,12 +3,10 @@ package org.enso.launcher.locking
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Files, Path, StandardOpenOption}
 
-import org.enso.launcher.installation.DistributionManager
-
 import scala.util.control.NonFatal
 
 abstract class FileLockManager extends LockManager {
-  def distributionManager: DistributionManager
+  def locksRoot: Path
 
   // TODO [RW] may want to figure out when are the locks deleted, maybe add a
   //  cleanup method that tries to delete (and fails silently on locked files)
@@ -51,7 +49,7 @@ abstract class FileLockManager extends LockManager {
     }
 
   private def lockPath(resourceName: String): Path =
-    distributionManager.paths.locks.resolve(resourceName + ".lock")
+    locksRoot.resolve(resourceName + ".lock")
 
   private def openChannel(resourceName: String): FileChannel = {
     val path   = lockPath(resourceName)

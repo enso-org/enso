@@ -7,6 +7,7 @@ import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{Environment, FileSystem, Logger, OS}
 
 import scala.util.Try
+import scala.util.control.NonFatal
 
 /**
   * Gathers filesystem paths used by the launcher.
@@ -58,30 +59,6 @@ case class DistributionPaths(
     resourceManager.startUsingTemporaryDirectory()
     tmp
   }
-
-  /**
-    * Tries to clean the temporary files directory.
-    *
-    * It should be run at startup whenever the program wants to run clean-up.
-    * Currently it is run when installation-related operations are taking place.
-    * It may not proceed if another process is using it. It has to be run before
-    * the first access to [[temporaryDirectory]], as after that the directory is
-    * marked as in-use and will not be cleaned.
-    */
-  def tryCleaningTemporaryDirectory(): Unit = {
-    if (Files.exists(tmp)) {
-      resourceManager.tryWithExclusiveTemporaryDirectory {
-        if (!FileSystem.isDirectoryEmpty(tmp)) {
-          Logger.info(
-            "Cleaning up temporary files from a previous installation."
-          )
-        }
-        FileSystem.removeDirectory(tmp)
-        Files.createDirectories(tmp)
-        FileSystem.removeEmptyDirectoryOnExit(tmp)
-      }
-    }
-  }
 }
 
 /**
@@ -132,7 +109,6 @@ class DistributionManager(
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
     Logger.debug(s"Detected paths are: $paths")
-
     paths
   }
 
@@ -177,6 +153,46 @@ class DistributionManager(
         resourceManager
       )
     }
+
+  /**
+    * Tries to clean the temporary files directory.
+    *
+    * It should be run at startup whenever the program wants to run clean-up.
+    * Currently it is run when installation-related operations are taking place.
+    * It may not proceed if another process is using it. It has to be run before
+    * the first access to the temporaryDirectory, as after that the directory is
+    * marked as in-use and will not be cleaned.
+    */
+  def tryCleaningTemporaryDirectory(): Unit = {
+    val tmp = paths.tmp
+    if (Files.exists(tmp)) {
+      resourceManager.tryWithExclusiveTemporaryDirectory {
+        if (!FileSystem.isDirectoryEmpty(tmp)) {
+          Logger.info(
+            "Cleaning up temporary files from a previous installation."
+          )
+        }
+        FileSystem.removeDirectory(tmp)
+        Files.createDirectories(tmp)
+        FileSystem.removeEmptyDirectoryOnExit(tmp)
+      }
+    }
+  }
+
+  /**
+    * Removes unused lockfiles.
+    */
+  def tryCleaningUnusedLockfiles(): Unit = {
+    val lockfiles = FileSystem.listDirectory(paths.locks)
+    for (lockfile <- lockfiles) {
+      try {
+        Files.delete(lockfile)
+        Logger.debug(s"Removed unused lockfile ${lockfile.getFileName}.")
+      } catch {
+        case NonFatal(_) =>
+      }
+    }
+  }
 
   /**
     * A helper for managing directories of the non-portable installation.

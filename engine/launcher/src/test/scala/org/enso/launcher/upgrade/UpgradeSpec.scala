@@ -6,6 +6,7 @@ import io.circe.parser
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher._
+import org.enso.launcher.locking.{FileLockManager, LockType}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 
@@ -129,10 +130,22 @@ class UpgradeSpec
     * @param extraEnv environment variable overrides
     * @return result of the run
     */
-  private def run(
+  def run(
     args: Seq[String],
     extraEnv: Map[String, String] = Map.empty
-  ): RunResult = {
+  ): RunResult = startLauncher(args, extraEnv).join()
+
+  /**
+    * Starts the launcher in the temporary distribution.
+    *
+    * @param args arguments for the launcher
+    * @param extraEnv environment variable overrides
+    * @return wrapped process
+    */
+  def startLauncher(
+    args: Seq[String],
+    extraEnv: Map[String, String] = Map.empty
+  ): WrappedProcess = {
     val testArgs = Seq(
       "--internal-emulate-repository",
       fakeReleaseRoot.toAbsolutePath.toString,
@@ -141,7 +154,10 @@ class UpgradeSpec
     )
     val env =
       extraEnv.updated("ENSO_LAUNCHER_LOCATION", realLauncherLocation.toString)
-    runLauncherAt(launcherPath, testArgs ++ args, env)
+    start(
+      Seq(launcherPath.toAbsolutePath.toString) ++ testArgs ++ args,
+      env.toSeq
+    )
   }
 
   "upgrade" should {
@@ -276,6 +292,34 @@ class UpgradeSpec
       )
       result should returnSuccess
       result.stdout should include(message)
+    }
+
+    "fail if another upgrade is running in parallel" in {
+      prepareDistribution(
+        portable        = true,
+        launcherVersion = Some(SemVer(0, 0, 1))
+      )
+
+      val syncLocker = new FileLockManager {
+        override def locksRoot: Path = getTestDirectory / "enso" / "lock"
+      }
+      val launcherManifestAssetName = "launcher-manifest.yaml"
+      val lock = syncLocker.acquireLock(
+        "testasset-" + launcherManifestAssetName,
+        LockType.Exclusive
+      )
+
+      val firstSuspended = startLauncher(Seq("upgrade", "0.0.2"))
+      firstSuspended.waitForMessageOnErrorStream("INTERNAL-TEST-ACQUIRING-LOCK")
+
+      val secondFailed = run(Seq("upgrade", "0.0.0"))
+
+      secondFailed.stderr should include("Another upgrade is in progress")
+      secondFailed.exitCode shouldEqual 1
+
+      lock.release()
+      firstSuspended.join() should returnSuccess
+      checkVersion() shouldEqual SemVer(0, 0, 2)
     }
   }
 }

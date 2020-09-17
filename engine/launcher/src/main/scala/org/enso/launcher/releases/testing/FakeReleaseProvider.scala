@@ -3,6 +3,7 @@ package org.enso.launcher.releases.testing
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import org.enso.cli.{ProgressListener, TaskProgress}
+import org.enso.launcher.locking.{DefaultFileLockManager, LockType}
 import org.enso.launcher.releases.{
   Asset,
   Release,
@@ -95,6 +96,7 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
     * @inheritdoc
     */
   override def downloadTo(path: Path): TaskProgress[Unit] = {
+    maybeWaitForAsset()
     val result = Try(copyFakeAsset(path))
     new TaskProgress[Unit] {
       override def addProgressListener(
@@ -103,6 +105,28 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
         listener.done(result)
       }
     }
+  }
+
+  /**
+    * Acquires a shared lock on the asset.
+    *
+    * The test runner may grab an exclusive lock on an asset as a way to
+    * synchronize actions (this download will wait until such exclusive lock is
+    * released).
+    */
+  private def maybeWaitForAsset(): Unit = {
+    val name = "testasset-" + fileName
+    System.err.println(
+      s"!!! Maybe waiting on $name at ${DefaultFileLockManager.locksRoot.toAbsolutePath.normalize()}."
+    )
+    val lock = DefaultFileLockManager.acquireLockWithWaitingAction(
+      name,
+      LockType.Shared,
+      waiting = () => {
+        System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
+      }
+    )
+    lock.release()
   }
 
   private def copyFakeAsset(destination: Path): Unit =
@@ -155,6 +179,7 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
         "Cannot fetch a fake archive (a directory) as text."
       )
     else {
+      maybeWaitForAsset()
       val txt = Using(Source.fromFile(source.toFile)) { src =>
         src.getLines().mkString("\n")
       }

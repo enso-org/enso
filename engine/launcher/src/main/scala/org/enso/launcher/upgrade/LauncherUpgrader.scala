@@ -43,11 +43,15 @@ class LauncherUpgrader(
     *
     * The upgrade may first temporarily install versions older than the target
     * if the upgrade cannot be performed directly from the current version.
+    *
+    * If another upgrade is in progress, [[AnotherUpgradeInProgressError]] is
+    * thrown.
     */
   def upgrade(targetVersion: SemVer): Unit = {
     resourceManager.withResource(
       Resource.LauncherExecutable,
-      LockType.Exclusive
+      LockType.Exclusive,
+      waitingAction = Some(_ => throw AnotherUpgradeInProgressError())
     ) {
       runCleanup(isStartup = true)
       val release = releaseProvider.fetchRelease(targetVersion).get
@@ -438,17 +442,27 @@ object LauncherUpgrader {
     val upgrader           = makeDefault(upgradeRequiredError.globalCLIOptions)
     val targetVersion      = upgrader.latestVersion().get
     val launcherExecutable = upgrader.originalExecutable
-    upgrader.upgrade(targetVersion)
+    try {
+      upgrader.upgrade(targetVersion)
 
-    Logger.info("Re-running the current command with the upgraded launcher.")
+      Logger.info("Re-running the current command with the upgraded launcher.")
 
-    val arguments =
-      InternalOpts.removeInternalTestOptions(originalArguments.toIndexedSeq)
-    val rerunCommand =
-      Seq(launcherExecutable.toAbsolutePath.normalize.toString) ++ arguments
-    Logger.debug(s"Running `${rerunCommand.mkString(" ")}`.")
-    val processBuilder = new ProcessBuilder(rerunCommand: _*)
-    val process        = processBuilder.inheritIO().start()
-    process.waitFor()
+      val arguments =
+        InternalOpts.removeInternalTestOptions(originalArguments.toIndexedSeq)
+      val rerunCommand =
+        Seq(launcherExecutable.toAbsolutePath.normalize.toString) ++ arguments
+      Logger.debug(s"Running `${rerunCommand.mkString(" ")}`.")
+      val processBuilder = new ProcessBuilder(rerunCommand: _*)
+      val process        = processBuilder.inheritIO().start()
+      process.waitFor()
+    } catch {
+      case _: AnotherUpgradeInProgressError =>
+        Logger.error(
+          "Another upgrade is in progress." +
+          "Please wait for it to finish and manually re-run the requested " +
+          "command."
+        )
+        1
+    }
   }
 }

@@ -28,7 +28,6 @@ object Main {
     setup()
     val exitCode =
       try {
-        DefaultResourceManager.initializeMainLock()
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {
           runAppHandlingParseErrors(args)
         }

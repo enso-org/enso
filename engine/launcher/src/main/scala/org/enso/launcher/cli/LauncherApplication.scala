@@ -19,6 +19,7 @@ import org.enso.launcher.installation.{
   DistributionManager,
   DistributionUninstaller
 }
+import org.enso.launcher.locking.DefaultResourceManager
 
 /**
   * Defines the CLI commands and options for the program.
@@ -274,7 +275,7 @@ object LauncherApplication {
     ) {
       val version = Opts.optionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
-        DistributionManager.paths.tryCleaningTemporaryDirectory()
+        DistributionManager.tryCleaningTemporaryDirectory()
         version match {
           case Some(value) =>
             Launcher(config).installEngine(value)
@@ -358,7 +359,7 @@ object LauncherApplication {
       "unexpected files."
     ) {
       Opts.pure(()) map { (_: Unit) => (config: Config) =>
-        DistributionManager.paths.tryCleaningTemporaryDirectory()
+        DistributionManager.tryCleaningTemporaryDirectory()
         DistributionUninstaller.makeDefault(config).uninstall()
         0
       }
@@ -491,26 +492,51 @@ object LauncherApplication {
     }
   }
 
+  /**
+    * Application initializer that is run whenever an application command is
+    * run.
+    *
+    * It is run *after* top level options are handled.
+    */
+  private def initializeApp(): Unit = {
+    DefaultResourceManager.initializeMainLock()
+  }
+
+  private def addInitializer(
+    command: Command[Config => Int]
+  ): Command[Config => Int] = {
+    val augmentedOpts = command.opts.map {
+      originalFunction => (config: Config) =>
+        initializeApp()
+        originalFunction(config)
+    }
+    command.copy(opts = augmentedOpts)
+  }
+
+  val commands: NonEmptyList[Command[Config => Int]] = NonEmptyList
+    .of(
+      versionCommand,
+      helpCommand,
+      newCommand,
+      replCommand,
+      runCommand,
+      languageServerCommand,
+      defaultCommand,
+      installCommand,
+      uninstallCommand,
+      upgradeCommand,
+      listCommand,
+      configCommand
+    )
+    .map(addInitializer)
+
   val application: Application[Config] =
     Application(
       "enso",
       "Enso",
       "Enso Launcher",
       topLevelOpts,
-      NonEmptyList.of(
-        versionCommand,
-        helpCommand,
-        newCommand,
-        replCommand,
-        runCommand,
-        languageServerCommand,
-        defaultCommand,
-        installCommand,
-        uninstallCommand,
-        upgradeCommand,
-        listCommand,
-        configCommand
-      ),
+      commands,
       PluginManager
     )
 

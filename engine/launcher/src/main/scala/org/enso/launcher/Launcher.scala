@@ -164,6 +164,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def uninstallEngine(version: SemVer): Int = {
     componentsManager.uninstallEngine(version)
+    DistributionManager.tryCleaningUnusedLockfiles()
     0
   }
 

@@ -172,7 +172,7 @@ class ConcurrencyTest
             )
         )
 
-        distributionManager.paths.tryCleaningTemporaryDirectory()
+        distributionManager.tryCleaningTemporaryDirectory()
         componentsManager.findOrInstallEngine(engine1, complain = false)
       }
 
@@ -196,7 +196,7 @@ class ConcurrencyTest
           }
         )
 
-        distributionManager.paths.tryCleaningTemporaryDirectory()
+        distributionManager.tryCleaningTemporaryDirectory()
         componentsManager.findOrInstallEngine(engine2, complain = false)
       }
 
@@ -260,16 +260,68 @@ class ConcurrencyTest
         }
       }
 
-      sync.join(30)
+      sync.join()
       sync.summarizeReports() shouldEqual Seq(
         "installation-continues",
         "using-engine"
       )
     }
 
-    "synchronize uninstallation and usage" ignore {}
+    "synchronize uninstallation and usage" in {
 
-    "synchronize upgrades" ignore {}
+      /**
+        * The first thread starts using the engine, while in the meantime
+        * another thread starts uninstalling it. The second thread has to wait
+        * with uninstalling until the first one finishes using it.
+        */
+      val sync = new TestSynchronizer
+
+      val engineVersion = SemVer(0, 0, 1)
+
+      sync.startThread("t1") {
+        val componentsManager = makeComponentsManager(
+          releaseCallback = _ => (),
+          lockWaitsCallback = resource =>
+            throw new IllegalStateException(
+              s"t1 should not be waiting on $resource."
+            )
+        )
+
+        componentsManager.withEngine(engineVersion) { _ =>
+          sync.report("t1-start-using")
+          sync.signal("t1-start-using")
+          sync.waitFor("t2-waits-with-uninstall")
+          sync.report("t1-end-using")
+        }
+      }
+
+      sync.waitFor("t1-start-using")
+
+      sync.startThread("t2") {
+        val componentsManager = makeComponentsManager(
+          releaseCallback = asset =>
+            throw new IllegalStateException(s"t2 should not download $asset."),
+          lockWaitsCallback = {
+            case resource if resource.startsWith("engine") =>
+              sync.report("t2-start-uninstall-and-wait")
+              sync.signal("t2-waits-with-uninstall")
+            case resource =>
+              throw new IllegalStateException(s"Unexpected wait on $resource.")
+          }
+        )
+
+        componentsManager.uninstallEngine(engineVersion)
+        sync.report("t2-uninstalled")
+      }
+
+      sync.join()
+      sync.summarizeReports() shouldEqual Seq(
+        "t1-start-using",
+        "t2-start-uninstall-and-wait",
+        "t1-end-using",
+        "t2-uninstalled"
+      )
+    }
 
     "synchronize main lock" in {
 

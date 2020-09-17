@@ -13,7 +13,7 @@ class TestSynchronizer {
     *
     * Can be enabled to aid with debugging, but should be disabled by default.
     */
-  val enableDebugOutput: Boolean = true
+  val enableDebugOutput: Boolean = false
 
   def startThread(name: String)(action: => Unit): Unit = {
     val thread = new Thread(() => action, name)
@@ -40,7 +40,7 @@ class TestSynchronizer {
 
   def signal(event: String): Unit = {
     if (enableDebugOutput) {
-      System.err.println(s"$threadName signalizing $event.")
+      System.err.println(s"$threadName signalling $event.")
       System.err.flush()
     }
     getSemaphore(event).release()
