@@ -201,6 +201,7 @@ class DistributionUninstaller(
       FileSystem.removeFileIfExists(dataRoot / fileName)
     }
 
+    resourceManager.unlockTemporaryDirectory()
     resourceManager.releaseMainLock()
 
     if (!deferDataRootRemoval) {

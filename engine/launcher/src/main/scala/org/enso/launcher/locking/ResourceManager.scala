@@ -92,11 +92,22 @@ class ResourceManager(lockManager: LockManager) {
     }
   }
 
+  private var temporaryDirectoryLock: Option[Lock] = None
+
   def startUsingTemporaryDirectory(): Unit = {
-    lockManager.acquireLockWithWaitingAction(
+    val lock = lockManager.acquireLockWithWaitingAction(
       TemporaryDirectory.name,
       LockType.Shared,
       () => Logger.warn(TemporaryDirectory.waitMessage)
     )
+    temporaryDirectoryLock = Some(lock)
   }
+
+  def unlockTemporaryDirectory(): Unit =
+    temporaryDirectoryLock match {
+      case Some(lock) =>
+        lock.release()
+        temporaryDirectoryLock = None
+      case None =>
+    }
 }
