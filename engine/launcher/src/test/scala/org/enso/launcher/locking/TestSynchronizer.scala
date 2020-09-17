@@ -5,7 +5,14 @@ import java.util.concurrent.{Semaphore, TimeUnit}
 import org.scalatest.exceptions.TestFailedException
 
 class TestSynchronizer {
-  val enableDebugOutput: Boolean = true
+
+  /**
+    * If enabled, prints additional debug messages describing when events are
+    * signalled or waited for.
+    *
+    * Can be enabled to aid with debugging, but should be disabled by default.
+    */
+  val enableDebugOutput: Boolean = false
 
   def startThread(name: String)(action: => Unit): Unit =
     this.synchronized {
@@ -16,14 +23,14 @@ class TestSynchronizer {
     }
 
   def waitFor(event: String): Unit = {
-    System.err.println(s"Waitin $event")
+    if (enableDebugOutput) {
+      System.err.println(s"Waiting for $event.")
+      System.err.flush()
+    }
     val acquired =
       getSemaphore(event).tryAcquire(timeOutSeconds, TimeUnit.SECONDS)
     if (!acquired) {
-      System.err.println(s"timedout $event")
       throw new RuntimeException(s"waitFor($event) has timed out.")
-    } else {
-      System.err.println(s"$event happens")
     }
   }
 

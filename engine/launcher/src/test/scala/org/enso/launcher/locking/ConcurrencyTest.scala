@@ -17,6 +17,7 @@ import org.enso.launcher.{
   WithTemporaryDirectory
 }
 import org.enso.launcher.FileSystem.PathSyntax
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -26,7 +27,8 @@ class ConcurrencyTest
     extends AnyWordSpec
     with Matchers
     with WithTemporaryDirectory
-    with FakeEnvironment {
+    with FakeEnvironment
+    with BeforeAndAfterEach {
 
   case class WrapEngineRelease(
     originalRelease: EngineRelease,
@@ -46,13 +48,21 @@ class ConcurrencyTest
     }
   }
 
-  def makeComponentsManager(
+  var testLocalLockManager: Option[TestLocalLockManager] = None
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    testLocalLockManager = Some(new TestLocalLockManager)
+  }
+
+  def lockManager: LockManager = testLocalLockManager.get
+
+  def makeManagers(
     releaseCallback: String => Unit,
     lockWaitsCallback: String => Unit
-  ): ComponentsManager = {
+  ): (DistributionManager, ComponentsManager) = {
     val env = fakeInstalledEnvironment()
-
-    val resourceManager = new ResourceManager(TestLocalLockManager) {
+    val resourceManager = new ResourceManager(lockManager) {
       override def withResource[R](
         resource: Resource,
         lockType: LockType,
@@ -108,7 +118,7 @@ class ConcurrencyTest
       runtimeProvider
     )
 
-    componentsManager
+    (distributionManager, componentsManager)
   }
 
   "locks" should {
@@ -138,13 +148,9 @@ class ConcurrencyTest
       Files.createDirectories(tmpRoot)
       val garbage = tmpRoot / "garbage.txt"
       FileSystem.writeTextFile(garbage, "Garbage")
-      // we need to wait a short moment after creating the `tmp` directory as
-      // otherwise it may be busy and the cleaner won't try to clean it
-      Thread.sleep(1000) // does not work
-      // WHY?
 
       sync.startThread("t1") {
-        val componentsManager = makeComponentsManager(
+        val (distributionManager, componentsManager) = makeManagers(
           releaseCallback = { asset =>
             if (asset.startsWith("graalvm-")) {
               sync.signal("t1-downloads-runtime")
@@ -157,13 +163,14 @@ class ConcurrencyTest
             )
         )
 
+        distributionManager.paths.tryCleaningTemporaryDirectory()
         componentsManager.findOrInstallEngine(engine1, complain = false)
       }
 
       sync.waitFor("t1-downloads-runtime")
 
       sync.startThread("t2") {
-        val componentsManager = makeComponentsManager(
+        val (distributionManager, componentsManager) = makeManagers(
           releaseCallback = { asset =>
             if (asset.startsWith("graalvm-")) {
               throw new IllegalStateException(
@@ -180,6 +187,7 @@ class ConcurrencyTest
           }
         )
 
+        distributionManager.paths.tryCleaningTemporaryDirectory()
         componentsManager.findOrInstallEngine(engine2, complain = false)
       }
 

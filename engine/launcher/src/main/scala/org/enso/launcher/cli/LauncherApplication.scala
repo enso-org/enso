@@ -16,6 +16,7 @@ import org.enso.launcher.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
+  DistributionManager,
   DistributionUninstaller
 }
 
@@ -273,6 +274,7 @@ object LauncherApplication {
     ) {
       val version = Opts.optionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
+        DistributionManager.paths.tryCleaningTemporaryDirectory()
         version match {
           case Some(value) =>
             Launcher(config).installEngine(value)
@@ -356,6 +358,7 @@ object LauncherApplication {
       "unexpected files."
     ) {
       Opts.pure(()) map { (_: Unit) => (config: Config) =>
+        DistributionManager.paths.tryCleaningTemporaryDirectory()
         DistributionUninstaller.makeDefault(config).uninstall()
         0
       }

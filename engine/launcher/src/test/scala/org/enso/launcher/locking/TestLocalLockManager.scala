@@ -14,7 +14,7 @@ import java.util.concurrent.locks.{
   * for synchronizing multiple processes. It can be used to test concurrency
   * implementation using threads within the same JVM.
   */
-object TestLocalLockManager extends LockManager {
+class TestLocalLockManager extends LockManager {
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val lock   = getLock(resourceName, lockType)
     val locked = lock.tryLock(10, TimeUnit.SECONDS)
@@ -51,3 +51,5 @@ object TestLocalLockManager extends LockManager {
     }
   }
 }
+
+object TestLocalLockManager extends TestLocalLockManager

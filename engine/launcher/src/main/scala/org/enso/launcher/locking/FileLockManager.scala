@@ -7,8 +7,9 @@ import org.enso.launcher.installation.DistributionManager
 
 import scala.util.control.NonFatal
 
-class FileLockManager(distributionManager: DistributionManager)
-    extends LockManager {
+abstract class FileLockManager extends LockManager {
+  def distributionManager: DistributionManager
+
   // TODO [RW] may want to figure out when are the locks deleted, maybe add a
   //  cleanup method that tries to delete (and fails silently on locked files)
 
