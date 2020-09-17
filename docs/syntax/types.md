@@ -33,6 +33,7 @@ is a useful way of thinking about things when discussing type signatures.
   - [Behaviour of Type Signatures](#behaviour-of-type-signatures)
 - [Operations on Types](#operations-on-types)
 - [Type Definitions](#type-definitions)
+  - [Body Atom Definitions](#body-atom-definitions)
   - [Visibility and Access Modifiers](#visibility-and-access-modifiers)
 
 <!-- /MarkdownTOC -->
@@ -320,6 +321,28 @@ type Semigroup
 type Monoid
     this : Semigroup
     use Nothing
+```
+
+### Body Atom Definitions
+
+When defining an atom in the body of a type (as described above), there are two
+ways in which you can define an atom:
+
+1.  **Create a New Atom:** Using the `type` keyword inside the body of a type
+    will define a _new_ atom with the fields you specify. The syntax for doing
+    this is the same as that of a bare atom.
+
+```ruby
+type Just value
+```
+
+2.  **Include an Atom:** You can also use a type body to define methods on an
+    already existing atom. To do this, you can _include_ the atom in the type's
+    body by naming it explicitly. This will introduce it into the scope of your
+    type and define any methods you define in your type on the included atom.
+
+```ruby
+Nothing
 ```
 
 ### Visibility and Access Modifiers
