@@ -13,6 +13,7 @@ trait PluginManager {
     *
     * @param name name of the plugin
     * @param args arguments that should be passed to it
+    * @return exit code of the launched plugin
     */
   def runPlugin(name: String, args: Seq[String]): Int
 

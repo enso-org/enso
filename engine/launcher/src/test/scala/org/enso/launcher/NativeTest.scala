@@ -212,7 +212,6 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       )
       var line: String = null
       while ({ line = reader.readLine(); line != null }) {
-        System.out.println(">>> " + line)
         if (line.contains(message)) return
       }
       throw new RuntimeException("The requested line did not appear in stderr.")

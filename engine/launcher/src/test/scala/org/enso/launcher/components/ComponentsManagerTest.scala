@@ -37,7 +37,7 @@ class ComponentsManagerTest
   ): (DistributionManager, ComponentsManager, Environment) = {
     val env = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager =
-      new DistributionManager(env, TestLocalResourceManager)
+      new DistributionManager(env, TestLocalResourceManager.create())
     val fakeReleasesRoot =
       Path.of(
         getClass
@@ -60,7 +60,7 @@ class ComponentsManagerTest
         useJSON      = false
       ),
       distributionManager,
-      TestLocalResourceManager,
+      TestLocalResourceManager.create(),
       engineProvider,
       runtimeProvider
     )

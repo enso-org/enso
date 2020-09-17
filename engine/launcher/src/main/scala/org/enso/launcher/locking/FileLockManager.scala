@@ -5,11 +5,18 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import scala.util.control.NonFatal
 
+/**
+  * [[LockManager]] using file-based locks.
+  *
+  * This is the [[LockManager]] that should be used in production as it is able
+  * to synchronize locks between different processes.
+  */
 abstract class FileLockManager extends LockManager {
-  def locksRoot: Path
 
-  // TODO [RW] may want to figure out when are the locks deleted, maybe add a
-  //  cleanup method that tries to delete (and fails silently on locked files)
+  /**
+    * Specifies the directory in which lockfiles should be created.
+    */
+  def locksRoot: Path
 
   /**
     * @inheritdoc
@@ -67,8 +74,9 @@ abstract class FileLockManager extends LockManager {
     )
   }
 
-  private def lockChannel(channel: FileChannel, lockType: LockType): Lock =
+  private def lockChannel(channel: FileChannel, lockType: LockType): Lock = {
     WrapLock(channel.lock(0L, Long.MaxValue, isShared(lockType)), channel)
+  }
 
   private def tryLockChannel(
     channel: FileChannel,

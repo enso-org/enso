@@ -22,7 +22,10 @@ class DistributionManagerSpec
       }
 
       val distributionManager =
-        new DistributionManager(fakeEnvironment, TestLocalResourceManager)
+        new DistributionManager(
+          fakeEnvironment,
+          TestLocalResourceManager.create()
+        )
       distributionManager.isRunningPortable shouldEqual true
       distributionManager.paths.dataRoot shouldEqual getTestDirectory
       distributionManager.paths.config shouldEqual getTestDirectory / "config"
@@ -38,7 +41,10 @@ class DistributionManagerSpec
       }
 
       val distributionManager =
-        new DistributionManager(fakeEnvironment, TestLocalResourceManager)
+        new DistributionManager(
+          fakeEnvironment,
+          TestLocalResourceManager.create()
+        )
       distributionManager.isRunningPortable shouldEqual false
     }
 
@@ -51,7 +57,7 @@ class DistributionManagerSpec
       val distributionManager =
         new DistributionManager(
           fakeInstalledEnvironment(),
-          TestLocalResourceManager
+          TestLocalResourceManager.create()
         )
       distributionManager.paths.dataRoot shouldEqual dataDir
       distributionManager.paths.config shouldEqual configDir

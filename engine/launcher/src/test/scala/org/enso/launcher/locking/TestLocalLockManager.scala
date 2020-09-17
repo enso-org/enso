@@ -13,8 +13,16 @@ import java.util.concurrent.locks.{
   * The locks are not visible by other processes, so this manager is not useful
   * for synchronizing multiple processes. It can be used to test concurrency
   * implementation using threads within the same JVM.
+  *
+  * Normally [[acquireLock]] would wait forever until the lock can be acquired
+  * or the thread is interrupted. To aid with testing, this implementation times
+  * out after 30 seconds.
   */
 class TestLocalLockManager extends LockManager {
+
+  /**
+    * @inheritdoc
+    */
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val lock   = getLock(resourceName, lockType)
     val locked = lock.tryLock(30, TimeUnit.SECONDS)
@@ -26,6 +34,9 @@ class TestLocalLockManager extends LockManager {
     WrapLock(lock)
   }
 
+  /**
+    * @inheritdoc
+    */
   override def tryAcquireLock(
     resourceName: String,
     lockType: LockType
@@ -51,5 +62,3 @@ class TestLocalLockManager extends LockManager {
     }
   }
 }
-
-object TestLocalLockManager extends TestLocalLockManager

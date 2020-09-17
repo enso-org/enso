@@ -55,8 +55,21 @@ class ConcurrencyTest
     testLocalLockManager = Some(new TestLocalLockManager)
   }
 
+  /**
+    * A separate [[LockManager]] for each test case.
+    * @return
+    */
   def lockManager: LockManager = testLocalLockManager.get
 
+  /**
+    * Creates a [[DistributionManager]] and [[ComponentsManager]] that can be
+    * used in a test.
+    *
+    * @param releaseCallback called when a release asset is fetched
+    * @param lockWaitsCallback called when a lock with the given name is not
+    *                          acquired immediately
+    * @return a tuple of [[DistributionManager]] and [[ComponentsManager]]
+    */
   def makeManagers(
     releaseCallback: String => Unit,
     lockWaitsCallback: String => Unit
@@ -121,6 +134,10 @@ class ConcurrencyTest
     (distributionManager, componentsManager)
   }
 
+  /**
+    * Helper function, acts as [[makeManagers]] but returns only the
+    * [[ComponentsManager]].
+    */
   def makeComponentsManager(
     releaseCallback: String => Unit,
     lockWaitsCallback: String => Unit
@@ -336,7 +353,7 @@ class ConcurrencyTest
         */
       val sync = new TestSynchronizer
       sync.startThread("t1") {
-        val resourceManager = new ResourceManager(TestLocalLockManager)
+        val resourceManager = TestLocalResourceManager.create()
         resourceManager.initializeMainLock()
         sync.report("shared-start")
         sync.signal("started-1")
@@ -346,7 +363,7 @@ class ConcurrencyTest
       }
 
       sync.startThread("t2") {
-        val resourceManager = new ResourceManager(TestLocalLockManager)
+        val resourceManager = TestLocalResourceManager.create()
         resourceManager.initializeMainLock()
         sync.report("shared-start")
         sync.signal("started-2")
@@ -359,7 +376,7 @@ class ConcurrencyTest
       sync.waitFor("started-2")
 
       sync.startThread("t3") {
-        val resourceManager = new ResourceManager(TestLocalLockManager)
+        val resourceManager = TestLocalResourceManager.create()
         resourceManager.initializeMainLock()
         sync.report("t3-start")
         resourceManager.acquireExclusiveMainLock(() => {

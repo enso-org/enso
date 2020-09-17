@@ -18,7 +18,7 @@ class GlobalConfigurationManagerSpec
   def makeConfigManager(): GlobalConfigurationManager = {
     val env = fakeInstalledEnvironment()
     val distributionManager =
-      new DistributionManager(env, TestLocalResourceManager)
+      new DistributionManager(env, TestLocalResourceManager.create())
     new GlobalConfigurationManager(null, distributionManager) {
       override def defaultVersion: SemVer = SemVer(0, 0, 0)
     }

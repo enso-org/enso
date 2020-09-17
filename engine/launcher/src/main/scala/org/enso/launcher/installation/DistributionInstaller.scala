@@ -413,6 +413,9 @@ class DistributionInstaller(
 
 object DistributionInstaller {
 
+  /**
+    * Creates a [[DistributionInstaller]] using the default managers.
+    */
   def makeDefault(
     globalCLIOptions: GlobalCLIOptions,
     removeOldLauncher: Boolean,

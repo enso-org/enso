@@ -116,13 +116,10 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
     */
   private def maybeWaitForAsset(): Unit = {
     val name = "testasset-" + fileName
-    System.err.println(
-      s"!!! Maybe waiting on $name at ${DefaultFileLockManager.locksRoot.toAbsolutePath.normalize()}."
-    )
     val lock = DefaultFileLockManager.acquireLockWithWaitingAction(
       name,
       LockType.Shared,
-      waiting = () => {
+      waitingAction = () => {
         System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
       }
     )

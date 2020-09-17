@@ -16,7 +16,7 @@ class ProjectManagerSpec
   def makeProjectManager(): (GlobalConfigurationManager, ProjectManager) = {
     val env = fakeInstalledEnvironment()
     val distributionManager =
-      new DistributionManager(env, TestLocalResourceManager)
+      new DistributionManager(env, TestLocalResourceManager.create())
     val fakeConfigurationManager =
       new GlobalConfigurationManager(null, distributionManager) {
         override def defaultVersion: SemVer = defaultEnsoVersion

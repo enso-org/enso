@@ -340,6 +340,11 @@ class DistributionUninstaller(
 }
 
 object DistributionUninstaller {
+
+  /**
+    * Creates a default [[DistributionUninstaller]] using the default managers
+    * and the provided CLI options.
+    */
   def makeDefault(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =
     new DistributionUninstaller(
       DistributionManager,
