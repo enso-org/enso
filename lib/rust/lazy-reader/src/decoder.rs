@@ -139,8 +139,10 @@ impl Decoder for DecoderUTF32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use itertools::Itertools;
 
+    extern crate test;
+    use itertools::Itertools;
+    use test::Bencher;
 
 
     #[test]
@@ -181,5 +183,35 @@ mod tests {
             buf = &buf[char.size..];
         }
         assert_eq!(str, string);
+    }
+
+    /// Benchmark utf8 decoder on 1MB of data.
+    #[bench]
+    fn bench_utf8(bencher:&mut Bencher) {
+        bencher.iter(|| {
+            let string  = "a.b^c! #𤭢界んにち𤭢#𤭢".as_bytes();
+            for _ in 0..30_000 {
+                let mut buf = &string[..];
+                while !buf.is_empty() {
+                    let char = DecoderUTF8::decode(&buf);
+                    buf = &buf[char.size..];
+                }
+            }
+        });
+    }
+
+    /// Benchmark utf16 decoder on 1MB of data.
+    #[bench]
+    fn bench_utf16(bencher:&mut Bencher) {
+        bencher.iter(|| {
+            let string  = "a.b^c! #𤭢界んにち𤭢#𤭢".encode_utf16().collect_vec();
+            for _ in 0..30_000 {
+                let mut buf = &string[..];
+                while !buf.is_empty() {
+                    let char = DecoderUTF16::decode(&buf);
+                    buf = &buf[char.size..];
+                }
+            }
+        });
     }
 }

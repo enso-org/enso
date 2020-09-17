@@ -5,8 +5,9 @@
 use jni::JNIEnv;
 use jni::objects::*;
 
-pub use stdlib::StdLib;
+use itertools::Itertools;
 
+pub use stdlib::StdLib;
 
 
 // =====================
@@ -117,6 +118,12 @@ impl<'a> ToJValue<'a> for &[i32] {
         let array = lib.env.new_int_array(self.len() as i32).unwrap();
         lib.env.set_int_array_region(array, 0, self).unwrap();
         array.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for &[u32] {
+    fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
+        self.iter().map(|&i|i64::from(i)).collect_vec()[..].jvalue(lib)
     }
 }
 
@@ -241,7 +248,7 @@ mod stdlib {
                "Lscala/None$;",
             ).unwrap().l().unwrap();
             let some = Object::new(env, "scala/Some", "(Ljava/lang/Object;)V");
-            Self{none, some}
+            Self{none,some}
         }
     }
 

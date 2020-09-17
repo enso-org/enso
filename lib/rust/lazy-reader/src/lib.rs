@@ -12,10 +12,9 @@
 
 pub mod decoder;
 
-use enso_prelude::*;
-
 use decoder::Decoder;
-use crate::decoder::{Char, InvalidChar};
+use crate::decoder::Char;
+use crate::decoder::InvalidChar;
 use crate::Error::EOF;
 
 
@@ -398,7 +397,7 @@ impl BookmarkManager {
 
     /// Obtains the minimum offset from the start of the buffer for any bookmark.
     pub fn min_offset(&self) -> Option<usize> {
-        self.bookmarks.iter().filter_map(|b| b.set.and_option(Some(b.offset))).min()
+        self.bookmarks.iter().filter_map(|b| if b.set {Some(b.offset)} else {None}).min()
     }
 }
 
@@ -550,7 +549,7 @@ mod tests {
     fn bench_reader(bencher:&mut Bencher) {
         let run = || {
             let mut mgr    = bookmark_manager();
-            let     str    = repeat("Hello, World!".as_bytes().to_vec(), 10_000_000);
+            let     str    = repeat("Hello, World!".as_bytes().to_vec(), 1_000_000);
             let mut reader = Reader::new(str, DecoderUTF8());
             let mut count  = 0;
             while reader.next_char(&mut mgr) != Err(Error::EOF) {

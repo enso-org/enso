@@ -24,6 +24,7 @@ bench      = true
 [dependencies]
 uuid           = { version = "0.8.1" , features = ["serde","v4","wasm-bindgen"] }
 jni            = { version = "0.17.0"                                           }
+itertools      = { version = "0.9.0"                                            }
 
 [build-dependencies]
 ast-generation = { version = "0.1.0" , path = "../generation" }
