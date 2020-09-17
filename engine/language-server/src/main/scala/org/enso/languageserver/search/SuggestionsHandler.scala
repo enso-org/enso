@@ -156,7 +156,7 @@ final class SuggestionsHandler(
             log.error(
               ex,
               "Error applying suggestion database updates: {}",
-              msg.updates
+              msg.updates.map(_.file)
             )
         }
 

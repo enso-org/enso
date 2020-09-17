@@ -143,7 +143,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       suggestions <- joined.result.map(joinedToSuggestionEntries)
       version     <- currentVersionQuery
     } yield (version, suggestions)
-    query.transactionally
+    query
   }
 
   /** The query to get the suggestions by the method call info.
@@ -210,7 +210,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       results <- searchAction
       version <- currentVersionQuery
     } yield (version, results)
-    query.transactionally
+    query
   }
 
   /** The query to select the suggestion by id.
@@ -240,7 +240,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         }
       _ <- incrementVersionQuery
     } yield id
-    query.transactionally.asTry.map {
+    query.asTry.map {
       case Failure(_)  => None
       case Success(id) => Some(id)
     }
@@ -258,7 +258,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       ids     <- DBIO.sequence(suggestions.map(insertQuery))
       version <- currentVersionQuery
     } yield (version, ids)
-    query.transactionally
+    query
   }
 
   /** The query to remove the suggestion.
@@ -280,7 +280,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       n    <- selectQuery.delete
       _    <- if (n > 0) incrementVersionQuery else DBIO.successful(())
     } yield rows.flatMap(_.id).headOption
-    deleteQuery.transactionally
+    deleteQuery
   }
 
   /** The query to remove the suggestions by module name
@@ -295,7 +295,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       n       <- selectQuery.delete
       version <- if (n > 0) incrementVersionQuery else currentVersionQuery
     } yield version -> rows.flatMap(_.id)
-    deleteQuery.transactionally
+    deleteQuery
   }
 
   /** The query to remove all suggestions by module name.
@@ -312,7 +312,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       n       <- selectQuery.delete
       version <- if (n > 0) incrementVersionQuery else currentVersionQuery
     } yield version -> rows.flatMap(_.id)
-    deleteQuery.transactionally
+    deleteQuery
   }
 
   /** The query to remove a list of suggestions.
@@ -327,7 +327,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       ids     <- DBIO.sequence(suggestions.map(removeQuery))
       version <- currentVersionQuery
     } yield (version, ids)
-    query.transactionally
+    query
   }
 
   /** The query to update a suggestion.
@@ -365,7 +365,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         if (ids.exists(_.nonEmpty)) incrementVersionQuery
         else currentVersionQuery
     } yield (version, ids)
-    query.transactionally
+    query
   }
 
   /** The query to update the project name.
