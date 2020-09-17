@@ -20,6 +20,19 @@ pub use suggestion::Suggestion;
 
 
 
+// ==============
+// === Errors ===
+// ==============
+
+
+#[allow(missing_docs)]
+#[fail(display = "No such suggestion with index {}.", index)]
+#[derive(Copy,Clone,Debug,Fail)]
+pub struct NoSuchSuggestion{
+    index : usize,
+}
+
+
 // =====================
 // === Notifications ===
 // =====================
@@ -378,7 +391,7 @@ impl Searcher {
         let def_id     = graph.graph().id;
         let def_span   = double_representation::module::definition_span(&module_ast,&def_id)?;
         let position   = TextLocation::convert_span(module_ast.repr(),&def_span).end;
-        let this_arg   = Rc::new(ThisNode::new(selected_nodes,&graph.graph()));
+        let this_arg   = Rc::new(matches!(mode, Mode::NewNode{..}).and_option_from(|| ThisNode::new(selected_nodes,&graph.graph())));
         let ret        = Self {
             logger,graph,this_arg,
             data             : Rc::new(RefCell::new(data)),
@@ -409,7 +422,7 @@ impl Searcher {
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new suggestion list (the aprriopriate notification will be emitted).
     pub fn set_input(&self, new_input:String) -> FallibleResult<()> {
-        debug!(self.logger, "Manually setting input to {new_input}");
+        debug!(self.logger, "Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input,&self.parser)?;
         let old_expr     = self.data.borrow().input.expression.repr();
         let new_expr     = parsed_input.expression.repr();
@@ -417,8 +430,10 @@ impl Searcher {
         self.data.borrow_mut().input = parsed_input;
         self.invalidate_fragments_added_by_picking();
         if old_expr != new_expr {
-            self.reload_list()
+            debug!(self.logger, "Reloading list.");
+            self.reload_list();
         } else if let Suggestions::Loaded {list} = self.data.borrow().suggestions.clone_ref() {
+            debug!(self.logger, "Update filtering.");
             list.update_filtering(&self.data.borrow().input.pattern);
             executor::global::spawn(self.notifier.publish(Notification::NewSuggestionList));
         }
@@ -449,6 +464,7 @@ impl Searcher {
     /// function.
     pub fn pick_completion
     (&self, picked_suggestion:suggestion::Completion) -> FallibleResult<String> {
+        info!(self.logger, "Picking suggestion: {picked_suggestion:?}");
         let id                = self.data.borrow().input.next_completion_id();
         let code_to_insert    = self.code_to_insert(&picked_suggestion,id);
         let added_ast         = self.parser.parse_line(&code_to_insert)?;
@@ -461,7 +477,7 @@ impl Searcher {
             },
             Some(mut expression) => {
                 let new_argument = ast::prefix::Argument {
-                    sast      : ast::Shifted::new(pattern_offset,added_ast),
+                    sast      : ast::Shifted::new(pattern_offset.max(1),added_ast),
                     prefix_id : default(),
                 };
                 expression.args.push(new_argument);
@@ -478,6 +494,19 @@ impl Searcher {
         self.data.borrow_mut().fragments_added_by_picking.push(picked_completion);
         self.reload_list();
         Ok(new_input)
+    }
+
+    /// Pick a completion suggestion by index.
+    pub fn pick_completion_by_index(&self, index:usize) -> FallibleResult<String> {
+        let error      = || NoSuchSuggestion{index};
+        let suggestion = {
+            let data = self.data.borrow();
+            let list = data.suggestions.list().ok_or_else(error)?;
+            list.get_cloned(index).ok_or_else(error)?.suggestion
+        };
+        match suggestion {
+            Suggestion::Completion(completion) => self.pick_completion(completion)
+        }
     }
 
     /// Check if the first fragment in the input (i.e. the one representing the called function)
@@ -543,10 +572,12 @@ impl Searcher {
         let fragments     = data_borrowed.fragments_added_by_picking.iter();
         let imports       = fragments.map(|frag| &frag.picked_suggestion.module);
         let mut module    = self.module();
+        let here          = self.module_qualified_name();
         for import in imports {
-            let import        = ImportInfo::from_qualified_name(&import);
-            let already_there = module.iter_imports().any(|imp| imp == import);
-            if !already_there {
+            let is_here          = *import == here;
+            let import           = ImportInfo::from_qualified_name(&import);
+            let already_imported = module.iter_imports().any(|imp| imp == import);
+            if !is_here && !already_imported {
                 module.add_import(&self.parser,import);
             }
         }
@@ -566,6 +597,7 @@ impl Searcher {
         };
         self.get_suggestion_list_from_engine(this_type,return_types,None);
         self.data.borrow_mut().suggestions = Suggestions::Loading;
+        executor::global::spawn(self.notifier.publish(Notification::NewSuggestionList));
     }
 
     /// Get the typename of "this" value for current completion context. Returns `Future`, as the
@@ -619,7 +651,7 @@ impl Searcher {
             let this_type = this_type.await;
             info!(this.logger,"Requesting new suggestion list. Type of `this` is {this_type:?}.");
             let requests  = return_types.into_iter().map(|return_type| {
-                info!(this.logger, "Requesting suggestions for returnType {return_type:?}");
+                info!(this.logger, "Requesting suggestions for returnType {return_type:?}.");
                 let file = graph.module.path().file_path();
                 ls.completion(file,&position,&this_type,&return_type,&tags)
             });
@@ -646,7 +678,7 @@ impl Searcher {
                     .map(Suggestion::Completion)
                     .handle_err(|e| {
                         error!(self.logger,"Response provided a suggestion ID that cannot be \
-                        resolved: {e}")
+                        resolved: {e}.")
                     })
             });
             suggestions.extend(entries);
@@ -1087,7 +1119,7 @@ pub mod test {
                 for _ in 0..EXPECTED_REQUESTS {
                     let requested_types = requested_types2.clone();
                     client.expect.completion(move |_path,_position,_self_type,return_type,_tags| {
-                        iprintln!("Requested {return_type:?}");
+                        iprintln!("Requested {return_type:?}.");
                         requested_types.borrow_mut().insert(return_type.clone());
                         Ok(completion_response(&[]))
                     });

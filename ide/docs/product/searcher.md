@@ -17,8 +17,6 @@ The Searcher Panel can be brought to the screen in two different ways:
   one node selected, the connection is displayed between the selected node
   and the Searcher input.
 
-TODO: Add more description when visual part will be implemented.
-
 ### Suggestion of Node Expressions
 
 The suggestion list is obtained from the Engine using `search/completion` method

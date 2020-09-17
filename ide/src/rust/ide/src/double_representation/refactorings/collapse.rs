@@ -402,6 +402,7 @@ mod tests {
         }
     }
 
+    #[allow(unused_parens)] // False warning.
     #[wasm_bindgen_test]
     fn test_collapse() {
         let parser          = Parser::new_or_panic();

@@ -11,9 +11,12 @@ tags: [product,ui]
 #### Node Editing
 | Shortcut | Action |
 | -------- | ------ |
-| <kbd>Ctrl</kbd>+<kbd>n</kbd> | Creates an empty node. |
+| <kbd>Shift</kbd>+<kbd>Tab</kbd> | Show searcher for adding new node. |
 | <kbd>Ctrl</kbd>+<kbd>Backspace</kbd> | Removes the selected nodes. |
 | <kbd>Ctrl</kbd>+<kbd>g</kbd> | Collapses the selected nodes. |
+| <kbd>Ctrl</kbd>+<kbd>LMB</kbd> | Start editing node expression. |
+| <kbd>Enter</kbd> when suggestion is selected, or <kbd>LMB</kbd> on suggestion | Pick selected suggestion and commit editing. |
+| <kbd>Enter</kbd> *when suggestion is not selected* | Commit editing with the current input. |
 
 #### Navigation
 
@@ -30,9 +33,6 @@ tags: [product,ui]
 | <kbd>LMB</kbd> click node name                                        | Deselect all nodes. Select the target node. |
 | <kbd>LMB</kbd> click background                                       | Deselect all nodes. |
 | <kbd>LMB</kbd> drag background                                        | Deselect all nodes. Select nodes using selection-box. |
-| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>LMB</kbd> click node name     | Add or remove node from the selection group. |
-| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>LMB</kbd> click node name     | Add or remove node from the selection group. |
-| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>LMB</kbd> drag background     | Add nodes to the selection group. |
 | <kbd>shift</kbd> + <kbd>LMB</kbd> click node name                     | Add node to the selection group. |
 | <kbd>shift</kbd> + <kbd>LMB</kbd> drag background                     | Add nodes to the selection group. |
 | <kbd>option</kbd> + <kbd>LMB</kbd> click node name                    | Remove node from the selection group. |

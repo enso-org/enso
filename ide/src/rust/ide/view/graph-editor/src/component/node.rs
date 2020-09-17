@@ -33,6 +33,10 @@ use crate::Type;
 
 pub const NODE_SHAPE_PADDING : f32 = 40.0;
 pub const NODE_SHAPE_RADIUS  : f32 = 14.0;
+pub const CORNER_RADIUS      : f32 = 14.0;
+pub const NODE_HEIGHT        : f32 = 28.0;
+pub const TEXT_OFF           : f32 = 10.0;
+pub const SHADOW_SIZE        : f32 = 10.0;
 
 
 
@@ -179,11 +183,6 @@ pub struct NodeModel {
     pub visualization  : visualization::Container,
     pub output_ports   : OutputPorts,
 }
-
-pub const CORNER_RADIUS : f32 = 14.0;
-pub const NODE_HEIGHT   : f32 = 28.0;
-pub const TEXT_OFF      : f32 = 10.0;
-pub const SHADOW_SIZE   : f32 = 10.0;
 
 
 impl NodeModel {

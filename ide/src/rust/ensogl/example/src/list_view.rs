@@ -98,8 +98,8 @@ fn init(app:&Application) {
 
     let mut dark = theme::Theme::new();
     dark.insert("application.background.color", color::Lcha::new(0.13,0.013,0.18,1.0));
-    dark.insert("select.background.color", color::Lcha::new(0.2,0.013,0.18,1.0));
-    dark.insert("select.selection.color", color::Lcha::new(0.72,0.5,0.22,1.0));
+    dark.insert("widget.select.background.color", color::Lcha::new(0.2,0.013,0.18,1.0));
+    dark.insert("widget.select.highlight.color", color::Lcha::new(0.72,0.5,0.22,1.0));
     dark.insert("animation.duration", 0.5);
     dark.insert("mouse.pointer.color", color::Rgba::new(0.3,0.3,0.3,1.0));
 
