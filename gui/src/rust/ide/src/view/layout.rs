@@ -7,9 +7,7 @@ use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 use crate::view::text_editor::TextEditor;
 use crate::view::node_editor::NodeEditor;
-use crate::view::node_searcher::NodeSearcher;
 
-use enso_callback as callback;
 use enso_frp as frp;
 use frp::io::keyboard;
 use ensogl::application::Application;
@@ -36,10 +34,8 @@ pub struct ViewLayoutData {
     mouse_position_sampler    : frp::Sampler<Vector2<f32>>,
     text_editor               : TextEditor,
     node_editor               : NodeEditor,
-    node_searcher             : NodeSearcher,
     size                      : Vector2<f32>,
     logger                    : Logger,
-    node_searcher_show_action : Option<callback::Handle>
 }
 
 impl {
@@ -58,7 +54,6 @@ impl ViewLayoutData {
 
     fn recalculate_layout(&mut self) {
         self.update_text_editor();
-        self.update_node_searcher();
     }
 
     fn update_text_editor(&mut self) {
@@ -74,12 +69,6 @@ impl ViewLayoutData {
         self.text_editor.set_padding(padding);
         self.text_editor.set_size(size);
         TemporaryPanel::set_position(&mut self.text_editor,position);
-    }
-
-    fn update_node_searcher(&mut self) {
-        let screen_size = self.size;
-        let position    = Vector3::new(screen_size.x*2.0/3.0, screen_size.y - 10.0, 0.0);
-        self.node_searcher.set_position(position);
     }
 }
 
@@ -106,20 +95,16 @@ impl ViewLayout {
         let node_editor   = NodeEditor::new
             (&logger,application,graph_controller,project.clone_ref(),visualization_controller);
         let node_editor   = node_editor.await?;
-        let node_searcher = NodeSearcher::new
-            (scene,&logger,node_editor.clone_ref(),fonts,focus_manager,project);
         world.add_child(&node_editor);
         world.add_child(&text_editor.display_object());
-        world.add_child(&node_searcher);
         let size  = zero();
         let scene = world.scene();
         let mouse = &scene.mouse.frp;
         frp::new_network! { network def mouse_position_sampler = mouse.position.sampler(); }
-        let node_searcher_show_action = None;
-        let data = ViewLayoutData{network,text_editor,node_editor,node_searcher,size,logger,
-            node_searcher_show_action,mouse_position_sampler};
+        let data = ViewLayoutData{network,text_editor,node_editor,size,logger,
+            mouse_position_sampler};
         let rc = Rc::new(RefCell::new(data));
-        Ok(Self {rc}.init(world,kb_actions))
+        Ok(Self {rc}.init(world))
     }
 
     // Note [ViewLayout::new]
@@ -131,27 +116,10 @@ impl ViewLayout {
     // Once it it resolved, the method signature should be simplified. For now we use impl Into<...>
     // syntax as a workaround to avoid triggering the bug.
 
-    fn init_keyboard(self, keyboard_actions:&mut keyboard::Actions) -> Self {
-        // TODO[ao] add here some useful stuff (quitting project for example)
-        let layout                    = self.rc.clone_ref();
-        let keys                      = &[keyboard::Key::Tab];
-        let node_searcher_show_action = keyboard_actions.add_action(keys, move || {
-            let mut layout             = layout.borrow_mut();
-            let position               = *layout.mouse_position_sampler.value();
-            //TODO[dg]: Test it when graph scene panning is working.
-            let node_searcher_position = Vector3::new(position.x,position.y,0.0);
-            layout.node_searcher.hide();
-            layout.node_searcher.set_position(node_searcher_position);
-            layout.node_searcher.show();
-        });
-        self.rc.borrow_mut().node_searcher_show_action = Some(node_searcher_show_action);
-        self
-    }
-
-    fn init(self, world:&World, keyboard_actions:&mut keyboard::Actions) -> Self {
+    fn init(self, world:&World) -> Self {
         let screen = world.scene().camera().screen();
         let size   = Vector2::new(screen.width,screen.height);
         self.set_size(size);
-        self.init_keyboard(keyboard_actions)
+        self
     }
 }

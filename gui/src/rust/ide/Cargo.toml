@@ -11,6 +11,8 @@ crate-type = ["cdylib", "rlib"]
 enso-callback            = { version = "0.1.0"  , path = "../lib/callback"             }
 ensogl                   = { version = "0.1.0"  , path = "../ensogl"                   }
 ensogl-examples          = { version = "0.1.0"  , path = "../ensogl/example"           }
+ensogl-gui-list-view     = { version = "0.1.0"  , path = "../ensogl/lib/list-view"     }
+ensogl-text              = { version = "0.1.0"  , path = "../ensogl/lib/text"          }
 ensogl-text-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/lib/text/msdf-sys" }
 ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"           }
 fuzzly                   = { version = "0.1.0"  , path = "../lib/fuzzly"               }

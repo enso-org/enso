@@ -421,6 +421,18 @@ impl Text {
 // === Into Location ===
 
 impl Text {
+    /// The location of text end.
+    pub fn location_of_text_end(&self) -> Location {
+        let lines_count = self.lines(self.byte_range()).count();
+        if lines_count == 0 {
+            default()
+        } else {
+            let line   = ((lines_count - 1) as i32).line();
+            let column = self.line_end_column(line).unwrap();
+            Location(line,column)
+        }
+    }
+
     /// The location of the provided byte offset.
     pub fn location_of_byte_offset(&self, offset:Bytes) -> Result<Location,BoundsError> {
         let line        = self.line_index_of_byte_offset(offset)?;

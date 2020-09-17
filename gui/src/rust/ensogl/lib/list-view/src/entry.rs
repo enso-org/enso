@@ -14,15 +14,15 @@ use enabled::Logger;
 // =================
 
 /// Padding inside entry in pixels.
-pub const PADDING:f32 = 2.0;
+pub const PADDING:f32 = 7.0;
 /// The overall entry's height (including padding).
-pub const HEIGHT:f32 = 20.0;
+pub const HEIGHT:f32 = 30.0;
 /// The text size of entry's labe.
 pub const LABEL_SIZE:f32 = 12.0;
 /// The size in pixels of icons inside entries.
-pub const ICON_SIZE:f32 = 16.0;
+pub const ICON_SIZE:f32 = 0.0; // TODO[ao] restore when created some icons for searcher.
 /// The gap between icon and label.
-pub const ICON_LABEL_GAP:f32 = 2.0;
+pub const ICON_LABEL_GAP:f32 = 7.0;
 
 
 
@@ -235,7 +235,11 @@ impl List {
 
     /// Y range of all entries in this list, including not displayed.
     pub fn y_range_of_all_entries(entry_count:usize) -> Range<f32> {
-        let start = Self::position_y_of_entry(entry_count - 1) - HEIGHT / 2.0;
+        let start = if entry_count > 0 {
+            Self::position_y_of_entry(entry_count - 1) - HEIGHT / 2.0
+        } else {
+            HEIGHT / 2.0
+        };
         let end   = HEIGHT / 2.0;
         start..end
     }
@@ -254,17 +258,12 @@ impl List {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
             debug!(self.logger, "Update entries for {range:?}");
-            let create_new_entry = || {
-                let entry = Entry::new(&self.logger,&self.app);
-                self.add_child(&entry);
-                entry
-            };
             let provider = self.provider.get();
             let current_entries:HashSet<Id> = with(self.entries.borrow_mut(), |mut entries| {
-                entries.resize_with(range.len(),create_new_entry);
+                entries.resize_with(range.len(),|| self.create_new_entry());
                 entries.iter().filter_map(|entry| entry.id.get()).collect()
             });
-            let missing     = range.clone().filter(|id| !current_entries.contains(id));
+            let missing = range.clone().filter(|id| !current_entries.contains(id));
             // The provider is provided by user, so we should not keep any borrow when calling its
             // methods.
             let models = missing.map(|id| (id,provider.get(id)));
@@ -272,16 +271,7 @@ impl List {
                 let is_outdated = |e:&Entry| e.id.get().map_or(true, |i| !range.contains(&i));
                 let outdated    = entries.iter().filter(|e| is_outdated(e));
                 for (entry,(id,model)) in outdated.zip(models) {
-                    debug!(self.logger, "Setting new model {model:?} for entry {id}; \
-                        old entry: {entry.id.get():?}");
-                    match model {
-                        Some(model) => entry.set_model(id,&model),
-                        None        => {
-                            error!(self.logger, "Model provider didn't return model for id {id}");
-                            entry.set_model(id,&default())
-                        }
-                    };
-                    entry.set_position_y(Self::position_y_of_entry(id));
+                    Self::update_entry(&self.logger,entry,id,&model);
                 }
             });
             self.entries_range.set(range);
@@ -290,7 +280,7 @@ impl List {
 
     /// Update displayed entries, giving new provider.
     pub fn update_entries_new_provider
-    (&self, provider:impl Into<AnyModelProvider> + 'static, range:Range<Id>) {
+    (&self, provider:impl Into<AnyModelProvider> + 'static, mut range:Range<Id>) {
         const MAX_SAFE_ENTRIES_COUNT:usize = 1000;
         let provider = provider.into();
         if provider.entry_count() > MAX_SAFE_ENTRIES_COUNT {
@@ -298,8 +288,34 @@ impl List {
             number of entries can cause visual glitches, e.g. https://github.com/enso-org/ide/\
             issues/757 or https://github.com/enso-org/ide/issues/758");
         }
+        range.end       = range.end.min(provider.entry_count());
+        let models      = range.clone().map(|id| (id,provider.get(id)));
+        let mut entries = self.entries.borrow_mut();
+        entries.resize_with(range.len(),|| self.create_new_entry());
+        for (entry,(id,model)) in entries.iter().zip(models) {
+            Self::update_entry(&self.logger,entry,id,&model);
+        }
+        self.entries_range.set(range);
         self.provider.set(provider);
-        self.update_entries(range)
+    }
+
+    fn create_new_entry(&self) -> Entry {
+        let entry = Entry::new(&self.logger,&self.app);
+        self.add_child(&entry);
+        entry
+    }
+
+    fn update_entry(logger:impl AnyLogger, entry:&Entry, id:Id, model:&Option<Model>) {
+        debug!(logger, "Setting new model {model:?} for entry {id}; \
+                        old entry: {entry.id.get():?}.");
+        match model {
+            Some(model) => entry.set_model(id,&model),
+            None        => {
+                error!(logger, "Model provider didn't return model for id {id}.");
+                entry.set_model(id,&default())
+            }
+        };
+        entry.set_position_y(Self::position_y_of_entry(id));
     }
 }
 

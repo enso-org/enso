@@ -3,22 +3,32 @@
 use crate::prelude::*;
 
 use crate::documentation;
-use crate::graph_editor::GraphEditor;
+use crate::graph_editor::component::node;
+use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
+use crate::graph_editor::GraphEditor;
+use crate::graph_editor::NodeId;
+use crate::searcher;
 
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
 use ensogl::application::shortcut;
 use ensogl::display;
-use ensogl::display::shape::*;
+use ensogl_gui_list_view as list_view;
+use ensogl::gui::component::Animation;
 
+
+// =============
+// === Model ===
+// =============
 
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
     logger         : Logger,
     display_object : display::object::Instance,
     graph_editor   : GraphEditor,
+    searcher       : searcher::View,
     documentation  : documentation::View,
     //TODO[ao] This view should contain also Text Editor; it should be moved here during refactoring
     // planned in task https://github.com/enso-org/ide/issues/597
@@ -30,11 +40,14 @@ impl Model {
         let logger         = Logger::new("project::View");
         let display_object = display::object::Instance::new(&logger);
         let graph_editor   = app.new_view::<GraphEditor>();
+        let searcher       = app.new_view::<searcher::View>();
         let documentation  = documentation::View::new(&scene);
         display_object.add_child(&graph_editor);
+        display_object.add_child(&searcher);
+        display_object.remove_child(&searcher);
         display_object.add_child(&documentation);
         display_object.remove_child(&documentation);
-        Self{logger,display_object,graph_editor,documentation}
+        Self{logger,display_object,graph_editor,searcher,documentation}
     }
 
     fn set_documentation_visibility(&self, is_visible:bool) {
@@ -42,8 +55,23 @@ impl Model {
         else          { self.display_object.add_child(&self.documentation)    }
     }
 
-    fn is_documentation_visible(&self) -> bool {
-        self.documentation.has_parent()
+    fn searcher_left_top_under_node(&self, node_id:NodeId) -> Vector2<f32> {
+        if let Some(node) = self.graph_editor.model.nodes.get_cloned_ref(&node_id) {
+            let x = node.position().x;
+            let y = node.position().y - node::NODE_HEIGHT/2.0;
+            Vector2(x,y)
+        } else {
+            error!(self.logger, "Trying to show searcher under nonexisting node");
+            default()
+        }
+    }
+
+    fn add_node_and_edit(&self) {
+        let graph_editor_inputs = &self.graph_editor.frp.inputs;
+        graph_editor_inputs.add_node_at_cursor.emit(());
+        let created_node_id = self.graph_editor.frp.outputs.node_added.value();
+        graph_editor_inputs.set_node_expression.emit(&(created_node_id,Expression::default()));
+        graph_editor_inputs.edit_node.emit(&created_node_id);
     }
 }
 
@@ -52,10 +80,10 @@ impl Model {
 // ===========
 
 ensogl::def_command_api! { Commands
-    /// Documentation open press event. In case the event will be shortly followed by `release_documentation_view_visibility`, the documentation will be shown permanently. In other case, it will be disabled as soon as the `release_documentation_view_visibility` is emitted.
-    press_documentation_view_visibility,
-    /// Documentation open release event. See `press_documentation_view_visibility` to learn more.
-    release_documentation_view_visibility,
+    /// Add new node and start editing it's expression.
+    add_new_node,
+    /// Abort currently node edit. If it was added node, it will be removed, if the existing node was edited, its old expression will be restored.
+    abort_node_editing,
 }
 
 impl application::command::CommandApi for View {
@@ -71,13 +99,24 @@ impl application::command::CommandApi for View {
 ensogl_text::define_endpoints! {
     Commands { Commands }
     Input {
-        // resize           (Vector2<f32>),
         set_documentation_data (visualization::Data),
+        set_suggestions        (list_view::entry::AnyModelProvider),
     }
     Output {
-        documentation_visible  (bool),
+        documentation_visible         (bool),
+        adding_new_node               (bool),
+        edited_node                   (Option<NodeId>),
+        old_expression_of_edited_node (Expression),
+        editing_aborted               (NodeId),
+        editing_committed             (NodeId),
     }
 }
+
+
+
+// ============
+// === View ===
+// ============
 
 /// The main view of single project opened in IDE.
 #[allow(missing_docs)]
@@ -90,26 +129,83 @@ pub struct View {
 impl View {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-        let model = Model::new(app);
-        let frp   = Frp::new_network();
 
-        let network = &frp.network;
+        let model             = Model::new(app);
+        let frp               = Frp::new_network();
+        let searcher          = &model.searcher.frp;
+        let graph             = &model.graph_editor.frp;
+        let network           = &frp.network;
+        let searcher_left_top = Animation::<Vector2<f32>>::new(network);
 
         frp::extend!{ network
+
             // === Documentation Set ===
 
             eval frp.set_documentation_data ((data) model.documentation.frp.send_data.emit(data));
+            eval frp.set_suggestions        ((provider) model.searcher.frp.set_entries(provider));
 
 
-            // === Documentation toggle ===
+            // === Searcher Position and Size ===
 
-            let documentation_press_ev = frp.press_documentation_view_visibility.clone_ref();
-            let documentation_release  = frp.release_documentation_view_visibility.clone_ref();
-            documentation_pressed            <- bool(&documentation_release,&documentation_press_ev);
-            documentation_was_pressed        <- documentation_pressed.previous();
-            documentation_press              <- documentation_press_ev.gate_not(&documentation_was_pressed);
-            documentation_press_on_off       <- documentation_press.map(f_!(model.is_documentation_visible()));
-            frp.source.documentation_visible <+ documentation_press_on_off;
+            _eval <- all_with(&searcher_left_top.value,&searcher.size,f!([model](lt,size) {
+                let x = lt.x + size.x / 2.0;
+                let y = lt.y - size.y / 2.0;
+                model.searcher.set_position_xy(Vector2(x,y));
+            }));
+
+            eval searcher.is_visible ([model](is_visible) {
+                let is_attached = model.searcher.has_parent();
+                if !is_attached && *is_visible {
+                    model.display_object.add_child(&model.searcher);
+                } else if is_attached && !is_visible {
+                    model.display_object.remove_child(&model.searcher);
+                }
+            });
+
+
+            // === Editing ===
+
+            // The order of instructions below is important to properly distinguish between
+            // committing and aborting node editing.
+
+            // This node is false when received "abort_node_editing" signal, and should get true
+            // once processing of "edited_node" event from graph is performed.
+            editing_aborted <- any(...);
+            editing_aborted <+ frp.abort_node_editing.constant(true);
+            should_finish_editing <-
+                any(frp.abort_node_editing,searcher.editing_committed,frp.add_new_node);
+            eval should_finish_editing ((()) graph.inputs.stop_editing.emit(()));
+            _eval <- graph.outputs.edited_node.map2(&searcher.is_visible,
+                f!([model,searcher_left_top](edited_node_id,is_visible) {
+                    if let Some(id) = edited_node_id {
+                        model.searcher.show();
+                        let new_left_top = model.searcher_left_top_under_node(*id);
+                        searcher_left_top.set_target_value(new_left_top);
+                        if !is_visible {
+                            searcher_left_top.skip();
+                        }
+                    } else {
+                        model.searcher.hide();
+                        model.searcher.set_entries(list_view::entry::AnyModelProvider::default());
+                    }
+                }
+            ));
+            editing_not_aborted          <- editing_aborted.map(|b| !b);
+            let editing_finished         =  graph.outputs.node_editing_finished.clone_ref();
+            frp.source.editing_committed <+ editing_finished.gate(&editing_not_aborted);
+            frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
+            editing_aborted              <+ graph.outputs.edited_node.constant(false);
+
+
+            // === Adding New Node ===
+
+            frp.source.adding_new_node <+ frp.add_new_node.constant(true);
+            eval frp.add_new_node ((()) model.add_node_and_edit());
+
+            adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node);
+            adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
+            frp.source.adding_new_node <+ any(&adding_committed,&adding_aborted).constant(false);
+            eval adding_aborted ((node) graph.remove_node.emit(node));
 
 
             // === OUTPUTS REBIND ===
@@ -130,6 +226,11 @@ impl View {
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
     }
+
+    /// Searcher View.
+    pub fn searcher(&self) -> &searcher::View {
+        &self.model.searcher
+    }
 }
 
 impl display::Object for View {
@@ -141,7 +242,7 @@ impl application::command::FrpNetworkProvider for View {
 }
 
 impl application::command::Provider for View {
-    fn label() -> &'static str { "ListView" }
+    fn label() -> &'static str { "ProjectView" }
 }
 
 impl application::View for View {
@@ -152,8 +253,8 @@ impl application::shortcut::DefaultShortcutProvider for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use frp::io::keyboard::Key;
         vec!
-        [ Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character("\\".into())],&[]) , "press_documentation_view_visibility")
-        , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Character("\\".into())],&[]) , "release_documentation_view_visibility")
+        [ Self::self_shortcut(shortcut::Action::press(&[Key::Shift,Key::Tab],&[]) , "add_new_node")
+        , Self::self_shortcut(shortcut::Action::press(&[Key::Escape],&[])           , "abort_node_editing")
         ]
     }
 }
