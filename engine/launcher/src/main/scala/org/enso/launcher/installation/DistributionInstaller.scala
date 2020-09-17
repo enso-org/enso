@@ -279,6 +279,11 @@ class DistributionInstaller(
     }
   }
 
+  /**
+    * Finds bundles included in the portable package.
+    *
+    * @return a tuple containing sequences of runtime and engine bundles
+    */
   private def findBundles(): (Seq[Path], Seq[Path]) = {
     val runtimes =
       if (runtimesDirectory != manager.paths.runtimes)
@@ -292,6 +297,12 @@ class DistributionInstaller(
     (runtimes, engines)
   }
 
+  /**
+    * Checks if any bundles are available and depending on selected settings,
+    * decides how to proceed with the bundles.
+    *
+    * May ask the user interactively, unless this is prohibited.
+    */
   private def decideBundleAction(): BundleAction =
     if (manager.isRunningPortable) {
       val (runtimes, engines) = findBundles()
@@ -366,6 +377,9 @@ class DistributionInstaller(
     }
   }
 
+  /**
+    * Decides if the installer should be removed if the installation succeeds.
+    */
   private def decideIfInstallerShouldBeRemoved(): Boolean = {
     def askForRemoval(): Boolean =
       CLIOutput.askConfirmation(

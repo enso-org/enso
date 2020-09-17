@@ -16,13 +16,16 @@ import org.enso.launcher.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
-  DistributionManager,
-  DistributionUninstaller
+  DistributionManager
 }
 import org.enso.launcher.locking.DefaultResourceManager
 
 /**
   * Defines the CLI commands and options for the program.
+  *
+  * Each command is parametrized with a config that describes global CLI options
+  * set at the top-level and returns an integer which determines the programs
+  * exit code.
   */
 object LauncherApplication {
   type Config = GlobalCLIOptions
@@ -319,14 +322,10 @@ object LauncherApplication {
 
       (bundleAction, doNotRemoveOldLauncher) mapN {
         (bundleAction, doNotRemoveOldLauncher) => (config: Config) =>
-          DistributionInstaller
-            .makeDefault(
-              config,
-              removeOldLauncher  = !doNotRemoveOldLauncher,
-              bundleActionOption = bundleAction
-            )
-            .install()
-          0
+          Launcher(config).installDistribution(
+            doNotRemoveOldLauncher,
+            bundleAction
+          )
       }
     }
 
@@ -360,8 +359,7 @@ object LauncherApplication {
     ) {
       Opts.pure(()) map { (_: Unit) => (config: Config) =>
         DistributionManager.tryCleaningTemporaryDirectory()
-        DistributionUninstaller.makeDefault(config).uninstall()
-        0
+        Launcher(config).uninstallDistribution()
       }
     }
 
@@ -483,6 +481,7 @@ object LauncherApplication {
         )
 
         internalOptsCallback(globalCLIOptions)
+        initializeApp()
 
         if (version) {
           Launcher(globalCLIOptions).displayVersion(useJSON)
@@ -493,24 +492,12 @@ object LauncherApplication {
   }
 
   /**
-    * Application initializer that is run whenever an application command is
-    * run.
-    *
-    * It is run *after* top level options are handled.
+    * Application initializer that is run after handling of the internal
+    * options.
     */
   private def initializeApp(): Unit = {
+    // Note [Main Lock Initialization]
     DefaultResourceManager.initializeMainLock()
-  }
-
-  private def addInitializer(
-    command: Command[Config => Int]
-  ): Command[Config => Int] = {
-    val augmentedOpts = command.opts.map {
-      originalFunction => (config: Config) =>
-        initializeApp()
-        originalFunction(config)
-    }
-    command.copy(opts = augmentedOpts)
   }
 
   val commands: NonEmptyList[Command[Config => Int]] = NonEmptyList
@@ -528,7 +515,6 @@ object LauncherApplication {
       listCommand,
       configCommand
     )
-    .map(addInitializer)
 
   val application: Application[Config] =
     Application(
@@ -544,3 +530,17 @@ object LauncherApplication {
     CLIOutput.println(application.renderHelp())
   }
 }
+
+/* Note [Main Lock Initialization]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The main program lock is used by the distribution installer/uninstaller to
+ * ensure that no other launcher instances are running when the distribution is
+ * being installed or uninstalled.
+ *
+ * That lock should be acquired (in shared mode) as soon as possible, but it
+ * must be acquired *after* handling the internal options. That is because,
+ * acquiring any locks will initialize the DistributionManager's paths, but in
+ * test-mode, the internal options may need to override the
+ * DistributionManager's executable path and that must be done before their
+ * initialization for it to take effect.
+ */

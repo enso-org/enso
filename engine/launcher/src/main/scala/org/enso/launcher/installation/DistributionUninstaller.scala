@@ -10,6 +10,8 @@ import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{FileSystem, Logger, OS}
 
+import scala.util.control.NonFatal
+
 /**
   * Allows to [[uninstall]] an installed distribution.
   *
@@ -175,7 +177,6 @@ class DistributionUninstaller(
     */
   private val knownDataDirectories = Seq(
     manager.TMP_DIRECTORY,
-    manager.LOCK_DIRECTORY,
     manager.CONFIG_DIRECTORY,
     "components-licences"
   )
@@ -203,6 +204,23 @@ class DistributionUninstaller(
 
     resourceManager.unlockTemporaryDirectory()
     resourceManager.releaseMainLock()
+
+    val lockDirectory = dataRoot / manager.LOCK_DIRECTORY
+    if (Files.isDirectory(lockDirectory)) {
+      for (lock <- FileSystem.listDirectory(lockDirectory)) {
+        try {
+          Files.delete(lock)
+        } catch {
+          case NonFatal(exception) =>
+            Logger.error(
+              s"Cannot remove lockfile ${lock.getFileName}.",
+              exception
+            )
+            throw exception
+        }
+      }
+      FileSystem.removeDirectory(lockDirectory)
+    }
 
     if (!deferDataRootRemoval) {
       val nestedBinDirectory = dataRoot / "bin"

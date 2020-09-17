@@ -213,8 +213,12 @@ class Runner(
   final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
 
   /**
-    * Creates a command that can be used to launch the component and runs an
-    * action with that command.
+    * Runs an action giving it a command that can be used to launch the
+    * component.
+    *
+    * While the action is executed, it is guaranteed that the component
+    * referenced by the command is available. The command is considered invalid
+    * after the `action` exits.
     *
     * Combines the [[RunSettings]] for the runner with the [[JVMSettings]] for
     * the underlying JVM to get the full command for launching the component.

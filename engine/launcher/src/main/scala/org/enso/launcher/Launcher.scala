@@ -13,7 +13,12 @@ import org.enso.launcher.components.runner.{
   WhichEngine
 }
 import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
-import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.installation.DistributionInstaller.BundleAction
+import org.enso.launcher.installation.{
+  DistributionInstaller,
+  DistributionManager,
+  DistributionUninstaller
+}
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
@@ -182,6 +187,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
     * @param additionalArguments additional arguments to pass to the runner
+    * @return exit code of the launched program
     */
   def runRepl(
     projectPath: Option[Path],
@@ -216,6 +222,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
     * @param additionalArguments additional arguments to pass to the runner
+    * @return exit code of the launched program
     */
   def runRun(
     path: Option[Path],
@@ -247,6 +254,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
     * @param additionalArguments additional arguments to pass to the runner
+    * @return exit code of the launched program
     */
   def runLanguageServer(
     options: LanguageServerOptions,
@@ -335,6 +343,31 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def printDefaultVersion(): Int = {
     println(configurationManager.defaultVersion)
+    0
+  }
+
+  /**
+    * Installs the Enso distribution.
+    */
+  def installDistribution(
+    doNotRemoveOldLauncher: Boolean,
+    bundleAction: Option[BundleAction]
+  ): Int = {
+    DistributionInstaller
+      .makeDefault(
+        globalCLIOptions   = cliOptions,
+        removeOldLauncher  = !doNotRemoveOldLauncher,
+        bundleActionOption = bundleAction
+      )
+      .install()
+    0
+  }
+
+  /**
+    * Uninstalls the Enso distribution.
+    */
+  def uninstallDistribution(): Int = {
+    DistributionUninstaller.makeDefault(cliOptions).uninstall()
     0
   }
 

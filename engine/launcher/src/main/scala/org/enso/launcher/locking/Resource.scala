@@ -22,7 +22,7 @@ object Resource {
     override def name: String = "add-remove-components"
     override def waitMessage: String =
       "Another process is adding or removing components, " +
-      "the current process must wait until that it completes."
+      "the current process must wait until it finishes."
   }
   case class Engine(version: SemVer) extends Resource {
     override def name: String = s"engine-$version"

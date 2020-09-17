@@ -45,6 +45,10 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     */
   def runtimePath: Path = path / "component" / "runtime.jar"
 
+  /**
+    * Checks if the installation is not corrupted and reports any issues as
+    * failures.
+    */
   def ensureValid(): Try[Unit] =
     if (!Files.exists(runnerPath))
       Failure(

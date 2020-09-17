@@ -247,7 +247,8 @@ object InternalOpts {
       * It retries for a few seconds to give the process running the old
       * launcher to terminate and release the lock on its file. It overrides the
       * ENSO_RUNTIME_DIRECTORY for the launched executable to the temporary
-      * directory it resides in, so that the lock can be safely taken.
+      * directory it resides in, so that its main lock does not block removing
+      * the original directory.
       */
     def removeOldExecutableAndExit(oldExecutablePath: Path): Nothing = {
       val command = Seq(

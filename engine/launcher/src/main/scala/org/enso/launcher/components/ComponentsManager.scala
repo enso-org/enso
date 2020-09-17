@@ -85,6 +85,14 @@ class ComponentsManager(
     } else None
   }
 
+  /**
+    * Executes the provided action with a requested engine version.
+    *
+    * The engine is locked with a shared lock, so it is guaranteed that it will
+    * not be uninstalled while the action is being executed.
+    *
+    * The engine will be installed if needed.
+    */
   def withEngine[R](engineVersion: SemVer)(
     action: Engine => R
   ): R = {
@@ -97,7 +105,8 @@ class ComponentsManager(
         .recoverWith { error =>
           Failure(
             ComponentMissingError(
-              "The engine has been removed before the command could be started.",
+              "The engine has been removed before the command could be " +
+              "started.",
               error
             )
           )
@@ -108,6 +117,15 @@ class ComponentsManager(
     }
   }
 
+  /**
+    * Executes the provided action with a requested engine version and its
+    * corresponding runtime.
+    *
+    * The components are locked with a shared lock, so it is guaranteed that
+    * they will not be uninstalled while the action is being executed.
+    *
+    * The components will be installed if needed.
+    */
   def withEngineAndRuntime[R](engineVersion: SemVer)(
     action: (Engine, Runtime) => R
   ): R = {
@@ -122,7 +140,8 @@ class ComponentsManager(
         .recoverWith { error =>
           Failure(
             ComponentMissingError(
-              "The engine has been removed before the command could be started.",
+              "The engine has been removed before the command could be " +
+              "started.",
               error
             )
           )
@@ -134,7 +153,8 @@ class ComponentsManager(
         .recoverWith { error =>
           Failure(
             ComponentMissingError(
-              "The runtime has been removed before the command could be started.",
+              "The runtime has been removed before the command could be " +
+              "started.",
               error
             )
           )
@@ -173,7 +193,13 @@ class ComponentsManager(
           )
         }
         if (!complain || complainAndAsk()) {
-          installRuntime(engine.manifest.runtimeVersion)
+          val version = engine.manifest.runtimeVersion
+          resourceManager.withResources(
+            (Resource.AddOrRemoveComponents, LockType.Shared),
+            (Resource.Runtime(version), LockType.Exclusive)
+          ) {
+            installRuntime(version)
+          }
         } else {
           throw ComponentMissingError(
             s"No runtime for engine $engine. Cannot continue."
@@ -459,7 +485,8 @@ class ComponentsManager(
           * Finalizes the installation.
           *
           * Has to be called with an acquired lock for the runtime. If
-          * `wasJustInstalled` is true, the lock must be exclusive.
+          * `wasJustInstalled` is true, the lock must be exclusive and it the
+          * runtime may be removed if the installation fails.
           */
         def finishInstallation(
           runtime: Runtime,
@@ -732,6 +759,14 @@ class ComponentsManager(
     * removed, but it will already be in the temporary directory, so it will be
     * unreachable. The temporary directory is cleaned when doing
     * installation-related operations.
+    *
+    * The caller should hold an exclusive lock for
+    * [[Resource.AddOrRemoveComponents]] or otherwise guarantee that this
+    * component can be safely removed. The latter is an exception that only
+    * happens when uninstalling a just-installed runtime when an engine
+    * installation failed. In that case the installer has an exclusive lock on
+    * that runtime and it was installed by it, so nobody else could be using it.
+    * In all other situations the lock is strictly required.
     */
   private def safelyRemoveComponent(path: Path): Unit = {
     val temporaryPath =
