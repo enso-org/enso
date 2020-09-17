@@ -121,6 +121,15 @@ class ConcurrencyTest
     (distributionManager, componentsManager)
   }
 
+  def makeComponentsManager(
+    releaseCallback: String => Unit,
+    lockWaitsCallback: String => Unit
+  ): ComponentsManager =
+    makeManagers(
+      releaseCallback   = releaseCallback,
+      lockWaitsCallback = lockWaitsCallback
+    )._2
+
   "locks" should {
     "synchronize parallel installations with the same runtime" in {
 
@@ -199,9 +208,66 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize installation and run" ignore {}
+    "synchronize installation and usage" in {
 
-    "synchronize uninstallation and run" ignore {}
+      /**
+        * The first thread starts installing the engine, but is suspended when
+        * downloading the package. The second thread then tries to use it, but
+        * it should wait until the installation is finished.
+        */
+      val sync = new TestSynchronizer
+
+      val engineVersion = SemVer(0, 0, 1)
+
+      sync.startThread("t1") {
+        val componentsManager = makeComponentsManager(
+          releaseCallback = { asset =>
+            if (asset.startsWith("enso-engine-")) {
+              sync.signal("t1-downloads-engine")
+              sync.waitFor("t2-waits-for-engine")
+            } else if (asset.startsWith("graal")) {
+              sync.report("installation-continues")
+            }
+          },
+          lockWaitsCallback = resource =>
+            throw new IllegalStateException(
+              s"t1 should not be waiting on $resource."
+            )
+        )
+
+        componentsManager.findOrInstallEngine(engineVersion, complain = false)
+      }
+
+      sync.waitFor("t1-downloads-engine")
+
+      sync.startThread("t2") {
+        val componentsManager = makeComponentsManager(
+          releaseCallback = { asset =>
+            throw new IllegalStateException(
+              s"t2 should not be downloading $asset."
+            )
+          },
+          lockWaitsCallback = {
+            case resource if resource.startsWith("engine") =>
+              sync.signal("t2-waits-for-engine")
+            case resource =>
+              throw new IllegalStateException(s"Unexpected wait on $resource.")
+          }
+        )
+
+        componentsManager.withEngineAndRuntime(engineVersion) { (_, _) =>
+          sync.report("using-engine")
+        }
+      }
+
+      sync.join(30)
+      sync.summarizeReports() shouldEqual Seq(
+        "installation-continues",
+        "using-engine"
+      )
+    }
+
+    "synchronize uninstallation and usage" ignore {}
 
     "synchronize upgrades" ignore {}
 

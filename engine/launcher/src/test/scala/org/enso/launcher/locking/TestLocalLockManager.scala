@@ -17,10 +17,10 @@ import java.util.concurrent.locks.{
 class TestLocalLockManager extends LockManager {
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val lock   = getLock(resourceName, lockType)
-    val locked = lock.tryLock(10, TimeUnit.SECONDS)
+    val locked = lock.tryLock(30, TimeUnit.SECONDS)
     if (!locked) {
       throw new RuntimeException(
-        "Acquiring the lock took more than 10s, perhaps a deadlock?"
+        "Acquiring the lock took more than 30s, perhaps a deadlock?"
       )
     }
     WrapLock(lock)
