@@ -62,6 +62,14 @@ class ConcurrencyTest
   def lockManager: LockManager = testLocalLockManager.get
 
   /**
+    * Each call creates a distinct [[ResourceManager]], but all resource
+    * managers created within one test case share the same [[lockManager]], so
+    * that they see each other's locks.
+    */
+  def makeNewResourceManager(): ResourceManager =
+    new ResourceManager(lockManager)
+
+  /**
     * Creates a [[DistributionManager]] and [[ComponentsManager]] that can be
     * used in a test.
     *
@@ -353,7 +361,7 @@ class ConcurrencyTest
         */
       val sync = new TestSynchronizer
       sync.startThread("t1") {
-        val resourceManager = TestLocalResourceManager.create()
+        val resourceManager = makeNewResourceManager()
         resourceManager.initializeMainLock()
         sync.report("shared-start")
         sync.signal("started-1")
@@ -363,7 +371,7 @@ class ConcurrencyTest
       }
 
       sync.startThread("t2") {
-        val resourceManager = TestLocalResourceManager.create()
+        val resourceManager = makeNewResourceManager()
         resourceManager.initializeMainLock()
         sync.report("shared-start")
         sync.signal("started-2")
@@ -376,7 +384,7 @@ class ConcurrencyTest
       sync.waitFor("started-2")
 
       sync.startThread("t3") {
-        val resourceManager = TestLocalResourceManager.create()
+        val resourceManager = makeNewResourceManager()
         resourceManager.initializeMainLock()
         sync.report("t3-start")
         resourceManager.acquireExclusiveMainLock(() => {

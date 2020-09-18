@@ -304,6 +304,9 @@ class UpgradeSpec
         override def locksRoot: Path = getTestDirectory / "enso" / "lock"
       }
       val launcherManifestAssetName = "launcher-manifest.yaml"
+      // The fake release tries to acquire a shared lock on each accessed file,
+      // so acquiring this exclusive lock will stall access to that file until
+      // the exclusive lock is released
       val lock = syncLocker.acquireLock(
         "testasset-" + launcherManifestAssetName,
         LockType.Exclusive
