@@ -22,7 +22,7 @@ import scala.jdk.StreamConverters._
   */
 trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
-  override val timeLimit: Span               = 15 seconds
+  override val timeLimit: Span               = 30 seconds
   override val defaultTestSignaler: Signaler = _.interrupt()
 
   /**

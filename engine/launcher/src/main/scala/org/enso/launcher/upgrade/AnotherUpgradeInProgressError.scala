@@ -7,4 +7,10 @@ package org.enso.launcher.upgrade
 case class AnotherUpgradeInProgressError()
     extends RuntimeException(
       "Another upgrade is in progress. Please wait for it to finish."
-    )
+    ) {
+
+  /**
+    * @inheritdoc
+    */
+  override def toString: String = getMessage
+}

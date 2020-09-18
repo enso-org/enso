@@ -133,7 +133,7 @@ class UpgradeSpec
   def run(
     args: Seq[String],
     extraEnv: Map[String, String] = Map.empty
-  ): RunResult = startLauncher(args, extraEnv).join()
+  ): RunResult = startLauncher(args, extraEnv).join(timeoutSeconds = 20)
 
   /**
     * Starts the launcher in the temporary distribution.
@@ -236,7 +236,7 @@ class UpgradeSpec
       // run(Seq("upgrade", "0.0.3")) should returnSuccess
       val proc = startLauncher(Seq("upgrade", "0.0.3"))
       proc.printIO()
-      proc.join() should returnSuccess
+      proc.join(timeoutSeconds = 20) should returnSuccess
 
       checkVersion() shouldEqual SemVer(0, 0, 3)
 
@@ -342,7 +342,7 @@ class UpgradeSpec
         lock.release()
       }
 
-      firstSuspended.join() should returnSuccess
+      firstSuspended.join(timeoutSeconds = 20) should returnSuccess
       checkVersion() shouldEqual SemVer(0, 0, 2)
     }
   }

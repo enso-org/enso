@@ -282,8 +282,15 @@ class ComponentsManager(
             (Resource.AddOrRemoveComponents, LockType.Shared),
             (Resource.Engine(version), LockType.Exclusive)
           ) {
-            findEngine(version).getOrElse {
-              installEngine(version)
+            findEngine(version) match {
+              case Some(engine) =>
+                Logger.info(
+                  "The engine has already been installed by a different " +
+                  "process."
+                )
+                engine
+              case None =>
+                installEngine(version)
             }
           }
         } else {
