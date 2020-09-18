@@ -21,10 +21,10 @@ import org.enso.cli.internal.{Parser, ParserContinuation}
   */
 class TopLevelCommandsOpt[A, B](
   toplevelOpts: Opts[A],
-  commands: NonEmptyList[Command[B => Unit]],
+  commands: NonEmptyList[Command[B => Int]],
   pluginManager: Option[PluginManager],
   helpHeader: String
-) extends BaseSubcommandOpt[(A, Option[B => Unit]), B => Unit] {
+) extends BaseSubcommandOpt[(A, Option[B => Int]), B => Int] {
 
   private def helpOpt: Opts[Boolean] =
     Opts.flag("help", 'h', "Print this help message.", showInUsage = true)
@@ -38,7 +38,7 @@ class TopLevelCommandsOpt[A, B](
   /**
     * @inheritdoc
     */
-  override def availableSubcommands: NonEmptyList[Command[B => Unit]] = commands
+  override def availableSubcommands: NonEmptyList[Command[B => Int]] = commands
 
   /**
     * Handles an unknown command.
@@ -64,7 +64,7 @@ class TopLevelCommandsOpt[A, B](
 
   override private[cli] def result(
     commandPrefix: Seq[String]
-  ): Either[OptsParseError, (A, Option[B => Unit])] = {
+  ): Either[OptsParseError, (A, Option[B => Int])] = {
     val prefix                 = extendPrefix(commandPrefix)
     val topLevelResultWithHelp = toplevelWithHelp.result(prefix)
     val topLevelResult         = topLevelResultWithHelp.map(_._1)
@@ -76,7 +76,7 @@ class TopLevelCommandsOpt[A, B](
           CLIOutput.println(helpText)
         }
 
-        Right((result, Some((_: B) => displayHelp())))
+        Right((result, Some((_: B) => { displayHelp(); 0 })))
       case (_, Some(value)) =>
         OptsParseError.product(topLevelResult, value.map(Some(_)))
       case (_, None) =>

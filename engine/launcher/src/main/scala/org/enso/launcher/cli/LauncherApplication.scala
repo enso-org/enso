@@ -16,17 +16,21 @@ import org.enso.launcher.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
-  DistributionManager,
-  DistributionUninstaller
+  DistributionManager
 }
+import org.enso.launcher.locking.DefaultResourceManager
 
 /**
   * Defines the CLI commands and options for the program.
+  *
+  * Each command is parametrized with a config that describes global CLI options
+  * set at the top-level and returns an integer which determines the programs
+  * exit code.
   */
 object LauncherApplication {
   type Config = GlobalCLIOptions
 
-  private def versionCommand: Command[Config => Unit] =
+  private def versionCommand: Command[Config => Int] =
     Command(
       "version",
       "Print version of the launcher and currently selected Enso distribution."
@@ -45,7 +49,7 @@ object LauncherApplication {
       }
     }
 
-  private def newCommand: Command[Config => Unit] =
+  private def newCommand: Command[Config => Int] =
     Command("new", "Create a new Enso project.", related = Seq("create")) {
       val nameOpt = Opts.positionalArgument[String]("PROJECT-NAME")
       val pathOpt = Opts.optionalArgument[Path](
@@ -102,7 +106,7 @@ object LauncherApplication {
       "Override the Enso version that would normally be used."
     )
 
-  private def runCommand: Command[Config => Unit] =
+  private def runCommand: Command[Config => Int] =
     Command(
       "run",
       "Run an Enso project or script. " +
@@ -138,7 +142,7 @@ object LauncherApplication {
       }
     }
 
-  private def languageServerCommand: Command[Config => Unit] =
+  private def languageServerCommand: Command[Config => Int] =
     Command(
       "language-server",
       "Launch the Language Server for a given project. " +
@@ -207,7 +211,7 @@ object LauncherApplication {
       }
     }
 
-  private def replCommand: Command[Config => Unit] =
+  private def replCommand: Command[Config => Int] =
     Command(
       "repl",
       "Launch an Enso REPL. " +
@@ -235,7 +239,7 @@ object LauncherApplication {
       }
     }
 
-  private def defaultCommand: Command[Config => Unit] =
+  private def defaultCommand: Command[Config => Int] =
     Command("default", "Print or change the default Enso version.") {
       val version = Opts.optionalArgument[DefaultVersion](
         "VERSION",
@@ -254,7 +258,7 @@ object LauncherApplication {
       }
     }
 
-  private def upgradeCommand: Command[Config => Unit] =
+  private def upgradeCommand: Command[Config => Int] =
     Command("upgrade", "Upgrade the launcher.") {
       val version = Opts.optionalArgument[SemVer](
         "VERSION",
@@ -266,7 +270,7 @@ object LauncherApplication {
       }
     }
 
-  private def installEngineCommand: Command[Config => Unit] =
+  private def installEngineCommand: Command[Config => Int] =
     Command(
       "engine",
       "Install the specified engine VERSION, defaulting to the latest if " +
@@ -274,6 +278,7 @@ object LauncherApplication {
     ) {
       val version = Opts.optionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
+        DistributionManager.tryCleaningTemporaryDirectory()
         version match {
           case Some(value) =>
             Launcher(config).installEngine(value)
@@ -283,7 +288,7 @@ object LauncherApplication {
       }
     }
 
-  private def installDistributionCommand: Command[Config => Unit] =
+  private def installDistributionCommand: Command[Config => Int] =
     Command(
       "distribution",
       "Install Enso on the system, deactivating portable mode."
@@ -311,25 +316,21 @@ object LauncherApplication {
         "no-remove-old-launcher",
         "If `auto-confirm` is set, the default behavior is to remove the old " +
         "launcher after installing the distribution. Setting this flag may " +
-        "override this behavior to keep the original launcher.",
+        "override this behavior to keep the original launcher. Applies only " +
+        "if `auto-confirm` is set.",
         showInUsage = true
       )
 
       (bundleAction, doNotRemoveOldLauncher) mapN {
         (bundleAction, doNotRemoveOldLauncher) => (config: Config) =>
-          new DistributionInstaller(
-            DistributionManager,
-            config.autoConfirm,
-            removeOldLauncher = !doNotRemoveOldLauncher,
-            bundleActionOption =
-              if (config.autoConfirm)
-                Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
-              else bundleAction
-          ).install()
+          Launcher(config).installDistribution(
+            doNotRemoveOldLauncher,
+            bundleAction
+          )
       }
     }
 
-  private def installCommand: Command[Config => Unit] =
+  private def installCommand: Command[Config => Int] =
     Command(
       "install",
       "Install a new version of engine or install the distribution locally."
@@ -337,7 +338,7 @@ object LauncherApplication {
       Opts.subcommands(installEngineCommand, installDistributionCommand)
     }
 
-  private def uninstallEngineCommand: Command[Config => Unit] =
+  private def uninstallEngineCommand: Command[Config => Int] =
     Command(
       "engine",
       "Uninstall the provided engine version. If the corresponding runtime " +
@@ -349,7 +350,7 @@ object LauncherApplication {
       }
     }
 
-  private def uninstallDistributionCommand: Command[Config => Unit] =
+  private def uninstallDistributionCommand: Command[Config => Int] =
     Command(
       "distribution",
       "Uninstall whole Enso distribution and all components managed by " +
@@ -358,14 +359,12 @@ object LauncherApplication {
       "unexpected files."
     ) {
       Opts.pure(()) map { (_: Unit) => (config: Config) =>
-        new DistributionUninstaller(
-          DistributionManager,
-          autoConfirm = config.autoConfirm
-        ).uninstall()
+        DistributionManager.tryCleaningTemporaryDirectory()
+        Launcher(config).uninstallDistribution()
       }
     }
 
-  private def uninstallCommand: Command[Config => Unit] =
+  private def uninstallCommand: Command[Config => Int] =
     Command(
       "uninstall",
       "Uninstall an Enso component."
@@ -373,7 +372,7 @@ object LauncherApplication {
       Opts.subcommands(uninstallEngineCommand, uninstallDistributionCommand)
     }
 
-  private def listCommand: Command[Config => Unit] =
+  private def listCommand: Command[Config => Int] =
     Command("list", "List installed components.") {
       sealed trait Components
       case object EnsoComponents    extends Components
@@ -402,7 +401,7 @@ object LauncherApplication {
       }
     }
 
-  private def configCommand: Command[Config => Unit] =
+  private def configCommand: Command[Config => Int] =
     Command("config", "Modify global user configuration.") {
       val key = Opts.positionalArgument[String](
         "KEY",
@@ -423,9 +422,9 @@ object LauncherApplication {
       }
     }
 
-  private def helpCommand: Command[Config => Unit] =
+  private def helpCommand: Command[Config => Int] =
     Command("help", "Display summary of available commands.") {
-      Opts.pure(()) map { _ => (_: Config) => printTopLevelHelp() }
+      Opts.pure(()) map { _ => (_: Config) => printTopLevelHelp(); 0 }
     }
 
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {
@@ -483,14 +482,40 @@ object LauncherApplication {
         )
 
         internalOptsCallback(globalCLIOptions)
+        initializeApp()
 
         if (version) {
           Launcher(globalCLIOptions).displayVersion(useJSON)
-          TopLevelBehavior.Halt
+          TopLevelBehavior.Halt(0)
         } else
           TopLevelBehavior.Continue(globalCLIOptions)
     }
   }
+
+  /**
+    * Application initializer that is run after handling of the internal
+    * options.
+    */
+  private def initializeApp(): Unit = {
+    // Note [Main Lock Initialization]
+    DefaultResourceManager.initializeMainLock()
+  }
+
+  val commands: NonEmptyList[Command[Config => Int]] = NonEmptyList
+    .of(
+      versionCommand,
+      helpCommand,
+      newCommand,
+      replCommand,
+      runCommand,
+      languageServerCommand,
+      defaultCommand,
+      installCommand,
+      uninstallCommand,
+      upgradeCommand,
+      listCommand,
+      configCommand
+    )
 
   val application: Application[Config] =
     Application(
@@ -498,20 +523,7 @@ object LauncherApplication {
       "Enso",
       "Enso Launcher",
       topLevelOpts,
-      NonEmptyList.of(
-        versionCommand,
-        helpCommand,
-        newCommand,
-        replCommand,
-        runCommand,
-        languageServerCommand,
-        defaultCommand,
-        installCommand,
-        uninstallCommand,
-        upgradeCommand,
-        listCommand,
-        configCommand
-      ),
+      commands,
       PluginManager
     )
 
@@ -519,3 +531,17 @@ object LauncherApplication {
     CLIOutput.println(application.renderHelp())
   }
 }
+
+/* Note [Main Lock Initialization]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The main program lock is used by the distribution installer/uninstaller to
+ * ensure that no other launcher instances are running when the distribution is
+ * being installed or uninstalled.
+ *
+ * That lock should be acquired (in shared mode) as soon as possible, but it
+ * must be acquired *after* handling the internal options. That is because,
+ * acquiring any locks will initialize the DistributionManager's paths, but in
+ * test-mode, the internal options may need to override the
+ * DistributionManager's executable path and that must be done before their
+ * initialization for it to take effect.
+ */

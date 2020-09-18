@@ -3,7 +3,12 @@ package org.enso.launcher.components.runner
 import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.components.{ComponentsManager, Manifest, Runtime}
+import org.enso.launcher.components.{
+  ComponentsManager,
+  Engine,
+  Manifest,
+  Runtime
+}
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.{Environment, Logger}
@@ -208,58 +213,68 @@ class Runner(
   final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
 
   /**
-    * Creates a command that can be used to launch the component.
+    * Runs an action giving it a command that can be used to launch the
+    * component.
+    *
+    * While the action is executed, it is guaranteed that the component
+    * referenced by the command is available. The command is considered invalid
+    * after the `action` exits.
     *
     * Combines the [[RunSettings]] for the runner with the [[JVMSettings]] for
     * the underlying JVM to get the full command for launching the component.
     */
-  def createCommand(
-    runSettings: RunSettings,
-    jvmSettings: JVMSettings
-  ): Command = {
-    val engine = componentsManager.findOrInstallEngine(runSettings.version)
-    val javaCommand =
-      if (jvmSettings.useSystemJVM) systemJavaCommand
-      else {
-        val runtime = componentsManager.findOrInstallRuntime(engine)
-        javaCommandForRuntime(runtime)
+  def withCommand[R](runSettings: RunSettings, jvmSettings: JVMSettings)(
+    action: Command => R
+  ): R = {
+    def prepareAndRunCommand(engine: Engine, javaCommand: JavaCommand): R = {
+      val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
+      jvmOptsFromEnvironment.foreach { opts =>
+        Logger.debug(
+          s"Picking up additional JVM options ($opts) from the " +
+          s"$JVM_OPTIONS_ENV_VAR environment variable."
+        )
       }
 
-    val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
-    jvmOptsFromEnvironment.foreach { opts =>
-      Logger.debug(
-        s"Picking up additional JVM options ($opts) from the " +
-        s"$JVM_OPTIONS_ENV_VAR environment variable."
-      )
+      val runnerJar = engine.runnerPath.toAbsolutePath.normalize.toString
+
+      def translateJVMOption(option: (String, String)): String = {
+        val name  = option._1
+        val value = option._2
+        s"-D$name=$value"
+      }
+
+      val context = Manifest.JVMOptionsContext(enginePackagePath = engine.path)
+
+      val manifestOptions =
+        engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
+      val environmentOptions =
+        jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
+      val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
+
+      val jvmArguments =
+        manifestOptions ++ environmentOptions ++ commandLineOptions ++
+        Seq("-jar", runnerJar)
+
+      val command = Seq(javaCommand.executableName) ++
+        jvmArguments ++ runSettings.runnerArguments
+
+      val extraEnvironmentOverrides =
+        javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
+
+      action(Command(command, extraEnvironmentOverrides))
     }
 
-    val runnerJar = engine.runnerPath.toAbsolutePath.normalize.toString
-
-    def translateJVMOption(option: (String, String)): String = {
-      val name  = option._1
-      val value = option._2
-      s"-D$name=$value"
+    val engineVersion = runSettings.version
+    if (jvmSettings.useSystemJVM) {
+      componentsManager.withEngine(engineVersion) { engine =>
+        prepareAndRunCommand(engine, systemJavaCommand)
+      }
+    } else {
+      componentsManager.withEngineAndRuntime(engineVersion) {
+        (engine, runtime) =>
+          prepareAndRunCommand(engine, javaCommandForRuntime(runtime))
+      }
     }
-
-    val context = Manifest.JVMOptionsContext(enginePackagePath = engine.path)
-
-    val manifestOptions =
-      engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
-    val environmentOptions =
-      jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
-    val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
-
-    val jvmArguments =
-      manifestOptions ++ environmentOptions ++ commandLineOptions ++
-      Seq("-jar", runnerJar)
-
-    val command = Seq(javaCommand.executableName) ++
-      jvmArguments ++ runSettings.runnerArguments
-
-    val extraEnvironmentOverrides =
-      javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
-
-    Command(command, extraEnvironmentOverrides)
   }
 
   /**

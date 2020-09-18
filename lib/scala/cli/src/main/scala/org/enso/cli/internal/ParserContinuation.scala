@@ -37,6 +37,6 @@ object ParserContinuation {
     * be invoked.
     */
   case class Escape(
-    continuation: (Seq[Token], Seq[String]) => Nothing
+    continuation: (Seq[Token], Seq[String]) => Int
   ) extends ParserContinuation
 }

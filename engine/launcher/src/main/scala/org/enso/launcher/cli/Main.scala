@@ -2,6 +2,7 @@ package org.enso.launcher.cli
 
 import org.enso.cli.CLIOutput
 import org.enso.launcher.Logger
+import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
 
 /**
@@ -19,8 +20,8 @@ object Main {
       case Left(errors) =>
         CLIOutput.println(errors.mkString("\n"))
         1
-      case Right(()) =>
-        0
+      case Right(exitCode) =>
+        exitCode
     }
 
   def main(args: Array[String]): Unit = {
@@ -36,6 +37,7 @@ object Main {
           1
       }
 
+    DefaultResourceManager.releaseMainLock()
     sys.exit(exitCode)
   }
 }

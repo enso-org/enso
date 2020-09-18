@@ -25,6 +25,8 @@ object TopLevelBehavior {
     * top-level options have handled the execution and commands should not be
     * parsed further. This can be useful to implement top-level options like
     * `--version`.
+    *
+    * @param exitCode exit code that should be returned when halting
     */
-  case object Halt extends TopLevelBehavior[Nothing]
+  case class Halt(exitCode: Int) extends TopLevelBehavior[Nothing]
 }

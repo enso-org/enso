@@ -46,7 +46,7 @@ class Application[Config](
   val prettyName: String,
   val helpHeader: String,
   val topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-  val commands: NonEmptyList[Command[Config => Unit]],
+  val commands: NonEmptyList[Command[Config => Int]],
   val pluginManager: Option[PluginManager]
 ) {
 
@@ -63,7 +63,7 @@ class Application[Config](
     */
   def run(
     args: Array[String]
-  ): Either[List[String], Unit] = run(args.toSeq)
+  ): Either[List[String], Int] = run(args.toSeq)
 
   /**
     * Runs the application logic. Parses the top level options and depending on
@@ -73,11 +73,11 @@ class Application[Config](
     * with the exit code returned by the plugin).
     *
     * @return either a list of errors encountered when parsing the options or
-    *         [[Unit]] if it succeeded
+    *         the exit code if succeeded
     */
   def run(
     args: Seq[String]
-  ): Either[List[String], Unit] = {
+  ): Either[List[String], Int] = {
     val (tokens, additionalArguments) = Parser.tokenize(args)
     val parseResult =
       Parser.parseOpts(
@@ -90,12 +90,12 @@ class Application[Config](
       case ((topLevelAction, commandResult), pluginIntercepted) =>
         pluginIntercepted match {
           case Some(pluginHandler) =>
-            pluginHandler()
+            Right(pluginHandler())
           case None =>
             val topLevelBehavior = topLevelAction()
             topLevelBehavior match {
-              case TopLevelBehavior.Halt =>
-                Right(())
+              case TopLevelBehavior.Halt(exitCode) =>
+                Right(exitCode)
               case TopLevelBehavior.Continue(config) =>
                 commandResult match {
                   case Some(action) =>
@@ -138,7 +138,7 @@ object Application {
     prettyName: String,
     helpHeader: String,
     topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-    commands: NonEmptyList[Command[Config => Unit]],
+    commands: NonEmptyList[Command[Config => Int]],
     pluginManager: PluginManager
   ): Application[Config] =
     new Application(
@@ -170,7 +170,7 @@ object Application {
     prettyName: String,
     helpHeader: String,
     topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-    commands: NonEmptyList[Command[Config => Unit]]
+    commands: NonEmptyList[Command[Config => Int]]
   ): Application[Config] =
     new Application(
       commandName,
@@ -197,7 +197,7 @@ object Application {
     commandName: String,
     prettyName: String,
     helpHeader: String,
-    commands: NonEmptyList[Command[Unit => Unit]]
+    commands: NonEmptyList[Command[Unit => Int]]
   ): Application[()] =
     new Application(
       commandName,

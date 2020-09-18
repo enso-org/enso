@@ -1053,7 +1053,6 @@ lazy val launcher = project
     assemblyOutputPath in assembly := file("launcher.jar")
   )
   .settings(
-    parallelExecution in Test := false,
     (Test / test) := (Test / test)
         .dependsOn(
           NativeImage.incrementalNativeImageBuild(
@@ -1064,7 +1063,8 @@ lazy val launcher = project
         .dependsOn(
           LauncherShimsForTest.prepare(rustcVersion = rustVersion)
         )
-        .value
+        .value,
+    parallelExecution in Test := false
   )
   .settings(licenseSettings)
   .dependsOn(cli)
