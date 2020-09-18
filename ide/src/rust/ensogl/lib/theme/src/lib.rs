@@ -279,7 +279,7 @@ define_default_theme! { light
                 color = color::Lcha::new(0.55,0.65,0.79,1.0)
             }
             text {
-                color = color::Lcha::new(1.0,0.0,0.0,0.7);
+                color = color::Lcha::new(0.0,0.0,0.0,0.7);
                 selection {
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
                 }
