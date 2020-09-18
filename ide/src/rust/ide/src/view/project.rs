@@ -10,14 +10,13 @@ use crate::view::layout::ViewLayout;
 use ensogl::application::Application;
 use ensogl::control::callback;
 use ensogl::control::io::keyboard::listener::KeyboardFrpBindings;
-use ensogl::data::color;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::shape::text::glyph::font;
-use ensogl::display::style::theme;
 use ensogl::system::web;
 use enso_frp::io::keyboard::Keyboard;
 use enso_frp::io::keyboard;
 use enso_shapely::shared;
+use ensogl_theme;
 use ide_view::graph_editor;
 use nalgebra::Vector2;
 
@@ -111,7 +110,8 @@ impl ProjectView {
         let camera            = scene.camera();
         let navigator         = Navigator::new(&scene,&camera);
         Self::setup_components(&application);
-        Self::setup_theme(&application);
+        ensogl_theme::dark::setup(&application);
+        ensogl_theme::light::setup(&application);
         let _world = &application.display;
         // graph::register_shapes(&world);
         let keyboard                 = Keyboard::default();
@@ -143,23 +143,6 @@ impl ProjectView {
 
     fn setup_components(app:&Application) {
         app.views.register::<graph_editor::GraphEditor>();
-    }
-
-    fn setup_theme(app:&Application) {
-        let mut dark = theme::Theme::new();
-        dark.insert("application.background.color", color::Lcha::new(0.13,0.013,0.18,1.0));
-        dark.insert("graph_editor.node.background.color", color::Lcha::new(0.2,0.013,0.18,1.0));
-        dark.insert("graph_editor.node.selection.color", color::Lcha::new(0.72,0.5,0.22,1.0));
-        dark.insert("graph_editor.node.selection.size", 7.0);
-        dark.insert("widget.select.background.color", color::Lcha::new(0.2,0.013,0.18,1.0));
-        dark.insert("widget.select.highlight.color", color::Lcha::new(0.72,0.5,0.22,1.0));
-        dark.insert("animation.duration", 0.5);
-        dark.insert("graph.node.shadow.color", 5.0);
-        dark.insert("graph.node.shadow.size", 5.0);
-        dark.insert("mouse.pointer.color", color::Rgba::new(0.3,0.3,0.3,1.0));
-
-        app.themes.register("dark",dark);
-        app.themes.set_enabled(&["dark"]);
     }
 
     /// Forgets ProjectView, so it won't get dropped when it goes out of scope.

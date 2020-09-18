@@ -18,6 +18,7 @@ use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::display::shape::*;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component;
+use ensogl_theme as theme;
 use logger::enabled::Logger;
 use logger::AnyLogger;
 
@@ -184,6 +185,7 @@ pub struct ProjectNameModel {
     animations     : Animations,
     display_object : display::object::Instance,
     view           : component::ShapeView<background::Shape>,
+    style          : StyleWatch,
     text_field     : TextField,
     project_name   : Rc<RefCell<String>>,
     outputs        : FrpOutputs
@@ -197,7 +199,10 @@ impl ProjectNameModel {
         let display_object        = display::object::Instance::new(&logger);
         let font                  = scene.fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
         let size                  = Vector2(scene.camera().screen().width,TEXT_SIZE);
-        let base_color            = breadcrumb::SELECTED_COLOR;
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let style                 = StyleWatch::new(&scene.style_sheet);
+        let base_color            = style.get_color(theme::vars::graph_editor::breadcrumbs::transparent::color);
+        let base_color            = color::Rgba::from(base_color);
         let text_size             = TEXT_SIZE;
         let text_field_properties = TextFieldProperties{base_color,font,size,text_size};
         let text_field            = TextField::new(scene,text_field_properties,focus_manager);
@@ -206,7 +211,7 @@ impl ProjectNameModel {
         let project_name          = Rc::new(RefCell::new(UNKNOWN_PROJECT_NAME.to_string()));
         let outputs               = frp.outputs.clone_ref();
         let animations            = Animations::new(&frp.network);
-        Self{logger,view,display_object,text_field,project_name,animations,outputs}.init()
+        Self{logger,view,style,display_object,text_field,project_name,animations,outputs}.init()
     }
 
     /// Get the width of the ProjectName view.
@@ -221,8 +226,8 @@ impl ProjectNameModel {
         let width       = self.width();
         let line_height = self.text_field.line_height();
         let height      = line_height+VERTICAL_MARGIN*2.0;
-        let x_position = breadcrumb::LEFT_MARGIN+breadcrumb::PADDING;
-        let y_position = -VERTICAL_MARGIN-breadcrumb::TOP_MARGIN-breadcrumb::PADDING;
+        let x_position  = breadcrumb::LEFT_MARGIN + breadcrumb::PADDING;
+        let y_position  = -VERTICAL_MARGIN - breadcrumb::TOP_MARGIN - breadcrumb::PADDING;
         self.text_field.set_position(Vector3(x_position,y_position,0.0));
         self.view.shape.sprite.size.set(Vector2(width,height));
         self.view.set_position(Vector3(width,-height,0.0)/2.0);
@@ -271,11 +276,19 @@ impl ProjectNameModel {
     }
 
     fn select(&self) {
-        self.animations.color.set_target_value(breadcrumb::SELECTED_COLOR.into());
+        let styles         = &self.style;
+        let selected_color = styles.get_color(theme::vars::graph_editor::breadcrumbs::selected::color);
+        let selected_color = color::Rgba::from(selected_color);
+
+        self.animations.color.set_target_value(selected_color.into());
     }
 
     fn deselect(&self) {
-        self.animations.color.set_target_value(breadcrumb::LEFT_DESELECTED_COLOR.into());
+        let styles           = &self.style;
+        let deselected_color = styles.get_color(theme::vars::graph_editor::breadcrumbs::deselected::left::color);
+        let deselected_color = color::Rgba::from(deselected_color);
+
+        self.animations.color.set_target_value(deselected_color.into());
     }
 }
 
@@ -302,20 +315,27 @@ pub struct ProjectName {
 
 impl ProjectName {
     /// Constructor.
-    pub fn new<'t,S:Into<&'t Scene>>(scene:S,focus_manager:&FocusManager) -> Self {
+    pub fn new(scene:&Scene,focus_manager:&FocusManager) -> Self {
         let frp     = Frp::new();
         let model   = Rc::new(ProjectNameModel::new(scene,&frp,focus_manager));
         let network = &frp.network;
+
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles            = StyleWatch::new(&scene.style_sheet);
+        let hover_color       = styles.get_color(theme::vars::graph_editor::breadcrumbs::hover::color);
+        let hover_color       = color::Rgba::from(hover_color);
+        let deselected_color  = styles.get_color(theme::vars::graph_editor::breadcrumbs::deselected::left::color);
+        let deselected_color  = color::Rgba::from(deselected_color);
+
         frp::extend! { network
             not_selected               <- frp.outputs.selected.map(|selected| !selected);
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
             mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
             eval_ mouse_over_if_not_selected(
-                model.animations.color.set_target_value(breadcrumb::HOVER_COLOR.into());
+                model.animations.color.set_target_value(hover_color.into());
             );
             eval_ mouse_out_if_not_selected([model] {
-                let color = breadcrumb::LEFT_DESELECTED_COLOR.into();
-                model.animations.color.set_target_value(color);
+                model.animations.color.set_target_value(deselected_color.into());
             });
             eval_ frp.select({
                 model.outputs.selected.emit(true);

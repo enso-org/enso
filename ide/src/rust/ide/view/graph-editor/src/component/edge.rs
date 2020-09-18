@@ -13,9 +13,11 @@ use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component::ShapeViewEvents;
 use ensogl::gui::component;
+use ensogl_theme as theme;
 
 use super::node;
 use crate::component::node::NODE_HEIGHT;
+
 
 
 // =================
@@ -44,7 +46,7 @@ const INFINITE           : f32 = 99999.0;
 const MIN_SOURCE_TARGET_DIFFERENCE_FOR_Y_VALUE_DISCRIMINATION : f32 = 45.0;
 
 const HOVER_COLOR                  : color::Rgba = color::Rgba::new(1.0,0.0,0.0,0.000_001);
-const SPLIT_COLOR_LIGHTNESS_FACTOR : f32 = 0.2;
+
 
 
 // ===================
@@ -1245,6 +1247,7 @@ pub struct EdgeModelData {
     layout_state        : Rc<Cell<LayoutState>>,
     hover_position      : Rc<Cell<Option<Vector2<f32>>>>,
     hover_target        : Rc<Cell<Option<display::object::Id>>>,
+    scene               : Scene,
 }
 
 impl EdgeModelData {
@@ -1278,15 +1281,22 @@ impl EdgeModelData {
         let layout_state    = Rc::new(Cell::new(LayoutState::UpLeft));
         let hover_target    = default();
 
+        let scene = scene.into();
         Self {display_object,logger,frp,front,back,source_width,source_height,target_position,
               target_attached,source_attached,hover_position,
-              layout_state,hover_target,joint}
+              layout_state,hover_target,joint,scene}
     }
 
     /// Set the color of the edge. Also updates the focus color (which will be a dimmed version
     /// of the main color).
     pub fn set_color(&self, color:color::Lcha) {
-        let focus_color = color::Lcha::new(color.lightness * SPLIT_COLOR_LIGHTNESS_FACTOR,color.chroma,color.hue,color.alpha);
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles                        = StyleWatch::new(&self.scene.style_sheet);
+        let split_color_lightness_factor  = styles.get_number_or(theme::vars::graph_editor::edge::split_color::lightness_factor,1.2);
+        let split_color_chroma_factor     = styles.get_number_or(theme::vars::graph_editor::edge::split_color::chroma_factor,0.8);
+        let lightness                     = color.lightness * split_color_lightness_factor;
+        let chroma                        = color.chroma * split_color_chroma_factor;
+        let focus_color = color::Lcha::new(lightness,chroma,color.hue,color.alpha);
         let color_rgba:color::Rgba = color.into();
         self.shapes().iter().for_each(|shape| {
             shape.set_color_focus(focus_color.into());

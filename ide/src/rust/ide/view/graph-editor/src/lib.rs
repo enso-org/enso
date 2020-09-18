@@ -34,7 +34,6 @@ pub mod builtin;
 pub mod data;
 
 use crate::component::node;
-use crate::component::type_coloring::MISSING_TYPE_COLOR;
 use crate::component::visualization;
 use crate::component::visualization::MockDataGenerator3D;
 
@@ -46,12 +45,14 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::Id;
 use ensogl::display::Scene;
+use ensogl::display::shape::primitive::system::StyleWatch;
 use ensogl::display::shape::text::text_field::FocusManager;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component::Tween;
 use ensogl::gui::cursor;
 use ensogl::prelude::*;
 use ensogl::system::web;
+use ensogl_theme;
 use frp::io::keyboard;
 
 pub use ensogl::prelude;
@@ -370,7 +371,6 @@ ensogl::def_command_api! { Commands
 
     /// Switches the selected visualisation to/from fullscreen mode.
     toggle_fullscreen_for_selected_visualization,
-
 
     /// Cancel the operation being currently performed. Often mapped to the escape key.
     cancel,
@@ -1170,6 +1170,7 @@ impl GraphEditorModel {
     fn scene(&self) -> &Scene {
         self.app.display.scene()
     }
+
 }
 
 
@@ -1534,11 +1535,14 @@ impl GraphEditorModel {
     }
 
     /// Return a color for the edge. Either based on the edges source/target type, or a default
-    /// color define in `MISSING_TYPE_COLOR`.
+    /// color defined in Theme Manager as `type . missing . color`
     fn get_edge_color_or_default(&self, edge_id:EdgeId) -> color::Lcha {
-       match self.try_get_edge_color(edge_id) {
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles             = StyleWatch::new(&self.scene().style_sheet);
+        let missing_type_color = styles.get_color(ensogl_theme::vars::graph_editor::edge::_type::missing::color);
+        match self.try_get_edge_color(edge_id) {
            Some(color) => color,
-           None        => MISSING_TYPE_COLOR,
+           None        => missing_type_color,
        }
     }
 
@@ -1694,6 +1698,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     let logger         = &model.logger;
     let outputs        = UnsealedFrpOutputs::new();
     let sealed_outputs = outputs.seal(); // Done here to keep right eval order.
+
+    // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+    let styles             = StyleWatch::new(&scene.style_sheet);
+    let missing_type_color = styles.get_color(ensogl_theme::vars::graph_editor::edge::_type::missing::color);
 
 
 
@@ -2483,6 +2491,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     outputs.edge_removed <+ edges_to_rm;
     }
 
+
+
     // ====================
     // === Cursor Style ===
     // ====================
@@ -2493,7 +2503,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         if let Some(color) = model.get_color_for_detached_edges() {
             cursor::Style::new_color(color).press()
         } else {
-            cursor::Style::new_color_no_animation(MISSING_TYPE_COLOR).press()
+            cursor::Style::new_color_no_animation(missing_type_color).press()
         }
     }));
     cursor_style_on_edge_drag_stop <- outputs.all_edges_attached.constant(default());

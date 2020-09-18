@@ -857,7 +857,7 @@ impl SceneData {
         let keyboard        = Keyboard::new();
         let network         = &frp.network;
         let extensions      = Extensions::default();
-        let bg_color_var    = style_sheet.var("application.background.color");
+        let bg_color_var    = style_sheet.var("application . background . color");
         let bg_color_change = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
                 let color = color::Rgba::from(color);

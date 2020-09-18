@@ -4,7 +4,9 @@ use crate::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::shape::StyleWatch;
 use ensogl_text as text;
+use ensogl_theme;
 use enabled::Logger;
 
 
@@ -139,7 +141,10 @@ impl Entry {
         let display_object = display::object::Instance::new(logger);
         display_object.add_child(&label);
         label.set_position_xy(Vector2(PADDING + ICON_SIZE + ICON_LABEL_GAP, LABEL_SIZE/2.0));
-        label.set_default_color(color::Rgba::new(1.0,1.0,1.0,0.7));
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles     = StyleWatch::new(&app.display.scene().style_sheet);
+        let text_color = styles.get_color(ensogl_theme::vars::widget::list_view::text::color);
+        label.set_default_color(color::Rgba::from(text_color));
         label.set_default_text_size(text::Size(LABEL_SIZE));
         Entry{id,label,icon,display_object}
     }

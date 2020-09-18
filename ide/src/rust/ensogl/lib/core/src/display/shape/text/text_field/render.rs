@@ -11,6 +11,7 @@ use crate::display::Glsl;
 use crate::display::object::traits::*;
 use crate::display::Scene;
 use crate::display::shape;
+use crate::display::shape::StyleWatch;
 use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::glyph::system::GlyphSystem;
 use crate::display::shape::text::text_field::content::TextFieldContent;
@@ -136,10 +137,17 @@ impl TextFieldSprites {
     }
 
     fn create_selection_system<'t,S:Into<&'t Scene>>(scene:S) -> ShapeSystem {
-        const ROUNDING:f32       = 3.0;
-        let width                = "input_size.x";
-        let height               = "input_size.y";
-        let selection_definition = shape::Rect((width,height));
+        const ROUNDING:f32        = 3.0;
+        let width                 = "input_size.x";
+        let height                = "input_size.y";
+        let selection_definition  = shape::Rect((width,height));
+        let scene                 = scene.into();
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles                = StyleWatch::new(&scene.style_sheet);
+        let selection_color_path  = "text_editor . text . selection . color";
+        let selection_color       = styles.get_color(selection_color_path);
+        let selection_color       = color::Rgba::from(selection_color);
+        let selection_definition  = selection_definition.fill(selection_color);
         ShapeSystem::new(scene,&selection_definition)
     }
 

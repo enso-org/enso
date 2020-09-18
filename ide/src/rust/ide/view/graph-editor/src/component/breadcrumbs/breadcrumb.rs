@@ -20,6 +20,7 @@ use ensogl::display::shape::text::glyph::system::Line;
 use ensogl::display::shape::text::glyph::system::GlyphSystem;
 use ensogl::gui::component;
 use ensogl::gui::component::Animation;
+use ensogl_theme as theme;
 use logger::enabled::Logger;
 use logger::AnyLogger;
 use nalgebra::Vector2;
@@ -48,20 +49,6 @@ const SEPARATOR_SIZE    : f32 = 6.0;
 pub const PADDING      : f32 = 1.0;
 const SEPARATOR_MARGIN : f32 = 10.0;
 const TEXT_BASELINE    : f32 = 2.0;
-
-
-// === Colors ===
-
-const FULL_COLOR        : color::Rgba = color::Rgba::new(1.0,1.0,1.0,0.7);
-const TRANSPARENT_COLOR : color::Rgba = color::Rgba::new(1.0,1.0,1.0,0.4);
-/// Breadcrumb color when selected.
-pub const SELECTED_COLOR : color::Rgba = color::Rgba::new(1.0,1.0,1.0,0.6);
-/// Breadcrumb color when it's deselected on the left of the selected breadcrumb.
-pub const LEFT_DESELECTED_COLOR : color::Rgba = color::Rgba::new(1.0,1.0,1.0,0.6);
-/// Breadcrumb color when it's deselected on the right of the selected breadcrumb.
-pub const RIGHT_DESELECTED_COLOR : color::Rgba = color::Rgba::new(1.0,1.0,1.0,0.2);
-/// Breadcrumb color when hovered.
-pub const HOVER_COLOR : color::Rgba = SELECTED_COLOR;
 
 
 
@@ -282,6 +269,7 @@ pub struct BreadcrumbModel {
     glyph_system   : GlyphSystem,
     label          : Line,
     animations     : Animations,
+    style          : StyleWatch,
     /// Breadcrumb information such as name and expression id.
     pub info          : Rc<BreadcrumbInfo>,
     relative_position : Rc<Cell<Option<RelativePosition>>>,
@@ -327,7 +315,9 @@ impl BreadcrumbModel {
         scene.views.main.remove(&symbol);
         scene.views.breadcrumbs.add(&symbol);
 
-        Self{logger,view,icon,separator,display_object,glyph_system,label,info,animations
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let style = StyleWatch::new(&scene.style_sheet);
+        Self{logger,view,icon,separator,display_object,glyph_system,label,info,animations,style
             ,relative_position,outputs}.init()
     }
 
@@ -337,7 +327,13 @@ impl BreadcrumbModel {
         self.separator.add_child(&self.icon);
         self.icon.add_child(&self.label);
 
-        let color  = if self.is_selected() { FULL_COLOR } else { TRANSPARENT_COLOR };
+        let styles            = &self.style;
+        let full_color        = styles.get_color(theme::vars::graph_editor::breadcrumbs::full::color);
+        let full_color        = color::Rgba::from(full_color);
+        let transparent_color = styles.get_color(theme::vars::graph_editor::breadcrumbs::transparent::color);
+        let transparent_color = color::Rgba::from(transparent_color);
+
+        let color  = if self.is_selected() { full_color } else { transparent_color };
 
         self.label.set_font_size(TEXT_SIZE);
         self.label.set_font_color(color);
@@ -407,8 +403,14 @@ impl BreadcrumbModel {
     }
 
     fn select(&self) {
-        self.animations.color.set_target_value(SELECTED_COLOR.into());
-        self.animations.separator_color.set_target_value(LEFT_DESELECTED_COLOR.into());
+        let styles          = &self.style;
+        let selected_color  = styles.get_color(theme::vars::graph_editor::breadcrumbs::selected::color);
+        let selected_color  = color::Rgba::from(selected_color);
+        let left_deselected = styles.get_color(theme::vars::graph_editor::breadcrumbs::deselected::left::color);
+        let left_deselected = color::Rgba::from(left_deselected);
+
+        self.animations.color.set_target_value(selected_color.into());
+        self.animations.separator_color.set_target_value(left_deselected.into());
     }
 
     fn deselect(&self, old:usize, new:usize) {
@@ -421,10 +423,18 @@ impl BreadcrumbModel {
     }
 
     fn deselected_color(&self) -> color::Rgba {
+        let styles           = &self.style;
+        let selected_color   = styles.get_color(theme::vars::graph_editor::breadcrumbs::selected::color);
+        let selected_color   = color::Rgba::from(selected_color);
+        let left_deselected  = styles.get_color(theme::vars::graph_editor::breadcrumbs::deselected::left::color);
+        let left_deselected  = color::Rgba::from(left_deselected);
+        let right_deselected = styles.get_color(theme::vars::graph_editor::breadcrumbs::deselected::right::color);
+        let right_deselected = color::Rgba::from(right_deselected);
+
         match self.relative_position.get() {
-            Some(RelativePosition::RIGHT) => RIGHT_DESELECTED_COLOR,
-            Some(RelativePosition::LEFT)  => LEFT_DESELECTED_COLOR,
-            None                          => SELECTED_COLOR
+            Some(RelativePosition::RIGHT) => right_deselected,
+            Some(RelativePosition::LEFT)  => left_deselected,
+            None                          => selected_color
         }
     }
 
@@ -456,11 +466,15 @@ pub struct Breadcrumb {
 
 impl Breadcrumb {
     /// Constructor.
-    pub fn new<'t,S:Into<&'t Scene>>
-    (scene:S, method_pointer:&MethodPointer, expression_id:&ast::Id) -> Self {
+    pub fn new(scene:&Scene, method_pointer:&MethodPointer, expression_id:&ast::Id) -> Self {
         let frp     = Frp::new();
         let model   = Rc::new(BreadcrumbModel::new(scene,&frp,method_pointer,expression_id));
         let network = &frp.network;
+
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles      = StyleWatch::new(&scene.style_sheet);
+        let hover_color = styles.get_color(theme::vars::graph_editor::breadcrumbs::hover::color);
+        let hover_color = color::Rgba::from(hover_color);
 
         frp::extend! { network
             eval_ frp.fade_in(model.animations.fade_in.set_target_value(1.0));
@@ -476,7 +490,7 @@ impl Breadcrumb {
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
             mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
             eval_ mouse_over_if_not_selected(
-                model.animations.color.set_target_value(HOVER_COLOR.into())
+                model.animations.color.set_target_value(hover_color.into())
             );
             eval_ mouse_out_if_not_selected(
                 model.animations.color.set_target_value(model.deselected_color().into())

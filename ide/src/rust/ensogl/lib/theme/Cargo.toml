@@ -1,0 +1,12 @@
+[package]
+name    = "ensogl-theme"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+
+[dependencies]
+ensogl-core  = { version = "0.1.0"  , path = "../core" }

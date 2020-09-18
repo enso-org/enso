@@ -27,6 +27,7 @@ use ensogl_core::gui::component;
 use ensogl_core::gui;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
+use ensogl_theme;
 
 
 
@@ -124,7 +125,11 @@ pub mod selection {
             let alpha          = alpha_weight.mix(blinking_alpha,SELECTION_ALPHA);
             let shape          = Rect((1.px() * rect_width,1.px() * rect_height));
             let shape          = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
-            let shape          = shape.fill(format!("srgba(1.0,1.0,1.0,{})",alpha.glsl()));
+            let color_path     = ensogl_theme::vars::text_editor::text::selection::color;
+            let color          = style.get_color(color_path);
+            let color          = color::Rgba::from(color);
+            let color          = format!("srgba({},{},{},{})",color.red,color.green,color.blue,alpha.glsl());
+            let shape          = shape.fill(color);
             shape.into()
         }
     }

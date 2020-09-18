@@ -129,7 +129,7 @@ function show_debug_screen(wasm,msg) {
 let root = document.getElementById('root')
 
 function prepare_root(cfg) {
-    root.style.backgroundColor = '#e8e7e699'
+    root.style.backgroundColor = '#f6f3f199'
 }
 
 function getUrlParams() {

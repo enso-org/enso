@@ -15,6 +15,7 @@ ensogl               = { version = "0.1.0", path = "../../../ensogl"            
 ensogl-gui-list-view = { version = "0.1.0", path = "../../../ensogl/lib/list-view"     }
 ensogl-text          = { version = "0.1.0", path = "../../../ensogl/lib/text"          }
 ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../ensogl/lib/text/msdf-sys" }
+ensogl-theme         = { version = "0.1.0", path = "../../../ensogl/lib/theme"         }
 enso-shapely         = { version = "0.1.0", path = "../../../lib/enso-shapely/impl"    }
 span-tree            = { version = "0.1.0", path = "../../lib/span-tree"               }
 logger               = { version = "0.1.0", path = "../../../lib/logger"               }

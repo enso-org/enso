@@ -14,8 +14,7 @@ use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl::application::Application;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::style::theme;
-use ensogl::data::color;
+use ensogl_theme;
 use wasm_bindgen::prelude::*;
 
 
@@ -77,20 +76,10 @@ impl DummyTypeGenerator {
 
 fn init(app:&Application) {
 
-    let mut dark = theme::Theme::new();
-    dark.insert("application.background.color", color::Lcha::new(0.13,0.013,0.18,1.0));
-    dark.insert("graph_editor.node.background.color", color::Lcha::new(0.2,0.013,0.18,1.0));
-    dark.insert("graph_editor.node.selection.color", color::Lcha::new(0.72,0.5,0.22,1.0));
-    dark.insert("graph_editor.node.selection.size", 7.0);
-    dark.insert("animation.duration", 0.5);
-    dark.insert("graph.node.shadow.color", 5.0);
-    dark.insert("graph.node.shadow.size", 5.0);
-    dark.insert("mouse.pointer.color", color::Rgba::new(0.3,0.3,0.3,1.0));
+    ensogl_theme::dark::setup(&app);
+    ensogl_theme::light::setup(&app);
 
-    app.themes.register("dark",dark);
-    app.themes.set_enabled(&["dark"]);
-
-    let _bg = app.display.scene().style_sheet.var("application.background.color");
+    let _bg = app.display.scene().style_sheet.var(ensogl_theme::vars::application::background::color);
 
 
     let world     = &app.display;

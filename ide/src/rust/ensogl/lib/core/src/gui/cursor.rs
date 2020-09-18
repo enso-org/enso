@@ -21,7 +21,7 @@ use crate::gui::component;
 pub const DEFAULT_RADIUS : f32 = 8.0;
 const PADDING            : f32 = 2.0;
 const SIDES_PADDING      : f32 = PADDING * 2.0;
-const DEFAULT_COLOR      : color::Lcha = color::Lcha::new(0.8,0.0,0.0,0.5);
+const DEFAULT_COLOR      : color::Lcha = color::Lcha::new(0.7,0.0,0.0,0.5);
 const TEXT_CURSOR_COLOR  : color::Lcha = color::Lcha::new(0.8,0.0,0.0,0.7);
 const FADE_OUT_TIME      : f32 = 3000.0;
 

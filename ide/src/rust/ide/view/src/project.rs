@@ -25,6 +25,7 @@ use ensogl::gui::component::Animation;
 
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
+    app            : Application,
     logger         : Logger,
     display_object : display::object::Instance,
     graph_editor   : GraphEditor,
@@ -47,12 +48,18 @@ impl Model {
         display_object.remove_child(&searcher);
         display_object.add_child(&documentation);
         display_object.remove_child(&documentation);
-        Self{logger,display_object,graph_editor,searcher,documentation}
+        let app = app.clone_ref();
+        Self{app,logger,display_object,graph_editor,searcher,documentation}
     }
 
     fn set_documentation_visibility(&self, is_visible:bool) {
         if is_visible { self.display_object.remove_child(&self.documentation) }
         else          { self.display_object.add_child(&self.documentation)    }
+    }
+
+    fn set_style(&self, is_light:bool) {
+        if is_light { self.app.themes.set_enabled(&["dark"])  }
+        else        { self.app.themes.set_enabled(&["light"]) }
     }
 
     fn searcher_left_top_under_node(&self, node_id:NodeId) -> Vector2<f32> {
@@ -84,6 +91,8 @@ ensogl::def_command_api! { Commands
     add_new_node,
     /// Abort currently node edit. If it was added node, it will be removed, if the existing node was edited, its old expression will be restored.
     abort_node_editing,
+    /// Simulates a style toggle press event.
+    toggle_style,
 }
 
 impl application::command::CommandApi for View {
@@ -109,6 +118,7 @@ ensogl_text::define_endpoints! {
         old_expression_of_edited_node (Expression),
         editing_aborted               (NodeId),
         editing_committed             (NodeId),
+        style_light                   (bool),
     }
 }
 
@@ -207,10 +217,19 @@ impl View {
             frp.source.adding_new_node <+ any(&adding_committed,&adding_aborted).constant(false);
             eval adding_aborted ((node) graph.remove_node.emit(node));
 
+            // === Style toggle ===
+
+            let style_toggle_ev     = frp.toggle_style.clone_ref();
+            style_pressed          <- style_toggle_ev.toggle() ;
+            style_was_pressed      <- style_pressed.previous();
+            style_press            <- style_toggle_ev.gate_not(&style_was_pressed);
+            style_press_on_off     <- style_press.map2(&frp.style_light, |_,is_light| !is_light);
+            frp.source.style_light <+ style_press_on_off;
 
             // === OUTPUTS REBIND ===
 
             eval frp.documentation_visible ((vis) model.set_documentation_visibility(*vis));
+            eval frp.style_light ((is_light) model.set_style(*is_light));
         }
 
         let mock_documentation = visualization::MockDocGenerator::default();
@@ -253,8 +272,10 @@ impl application::shortcut::DefaultShortcutProvider for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use frp::io::keyboard::Key;
         vec!
-        [ Self::self_shortcut(shortcut::Action::press(&[Key::Shift,Key::Tab],&[]) , "add_new_node")
-        , Self::self_shortcut(shortcut::Action::press(&[Key::Escape],&[])           , "abort_node_editing")
+        [ Self::self_shortcut(shortcut::Action::press  (&[Key::Shift,Key::Tab],&[])                               , "add_new_node")
+        , Self::self_shortcut(shortcut::Action::press  (&[Key::Escape],&[])                                       , "abort_node_editing")
+        , Self::self_shortcut(shortcut::Action::press  (&[Key::Control,Key::Shift,Key::Character("s".into())],&[]), "toggle_style")
+        , Self::self_shortcut(shortcut::Action::release(&[Key::Control,Key::Shift,Key::Character("s".into())],&[]), "toggle_style")
         ]
     }
 }
