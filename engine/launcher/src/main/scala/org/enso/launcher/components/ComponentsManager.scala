@@ -669,7 +669,7 @@ class ComponentsManager(
     * directory (to ensure that they are on the same filesystem) and is moved to
     * the actual directory after doing simple sanity checks.
     *
-    * The caller should hold a shared lock fo
+    * The caller should hold a shared lock for
     * [[Resource.AddOrRemoveComponents]] and an exclusive lock for
     * [[Resource.Runtime]].
     */
@@ -848,7 +848,7 @@ object ComponentsManager {
     * @param globalCLIOptions options from the CLI setting verbosity of the
     *                         executed actions
     */
-  def makeDefault(globalCLIOptions: GlobalCLIOptions): ComponentsManager =
+  def default(globalCLIOptions: GlobalCLIOptions): ComponentsManager =
     new ComponentsManager(
       globalCLIOptions,
       DistributionManager,

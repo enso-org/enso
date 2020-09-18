@@ -374,7 +374,7 @@ object LauncherUpgrader {
     *                               executable that will be replaced in the last
     *                               step of the upgrade
     */
-  def makeDefault(
+  def default(
     globalCLIOptions: GlobalCLIOptions,
     originalExecutablePath: Option[Path] = None
   ): LauncherUpgrader =
@@ -439,7 +439,7 @@ object LauncherUpgrader {
       throw upgradeRequiredError
     }
 
-    val upgrader           = makeDefault(upgradeRequiredError.globalCLIOptions)
+    val upgrader           = default(upgradeRequiredError.globalCLIOptions)
     val targetVersion      = upgrader.latestVersion().get
     val launcherExecutable = upgrader.originalExecutable
     try {

@@ -345,7 +345,7 @@ object DistributionUninstaller {
     * Creates a default [[DistributionUninstaller]] using the default managers
     * and the provided CLI options.
     */
-  def makeDefault(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =
+  def default(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =
     new DistributionUninstaller(
       DistributionManager,
       DefaultResourceManager,

@@ -416,7 +416,7 @@ object DistributionInstaller {
   /**
     * Creates a [[DistributionInstaller]] using the default managers.
     */
-  def makeDefault(
+  def default(
     globalCLIOptions: GlobalCLIOptions,
     removeOldLauncher: Boolean,
     bundleActionOption: Option[BundleAction]

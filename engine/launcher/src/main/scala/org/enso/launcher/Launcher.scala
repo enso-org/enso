@@ -30,7 +30,7 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
   * @param cliOptions the global CLI options to use for the commands
   */
 case class Launcher(cliOptions: GlobalCLIOptions) {
-  private lazy val componentsManager = ComponentsManager.makeDefault(cliOptions)
+  private lazy val componentsManager = ComponentsManager.default(cliOptions)
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
@@ -41,7 +41,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       componentsManager,
       Environment
     )
-  private lazy val upgrader = LauncherUpgrader.makeDefault(cliOptions)
+  private lazy val upgrader = LauncherUpgrader.default(cliOptions)
   upgrader.runCleanup(isStartup = true)
 
   /**
@@ -354,7 +354,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     bundleAction: Option[BundleAction]
   ): Int = {
     DistributionInstaller
-      .makeDefault(
+      .default(
         globalCLIOptions   = cliOptions,
         removeOldLauncher  = !doNotRemoveOldLauncher,
         bundleActionOption = bundleAction
@@ -367,7 +367,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * Uninstalls the Enso distribution.
     */
   def uninstallDistribution(): Int = {
-    DistributionUninstaller.makeDefault(cliOptions).uninstall()
+    DistributionUninstaller.default(cliOptions).uninstall()
     0
   }
 

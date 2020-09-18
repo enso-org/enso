@@ -182,7 +182,7 @@ object InternalOpts {
 
         continueUpgrade.foreach { version =>
           LauncherUpgrader
-            .makeDefault(config, originalExecutablePath = originalPath)
+            .default(config, originalExecutablePath = originalPath)
             .internalContinueUpgrade(version)
           sys.exit(0)
         }
