@@ -29,8 +29,14 @@ Path .
 type FilePath mode
     FilePath path mode
 
+type FileMode
+    Read                                                            # permission to read the file
+    Append                                                          # permission to append to the end of file
+    Write                                                           # permission to overwrite into file
+    Create                                                          # permission to create nonexisting files and directories
+
 Path .
-    file               : FilePath {read,append,write,create}        # make this path represent a file
+    file               : FilePath [Read,Append,Write,Create]        # make this path represent a file, all permissions are turned on
 
 FilePath mode . 
     set_mode           : new_mode -> FilePath new_mode              # change the mode of file
@@ -47,20 +53,20 @@ type File mode
 
 # Since we don't have typechecker, the File mode will be checked on runtime.
 # mode contains `read`
-File {read, ..} .
-    metadata           : IO Metadata                                # the file metadata
-    is_empty           : IO Boolean                                 # is there no additional content to be read
-    read               : IO Text                                    # read the whole content of file as text
-    read_bytes         : IO Vector(Byte)                            # read the whole content of file
-    read_line          : IO Text                                    # read a single line of file as text
-    read_line_bytes    : IO Vector(Byte)                            # read a single line of file
+File [Read, ..] .
+    metadata           : IO Metadata             # the file metadata
+    is_empty           : IO Boolean              # is there no additional content to be read
+    read               : IO Text                 # read the whole content of file as text
+    read_bytes         : IO Vector(Byte)         # read the whole content of file
+    read_line          : IO Text                 # read a single line of file as text
+    read_line_bytes    : IO Vector(Byte)         # read a single line of file
 
-                                                                    # mode contains `append`
-File {append, ..} .
-    append             : Text -> IO This                            # append the text to the end of the file
-    append_bytes       : Vector Byte -> IO This                     # append the bytes to the end of the file
+# mode contains `append`
+File [Append, ..] .
+    append             : Text -> IO This         # append the text to the end of the file
+    append_bytes       : Vector Byte -> IO This  # append the bytes to the end of the file
 
-                                                                    # mode contains `write`
-File {write, ..} .
-    write              : Text -> IO This                            # overwrite the content of file with the given text
-    write_bytes        : Vector Byte -> IO This                     # append the bytes to the end of the file
+ # mode contains `write`
+File [Write, ..] .
+    write              : Text -> IO This         # overwrite the content of file with the given text
+    write_bytes        : Vector Byte -> IO This  # append the bytes to the end of the file
