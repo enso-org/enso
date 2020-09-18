@@ -63,7 +63,7 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       util.Arrays.equals(v2.get, digest) shouldBe true
     }
 
-    "set new digest" taggedAs Retry in withRepo { repo =>
+    "set digest" taggedAs Retry in withRepo { repo =>
       val file    = new File("/foo/bar")
       val digest1 = nextDigest()
       val digest2 = nextDigest()

@@ -11,6 +11,14 @@ import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import scala.collection.mutable
 
+/** The changeset of a module containing the computed list of invalidated
+  * expressions.
+  *
+  * @param source the module source
+  * @param ir the IR node of the module
+  * @param invalidated the list of invalidated expressions
+  * @tparam A the source type
+  */
 case class Changeset[A](
   source: A,
   ir: IR,
@@ -28,6 +36,12 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   val ir: IR
 ) {
 
+  /** Build the changeset containing the nodes invalidated by the edits.
+    *
+    * @param edits the edits applied to the source
+    * @return the computed changeset
+    */
+  @throws[CompilerError]
   def build(edits: Seq[TextEdit]): Changeset[A] =
     Changeset(source, ir, compute(edits))
 

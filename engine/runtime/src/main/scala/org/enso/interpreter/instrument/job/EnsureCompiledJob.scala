@@ -53,7 +53,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       compile(module)
       analyzeModuleInScope(module)
     }
-    sendNotificationToClient(
+    sendNotification(
       Api.SuggestionsDatabaseIndexUpdateNotification(updates)
     )
   }
@@ -74,7 +74,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             val changeset = changesetBuilder.build(edits)
             compile(module)
             runInvalidationCommands(
-              buildCacheInvalidationCommands(changeset)
+              buildCacheInvalidationCommands(changeset, module.getLiteralSource)
             )
             analyzeModule(module, changeset)
             val importedModules =
@@ -229,19 +229,19 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /**
     * Create cache invalidation commands after applying the edits.
     *
-    * @param changeset the [[ChangesetBuilder]] object capturing the previous version
-    * of IR
+    * @param changeset the [[ChangesetBuilder]] object capturing the previous
+    * version of IR
     * @param ctx the runtime context
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
-    changeset: Changeset[Rope]
+    changeset: Changeset[Rope],
+    source: Rope
   )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
     val scopeIds = ctx.executionService.getContext.getCompiler
-      // TODO: module.getLiteralSource
-      .parseMeta(changeset.source.toString)
+      .parseMeta(source.toString)
       .map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
@@ -318,7 +318,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     )
   }
 
-  private def sendNotificationToClient(msg: ApiNotification)(implicit
+  private def sendNotification(msg: ApiNotification)(implicit
     ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(Api.Response(msg))
@@ -361,6 +361,7 @@ object EnsureCompiledJob {
     * Create a job ensuring that files are compiled after applying the edits.
     *
     * @param file a file to compile
+    * @param edits the list of edits to apply
     * @return a new job
     */
   def apply(file: File, edits: Seq[TextEdit]): EnsureCompiledJob = {

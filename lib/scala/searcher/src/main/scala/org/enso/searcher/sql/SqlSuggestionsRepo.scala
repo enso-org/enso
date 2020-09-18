@@ -298,7 +298,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     deleteQuery
   }
 
-  /** The query to remove all suggestions by module name.
+  /** The query to remove all suggestions by module names.
     *
     * @param modules the list of modules to remove
     * @return the current database version and a list of removed suggestion ids

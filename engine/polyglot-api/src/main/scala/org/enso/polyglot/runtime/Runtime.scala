@@ -736,12 +736,24 @@ object Runtime {
     /** Signals that the module indexes has been invalidated. */
     case class InvalidateModulesIndexResponse() extends ApiResponse
 
+    /**
+      * An indexed module.
+      *
+      * @param file the module file path
+      * @param contents the module source
+      * @param updates the list of suggestions extracted from module
+      */
     case class IndexedModule(
       file: File,
       contents: String,
       updates: Seq[SuggestionsDatabaseUpdate.Add]
     ) extends ApiNotification
 
+    /**
+      * A notification about new indexed modules.
+      *
+      * @param updates the list of suggestions database updates
+      */
     case class SuggestionsDatabaseIndexUpdateNotification(
       updates: Iterable[IndexedModule]
     ) extends ApiNotification
