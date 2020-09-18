@@ -1,0 +1,66 @@
+from Base import all
+
+
+# A type representing system path.
+type Path
+    Path path                                                       # Text or Vector Text
+
+# The type of an entity a path points to.
+type PathEntity
+    IsFile
+    IsDirectory
+    None
+
+Path .
+    entity             : IO PathEntity                              # type of the entity this path points to
+    list               : IO Vector(Path)                            # list the content (directory, files, etc.) of a folder, error if entity isn't file
+    name               : IO Text                                    # the file or folder name, resolves symlinks
+    absolute           : IO Path                                    # the absolute path, with resolved symlinks
+    to_text            : Text                                       # the text representation of the relative path
+    metadata           : IO Metadata                                # filesystem metadata
+    exists             : IO Boolean                                 # true if the file exists
+    parent             : IO Path                                    # path to the parent folder of path entity, resolves symlinks
+    child              : Text -> Path                               # path to a child entity in current folder
+    create_dirs        : IO ()                                      # create directories that exist in the path but not in file system
+
+
+
+# Path to a file that can be opened and read or written to.
+type FilePath mode
+    FilePath path mode
+
+Path .
+    file               : FilePath {read,append,write,create}        # make this path represent a file
+
+FilePath mode . 
+    set_mode           : new_mode -> FilePath new_mode              # change the mode of file
+    with               : (File mode -> IO()) -> IO()                # open the file, apply function to it, close the file, 
+                                                                    # if file doesn't exist and mode includes `create` 
+                                                                    # the file and all directories are created
+                                                                    # otherwise and error is thrown
+
+
+
+# A type representing an open file.
+type File mode 
+    File (private handle) (private mode)
+
+# Since we don't have typechecker, the File mode will be checked on runtime.
+# mode contains `read`
+File {read, ..} .
+    metadata           : IO Metadata                                # the file metadata
+    is_empty           : IO Boolean                                 # is there no additional content to be read
+    read               : IO Text                                    # read the whole content of file as text
+    read_bytes         : IO Vector(Byte)                            # read the whole content of file
+    read_line          : IO Text                                    # read a single line of file as text
+    read_line_bytes    : IO Vector(Byte)                            # read a single line of file
+
+                                                                    # mode contains `append`
+File {append, ..} .
+    append             : Text -> IO This                            # append the text to the end of the file
+    append_bytes       : Vector Byte -> IO This                     # append the bytes to the end of the file
+
+                                                                    # mode contains `write`
+File {write, ..} .
+    write              : Text -> IO This                            # overwrite the content of file with the given text
+    write_bytes        : Vector Byte -> IO This                     # append the bytes to the end of the file
