@@ -128,21 +128,7 @@ class StdlibRuntimeServerTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  val ModulesInScope = Seq(
-    "Base.Bench_Utils",
-    "Base.Boolean",
-    "Base.List",
-    "Base.Main",
-    "Base.Maybe",
-    "Base.Process.Exit_Code",
-    "Base.Process",
-    "Base.System.Platform",
-    "Base.Test",
-    "Base.Vector",
-    "Test.Main"
-  )
-
-  it should "import Base" in {
+  it should "import Base modules" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
@@ -191,13 +177,14 @@ class StdlibRuntimeServerTest
     )
     response.collect {
       case Api.Response(
-            Some(`requestId`),
+            None,
             Api.SuggestionsDatabaseIndexUpdateNotification(xs)
           ) =>
+        xs.nonEmpty shouldBe true
         xs.flatMap(
           _.updates.headOption.map(_.suggestion.module)
-        ) should contain theSameElementsAs ModulesInScope
-    }
+        ) should not contain "Test.Main"
+    } should have length 1
 
     context.consumeOut shouldEqual List("Hello World!")
   }
