@@ -26,12 +26,13 @@ import scala.util.{Success, Try, Using}
   */
 case class FakeReleaseProvider(
   releasesRoot: Path,
-  copyIntoArchiveRoot: Seq[String] = Seq.empty
+  copyIntoArchiveRoot: Seq[String] = Seq.empty,
+  shouldWaitForAssets: Boolean     = false
 ) extends SimpleReleaseProvider {
   private val releases =
     FileSystem
       .listDirectory(releasesRoot)
-      .map(FakeRelease(_, copyIntoArchiveRoot))
+      .map(FakeRelease(_, copyIntoArchiveRoot, shouldWaitForAssets))
 
   /**
     * @inheritdoc
@@ -55,8 +56,11 @@ case class FakeReleaseProvider(
   *             represents a [[FakeAsset]]
   * @param copyIntoArchiveRoot list of
   */
-case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
-    extends Release {
+case class FakeRelease(
+  path: Path,
+  copyIntoArchiveRoot: Seq[String] = Seq.empty,
+  shouldWaitForAssets: Boolean
+) extends Release {
 
   /**
     * @inheritdoc
@@ -68,7 +72,9 @@ case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
     */
   override def assets: Seq[Asset] = {
     val pathsToCopy = copyIntoArchiveRoot.map(path.resolve)
-    FileSystem.listDirectory(path).map(FakeAsset(_, pathsToCopy))
+    FileSystem
+      .listDirectory(path)
+      .map(FakeAsset(_, pathsToCopy, shouldWaitForAssets))
   }
 }
 
@@ -84,8 +90,11 @@ case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
   * root of that created archive. This allows to avoid maintaining additional
   * copies of shared files like the manifest.
   */
-case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
-    extends Asset {
+case class FakeAsset(
+  source: Path,
+  copyIntoArchiveRoot: Seq[Path] = Seq.empty,
+  shouldWaitForAssets: Boolean
+) extends Asset {
 
   /**
     * @inheritdoc
@@ -108,23 +117,24 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
   }
 
   /**
-    * Acquires a shared lock on the asset.
+    * If [[shouldWaitForAssets]] is set, acquires a shared lock on the asset.
     *
     * The test runner may grab an exclusive lock on an asset as a way to
     * synchronize actions (this download will wait until such exclusive lock is
     * released).
     */
-  private def maybeWaitForAsset(): Unit = {
-    val name = "testasset-" + fileName
-    val lock = DefaultFileLockManager.acquireLockWithWaitingAction(
-      name,
-      LockType.Shared,
-      waitingAction = () => {
-        System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
-      }
-    )
-    lock.release()
-  }
+  private def maybeWaitForAsset(): Unit =
+    if (shouldWaitForAssets) {
+      val name = "testasset-" + fileName
+      val lock = DefaultFileLockManager.acquireLockWithWaitingAction(
+        name,
+        LockType.Shared,
+        waitingAction = () => {
+          System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
+        }
+      )
+      lock.release()
+    }
 
   private def copyFakeAsset(destination: Path): Unit =
     if (Files.isDirectory(source))

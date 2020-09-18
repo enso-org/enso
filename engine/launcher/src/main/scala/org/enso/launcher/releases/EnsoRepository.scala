@@ -72,7 +72,10 @@ object EnsoRepository {
     *
     * Internal method used for testing.
     */
-  def internalUseFakeRepository(fakeRepositoryRoot: Path): Unit =
+  def internalUseFakeRepository(
+    fakeRepositoryRoot: Path,
+    shouldWaitForAssets: Boolean
+  ): Unit =
     if (buildinfo.Info.isRelease)
       throw new IllegalStateException(
         "Internal testing function internalUseFakeRepository used in a " +
@@ -80,7 +83,8 @@ object EnsoRepository {
       )
     else {
       Logger.debug(s"[TEST] Using a fake repository at $fakeRepositoryRoot.")
-      launcherRepository = makeFakeRepository(fakeRepositoryRoot)
+      launcherRepository =
+        makeFakeRepository(fakeRepositoryRoot, shouldWaitForAssets)
     }
 
   private val defaultEngineRepository = githubRepository
@@ -92,7 +96,11 @@ object EnsoRepository {
     defaultLauncherRepository
 
   private def makeFakeRepository(
-    fakeRepositoryRoot: Path
+    fakeRepositoryRoot: Path,
+    shouldWaitForAssets: Boolean
   ): SimpleReleaseProvider =
-    FakeReleaseProvider(fakeRepositoryRoot)
+    FakeReleaseProvider(
+      fakeRepositoryRoot,
+      shouldWaitForAssets = shouldWaitForAssets
+    )
 }

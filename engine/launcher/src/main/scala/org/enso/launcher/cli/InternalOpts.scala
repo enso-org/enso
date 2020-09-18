@@ -70,11 +70,13 @@ object InternalOpts {
   private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
   private val UPGRADE_ORIGINAL_PATH   = "internal-upgrade-original-path"
 
-  private val EMULATE_VERSION    = "internal-emulate-version"
-  private val EMULATE_LOCATION   = "internal-emulate-location"
-  private val EMULATE_REPOSITORY = "internal-emulate-repository"
+  private val EMULATE_VERSION         = "internal-emulate-version"
+  private val EMULATE_LOCATION        = "internal-emulate-location"
+  private val EMULATE_REPOSITORY      = "internal-emulate-repository"
+  private val EMULATE_REPOSITORY_WAIT = "internal-emulate-repository-wait"
 
   private var inheritEmulateRepository: Option[Path] = None
+  private var inheritShouldWaitForAssets: Boolean    = false
 
   /**
     * Removes internal testing options that should not be preserved in the called executable.
@@ -201,9 +203,11 @@ object InternalOpts {
         Opts.optionalParameter[Path](EMULATE_LOCATION, "PATH", "").hidden
       val emulateRepository =
         Opts.optionalParameter[Path](EMULATE_REPOSITORY, "PATH", "").hidden
+      val waitForAssets =
+        Opts.flag(EMULATE_REPOSITORY_WAIT, "", showInUsage = false).hidden
 
-      (emulateVersion, emulateLocation, emulateRepository) mapN {
-        (emulateVersion, emulateLocation, emulateRepository) =>
+      (emulateVersion, emulateLocation, emulateRepository, waitForAssets) mapN {
+        (emulateVersion, emulateLocation, emulateRepository, waitForAssets) =>
           emulateVersion.foreach { version =>
             CurrentVersion.internalOverrideVersion(version)
           }
@@ -212,20 +216,36 @@ object InternalOpts {
             Environment.internalOverrideExecutableLocation(location)
           }
 
+          if (waitForAssets) {
+            inheritShouldWaitForAssets = true
+          }
+
           emulateRepository.foreach { repositoryPath =>
             inheritEmulateRepository = Some(repositoryPath)
-            EnsoRepository.internalUseFakeRepository(repositoryPath)
+            EnsoRepository.internalUseFakeRepository(
+              repositoryPath,
+              waitForAssets
+            )
           }
       }
 
     }
 
-  private def optionsToInherit: Seq[String] =
-    inheritEmulateRepository
+  /**
+    * Specifies options that are inherited by the process that is launched when
+    * continuing the upgrade.
+    */
+  private def optionsToInherit: Seq[String] = {
+    val repositoryPath = inheritEmulateRepository
       .map { path =>
         Seq(s"--$EMULATE_REPOSITORY", path.toAbsolutePath.toString)
       }
       .getOrElse(Seq())
+    val waitForAssets =
+      if (inheritShouldWaitForAssets) Seq(s"--$EMULATE_REPOSITORY_WAIT")
+      else Seq()
+    repositoryPath ++ waitForAssets
+  }
 
   /**
     * Returns a helper class that allows to run the launcher located at the

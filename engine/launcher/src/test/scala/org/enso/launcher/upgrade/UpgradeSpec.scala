@@ -213,10 +213,7 @@ class UpgradeSpec
         "ENSO_RUNTIME_DIRECTORY" -> (getTestDirectory / "run").toString
       )
 
-      run(
-        Seq("upgrade", "0.0.1"),
-        extraEnv = env
-      ) should returnSuccess
+      run(Seq("upgrade", "0.0.1"), extraEnv = env) should returnSuccess
       checkVersion() shouldEqual SemVer(0, 0, 1)
       TestHelpers
         .readFileContent(dataRoot / "README.md")
@@ -236,7 +233,11 @@ class UpgradeSpec
       )
 
       checkVersion() shouldEqual SemVer(0, 0, 0)
-      run(Seq("upgrade", "0.0.3")) should returnSuccess
+      // run(Seq("upgrade", "0.0.3")) should returnSuccess
+      val proc = startLauncher(Seq("upgrade", "0.0.3"))
+      proc.printIO()
+      proc.join() should returnSuccess
+
       checkVersion() shouldEqual SemVer(0, 0, 3)
 
       val launchedVersions = Seq(
@@ -254,6 +255,19 @@ class UpgradeSpec
         .toSeq
 
       reportedLaunchLog shouldEqual launchedVersions
+
+      withClue(
+        "After the update we run the version check, running the launcher " +
+        "after the update should ensure no leftover temporary executables " +
+        "are left in the bin directory."
+      ) {
+        val binDirectory = launcherPath.getParent
+        val leftOverExecutables = FileSystem
+          .listDirectory(binDirectory)
+          .map(_.getFileName.toString)
+          .filter(_.startsWith("enso"))
+        leftOverExecutables shouldEqual Seq(OS.executableName("enso"))
+      }
     }
 
     "automatically trigger if an action requires a newer version and re-run " +
@@ -312,15 +326,22 @@ class UpgradeSpec
         LockType.Exclusive
       )
 
-      val firstSuspended = startLauncher(Seq("upgrade", "0.0.2"))
-      firstSuspended.waitForMessageOnErrorStream("INTERNAL-TEST-ACQUIRING-LOCK")
+      val firstSuspended = startLauncher(
+        Seq("upgrade", "0.0.2", "--internal-emulate-repository-wait")
+      )
+      try {
+        firstSuspended.waitForMessageOnErrorStream(
+          "INTERNAL-TEST-ACQUIRING-LOCK"
+        )
 
-      val secondFailed = run(Seq("upgrade", "0.0.0"))
+        val secondFailed = run(Seq("upgrade", "0.0.0"))
 
-      secondFailed.stderr should include("Another upgrade is in progress")
-      secondFailed.exitCode shouldEqual 1
+        secondFailed.stderr should include("Another upgrade is in progress")
+        secondFailed.exitCode shouldEqual 1
+      } finally {
+        lock.release()
+      }
 
-      lock.release()
       firstSuspended.join() should returnSuccess
       checkVersion() shouldEqual SemVer(0, 0, 2)
     }

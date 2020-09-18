@@ -1,8 +1,9 @@
 package org.enso.launcher
 
-import java.io.{BufferedReader, InputStreamReader}
+import java.io.{BufferedReader, InputStream, InputStreamReader}
 import java.nio.file.{Files, Path}
 import java.lang.{ProcessBuilder => JProcessBuilder}
+import java.util.concurrent.{Semaphore, TimeUnit, TimeoutException}
 
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
@@ -192,29 +193,100 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
     try {
       val process = builder.start()
-      WrappedProcess(command, process)
+      new WrappedProcess(command, process)
     } catch {
       case e: Exception =>
         throw new RuntimeException("Cannot run the Native Image binary", e)
     }
   }
 
-  case class WrappedProcess(command: Seq[String], process: Process) {
+  class WrappedProcess(command: Seq[String], process: Process) {
+
+    private val outQueue =
+      new java.util.concurrent.LinkedTransferQueue[String]()
+    private val errQueue =
+      new java.util.concurrent.LinkedTransferQueue[String]()
+
+    sealed trait StreamType
+    case object StdErr extends StreamType
+    case object StdOut extends StreamType
+    @volatile private var ioHandlers: Seq[(String, StreamType) => Unit] = Seq()
+
+    def watchStream(
+      stream: InputStream,
+      streamType: StreamType
+    ): Unit = {
+      val reader       = new BufferedReader(new InputStreamReader(stream))
+      var line: String = null
+      val queue = streamType match {
+        case StdErr => errQueue
+        case StdOut => outQueue
+      }
+      while ({ line = reader.readLine(); line != null }) {
+        queue.add(line)
+        ioHandlers.foreach(f => f(line, streamType))
+      }
+    }
+
+    private val outThread = new Thread(() =>
+      watchStream(process.getInputStream, StdOut)
+    )
+    private val errThread = new Thread(() =>
+      watchStream(process.getErrorStream, StdErr)
+    )
+    outThread.start()
+    errThread.start()
 
     /**
       * Waits for a message on the stderr to appear.
-      *
-      * May result in the `stderr` of [[join]]'s result being incomplete.
       */
-    def waitForMessageOnErrorStream(message: String): Unit = {
-      val reader = new BufferedReader(
-        new InputStreamReader(process.getErrorStream)
-      )
-      var line: String = null
-      while ({ line = reader.readLine(); line != null }) {
-        if (line.contains(message)) return
+    def waitForMessageOnErrorStream(
+      message: String,
+      timeoutSeconds: Long = 10
+    ): Unit = {
+      val semaphore = new Semaphore(0)
+      def handler(line: String, streamType: StreamType): Unit = {
+        if (streamType == StdErr && line.contains(message)) {
+          semaphore.release()
+        }
       }
-      throw new RuntimeException("The requested line did not appear in stderr.")
+
+      this.synchronized {
+        ioHandlers ++= Seq(handler _)
+      }
+
+      val acquired = semaphore.tryAcquire(timeoutSeconds, TimeUnit.SECONDS)
+      if (!acquired) {
+        throw new RuntimeException(s"Waiting for `$message` timed out.")
+      }
+    }
+
+    /**
+      * Starts printing the stdout and stderr of the started process to the
+      * stdout with prefixes to indicate that these messages come from another
+      * process.
+      *
+      * It also prints lines that were printed before invoking this method.
+      * Thus, it is possible that a line may be printed twice (once as
+      * 'before-printIO' and once normally).
+      */
+    def printIO(): Unit = {
+      def handler(line: String, streamType: StreamType): Unit = {
+        val prefix = streamType match {
+          case StdErr => "stderr> "
+          case StdOut => "stdout> "
+        }
+        println(prefix + line)
+      }
+      this.synchronized {
+        ioHandlers ++= Seq(handler _)
+      }
+      outQueue.asScala.toSeq.foreach(line =>
+        println(s"stdout-before-printIO> $line")
+      )
+      errQueue.asScala.toSeq.foreach(line =>
+        println(s"stderr-before-printIO> $line")
+      )
     }
 
     /**
@@ -223,25 +295,50 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       * If `waitForDescendants` is set, tries to wait for descendants of the
       * launched process to finish too. Especially important on Windows where
       * child processes may run after the launcher parent has been terminated.
+      *
+      * It will timeout after `timeoutSeconds` and try to kill the process (or
+      * its descendants), although it may not always be able to.
       */
-    def join(waitForDescendants: Boolean = true): RunResult =
+    def join(
+      waitForDescendants: Boolean = true,
+      timeoutSeconds: Long        = 10
+    ): RunResult = {
+      var descendants: Seq[ProcessHandle] = Seq()
       try {
-        val exitCode = process.waitFor()
+        val exitCode =
+          if (process.waitFor(timeoutSeconds, TimeUnit.SECONDS))
+            process.exitValue()
+          else throw new TimeoutException("Process timed out")
         if (waitForDescendants) {
-          val descendants = process.descendants().toScala(Factory.arrayFactory)
-          descendants.foreach(_.onExit().join())
+          descendants =
+            process.descendants().toScala(Factory.arrayFactory).toSeq
+          descendants.foreach(_.onExit().get(timeoutSeconds, TimeUnit.SECONDS))
         }
-        val stdout = new String(process.getInputStream.readAllBytes())
-        val stderr = new String(process.getErrorStream.readAllBytes())
+        errThread.join(1000)
+        outThread.join(1000)
+        if (errThread.isAlive) {
+          errThread.interrupt()
+        }
+        if (outThread.isAlive) {
+          outThread.interrupt()
+        }
+        val stdout = outQueue.asScala.toSeq.mkString("\n")
+        val stderr = errQueue.asScala.toSeq.mkString("\n")
         RunResult(exitCode, stdout, stderr)
       } catch {
-        case e: InterruptedException =>
+        case e @ (_: InterruptedException | _: TimeoutException) =>
           if (process.isAlive) {
             println(s"Killing the timed-out process: ${command.mkString(" ")}")
-            process.destroy()
+            process.destroyForcibly()
+          }
+          for (processHandle <- descendants) {
+            if (processHandle.isAlive) {
+              processHandle.destroyForcibly()
+            }
           }
           throw e
       }
+    }
   }
 
   /**

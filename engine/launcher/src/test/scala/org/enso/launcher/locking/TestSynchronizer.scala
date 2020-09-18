@@ -21,7 +21,7 @@ class TestSynchronizer {
     *
     * Can be enabled to aid with debugging, but should be disabled by default.
     */
-  val enableDebugOutput: Boolean = true
+  val enableDebugOutput: Boolean = false
 
   /**
     * Executes the `action` in a separate thread with the given `name`
