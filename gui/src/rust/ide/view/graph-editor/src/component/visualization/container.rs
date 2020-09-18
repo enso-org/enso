@@ -22,6 +22,8 @@ use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component;
+use ensogl_theme as theme;
+
 
 
 // =================
@@ -30,7 +32,7 @@ use ensogl::gui::component;
 
 const DEFAULT_SIZE  : (f32,f32) = (200.0,200.0);
 const CORNER_RADIUS : f32       = super::super::node::CORNER_RADIUS;
-
+const SHADOW_SIZE   : f32       = super::super::node::SHADOW_SIZE;
 
 
 // =============
@@ -44,17 +46,36 @@ const CORNER_RADIUS : f32       = super::super::node::CORNER_RADIUS;
 pub mod background {
     use super::*;
 
-    // TODO use style
     ensogl::define_shape_system! {
-        (selected:f32,radius:f32,roundness:f32) {
+        (style:Style,selected:f32,radius:f32,roundness:f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
+            let width         = &width  - SHADOW_SIZE.px() * 2.0;
+            let height        = &height - SHADOW_SIZE.px() * 2.0;
             let radius        = 1.px() * &radius;
-            let color_bg      = color::Lcha::new(0.2,0.013,0.18,1.0);
+            let color_path    = theme::vars::graph_editor::visualization::background::color;
+            let color_bg      = style.get_color(color_path);
             let corner_radius = &radius * &roundness;
             let background    = Rect((&width,&height)).corners_radius(&corner_radius);
             let background    = background.fill(color::Rgba::from(color_bg));
-            background.into()
+
+            // === Shadow ===
+
+            let border_size_f = 16.0;
+            let corner_radius = corner_radius*1.75;
+            let width         = &width  + SHADOW_SIZE.px() * 2.0;
+            let height        = &height + SHADOW_SIZE.px() * 2.0;
+            let shadow        = Rect((&width,&height)).corners_radius(&corner_radius).shrink(1.px());
+            let shadow_color  = color::LinearGradient::new()
+                .add(0.0,color::Rgba::new(0.0,0.0,0.0,0.0).into_linear())
+                .add(1.0,color::Rgba::new(0.0,0.0,0.0,0.20).into_linear());
+            let shadow_color  = color::SdfSampler::new(shadow_color)
+                .max_distance(border_size_f)
+                .slope(color::Slope::Exponent(2.0));
+            let shadow        = shadow.fill(shadow_color);
+
+            let out = shadow + background;
+            out.into()
         }
     }
 }
@@ -67,13 +88,13 @@ pub mod background {
 pub mod fullscreen_background {
     use super::*;
 
-    // TODO use style
     ensogl::define_shape_system! {
-        (selected:f32,radius:f32,roundness:f32) {
+        (style:Style,selected:f32,radius:f32,roundness:f32) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let radius        = 1.px() * &radius;
-            let color_bg      = color::Lcha::new(0.2,0.013,0.18,1.0);
+            let color_path    = theme::vars::graph_editor::visualization::background::color;
+            let color_bg      = style.get_color(color_path);
             let corner_radius = &radius * &roundness;
             let background    = Rect((&width,&height)).corners_radius(&corner_radius);
             let background    = background.fill(color::Rgba::from(color_bg));
@@ -205,9 +226,9 @@ impl display::Object for View {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FullscreenView {
-    logger           : Logger,
-    display_object   : display::object::Instance,
-    background : component::ShapeView<fullscreen_background::Shape>,
+    logger         : Logger,
+    display_object : display::object::Instance,
+    background     : component::ShapeView<fullscreen_background::Shape>,
 }
 
 impl FullscreenView {
@@ -337,8 +358,8 @@ impl ContainerModel {
         } else {
             self.view.background.shape.radius.set(CORNER_RADIUS);
             self.view.overlay.shape.radius.set(CORNER_RADIUS);
-            self.view.background.shape.sprite.size.set(size);
-            self.view.overlay.shape.sprite.size.set(size);
+            self.view.background.shape.sprite.size.set(size.add_scalar(SHADOW_SIZE * 2.0));
+            self.view.overlay.shape.sprite.size.set(size.add_scalar(SHADOW_SIZE * 2.0));
             self.fullscreen_view.background . shape.sprite.size.set(zero());
         }
 

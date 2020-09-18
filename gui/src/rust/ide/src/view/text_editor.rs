@@ -11,10 +11,12 @@ use enso_frp::io::keyboard;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::Scene;
+use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::shape::text::glyph::font;
 use ensogl::display::shape::text::text_field::{TextField, FocusManager};
 use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::system::web::platform::Platform;
+use ensogl_theme;
 use nalgebra::Vector2;
 use nalgebra::zero;
 use utils::channel::process_stream_with_handle;
@@ -80,7 +82,10 @@ impl TextEditor {
         let padding    = default();
         let position   = zero();
         let size       = Vector2::new(screen.width, screen.height / 2.0);
-        let base_color = color::Rgba::new(1.0, 1.0, 1.0, 0.7);
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles     = StyleWatch::new(&scene.style_sheet);
+        let base_color = styles.get_color(ensogl_theme::vars::text_editor::text::color);
+        let base_color = color::Rgba::from(base_color);
         let text_size  = 16.0;
         let properties = TextFieldProperties {font,text_size,base_color,size};
         let text_field = TextField::new(scene,properties,focus_manager);

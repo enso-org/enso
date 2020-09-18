@@ -15,6 +15,7 @@ enso-prelude               = { version = "0.1.0"  , path = "../../../lib/enso-pr
 enso-shapely               = { version = "0.1.0"  , path = "../../../lib/enso-shapely/impl"     }
 enso-types                 = { version = "0.1.0"  , path = "../../../lib/types"                 }
 ensogl-core                = { version = "0.1.0"  , path = "../../../ensogl/lib/core"           }
+ensogl-theme               = { version = "0.1.0"  , path = "../../../ensogl/lib/theme"          }
 ensogl-text-embedded-fonts = { version = "0.1.0"  , path = "embedded-fonts"                     }
 ensogl-text-msdf-sys       = { version = "0.1.0"  , path = "msdf-sys"                           }
 xi-rope                    = { version = "0.3.0"                                                }
