@@ -346,6 +346,7 @@ public class Module implements TruffleObject {
         throws ArityException {
       Types.extractArguments(args);
       module.cachedSource = null;
+      module.literalSource = null;
       try {
         module.compile(context);
       } catch (IOException ignored) {
