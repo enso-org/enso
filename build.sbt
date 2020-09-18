@@ -92,8 +92,8 @@ scalacOptions in ThisBuild ++= Seq(
     "-Ywarn-unused:locals",               // Warn if a local definition is unused.
     "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
     "-Ywarn-unused:privates",             // Warn if a private member is unused.
-    "-Ywarn-unused:params",               // Warn if a value parameter is unused.
-    "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
+    "-Ywarn-unused:params"                // Warn if a value parameter is unused.
+    // "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
   )
 
 val jsSettings = Seq(
@@ -490,6 +490,19 @@ lazy val pkg = (project in file("lib/scala/pkg"))
         "nl.gn0s1s"     %% "bump"       % bumpVersion,
         "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
         "commons-io"     % "commons-io" % commonsIoVersion
+      )
+  )
+  .settings(licenseSettings)
+
+lazy val `logging-service-server` = project
+  .in(file("lib/scala/logging-service-server"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        akkaStream,
+        akkaHttp,
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test
       )
   )
   .settings(licenseSettings)
@@ -1055,7 +1068,8 @@ lazy val launcher = project
           Seq(
             "--enable-all-security-services", // Note [HTTPS in the Launcher]
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-            "-H:IncludeResources=.*Main.enso$"
+            "-H:IncludeResources=.*Main.enso$",
+            "--report-unsupported-elements-at-runtime" // FIXME debug
           )
         )
         .value,
@@ -1082,6 +1096,7 @@ lazy val launcher = project
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`logging-service-server`)
 
 /* Note [HTTPS in the Launcher]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

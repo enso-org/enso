@@ -26,6 +26,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     setup()
+    org.enso.loggingservice.server.WSExample.startServer()
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {
