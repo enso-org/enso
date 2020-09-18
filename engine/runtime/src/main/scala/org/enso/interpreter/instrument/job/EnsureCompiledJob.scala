@@ -14,7 +14,7 @@ import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.runtime.Runtime.{Api, ApiNotification}
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.TextEdit
 
@@ -34,60 +34,79 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireWriteCompilationLock()
     try {
+      val modules = ensureCompiledFiles(files)
       ensureCompiledScope()
-      ensureCompiledFiles(files)
+      ensureCompiledImports(modules)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
     }
   }
 
   /**
-    * Compile the modules in the scope and send the extracted suggestions.
+    * Run the scheduled compilation and invalidation logic.
+    *
+    * @param files the list of files to compile.
+    * @param ctx the runtime context
+    */
+  protected def ensureCompiledFiles(
+    files: Iterable[File]
+  )(implicit ctx: RuntimeContext): Iterable[Module] = {
+    for {
+      file   <- files
+      module <- compile(file)
+    } yield {
+      applyEdits(file).ifPresent {
+        case (changesetBuilder, edits) =>
+          val changeset = changesetBuilder.build(edits)
+          compile(module)
+          runInvalidationCommands(
+            buildCacheInvalidationCommands(changeset, module.getLiteralSource)
+          )
+          analyzeModule(module, changeset)
+      }
+      module
+    }
+  }
+
+  /**
+    * Compile the imported modules and send the suggestion updates.
+    *
+    * @param modules the list of modules to analyze.
+    * @param ctx the runtime context
+    */
+  protected def ensureCompiledImports(
+    modules: Iterable[Module]
+  )(implicit ctx: RuntimeContext): Unit = {
+    modules.foreach { module =>
+      compile(module)
+      val importedModules =
+        new ImportResolver(ctx.executionService.getContext.getCompiler)
+          .mapImports(module)
+          .filter(_.getName != module.getName)
+      ctx.executionService.getLogger.finest(
+        s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
+      )
+      importedModules.foreach(analyzeImport)
+    }
+  }
+
+  /**
+    * Compile all modules in the scope and send the extracted suggestions.
     *
     * @param ctx the runtime context
     */
   protected def ensureCompiledScope()(implicit ctx: RuntimeContext): Unit = {
     val modulesInScope =
       ctx.executionService.getContext.getTopScope.getModules.asScala
+    ctx.executionService.getLogger
+      .finest(s"Modules in scope: ${modulesInScope.map(_.getName)}")
     val updates = modulesInScope.flatMap { module =>
       compile(module)
       analyzeModuleInScope(module)
     }
-    sendNotification(
+    sendIndexUpdateNotification(
       Api.SuggestionsDatabaseIndexUpdateNotification(updates)
     )
-  }
-
-  /**
-    * Run the compilation and invalidation logic.
-    *
-    * @param files the list of files to compile
-    * @param ctx the runtime context
-    */
-  protected def ensureCompiledFiles(
-    files: Iterable[File]
-  )(implicit ctx: RuntimeContext): Unit = {
-    files.foreach { file =>
-      compile(file).foreach { module =>
-        applyEdits(file).ifPresent {
-          case (changesetBuilder, edits) =>
-            val changeset = changesetBuilder.build(edits)
-            compile(module)
-            runInvalidationCommands(
-              buildCacheInvalidationCommands(changeset, module.getLiteralSource)
-            )
-            analyzeModule(module, changeset)
-            val importedModules =
-              new ImportResolver(ctx.executionService.getContext.getCompiler)
-                .mapImports(module)
-                .filter(_.getName != module.getName)
-            ctx.executionService.getLogger.finest(
-              s"Module ${module.getName} imports: ${importedModules.map(_.getName)}"
-            )
-            importedModules.foreach(analyzeImport)
-        }
-      }
-    }
   }
 
   private def analyzeImport(
@@ -195,9 +214,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def compile(
     module: Module
   )(implicit ctx: RuntimeContext): Module = {
+    val prevStage = module.getCompilationStage
     module.compileScope(ctx.executionService.getContext).getModule
-    ctx.executionService.getLogger
-      .finer(s"Compiled ${module.getName} to ${module.getCompilationStage}")
+    if (prevStage != module.getCompilationStage) {
+      ctx.executionService.getLogger.finer(
+        s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
+      )
+    }
     module
   }
 
@@ -318,10 +341,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     )
   }
 
-  private def sendNotification(msg: ApiNotification)(implicit
+  private def sendIndexUpdateNotification(
+    msg: Api.SuggestionsDatabaseIndexUpdateNotification
+  )(implicit
     ctx: RuntimeContext
   ): Unit = {
-    ctx.endpoint.sendToClient(Api.Response(msg))
+    if (msg.updates.nonEmpty) {
+      ctx.endpoint.sendToClient(Api.Response(msg))
+    }
   }
 
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
