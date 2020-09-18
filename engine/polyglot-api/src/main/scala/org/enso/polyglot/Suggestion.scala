@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 )
 sealed trait Suggestion {
 
+  def name:   String
   def module: String
 }
 

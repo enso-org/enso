@@ -30,7 +30,6 @@ class InvalidateModulesIndexCmd(
     } yield {
       ctx.executionService.getContext.getTopScope.getModules
         .forEach(_.setIndexed(false))
-      // TODO: re-index modules in scope.
       reply(Api.InvalidateModulesIndexResponse())
     }
   }

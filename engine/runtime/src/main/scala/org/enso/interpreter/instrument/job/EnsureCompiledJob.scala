@@ -81,6 +81,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
               new ImportResolver(ctx.executionService.getContext.getCompiler)
                 .mapImports(module)
                 .filter(_.getName != module.getName)
+            ctx.executionService.getLogger.finest(
+              s"Module ${module.getName} imports: ${importedModules.map(_.getName)}"
+            )
             importedModules.foreach(analyzeImport)
         }
       }
@@ -91,10 +94,12 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     module: Module
   )(implicit ctx: RuntimeContext): Unit = {
     if (!module.isIndexed && module.getLiteralSource != null) {
-      println(s"analyzeImport=${(module.getName, module.getCompilationStage)}")
+      ctx.executionService.getLogger
+        .finest(s"Analyzing imported ${module.getName}")
       val moduleName = module.getName.toString
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(module.getName.toString, module.getIr)
+        .filter(isSuggestionGlobal)
       sendReIndexNotification(moduleName, addedSuggestions)
       module.setIndexed(true)
     }
@@ -117,10 +122,12 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       module.getLiteralSource != null &&
       module.getPath != null
     ) {
-      ctx.executionService.getLogger.finest(s"Analyzing ${module.getName}")
+      ctx.executionService.getLogger
+        .finest(s"Analyzing module in scope ${module.getName}")
       val moduleName = module.getName.toString
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(moduleName, module.getIr)
+        .filter(isSuggestionGlobal)
       module.setIndexed(true)
       Some(
         Api.IndexedModule(
@@ -140,9 +147,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   )(implicit ctx: RuntimeContext): Unit = {
     val moduleName = module.getName.toString
     if (module.isIndexed) {
+      ctx.executionService.getLogger
+        .finest(s"Analyzing indexed module ${module.getName}")
       val removedSuggestions = SuggestionBuilder(changeset.source)
         .build(moduleName, changeset.ir)
-      // compile(module)
       val addedSuggestions =
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
@@ -151,6 +159,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         addedSuggestions diff removedSuggestions
       )
     } else {
+      ctx.executionService.getLogger
+        .finest(s"Analyzing not-indexed module ${module.getName}")
       val addedSuggestions =
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
@@ -313,6 +323,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   ): Unit = {
     ctx.endpoint.sendToClient(Api.Response(msg))
   }
+
+  private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
+    suggestion match {
+      case _: Suggestion.Atom     => true
+      case _: Suggestion.Method   => true
+      case _: Suggestion.Function => false
+      case _: Suggestion.Local    => false
+    }
 }
 
 object EnsureCompiledJob {

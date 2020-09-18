@@ -70,6 +70,16 @@ object Logging {
         case Debug   => event.Level.DEBUG
         case Trace   => event.Level.TRACE
       }
+
+    /** Convert to akka logging level. */
+    def toAkka(level: LogLevel): akka.event.Logging.LogLevel =
+      level match {
+        case Error   => akka.event.Logging.ErrorLevel
+        case Warning => akka.event.Logging.WarningLevel
+        case Info    => akka.event.Logging.InfoLevel
+        case Debug   => akka.event.Logging.DebugLevel
+        case Trace   => akka.event.Logging.DebugLevel
+      }
   }
 
   private val ROOT_LOGGER = "org.enso"

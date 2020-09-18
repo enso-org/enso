@@ -178,6 +178,7 @@ final class SuggestionsHandler(
         }
 
     case msg: Api.SuggestionsDatabaseReIndexNotification =>
+      log.debug(s"ReIndex ${msg.moduleName} ${msg.updates.map(_.suggestion)}")
       applyReIndexUpdates(msg.updates)
         .onComplete {
           case Success(notification) =>
@@ -195,9 +196,11 @@ final class SuggestionsHandler(
         }
 
     case Api.ExpressionValuesComputed(_, updates) =>
-      val types = updates.flatMap(update =>
-        update.expressionType.map(update.expressionId -> _)
+      log.debug(
+        s"ExpressionValuesComputed ${updates.map(u => (u.expressionId, u.expressionType))}"
       )
+      val types = updates
+        .flatMap(update => update.expressionType.map(update.expressionId -> _))
       suggestionsRepo
         .updateAll(types)
         .map {
@@ -353,6 +356,7 @@ final class SuggestionsHandler(
   ): Future[SuggestionsDatabaseUpdateNotification] = {
     val added   = updates.map(_.suggestion)
     val modules = updates.map(_.suggestion.module).distinct
+    log.debug(s"Applying re-index updates; modules=$modules")
     for {
       (_, removedIds)     <- suggestionsRepo.removeAllByModule(modules)
       (version, addedIds) <- suggestionsRepo.insertAll(added)
@@ -362,7 +366,7 @@ final class SuggestionsHandler(
         case (Some(id), suggestion) =>
           Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
         case (None, suggestion) =>
-          log.error("failed to insert suggestion: {}", suggestion)
+          log.error("Failed to insert re-index suggestion: {}", suggestion)
           None
       }
       SuggestionsDatabaseUpdateNotification(
@@ -391,7 +395,10 @@ final class SuggestionsHandler(
         case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Remove) =>
           (add, remove :+ msg.suggestion)
       }
-
+    log.debug(
+      s"Applying suggestion updates; added=${added
+        .map(_.name)}; removed=${removed.map(_.name)}"
+    )
     for {
       (_, removedIds)     <- suggestionsRepo.removeAll(removed)
       (version, addedIds) <- suggestionsRepo.insertAll(added)
@@ -404,7 +411,7 @@ final class SuggestionsHandler(
           case (Some(id), suggestion) =>
             Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
           case (None, suggestion) =>
-            log.error("failed to insert suggestion: {}", suggestion)
+            log.error("Failed to insert suggestion: {}", suggestion)
             None
         }
       SuggestionsDatabaseUpdateNotification(
