@@ -1,14 +1,9 @@
 package org.enso.interpreter.instrument.job
 
 import java.io.{File, IOException}
-import java.util.Optional
 import java.util.logging.Level
 
-import org.enso.compiler.context.{
-  Changeset,
-  ChangesetBuilder,
-  SuggestionBuilder
-}
+import org.enso.compiler.context.{Changeset, SuggestionBuilder}
 import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
@@ -55,15 +50,12 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       file   <- files
       module <- compile(file)
     } yield {
-      applyEdits(file).ifPresent {
-        case (changesetBuilder, edits) =>
-          val changeset = changesetBuilder.build(edits)
-          compile(module)
-          runInvalidationCommands(
-            buildCacheInvalidationCommands(changeset, module.getLiteralSource)
-          )
-          analyzeModule(module, changeset)
-      }
+      val changeset = applyEdits(file)
+      compile(module)
+      runInvalidationCommands(
+        buildCacheInvalidationCommands(changeset, module.getLiteralSource)
+      )
+      analyzeModule(module, changeset)
       module
     }
   }
@@ -229,20 +221,18 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     *
     * @param file the file to apply edits to
     * @param ctx the runtime context
-    * @return the [[ChangesetBuilder]] object and the list of applied edits
+    * @return the [[Changeset]] after applying the edits to the source
     */
   private def applyEdits(
     file: File
-  )(implicit
-    ctx: RuntimeContext
-  ): Optional[(ChangesetBuilder[Rope], Seq[TextEdit])] = {
+  )(implicit ctx: RuntimeContext): Changeset[Rope] = {
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
     try {
       val edits = EnsureCompiledJob.dequeueEdits(file)
-      ctx.executionService
+      val suggestionBuilder = ctx.executionService
         .modifyModuleSources(file, edits.asJava)
-        .map(_ -> edits)
+      suggestionBuilder.build(edits)
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
@@ -252,7 +242,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /**
     * Create cache invalidation commands after applying the edits.
     *
-    * @param changeset the [[ChangesetBuilder]] object capturing the previous
+    * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
     * @param ctx the runtime context
     * @return the list of cache invalidation commands

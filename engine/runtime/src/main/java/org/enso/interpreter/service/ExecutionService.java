@@ -16,10 +16,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.service.error.ConstructorNotFoundException;
-import org.enso.interpreter.service.error.MethodNotFoundException;
-import org.enso.interpreter.service.error.ModuleNotFoundException;
-import org.enso.interpreter.service.error.SourceNotFoundException;
+import org.enso.interpreter.service.error.*;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -34,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -243,18 +239,17 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public Optional<ChangesetBuilder<Rope>> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public ChangesetBuilder<Rope> modifyModuleSources(
+      File path, List<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (moduleMay.isEmpty()) {
-      logger.severe("Failed to get module for file: " + path);
-      return Optional.empty();
+      throw new ModuleNotFoundForFileException(path);
     }
     Module module = moduleMay.get();
     try {
       module.getSource();
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Failed to get source for file: " + path, e);
-      return Optional.empty();
+      throw new SourceNotFoundException(path, e);
     }
     ChangesetBuilder<Rope> changesetBuilder =
         new ChangesetBuilder<>(
@@ -265,7 +260,9 @@ public class ExecutionService {
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
     editedSource.ifPresentOrElse(
         module::setLiteralSource,
-        () -> logger.severe("Failed to apply edits for file: " + path + ", " + edits));
-    return Optional.of(changesetBuilder);
+        () -> {
+          throw new FailedToApplyEditsException(path);
+        });
+    return changesetBuilder;
   }
 }
