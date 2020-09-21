@@ -2,6 +2,7 @@ package org.enso.launcher.http
 
 import java.net.URI
 
+import akka.http.scaladsl.model.{HttpMethod, HttpMethods, HttpRequest}
 import org.apache.http.client.methods.{HttpUriRequest, RequestBuilder}
 
 /**
@@ -18,7 +19,7 @@ case class HTTPRequestBuilder private (
   /**
     * Builds a GET request with the specified settings.
     */
-  def GET: HttpUriRequest = build(RequestBuilder.get())
+  def GET: HTTPRequest = build(RequestBuilder.get(), HttpMethods.GET)
 
   /**
     * Adds an additional header that will be included in the request.
@@ -29,12 +30,17 @@ case class HTTPRequestBuilder private (
   def addHeader(name: String, value: String): HTTPRequestBuilder =
     copy(headers = headers.appended((name, value)))
 
-  private def build(requestBuilder: RequestBuilder): HttpUriRequest = {
-    val withUri = requestBuilder.setUri(uri)
+  private def build(
+    oldStuff: RequestBuilder,
+    method: HttpMethod
+  ): HTTPRequest = {
+    val withUri = oldStuff.setUri(uri)
     val withHeaders = headers.foldLeft(withUri)((builder, header) =>
       builder.addHeader(header._1, header._2)
     )
-    withHeaders.build()
+    val oldRequest = withHeaders.build() // TODO remove
+
+    HTTPRequest(oldRequest)
   }
 }
 

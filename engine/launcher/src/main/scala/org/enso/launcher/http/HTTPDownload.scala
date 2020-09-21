@@ -4,6 +4,10 @@ import java.io.FileOutputStream
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpRequest, Uri}
+import akka.stream.scaladsl.FileIO
 import org.apache.commons.io.IOUtils
 import org.apache.http.client.config.{CookieSpecs, RequestConfig}
 import org.apache.http.client.methods.HttpUriRequest
@@ -13,6 +17,7 @@ import org.enso.cli.{TaskProgress, TaskProgressImplementation}
 import org.enso.launcher.Logger
 import org.enso.launcher.internal.{ProgressInputStream, ReadProgress}
 
+import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Using}
 
@@ -47,12 +52,12 @@ object HTTPDownload {
     *         be used to get the final result
     */
   def fetchString(
-    request: HttpUriRequest,
+    request: HTTPRequest,
     sizeHint: Option[Long] = None,
     encoding: Charset      = StandardCharsets.UTF_8
   ): TaskProgress[APIResponse] = {
-    Logger.debug(s"Fetching ${request.getURI.toASCIIString}")
-    runRequest(request, asStringResponseHandler(sizeHint, encoding))
+    Logger.debug(s"Fetching ${request.oldImpl.getURI.toASCIIString}")
+    runRequest(request.oldImpl, asStringResponseHandler(sizeHint, encoding))
   }
 
   /**
@@ -72,12 +77,14 @@ object HTTPDownload {
     *         be used to wait for the completion of the download.
     */
   def download(
-    request: HttpUriRequest,
+    request: HTTPRequest,
     destination: Path,
     sizeHint: Option[Long] = None
   ): TaskProgress[Path] = {
-    Logger.debug(s"Downloading ${request.getURI.toASCIIString} to $destination")
-    runRequest(request, asFileHandler(destination, sizeHint))
+    Logger.debug(
+      s"Downloading ${request.oldImpl.getURI.toASCIIString} to $destination"
+    )
+    runRequest(request.oldImpl, asFileHandler(destination, sizeHint))
   }
 
   /**
@@ -171,5 +178,22 @@ object HTTPDownload {
     }
 
     new ProgressInputStream(entity.getContent, size.orElse(sizeHint), update)
+  }
+
+  implicit lazy val system = ActorSystem
+
+  def tst(): Unit = {
+    implicit val system = ActorSystem()
+    import system.dispatcher
+    val uri = Uri("https://example.com/")
+    val req = HttpRequest(uri = uri)
+    Http()
+      .singleRequest(req)
+      .flatMap { resp =>
+        val path = Path.of("./hmm.html")
+        val res  = resp.entity.dataBytes.runWith(FileIO.toPath(path))
+        res
+      }
+      .onComplete(result => println(result))
   }
 }

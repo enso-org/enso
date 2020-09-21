@@ -494,7 +494,20 @@ lazy val pkg = (project in file("lib/scala/pkg"))
   )
   .settings(licenseSettings)
 
-val graalAkkaVersion = "0.5.0" // TODO [RW] update NOTICE etc.
+lazy val `akka-native` = project
+  .in(file("lib/scala/akka-native"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        akkaStream,
+        akkaHttp,
+        akkaActor
+      ),
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided"
+  )
+  .settings(licenseSettings)
 
 lazy val `logging-service-server` = project
   .in(file("lib/scala/logging-service-server"))
@@ -504,13 +517,26 @@ lazy val `logging-service-server` = project
     libraryDependencies ++= Seq(
         akkaStream,
         akkaHttp,
-        akkaActor,
         "org.scalatest" %% "scalatest" % scalatestVersion % Test
-      ),
-    // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided"
+      )
   )
   .settings(licenseSettings)
+  .dependsOn(`akka-native`)
+
+lazy val `logging-service-client` = project
+  .in(file("lib/scala/logging-service-client"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        "org.slf4j" % "slf4j-api" % "1.7.30", // TODO [RW] version, NOTICE
+        akkaStream,
+        akkaHttp,
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+      )
+  )
+  .settings(licenseSettings)
+  .dependsOn(`akka-native`)
 
 lazy val cli = project
   .in(file("lib/scala/cli"))
@@ -1052,17 +1078,19 @@ lazy val runner = project
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
 
+// TODO [RW] scala-logging, Akka, licenses to NOTICE
 lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-        "org.scalatest"            %% "scalatest"        % scalatestVersion % Test,
-        "org.typelevel"            %% "cats-core"        % catsVersion,
-        "nl.gn0s1s"                %% "bump"             % bumpVersion,
-        "org.apache.commons"        % "commons-compress" % commonsCompressVersion,
-        "org.apache.httpcomponents" % "httpclient"       % apacheHttpClientVersion
+        "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+        "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+        "org.typelevel"              %% "cats-core"        % catsVersion,
+        "nl.gn0s1s"                  %% "bump"             % bumpVersion,
+        "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+        "org.apache.httpcomponents"   % "httpclient"       % apacheHttpClientVersion
       )
   )
   .settings(
