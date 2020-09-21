@@ -5,9 +5,29 @@
 use crate::data;
 use crate::component::visualization;
 
+
+
+///////////////////////////////////////
+// JavaScript builtin visualizations //
+///////////////////////////////////////
+
+/// Return a `JavaScript` Table view visualization.
+pub fn table_view_visualization() -> visualization::java_script::FallibleDefinition {
+    let source = include_str!("java_script/tableView.js");
+
+    visualization::java_script::Definition::new(data::builtin_library(),source)
+}
+
+/// Return a `JavaScript` Scatter plot visualization.
+pub fn scatter_plot_visualization() -> visualization::java_script::FallibleDefinition {
+    let source = include_str!("java_script/scatterPlot.js");
+
+    visualization::java_script::Definition::new(data::builtin_library(),source)
+}
+
 /// Return a `JavaScript` Bubble visualization.
 pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition {
-    let source = include_str!("java_script/bubble_visualization.js");
+    let source = include_str!("java_script/bubbleVisualization.js");
 
     visualization::java_script::Definition::new(data::builtin_library(),source)
 }
@@ -18,13 +38,6 @@ pub fn empty_visualization() -> visualization::java_script::FallibleDefinition {
         class EmptyVisualization extends Visualization {}
         return EmptyVisualization;
     "#;
-
-    visualization::java_script::Definition::new(data::builtin_library(),source)
-}
-
-/// Return a `JavaScript` Bubble visualization.
-pub fn scatter_plot() -> visualization::java_script::FallibleDefinition {
-    let source = include_str!("java_script/scatterplot.js");
 
     visualization::java_script::Definition::new(data::builtin_library(),source)
 }
