@@ -80,6 +80,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
+    implicit val versionCalculator = Sha3_224VersionCalculator
+
     val zioExec         = ZioExec(zio.Runtime.default)
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)

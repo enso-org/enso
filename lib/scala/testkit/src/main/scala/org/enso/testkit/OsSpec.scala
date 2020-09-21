@@ -14,12 +14,20 @@ trait OsSpec extends TestSuite {
 
   override def withFixture(test: NoArgTest): Outcome = {
     if (test.tags.contains(OsUnix.name)) {
-      if (SystemUtils.IS_OS_UNIX) super.withFixture(test) else Pending
+      if (isUnix) super.withFixture(test) else Pending
     } else if (test.tags.contains(OsWindows.name)) {
-      if (SystemUtils.IS_OS_WINDOWS) super.withFixture(test) else Pending
+      if (isWindows) super.withFixture(test) else Pending
     } else {
       super.withFixture(test)
     }
   }
+
+  /** @return `true` if this is a Unix-like system. */
+  protected def isUnix: Boolean =
+    SystemUtils.IS_OS_UNIX
+
+  /** @return `true` if this is a Windows system. */
+  protected def isWindows: Boolean =
+    SystemUtils.IS_OS_WINDOWS
 
 }

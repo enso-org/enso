@@ -229,6 +229,7 @@ public class Module implements TruffleObject {
           Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
     } else if (sourceFile != null) {
       cachedSource = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
+      literalSource = Rope.apply(cachedSource.getCharacters().toString());
     }
     return cachedSource;
   }
@@ -345,6 +346,7 @@ public class Module implements TruffleObject {
         throws ArityException {
       Types.extractArguments(args);
       module.cachedSource = null;
+      module.literalSource = null;
       try {
         module.compile(context);
       } catch (IOException ignored) {

@@ -5,7 +5,7 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.compiler.context.Changeset;
+import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
@@ -16,10 +16,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.service.error.ConstructorNotFoundException;
-import org.enso.interpreter.service.error.MethodNotFoundException;
-import org.enso.interpreter.service.error.ModuleNotFoundException;
-import org.enso.interpreter.service.error.SourceNotFoundException;
+import org.enso.interpreter.service.error.*;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -29,6 +26,7 @@ import org.enso.text.editing.TextEditor;
 import org.enso.text.editing.model;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -204,7 +202,7 @@ public class ExecutionService {
    */
   public void setModuleSources(File path, String contents, boolean isIndexed) {
     Optional<Module> module = context.getModuleForFile(path);
-    if (!module.isPresent()) {
+    if (module.isEmpty()) {
       module = context.createModuleForFile(path);
     }
     module.ifPresent(
@@ -241,23 +239,30 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public Optional<Changeset<Rope>> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public ChangesetBuilder<Rope> modifyModuleSources(
+      File path, List<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
-    if (!moduleMay.isPresent()) {
-      return Optional.empty();
+    if (moduleMay.isEmpty()) {
+      throw new ModuleNotFoundForFileException(path);
     }
     Module module = moduleMay.get();
-    if (module.getLiteralSource() == null) {
-      return Optional.empty();
+    try {
+      module.getSource();
+    } catch (IOException e) {
+      throw new SourceNotFoundException(path, e);
     }
-    Changeset<Rope> changeset =
-        new Changeset<>(
+    ChangesetBuilder<Rope> changesetBuilder =
+        new ChangesetBuilder<>(
             module.getLiteralSource(),
             module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
-    editedSource.ifPresent(module::setLiteralSource);
-    return Optional.of(changeset);
+    editedSource.ifPresentOrElse(
+        module::setLiteralSource,
+        () -> {
+          throw new FailedToApplyEditsException(path);
+        });
+    return changesetBuilder;
   }
 }

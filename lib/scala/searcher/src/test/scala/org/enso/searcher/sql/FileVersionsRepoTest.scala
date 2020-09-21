@@ -63,7 +63,7 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       util.Arrays.equals(v2.get, digest) shouldBe true
     }
 
-    "update digest" taggedAs Retry in withRepo { repo =>
+    "set digest" taggedAs Retry in withRepo { repo =>
       val file    = new File("/foo/bar")
       val digest1 = nextDigest()
       val digest2 = nextDigest()
@@ -80,6 +80,32 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       v3 shouldBe a[Some[_]]
       util.Arrays.equals(v2.get, digest1) shouldBe true
       util.Arrays.equals(v3.get, digest2) shouldBe true
+    }
+
+    "update digest" taggedAs Retry in withRepo { repo =>
+      val file    = new File("/foo/bazz")
+      val digest1 = nextDigest()
+      val digest2 = nextDigest()
+      val digest3 = nextDigest()
+      val action =
+        for {
+          b1 <- repo.updateVersion(file, digest1)
+          v2 <- repo.setVersion(file, digest2)
+          b2 <- repo.updateVersion(file, digest2)
+          b3 <- repo.updateVersion(file, digest3)
+          b4 <- repo.updateVersion(file, digest3)
+          v3 <- repo.getVersion(file)
+        } yield (v2, v3, b1, b2, b3, b4)
+
+      val (v2, v3, b1, b2, b3, b4) = Await.result(action, Timeout)
+      v2 shouldBe a[Some[_]]
+      v3 shouldBe a[Some[_]]
+      util.Arrays.equals(v2.get, digest1) shouldBe true
+      util.Arrays.equals(v3.get, digest3) shouldBe true
+      b1 shouldBe true
+      b2 shouldBe false
+      b3 shouldBe true
+      b4 shouldBe false
     }
 
     "delete digest" taggedAs Retry in withRepo { repo =>

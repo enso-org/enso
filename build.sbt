@@ -553,7 +553,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "commons-cli"                 % "commons-cli"         % commonsCliVersion,
         "commons-io"                  % "commons-io"          % commonsIoVersion,
         "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
-        "com.typesafe.slick"         %% "slick-hikaricp"      % slickVersion             % Runtime,
         "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
         "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
       ),
@@ -691,7 +690,6 @@ lazy val searcher = project
     libraryDependencies ++= jmh ++ Seq(
         "com.typesafe.slick" %% "slick"           % slickVersion,
         "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
-        "com.typesafe.slick" %% "slick-hikaricp"  % slickVersion          % Runtime,
         "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
         "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
       )
@@ -773,7 +771,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
         "commons-io"                  % "commons-io"           % commonsIoVersion,
         akkaTestkit                   % Test,
-        "com.typesafe.slick"         %% "slick-hikaricp"       % slickVersion      % Runtime,
         "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
         "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
         "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
@@ -998,7 +995,6 @@ lazy val runner = project
         "com.monovore"       %% "decline"        % declineVersion,
         "org.jline"           % "jline"          % jlineVersion,
         "org.typelevel"      %% "cats-core"      % catsVersion,
-        "com.typesafe.slick" %% "slick-hikaricp" % slickVersion % Runtime
       ),
     connectInput in run := true
   )

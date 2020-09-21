@@ -283,7 +283,8 @@ class RuntimeServerTest
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -292,6 +293,12 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push local item on top of the empty stack
     val invalidLocalItem = Api.StackItem.LocalCall(context.Main.idMainY)
@@ -1861,8 +1868,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "support file modification operations" in {
-    val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
+  it should "support file modification operations without attached ids" in {
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -1878,18 +1884,10 @@ class RuntimeServerTest
         |""".stripMargin
 
     // Create a new file
-    context.writeFile(fooFile, code)
+    val mainFile = context.writeMain(code)
 
     // Open the new file
-    context.send(
-      Api.Request(
-        Api.OpenFileNotification(
-          fooFile,
-          code,
-          false
-        )
-      )
-    )
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, false)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -1901,7 +1899,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer("Test.Foo", "Foo", "main"),
+              Api.MethodPointer("Test.Main", "Main", "main"),
               None,
               Vector()
             )
@@ -1912,15 +1910,15 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseReIndexNotification(
-          "Test.Foo",
+          "Test.Main",
           Seq(
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
-                "Test.Foo",
+                "Test.Main",
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Foo",
+                "Main",
                 "Any",
                 None
               )
@@ -1936,7 +1934,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         Api.EditFileNotification(
-          fooFile,
+          mainFile,
           Seq(
             TextEdit(
               model.Range(model.Position(2, 25), model.Position(2, 29)),
@@ -1950,12 +1948,11 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("I'm a modified!")
 
     // Close the file
-    context.send(Api.Request(Api.CloseFileNotification(fooFile)))
+    context.send(Api.Request(Api.CloseFileNotification(mainFile)))
     context.consumeOut shouldEqual List()
   }
 
   it should "support file modification operations with attached ids" in {
-    val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
     val metadata  = new Metadata
@@ -1968,13 +1965,13 @@ class RuntimeServerTest
     )
 
     // Create a new file
-    context.writeFile(fooFile, code)
+    val mainFile = context.writeMain(code)
 
     // Open the new file
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          fooFile,
+          mainFile,
           code,
           false
         )
@@ -1990,7 +1987,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer("Test.Foo", "Foo", "main"),
+              Api.MethodPointer("Test.Main", "Main", "main"),
               None,
               Vector()
             )
@@ -2009,15 +2006,15 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseReIndexNotification(
-          "Test.Foo",
+          "Test.Main",
           Seq(
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
-                "Test.Foo",
+                "Test.Main",
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Foo",
+                "Main",
                 "Any",
                 None
               )
@@ -2032,7 +2029,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         Api.EditFileNotification(
-          fooFile,
+          mainFile,
           Seq(
             TextEdit(
               model.Range(model.Position(0, 0), model.Position(0, 9)),
@@ -2222,7 +2219,6 @@ class RuntimeServerTest
   }
 
   it should "send suggestion notifications when file is modified" in {
-    val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2238,13 +2234,13 @@ class RuntimeServerTest
         |""".stripMargin
 
     // Create a new file
-    context.writeFile(fooFile, code)
+    val mainFile = context.writeMain(code)
 
     // Open the new file
     context.send(
       Api.Request(
         Api.OpenFileNotification(
-          fooFile,
+          mainFile,
           code,
           false
         )
@@ -2261,7 +2257,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer("Test.Foo", "Foo", "main"),
+              Api.MethodPointer("Test.Main", "Main", "main"),
               None,
               Vector()
             )
@@ -2272,15 +2268,15 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseReIndexNotification(
-          "Test.Foo",
+          "Test.Main",
           Seq(
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
-                "Test.Foo",
+                "Test.Main",
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Foo",
+                "Main",
                 "Any",
                 None
               )
@@ -2296,7 +2292,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(
         Api.EditFileNotification(
-          fooFile,
+          mainFile,
           Seq(
             TextEdit(
               model.Range(model.Position(2, 25), model.Position(2, 29)),
@@ -2317,7 +2313,7 @@ class RuntimeServerTest
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
-                "Test.Foo",
+                "Test.Main",
                 "lucky",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
                 "Number",
@@ -2333,13 +2329,14 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("I'm a modified!")
 
     // Close the file
-    context.send(Api.Request(Api.CloseFileNotification(fooFile)))
+    context.send(Api.Request(Api.CloseFileNotification(mainFile)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
   }
 
   it should "recompute expressions without invalidation" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2348,6 +2345,12 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2377,7 +2380,8 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions invalidating all" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2386,6 +2390,12 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2421,7 +2431,8 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions invalidating some" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2431,6 +2442,12 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+
+    context.receiveNone shouldEqual None
     // push main
     val item1 = Api.StackItem.ExplicitCall(
       Api.MethodPointer("Test.Main", "Main", "main"),
@@ -2467,7 +2484,8 @@ class RuntimeServerTest
   }
 
   it should "return error when module not found" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2477,6 +2495,12 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+
+    context.receiveNone shouldEqual None
     // push main
     context.send(
       Api.Request(
@@ -2500,7 +2524,8 @@ class RuntimeServerTest
   }
 
   it should "return error when constructor not found" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2509,6 +2534,12 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -2536,7 +2567,8 @@ class RuntimeServerTest
   }
 
   it should "return error when method not found" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2545,6 +2577,12 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -2582,13 +2620,19 @@ class RuntimeServerTest
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    context.writeMain(contents)
+    val mainFile = context.writeMain(contents)
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -2623,13 +2667,19 @@ class RuntimeServerTest
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    context.writeMain(contents)
+    val mainFile = context.writeMain(contents)
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -2662,13 +2712,19 @@ class RuntimeServerTest
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    context.writeMain(contents)
+    val mainFile = context.writeMain(contents)
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -2707,13 +2763,19 @@ class RuntimeServerTest
         |main = Number.pi
         |""".stripMargin
     val contents = metadata.appendToCode(code)
-    context.writeMain(contents)
+    val mainFile = context.writeMain(contents)
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -2741,7 +2803,8 @@ class RuntimeServerTest
   }
 
   it should "skip side effects when evaluating cached expression" in {
-    context.writeMain(context.Main2.code)
+    val contents  = context.Main2.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2750,6 +2813,12 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -2780,7 +2849,8 @@ class RuntimeServerTest
   }
 
   it should "emit visualisation update when expression is evaluated" in {
-    context.writeMain(context.Main.code)
+    val contents = context.Main.code
+    val mainFile = context.writeMain(context.Main.code)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
@@ -2804,6 +2874,12 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
     // push main
     val item1 = Api.StackItem.ExplicitCall(
       Api.MethodPointer("Test.Main", "Main", "main"),
@@ -2813,11 +2889,51 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
+      Api.Response(
+        Api.SuggestionsDatabaseIndexUpdateNotification(
+          Seq(
+            Api.IndexedModule(
+              visualisationFile,
+              context.Visualisation.code,
+              Seq(
+                Api.SuggestionsDatabaseUpdate.Add(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "encode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  )
+                ),
+                Api.SuggestionsDatabaseUpdate.Add(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "incAndEncode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
       context.executionSuccessful(contextId)
     )
 
@@ -2922,6 +3038,7 @@ class RuntimeServerTest
         )
       )
     )
+    context.receiveNone shouldEqual None
     context.send(
       Api.Request(Api.OpenFileNotification(mainFile, contents, false))
     )
@@ -2943,11 +3060,51 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
+      Api.Response(
+        Api.SuggestionsDatabaseIndexUpdateNotification(
+          Seq(
+            Api.IndexedModule(
+              visualisationFile,
+              context.Visualisation.code,
+              Seq(
+                Api.SuggestionsDatabaseUpdate.Add(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "encode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  )
+                ),
+                Api.SuggestionsDatabaseUpdate.Add(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "incAndEncode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
       Api.Response(
         Api.SuggestionsDatabaseReIndexNotification(
           moduleName,
@@ -3105,16 +3262,22 @@ class RuntimeServerTest
   }
 
   it should "be able to modify visualisations" in {
-    context.writeMain(context.Main.code)
+    val contents = context.Main.code
+    val mainFile = context.writeMain(contents)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
+    // open files
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code,
-          false
+          true
         )
       )
     )
@@ -3223,16 +3386,22 @@ class RuntimeServerTest
   }
 
   it should "not emit visualisation updates when visualisation is detached" in {
-    context.writeMain(context.Main.code)
+    val contents = context.Main.code
+    val mainFile = context.writeMain(contents)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
+    // open files
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code,
-          false
+          true
         )
       )
     )
@@ -3345,7 +3514,8 @@ class RuntimeServerTest
   }
 
   it should "rename a project" in {
-    context.writeMain(context.Main.code)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(contents)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -3354,6 +3524,12 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(

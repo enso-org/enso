@@ -25,7 +25,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     for {
       _ <- Future { ctx.jobControlPlane.abortAllJobs() }
       _ <- ctx.jobProcessor.run(
-        new EnsureCompiledJob(request.path, request.edits)
+        EnsureCompiledJob(request.path, request.edits)
       )
       _ <- Future.sequence(executeJobs.map(ctx.jobProcessor.run))
     } yield ()

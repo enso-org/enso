@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -13,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param request a request for invalidation
   */
 class InvalidateModulesIndexCmd(
-  maybeRequestId: Option[RequestId],
+  maybeRequestId: Option[Api.RequestId],
   val request: Api.InvalidateModulesIndexRequest
 ) extends Command(maybeRequestId) {
 

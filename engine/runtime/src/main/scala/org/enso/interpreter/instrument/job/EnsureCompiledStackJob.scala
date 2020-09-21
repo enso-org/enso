@@ -5,6 +5,7 @@ import java.io.File
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.jdk.OptionConverters._
@@ -19,10 +20,10 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
 ) extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
 
   /** @inheritdoc */
-  override def ensureCompiled(
+  override protected def ensureCompiledFiles(
     files: Iterable[File]
-  )(implicit ctx: RuntimeContext): Unit = {
-    super.ensureCompiled(files)
+  )(implicit ctx: RuntimeContext): Iterable[Module] = {
+    val modules = super.ensureCompiledFiles(files)
     getCacheMetadata(stack).foreach { metadata =>
       CacheInvalidation.run(
         stack,
@@ -32,6 +33,7 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
         )
       )
     }
+    modules
   }
 
   private def getCacheMetadata(
@@ -44,7 +46,7 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
             module.getIr
               .unsafeGetMetadata(
                 CachePreferenceAnalysis,
-                "Empty cache preference metadata"
+                s"Empty cache preference metadata ${module.getName}"
               )
         }
       case _ => None
@@ -68,7 +70,14 @@ object EnsureCompiledStackJob {
         case Api.StackItem.ExplicitCall(methodPointer, _, _) =>
           ctx.executionService.getContext
             .findModule(methodPointer.module)
-            .flatMap(module => java.util.Optional.ofNullable(module.getPath))
+            .flatMap { module =>
+              val path = java.util.Optional.ofNullable(module.getPath)
+              if (path.isEmpty) {
+                ctx.executionService.getLogger
+                  .severe(s"${module.getName} module path is empty")
+              }
+              path
+            }
             .map(path => new File(path))
             .toScala
         case _ =>

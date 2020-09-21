@@ -12,6 +12,7 @@ import org.enso.languageserver.data.{
   CapabilityRegistration,
   ClientId,
   Config,
+  ContentBasedVersioning,
   ReceivesSuggestionsDatabaseUpdates
 }
 import org.enso.languageserver.event.InitializedEvent
@@ -74,7 +75,8 @@ final class SuggestionsHandler(
   fileVersionsRepo: FileVersionsRepo[Future],
   sessionRouter: ActorRef,
   runtimeConnector: ActorRef
-) extends Actor
+)(implicit versionCalculator: ContentBasedVersioning)
+    extends Actor
     with Stash
     with ActorLogging
     with UnhandledLogging {
@@ -91,6 +93,8 @@ final class SuggestionsHandler(
       .subscribe(self, classOf[Api.SuggestionsDatabaseUpdateNotification])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseReIndexNotification])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.SuggestionsDatabaseIndexUpdateNotification])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
@@ -139,6 +143,23 @@ final class SuggestionsHandler(
       sender() ! CapabilityReleased
       context.become(initialized(projectName, clients - client.clientId))
 
+    case msg: Api.SuggestionsDatabaseIndexUpdateNotification =>
+      applyIndexedModuleUpdates(msg.updates.toSeq)
+        .onComplete {
+          case Success(notification) =>
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+          case Failure(ex) =>
+            log.error(
+              ex,
+              "Error applying suggestion database updates: {}",
+              msg.updates.map(_.file)
+            )
+        }
+
     case msg: Api.SuggestionsDatabaseUpdateNotification =>
       applyDatabaseUpdates(msg)
         .onComplete {
@@ -157,7 +178,8 @@ final class SuggestionsHandler(
         }
 
     case msg: Api.SuggestionsDatabaseReIndexNotification =>
-      applyReIndexUpdates(msg.moduleName, msg.updates)
+      log.debug(s"ReIndex ${msg.moduleName} ${msg.updates.map(_.suggestion)}")
+      applyReIndexUpdates(msg.updates)
         .onComplete {
           case Success(notification) =>
             if (notification.updates.nonEmpty) {
@@ -174,9 +196,11 @@ final class SuggestionsHandler(
         }
 
     case Api.ExpressionValuesComputed(_, updates) =>
-      val types = updates.flatMap(update =>
-        update.expressionType.map(update.expressionId -> _)
+      log.debug(
+        s"ExpressionValuesComputed ${updates.map(u => (u.expressionId, u.expressionType))}"
       )
+      val types = updates
+        .flatMap(update => update.expressionType.map(update.expressionId -> _))
       suggestionsRepo
         .updateAll(types)
         .map {
@@ -290,6 +314,33 @@ final class SuggestionsHandler(
     }
   }
 
+  private def applyIndexedModuleUpdates(
+    updates: Seq[Api.IndexedModule]
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    def createIndexedModuleUpdatesBatch(
+      contents: String,
+      file: java.io.File,
+      updates: Seq[Api.SuggestionsDatabaseUpdate.Add]
+    ): Future[Seq[Api.SuggestionsDatabaseUpdate.Add]] =
+      fileVersionsRepo
+        .updateVersion(file, versionCalculator.evalDigest(contents))
+        .map(versionChanged => if (versionChanged) updates else Seq())
+    def getBatches =
+      Future
+        .traverse(updates) { indexed =>
+          createIndexedModuleUpdatesBatch(
+            indexed.contents,
+            indexed.file,
+            indexed.updates
+          )
+        }
+        .map(_.flatten)
+    for {
+      batch  <- getBatches
+      update <- applyReIndexUpdates(batch)
+    } yield update
+  }
+
   /**
     * Handle the suggestions database re-index update.
     *
@@ -297,17 +348,17 @@ final class SuggestionsHandler(
     * suggestions and builds the notification containing combined removed and
     * added suggestions.
     *
-    * @param moduleName the module name
     * @param updates the list of updates after the full module re-index
     * @return the API suggestions database update notification
     */
   private def applyReIndexUpdates(
-    moduleName: String,
     updates: Seq[Api.SuggestionsDatabaseUpdate.Add]
   ): Future[SuggestionsDatabaseUpdateNotification] = {
-    val added = updates.map(_.suggestion)
+    val added   = updates.map(_.suggestion)
+    val modules = updates.map(_.suggestion.module).distinct
+    log.debug(s"Applying re-index updates; modules=$modules")
     for {
-      (_, removedIds)     <- suggestionsRepo.removeByModule(moduleName)
+      (_, removedIds)     <- suggestionsRepo.removeAllByModule(modules)
       (version, addedIds) <- suggestionsRepo.insertAll(added)
     } yield {
       val updatesRemoved = removedIds.map(SuggestionsDatabaseUpdate.Remove)
@@ -315,7 +366,7 @@ final class SuggestionsHandler(
         case (Some(id), suggestion) =>
           Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
         case (None, suggestion) =>
-          log.error("failed to insert suggestion: {}", suggestion)
+          log.error("Failed to insert re-index suggestion: {}", suggestion)
           None
       }
       SuggestionsDatabaseUpdateNotification(
@@ -344,7 +395,10 @@ final class SuggestionsHandler(
         case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Remove) =>
           (add, remove :+ msg.suggestion)
       }
-
+    log.debug(
+      s"Applying suggestion updates; added=${added
+        .map(_.name)}; removed=${removed.map(_.name)}"
+    )
     for {
       (_, removedIds)     <- suggestionsRepo.removeAll(removed)
       (version, addedIds) <- suggestionsRepo.insertAll(added)
@@ -357,7 +411,7 @@ final class SuggestionsHandler(
           case (Some(id), suggestion) =>
             Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
           case (None, suggestion) =>
-            log.error("failed to insert suggestion: {}", suggestion)
+            log.error("Failed to insert suggestion: {}", suggestion)
             None
         }
       SuggestionsDatabaseUpdateNotification(
@@ -437,7 +491,7 @@ object SuggestionsHandler {
     fileVersionsRepo: FileVersionsRepo[Future],
     sessionRouter: ActorRef,
     runtimeConnector: ActorRef
-  ): Props =
+  )(implicit versionCalculator: ContentBasedVersioning): Props =
     Props(
       new SuggestionsHandler(
         config,

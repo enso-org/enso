@@ -11,13 +11,39 @@ import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import scala.collection.mutable
 
+/** The changeset of a module containing the computed list of invalidated
+  * expressions.
+  *
+  * @param source the module source
+  * @param ir the IR node of the module
+  * @param invalidated the list of invalidated expressions
+  * @tparam A the source type
+  */
+case class Changeset[A](
+  source: A,
+  ir: IR,
+  invalidated: Set[IR.ExternalId]
+)
+
 /** Compute invalidated expressions.
   *
   * @param source the text source
   * @param ir the IR node
   * @tparam A the source type
   */
-final class Changeset[A: TextEditor: IndexedSource](val source: A, val ir: IR) {
+final class ChangesetBuilder[A: TextEditor: IndexedSource](
+  val source: A,
+  val ir: IR
+) {
+
+  /** Build the changeset containing the nodes invalidated by the edits.
+    *
+    * @param edits the edits applied to the source
+    * @return the computed changeset
+    */
+  @throws[CompilerError]
+  def build(edits: Seq[TextEdit]): Changeset[A] =
+    Changeset(source, ir, compute(edits))
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
     * using the [[DataflowAnalysis]] information.
@@ -35,7 +61,7 @@ final class Changeset[A: TextEditor: IndexedSource](val source: A, val ir: IR) {
       )
     val direct = invalidated(edits)
     val transitive = direct
-      .map(Changeset.toDataflowDependencyType)
+      .map(ChangesetBuilder.toDataflowDependencyType)
       .flatMap(metadata.getExternal)
       .flatten
     direct.flatMap(_.externalId) ++ transitive
@@ -47,25 +73,26 @@ final class Changeset[A: TextEditor: IndexedSource](val source: A, val ir: IR) {
     * @param edits the text edits
     * @return the set of IR nodes directly affected by the edit
     */
-  def invalidated(edits: Seq[TextEdit]): Set[Changeset.NodeId] = {
+  def invalidated(edits: Seq[TextEdit]): Set[ChangesetBuilder.NodeId] = {
     @scala.annotation.tailrec
     def go(
-      tree: Changeset.Tree,
+      tree: ChangesetBuilder.Tree,
       source: A,
       edits: mutable.Queue[TextEdit],
-      ids: mutable.Set[Changeset.NodeId]
-    ): Set[Changeset.NodeId] = {
+      ids: mutable.Set[ChangesetBuilder.NodeId]
+    ): Set[ChangesetBuilder.NodeId] = {
       if (edits.isEmpty) ids.toSet
       else {
-        val edit           = edits.dequeue()
-        val locationEdit   = Changeset.toLocationEdit(edit, source)
-        val invalidatedSet = Changeset.invalidated(tree, locationEdit.location)
-        val newTree        = Changeset.updateLocations(tree, locationEdit)
-        val newSource      = TextEditor[A].edit(source, edit)
+        val edit         = edits.dequeue()
+        val locationEdit = ChangesetBuilder.toLocationEdit(edit, source)
+        val invalidatedSet =
+          ChangesetBuilder.invalidated(tree, locationEdit.location)
+        val newTree   = ChangesetBuilder.updateLocations(tree, locationEdit)
+        val newSource = TextEditor[A].edit(source, edit)
         go(newTree, newSource, edits, ids ++= invalidatedSet.map(_.id))
       }
     }
-    val tree = Changeset.buildTree(ir)
+    val tree = ChangesetBuilder.buildTree(ir)
     go(tree, source, mutable.Queue.from(edits), mutable.HashSet())
   }
 
@@ -79,7 +106,7 @@ final class Changeset[A: TextEditor: IndexedSource](val source: A, val ir: IR) {
 
 }
 
-object Changeset {
+object ChangesetBuilder {
 
   /** An identifier of IR node.
     *
@@ -226,7 +253,7 @@ object Changeset {
     * @return the invalidated nodes of the tree
     */
   private def invalidated(tree: Tree, edit: Location): Tree = {
-    val invalidated = mutable.TreeSet[Changeset.Node]()
+    val invalidated = mutable.TreeSet[ChangesetBuilder.Node]()
     tree.iterator.foreach { node =>
       if (intersect(edit, node)) {
         invalidated += node
@@ -242,7 +269,10 @@ object Changeset {
     * @param node the node
     * @return true if the node and edit locations are intersecting
     */
-  private def intersect(edit: Location, node: Changeset.Node): Boolean = {
+  private def intersect(
+    edit: Location,
+    node: ChangesetBuilder.Node
+  ): Boolean = {
     intersect(edit, node.location)
   }
 
@@ -268,7 +298,7 @@ object Changeset {
   private def inside(index: Int, location: Location): Boolean =
     index >= location.start && index <= location.end
 
-  /** Convert [[TextEdit]] to [[Changeset.LocationEdit]] edit in the provided
+  /** Convert [[TextEdit]] to [[ChangesetBuilder.LocationEdit]] edit in the provided
     * source.
     *
     * @param edit the text edit

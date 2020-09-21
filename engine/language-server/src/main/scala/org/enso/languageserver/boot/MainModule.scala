@@ -187,6 +187,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
   context.initialize(LanguageInfo.ID)
   log.trace("Runtime context initialized")
 
+  val logLevel = Logging.LogLevel.fromJava(logHandler.getLevel)
+  system.eventStream.setLogLevel(Logging.LogLevel.toAkka(logLevel))
+  log.trace(s"Set akka log level to $logLevel")
+
   val runtimeKiller =
     system.actorOf(
       RuntimeKiller.props(runtimeConnector, context),

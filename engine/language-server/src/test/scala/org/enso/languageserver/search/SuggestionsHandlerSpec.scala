@@ -242,7 +242,7 @@ class SuggestionsHandlerSpec
     runtimeConnector: TestProbe,
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: FileVersionsRepo[Future]
-  ): ActorRef = {
+  )(implicit versionCalculator: ContentBasedVersioning): ActorRef = {
     val handler =
       system.actorOf(
         SuggestionsHandler.props(
@@ -284,7 +284,8 @@ class SuggestionsHandlerSpec
       ActorRef
     ) => Any
   ): Unit = {
-    val testContentRoot = Files.createTempDirectory(null).toRealPath()
+    implicit val versionCalc = Sha3_224VersionCalculator
+    val testContentRoot      = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config          = newConfig(testContentRoot.toFile)
     val router          = TestProbe("session-router")
