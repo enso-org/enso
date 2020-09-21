@@ -41,7 +41,8 @@ impl Registry {
         registry.add(builtin::visualization::native::BubbleChart::definition());
         registry.add(builtin::visualization::native::RawText::definition());
         registry.try_add_java_script(builtin::visualization::java_script::bubble_visualization());
-        registry.try_add_java_script(builtin::visualization::java_script::scatter_plot());
+        registry.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
+        registry.try_add_java_script(builtin::visualization::java_script::table_view_visualization());
         registry
     }
 
