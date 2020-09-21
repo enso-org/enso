@@ -28,11 +28,12 @@ pub fn entry_point_dom_symbols() {
     let screen        = camera.screen();
     let navigator     = Navigator::new(scene,camera);
     let sprite_system = SpriteSystem::new(&world);
-    let dom_front_layer = &scene.dom.layers.main;
-    let dom_back_layer  = &scene.dom.layers.overlay;
     world.add_child(&sprite_system);
 
-    let mut sprites: Vec<Sprite> = default();
+    let dom_front_layer = &scene.dom.layers.front;
+    let dom_back_layer  = &scene.dom.layers.back;
+
+    let mut sprites: Vec<Sprite>          = default();
     let mut css3d_objects: Vec<DomSymbol> = default();
     let count = 10;
     for i in 0 .. count {
@@ -41,10 +42,10 @@ pub fn entry_point_dom_symbols() {
         let height = screen.height;
         let y      = height / 2.0;
         if i % 2 == 0 {
-            let height     = height * 0.75;
-            let size       = Vector2::new(width, height);
-            let position   = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
-            let sprite     = sprite_system.new_instance();
+            let height   = height * 0.75;
+            let size     = Vector2::new(width, height);
+            let position = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
+            let sprite   = sprite_system.new_instance();
             sprite.size.set(size);
             sprite.mod_position(|t| *t = position);
             sprites.push(sprite);
@@ -54,15 +55,15 @@ pub fn entry_point_dom_symbols() {
             div.set_style_or_panic("height" , "100%");
             div.set_inner_html("top-left");
 
-            let size       = Vector2::new(width, height);
-            let position   = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
-            let object     = DomSymbol::new(&div);
+            let size     = Vector2::new(width, height);
+            let position = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
+            let object   = DomSymbol::new(&div);
             dom_front_layer.manage(&object);
             world.add_child(&object);
-            let r          = ((x + 0.0) * 16.0) as u8;
-            let g          = ((x + 2.0) * 32.0) as u8;
-            let b          = ((x + 4.0) * 64.0) as u8;
-            let color      = iformat!("rgb({r},{g},{b})");
+            let r     = ((x + 0.0) * 16.0) as u8;
+            let g     = ((x + 2.0) * 32.0) as u8;
+            let b     = ((x + 4.0) * 64.0) as u8;
+            let color = iformat!("rgb({r},{g},{b})");
             div.set_style_or_panic("background-color",color);
 
             object.dom().append_or_panic(&div);

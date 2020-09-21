@@ -20,8 +20,9 @@ use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::display;
-use ensogl::system::web::JsValue;
 use ensogl::system::web;
+use ensogl::system::web::JsValue;
+use ensogl::system::web::StyleSetter;
 use js_sys;
 use std::fmt::Formatter;
 
@@ -98,7 +99,8 @@ impl InstanceModel {
     fn create_root() -> result::Result<DomSymbol, Error> {
         let div       = web::create_div();
         let root_node = DomSymbol::new(&div);
-        root_node.dom().set_attribute("id","vis")
+        root_node.dom().set_style_or_warn("pointer-events", "none", &Logger::new("CreateRoot"));
+        root_node.dom().set_attribute("class","visualization")
             .map_err(|js_error|Error::ConstructorError{js_error})?;
         Ok(root_node)
     }
@@ -214,7 +216,7 @@ impl Instance {
         let network = default();
         let frp     = visualization::instance::Frp::new(&network);
         let model   = InstanceModel::from_class(class)?;
-        model.set_dom_layer(&scene.dom.layers.main);
+        model.set_dom_layer(&scene.dom.layers.back);
         Ok(Instance{model,frp,network}.init_frp().inti_preprocessor_change_callback())
     }
 

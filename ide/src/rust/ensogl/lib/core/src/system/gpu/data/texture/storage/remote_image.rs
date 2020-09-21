@@ -101,7 +101,7 @@ TextureReload for Texture<RemoteImage,I,T> {
         let image       = image_ref.borrow();
         request_cors_if_not_same_origin(&image,url);
         image.set_src(url);
-        image.add_event_listener_with_callback("load",js_callback).unwrap();
+        image.add_event_listener_with_callback_and_bool("load",js_callback,true).unwrap();
         *callback_ref.borrow_mut() = Some(callback);
     }
 }
