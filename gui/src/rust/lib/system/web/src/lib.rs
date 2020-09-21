@@ -30,6 +30,7 @@ pub use web_sys::Document;
 pub use web_sys::Element;
 pub use web_sys::EventTarget;
 pub use web_sys::HtmlCanvasElement;
+pub use web_sys::HtmlCollection;
 pub use web_sys::HtmlDivElement;
 pub use web_sys::HtmlElement;
 pub use web_sys::MouseEvent;
@@ -106,7 +107,7 @@ pub fn ignore_context_menu(target:&EventTarget) -> Option<IgnoreContextMenuHandl
     };
     let closure = Closure::wrap(Box::new(closure) as Box<dyn FnMut(MouseEvent)>);
     let callback : &Function = closure.as_ref().unchecked_ref();
-    match target.add_event_listener_with_callback("contextmenu", callback) {
+    match target.add_event_listener_with_callback_and_bool("contextmenu",callback,true) {
         Ok(_)  => {
             let target = target.clone();
             let handle = IgnoreContextMenuHandle { target, closure };
@@ -171,6 +172,13 @@ pub fn performance() -> Performance {
 pub fn get_element_by_id(id:&str) -> Result<Element> {
     try_document()?.get_element_by_id(id).ok_or_else(||
         Error(format!("Element with id '{}' not found.",id)))
+}
+
+pub fn get_elements_by_class_name(name:&str) -> Result<Vec<Element>> {
+    let collection = try_document()?.get_elements_by_class_name(name);
+    let indices    = 0..collection.length();
+    let elements   = indices.flat_map(|index| collection.get_with_index(index)).collect();
+    Ok(elements)
 }
 
 pub fn get_html_element_by_id(id:&str) -> Result<HtmlElement> {

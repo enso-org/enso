@@ -7,9 +7,10 @@
         <!-- FIXME Security Vulnerabilities: https://github.com/luna/ide/issues/226 -->
         <meta http-equiv="Content-Security-Policy" content="
             default-src 'self';
-            script-src  'self' 'unsafe-eval';
-            style-src   'self' 'unsafe-inline';
-            connect-src 'self' data: ws://localhost:* ws://127.0.0.1:*;
+            script-src  'self' 'unsafe-eval' data: https://*;
+            style-src   'self' 'unsafe-inline' data: https://*;
+            connect-src 'self' data: ws://localhost:* ws://127.0.0.1:* https://*;
+            worker-src  'self' blob:;
             font-src    'self' data:"
         />
         <meta name="viewport" content="
@@ -42,6 +43,31 @@
                 z-index  : 10;
                 -webkit-app-region  : drag;
                 -webkit-user-select : none;
+            }
+            .scrollable::-webkit-scrollbar {
+                -webkit-appearance: none;
+            }
+
+            .scrollable::-webkit-scrollbar:vertical {
+                width: 11px;
+            }
+
+            .scrollable::-webkit-scrollbar:horizontal {
+                height: 11px;
+            }
+
+            .scrollable::-webkit-scrollbar-thumb {
+                border-radius: 8px;
+                border: 1px solid rgba(220, 220, 220, .5);
+                background-color: rgba(190, 190, 190, .5);
+            }
+
+            .scrollable::-webkit-scrollbar-corner {
+                background: rgba(0,0,0,0);
+            }
+
+            .visualization {
+                z-index: 2;
             }
         </style>
         <script type="module" src="/assets/index.js" defer></script>

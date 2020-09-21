@@ -12,6 +12,7 @@ use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
+use ensogl::system::web::AttributeSetter;
 
 
 
@@ -65,6 +66,8 @@ impl ViewModel {
         let size_vec    = Vector2(VIEW_WIDTH, view_height);
         let size        = Rc::new(Cell::new(size_vec));
 
+        dom.dom().set_attribute_or_warn("class","scrollable",&logger);
+
         dom.dom().set_style_or_warn("white-space"     ,"normal"                      ,&logger);
         dom.dom().set_style_or_warn("overflow-y"      ,"auto"                        ,&logger);
         dom.dom().set_style_or_warn("overflow-x"      ,"auto"                        ,&logger);
@@ -76,7 +79,7 @@ impl ViewModel {
         dom.dom().set_style_or_warn("height"          ,format!("{}px",view_height)   ,&logger);
         dom.dom().set_style_or_warn("box-shadow"      ,"0 0 16px rgba(0, 0, 0, 0.06)",&logger);
 
-        scene.dom.layers.main.manage(&dom);
+        scene.dom.layers.front.manage(&dom);
         ViewModel {logger,dom,size}.init()
     }
 

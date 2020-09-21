@@ -14,6 +14,7 @@ use ensogl::display;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
 use ensogl_theme;
+use ensogl::system::web::AttributeSetter;
 
 
 
@@ -90,16 +91,17 @@ impl RawTextModel {
         let _blue      = text_color.blue * 255.0;
         let text_color = format!("rgba({},{},{},{})",_red,_green,_blue,text_color.alpha);
 
+        dom.dom().set_attribute_or_warn("class","visualization scrollable",&logger);
+
         dom.dom().set_style_or_warn("white-space"   ,"pre"           ,&logger);
         dom.dom().set_style_or_warn("overflow-y"    ,"auto"          ,&logger);
         dom.dom().set_style_or_warn("overflow-x"    ,"auto"          ,&logger);
         dom.dom().set_style_or_warn("font-family"   ,"dejavuSansMono",&logger);
         dom.dom().set_style_or_warn("font-size"     ,"11px"          ,&logger);
-        dom.dom().set_style_or_warn("margin-left"   ,"12px"          ,&logger);
         dom.dom().set_style_or_warn("color"         ,text_color      ,&logger);
         dom.dom().set_style_or_warn("pointer-events","auto"          ,&logger);
 
-        scene.dom.layers.main.manage(&dom);
+        scene.dom.layers.back.manage(&dom);
         RawTextModel{dom,logger,size}.init()
     }
 

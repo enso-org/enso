@@ -40,7 +40,7 @@ impl Listener {
         let js_function = callback.as_ref().unchecked_ref();
         let logger      = Logger::sub(logger,"Listener");
         let event_type  = event_type.as_ref();
-        if element.add_event_listener_with_callback(event_type,js_function).is_err() {
+        if element.add_event_listener_with_callback_and_bool(event_type,js_function,true).is_err() {
             logger.warning(|| format!("Couldn't add {} event listener.",event_type));
         }
         let event_type = event_type.into();
