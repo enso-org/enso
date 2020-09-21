@@ -713,6 +713,26 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     assembly := assembly.dependsOn(`engine-runner` / assembly).value,
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value
   )
+  .settings(
+    buildNativeImage := NativeImage
+      .buildNativeImage(
+        "project-manager",
+        staticOnLinux = true,
+        Seq(
+          "--enable-all-security-services", // Note [HTTPS in the Launcher]
+//            "-H:IncludeResources=.*Main.enso$",
+          "--report-unsupported-elements-at-runtime", // FIXME debug
+          "-H:+TraceClassInitialization",
+          "-H:+AllowIncompleteClasspath",
+          "--initialize-at-run-time=" +
+          "akka.protobuf.DescriptorProtos," +
+          "io.methvin.watchservice.jna.CarbonAPI"
+//            "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," + // TODO this should be added back
+//            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
+        )
+      )
+      .value
+  )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`polyglot-api`)

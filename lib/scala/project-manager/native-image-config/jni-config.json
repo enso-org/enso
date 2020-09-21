@@ -1,0 +1,26 @@
+[
+{
+  "name":"java.lang.ClassLoader",
+  "methods":[
+    {"name":"getPlatformClassLoader","parameterTypes":[] }, 
+    {"name":"loadClass","parameterTypes":["java.lang.String"] }
+  ]
+},
+{
+  "name":"java.lang.ClassNotFoundException"
+},
+{
+  "name":"java.lang.NoSuchMethodError"
+},
+{
+  "name":"org.sqlite.core.DB",
+  "methods":[{"name":"throwex","parameterTypes":["int"] }]
+},
+{
+  "name":"org.sqlite.core.NativeDB",
+  "fields":[
+    {"name":"pointer"}, 
+    {"name":"udfdatalist"}
+  ]
+}
+]

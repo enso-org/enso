@@ -1,0 +1,3913 @@
+[
+{
+  "name":"akka.actor.ActorCell",
+  "fields":[
+    {"name":"akka$actor$dungeon$Children$$_childrenRefsDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
+    {"name":"akka$actor$dungeon$Children$$_functionRefsDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
+    {"name":"akka$actor$dungeon$Children$$_nextNameDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
+    {"name":"akka$actor$dungeon$Dispatch$$_mailboxDoNotCallMeDirectly", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"akka.actor.DefaultSupervisorStrategy",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.actor.LightArrayRevolverScheduler",
+  "methods":[{"name":"<init>","parameterTypes":["com.typesafe.config.Config","akka.event.LoggingAdapter","java.util.concurrent.ThreadFactory"] }]
+},
+{
+  "name":"akka.actor.LightArrayRevolverScheduler$TaskHolder",
+  "fields":[{"name":"task", "allowUnsafeAccess":true}]
+},
+{
+  "name":"akka.actor.LightArrayRevolverScheduler$TaskQueue[]"
+},
+{
+  "name":"akka.actor.LocalActorRefProvider",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","akka.actor.ActorSystem$Settings","akka.event.EventStream","akka.actor.DynamicAccess"] }]
+},
+{
+  "name":"akka.actor.LocalActorRefProvider$Guardian",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.actor.LocalActorRefProvider$SystemGuardian",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.actor.Props$EmptyActor",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.actor.RepointableActorRef",
+  "fields":[
+    {"name":"_cellDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
+    {"name":"_lookupDoNotCallMeDirectly", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"akka.actor.typed.ActorRef"
+},
+{
+  "name":"akka.actor.typed.internal.MiscMessageSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.actor.typed.internal.adapter.ActorRefAdapter"
+},
+{
+  "name":"akka.actor.typed.internal.adapter.ActorSystemAdapter$LoadTypedExtensions$",
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"akka.actor.typed.internal.receptionist.DefaultServiceKey"
+},
+{
+  "name":"akka.actor.typed.internal.receptionist.ServiceKeySerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.actor.typed.receptionist.Receptionist$",
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"akka.dispatch.AbstractNodeQueue",
+  "fields":[{"name":"_tailDoNotCallMeDirectly", "allowUnsafeAccess":true}]
+},
+{
+  "name":"akka.dispatch.AbstractNodeQueue$Node",
+  "fields":[{"name":"_nextDoNotCallMeDirectly", "allowUnsafeAccess":true}]
+},
+{
+  "name":"akka.dispatch.BoundedControlAwareMessageQueueSemantics"
+},
+{
+  "name":"akka.dispatch.BoundedDequeBasedMessageQueueSemantics"
+},
+{
+  "name":"akka.dispatch.BoundedMessageQueueSemantics"
+},
+{
+  "name":"akka.dispatch.ControlAwareMessageQueueSemantics"
+},
+{
+  "name":"akka.dispatch.DequeBasedMessageQueueSemantics"
+},
+{
+  "name":"akka.dispatch.Mailbox",
+  "fields":[
+    {"name":"_statusDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
+    {"name":"_systemQueueDoNotCallMeDirectly", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"akka.dispatch.MessageDispatcher",
+  "fields":[
+    {"name":"_inhabitantsDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
+    {"name":"_shutdownScheduleDoNotCallMeDirectly", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"akka.dispatch.MultipleConsumerSemantics"
+},
+{
+  "name":"akka.dispatch.SingleConsumerOnlyUnboundedMailbox",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
+},
+{
+  "name":"akka.dispatch.UnboundedControlAwareMessageQueueSemantics"
+},
+{
+  "name":"akka.dispatch.UnboundedDequeBasedMailbox",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
+},
+{
+  "name":"akka.dispatch.UnboundedDequeBasedMessageQueueSemantics"
+},
+{
+  "name":"akka.dispatch.UnboundedMailbox",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
+},
+{
+  "name":"akka.dispatch.UnboundedMessageQueueSemantics"
+},
+{
+  "name":"akka.event.DeadLetterListener",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.event.EventStreamUnsubscriber",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.event.LoggerMailboxType",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
+},
+{
+  "name":"akka.event.LoggerMessageQueueSemantics"
+},
+{
+  "name":"akka.event.slf4j.Slf4jLogger",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.event.slf4j.Slf4jLoggingFilter",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","akka.event.EventStream"] }]
+},
+{
+  "name":"akka.http.DefaultParsingErrorHandler$",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.http.impl.engine.client.PoolMasterActor",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.io.InetAddressDnsProvider",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.io.InetAddressDnsResolver",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.SelectionHandler",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.SimpleDnsManager",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.TcpIncomingConnection",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.TcpListener",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.TcpManager",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.TcpOutgoingConnection",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.dns.RecordType[]"
+},
+{
+  "name":"akka.pattern.PromiseActorRef",
+  "fields":[
+    {"name":"_stateDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
+    {"name":"_watchedByDoNotCallMeDirectly", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"akka.routing.ConsistentHashingPool",
+  "methods":[{"name":"<init>","parameterTypes":["com.typesafe.config.Config"] }]
+},
+{
+  "name":"akka.routing.ConsistentRoutee[]"
+},
+{
+  "name":"akka.routing.RoundRobinPool",
+  "methods":[{"name":"<init>","parameterTypes":["com.typesafe.config.Config"] }]
+},
+{
+  "name":"akka.routing.RoutedActorCell$RouterActorCreator",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.serialization.BooleanSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.serialization.ByteArraySerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.serialization.ByteStringSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.serialization.DisabledJavaSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.serialization.IntSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.serialization.LongSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.serialization.SerializationExtension$",
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"akka.serialization.StringSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.stream.SinkRef"
+},
+{
+  "name":"akka.stream.SourceRef"
+},
+{
+  "name":"akka.stream.SystemMaterializer$",
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"akka.stream.impl.streamref.StreamRefsProtocol"
+},
+{
+  "name":"akka.stream.serialization.StreamRefSerializer",
+  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
+},
+{
+  "name":"akka.stream.stage.GraphStageLogic[]"
+},
+{
+  "name":"akka.util.ByteString$ByteString1"
+},
+{
+  "name":"akka.util.ByteString$ByteString1C"
+},
+{
+  "name":"akka.util.ByteString$ByteStrings"
+},
+{
+  "name":"ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.DateConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.LevelConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.LineSeparatorConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.LoggerConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.MessageConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.ThreadConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.ConsoleAppender",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.fasterxml.jackson.annotation.JsonCreator[]"
+},
+{
+  "name":"com.fasterxml.jackson.databind.deser.Deserializers[]"
+},
+{
+  "name":"com.fasterxml.jackson.databind.deser.KeyDeserializers[]"
+},
+{
+  "name":"com.fasterxml.jackson.databind.deser.ValueInstantiators[]"
+},
+{
+  "name":"com.fasterxml.jackson.databind.ext.Java7HandlersImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.fasterxml.jackson.databind.ext.Java7SupportImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.fasterxml.jackson.databind.ser.Serializers[]"
+},
+{
+  "name":"com.fasterxml.jackson.databind.ser.std.FileSerializer",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.fasterxml.jackson.module.scala.introspect.PropertyDescriptor[]"
+},
+{
+  "name":"com.oracle.truffle.api.LanguageAccessor$LanguageImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.api.TruffleLanguage"
+},
+{
+  "name":"com.oracle.truffle.api.TruffleStackTrace"
+},
+{
+  "name":"com.oracle.truffle.api.TruffleStackTraceElement"
+},
+{
+  "name":"com.oracle.truffle.api.debug.Debugger"
+},
+{
+  "name":"com.oracle.truffle.api.debug.impl.DebuggerInstrumentProvider",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.api.frame.FrameAccessor$FramesImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.api.instrumentation.InstrumentAccessor$InstrumentImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.api.instrumentation.InstrumentationHandler"
+},
+{
+  "name":"com.oracle.truffle.api.instrumentation.ProbeNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"chain", "allowUnsafeAccess":true}, 
+    {"name":"context", "allowUnsafeAccess":true}, 
+    {"name":"handler", "allowUnsafeAccess":true}, 
+    {"name":"retiredNodeReference", "allowUnsafeAccess":true}, 
+    {"name":"seen", "allowUnsafeAccess":true}, 
+    {"name":"version", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"com.oracle.truffle.api.instrumentation.ProbeNode$EventChainNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"binding", "allowUnsafeAccess":true}, 
+    {"name":"next", "allowUnsafeAccess":true}, 
+    {"name":"previous", "allowUnsafeAccess":true}, 
+    {"name":"seen", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"com.oracle.truffle.api.instrumentation.ProbeNode$EventFilterChainNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"listener", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.oracle.truffle.api.instrumentation.TruffleInstrument"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultBooleanExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultByteExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultCharacterExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultDoubleExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultFloatExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultIntegerExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultLongExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultShortExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.DefaultStringExportsGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.InteropAccessor$InteropImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.api.interop.InteropLibrary",
+  "allDeclaredFields":true
+},
+{
+  "name":"com.oracle.truffle.api.interop.InteropLibraryGen"
+},
+{
+  "name":"com.oracle.truffle.api.interop.InteropLibraryGen$CachedDispatch",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"library", "allowUnsafeAccess":true}, 
+    {"name":"next", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"com.oracle.truffle.api.interop.InteropLibraryGen$CachedDispatchFirst",
+  "allDeclaredFields":true,
+  "fields":[{"name":"limit_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.oracle.truffle.api.io.IOAccessor$IOSupportImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.api.library.DefaultExportProvider"
+},
+{
+  "name":"com.oracle.truffle.api.library.DynamicDispatchLibrary"
+},
+{
+  "name":"com.oracle.truffle.api.library.DynamicDispatchLibraryGen"
+},
+{
+  "name":"com.oracle.truffle.api.library.Library",
+  "allDeclaredFields":true
+},
+{
+  "name":"com.oracle.truffle.api.nodes.DirectCallNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"callTarget", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.oracle.truffle.api.nodes.ExecutableNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"engineRef", "allowUnsafeAccess":true}, 
+    {"name":"referenceCache", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"com.oracle.truffle.api.nodes.Node",
+  "allDeclaredFields":true,
+  "fields":[{"name":"parent", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.oracle.truffle.api.nodes.NodeAccessor$AccessNodes",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.api.nodes.RootNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"callTarget", "allowUnsafeAccess":true}, 
+    {"name":"frameDescriptor", "allowUnsafeAccess":true}, 
+    {"name":"instrumentationBits", "allowUnsafeAccess":true}, 
+    {"name":"lock", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"com.oracle.truffle.api.nodes.RootNode$Constant",
+  "allDeclaredFields":true,
+  "fields":[{"name":"value", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.oracle.truffle.api.object.DynamicObject",
+  "fields":[{"name":"shape", "allowUnsafeAccess":true}]
+},
+{
+  "name":"com.oracle.truffle.api.source.SourceAccessor$SourceSupportImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.js.nodes.access.InitErrorObjectNodeFactory$DefineStackPropertyNodeGen"
+},
+{
+  "name":"com.oracle.truffle.js.nodes.control.TryCatchNode$GetErrorObjectNode"
+},
+{
+  "name":"com.oracle.truffle.js.runtime.Errors"
+},
+{
+  "name":"com.oracle.truffle.js.runtime.JSException"
+},
+{
+  "name":"com.oracle.truffle.polyglot.EngineAccessor$EngineImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.oracle.truffle.tools.coverage.CoverageTracker"
+},
+{
+  "name":"com.oracle.truffle.tools.profiler.CPUSampler"
+},
+{
+  "name":"com.oracle.truffle.tools.profiler.CPUTracer"
+},
+{
+  "name":"com.oracle.truffle.tools.profiler.HeapMonitor"
+},
+{
+  "name":"com.oracle.truffle.tools.profiler.MemoryTracer"
+},
+{
+  "name":"com.sun.crypto.provider.TlsMasterSecretGenerator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.zaxxer.hikari.HikariConfig",
+  "allDeclaredFields":true
+},
+{
+  "name":"com.zaxxer.hikari.util.ConcurrentBag$IConcurrentBagEntry[]"
+},
+{
+  "name":"io.circe.Json[]"
+},
+{
+  "name":"java.io.File",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"java.io.FilePermission"
+},
+{
+  "name":"java.io.Serializable",
+  "allDeclaredMethods":true
+},
+{
+  "name":"java.lang.Boolean"
+},
+{
+  "name":"java.lang.Class[]"
+},
+{
+  "name":"java.lang.Comparable",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"java.lang.Integer"
+},
+{
+  "name":"java.lang.Long"
+},
+{
+  "name":"java.lang.Math"
+},
+{
+  "name":"java.lang.Object",
+  "allDeclaredFields":true
+},
+{
+  "name":"java.lang.Object[]"
+},
+{
+  "name":"java.lang.RuntimePermission"
+},
+{
+  "name":"java.lang.String",
+  "fields":[{"name":"value", "allowUnsafeAccess":true}]
+},
+{
+  "name":"java.lang.String[]"
+},
+{
+  "name":"java.lang.Throwable",
+  "fields":[{"name":"cause", "allowUnsafeAccess":true}],
+  "methods":[{"name":"getSuppressed","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.invoke.VarHandle"
+},
+{
+  "name":"java.lang.reflect.Constructor[]"
+},
+{
+  "name":"java.net.NetPermission"
+},
+{
+  "name":"java.net.SocketPermission"
+},
+{
+  "name":"java.net.URLPermission",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","java.lang.String"] }]
+},
+{
+  "name":"java.security.AlgorithmParametersSpi"
+},
+{
+  "name":"java.security.AllPermission"
+},
+{
+  "name":"java.security.KeyStoreSpi"
+},
+{
+  "name":"java.security.MessageDigestSpi"
+},
+{
+  "name":"java.security.SecureRandomParameters"
+},
+{
+  "name":"java.security.SecurityPermission"
+},
+{
+  "name":"java.sql.Date"
+},
+{
+  "name":"java.sql.Statement[]"
+},
+{
+  "name":"java.sql.Timestamp"
+},
+{
+  "name":"java.sql.Types",
+  "allPublicFields":true
+},
+{
+  "name":"java.util.PropertyPermission"
+},
+{
+  "name":"java.util.UUID",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"javax.management.ObjectName"
+},
+{
+  "name":"javax.net.ssl.KeyManager[]"
+},
+{
+  "name":"javax.net.ssl.TrustManager[]"
+},
+{
+  "name":"javax.security.auth.x500.X500Principal",
+  "fields":[{"name":"thisX500Name"}],
+  "methods":[{"name":"<init>","parameterTypes":["sun.security.x509.X500Name"] }]
+},
+{
+  "name":"org.enso.interpreter.node.BaseNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"isTail", "allowUnsafeAccess":true}, 
+    {"name":"stateFrameSlot", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.ClosureRootNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"body", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.EnsoRootNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"contextReference", "allowUnsafeAccess":true}, 
+    {"name":"localScope", "allowUnsafeAccess":true}, 
+    {"name":"moduleScope", "allowUnsafeAccess":true}, 
+    {"name":"name", "allowUnsafeAccess":true}, 
+    {"name":"sourceSection", "allowUnsafeAccess":true}, 
+    {"name":"stateFrameSlot", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.ExpressionNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"id", "allowUnsafeAccess":true}, 
+    {"name":"sourceLength", "allowUnsafeAccess":true}, 
+    {"name":"sourceStartIndex", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.ExpressionNodeWrapper",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"delegateNode", "allowUnsafeAccess":true}, 
+    {"name":"probeNode", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.ExpressionNode[]"
+},
+{
+  "name":"org.enso.interpreter.node.MethodRootNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"atomConstructor", "allowUnsafeAccess":true}, 
+    {"name":"methodName", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.ApplicationNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"argExpressions", "allowUnsafeAccess":true}, 
+    {"name":"callable", "allowUnsafeAccess":true}, 
+    {"name":"invokeCallableNode", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.CaptureCallerInfoNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.callable.CaptureCallerInfoNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"scopeInfo_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.ExecuteCallNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.callable.ExecuteCallNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"callDirect_cache", "allowUnsafeAccess":true}, 
+    {"name":"callIndirect_callNode_", "allowUnsafeAccess":true}, 
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.ExecuteCallNodeGen$CallDirectData",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"cachedTarget_", "allowUnsafeAccess":true}, 
+    {"name":"callNode_", "allowUnsafeAccess":true}, 
+    {"name":"next_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.FunctionCallGen"
+},
+{
+  "name":"org.enso.interpreter.node.callable.FunctionCallInstrumentationNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"id", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.callable.FunctionCallInstrumentationNodeWrapper",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"delegateNode", "allowUnsafeAccess":true}, 
+    {"name":"probeNode", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.InvokeCallableNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"argumentsExecutionMode", "allowUnsafeAccess":true}, 
+    {"name":"canApplyThis", "allowUnsafeAccess":true}, 
+    {"name":"invokeFunctionNode", "allowUnsafeAccess":true}, 
+    {"name":"methodResolverNode", "allowUnsafeAccess":true}, 
+    {"name":"thisArgumentPosition", "allowUnsafeAccess":true}, 
+    {"name":"thisExecutor", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.InvokeCallableNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.callable.MethodResolverNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.callable.MethodResolverNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"resolveArray_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveAtomConstructor_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveAtom_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveBigInteger_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveBoolean_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveDouble_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveError_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveFalse_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveFunction_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveHost_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveLong_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveString_cache", "allowUnsafeAccess":true}, 
+    {"name":"resolveTrue_cache", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.SequenceLiteralNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"items", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.callable.argument.ArgumentSorterNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"argumentsExecutionMode", "allowUnsafeAccess":true}, 
+    {"name":"executors", "allowUnsafeAccess":true}, 
+    {"name":"mapping", "allowUnsafeAccess":true}, 
+    {"name":"postApplicationSchema", "allowUnsafeAccess":true}, 
+    {"name":"preApplicationSchema", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.argument.ReadArgumentNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"defaultValue", "allowUnsafeAccess":true}, 
+    {"name":"defaultingProfile", "allowUnsafeAccess":true}, 
+    {"name":"index", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.dispatch.CallOptimiserNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.callable.dispatch.CurryNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"appliesFully", "allowUnsafeAccess":true}, 
+    {"name":"defaultsExecutionMode", "allowUnsafeAccess":true}, 
+    {"name":"directCall", "allowUnsafeAccess":true}, 
+    {"name":"keepExecutingProfile", "allowUnsafeAccess":true}, 
+    {"name":"loopingCall", "allowUnsafeAccess":true}, 
+    {"name":"oversaturatedCallableNode", "allowUnsafeAccess":true}, 
+    {"name":"postApplicationSchema", "allowUnsafeAccess":true}, 
+    {"name":"preApplicationSchema", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"argumentsExecutionMode", "allowUnsafeAccess":true}, 
+    {"name":"captureCallerInfoNode", "allowUnsafeAccess":true}, 
+    {"name":"defaultsExecutionMode", "allowUnsafeAccess":true}, 
+    {"name":"functionCallInstrumentationNode", "allowUnsafeAccess":true}, 
+    {"name":"schema", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.dispatch.InvokeFunctionNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"invokeCached_cache", "allowUnsafeAccess":true}, 
+    {"name":"invokeUncached_curryNode_", "allowUnsafeAccess":true}, 
+    {"name":"invokeUncached_mappingNode_", "allowUnsafeAccess":true}, 
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.dispatch.InvokeFunctionNodeGen$InvokeCachedData",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"argumentMapping_", "allowUnsafeAccess":true}, 
+    {"name":"cachedSchema_", "allowUnsafeAccess":true}, 
+    {"name":"curryNode_", "allowUnsafeAccess":true}, 
+    {"name":"mappingNode_", "allowUnsafeAccess":true}, 
+    {"name":"next_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"dispatch_loopNode_", "allowUnsafeAccess":true}, 
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}, 
+    {"name":"uncachedDispatch_executeCallNode_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.function.BlockNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"returnExpr", "allowUnsafeAccess":true}, 
+    {"name":"statements", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.function.CreateFunctionNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"callTarget", "allowUnsafeAccess":true}, 
+    {"name":"schema", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.thunk.CreateThunkNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"callTarget", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.callable.thunk.ThunkExecutorNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"cached_cache", "allowUnsafeAccess":true}, 
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}, 
+    {"name":"uncached_callNode_", "allowUnsafeAccess":true}, 
+    {"name":"uncached_loopingCallOptimiserNode_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen$CachedData",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"callNode_", "allowUnsafeAccess":true}, 
+    {"name":"loopingCallOptimiserNode_", "allowUnsafeAccess":true}, 
+    {"name":"next_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.controlflow.BranchNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.controlflow.BranchNode[]"
+},
+{
+  "name":"org.enso.interpreter.node.controlflow.CaseNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"cases", "allowUnsafeAccess":true}, 
+    {"name":"typeErrorProfile", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.controlflow.CaseNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"scrutinee_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.controlflow.ConstructorBranchNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"branch", "allowUnsafeAccess":true}, 
+    {"name":"executeCallNode", "allowUnsafeAccess":true}, 
+    {"name":"matcher", "allowUnsafeAccess":true}, 
+    {"name":"profile", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.controlflow.ConstructorBranchNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.atom.GetFieldNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"index", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.atom.InstantiateNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"arguments", "allowUnsafeAccess":true}, 
+    {"name":"constructor", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.atom.QualifiedAccessorNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"atomConstructor", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.InstantiateAtomNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"instantiator", "allowUnsafeAccess":true}, 
+    {"name":"name", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.EmptyMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.EmptyNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.GetAtMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.GetAtNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.LengthMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.LengthNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New1MethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New1Node",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New2MethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New2Node",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New3MethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New3Node",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New4MethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.New4Node",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.NewMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.NewNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.SetAtMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.SetAtNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.ToArrayMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.array.ToArrayNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.AndMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.AndNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.IfThenElseMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.IfThenElseNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"condProfile", "allowUnsafeAccess":true}, 
+    {"name":"leftThunkExecutorNode", "allowUnsafeAccess":true}, 
+    {"name":"rightThunkExecutorNode", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.NotMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.NotNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.OrMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.OrNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.ToTextMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.bool.ToTextNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"evalNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.CatchErrorNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"executionProfile", "allowUnsafeAccess":true}, 
+    {"name":"invokeCallableNode", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.CatchPanicNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"thunkExecutorNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.ThrowErrorNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.ThrowPanicNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.function.ApplicationOperator",
+  "allDeclaredFields":true,
+  "fields":[{"name":"invokeCallableNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"invokeCallableNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.ExecuteMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.ExecuteNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetArrayElementMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetArrayElementNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetArraySizeMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetArraySizeNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetMemberMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetMemberNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetMembersMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.GetMembersNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.InstantiateMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.InstantiateNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.InvokeMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.generic.InvokeNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.java.LookupClassNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.java.LookupClassNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"err", "allowUnsafeAccess":true}, 
+    {"name":"hostValueToEnsoNode", "allowUnsafeAccess":true}, 
+    {"name":"invokeCallableNode", "allowUnsafeAccess":true}, 
+    {"name":"library", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"run_cache", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.PrintErrNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.PrintErrNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.PrintlnNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"invokeCallableNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.PrintlnNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}, 
+    {"name":"symbol_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.ReadlnNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.io.ReadlnNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.AbsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.AbsNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.AddMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.AddNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.AddNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivideMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivideNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.DivideNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.EqualsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.EqualsNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.EqualsNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterOrEqualMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterOrEqualNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.GreaterOrEqualNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessOrEqualMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessOrEqualNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.LessOrEqualNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.ModMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.ModNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.ModNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.MultiplyMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.MultiplyNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.MultiplyNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.NegateMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.NegateNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.PowMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.PowNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.PowNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.SubtractMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.SubtractNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.SubtractNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.ToDecimalMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.bigInteger.ToDecimalNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.AbsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.AbsNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.AddMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.AddNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.AddNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.DivideMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.DivideNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.DivideNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.EqualsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.EqualsNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.EqualsNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterOrEqualMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterOrEqualNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.GreaterOrEqualNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessOrEqualMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessOrEqualNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.LessOrEqualNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.MultiplyMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.MultiplyNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.MultiplyNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.NegateMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.NegateNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.PowMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.PowNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.PowNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.SubtractMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.SubtractNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.SubtractNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.ToDecimalMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.decimal.ToDecimalNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AbsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AbsNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AbsNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AddMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AddNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.AddNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivideMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivideNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.DivideNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.EqualsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.EqualsNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.EqualsNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterOrEqualMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterOrEqualNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterOrEqualNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessOrEqualMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessOrEqualNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.LessOrEqualNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.ModMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.ModNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.ModNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.NegateMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.NegateNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.NegateNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.PowMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.PowNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"bigIntMultiplyNode", "allowUnsafeAccess":true}, 
+    {"name":"bigIntPowNode", "allowUnsafeAccess":true}, 
+    {"name":"longMultiplyNode", "allowUnsafeAccess":true}, 
+    {"name":"toEnsoNumberNode", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.PowNodeGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"state_", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.SubtractMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.SubtractNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"toEnsoNumberNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.SubtractNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.ToDecimalMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.smallInteger.ToDecimalNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"fitsProfile", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.runtime.GCNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.runtime.NoInlineNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"thunkExecutorNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.GetStateNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.GetStateNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"multiCached_cache", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.PutStateNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.PutStateNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"existingMultiCached_cache", "allowUnsafeAccess":true}, 
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.RunStateNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"thunkExecutorNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.state.RunStateNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"multiExistingKeyCached_cache", "allowUnsafeAccess":true}, 
+    {"name":"multiNewKeyCached_cache", "allowUnsafeAccess":true}, 
+    {"name":"singletonNewKeyCached_cache", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.CreateProcessMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.CreateProcessNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.CreateProcessNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.ExitMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.ExitNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.NanoTimeNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.OsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.system.OsNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"LINUX", "allowUnsafeAccess":true}, 
+    {"name":"MACOS", "allowUnsafeAccess":true}, 
+    {"name":"UNKNOWN", "allowUnsafeAccess":true}, 
+    {"name":"WINDOWS", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.AnyToTextNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.ConcatMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.ConcatNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.JsonSerializeMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.JsonSerializeNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.TextEqualsMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.text.TextEqualsNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"actExecutorNode", "allowUnsafeAccess":true}, 
+    {"name":"handlerExecutorNode", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen",
+  "allDeclaredFields":true,
+  "fields":[{"name":"bodyNode", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.expression.constant.ConstantObjectNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"object", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.constant.ConstructorNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"constructor", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.constant.ConstructorNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.constant.DynamicSymbolNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"unresolvedSymbol", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.debug.EvalNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"shouldCaptureResultScope", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.debug.EvalNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"cached_cache", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}, 
+    {"name":"uncached_thunkExecutorNode_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.debug.EvalNodeGen$CachedData",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"cachedCallTarget_", "allowUnsafeAccess":true}, 
+    {"name":"cachedCallerInfo_", "allowUnsafeAccess":true}, 
+    {"name":"cachedExpression_", "allowUnsafeAccess":true}, 
+    {"name":"next_", "allowUnsafeAccess":true}, 
+    {"name":"thunkExecutorNode_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.expression.literal.DecimalLiteralNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"value", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.literal.IntegerLiteralNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"value", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.expression.literal.TextLiteralNode",
+  "allDeclaredFields":true,
+  "fields":[{"name":"value", "allowUnsafeAccess":true}]
+},
+{
+  "name":"org.enso.interpreter.node.scope.AssignmentNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.scope.AssignmentNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"frameSlot", "allowUnsafeAccess":true}, 
+    {"name":"languageContextReference_", "allowUnsafeAccess":true}, 
+    {"name":"rhsNode_", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.node.scope.ReadLocalVariableNode",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.enso.interpreter.node.scope.ReadLocalVariableNodeGen",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"exclude_", "allowUnsafeAccess":true}, 
+    {"name":"framePointer", "allowUnsafeAccess":true}, 
+    {"name":"state_", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.enso.interpreter.runtime.ModuleGen"
+},
+{
+  "name":"org.enso.interpreter.runtime.callable.argument.CallArgument[]"
+},
+{
+  "name":"org.enso.interpreter.runtime.callable.function.FunctionGen"
+},
+{
+  "name":"org.enso.languageserver.effect.ZioExec$$Lambda$2372/0x0000000840eb1440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileManager$$anonfun$receive$1$$Lambda$2369/0x0000000840eb0040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileManager$$anonfun$receive$1$$Lambda$2371/0x0000000840eb1840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileManager$$anonfun$receive$1$$Lambda$2384/0x0000000840eb9840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileManager$$anonfun$receive$1$$Lambda$2395/0x0000000840ebe840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileManager$$anonfun$receive$1$$Lambda$2396/0x0000000840ebe040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileManager$$anonfun$receive$1$$Lambda$2397/0x0000000840ec8040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileManager$$anonfun$receive$1$$Lambda$2399/0x0000000840ec9040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileSystem$$Lambda$1279/0x000000084079e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileSystem$$Lambda$2383/0x0000000840eb9040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.languageserver.filemanager.FileSystem$$Lambda$2398/0x0000000840ebdc40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.polyglot.Suggestion",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Argument",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Argument$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Local",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Local$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Method",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Method$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Position",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Position$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Scope",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.Suggestion$Scope$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api",
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$AttachVisualisation",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$AttachVisualisation$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$CloseFileNotification",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$CloseFileNotification$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$EditFileNotification",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$EditFileNotification$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExecutionSuccessful",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExecutionSuccessful$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExpressionValueUpdate",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExpressionValueUpdate$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExpressionValuesComputed",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ExpressionValuesComputed$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$InitializedNotification",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$MethodPointer",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$MethodPointer$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$PushContextRequest",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$PushContextRequest$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$PushContextResponse",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$PushContextResponse$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$Request",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$Request$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$Response",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$Response$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$RuntimeServerShutDown",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$ShutDownRuntimeServer",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$StackItem",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$SuggestionsDatabaseUpdate",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$SuggestionsDatabaseUpdate$Add",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$SuggestionsDatabaseUpdate$Add$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$SuggestionsDatabaseUpdate$Remove",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$SuggestionsDatabaseUpdate$Remove$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$SuggestionsDatabaseUpdateNotification",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$SuggestionsDatabaseUpdateNotification$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$VisualisationAttached",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$VisualisationConfiguration",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$VisualisationConfiguration$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$VisualisationContext",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$VisualisationContext$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$VisualisationUpdate",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$Api$VisualisationUpdate$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$ApiNotification",
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$ApiRequest",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.enso.polyglot.runtime.Runtime$ApiResponse",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1427/0x0000000840900c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1428/0x0000000840907040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1429/0x0000000840907c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1430/0x0000000840906040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1438/0x0000000840902040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1439/0x0000000840901840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1448/0x0000000840913840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1453/0x0000000840916040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1454/0x0000000840917040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1456/0x0000000840918040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1457/0x0000000840918440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1458/0x0000000840919040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$268/0x0000000840246840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$269/0x0000000840246c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4521/0x0000000841598840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4522/0x0000000841599040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4523/0x0000000841599840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4524/0x000000084159a040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4529/0x000000084159d840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4530/0x000000084159e040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4532/0x000000084159ec40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4537/0x00000008415a1840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4538/0x00000008415a2040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4540/0x00000008415a2c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4541/0x00000008415a3840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$4542/0x00000008415a4040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$472/0x000000084039fc40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$473/0x000000084039e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$473/0x000000084039f040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$474/0x000000084039e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$474/0x000000084039fc40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$475/0x000000084039e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$475/0x00000008403a8840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$476/0x00000008403a8840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$477/0x00000008403a9040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$846/0x00000008405d8c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$847/0x00000008405d9840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$847/0x00000008405da040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$848/0x00000008405da040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$848/0x00000008405e1440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$849/0x00000008405db840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$849/0x00000008405e2840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$850/0x00000008405db840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$851/0x00000008405e4040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$853/0x00000008405dc840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$854/0x00000008405dd040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$855/0x00000008405dd840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$856/0x00000008405de040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$867/0x00000008405ec040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$869/0x00000008405ed040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$895/0x00000008405fa840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$900/0x00000008405fd040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$901/0x00000008405fe040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$903/0x00000008405ff040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$904/0x00000008405ff440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$905/0x0000000840608040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.CovariantFlatMapOps$$Lambda$1096/0x00000008406ee840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.CovariantFlatMapOps$$Lambda$1098/0x00000008406f6840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.CovariantFlatMapOps$$Lambda$864/0x00000008405ea040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1129/0x0000000840703c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1131/0x000000084070c440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1135/0x0000000840708040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1137/0x0000000840710840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1243/0x0000000840776840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1245/0x000000084077f040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioCovariantFlatMap$$Lambda$1126/0x0000000840703040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioCovariantFlatMap$$Lambda$1128/0x000000084070b840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.core.ZioCovariantFlatMap$$Lambda$894/0x00000008405fa440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1267/0x000000084078d840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1269/0x0000000840796040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1407/0x00000008408eec40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1952/0x0000000840d69840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$860/0x00000008405e8040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$892/0x00000008405f9c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioEnvExec$$Lambda$1104/0x00000008406f8040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioEnvExec$$Lambda$1106/0x0000000840700840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1099/0x00000008406ec840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1101/0x00000008406f4840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1127/0x0000000840703440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1129/0x000000084070bc40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1093/0x00000008406e8440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1095/0x00000008406f0c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1180/0x000000084074b840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1182/0x0000000840754040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1263/0x000000084078b040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1265/0x0000000840793840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$515/0x00000008403e7040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$517/0x00000008403e7040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1190/0x0000000840751840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1191/0x0000000840752040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1192/0x000000084075a040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1193/0x000000084075a840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1268/0x000000084078e040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1269/0x000000084078f040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1270/0x0000000840796840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1271/0x0000000840797840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.log.Slf4jLogging$$Lambda$1254/0x000000084077fc40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.log.Slf4jLogging$$Lambda$1256/0x0000000840787c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1100/0x00000008406eb840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1101/0x00000008406eb040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1102/0x00000008406f3840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1103/0x00000008406f3040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1131/0x0000000840704c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1132/0x0000000840706040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1133/0x0000000840706840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1133/0x000000084070d440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1134/0x000000084070e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1135/0x000000084070f040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1193/0x0000000840753840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1195/0x000000084075c040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1264/0x000000084078b840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1266/0x0000000840794040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.time.RealClock$$Lambda$1260/0x0000000840788c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.infrastructure.time.RealClock$$Lambda$1262/0x0000000840791440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1255/0x000000084077e040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1257/0x000000084077c840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1257/0x0000000840786040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1258/0x0000000840788040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1259/0x0000000840790040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1260/0x0000000840790840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1262/0x000000084078a840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1264/0x0000000840793040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1265/0x000000084078c840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1267/0x0000000840795040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1270/0x000000084078f840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1272/0x0000000840798040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$518/0x00000008403e6040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$520/0x00000008403e6040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.searcher.sql.ArgumentsTable",
+  "allPublicMethods":true
+},
+{
+  "name":"org.enso.searcher.sql.FileVersionsTable",
+  "allPublicMethods":true
+},
+{
+  "name":"org.enso.searcher.sql.SuggestionsTable",
+  "allPublicMethods":true
+},
+{
+  "name":"org.enso.searcher.sql.SuggestionsVersionTable",
+  "allPublicMethods":true
+},
+{
+  "name":"org.enso.text.buffer.Node[]"
+},
+{
+  "name":"org.enso.text.editing.model$Position",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.text.editing.model$Position$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.text.editing.model$Range",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.text.editing.model$Range$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.enso.text.editing.model$TextEdit",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true,
+  "allPublicConstructors":true
+},
+{
+  "name":"org.enso.text.editing.model$TextEdit$",
+  "allPublicMethods":true,
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"org.graalvm.compiler.truffle.runtime.OptimizedDirectCallNode",
+  "allDeclaredFields":true,
+  "fields":[
+    {"name":"callCount", "allowUnsafeAccess":true}, 
+    {"name":"exceptionProfile", "allowUnsafeAccess":true}, 
+    {"name":"inliningForced", "allowUnsafeAccess":true}, 
+    {"name":"splitCallTarget", "allowUnsafeAccess":true}, 
+    {"name":"splitDecided", "allowUnsafeAccess":true}
+  ]
+},
+{
+  "name":"org.sqlite.JDBC",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"scala.Boolean"
+},
+{
+  "name":"scala.Equals",
+  "allDeclaredMethods":true
+},
+{
+  "name":"scala.Int"
+},
+{
+  "name":"scala.Long"
+},
+{
+  "name":"scala.Product",
+  "allDeclaredMethods":true
+},
+{
+  "name":"scala.Symbol"
+},
+{
+  "name":"scala.Tuple2[]"
+},
+{
+  "name":"scala.Tuple3[]"
+},
+{
+  "name":"scala.math.Ordered",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true
+},
+{
+  "name":"slick.jdbc.hikaricp.HikariCPJdbcDataSource$",
+  "fields":[{"name":"MODULE$"}]
+},
+{
+  "name":"slick.relational.ResultConverter[]"
+},
+{
+  "name":"sun.misc.Unsafe",
+  "allDeclaredFields":true
+},
+{
+  "name":"sun.security.pkcs12.PKCS12KeyStore",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.JavaKeyStore$JKS",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.MD5",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.NativePRNG",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.SHA",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.X509Factory",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.rsa.RSAKeyFactory$Legacy",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.ssl.KeyManagerFactoryImpl$SunX509",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.ssl.SSLContextImpl$DefaultSSLContext",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.ssl.SSLContextImpl$TLS12Context",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.x509.AuthorityInfoAccessExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.AuthorityKeyIdentifierExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.BasicConstraintsExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.CRLDistributionPointsExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.CertificatePoliciesExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.ExtendedKeyUsageExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.IssuerAlternativeNameExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.KeyUsageExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.NetscapeCertTypeExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.PrivateKeyUsageExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.SubjectAlternativeNameExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.SubjectKeyIdentifierExtension",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"zio.App$$Lambda$1478/0x000000084092b040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$Lambda$247/0x0000000840216840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$Lambda$270/0x0000000840245840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$Lambda$299/0x000000084028d040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$Lambda$300/0x000000084028d840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$Lambda$304/0x0000000840290040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$Lambda$4544/0x00000008415a5840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$Lambda$957/0x0000000840635040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$anon$1$$Lambda$1506/0x0000000840945840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$anon$1$$Lambda$4546/0x00000008415a6440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.App$$anon$1$$Lambda$962/0x0000000840637440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.Fiber$$Lambda$1477/0x000000084092a040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.Fiber$$Lambda$302/0x000000084028f040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.Fiber$$Lambda$303/0x000000084028f840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.Fiber$$Lambda$4543/0x00000008415a5040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.Fiber$$Lambda$956/0x0000000840634040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1108/0x00000008406fa040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1110/0x0000000840702840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1121/0x0000000840701040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1123/0x0000000840709840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1203/0x000000084075a440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1204/0x000000084075b840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1205/0x0000000840762c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$1206/0x0000000840764040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$22/0x0000000840077840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$23/0x0000000840076840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$2370/0x0000000840eb0840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$33/0x00000008400c9040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$$Lambda$930/0x000000084061e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1113/0x00000008406fb840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1114/0x00000008406fc840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1115/0x0000000840704040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1116/0x0000000840705040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1118/0x00000008406ff040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1120/0x0000000840707840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1183/0x000000084074d040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1185/0x0000000840755840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1186/0x000000084074e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1188/0x0000000840750040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1188/0x0000000840757040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1189/0x0000000840750840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1190/0x0000000840758840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1191/0x0000000840759040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1213/0x0000000840768840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1214/0x0000000840769840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1215/0x0000000840771040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1216/0x0000000840772040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1223/0x000000084076dc40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1225/0x0000000840776440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1230/0x0000000840770840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$1232/0x0000000840779040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$2375/0x0000000840eb4040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$2376/0x0000000840eb4840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$2377/0x0000000840eb5840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$2378/0x0000000840eb6040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$$Lambda$59/0x000000084013f040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$TimeoutTo$$Lambda$1185/0x000000084074dc40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$TimeoutTo$$Lambda$1187/0x0000000840756440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$ZipLeftFn$$Lambda$1473/0x000000084091b440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$ZipLeftFn$$Lambda$2386/0x0000000840eba440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZIO$ZipLeftFn$$Lambda$955/0x0000000840633840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZScope$$$Lambda$1215/0x0000000840769440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZScope$$$Lambda$1217/0x0000000840771c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.ZScope$$$Lambda$948/0x0000000840630c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.blocking.package$$$Lambda$1094/0x00000008406e9040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.blocking.package$$$Lambda$1096/0x00000008406f1840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.clock.PlatformSpecific$$anon$1$$Lambda$1226/0x000000084076f040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.clock.PlatformSpecific$$anon$1$$Lambda$1228/0x0000000840777840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.clock.package$$$Lambda$28/0x0000000840073840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.clock.package$Clock$Service$$anon$1$$Lambda$1202/0x000000084075a840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.clock.package$Clock$Service$$anon$1$$Lambda$1204/0x0000000840763040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.console.package$$$Lambda$848/0x00000008405da840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.console.package$$$Lambda$849/0x00000008405db040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.console.package$$$Lambda$850/0x00000008405e3040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.console.package$Console$Service$$anon$1$$Lambda$58/0x00000008400d0c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1109/0x00000008406f9c40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1110/0x00000008406fa840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1111/0x00000008406fac40",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1111/0x0000000840702440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1112/0x00000008406fb040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1112/0x0000000840703040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1113/0x0000000840703440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1114/0x0000000840703840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1201/0x0000000840759840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1203/0x0000000840762040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1208/0x000000084075f840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1214/0x0000000840770840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1219/0x000000084076b840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$1221/0x0000000840774040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$301/0x000000084028e840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$$Lambda$931/0x000000084061e440",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$InterruptExit$$$Lambda$1124/0x0000000840702040",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"zio.internal.FiberContext$InterruptExit$$$Lambda$1126/0x000000084070a840",
+  "methods":[{"name":"writeReplace","parameterTypes":[] }]
+},
+{
+  "name":"[B"
+}
+]
