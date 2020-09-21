@@ -1,9 +1,78 @@
+# Representation of url query `?key=val&..`
+type QueryMap
+   QueryMap [Text, Text]
 
+# Representation of HTTP header.
+# Header may include multiple headers with the same name. 
+# The HTTP specification defines a number of standard headers, 
+# but HTTP messages may include non-standard header names as well as long as they adhere to the specification.
+type HeaderMap
+   HeaderMap [Header, Text]
 
+# The method of HTTP request.
+type Method
+   GET
+   POST
+   PUT
+   PATCH
+   HEAD
+   DELETE
 
+# Representation of HTTP request.
+type Http response
+   Http 
+      uri           : Text                                                             # request uri `www.site.domain`
+      port          : Int                                                              # the port used, 80 by default
+      path          : Text                                                             # path behind uri `/path/to/file`
+      query         : QueryMap                                                         # the query after path `?key=val&..`
+      method        : Method                                                           # the http request method
+      header        : HeaderMap                                                        # the http request header
+      body          : Body                                                             # body of http request
+      decoder       : Vector Byte -> response | DecodeError                            # decoder for received bytes
+
+type Response result
+   status           : Status                                                           # the status of the response
+   headers          : HeaderMap                                                        # the header of response
+   response         : result                                                           # the decoded reponse content
+
+      
+Text .
+   http             : Http Vector(Byte)
+
+Http response .
+   get              : This                                                             # use get method
+   post             : This                                                             # use post method
+   put              : This                                                             # use put method
+   patch            : This                                                             # use patch method
+   head             : This                                                             # use head method
+   delete           : This                                                             # use delete method
+   port             : Int                                         -> This              # use this port
+   path             : Text                                        -> This              # use this path
+   body             : Body                                        -> This              # set body of the request
+   authentication   : Token                                       -> This              # use an authentication token
+   password         : user:Text -> password:Text                  -> This              # use a username and passowrd
+   upload           : Uploadable                                  -> This              # upload extra data (like file)
+   set_query        : HeaderMap                                   -> This              # field setter
+   set_query_value  : Text -> Text                                -> This              # field setter
+   set_header       : QueryMap                                    -> This              # field setter
+   set_header_value : Header -> Text                              -> This              # field setter
+   set_decoder      : (Vector Byte -> new_response | DecodeError) -> Http new_response # field setter
+   response         : IO Response(response | DecodeError)                              # block until response is received, then decode it
+
+# Anthing that can be a http body. This is a trait.
+type Body
+   http_body_type   : Text                                                             # the value of http header `Content-Type`
+   http_body        : Vector(Byte)                                                     # the body of the http request
+
+# Representation of HTTP header.
+type Header
+   Header text
+
+Text . 
+   header : Header | Nothing                                                           # convert the string into http header
 
 # Supported, [IANA-registered](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) status codes.
-type HttpStatus
+type Status
    CONTINUE                             # HTTP/1.1 [RFC 7231, Section 6.2.1](https://tools.ietf.org/html/rfc7231.html#section-6.2.1)
    SWITCHING_PROTOCOLS                  # HTTP/1.1 [RFC 7231, Section 6.2.2](https://tools.ietf.org/html/rfc7231.html#section-6.2.2)
    PROCESSING                           # WebDAV [RFC 2518, Section 10.1](https://tools.ietf.org/html/rfc2518.html#section-10.1)
@@ -65,7 +134,7 @@ type HttpStatus
    NETWORK_AUTHENTICATIO_REQUIRED       # Additional HTTP Status Codes [RFC 6585, Section 6](https://tools.ietf.org/html/rfc6585.html#section-6)
 
 # The possible types of http status.
-type HttpStatusType
+type StatusType
    Informational                        # Status code between 100-199.
    Success                              # Status code between 200-299.
    Redirection                          # Status code between 300-399.
@@ -73,11 +142,11 @@ type HttpStatusType
    ServerError                          # Status code between 500-599.
 
 Int .
-   # Convert a http status code to HttpStatus.
-   http_status : HttpStatus | Nothing
+   # Convert a http status code to http Status.
+   http_status : Status | Nothing
 
-HttpStatus .
-   # The type of HttpStatus.
+Status .
+   # The type of http Status.
    typ : HttpStatusType
 
    # The http status code.
