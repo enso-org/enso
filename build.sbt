@@ -494,6 +494,8 @@ lazy val pkg = (project in file("lib/scala/pkg"))
   )
   .settings(licenseSettings)
 
+val graalAkkaVersion = "0.5.0" // TODO [RW] update NOTICE etc.
+
 lazy val `logging-service-server` = project
   .in(file("lib/scala/logging-service-server"))
   .configs(Test)
@@ -502,7 +504,13 @@ lazy val `logging-service-server` = project
     libraryDependencies ++= Seq(
         akkaStream,
         akkaHttp,
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+        akkaSLF4J,
+        akkaActor,
+        "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+        "com.github.vmencik"         %% "graal-akka-http"  % graalAkkaVersion,
+        "com.github.vmencik"         %% "graal-akka-slf4j" % graalAkkaVersion,
+        "com.typesafe.scala-logging" %% "scala-logging"    % "3.9.2",
+        "org.slf4j"                   % "slf4j-jdk14"      % "1.7.26" // java.util.logging works mostly out-of-the-box with SubstrateVM
       )
   )
   .settings(licenseSettings)
@@ -1069,7 +1077,12 @@ lazy val launcher = project
             "--enable-all-security-services", // Note [HTTPS in the Launcher]
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
             "-H:IncludeResources=.*Main.enso$",
-            "--report-unsupported-elements-at-runtime" // FIXME debug
+            "--report-unsupported-elements-at-runtime", // FIXME debug
+            "-H:+AllowIncompleteClasspath",
+            "--initialize-at-run-time=" +
+            "akka.protobuf.DescriptorProtos," +
+            "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
+            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
           )
         )
         .value,

@@ -10,15 +10,16 @@ import akka.http.scaladsl.model.ws.{
 }
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.model.HttpMethods._
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, SystemMaterializer}
 import akka.stream.scaladsl.{Flow, Sink, Source}
+import com.typesafe.config.ConfigFactory
 
 import scala.io.StdIn
 
 object WSExample {
   def startServer(): Unit = {
-    implicit val system       = ActorSystem()
-    implicit val materializer = ActorMaterializer()
+
+    implicit val system = ActorSystem("graal")
 
     val greeterWebSocketService =
       Flow[Message]
