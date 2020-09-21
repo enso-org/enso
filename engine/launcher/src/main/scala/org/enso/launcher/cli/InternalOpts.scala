@@ -70,11 +70,13 @@ object InternalOpts {
   private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
   private val UPGRADE_ORIGINAL_PATH   = "internal-upgrade-original-path"
 
-  private val EMULATE_VERSION    = "internal-emulate-version"
-  private val EMULATE_LOCATION   = "internal-emulate-location"
-  private val EMULATE_REPOSITORY = "internal-emulate-repository"
+  private val EMULATE_VERSION         = "internal-emulate-version"
+  private val EMULATE_LOCATION        = "internal-emulate-location"
+  private val EMULATE_REPOSITORY      = "internal-emulate-repository"
+  private val EMULATE_REPOSITORY_WAIT = "internal-emulate-repository-wait"
 
   private var inheritEmulateRepository: Option[Path] = None
+  private var inheritShouldWaitForAssets: Boolean    = false
 
   /**
     * Removes internal testing options that should not be preserved in the called executable.
@@ -180,7 +182,7 @@ object InternalOpts {
 
         continueUpgrade.foreach { version =>
           LauncherUpgrader
-            .makeDefault(config, originalExecutablePath = originalPath)
+            .default(config, originalExecutablePath = originalPath)
             .internalContinueUpgrade(version)
           sys.exit(0)
         }
@@ -201,9 +203,11 @@ object InternalOpts {
         Opts.optionalParameter[Path](EMULATE_LOCATION, "PATH", "").hidden
       val emulateRepository =
         Opts.optionalParameter[Path](EMULATE_REPOSITORY, "PATH", "").hidden
+      val waitForAssets =
+        Opts.flag(EMULATE_REPOSITORY_WAIT, "", showInUsage = false).hidden
 
-      (emulateVersion, emulateLocation, emulateRepository) mapN {
-        (emulateVersion, emulateLocation, emulateRepository) =>
+      (emulateVersion, emulateLocation, emulateRepository, waitForAssets) mapN {
+        (emulateVersion, emulateLocation, emulateRepository, waitForAssets) =>
           emulateVersion.foreach { version =>
             CurrentVersion.internalOverrideVersion(version)
           }
@@ -212,20 +216,36 @@ object InternalOpts {
             Environment.internalOverrideExecutableLocation(location)
           }
 
+          if (waitForAssets) {
+            inheritShouldWaitForAssets = true
+          }
+
           emulateRepository.foreach { repositoryPath =>
             inheritEmulateRepository = Some(repositoryPath)
-            EnsoRepository.internalUseFakeRepository(repositoryPath)
+            EnsoRepository.internalUseFakeRepository(
+              repositoryPath,
+              waitForAssets
+            )
           }
       }
 
     }
 
-  private def optionsToInherit: Seq[String] =
-    inheritEmulateRepository
+  /**
+    * Specifies options that are inherited by the process that is launched when
+    * continuing the upgrade.
+    */
+  private def optionsToInherit: Seq[String] = {
+    val repositoryPath = inheritEmulateRepository
       .map { path =>
         Seq(s"--$EMULATE_REPOSITORY", path.toAbsolutePath.toString)
       }
       .getOrElse(Seq())
+    val waitForAssets =
+      if (inheritShouldWaitForAssets) Seq(s"--$EMULATE_REPOSITORY_WAIT")
+      else Seq()
+    repositoryPath ++ waitForAssets
+  }
 
   /**
     * Returns a helper class that allows to run the launcher located at the
@@ -245,7 +265,10 @@ object InternalOpts {
       * executable.
       *
       * It retries for a few seconds to give the process running the old
-      * launcher to terminate and release the lock on its file.
+      * launcher to terminate and release the lock on its file. It overrides the
+      * ENSO_RUNTIME_DIRECTORY for the launched executable to the temporary
+      * directory it resides in, so that its main lock does not block removing
+      * the original directory.
       */
     def removeOldExecutableAndExit(oldExecutablePath: Path): Nothing = {
       val command = Seq(
@@ -253,7 +276,12 @@ object InternalOpts {
         s"--$REMOVE_OLD_EXECUTABLE",
         oldExecutablePath.toAbsolutePath.toString
       )
-      runDetachedAndExit(command)
+      val temporaryRuntimeDirectory =
+        pathToNewLauncher.getParent.toAbsolutePath.normalize
+      runDetachedAndExit(
+        command,
+        "ENSO_RUNTIME_DIRECTORY" -> temporaryRuntimeDirectory.toString
+      )
     }
 
     /**
@@ -375,7 +403,10 @@ object InternalOpts {
     pb.start().waitFor()
   }
 
-  private def runDetachedAndExit(command: Seq[String]): Nothing = {
+  private def runDetachedAndExit(
+    command: Seq[String],
+    extraEnv: (String, String)*
+  ): Nothing = {
     if (!OS.isWindows) {
       throw new IllegalStateException(
         "Internal error: Detached process workarounds are only available on " +
@@ -384,6 +415,7 @@ object InternalOpts {
     }
 
     val pb = new java.lang.ProcessBuilder(command: _*)
+    extraEnv.foreach(envPair => pb.environment().put(envPair._1, envPair._2))
     pb.inheritIO()
     pb.start()
     sys.exit()

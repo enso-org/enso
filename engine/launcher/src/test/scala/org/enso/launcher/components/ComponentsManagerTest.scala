@@ -5,6 +5,7 @@ import java.nio.file.Path
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.locking.TestLocalResourceManager
 import org.enso.launcher.releases.engine.EngineReleaseProvider
 import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.releases.testing.FakeReleaseProvider
@@ -34,8 +35,9 @@ class ComponentsManagerTest
   def makeManagers(
     environmentOverrides: Map[String, String] = Map.empty
   ): (DistributionManager, ComponentsManager, Environment) = {
-    val env                 = fakeInstalledEnvironment(environmentOverrides)
-    val distributionManager = new DistributionManager(env)
+    val env = fakeInstalledEnvironment(environmentOverrides)
+    val distributionManager =
+      new DistributionManager(env, TestLocalResourceManager.create())
     val fakeReleasesRoot =
       Path.of(
         getClass
@@ -58,6 +60,7 @@ class ComponentsManagerTest
         useJSON      = false
       ),
       distributionManager,
+      TestLocalResourceManager.create(),
       engineProvider,
       runtimeProvider
     )

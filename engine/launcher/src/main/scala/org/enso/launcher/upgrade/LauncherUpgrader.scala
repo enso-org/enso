@@ -9,6 +9,12 @@ import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
 import org.enso.launcher.components.LauncherUpgradeRequiredError
 import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.locking.{
+  DefaultResourceManager,
+  LockType,
+  Resource,
+  ResourceManager
+}
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
 import org.enso.launcher.{CurrentVersion, FileSystem, Logger, OS}
@@ -20,6 +26,7 @@ class LauncherUpgrader(
   globalCLIOptions: GlobalCLIOptions,
   distributionManager: DistributionManager,
   releaseProvider: ReleaseProvider[LauncherRelease],
+  resourceManager: ResourceManager,
   originalExecutablePath: Option[Path]
 ) {
 
@@ -36,41 +43,50 @@ class LauncherUpgrader(
     *
     * The upgrade may first temporarily install versions older than the target
     * if the upgrade cannot be performed directly from the current version.
+    *
+    * If another upgrade is in progress, [[AnotherUpgradeInProgressError]] is
+    * thrown.
     */
   def upgrade(targetVersion: SemVer): Unit = {
-    runCleanup(isStartup = true)
-    val release = releaseProvider.fetchRelease(targetVersion).get
-    if (release.isMarkedBroken) {
-      if (globalCLIOptions.autoConfirm) {
-        Logger.warn(
-          s"The launcher release $targetVersion is marked as broken and it " +
-          s"should not be used. Since `auto-confirm` is set, the upgrade " +
-          s"will continue, but you may want to reconsider upgrading to a " +
-          s"stable release."
-        )
-      } else {
-        Logger.warn(
-          s"The launcher release $targetVersion is marked as broken and it " +
-          s"should not be used."
-        )
-        val continue = CLIOutput.askConfirmation(
-          "Are you sure you still want to continue upgrading to this version " +
-          "despite the warning?"
-        )
-        if (!continue) {
-          throw UpgradeError(
-            "Upgrade has been cancelled by the user because the requested " +
-            "version is marked as broken."
+    resourceManager.withResource(
+      Resource.LauncherExecutable,
+      LockType.Exclusive,
+      waitingAction = Some(_ => throw AnotherUpgradeInProgressError())
+    ) {
+      runCleanup(isStartup = true)
+      val release = releaseProvider.fetchRelease(targetVersion).get
+      if (release.isMarkedBroken) {
+        if (globalCLIOptions.autoConfirm) {
+          Logger.warn(
+            s"The launcher release $targetVersion is marked as broken and it " +
+            s"should not be used. Since `auto-confirm` is set, the upgrade " +
+            s"will continue, but you may want to reconsider upgrading to a " +
+            s"stable release."
           )
+        } else {
+          Logger.warn(
+            s"The launcher release $targetVersion is marked as broken and it " +
+            s"should not be used."
+          )
+          val continue = CLIOutput.askConfirmation(
+            "Are you sure you still want to continue upgrading to this " +
+            "version despite the warning?"
+          )
+          if (!continue) {
+            throw UpgradeError(
+              "Upgrade has been cancelled by the user because the requested " +
+              "version is marked as broken."
+            )
+          }
         }
       }
-    }
-    if (release.canPerformUpgradeFromCurrentVersion)
-      performUpgradeTo(release)
-    else
-      performStepByStepUpgrade(release)
+      if (release.canPerformUpgradeFromCurrentVersion)
+        performUpgradeTo(release)
+      else
+        performStepByStepUpgrade(release)
 
-    runCleanup()
+      runCleanup()
+    }
   }
 
   /**
@@ -358,7 +374,7 @@ object LauncherUpgrader {
     *                               executable that will be replaced in the last
     *                               step of the upgrade
     */
-  def makeDefault(
+  def default(
     globalCLIOptions: GlobalCLIOptions,
     originalExecutablePath: Option[Path] = None
   ): LauncherUpgrader =
@@ -366,57 +382,87 @@ object LauncherUpgrader {
       globalCLIOptions,
       DistributionManager,
       EnsoRepository.defaultLauncherReleaseProvider,
+      DefaultResourceManager,
       originalExecutablePath
     )
 
+  /**
+    * Wraps an action and intercepts the [[LauncherUpgradeRequiredError]]
+    * offering to upgrade the launcher and re-run the command with the newer
+    * version.
+    *
+    * @param originalArguments original CLI arguments, needed to be able to
+    *                          re-run the command
+    * @param action action that is executed and may throw the exception; it
+    *               should return the desired exit code
+    * @return if `action` succeeds, its exit code is returned; otherwise if the
+    *         [[LauncherUpgradeRequiredError]] is intercepted and an upgrade is
+    *         performed, the exit code of the command that has been re-executed
+    *         is returned
+    */
   def recoverUpgradeRequiredErrors(originalArguments: Array[String])(
     action: => Int
   ): Int = {
     try {
       action
     } catch {
-      case e: LauncherUpgradeRequiredError =>
-        val autoConfirm = e.globalCLIOptions.autoConfirm
-        def shouldProceed: Boolean =
-          if (autoConfirm) {
-            Logger.warn(
-              "A more recent launcher version is required. Since " +
-              "`auto-confirm` is set, the launcher upgrade will be peformed " +
-              "automatically."
-            )
-            true
-          } else {
-            Logger.warn(
-              s"A more recent launcher version (at least " +
-              s"${e.expectedLauncherVersion}) is required to continue."
-            )
-            CLIOutput.askConfirmation(
-              "Do you want to upgrade the launcher and continue?",
-              yesDefault = true
-            )
-          }
+      case upgradeRequiredError: LauncherUpgradeRequiredError =>
+        askToUpgrade(upgradeRequiredError, originalArguments)
+    }
+  }
 
-        if (!shouldProceed) {
-          throw e
-        }
-
-        val upgrader           = makeDefault(e.globalCLIOptions)
-        val targetVersion      = upgrader.latestVersion().get
-        val launcherExecutable = upgrader.originalExecutable
-        upgrader.upgrade(targetVersion)
-
-        Logger.info(
-          "Re-running the current command with the upgraded launcher."
+  private def askToUpgrade(
+    upgradeRequiredError: LauncherUpgradeRequiredError,
+    originalArguments: Array[String]
+  ): Int = {
+    val autoConfirm = upgradeRequiredError.globalCLIOptions.autoConfirm
+    def shouldProceed: Boolean =
+      if (autoConfirm) {
+        Logger.warn(
+          "A more recent launcher version is required. Since `auto-confirm` " +
+          "is set, the launcher upgrade will be peformed automatically."
         )
+        true
+      } else {
+        Logger.warn(
+          s"A more recent launcher version (at least " +
+          s"${upgradeRequiredError.expectedLauncherVersion}) is required to " +
+          s"continue."
+        )
+        CLIOutput.askConfirmation(
+          "Do you want to upgrade the launcher and continue?",
+          yesDefault = true
+        )
+      }
 
-        val arguments =
-          InternalOpts.removeInternalTestOptions(originalArguments.toIndexedSeq)
-        val rerunCommand =
-          Seq(launcherExecutable.toAbsolutePath.normalize.toString) ++ arguments
-        Logger.debug(s"Running `${rerunCommand.mkString(" ")}`.")
-        val processBuilder = new ProcessBuilder(rerunCommand: _*)
-        val process        = processBuilder.inheritIO().start()
-        process.waitFor()
+    if (!shouldProceed) {
+      throw upgradeRequiredError
+    }
+
+    val upgrader           = default(upgradeRequiredError.globalCLIOptions)
+    val targetVersion      = upgrader.latestVersion().get
+    val launcherExecutable = upgrader.originalExecutable
+    try {
+      upgrader.upgrade(targetVersion)
+
+      Logger.info("Re-running the current command with the upgraded launcher.")
+
+      val arguments =
+        InternalOpts.removeInternalTestOptions(originalArguments.toIndexedSeq)
+      val rerunCommand =
+        Seq(launcherExecutable.toAbsolutePath.normalize.toString) ++ arguments
+      Logger.debug(s"Running `${rerunCommand.mkString(" ")}`.")
+      val processBuilder = new ProcessBuilder(rerunCommand: _*)
+      val process        = processBuilder.inheritIO().start()
+      process.waitFor()
+    } catch {
+      case _: AnotherUpgradeInProgressError =>
+        Logger.error(
+          "Another upgrade is in progress." +
+          "Please wait for it to finish and manually re-run the requested " +
+          "command."
+        )
+        1
     }
   }
 }

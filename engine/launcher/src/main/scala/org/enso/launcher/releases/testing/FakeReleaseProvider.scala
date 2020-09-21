@@ -3,6 +3,7 @@ package org.enso.launcher.releases.testing
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import org.enso.cli.{ProgressListener, TaskProgress}
+import org.enso.launcher.locking.{DefaultFileLockManager, LockType}
 import org.enso.launcher.releases.{
   Asset,
   Release,
@@ -25,12 +26,13 @@ import scala.util.{Success, Try, Using}
   */
 case class FakeReleaseProvider(
   releasesRoot: Path,
-  copyIntoArchiveRoot: Seq[String] = Seq.empty
+  copyIntoArchiveRoot: Seq[String] = Seq.empty,
+  shouldWaitForAssets: Boolean     = false
 ) extends SimpleReleaseProvider {
   private val releases =
     FileSystem
       .listDirectory(releasesRoot)
-      .map(FakeRelease(_, copyIntoArchiveRoot))
+      .map(FakeRelease(_, copyIntoArchiveRoot, shouldWaitForAssets))
 
   /**
     * @inheritdoc
@@ -54,8 +56,11 @@ case class FakeReleaseProvider(
   *             represents a [[FakeAsset]]
   * @param copyIntoArchiveRoot list of
   */
-case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
-    extends Release {
+case class FakeRelease(
+  path: Path,
+  copyIntoArchiveRoot: Seq[String] = Seq.empty,
+  shouldWaitForAssets: Boolean
+) extends Release {
 
   /**
     * @inheritdoc
@@ -67,7 +72,9 @@ case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
     */
   override def assets: Seq[Asset] = {
     val pathsToCopy = copyIntoArchiveRoot.map(path.resolve)
-    FileSystem.listDirectory(path).map(FakeAsset(_, pathsToCopy))
+    FileSystem
+      .listDirectory(path)
+      .map(FakeAsset(_, pathsToCopy, shouldWaitForAssets))
   }
 }
 
@@ -83,8 +90,11 @@ case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
   * root of that created archive. This allows to avoid maintaining additional
   * copies of shared files like the manifest.
   */
-case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
-    extends Asset {
+case class FakeAsset(
+  source: Path,
+  copyIntoArchiveRoot: Seq[Path] = Seq.empty,
+  shouldWaitForAssets: Boolean
+) extends Asset {
 
   /**
     * @inheritdoc
@@ -95,6 +105,7 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
     * @inheritdoc
     */
   override def downloadTo(path: Path): TaskProgress[Unit] = {
+    maybeWaitForAsset()
     val result = Try(copyFakeAsset(path))
     new TaskProgress[Unit] {
       override def addProgressListener(
@@ -104,6 +115,26 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
       }
     }
   }
+
+  /**
+    * If [[shouldWaitForAssets]] is set, acquires a shared lock on the asset.
+    *
+    * The test runner may grab an exclusive lock on an asset as a way to
+    * synchronize actions (this download will wait until such exclusive lock is
+    * released).
+    */
+  private def maybeWaitForAsset(): Unit =
+    if (shouldWaitForAssets) {
+      val name = "testasset-" + fileName
+      val lock = DefaultFileLockManager.acquireLockWithWaitingAction(
+        name,
+        LockType.Shared,
+        waitingAction = () => {
+          System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
+        }
+      )
+      lock.release()
+    }
 
   private def copyFakeAsset(destination: Path): Unit =
     if (Files.isDirectory(source))
@@ -155,6 +186,7 @@ case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
         "Cannot fetch a fake archive (a directory) as text."
       )
     else {
+      maybeWaitForAsset()
       val txt = Using(Source.fromFile(source.toFile)) { src =>
         src.getLines().mkString("\n")
       }

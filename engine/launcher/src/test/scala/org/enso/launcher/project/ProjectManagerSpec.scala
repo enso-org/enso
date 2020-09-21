@@ -4,6 +4,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.locking.TestLocalResourceManager
 import org.enso.pkg.Contact
 import org.scalatest.{Inside, OptionValues}
 
@@ -13,8 +14,9 @@ class ProjectManagerSpec
     with OptionValues {
   private val defaultEnsoVersion = SemVer(0, 0, 0, Some("default"))
   def makeProjectManager(): (GlobalConfigurationManager, ProjectManager) = {
-    val env                 = fakeInstalledEnvironment()
-    val distributionManager = new DistributionManager(env)
+    val env = fakeInstalledEnvironment()
+    val distributionManager =
+      new DistributionManager(env, TestLocalResourceManager.create())
     val fakeConfigurationManager =
       new GlobalConfigurationManager(null, distributionManager) {
         override def defaultVersion: SemVer = defaultEnsoVersion

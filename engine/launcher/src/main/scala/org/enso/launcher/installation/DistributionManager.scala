@@ -3,9 +3,11 @@ package org.enso.launcher.installation
 import java.nio.file.{Files, Path}
 
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{Environment, FileSystem, Logger, OS}
 
 import scala.util.Try
+import scala.util.control.NonFatal
 
 /**
   * Gathers filesystem paths used by the launcher.
@@ -17,6 +19,8 @@ import scala.util.Try
   * @param engines location of engine versions, corresponding to `dist`
   *                directory
   * @param config location of configuration
+  * @param locks a directory for storing lockfiles that are used to synchronize
+  *              access to the various components
   * @param tmp a directory for storing temporary files that is located on the
   *            same filesystem as `runtimes` and `engines`, used during
   *            installation to decrease the possibility of getting a broken
@@ -25,13 +29,17 @@ import scala.util.Try
   *            requested for the first time) and is removed if the application
   *            exits normally (as long as it is empty, but normal termination of
   *            the installation process should ensure that).
+  * @param resourceManager reference to the resource manager used for
+  *                        synchronizing access to the temporary files
   */
 case class DistributionPaths(
   dataRoot: Path,
   runtimes: Path,
   engines: Path,
   config: Path,
-  private val tmp: Path
+  locks: Path,
+  tmp: Path,
+  resourceManager: ResourceManager
 ) {
 
   /**
@@ -43,23 +51,13 @@ case class DistributionPaths(
        |  runtimes = $runtimes,
        |  engines  = $engines,
        |  config   = $config,
+       |  locks    = $locks,
        |  tmp      = $tmp
        |)""".stripMargin
 
   lazy val temporaryDirectory: Path = {
-    runCleanup()
+    resourceManager.startUsingTemporaryDirectory()
     tmp
-  }
-
-  private def runCleanup(): Unit = {
-    if (Files.exists(tmp)) {
-      if (!FileSystem.isDirectoryEmpty(tmp)) {
-        Logger.info("Cleaning up temporary files from a previous installation.")
-      }
-      FileSystem.removeDirectory(tmp)
-      Files.createDirectories(tmp)
-      FileSystem.removeEmptyDirectoryOnExit(tmp)
-    }
   }
 }
 
@@ -67,7 +65,10 @@ case class DistributionPaths(
   * A helper class that detects if a portable or installed distribution is run
   * and encapsulates management of paths to components of the distribution.
   */
-class DistributionManager(val env: Environment) {
+class DistributionManager(
+  val env: Environment,
+  resourceManager: ResourceManager
+) {
 
   /**
     * Specifies whether the launcher has been run as a portable distribution or
@@ -108,7 +109,6 @@ class DistributionManager(val env: Environment) {
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
     Logger.debug(s"Detected paths are: $paths")
-
     paths
   }
 
@@ -117,7 +117,8 @@ class DistributionManager(val env: Environment) {
   val RUNTIMES_DIRECTORY             = "runtime"
   val CONFIG_DIRECTORY               = "config"
   val BIN_DIRECTORY                  = "bin"
-  private val TMP_DIRECTORY          = "tmp"
+  val LOCK_DIRECTORY                 = "lock"
+  val TMP_DIRECTORY                  = "tmp"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
   private def possiblePortableRoot: Path =
@@ -134,19 +135,64 @@ class DistributionManager(val env: Environment) {
         runtimes = root / RUNTIMES_DIRECTORY,
         engines  = root / ENGINES_DIRECTORY,
         config   = root / CONFIG_DIRECTORY,
-        tmp      = root / TMP_DIRECTORY
+        locks    = root / LOCK_DIRECTORY,
+        tmp      = root / TMP_DIRECTORY,
+        resourceManager
       )
     } else {
       val dataRoot   = LocallyInstalledDirectories.dataDirectory
       val configRoot = LocallyInstalledDirectories.configDirectory
+      val runRoot    = LocallyInstalledDirectories.runtimeDirectory
       DistributionPaths(
         dataRoot = dataRoot,
         runtimes = dataRoot / RUNTIMES_DIRECTORY,
         engines  = dataRoot / ENGINES_DIRECTORY,
         config   = configRoot,
-        tmp      = dataRoot / TMP_DIRECTORY
+        locks    = runRoot / LOCK_DIRECTORY,
+        tmp      = dataRoot / TMP_DIRECTORY,
+        resourceManager
       )
     }
+
+  /**
+    * Tries to clean the temporary files directory.
+    *
+    * It should be run at startup whenever the program wants to run clean-up.
+    * Currently it is run when installation-related operations are taking place.
+    * It may not proceed if another process is using it. It has to be run before
+    * the first access to the temporaryDirectory, as after that the directory is
+    * marked as in-use and will not be cleaned.
+    */
+  def tryCleaningTemporaryDirectory(): Unit = {
+    val tmp = paths.tmp
+    if (Files.exists(tmp)) {
+      resourceManager.tryWithExclusiveTemporaryDirectory {
+        if (!FileSystem.isDirectoryEmpty(tmp)) {
+          Logger.info(
+            "Cleaning up temporary files from a previous installation."
+          )
+        }
+        FileSystem.removeDirectory(tmp)
+        Files.createDirectories(tmp)
+        FileSystem.removeEmptyDirectoryOnExit(tmp)
+      }
+    }
+  }
+
+  /**
+    * Removes unused lockfiles.
+    */
+  def tryCleaningUnusedLockfiles(): Unit = {
+    val lockfiles = FileSystem.listDirectory(paths.locks)
+    for (lockfile <- lockfiles) {
+      try {
+        Files.delete(lockfile)
+        Logger.debug(s"Removed unused lockfile ${lockfile.getFileName}.")
+      } catch {
+        case NonFatal(_) =>
+      }
+    }
+  }
 
   /**
     * A helper for managing directories of the non-portable installation.
@@ -156,13 +202,15 @@ class DistributionManager(val env: Environment) {
     * to determine destination for installed files.
     */
   object LocallyInstalledDirectories {
-    val ENSO_DATA_DIRECTORY   = "ENSO_DATA_DIRECTORY"
-    val ENSO_CONFIG_DIRECTORY = "ENSO_CONFIG_DIRECTORY"
-    val ENSO_BIN_DIRECTORY    = "ENSO_BIN_DIRECTORY"
+    val ENSO_DATA_DIRECTORY    = "ENSO_DATA_DIRECTORY"
+    val ENSO_CONFIG_DIRECTORY  = "ENSO_CONFIG_DIRECTORY"
+    val ENSO_BIN_DIRECTORY     = "ENSO_BIN_DIRECTORY"
+    val ENSO_RUNTIME_DIRECTORY = "ENSO_RUNTIME_DIRECTORY"
 
-    private val XDG_DATA_DIRECTORY   = "XDG_DATA_DIRECTORY"
-    private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_DIRECTORY"
-    private val XDG_BIN_DIRECTORY    = "XDG_BIN_DIRECTORY"
+    private val XDG_DATA_DIRECTORY   = "XDG_DATA_HOME"
+    private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_HOME"
+    private val XDG_BIN_DIRECTORY    = "XDG_BIN_HOME"
+    private val XDG_RUN_DIRECTORY    = "XDG_RUNTIME_DIR"
 
     private val LINUX_ENSO_DIRECTORY   = "enso"
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
@@ -237,6 +285,23 @@ class DistributionManager(val env: Environment) {
         }
         .toAbsolutePath
 
+    /**
+      * The directory where runtime-synchronization files are stored.
+      */
+    def runtimeDirectory: Path =
+      env
+        .getEnvPath(ENSO_RUNTIME_DIRECTORY)
+        .getOrElse {
+          OS.operatingSystem match {
+            case OS.Linux =>
+              env
+                .getEnvPath(XDG_RUN_DIRECTORY)
+                .map(_ / LINUX_ENSO_DIRECTORY)
+                .getOrElse(dataDirectory)
+            case _ => dataDirectory
+          }
+        }
+
     private def executableName: String =
       OS.executableName("enso")
 
@@ -270,4 +335,5 @@ class DistributionManager(val env: Environment) {
 /**
   * A default DistributionManager using the default environment.
   */
-object DistributionManager extends DistributionManager(Environment)
+object DistributionManager
+    extends DistributionManager(Environment, DefaultResourceManager)

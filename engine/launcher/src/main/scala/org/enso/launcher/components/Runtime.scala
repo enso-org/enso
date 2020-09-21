@@ -5,6 +5,8 @@ import java.nio.file.{Files, Path}
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.OS
 
+import scala.util.{Failure, Success, Try}
+
 /**
   * Represents a runtime component.
   *
@@ -38,8 +40,22 @@ case class Runtime(version: RuntimeVersion, path: Path) {
   }
 
   /**
-    * Returns if the installation seems not-corrupted.
+    * Checks if the installation is not corrupted and reports any issues as
+    * failures.
     */
-  def isValid: Boolean =
-    Files.exists(javaExecutable) && Files.isExecutable(javaExecutable)
+  def ensureValid(): Try[Unit] =
+    if (!Files.exists(javaExecutable))
+      Failure(
+        CorruptedComponentError(
+          s"Runtime's java executable (expected at " +
+          s"${javaExecutable.toAbsolutePath.normalize}) is missing."
+        )
+      )
+    else if (!Files.isExecutable(javaExecutable))
+      Failure(
+        CorruptedComponentError(
+          "Runtime's java executable is not marked as executable."
+        )
+      )
+    else Success(())
 }

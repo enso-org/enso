@@ -4,6 +4,7 @@ import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.{FakeEnvironment, WithTemporaryDirectory}
 import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.locking.TestLocalResourceManager
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -15,8 +16,9 @@ class GlobalConfigurationManagerSpec
     with FakeEnvironment
     with OptionValues {
   def makeConfigManager(): GlobalConfigurationManager = {
-    val env                 = fakeInstalledEnvironment()
-    val distributionManager = new DistributionManager(env)
+    val env = fakeInstalledEnvironment()
+    val distributionManager =
+      new DistributionManager(env, TestLocalResourceManager.create())
     new GlobalConfigurationManager(null, distributionManager) {
       override def defaultVersion: SemVer = SemVer(0, 0, 0)
     }

@@ -38,11 +38,13 @@ class ApplicationSpec
           Command("cmd1", "cmd1") {
             Opts.pure { _ =>
               ranCommand = Some("cmd1")
+              0
             }
           },
           Command("cmd2", "cmd2") {
             Opts.positionalArgument[String]("arg") map { arg => _ =>
               ranCommand = Some(arg)
+              0
             }
           }
         )
@@ -61,7 +63,7 @@ class ApplicationSpec
 
       val plugins = Seq("plugin1", "plugin2")
       val pluginManager = new PluginManager {
-        override def runPlugin(name: String, args: Seq[String]): Nothing =
+        override def runPlugin(name: String, args: Seq[String]): Int =
           if (plugins.contains(name))
             throw PluginRanException(name, args)
           else throw new RuntimeException("Plugin not found.")
@@ -82,8 +84,8 @@ class ApplicationSpec
           TopLevelBehavior.Continue(())
         },
         NonEmptyList.of(
-          Command[Unit => Unit]("cmd", "cmd") {
-            Opts.pure { _ => () }
+          Command[Unit => Int]("cmd", "cmd") {
+            Opts.pure { _ => 0 }
           }
         ),
         pluginManager
@@ -113,34 +115,31 @@ class ApplicationSpec
             Opts.optionalParameter[String]("setting", "setting", "setting")
           (halt, setting) mapN { (halt, setting) => () =>
             if (halt)
-              TopLevelBehavior.Halt
+              TopLevelBehavior.Halt(10)
             else TopLevelBehavior.Continue(setting.getOrElse("none"))
           }
         },
         NonEmptyList.of(
-          Command[String => Unit]("cmd1", "cmd1") {
+          Command[String => Int]("cmd1", "cmd1") {
             Opts.pure { setting =>
               ranCommand = Some(setting)
+              42
             }
           }
         )
       )
 
-      assert(
-        app.run(Seq("--halt", "cmd1")).isRight,
-        "Should parse successfully."
-      )
+      app.run(Seq("--halt", "cmd1")) shouldEqual Right(10)
+      app.run(Seq("cmd1", "--halt")) shouldEqual Right(10)
+
       ranCommand should not be defined
 
-      assert(app.run(Seq("cmd1")).isRight, "Should parse successfully.")
+      app.run(Seq("cmd1")) shouldEqual Right(42)
       ranCommand.value shouldEqual "none"
 
       withClue("top-level option before command:") {
         ranCommand = None
-        assert(
-          app.run(Seq("--setting=SET", "cmd1")).isRight,
-          "Should parse successfully."
-        )
+        app.run(Seq("--setting=SET", "cmd1")) shouldEqual Right(42)
         ranCommand.value shouldEqual "SET"
       }
 
@@ -161,7 +160,7 @@ class ApplicationSpec
         "Test app.",
         NonEmptyList.of(
           Command("cmd", "cmd", related = Seq("related")) {
-            Opts.pure { _ => }
+            Opts.pure { _ => 0 }
           }
         )
       )
@@ -181,11 +180,13 @@ class ApplicationSpec
           Command("cmd1", "cmd1") {
             Opts.pure { _ =>
               ranCommand = Some("cmd1")
+              0
             }
           },
           Command("cmd2", "cmd2") {
             Opts.positionalArgument[String]("arg") map { arg => _ =>
               ranCommand = Some(arg)
+              0
             }
           }
         )
@@ -197,13 +198,13 @@ class ApplicationSpec
     }
 
     def appWithSubcommands(): Application[_] = {
-      val sub1 = Command[Boolean => Unit]("sub1", "Sub1.") {
+      val sub1 = Command[Boolean => Int]("sub1", "Sub1.") {
         val flag = Opts.flag("inner-flag", "Inner.", showInUsage = true)
-        flag map { _ => _ => () }
+        flag map { _ => _ => 0 }
       }
-      val sub2 = Command[Boolean => Unit]("sub2", "Sub2.") {
+      val sub2 = Command[Boolean => Int]("sub2", "Sub2.") {
         val arg = Opts.optionalArgument[String]("ARG")
-        arg map { _ => _ => () }
+        arg map { _ => _ => 0 }
       }
       val topLevelOpts =
         Opts.flag("toplevel-flag", "Top.", showInUsage = true) map {

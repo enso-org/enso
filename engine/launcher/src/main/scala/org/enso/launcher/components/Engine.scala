@@ -5,6 +5,8 @@ import java.nio.file.{Files, Path}
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 
+import scala.util.{Failure, Success, Try}
+
 /**
   * Represents an engine component.
   *
@@ -44,10 +46,25 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
   def runtimePath: Path = path / "component" / "runtime.jar"
 
   /**
-    * Returns if the installation seems not-corrupted.
+    * Checks if the installation is not corrupted and reports any issues as
+    * failures.
     */
-  def isValid: Boolean =
-    Files.exists(runnerPath) && Files.exists(runtimePath)
+  def ensureValid(): Try[Unit] =
+    if (!Files.exists(runnerPath))
+      Failure(
+        CorruptedComponentError(
+          s"Engine's runner.jar (expected at " +
+          s"${runnerPath.toAbsolutePath.normalize} is missing."
+        )
+      )
+    else if (!Files.exists(runtimePath))
+      Failure(
+        CorruptedComponentError(
+          s"Engine's runtime.jar (expected at " +
+          s"${runtimePath.toAbsolutePath.normalize} is missing."
+        )
+      )
+    else Success(())
 
   /**
     * Returns if the engine release was marked as broken when it was being
