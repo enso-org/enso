@@ -1,0 +1,145 @@
+
+
+
+
+# Supported, [IANA-registered](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) status codes.
+type HttpStatus
+   CONTINUE                             # HTTP/1.1 [RFC 7231, Section 6.2.1](https://tools.ietf.org/html/rfc7231.html#section-6.2.1)
+   SWITCHING_PROTOCOLS                  # HTTP/1.1 [RFC 7231, Section 6.2.2](https://tools.ietf.org/html/rfc7231.html#section-6.2.2)
+   PROCESSING                           # WebDAV [RFC 2518, Section 10.1](https://tools.ietf.org/html/rfc2518.html#section-10.1)
+   OK                                   # HTTP/1.1 [RFC 7231, Section 6.3.1](https://tools.ietf.org/html/rfc7231.html#section-6.3.1)
+   CREATED                              # HTTP/1.1 [RFC 7231, Section 6.3.2](https://tools.ietf.org/html/rfc7231.html#section-6.3.2)
+   ACCEPTED                             # HTTP/1.1 [RFC 7231, Section 6.3.3](https://tools.ietf.org/html/rfc7231.html#section-6.3.3)
+   NON_AUTHORITATIVE_INFORMATION        # HTTP/1.1 [RFC 7231, Section 6.3.4](https://tools.ietf.org/html/rfc7231.html#section-6.3.4)
+   NO_CONTENT                           # HTTP/1.1 [RFC 7231, Section 6.3.5](https://tools.ietf.org/html/rfc7231.html#section-6.3.5)
+   RESET_CONTENT                        # HTTP/1.1 [RFC 7231, Section 6.3.6](https://tools.ietf.org/html/rfc7231.html#section-6.3.6)
+   PARTIAL_CONTENT                      # HTTP/1.1 [RFC 7233, Section 4.1](https://tools.ietf.org/html/rfc7233.html#section-4.1)
+   MULTI_STATUS                         # WebDAV [RFC 4918, Section 11.1](https://tools.ietf.org/html/rfc4918.html#section-11.1)
+   ALREADY_REPORTED                     # WebDAV Binding Extensions [RFC 5842, Section 7.1 (Experimental)](https://tools.ietf.org/html/rfc5842.html#section-7.1)
+   IM_USED                              # Delta Encoding in HTTP [RFC 3229, Section 10.4.1](https://tools.ietf.org/html/rfc3229.html#section-10.4.1)
+   MULTIPLE_CHOICES                     # HTTP/1.1 [RFC 7231, Section 6.4.1](https://tools.ietf.org/html/rfc7231.html#section-6.4.1)
+   MOVED_PERMANENTLY                    # HTTP/1.1 [RFC 7231, Section 6.4.2](https://tools.ietf.org/html/rfc7231.html#section-6.4.2)
+   FOUND                                # HTTP/1.1 [RFC 7231, Section 6.4.3](https://tools.ietf.org/html/rfc7231.html#section-6.4.3)
+   SEE_OTHER                            # HTTP/1.1 [RFC 7231, Section 6.4.4](https://tools.ietf.org/html/rfc7231.html#section-6.4.4)
+   NOT_MODIFIED                         # HTTP/1.1 [RFC 7232, Section 4.1](https://tools.ietf.org/html/rfc7232.html#section-4.1)
+   USE_PROXY                            # HTTP/1.1 [RFC 7231, Section 6.4.5](https://tools.ietf.org/html/rfc7231.html#section-6.4.5)
+   TEMPORARY_REDIRECT                   # HTTP/1.1 [RFC 7231, Section 6.4.7](https://tools.ietf.org/html/rfc7231.html#section-6.4.7)
+   PERMANENT_REDIRECT                   # Permanent Redirect [RFC 7238, Section 3 (Experimental)](https://tools.ietf.org/html/rfc7238.html#section-3)
+   BAD_REQUEST                          # HTTP/1.1 [RFC 7231, Section 6.5.1](https://tools.ietf.org/html/rfc7231.html#section-6.5.1)
+   UNAUTHORIZED                         # HTTP/1.1 Authentication [RFC 7235, Section 3.1](https://tools.ietf.org/html/rfc7235.html#section-3.1)
+   PAYMENT_REQUIRED                     # HTTP/1.1 [RFC 7231, Section 6.5.2](https://tools.ietf.org/html/rfc7231.html#section-6.5.2)
+   FORBIDDEN                            # HTTP/1.1 [RFC 7231, Section 6.5.3](https://tools.ietf.org/html/rfc7231.html#section-6.5.3)
+   NOT_FOUND                            # HTTP/1.1 [RFC 7231, Section 6.5.4](https://tools.ietf.org/html/rfc7231.html#section-6.5.4)
+   METHOD_NOT_ALLOWED                   # HTTP/1.1 [RFC 7231, Section 6.5.5](https://tools.ietf.org/html/rfc7231.html#section-6.5.5)
+   NOT_ACCEPTABLE                       # HTTP/1.1 [RFC 7231, Section 6.5.6](https://tools.ietf.org/html/rfc7231.html#section-6.5.6)
+   PROXY_AUTHENTICATION_REQUIRED        # HTTP/1.1 Authentication [RFC 7235, Section 3.2](https://tools.ietf.org/html/rfc7235.html#section-3.2)
+   REQUEST_TIMEOUT                      # HTTP/1.1 [RFC 7231, Section 6.5.7](https://tools.ietf.org/html/rfc7231.html#section-6.5.7)
+   CONFLICT                             # HTTP/1.1 [RFC 7231, Section 6.5.8](https://tools.ietf.org/html/rfc7231.html#section-6.5.8)
+   GONE                                 # HTTP/1.1 [RFC 7231, Section 6.5.9](https://tools.ietf.org/html/rfc7231.html#section-6.5.9)
+   LENGTH_REQUIRED                      # HTTP/1.1 [RFC 7231, Section 6.5.10](https://tools.ietf.org/html/rfc7231.html#section-6.5.10)
+   PRECONDITION_FAILED                  # HTTP/1.1 [RFC 7232, Section 4.2](https://tools.ietf.org/html/rfc7232.html#section-4.2)
+   REQUEST_ENTITY_TOO_LARGE             # HTTP/1.1 [RFC 7231, Section 6.5.11](https://tools.ietf.org/html/rfc7231.html#section-6.5.11)
+   REQUEST_URI_TOO_LONG                 # HTTP/1.1 [RFC 7231, Section 6.5.12](https://tools.ietf.org/html/rfc7231.html#section-6.5.12)
+   UNSUPPORTED_MEDIA_TYPE               # HTTP/1.1 [RFC 7231, Section 6.5.13](https://tools.ietf.org/html/rfc7231.html#section-6.5.13)
+   REQUESTED_RANGE_NOT_SATISFIABLE      # HTTP/1.1 Range Requests [RFC 7233, Section 4.4](https://tools.ietf.org/html/rfc7233.html#section-4.4)
+   EXPECTATION_FAILED                   # HTTP/1.1 [RFC 7231, Section 6.5.14](https://tools.ietf.org/html/rfc7231.html#section-6.5.14)
+   MISDIRECTED_REQUEST                  # HTTP/2 [RFC 7540, Section 9.1.2](https://tools.ietf.org/html/rfc7540.html#section-9.1.2)
+   UNPROCESSABLE_ENTITY                 # WebDAV [RFC 4918, Section 11.2](https://tools.ietf.org/html/rfc4918.html#section-11.2)
+   LOCKED                               # WebDAV [RFC 4918, Section 11.3](https://tools.ietf.org/html/rfc4918.html#section-11.3)
+   FAILED_DEPENDENCY                    # WebDAV [RFC 4918, Section 11.4](https://tools.ietf.org/html/rfc4918.html#section-11.4)
+   UPGRADE_REQUIRED                     # HTTP/1.1 [RFC 7231, Section 6.5.15](https://tools.ietf.org/html/rfc7231.html#section-6.5.15)
+   PRECONDITION_REQUIRED                # Additional HTTP Status Codes [RFC 6585](https://tools.ietf.org/html/rfc6585.html#section-3)
+   TOO_MANY_REQUESTS                    # Additional HTTP Status Codes [RFC 6585](https://tools.ietf.org/html/rfc6585.html#section-4)
+   REQUEST_HEADER_FIELDS_TOO_LARGE      # Additional HTTP Status Codes [RFC 6585](https://tools.ietf.org/html/rfc6585.html#section-5)
+   UNAVAILABLE_FOR_LEGAL_REASONS        # An HTTP Status Code to Report Legal Obstacles [RFC 7725](https://tools.ietf.org/html/rfc7725.html#section-3)
+   INTERNAL_SERVER_ERROR                # HTTP/1.1 [RFC 7231, Section 6.6.1](https://tools.ietf.org/html/rfc7231.html#section-6.6.1)
+   NOT_IMPLEMENTED                      # HTTP/1.1 [RFC 7231, Section 6.6.2](https://tools.ietf.org/html/rfc7231.html#section-6.6.2)
+   BAD_GATEWAY                          # HTTP/1.1 [RFC 7231, Section 6.6.3](https://tools.ietf.org/html/rfc7231.html#section-6.6.3)
+   SERVICE_UNAVAILABLE                  # HTTP/1.1 [RFC 7231, Section 6.6.4](https://tools.ietf.org/html/rfc7231.html#section-6.6.4)
+   GATEWAY_TIMEOUT                      # HTTP/1.1 [RFC 7231, Section 6.6.5](https://tools.ietf.org/html/rfc7231.html#section-6.6.5)
+   HTTP_VERSION_NOT_SUPPORTED           # HTTP/1.1 [RFC 7231, Section 6.6.6](https://tools.ietf.org/html/rfc7231.html#section-6.6.6)
+   VARIANT_ALSO_NEGOTIATES              # Transparent Content Negotiation in HTTP [RFC 2295, Section 8.1 (Experimental)](https://tools.ietf.org/html/rfc2295.html#section-8.1)
+   INSUFFICIENT_STORAGE                 # WebDAV [RFC 4918, Section 11.5](https://tools.ietf.org/html/rfc4918.html#section-11.5)
+   LOOP_DETECTED                        # WebDAV Binding Extensions [RFC 5842, Section 7.2 (Experimental)](https://tools.ietf.org/html/rfc5842.html#section-7.2)
+   NOT_EXTENDED                         # An HTTP Extension Framework [RFC 2774, Section 7 (Experimental)](https://tools.ietf.org/html/rfc2774.html#section-7)
+   NETWORK_AUTHENTICATIO_REQUIRED       # Additional HTTP Status Codes [RFC 6585, Section 6](https://tools.ietf.org/html/rfc6585.html#section-6)
+
+# The possible types of http status.
+type HttpStatusType
+   Informational                        # Status code between 100-199.
+   Success                              # Status code between 200-299.
+   Redirection                          # Status code between 300-399.
+   ClientError                          # Status code between 400-499.
+   ServerError                          # Status code between 500-599.
+
+Int .
+   # Convert a http status code to HttpStatus.
+   http_status : HttpStatus | Nothing
+
+HttpStatus .
+   # The type of HttpStatus.
+   typ : HttpStatusType
+
+   # The http status code.
+   code : Int
+   code = case this of
+      CONTINUE                        -> 100
+      SWITCHING_PROTOCOLS             -> 101
+      PROCESSING                      -> 102
+      OK                              -> 200
+      CREATED                         -> 201
+      ACCEPTED                        -> 202
+      NON_AUTHORITATIVE_INFORMATION   -> 203
+      NO_CONTENT                      -> 204
+      RESET_CONTENT                   -> 205
+      PARTIAL_CONTENT                 -> 206
+      MULTI_STATUS                    -> 207
+      ALREADY_REPORTED                -> 208
+      IM_USED                         -> 226
+      MULTIPLE_CHOICES                -> 300
+      MOVED_PERMANENTLY               -> 301
+      FOUND                           -> 302
+      SEE_OTHER                       -> 303
+      NOT_MODIFIED                    -> 304
+      USE_PROXY                       -> 305
+      TEMPORARY_REDIRECT              -> 307
+      PERMANENT_REDIRECT              -> 308
+      BAD_REQUEST                     -> 400
+      UNAUTHORIZED                    -> 401
+      PAYMENT_REQUIRED                -> 402
+      FORBIDDEN                       -> 403
+      NOT_FOUND                       -> 404
+      METHOD_NOT_ALLOWED              -> 405
+      NOT_ACCEPTABLE                  -> 406
+      PROXY_AUTHENTICATION_REQUIRED   -> 407
+      REQUEST_TIMEOUT                 -> 408
+      CONFLICT                        -> 409
+      GONE                            -> 410
+      LENGTH_REQUIRED                 -> 411
+      PRECONDITION_FAILED             -> 412
+      REQUEST_ENTITY_TOO_LARGE        -> 413
+      REQUEST_URI_TOO_LONG            -> 414
+      UNSUPPORTED_MEDIA_TYPE          -> 415
+      REQUESTED_RANGE_NOT_SATISFIABL  -> 416
+      EXPECTATION_FAILED              -> 417
+      MISDIRECTED_REQUEST             -> 421
+      UNPROCESSABLE_ENTITY            -> 422
+      LOCKED                          -> 423
+      FAILED_DEPENDENCY               -> 424
+      UPGRADE_REQUIRED                -> 426
+      PRECONDITION_REQUIRED           -> 428
+      TOO_MANY_REQUESTS               -> 429
+      REQUEST_HEADER_FIELDS_TOO_LARGE -> 431
+      UNAVAILABLE_FOR_LEGAL_REASONS   -> 451
+      INTERNAL_SERVER_ERROR           -> 500
+      NOT_IMPLEMENTED                 -> 501
+      BAD_GATEWAY                     -> 502
+      SERVICE_UNAVAILABLE             -> 503
+      GATEWAY_TIMEOUT                 -> 504
+      HTTP_VERSION_NOT_SUPPORTED      -> 505
+      VARIANT_ALSO_NEGOTIATES         -> 506
+      INSUFFICIENT_STORAGE            -> 507
+      LOOP_DETECTED                   -> 508
+      NOT_EXTENDED                    -> 510
+      NETWORK_AUTHENTICATIO_REQUIRED  -> 511
+
