@@ -1,4 +1,4 @@
-package org.enso.launcher.workarounds
+package org.enso.loggingservice.server.workarounds
 
 /**
   * Gives access to an instance of [[sun.misc.Unsafe]] which contains low-level

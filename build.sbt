@@ -505,9 +505,10 @@ lazy val `logging-service-server` = project
         akkaStream,
         akkaHttp,
         akkaActor,
-        "org.scalatest"      %% "scalatest"       % scalatestVersion % Test,
-        "com.github.vmencik" %% "graal-akka-http" % graalAkkaVersion
-      )
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+      ),
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided"
   )
   .settings(licenseSettings)
 
@@ -1082,8 +1083,6 @@ lazy val launcher = project
           )
         )
         .value,
-    // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided",
     test in assembly := {},
     assemblyOutputPath in assembly := file("launcher.jar")
   )
