@@ -54,7 +54,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     setup()
-
+//    debug()
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {

@@ -2,6 +2,7 @@ package org.enso.loggingservice.server
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.ws.{
   BinaryMessage,
   Message,
@@ -9,10 +10,7 @@ import akka.http.scaladsl.model.ws.{
   UpgradeToWebSocket
 }
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
-import akka.http.scaladsl.model.HttpMethods._
-import akka.stream.{ActorMaterializer, SystemMaterializer}
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.typesafe.config.ConfigFactory
 
 import scala.io.StdIn
 

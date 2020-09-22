@@ -1,4 +1,4 @@
-package org.enso.loggingservice.server.workarounds;
+package org.enso.nativeimage.workarounds;
 
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;

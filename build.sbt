@@ -139,6 +139,8 @@ lazy val enso = (project in file("."))
     logger.jvm,
     pkg,
     cli,
+    `logging-service`,
+    `akka-native`,
     `version-output`,
     runner,
     runtime,
@@ -504,26 +506,12 @@ lazy val `akka-native` = project
         akkaActor
       ),
     // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided"
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
   .settings(licenseSettings)
 
-lazy val `logging-service-server` = project
-  .in(file("lib/scala/logging-service-server"))
-  .configs(Test)
-  .settings(
-    version := "0.1",
-    libraryDependencies ++= Seq(
-        akkaStream,
-        akkaHttp,
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test
-      )
-  )
-  .settings(licenseSettings)
-  .dependsOn(`akka-native`)
-
-lazy val `logging-service-client` = project
-  .in(file("lib/scala/logging-service-client"))
+lazy val `logging-service` = project
+  .in(file("lib/scala/logging-service"))
   .configs(Test)
   .settings(
     version := "0.1",
@@ -1128,7 +1116,7 @@ lazy val launcher = project
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
-  .dependsOn(`logging-service-server`)
+  .dependsOn(`logging-service`)
 
 /* Note [HTTPS in the Launcher]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
