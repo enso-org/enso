@@ -501,8 +501,6 @@ lazy val `akka-native` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-        akkaStream,
-        akkaHttp,
         akkaActor
       ),
     // Note [Native Image Workaround for GraalVM 20.2]

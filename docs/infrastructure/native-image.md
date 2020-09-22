@@ -73,7 +73,7 @@ As the Native Image builds a native binary, certain capabilities, like
 [reflection](https://github.com/oracle/graal/blob/master/substratevm/REFLECTION.md),
 may be limited. The build system tries to automatically detect some reflective
 accesses, but it cannot detect everything. It is possible for the built binary
-to fail with the following error:
+to fail with `java.lang.ClassNotFoundException` or the following error:
 
 ```
 java.lang.InstantiationException: Type `XYZ` can not be instantiated reflectively as it does not have a no-parameter constructor or the no-parameter constructor has not been added explicitly to the native image.`
@@ -124,15 +124,9 @@ platforms.
 
 Moreover, some reflective accesses may not be detected by the tool
 automatically, so they may need to be added manually. One of them is an access
-to the class `[B` when using Akka, so it requires manually adding the following
-entry to the `reflect-config.json` if it is ever reset:
-
-```json
-{
-  "name": "[B"
-}
-```
-
-Whenever the native executable fails with `java.lang.ClassNotFoundException`, it
-may indicate that the class mentioned in the exception's message should be added
-to the `reflect-config.json`.
+to the class `[B` when using Akka, so it would require manually adding it to the
+`reflect-config.json`. However, to make it easier, a package `akka-native` has
+been created that gathers workarounds required to be able to build native images
+using Akka, so it is enough to just add it as a dependency. It does not handle
+other reflective accesses that are related to Akka, because the ones that are
+needed are gathered automatically using the tool described above.
