@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -18,9 +19,9 @@ public class GetMemberNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object object, String member_name) {
+  Object execute(Object _this, Object object, Text member_name) {
     try {
-      return library.readMember(object, member_name);
+      return library.readMember(object, member_name.getString());
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
       err.enter();
       throw new PanicException(e.getMessage(), this);

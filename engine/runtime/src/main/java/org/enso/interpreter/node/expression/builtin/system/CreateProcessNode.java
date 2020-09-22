@@ -9,6 +9,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import java.io.*;
@@ -25,9 +26,9 @@ public abstract class CreateProcessNode extends Node {
 
   abstract Object execute(
       Object _this,
-      String command,
+      Text command,
       Array arguments,
-      String input,
+      Text input,
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr);
@@ -36,16 +37,18 @@ public abstract class CreateProcessNode extends Node {
   @CompilerDirectives.TruffleBoundary
   Object doCreate(
       Object _this,
-      String command,
+      Text command,
       Array arguments,
-      String input,
+      Text input,
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
       @CachedContext(Language.class) Context ctx) {
-    String[] cmd = new String[(int) arguments.getItems().length + 1];
-    cmd[0] = command;
-    System.arraycopy(arguments.getItems(), 0, cmd, 1, (int) arguments.getItems().length);
+    String[] cmd = new String[arguments.getItems().length + 1];
+    cmd[0] = command.getString();
+    for (int i = 1; i <= arguments.getItems().length; i++) {
+      cmd[i] = arguments.getItems()[i - 1].toString();
+    }
     TruffleProcessBuilder pb = ctx.getEnvironment().newProcessBuilder(cmd);
 
     try {
@@ -106,8 +109,8 @@ public abstract class CreateProcessNode extends Node {
       }
 
       long exitCode = p.exitValue();
-      String returnOut = new String(out.toByteArray());
-      String returnErr = new String(err.toByteArray());
+      Text returnOut = Text.create(new String(out.toByteArray()));
+      Text returnErr = Text.create(new String(err.toByteArray()));
 
       return ctx.getBuiltins()
           .system()

@@ -15,6 +15,7 @@ import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.data.Text;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
@@ -33,8 +34,9 @@ public abstract class EachClusterNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  Object iterate(Object state, String str, Object fun, MaterializedFrame frame) {
+  private Object iterate(Object state, Text txt, Object fun, MaterializedFrame frame) {
     BreakIterator it = BreakIterator.getCharacterInstance();
+    String str = txt.getString();
     it.setText(str);
     long ix = 0;
     int s = it.first();
@@ -52,13 +54,13 @@ public abstract class EachClusterNode extends Node {
   }
 
   abstract Stateful execute(
-      @MonadicState Object state, VirtualFrame frame, String _this, Object function);
+      @MonadicState Object state, VirtualFrame frame, Text _this, Object function);
 
   @Specialization
   Stateful doExecute(
       Object state,
       VirtualFrame frame,
-      String str,
+      Text str,
       Object fun,
       @CachedContext(Language.class) Context ctx) {
     state = iterate(state, str, fun, frame.materialize());
