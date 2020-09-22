@@ -7,6 +7,7 @@ import org.enso.launcher.Logger
 import org.enso.launcher.http.{HTTPDownload, HTTPRequestBuilder}
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
+import org.enso.loggingservice.server.WSExample
 
 /**
   * Defines the entry point for the launcher.
@@ -27,8 +28,7 @@ object Main {
         exitCode
     }
 
-  def main(args: Array[String]): Unit = {
-    setup()
+  def debug(): Unit = {
     HTTPDownload
       .download(
         HTTPRequestBuilder
@@ -39,16 +39,22 @@ object Main {
         Path.of("./lin.tar.gz")
       )
       .waitForResult(showProgress = true)
-//    val r = HTTPDownload
-//      .fetchString(
-//        HTTPRequestBuilder
-//          .fromURIString(
-//            "https://github.com/enso-org/enso-staging/releases/download/enso-0.1.1-rc3/enso-launcher-0.1.1-rc3-linux-amd64.tar.gz"
-//          )
-//          .GET
-//      )
-//      .waitForResult(showProgress = true)
-//    println(r)
+    val r = HTTPDownload
+      .fetchString(
+        HTTPRequestBuilder
+          .fromURIString(
+            "https://example.com/"
+          )
+          .GET
+      )
+      .waitForResult(showProgress = true)
+    println(r)
+    WSExample.startServer()
+  }
+
+  def main(args: Array[String]): Unit = {
+    setup()
+
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {

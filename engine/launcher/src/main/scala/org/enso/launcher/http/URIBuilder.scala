@@ -19,8 +19,10 @@ case class URIBuilder private (uri: Uri) {
     * For example adding `bar` to `http://example.com/foo` will result in
     * `http://example.com/foo/bar`.
     */
-  def addPathSegment(segment: String): URIBuilder =
-    copy(uri.withPath(uri.path + segment))
+  def addPathSegment(segment: String): URIBuilder = {
+    val part = "/" + segment
+    copy(uri.withPath(uri.path + part))
+  }
 
   /**
     * Add a query parameter to the URI.
@@ -51,9 +53,16 @@ object URIBuilder {
     * A simple DSL for the URIBuilder.
     */
   implicit class URIBuilderSyntax(builder: URIBuilder) {
+
+    /**
+      * Extends the URI with an additional path segment.
+      */
     def /(part: String): URIBuilder =
       builder.addPathSegment(part)
 
+    /**
+      * Adds a query to the URI.
+      */
     def ?(query: (String, String)): URIBuilder =
       builder.addQuery(query._1, query._2)
   }

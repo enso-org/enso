@@ -121,3 +121,18 @@ to maintain separate configs for each platform. Currently in the Launcher this
 is not the case - the reflective accesses seem to be platform independent, as
 the launcher built with a config created on Linux runs successfully on other
 platforms.
+
+Moreover, some reflective accesses may not be detected by the tool
+automatically, so they may need to be added manually. One of them is an access
+to the class `[B` when using Akka, so it requires manually adding the following
+entry to the `reflect-config.json` if it is ever reset:
+
+```json
+{
+  "name": "[B"
+}
+```
+
+Whenever the native executable fails with `java.lang.ClassNotFoundException`, it
+may indicate that the class mentioned in the exception's message should be added
+to the `reflect-config.json`.

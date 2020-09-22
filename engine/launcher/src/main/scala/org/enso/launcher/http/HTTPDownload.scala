@@ -14,7 +14,16 @@ import org.enso.launcher.Logger
 
 import scala.concurrent.Future
 
+/**
+  * Represents a HTTP header.
+  */
 case class Header(name: String, value: String) {
+
+  /**
+    * Checks if this header instance corresponds to a `headerName`.
+    *
+    * The check is case-insensitive.
+    */
   def is(headerName: String): Boolean =
     name.toLowerCase == headerName.toLowerCase
 }
@@ -34,11 +43,19 @@ case class APIResponse(content: String, headers: Seq[Header])
 object HTTPDownload {
 
   /**
+    * Determines how many redirects are taken until an error is thrown.
+    */
+  val maximumRedirects: Int = 20
+
+  /**
     * Fetches the `request` and tries to decode is as a [[String]].
     *
     * The request is executed in a separate thread. A [[TaskProgress]] instance
     * is returned immediately which can be used to track progress of the
     * download. The result contains the decoded response and included headers.
+    *
+    * Handles redirects, but will return an error if the amount of redirects
+    * exceeds [[maximumRedirects]].
     *
     * @param request the request to send
     * @param sizeHint an optional hint indicating the expected size of the
@@ -78,6 +95,9 @@ object HTTPDownload {
     * download. The result is the same path as `destination`. It is available
     * only when the download has been completed successfully.
     *
+    * Handles redirects, but will return an error if the amount of redirects
+    * exceeds [[maximumRedirects]].
+    *
     * @param request the request to send
     * @param sizeHint an optional hint indicating the expected size of the
     *                 response. It is used if the response does not include
@@ -101,8 +121,31 @@ object HTTPDownload {
     )
   }
 
-  implicit lazy val actorSystem = ActorSystem()
+  implicit private lazy val actorSystem: ActorSystem = ActorSystem(
+    "http-requests-actor-system"
+  )
 
+  /**
+    * Starts the request and returns a [[TaskProgress]] that can be used to
+    * track download progress and get the result.
+    *
+    * @tparam A type of the result returned by `sink`
+    * @tparam B type of the final result that will be contained in the returned
+    *           [[TaskProgress]]
+    * @param request  the request to start
+    * @param sizeHint an optional hint indicating the expected size of the
+    *                  response. It is used if the response does not include
+    *                  explicit Content-Length header.
+    * @param sink specifies how the response content should be handled, it
+    *             receives chunks of [[ByteString]] and should produce a
+    *             [[Future]] with some result
+    * @param resultMapping maps the `sink` result and the response into a final
+    *                      result type, it can use the response instance to for
+    *                      example, access the headers, but the entity cannot be
+    *                      used as it will already be drained
+    * @return a [[TaskProgress]] that will contain the final result or any
+    *         errors
+    */
   private def runRequest[A, B](
     request: HttpRequest,
     sizeHint: Option[Long],
@@ -120,6 +163,7 @@ object HTTPDownload {
       response: HttpResponse
     ): Future[HttpResponse] =
       if (response.status.isRedirection) {
+        response.discardEntityBytes()
         if (retriesLeft > 0) {
           val newURI = response
             .header[Location]

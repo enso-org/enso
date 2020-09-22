@@ -1,5 +1,8 @@
 [
 {
+  "name": "[B"
+},
+{
   "name":"akka.actor.ActorCell",
   "fields":[
     {"name":"akka$actor$dungeon$Children$$_childrenRefsDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
@@ -123,7 +126,19 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"akka.io.InetAddressDnsProvider",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"akka.io.InetAddressDnsResolver",
+  "allDeclaredConstructors":true
+},
+{
   "name":"akka.io.SelectionHandler",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.SimpleDnsManager",
   "allDeclaredConstructors":true
 },
 {
@@ -139,15 +154,18 @@
   "allDeclaredConstructors":true
 },
 {
-  "name":"akka.pattern.PromiseActorRef",
-  "fields":[
-    {"name":"_stateDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"_watchedByDoNotCallMeDirectly", "allowUnsafeAccess":true}
-  ]
+  "name":"akka.io.TcpOutgoingConnection",
+  "allDeclaredConstructors":true
+},
+{
+  "name":"akka.io.dns.RecordType[]"
 },
 {
   "name":"akka.routing.ConsistentHashingPool",
   "methods":[{"name":"<init>","parameterTypes":["com.typesafe.config.Config"] }]
+},
+{
+  "name":"akka.routing.ConsistentRoutee[]"
 },
 {
   "name":"akka.routing.RoundRobinPool",
@@ -200,6 +218,12 @@
   "fields":[{"name":"MODULE$"}]
 },
 {
+  "name":"akka.stream.impl.BatchingInputBuffer[]"
+},
+{
+  "name":"akka.stream.impl.FanOut$FanoutOutputs[]"
+},
+{
   "name":"akka.stream.impl.streamref.StreamRefsProtocol"
 },
 {
@@ -219,7 +243,23 @@
   "name":"akka.util.ByteString$ByteStrings"
 },
 {
+  "name":"com.sun.crypto.provider.AESCipher$General",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.crypto.provider.DHParameters",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.crypto.provider.TlsKeyMaterialGenerator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"com.sun.crypto.provider.TlsMasterSecretGenerator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.crypto.provider.TlsPrfGenerator$V12",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
@@ -267,89 +307,30 @@
   "name":"java.security.SecureRandomParameters"
 },
 {
-  "name":"java.sql.Date"
+  "name":"java.security.interfaces.ECPrivateKey"
 },
 {
-  "name":"java.sql.Timestamp"
+  "name":"java.security.interfaces.ECPublicKey"
+},
+{
+  "name":"java.security.interfaces.RSAPrivateKey"
+},
+{
+  "name":"java.security.interfaces.RSAPublicKey"
 },
 {
   "name":"java.util.Date"
 },
 {
+  "name":"javax.net.ssl.KeyManager[]"
+},
+{
+  "name":"javax.net.ssl.TrustManager[]"
+},
+{
   "name":"javax.security.auth.x500.X500Principal",
   "fields":[{"name":"thisX500Name"}],
   "methods":[{"name":"<init>","parameterTypes":["sun.security.x509.X500Name"] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.AsiExtraField",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.JarMarker",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.ResourceAlignmentExtraField",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.UnicodePathExtraField",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X000A_NTFS",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X0014_X509Certificates",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X0015_CertificateIdForFile",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X0016_CertificateIdForCentralDirectory",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X0017_StrongEncryptionHeader",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X0019_EncryptionRecipientCertificateList",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X5455_ExtendedTimestamp",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.X7875_NewUnix",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.logging.LogFactory"
-},
-{
-  "name":"org.apache.commons.logging.impl.LogFactoryImpl",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.apache.commons.logging.impl.NoOpLog",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]
-},
-{
-  "name":"org.apache.commons.logging.impl.WeakHashtable",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
   "name":"scala.Boolean"
@@ -376,6 +357,18 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"sun.security.provider.DSA$SHA224withDSA",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.DSA$SHA256withDSA",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.JavaKeyStore$DualFormatJKS",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"sun.security.provider.JavaKeyStore$JKS",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -388,11 +381,43 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"sun.security.provider.SHA2$SHA224",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.SHA2$SHA256",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.SHA5$SHA384",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.provider.SHA5$SHA512",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"sun.security.provider.X509Factory",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"sun.security.provider.certpath.PKIXCertPathValidator",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"sun.security.rsa.RSAKeyFactory$Legacy",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.rsa.RSAPSSSignature",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.rsa.RSASignature$SHA224withRSA",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.rsa.RSASignature$SHA256withRSA",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
@@ -401,6 +426,10 @@
 },
 {
   "name":"sun.security.ssl.SSLContextImpl$DefaultSSLContext",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"sun.security.ssl.SSLContextImpl$TLS12Context",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
@@ -460,8 +489,5 @@
 {
   "name":"sun.security.x509.SubjectKeyIdentifierExtension",
   "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"[B"
 }
 ]
