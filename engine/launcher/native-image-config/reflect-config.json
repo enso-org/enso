@@ -1,6 +1,6 @@
 [
 {
-  "name": "[B"
+  "name":"[B"
 },
 {
   "name":"akka.actor.ActorCell",
@@ -319,6 +319,12 @@
   "name":"java.security.interfaces.RSAPublicKey"
 },
 {
+  "name":"java.sql.Date"
+},
+{
+  "name":"java.sql.Timestamp"
+},
+{
   "name":"java.util.Date"
 },
 {
@@ -340,6 +346,9 @@
 },
 {
   "name":"scala.Long"
+},
+{
+  "name":"scala.Tuple2[]"
 },
 {
   "name":"sun.misc.Unsafe",
