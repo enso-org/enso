@@ -1,5 +1,7 @@
 package org.enso.compiler.codegen
 
+import java.nio.ByteBuffer
+
 import cats.Foldable
 import cats.implicits._
 import org.enso.compiler.core.IR
@@ -7,8 +9,12 @@ import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.AST
+import org.enso.syntax.text.Shape.{SegmentEscape, SegmentExpr, SegmentPlain, SegmentRawEscape}
+import org.enso.syntax.text.ast.text.Escape
+import org.enso.syntax.text.ast.text.Escape.Unicode
 
 import scala.annotation.tailrec
+import scala.util.control.Breaks.{break, breakable}
 
 /**
   * This file contains the functionality that translates from the parser's
@@ -485,10 +491,59 @@ object AstToIr {
               literal,
               Error.Syntax.UnsupportedSyntax("format strings")
             )
-          case AST.Literal.Text.Line.Fmt(_) =>
-            Error.Syntax(
-              literal,
-              Error.Syntax.UnsupportedSyntax("format strings")
+          case AST.Literal.Text.Line.Fmt(segments) =>
+            val bldr                  = new StringBuilder
+            var err: Option[IR.Error] = None
+            breakable {
+              segments.foreach {
+                case SegmentEscape(code) =>
+                  code match {
+                    case Escape.Number(_) =>
+                      err = Some(
+                        Error.Syntax(
+                          literal,
+                          Error.Syntax.UnsupportedSyntax("escaped numbers")
+                        )
+                      )
+                      break()
+                    case unicode: Escape.Unicode =>
+                      unicode match {
+                        case Unicode.InvalidUnicode(unicode) =>
+                          err = Some(
+                            Error.Syntax(
+                              literal,
+                              Error.Syntax.InvalidEscapeSequence(unicode.repr)
+                            )
+                          )
+                          break()
+                        case Unicode._U16(digits) =>
+                          val buffer = ByteBuffer.allocate(2)
+                          buffer.putChar(
+                            Integer.parseInt(digits, 16).asInstanceOf[Char]
+                          )
+                          val str = new String(buffer.array(), "UTF-16")
+                          bldr.addAll(str)
+                        case Unicode._U32(digits) =>
+                          val buffer = ByteBuffer.allocate(4)
+                          buffer.putInt(Integer.parseInt(digits, 16))
+                          val str = new String(buffer.array(), "UTF-32")
+                          bldr.addAll(str)
+                        case Unicode._U21(digits) =>
+                          val buffer = ByteBuffer.allocate(4)
+                          buffer.putInt(Integer.parseInt(digits, 16))
+                          val str = new String(buffer.array(), "UTF-32")
+                          bldr.addAll(str)
+                      }
+                    case _: Escape.Character =>
+                    case _: Escape.Control   =>
+                  }
+                case SegmentPlain(text)  => bldr.addAll(text)
+                case SegmentExpr(_)      =>
+                case SegmentRawEscape(_) =>
+              }
+            }
+            err.getOrElse(
+              IR.Literal.Text(bldr.toString(), getIdentifiedLocation(literal))
             )
           case _ =>
             throw new UnhandledEntity(literal.shape, "translateLiteral")
@@ -496,6 +551,10 @@ object AstToIr {
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
   }
+
+//  private def decodeUtf(hex: String, charset: Charset): String = {
+//
+//  }
 
   /**
     * Translates a sequence literal into its [[IR]] counterpart.

@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class TextTest extends InterpreterTest {
   override def subject = "Text Library"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "support text creation with single-line literals" in {

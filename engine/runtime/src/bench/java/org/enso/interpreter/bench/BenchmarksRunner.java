@@ -13,6 +13,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.VerboseMode;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {

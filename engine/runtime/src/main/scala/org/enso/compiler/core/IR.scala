@@ -5570,6 +5570,10 @@ object IR {
         def explanation: String
       }
 
+      case class InvalidEscapeSequence(lit: String) extends Reason {
+        override def explanation: String = s"Invalid escape sequence $lit."
+      }
+
       case object InvalidBaseInDecimalLiteral extends Reason {
         override def explanation: String =
           "Cannot change base of the fractional part of a number literal."
