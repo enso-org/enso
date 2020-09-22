@@ -306,7 +306,6 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val apacheHttpClientVersion = "4.5.12"
 val bcpkixJdk15Version      = "1.65"
 val bumpVersion             = "0.1.3"
 val declineVersion          = "1.2.0"
@@ -1089,8 +1088,7 @@ lazy val launcher = project
         "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
         "org.typelevel"              %% "cats-core"        % catsVersion,
         "nl.gn0s1s"                  %% "bump"             % bumpVersion,
-        "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
-        "org.apache.httpcomponents"   % "httpclient"       % apacheHttpClientVersion
+        "org.apache.commons"          % "commons-compress" % commonsCompressVersion
       )
   )
   .settings(

@@ -21,13 +21,16 @@ object Logger {
   private val Warning = Level("warn", 3, () => Console.err)
   private val Error   = Level("error", 4, () => Console.err)
 
-  private var logLevel = Info
+  private var logLevel = Debug
   private def log(level: Level, msg: => String): Unit =
     if (level.level >= logLevel.level) {
       val stream = level.stream()
       stream.println(s"[${level.name}] $msg")
       stream.flush()
     }
+
+  def trace(msg: => String): Unit =
+    log(Debug, msg) // TODO this will be other log level
 
   /**
     * Logs a debug level message.
@@ -39,7 +42,7 @@ object Logger {
     */
   def debug(msg: => String, throwable: => Throwable): Unit = {
     log(Debug, msg)
-    trace(throwable)
+    stackTrace(throwable)
   }
 
   /**
@@ -63,13 +66,13 @@ object Logger {
     */
   def error(msg: => String, throwable: => Throwable): Unit = {
     log(Error, msg)
-    trace(throwable)
+    stackTrace(throwable)
   }
 
   /**
     * Logs a stack trace of an exception.
     */
-  def trace(throwable: => Throwable): Unit =
+  def stackTrace(throwable: => Throwable): Unit =
     if (Debug.level >= logLevel.level)
       throwable.printStackTrace()
 
