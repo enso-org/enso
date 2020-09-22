@@ -32,6 +32,12 @@ jobs:
           path: repo
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
+      - name: Disable TCP/UDP Offloading (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
       - name: Disable TCP/UDP Offloading (Linux)
         if: runner.os == 'Linux'
         shell: bash
