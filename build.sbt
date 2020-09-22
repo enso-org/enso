@@ -1063,7 +1063,6 @@ lazy val runner = project
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
 
-// TODO [RW] scala-logging, Akka, licenses to NOTICE
 lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
