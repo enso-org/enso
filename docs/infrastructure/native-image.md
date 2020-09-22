@@ -117,10 +117,14 @@ It is possible that different classes are reflectively accessed on different
 platforms. In that case it may be necessary to run the agent on multiple
 platforms and merge the configs. If the conflicts were conflicting (i.e. some
 reflectively accessed classes existed only on one platform), it may be necessary
-to maintain separate configs for each platform. Currently in the Launcher this
-is not the case - the reflective accesses seem to be platform independent, as
-the launcher built with a config created on Linux runs successfully on other
-platforms.
+to maintain separate configs for each platform. Currently, the
+`native-image-agent` is not available on Windows, so Windows-specific reflective
+accesses may have to be gathered manually. For some types of accesses it may be
+possible to force the Windows-specific code paths to run on Linux and gather
+these accesses semi-automatically. That is currently the case with
+archive-related accesses - while the Linux launcher never unpacks ZIP files, we
+can manually force it to do so, to register the reflection configuration that
+will than be used on Windows to enable ZIP extraction.
 
 Moreover, some reflective accesses may not be detected by the tool
 automatically, so they may need to be added manually. One of them is an access
