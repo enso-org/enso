@@ -269,6 +269,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def removeQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
     val (raw, _) = toSuggestionRow(suggestion)
     val selectQuery = Suggestions
+      .filter(_.module === raw.module)
       .filter(_.kind === raw.kind)
       .filter(_.name === raw.name)
       .filter(_.scopeStartLine === raw.scopeStartLine)
