@@ -43,6 +43,7 @@ impl Registry {
         registry.try_add_java_script(builtin::visualization::java_script::bubble_visualization());
         registry.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
         registry.try_add_java_script(builtin::visualization::java_script::table_view_visualization());
+        registry.try_add_java_script(builtin::visualization::java_script::map_view_visualization());
         registry
     }
 

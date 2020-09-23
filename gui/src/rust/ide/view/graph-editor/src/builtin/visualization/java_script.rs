@@ -25,6 +25,13 @@ pub fn scatter_plot_visualization() -> visualization::java_script::FallibleDefin
     visualization::java_script::Definition::new(data::builtin_library(),source)
 }
 
+/// Return a `JavaScript` Map visualization.
+pub fn map_view_visualization() -> visualization::java_script::FallibleDefinition {
+    let source = include_str!("java_script/mapView.js");
+
+    visualization::java_script::Definition::new(data::builtin_library(),source)
+}
+
 /// Return a `JavaScript` Bubble visualization.
 pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition {
     let source = include_str!("java_script/bubbleVisualization.js");
