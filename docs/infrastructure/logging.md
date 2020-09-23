@@ -16,6 +16,7 @@ easier analysis of component's interaction.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Protocol](#protocol)
+  - [Message Examples](#message-examples)
 - [JVM Architecture](#jvm-architecture)
   - [SLF4J Interface](#slf4j-interface)
   - [Setting Up Logging](#setting-up-logging)
@@ -61,7 +62,51 @@ The optional exceptions are JSON objects with the following fields:
     number, for example in Java it can be `Example.java:123` or in Enso
     `Example.enso:4:3-19`
 - (optional) `cause` - if the field is defined and is not `null`, it represents
-  another instance of an encoded exception that is a cause of this one
+  another instance of an encoded exception that is a cause of this one.
+
+### Message Examples
+
+For example, an error message with an attached exception may look like this (the
+class names are made up):
+
+```json
+{
+  "level": 0,
+  "time": 1600864353151,
+  "group": "org.enso.launcher.Main",
+  "message": "Failed to load a configuration file.",
+  "exception": {
+    "name": "org.enso.launcher.config.ConfigurationLoaderFailure",
+    "message": "Configuration file does not exist.",
+    "trace": [
+      {
+        "element": "org.enso.launcher.config.ConfigurationLoader.load",
+        "location": "ConfigurationLoader.scala:123"
+      },
+      {
+        "element": "org.enso.launcher.Main",
+        "location": "Main.scala:42"
+      }
+    ],
+    "cause": {
+      "name": "java.io.FileNotFoundException",
+      "message": "config.yaml (No such file or directory)",
+      "trace": []
+    }
+  }
+}
+```
+
+Another example could be an info message (without attached exceptions):
+
+```json
+{
+  "level": 2,
+  "time": 1600864353151,
+  "group": "org.enso.launcher.Main",
+  "message": "Configuration file loaded successfully."
+}
+```
 
 ## JVM Architecture
 

@@ -69,7 +69,7 @@ object SerializedException {
         val methodName = stackTraceElement.getMethodName
         TraceElement(
           s"$className.$methodName",
-          location.getOrElse("Unknown location")
+          location.getOrElse("Unknown Source")
         )
     }
   }
