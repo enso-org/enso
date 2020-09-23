@@ -1,7 +1,7 @@
 package org.enso.launcher.cli
 
+import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
-import org.enso.launcher.Logger
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
 
@@ -24,8 +24,11 @@ object Main {
         exitCode
     }
 
+  private val logger = Logger[Main.type]
+
   def main(args: Array[String]): Unit = {
     setup()
+    logger.info("DOING SETUP")
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {
@@ -33,7 +36,7 @@ object Main {
         }
       } catch {
         case e: Exception =>
-          Logger.error(s"A fatal error has occurred: $e", e)
+          logger.error(s"A fatal error has occurred: $e", e)
           1
       }
 

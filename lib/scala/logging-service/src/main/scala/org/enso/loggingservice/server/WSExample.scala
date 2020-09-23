@@ -12,6 +12,7 @@ import akka.http.scaladsl.model.ws.{
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 
+import scala.annotation.nowarn
 import scala.io.StdIn
 
 object WSExample {
@@ -37,7 +38,7 @@ object WSExample {
 
     val requestHandler: HttpRequest => HttpResponse = {
       case req @ HttpRequest(GET, Uri.Path("/greeter"), _, _, _) =>
-        req.header[UpgradeToWebSocket] match {
+        req.header[UpgradeToWebSocket @nowarn] match {
           case Some(upgrade) => upgrade.handleMessages(greeterWebSocketService)
           case None =>
             HttpResponse(400, entity = "Not a valid websocket request!")

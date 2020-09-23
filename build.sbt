@@ -328,6 +328,7 @@ val scalameterVersion       = "0.19"
 val scalatagsVersion        = "0.9.1"
 val scalatestVersion        = "3.3.0-SNAP2"
 val shapelessVersion        = "2.4.0-M1"
+val slf4jVersion            = "1.7.30"
 val slickVersion            = "3.3.2"
 val sqliteVersion           = "3.31.1"
 val tikaVersion             = "1.24.1"
@@ -514,10 +515,12 @@ lazy val `logging-service` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-        "org.slf4j" % "slf4j-api" % "1.7.30", // TODO [RW] version, NOTICE
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
         akkaStream,
         akkaHttp,
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+        "io.circe"     %%% "circe-core"   % circeVersion,
+        "io.circe"     %%% "circe-parser" % circeVersion,
+        "org.scalatest" %% "scalatest"    % scalatestVersion % Test
       )
   )
   .settings(licenseSettings)
