@@ -1,4 +1,4 @@
-package org.enso.loggingservice.client
+package org.enso.loggingservice
 
 import java.util.concurrent.LinkedTransferQueue
 
@@ -8,13 +8,14 @@ import org.enso.loggingservice.internal.{
   LoggerConnection
 }
 
-object WSConnectionManager {
+object WSLoggerManager {
 
   val maxQueueSizeForFallback: Int = 1000
   private val messageQueue         = new LinkedTransferQueue[InternalLogMessage]()
+  private var currentLevel         = Level.Trace // TODO configurable
   object Connection extends LoggerConnection {
     override def send(message: InternalLogMessage): Unit = addMessage(message)
-    override def logLevel: Level                         = ???
+    override def logLevel: Level                         = currentLevel
   }
 
   private var actualConnection: Option[Nothing] = None
@@ -33,6 +34,10 @@ object WSConnectionManager {
     * TODO must not block
     */
   def establishConnection(): Unit = {
+    ???
+  }
+
+  def startServer(): Unit = {
     ???
   }
 

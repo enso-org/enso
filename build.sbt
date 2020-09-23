@@ -515,7 +515,8 @@ lazy val `logging-service` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
+        "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+        "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
         akkaStream,
         akkaHttp,
         "io.circe"     %%% "circe-core"   % circeVersion,
