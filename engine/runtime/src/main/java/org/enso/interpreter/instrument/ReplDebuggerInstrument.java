@@ -139,7 +139,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       ReplExecutionEventNodeState savedState = nodeState;
       try {
         Stateful result =
-            evalNode.execute(nodeState.getLastScope(), nodeState.getLastState(), expression);
+            evalNode.execute(
+                nodeState.getLastScope(), nodeState.getLastState(), Text.create(expression));
         Object lastState = result.getState();
         CaptureResultScopeNode.WithCallerInfo payload =
             (CaptureResultScopeNode.WithCallerInfo) result.getValue();

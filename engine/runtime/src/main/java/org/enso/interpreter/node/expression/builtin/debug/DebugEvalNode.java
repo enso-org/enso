@@ -17,7 +17,6 @@ import org.enso.interpreter.runtime.state.Stateful;
     alwaysDirect = false)
 public class DebugEvalNode extends Node {
   private @Child EvalNode evalNode = EvalNode.build();
-  private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
   DebugEvalNode() {
     evalNode.markTail();
@@ -25,6 +24,6 @@ public class DebugEvalNode extends Node {
 
   Stateful execute(
       CallerInfo callerInfo, @MonadicState Object state, Object _this, Text expression) {
-    return evalNode.execute(callerInfo, state, toJavaStringNode.execute(expression));
+    return evalNode.execute(callerInfo, state, expression);
   }
 }
