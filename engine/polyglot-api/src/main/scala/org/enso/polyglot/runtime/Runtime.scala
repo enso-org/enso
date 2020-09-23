@@ -343,24 +343,43 @@ object Runtime {
         new JsonSubTypes.Type(
           value = classOf[SuggestionsDatabaseUpdate.Remove],
           name  = "suggestionsDatabaseUpdateRemove"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Clean],
+          name  = "suggestionsDatabaseUpdateClean"
         )
       )
     )
-    sealed trait SuggestionsDatabaseUpdate
+    sealed trait SuggestionsDatabaseUpdate {
+      def module: String
+    }
     object SuggestionsDatabaseUpdate {
 
-      /** Create or replace the database entry.
+      /**
+        * Create or replace the database entry.
         *
         * @param suggestion the new suggestion
         */
-      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
+      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate {
+        override val module = suggestion.module
+      }
 
-      /** Remove the database entry.
+      /**
+        * Remove the database entry.
         *
         * @param suggestion the suggestion to remove
         */
       case class Remove(suggestion: Suggestion)
-          extends SuggestionsDatabaseUpdate
+          extends SuggestionsDatabaseUpdate {
+        override val module = suggestion.module
+      }
+
+      /**
+        * Remove all module entries from the database.
+        *
+        * @param module the module name
+        */
+      case class Clean(module: String) extends SuggestionsDatabaseUpdate
     }
 
     /**
@@ -711,12 +730,25 @@ object Runtime {
     case class ProjectRenamed(newName: String) extends ApiResponse
 
     /**
-      * A notification about the change in the suggestions database.
+      * The module updates.
+      *
+      * @param file the module file path
+      * @param contents the module source
+      * @param updates the list of suggestions extracted from module
+      */
+    case class SuggestionsDatabaseModuleUpdate(
+      file: File,
+      contents: String,
+      updates: Seq[SuggestionsDatabaseUpdate]
+    )
+
+    /**
+      * A notification about the changes in the suggestions database.
       *
       * @param updates the list of database updates
       */
     case class SuggestionsDatabaseUpdateNotification(
-      updates: Seq[SuggestionsDatabaseUpdate]
+      updates: Seq[SuggestionsDatabaseModuleUpdate]
     ) extends ApiNotification
 
     /**
