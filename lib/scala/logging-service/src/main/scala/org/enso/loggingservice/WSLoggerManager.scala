@@ -3,10 +3,14 @@ package org.enso.loggingservice
 import java.util.concurrent.LinkedTransferQueue
 
 import org.enso.loggingservice.internal.{
+  FallbackConnection,
   InternalLogMessage,
   Level,
-  LoggerConnection
+  LoggerConnection,
+  ServiceConnection
 }
+
+import scala.concurrent.Future
 
 object WSLoggerManager {
 
@@ -18,10 +22,9 @@ object WSLoggerManager {
     override def logLevel: Level                         = currentLevel
   }
 
-  private var actualConnection: Option[Nothing] = None
+  private var actualConnection: Option[ServiceConnection] = None
 
   private def addMessage(message: InternalLogMessage): Unit = {
-    System.err.println(s"addMessage($message)")
     if (
       actualConnection.isEmpty && messageQueue.size() > maxQueueSizeForFallback
     ) {
@@ -31,27 +34,47 @@ object WSLoggerManager {
   }
 
   /**
-    * TODO must not block
+    * Sets up the logging service, but in a separate thread to avoid stalling
+    * the application.
     */
-  def establishConnection(): Unit = {
-    ???
+  def setup(mode: WSLoggerMode): Future[Unit] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    Future(doSetup(mode))
   }
 
-  def startServer(): Unit = {
-    ???
+  private def doSetup(mode: WSLoggerMode): Unit = {
+    actualConnection.synchronized {
+      stopPriorSessions()
+      mode match {
+        case WSLoggerMode.Client(ip, port)           =>
+        case WSLoggerMode.Server(port, host, config) =>
+        case WSLoggerMode.Local(config)              => setUpFallback(config)
+      }
+    }
   }
 
-  def startFallbackStderrLogger(): Unit =
+  private def stopPriorSessions(): Unit = {
+    actualConnection match {
+      case Some(fallback: FallbackConnection) =>
+        fallback.terminate()
+      case Some(_) =>
+        throw new IllegalStateException("The system was already initialized.")
+      case None =>
+    }
+  }
+
+  /**
+    * Starts the fallback as long as no other service has been initialized.
+    */
+  private def startFallbackStderrLogger(): Unit =
     actualConnection.synchronized {
       actualConnection match {
         case Some(_) =>
-        case None =>
-          setUpFallback()
+        case None    => setUpFallback(LoggingConfig.Default)
       }
     }
 
-  private def setUpFallback(): Unit = {
-//    actualConnection = ???
-    ???
+  private def setUpFallback(config: LoggingConfig): Unit = {
+    actualConnection = Some(FallbackConnection.setup(config, messageQueue))
   }
 }

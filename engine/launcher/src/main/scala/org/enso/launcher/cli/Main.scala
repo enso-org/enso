@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
+import org.enso.loggingservice.{WSLoggerManager, WSLoggerMode}
 
 /**
   * Defines the entry point for the launcher.
@@ -29,6 +30,8 @@ object Main {
   def main(args: Array[String]): Unit = {
     setup()
     logger.info("DOING SETUP")
+    WSLoggerManager.setup(WSLoggerMode.Local())
+    logger.info("after SETUP")
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {

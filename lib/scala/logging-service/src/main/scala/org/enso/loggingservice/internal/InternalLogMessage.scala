@@ -5,4 +5,12 @@ case class InternalLogMessage(
   group: String,
   message: String,
   throwable: Option[Throwable]
-)
+) {
+  def toLogMessage(): WSLogMessage =
+    WSLogMessage(
+      logLevel  = level,
+      group     = group,
+      message   = message,
+      exception = throwable.map(SerializedException.fromException)
+    )
+}
