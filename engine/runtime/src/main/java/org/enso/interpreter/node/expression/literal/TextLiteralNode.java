@@ -3,7 +3,7 @@ package org.enso.interpreter.node.expression.literal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.data.Text;
+import org.enso.interpreter.runtime.data.text.Text;
 
 /** Node representing a constant String value. */
 @NodeInfo(shortName = "StringLiteral", description = "Constant string literal expression")

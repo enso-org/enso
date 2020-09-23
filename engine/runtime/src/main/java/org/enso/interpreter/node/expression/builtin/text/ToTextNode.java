@@ -5,10 +5,10 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
-public class AnyToTextNode extends Node {
+@BuiltinMethod(type = "Text", name = "to_text", description = "Text to text conversion, for API purposes.")
+public class ToTextNode extends Node {
   @CompilerDirectives.TruffleBoundary
-  Text execute(Object _this) {
-    return Text.create(_this.toString());
+  Text execute(Text _this) {
+    return _this;
   }
 }

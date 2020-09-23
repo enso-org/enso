@@ -142,7 +142,11 @@ public class Builtins {
     scope.registerMethod(text, "==", TextEqualsMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
     scope.registerMethod(any, "json_serialize", JsonSerializeMethodGen.makeFunction(language));
-    scope.registerMethod(text, "each", EachClusterMethodGen.makeFunction(language));
+    scope.registerMethod(text, "each_with_index", EachClusterMethodGen.makeFunction(language));
+    scope.registerMethod(
+        text,
+        "to_text",
+        org.enso.interpreter.node.expression.builtin.text.ToTextMethodGen.makeFunction(language));
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));

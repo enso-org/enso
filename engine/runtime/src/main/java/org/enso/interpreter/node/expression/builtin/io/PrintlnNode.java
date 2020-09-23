@@ -11,9 +11,11 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
@@ -34,9 +36,12 @@ public abstract class PrintlnNode extends Node {
       Object self,
       Object message,
       @CachedContext(Language.class) Context ctx,
-      @Cached("buildSymbol(ctx)") UnresolvedSymbol symbol) {
+      @Cached("buildSymbol(ctx)") UnresolvedSymbol symbol,
+      @Cached("build()") ToJavaStringNode toJavaStringNode,
+      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
     Stateful str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
-    print(ctx.getOut(), str.getValue());
+    String strr = toJavaStringNode.execute((Text) str.getValue());
+    print(ctx.getOut(), strr);
     return new Stateful(str.getState(), ctx.getUnit().newInstance());
   }
 
@@ -47,6 +52,13 @@ public abstract class PrintlnNode extends Node {
 
   UnresolvedSymbol buildSymbol(Context ctx) {
     return UnresolvedSymbol.build("to_text", ctx.getBuiltins().getScope());
+  }
+
+  InvokeCallableNode buildInvokeCallableNode() {
+    return InvokeCallableNode.build(
+        new CallArgumentInfo[] {new CallArgumentInfo()},
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   static PrintlnNode build() {
