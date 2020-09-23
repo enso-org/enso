@@ -40,7 +40,6 @@ import org.enso.text.editing.model.TextEdit
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
 /**
   * An actor enabling multiple users edit collaboratively a file.
@@ -204,28 +203,15 @@ class CollaborativeBuffer(
         sender() ! failure
 
       case Right(modifiedBuffer) =>
-        val reply = versionsRepo
-          .setVersion(
-            modifiedBuffer.file,
-            versionCalculator
-              .evalDigest(modifiedBuffer.contents.toString)
-          )
-          .map(_ => ApplyEditSuccess)
-          .pipeTo(sender())
-        reply.onComplete {
-          case Success(_) =>
-            val subscribers = clients.filterNot(_._1 == clientId).values
-            subscribers.foreach {
-              _.rpcController ! TextDidChange(List(change))
-            }
-            runtimeConnector ! Api.Request(
-              Api.EditFileNotification(buffer.file, change.edits)
-            )
-            context.become(
-              collaborativeEditing(modifiedBuffer, clients, lockHolder)
-            )
-          case Failure(_) =>
-        }
+        sender() ! ApplyEditSuccess
+        val subscribers = clients.filterNot(_._1 == clientId).values
+        subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
+        runtimeConnector ! Api.Request(
+          Api.EditFileNotification(buffer.file, change.edits)
+        )
+        context.become(
+          collaborativeEditing(modifiedBuffer, clients, lockHolder)
+        )
     }
   }
 

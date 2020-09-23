@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler.text
 
-import akka.actor._
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -47,11 +47,6 @@ class ApplyEditHandler(
     case RequestTimeout =>
       log.error(s"Applying edit for ${rpcSession.clientId} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
-      context.stop(self)
-
-    case Status.Failure(t) =>
-      log.error(t, "Failed to apply edit")
-      cancellable.cancel()
       context.stop(self)
 
     case ApplyEditSuccess =>
