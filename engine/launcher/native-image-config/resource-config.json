@@ -1,10 +1,10 @@
 {
-  "resources":[
-    {"pattern":"\\QMETA-INF/MANIFEST.MF\\E"}, 
-    {"pattern":"\\Qakka-http-version.conf\\E"}, 
-    {"pattern":"\\Qapplication.conf\\E"}, 
-    {"pattern":"\\Qreference.conf\\E"}, 
-    {"pattern":"\\Qversion.conf\\E"}
+  "resources": [
+    { "pattern": "\\QMETA-INF/MANIFEST.MF\\E" },
+    { "pattern": "\\Qakka-http-version.conf\\E" },
+    { "pattern": "\\Qapplication.conf\\E" },
+    { "pattern": "\\Qreference.conf\\E" },
+    { "pattern": "\\Qversion.conf\\E" }
   ],
-  "bundles":[]
+  "bundles": []
 }
