@@ -35,6 +35,45 @@ object SerializedException {
       cause      = None
     )
 
+  def apply(throwable: Throwable): SerializedException =
+    fromException(throwable)
+
+  def fromException(throwable: Throwable): SerializedException = {
+    val clazz = throwable.getClass
+    val cause =
+      if (throwable.getCause == throwable) None
+      else Option(throwable.getCause).map(fromException)
+    SerializedException(
+      name       = Option(clazz.getCanonicalName).getOrElse(clazz.getName),
+      message    = throwable.getMessage,
+      stackTrace = throwable.getStackTrace.toSeq.map(encodeStackTraceElement),
+      cause      = cause
+    )
+  }
+
+  private val stackTraceRegex = "(.*)\\((.*)\\)".r
+  private def encodeStackTraceElement(
+    stackTraceElement: StackTraceElement
+  ): TraceElement = {
+    stackTraceElement.toString match {
+      case stackTraceRegex(element, location) =>
+        TraceElement(element = element, location = location)
+      case _ =>
+        val location = for {
+          filename <- Option(stackTraceElement.getFileName)
+          line <-
+            if (stackTraceElement.getLineNumber < 0) None
+            else Some(stackTraceElement.getLineNumber)
+        } yield s"$filename:$line"
+        val className  = stackTraceElement.getClassName
+        val methodName = stackTraceElement.getMethodName
+        TraceElement(
+          s"$className.$methodName",
+          location.getOrElse("Unknown location")
+        )
+    }
+  }
+
   case class TraceElement(element: String, location: String)
 
   object JsonFields {
