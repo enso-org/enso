@@ -1086,6 +1086,7 @@ lazy val launcher = project
           "enso",
           staticOnLinux = true,
           Seq(
+            "-J-Xmx4G",
             "--enable-all-security-services", // Note [HTTPS in the Launcher]
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
             "-H:IncludeResources=.*Main.enso$",

@@ -1,6 +1,7 @@
 package org.enso.loggingservice
 
 import org.enso.loggingservice.internal.serviceconnection.{
+  Client,
   Fallback,
   Server,
   Service
@@ -89,11 +90,12 @@ object WSLoggerManager {
       }
 
       val service = mode match {
-        case WSLoggerMode.Client(_) => ???
+        case WSLoggerMode.Client(endpoint) =>
+          Client.setup(endpoint, messageQueue, logLevel)
         case WSLoggerMode.Server(port, interface, printers) =>
           Server.setup(interface, port, messageQueue, printers, logLevel)
         case WSLoggerMode.Local(printers) =>
-          Fallback.setup(printers, logLevel, messageQueue)
+          Fallback.setup(logLevel, messageQueue, printers)
       }
       currentService = Some(service)
     }

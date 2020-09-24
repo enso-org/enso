@@ -25,48 +25,21 @@ import scala.concurrent.duration.DurationInt
 class Server(
   interface: String,
   port: Short,
-  queue: BlockingConsumerMessageQueue,
+  protected val queue: BlockingConsumerMessageQueue,
   printers: Seq[Printer],
-  logLevel: LogLevel
-) extends Service {
-  implicit private val system: ActorSystem = {
-    val config = ConfigFactory.load()
-    import scala.jdk.CollectionConverters._
-    val loggers: java.lang.Iterable[String] =
-      Seq("akka.event.Logging$StandardOutLogger").asJava
+  protected val logLevel: LogLevel
+) extends ThreadProcessingService
+    with ServiceWithActorSystem {
 
-    config.withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))
-    ActorSystem(
-      "logging-service-server",
-      config,
-      classLoader =
-        classOf[Server].getClassLoader // Note [Actor System Class Loader]
-    )
-  }
+  override protected def actorSystemName: String = "logging-service-server"
 
   def start(): Unit = {
     startWebSocketServer()
-    startPrinters()
+    startQueueProcessor()
   }
 
-  private var queueThread: Option[Thread] = None
-  private def startPrinters(): Unit = {
-    val thread = new Thread(() => runQueue())
-    queueThread = Some(thread)
-    thread.start()
-  }
-
-  private def runQueue(): Unit = {
-    try {
-      while (!Thread.currentThread().isInterrupted) {
-        val message = queue.nextMessage()
-        if (logLevel.shouldLog(message.logLevel)) {
-          printers.foreach(_.print(message))
-        }
-      }
-    } catch {
-      case _: InterruptedException =>
-    }
+  override protected def processMessage(message: WSLogMessage): Unit = {
+    printers.foreach(_.print(message))
   }
 
   private def startWebSocketServer(): Unit = {
@@ -117,28 +90,18 @@ class Server(
     System.err.println(s"Invalid message: $error.")
   }
 
-  override def terminate(): Unit = {
-    import system.dispatcher
-    binding match {
-      case Some(bindingFuture) =>
-        scala.language.postfixOps
-        bindingFuture
-          .flatMap(_.terminate(hardDeadline = 2.seconds))
-          .onComplete(_ => system.terminate())
-      case None =>
-        system.terminate()
-    }
-
-    queueThread match {
-      case Some(thread) =>
-        thread.interrupt()
-        thread.join(100)
-      case None =>
-    }
-  }
-
   private def decodeMessage(message: String): Either[Error, WSLogMessage] =
     parser.parse(message).flatMap(_.as[WSLogMessage])
+
+  override protected def terminateUser(): Future[_] = {
+    println("stopping user")
+    binding match {
+      case Some(bindingFuture) =>
+        import actorSystem.dispatcher
+        bindingFuture.flatMap(_.terminate(hardDeadline = 2.seconds))
+      case None => Future.successful(())
+    }
+  }
 }
 
 object Server {
@@ -160,12 +123,3 @@ object Server {
     }
   }
 }
-
-/* Note [Actor System Class Loader]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Without explicitly setting the ClassLoader, the ActorSystem initialization
- * fails with `java.lang.ClassCastException: interface akka.event.LoggingFilter
- * is not assignable from class akka.event.DefaultLoggingFilter` which is most
- * likely caused by the two instances coming from distinct class loaders, for
- * reasons that are unclear.
- */
