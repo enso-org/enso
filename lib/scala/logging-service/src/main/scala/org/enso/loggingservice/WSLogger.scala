@@ -1,6 +1,6 @@
 package org.enso.loggingservice
 
-import org.enso.loggingservice.internal.{InternalLogMessage, Level}
+import org.enso.loggingservice.internal.InternalLogMessage
 import org.slf4j.helpers.MessageFormatter
 import org.slf4j.{Logger, Marker}
 
@@ -10,11 +10,11 @@ class WSLogger(name: String, connection: internal.LoggerConnection)
     extends Logger {
   override def getName: String = name
 
-  private def isEnabled(level: Level): Boolean =
+  private def isEnabled(level: LogLevel): Boolean =
     connection.isEnabled(level)
 
   private def log(
-    level: Level,
+    level: LogLevel,
     msg: String
   ): Unit = {
     if (isEnabled(level)) {
@@ -23,7 +23,7 @@ class WSLogger(name: String, connection: internal.LoggerConnection)
   }
 
   private def log(
-    level: Level,
+    level: LogLevel,
     format: String,
     arg: AnyRef
   ): Unit = {
@@ -36,7 +36,7 @@ class WSLogger(name: String, connection: internal.LoggerConnection)
   }
 
   private def log(
-    level: Level,
+    level: LogLevel,
     format: String,
     arg1: AnyRef,
     arg2: AnyRef
@@ -50,7 +50,7 @@ class WSLogger(name: String, connection: internal.LoggerConnection)
   }
 
   private def log(
-    level: Level,
+    level: LogLevel,
     format: String,
     args: Seq[AnyRef]
   ): Unit = {
@@ -63,7 +63,7 @@ class WSLogger(name: String, connection: internal.LoggerConnection)
   }
 
   private def log(
-    level: Level,
+    level: LogLevel,
     msg: String,
     throwable: Throwable
   ): Unit = {
@@ -74,221 +74,225 @@ class WSLogger(name: String, connection: internal.LoggerConnection)
     }
   }
 
-  override def isTraceEnabled: Boolean = isEnabled(Level.Trace)
+  override def isTraceEnabled: Boolean = isEnabled(LogLevel.Trace)
 
-  override def trace(msg: String): Unit = log(Level.Trace, msg)
+  override def trace(msg: String): Unit = log(LogLevel.Trace, msg)
 
   override def trace(format: String, arg: AnyRef): Unit =
-    log(Level.Trace, format, arg)
+    log(LogLevel.Trace, format, arg)
 
   override def trace(format: String, arg1: AnyRef, arg2: AnyRef): Unit =
-    log(Level.Trace, format, arg1, arg2)
+    log(LogLevel.Trace, format, arg1, arg2)
 
   override def trace(format: String, arguments: AnyRef*): Unit =
-    log(Level.Trace, format, arguments)
+    log(LogLevel.Trace, format, arguments)
 
-  override def trace(msg: String, t: Throwable): Unit = log(Level.Trace, msg, t)
+  override def trace(msg: String, t: Throwable): Unit =
+    log(LogLevel.Trace, msg, t)
 
   override def isTraceEnabled(@unused marker: Marker): Boolean =
-    isEnabled(Level.Trace)
+    isEnabled(LogLevel.Trace)
 
   override def trace(@unused marker: Marker, msg: String): Unit =
-    log(Level.Trace, msg)
+    log(LogLevel.Trace, msg)
 
   override def trace(
     @unused marker: Marker,
     format: String,
     arg: AnyRef
   ): Unit =
-    log(Level.Trace, format, arg)
+    log(LogLevel.Trace, format, arg)
 
   override def trace(
     @unused marker: Marker,
     format: String,
     arg1: AnyRef,
     arg2: AnyRef
-  ): Unit = log(Level.Trace, format, arg1, arg2)
+  ): Unit = log(LogLevel.Trace, format, arg1, arg2)
 
   override def trace(
     @unused marker: Marker,
     format: String,
     argArray: AnyRef*
   ): Unit =
-    log(Level.Trace, format, argArray)
+    log(LogLevel.Trace, format, argArray)
 
   override def trace(@unused marker: Marker, msg: String, t: Throwable): Unit =
-    log(Level.Trace, msg, t)
+    log(LogLevel.Trace, msg, t)
 
-  override def isDebugEnabled: Boolean = isEnabled(Level.Debug)
+  override def isDebugEnabled: Boolean = isEnabled(LogLevel.Debug)
 
-  override def debug(msg: String): Unit = log(Level.Debug, msg)
+  override def debug(msg: String): Unit = log(LogLevel.Debug, msg)
 
   override def debug(format: String, arg: AnyRef): Unit =
-    log(Level.Debug, format, arg)
+    log(LogLevel.Debug, format, arg)
 
   override def debug(format: String, arg1: AnyRef, arg2: AnyRef): Unit =
-    log(Level.Debug, format, arg1, arg2)
+    log(LogLevel.Debug, format, arg1, arg2)
 
   override def debug(format: String, arguments: AnyRef*): Unit =
-    log(Level.Debug, format, arguments)
+    log(LogLevel.Debug, format, arguments)
 
-  override def debug(msg: String, t: Throwable): Unit = log(Level.Debug, msg, t)
+  override def debug(msg: String, t: Throwable): Unit =
+    log(LogLevel.Debug, msg, t)
 
   override def isDebugEnabled(@unused marker: Marker): Boolean =
-    isEnabled(Level.Debug)
+    isEnabled(LogLevel.Debug)
 
   override def debug(@unused marker: Marker, msg: String): Unit =
-    log(Level.Debug, msg)
+    log(LogLevel.Debug, msg)
 
   override def debug(
     @unused marker: Marker,
     format: String,
     arg: AnyRef
   ): Unit =
-    log(Level.Debug, format, arg)
+    log(LogLevel.Debug, format, arg)
 
   override def debug(
     @unused marker: Marker,
     format: String,
     arg1: AnyRef,
     arg2: AnyRef
-  ): Unit = log(Level.Debug, format, arg1, arg2)
+  ): Unit = log(LogLevel.Debug, format, arg1, arg2)
 
   override def debug(
     @unused marker: Marker,
     format: String,
     arguments: AnyRef*
   ): Unit =
-    log(Level.Debug, format, arguments)
+    log(LogLevel.Debug, format, arguments)
 
   override def debug(@unused marker: Marker, msg: String, t: Throwable): Unit =
-    log(Level.Debug, msg, t)
+    log(LogLevel.Debug, msg, t)
 
-  override def isInfoEnabled: Boolean = isEnabled(Level.Info)
+  override def isInfoEnabled: Boolean = isEnabled(LogLevel.Info)
 
-  override def info(msg: String): Unit = log(Level.Info, msg)
+  override def info(msg: String): Unit = log(LogLevel.Info, msg)
 
   override def info(format: String, arg: AnyRef): Unit =
-    log(Level.Info, format, arg)
+    log(LogLevel.Info, format, arg)
 
   override def info(format: String, arg1: AnyRef, arg2: AnyRef): Unit =
-    log(Level.Info, format, arg1, arg2)
+    log(LogLevel.Info, format, arg1, arg2)
 
   override def info(format: String, arguments: AnyRef*): Unit =
-    log(Level.Info, format, arguments)
+    log(LogLevel.Info, format, arguments)
 
-  override def info(msg: String, t: Throwable): Unit = log(Level.Info, msg, t)
+  override def info(msg: String, t: Throwable): Unit =
+    log(LogLevel.Info, msg, t)
 
   override def isInfoEnabled(@unused marker: Marker): Boolean =
-    isEnabled(Level.Info)
+    isEnabled(LogLevel.Info)
 
   override def info(@unused marker: Marker, msg: String): Unit =
-    log(Level.Info, msg)
+    log(LogLevel.Info, msg)
 
   override def info(@unused marker: Marker, format: String, arg: AnyRef): Unit =
-    log(Level.Info, format, arg)
+    log(LogLevel.Info, format, arg)
 
   override def info(
     @unused marker: Marker,
     format: String,
     arg1: AnyRef,
     arg2: AnyRef
-  ): Unit = log(Level.Info, format, arg1, arg2)
+  ): Unit = log(LogLevel.Info, format, arg1, arg2)
 
   override def info(
     @unused marker: Marker,
     format: String,
     arguments: AnyRef*
   ): Unit =
-    log(Level.Info, format, arguments)
+    log(LogLevel.Info, format, arguments)
 
   override def info(@unused marker: Marker, msg: String, t: Throwable): Unit =
-    log(Level.Info, msg, t)
+    log(LogLevel.Info, msg, t)
 
-  override def isWarnEnabled: Boolean = isEnabled(Level.Warning)
+  override def isWarnEnabled: Boolean = isEnabled(LogLevel.Warning)
 
-  override def warn(msg: String): Unit = log(Level.Warning, msg)
+  override def warn(msg: String): Unit = log(LogLevel.Warning, msg)
 
   override def warn(format: String, arg: AnyRef): Unit =
-    log(Level.Warning, format, arg)
+    log(LogLevel.Warning, format, arg)
 
   override def warn(format: String, arguments: AnyRef*): Unit =
-    log(Level.Warning, format, arguments)
+    log(LogLevel.Warning, format, arguments)
 
   override def warn(format: String, arg1: AnyRef, arg2: AnyRef): Unit =
-    log(Level.Warning, format, arg1, arg2)
+    log(LogLevel.Warning, format, arg1, arg2)
 
   override def warn(msg: String, t: Throwable): Unit =
-    log(Level.Warning, msg, t)
+    log(LogLevel.Warning, msg, t)
 
   override def isWarnEnabled(@unused marker: Marker): Boolean =
-    isEnabled(Level.Warning)
+    isEnabled(LogLevel.Warning)
 
   override def warn(@unused marker: Marker, msg: String): Unit =
-    log(Level.Warning, msg)
+    log(LogLevel.Warning, msg)
 
   override def warn(@unused marker: Marker, format: String, arg: AnyRef): Unit =
-    log(Level.Warning, format, arg)
+    log(LogLevel.Warning, format, arg)
 
   override def warn(
     @unused marker: Marker,
     format: String,
     arg1: AnyRef,
     arg2: AnyRef
-  ): Unit = log(Level.Warning, format, arg1, arg2)
+  ): Unit = log(LogLevel.Warning, format, arg1, arg2)
 
   override def warn(
     @unused marker: Marker,
     format: String,
     arguments: AnyRef*
   ): Unit =
-    log(Level.Warning, format, arguments)
+    log(LogLevel.Warning, format, arguments)
 
   override def warn(@unused marker: Marker, msg: String, t: Throwable): Unit =
-    log(Level.Warning, msg, t)
+    log(LogLevel.Warning, msg, t)
 
-  override def isErrorEnabled: Boolean = isEnabled(Level.Error)
+  override def isErrorEnabled: Boolean = isEnabled(LogLevel.Error)
 
-  override def error(msg: String): Unit = log(Level.Error, msg)
+  override def error(msg: String): Unit = log(LogLevel.Error, msg)
 
   override def error(format: String, arg: AnyRef): Unit =
-    log(Level.Error, format, arg)
+    log(LogLevel.Error, format, arg)
 
   override def error(format: String, arg1: AnyRef, arg2: AnyRef): Unit =
-    log(Level.Error, format, arg1, arg2)
+    log(LogLevel.Error, format, arg1, arg2)
 
   override def error(format: String, arguments: AnyRef*): Unit =
-    log(Level.Error, format, arguments)
+    log(LogLevel.Error, format, arguments)
 
-  override def error(msg: String, t: Throwable): Unit = log(Level.Error, msg, t)
+  override def error(msg: String, t: Throwable): Unit =
+    log(LogLevel.Error, msg, t)
 
   override def isErrorEnabled(@unused marker: Marker): Boolean =
-    isEnabled(Level.Error)
+    isEnabled(LogLevel.Error)
 
   override def error(@unused marker: Marker, msg: String): Unit =
-    log(Level.Error, msg)
+    log(LogLevel.Error, msg)
 
   override def error(
     @unused marker: Marker,
     format: String,
     arg: AnyRef
   ): Unit =
-    log(Level.Error, format, arg)
+    log(LogLevel.Error, format, arg)
 
   override def error(
     @unused marker: Marker,
     format: String,
     arg1: AnyRef,
     arg2: AnyRef
-  ): Unit = log(Level.Error, format, arg1, arg2)
+  ): Unit = log(LogLevel.Error, format, arg1, arg2)
 
   override def error(
     @unused marker: Marker,
     format: String,
     arguments: AnyRef*
   ): Unit =
-    log(Level.Error, format, arguments)
+    log(LogLevel.Error, format, arguments)
 
   override def error(@unused marker: Marker, msg: String, t: Throwable): Unit =
-    log(Level.Error, msg, t)
+    log(LogLevel.Error, msg, t)
 }

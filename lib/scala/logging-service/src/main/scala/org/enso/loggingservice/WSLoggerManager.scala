@@ -1,79 +1,81 @@
 package org.enso.loggingservice
 
-import java.util.concurrent.LinkedTransferQueue
-
 import org.enso.loggingservice.internal.serviceconnection.{Fallback, Service}
 import org.enso.loggingservice.internal.{
+  BlockingConsumerMessageQueue,
   InternalLogMessage,
-  Level,
   LoggerConnection
 }
+import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
 import scala.concurrent.Future
 
 object WSLoggerManager {
-
-  val maxQueueSizeForFallback: Int = 1000
-  private val messageQueue         = new LinkedTransferQueue[InternalLogMessage]()
-  private var currentLevel         = Level.Trace // TODO configurable
+  private val messageQueue           = new BlockingConsumerMessageQueue()
+  private var currentLevel: LogLevel = LogLevel.Trace
   object Connection extends LoggerConnection {
-    override def send(message: InternalLogMessage): Unit = addMessage(message)
-    override def logLevel: Level                         = currentLevel
+    override def send(message: InternalLogMessage): Unit =
+      messageQueue.send(Left(message))
+    override def logLevel: LogLevel = currentLevel
   }
 
   private var currentService: Option[Service] = None
-
-  private def addMessage(message: InternalLogMessage): Unit = {
-    if (
-      currentService.isEmpty && messageQueue.size() > maxQueueSizeForFallback
-    ) {
-      startFallbackStderrLogger()
-    }
-    messageQueue.add(message)
-  }
 
   /**
     * Sets up the logging service, but in a separate thread to avoid stalling
     * the application.
     */
-  def setup(mode: WSLoggerMode): Future[Unit] = {
+  def setup(mode: WSLoggerMode, logLevel: LogLevel): Future[Unit] = {
+    currentLevel = logLevel
     import scala.concurrent.ExecutionContext.Implicits.global
-    Future(doSetup(mode))
+    Future(doSetup(mode, logLevel))
   }
 
-  private def doSetup(mode: WSLoggerMode): Unit = {
+  def tearDown(): Unit = {
+    val service = currentService.synchronized { currentService }
+    service match {
+      case Some(running) => running.terminate()
+      case None          => handleMissingLogger()
+    }
+  }
+
+  Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))
+
+  private def handleMissingLogger(): Unit = {
+    val danglingMessages = messageQueue.drain()
+    if (danglingMessages.nonEmpty) {
+      System.err.println(
+        "It seems that the logging service was never set up, " +
+        "or log messages were reported after it has been terminated. " +
+        "These messages are printed below:"
+      )
+      danglingMessages.foreach { message =>
+        if (currentLevel.shouldLog(message.logLevel)) {
+          StderrPrinter.print(message)
+        }
+      }
+    }
+  }
+
+  private def doSetup(mode: WSLoggerMode, logLevel: LogLevel): Unit = {
     currentService.synchronized {
-      stopPriorSessions()
+      if (currentService.isDefined) {
+        throw new IllegalStateException(
+          "The logging service has already been set up."
+        )
+      }
       mode match {
-        case WSLoggerMode.Client(ip, port)           =>
-        case WSLoggerMode.Server(port, host, config) =>
-        case WSLoggerMode.Local(config)              => setUpFallback(config)
+        case WSLoggerMode.Client(_)       =>
+        case WSLoggerMode.Server(_, _, _) =>
+        case WSLoggerMode.Local(config)   => setUpFallback(config, logLevel)
       }
     }
   }
 
-  private def stopPriorSessions(): Unit = {
-    currentService match {
-      case Some(fallback: Fallback) =>
-        fallback.terminate()
-      case Some(_) =>
-        throw new IllegalStateException("The system was already initialized.")
-      case None =>
-    }
-  }
-
-  /**
-    * Starts the fallback as long as no other service has been initialized.
-    */
-  private def startFallbackStderrLogger(): Unit =
-    currentService.synchronized {
-      currentService match {
-        case Some(_) =>
-        case None    => setUpFallback(LoggingConfig.Default)
-      }
-    }
-
-  private def setUpFallback(config: LoggingConfig): Unit = {
-    currentService = Some(Fallback.setup(config, messageQueue))
+  private def setUpFallback(
+    printers: Seq[Printer],
+    logLevel: LogLevel
+  ): Unit = {
+    currentService = Some(Fallback.setup(printers, logLevel, messageQueue))
   }
 }

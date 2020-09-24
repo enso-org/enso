@@ -110,7 +110,7 @@ response.
 
 ##### Parameters
 
-```
+```typescript
 {
   // Log level associated with the message.
   level: LogLevel;
