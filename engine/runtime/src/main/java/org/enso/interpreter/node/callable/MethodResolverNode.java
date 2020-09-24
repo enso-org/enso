@@ -263,7 +263,7 @@ public abstract class MethodResolverNode extends Node {
 
   Function resolveMethodOnString(UnresolvedSymbol symbol) {
     return ensureMethodExists(
-        symbol.resolveFor(getBuiltins().text(), getBuiltins().any()), "Text", symbol);
+        symbol.resolveFor(getBuiltins().text().getText(), getBuiltins().any()), "Text", symbol);
   }
 
   Function resolveMethodOnFunction(UnresolvedSymbol symbol) {

@@ -1,0 +1,7 @@
+from Base import all
+
+polyglot java import org.enso.base.Text_Utils
+
+spec =
+    IO.println ("Foo")
+    IO.println (Text_Utils.substring ["hello darkness", 2, 5])

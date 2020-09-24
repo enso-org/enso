@@ -5,18 +5,27 @@ import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
+import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
+import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
-import org.enso.interpreter.node.expression.builtin.io.*;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
+import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
-import org.enso.interpreter.node.expression.builtin.state.*;
-import org.enso.interpreter.node.expression.builtin.interop.java.*;
-import org.enso.interpreter.node.expression.builtin.text.*;
+import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen;
+import org.enso.interpreter.node.expression.builtin.text.JsonSerializeMethodGen;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
@@ -47,8 +56,8 @@ public class Builtins {
   private final AtomConstructor any;
   private final Number number;
   private final AtomConstructor function;
-  private final AtomConstructor text;
   private final AtomConstructor debug;
+  private final Text text;
   private final Error error;
   private final Bool bool;
   private final System system;
@@ -74,7 +83,7 @@ public class Builtins {
     error = new Error(language, scope);
     array = new Array(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
-    text = new AtomConstructor("Text", scope).initializeFields();
+    text = new Text(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
     system = new System(language, scope);
     number = new Number(language, scope);
@@ -98,7 +107,6 @@ public class Builtins {
     scope.registerConstructor(unit);
     scope.registerConstructor(any);
     scope.registerConstructor(function);
-    scope.registerConstructor(text);
 
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
@@ -138,16 +146,8 @@ public class Builtins {
     scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
     scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
-    scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
-    scope.registerMethod(text, "==", TextEqualsMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
     scope.registerMethod(any, "json_serialize", JsonSerializeMethodGen.makeFunction(language));
-    scope.registerMethod(text, "each_with_index", EachClusterMethodGen.makeFunction(language));
-    scope.registerMethod(
-        text,
-        "to_text",
-        org.enso.interpreter.node.expression.builtin.text.ToTextMethodGen.makeFunction(language));
-    scope.registerMethod(text, "optimize", OptimizeMethodGen.makeFunction(language));
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));
@@ -197,11 +197,11 @@ public class Builtins {
   }
 
   /**
-   * Returns the {@code Text} atom constructor.
+   * Returns the {@code Text} part of builtins.
    *
-   * @return the {@code Text} atom constructor
+   * @return the {@code Text} part of builtins.
    */
-  public AtomConstructor text() {
+  public Text text() {
     return text;
   }
 

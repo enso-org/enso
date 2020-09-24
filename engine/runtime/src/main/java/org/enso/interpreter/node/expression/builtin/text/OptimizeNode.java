@@ -7,7 +7,7 @@ import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
-    type = "Text",
+    type = "Prim_Text_Helpers",
     name = "optimize",
     description = "Text to text conversion, for API purposes.")
 public class OptimizeNode extends Node {

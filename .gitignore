@@ -63,6 +63,7 @@ package-lock.json
 *.swp
 .projections.json
 .nvmrc
+*.iml
 
 ############################
 ## Rendered Documentation ##

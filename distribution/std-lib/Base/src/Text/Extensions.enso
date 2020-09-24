@@ -1,0 +1,11 @@
+from Base import all
+from Builtins import Text, Prim_Text_Helpers
+
+from Builtins export Text
+
+polyglot java import com.ibm.icu.text.BreakIterator
+
+consume_iterator 
+
+Text.each function =
+    

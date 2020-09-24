@@ -8,6 +8,7 @@ import Test.Process_Spec
 import Test.Java_Interop.Spec as Java_Spec
 import Test.Vector.Spec as Vector_Spec
 import Test.Numbers.Spec as Numbers_Spec
+import Test.Text.Spec as Text_Spec
 
 main = Test.Suite.runMain <|
     List_Spec.spec
@@ -19,3 +20,4 @@ main = Test.Suite.runMain <|
     Java_Spec.spec
     Vector_Spec.spec
     Numbers_Spec.spec
+    Text_Spec.spec
