@@ -16,7 +16,9 @@ easier analysis of component's interaction.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Protocol](#protocol)
-  - [Message Examples](#message-examples)
+  - [Types](#types)
+  - [Messages](#messages)
+  - [Examples](#examples)
 - [JVM Architecture](#jvm-architecture)
   - [SLF4J Interface](#slf4j-interface)
   - [Setting Up Logging](#setting-up-logging)
@@ -31,40 +33,103 @@ messages. The communication is uni-directional - the only messages are log
 messages that are sent from a connected client to the server that gathers all
 logs.
 
-Each message is encoded as a JSON object with the following fields:
+### Types
 
-- `level` - an integer between 0 and 4 that indicates the log level:
-  - 0 - `ERROR`
-  - 1 - `WARN`
-  - 2 - `INFO`
-  - 3 - `DEBUG`
-  - 4 - `TRACE`
-- `time` - an integer representing the message timestamp in UTC encoded as
-  milliseconds since the EPOCH
-- `group` - an identifier of log group - the group should indicate which
-  component the message originated from and any (possibly nested) context the
-  message is associated with; the parts of the group expression are separated
-  with `.`
-- `message` - the log message
-- (optional) `exception` - an exception with a stack-trace associated with the
-  message; this field can be not defined or be `null` to indicate lack of an
-  exception, or contain an encoded exception, as described below.
+##### `LogLevel`
 
-The optional exceptions are JSON objects with the following fields:
+The log level encoded as a number. Possible values are:
 
-- `name` - name of the exception, in Java this can be the qualified classname
-- `message` - message contained within the exception (may be empty)
-- `trace` - a list of trace elements (may be empty), each trace element is an
-  object with two fields:
-  - `element` - 'name' of the trace element, for example in Java this can be a
-    qualified method name
-  - `location` - related location, usually consists of a filename and line
-    number, for example in Java it can be `Example.java:123` or in Enso
-    `Example.enso:4:3-19`
-- (optional) `cause` - if the field is defined and is not `null`, it represents
-  another instance of an encoded exception that is a cause of this one.
+- 0 - indicating `ERROR` level,
+- 1 - indicating `WARN` level,
+- 2 - indicating `INFO` level,
+- 3 - indicating `DEBUG` level,
+- 4 - indicating `TRACE` level.
 
-### Message Examples
+```typescript
+type LogLevel = number;
+```
+
+##### `UTCTime`
+
+Message timestamp encoded as milliseconds elapsed from the UNIX epoch, i.e.
+00:00:00 UTC, 1 January 1970.
+
+```typescript
+type UTCTime = number;
+```
+
+##### `Exception`
+
+Encodes an exception that is related to a log message.
+
+The `cause` field may be omitted if the exception does not have another cause.
+
+```typescript
+interface Exception {
+  // Name of the exception. In Java this can be the qualified classname.
+  name: String;
+  // Message associated with the exception. May be empty.
+  message: String;
+  // A stack trace indicating code location where the exception has originated
+  // from. May be empty if unavailable.
+  trace: [TraceElement];
+  // Optional, another exception that caused this one.
+  cause?: Exception;
+}
+```
+
+##### `TraceElement`
+
+Represents a single element of exception's stacktrace.
+
+```typescript
+interface TraceElement {
+  // Name of the stack location. For example, in Java this can be a qualified
+  // method name.
+  element: String;
+  // Code location of the element.
+  location: String;
+}
+```
+
+In Java, the location is usually a filename and line number locating the code
+that corresponds to the indicated stack location, for example `Main.java:123`.
+Native methods may be handled differently, as well as code from different
+languages, for example Enso also includes the columns - `Test.enso:4:3-19`.
+
+### Messages
+
+Currently, the service supports only one message type - `LogMessage`, messages
+not conforming to this format will be ignored. The first non-conforming message
+for each connection will emit a warning.
+
+#### `LogMessage`
+
+Describes the log message that the server should report and does not expect any
+response.
+
+##### Parameters
+
+```
+{
+  // Log level associated with the message.
+  level: LogLevel;
+  // Timestamp indicating when the message was sent.
+  time: UTCTime;
+  // An identifier of a log group - the group should indicate which component
+  // the message originated from and any (possibly nested) context.
+  group: String;
+  // The actual log message.
+  message: String;
+  // Optional exception associated with the message.
+  exception?: Exception;
+}
+```
+
+The `exception` field may be omitted if there is no exception associated with
+the message.
+
+### Examples
 
 For example, an error message with an attached exception may look like this (the
 class names are made up):
@@ -147,6 +212,11 @@ class Foo {
   }
 }
 ```
+
+The `enter` extension method follows the convention that each level of context
+nesting is separated by `.`, much like package names. The root context is
+usually the qualified name of the relevant class, but other components are free
+to use other conventions if needed.
 
 ### Setting Up Logging
 

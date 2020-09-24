@@ -2,12 +2,11 @@ package org.enso.loggingservice
 
 import java.util.concurrent.LinkedTransferQueue
 
+import org.enso.loggingservice.internal.serviceconnection.{Fallback, Service}
 import org.enso.loggingservice.internal.{
-  FallbackConnection,
   InternalLogMessage,
   Level,
-  LoggerConnection,
-  ServiceConnection
+  LoggerConnection
 }
 
 import scala.concurrent.Future
@@ -22,11 +21,11 @@ object WSLoggerManager {
     override def logLevel: Level                         = currentLevel
   }
 
-  private var actualConnection: Option[ServiceConnection] = None
+  private var currentService: Option[Service] = None
 
   private def addMessage(message: InternalLogMessage): Unit = {
     if (
-      actualConnection.isEmpty && messageQueue.size() > maxQueueSizeForFallback
+      currentService.isEmpty && messageQueue.size() > maxQueueSizeForFallback
     ) {
       startFallbackStderrLogger()
     }
@@ -43,7 +42,7 @@ object WSLoggerManager {
   }
 
   private def doSetup(mode: WSLoggerMode): Unit = {
-    actualConnection.synchronized {
+    currentService.synchronized {
       stopPriorSessions()
       mode match {
         case WSLoggerMode.Client(ip, port)           =>
@@ -54,8 +53,8 @@ object WSLoggerManager {
   }
 
   private def stopPriorSessions(): Unit = {
-    actualConnection match {
-      case Some(fallback: FallbackConnection) =>
+    currentService match {
+      case Some(fallback: Fallback) =>
         fallback.terminate()
       case Some(_) =>
         throw new IllegalStateException("The system was already initialized.")
@@ -67,14 +66,14 @@ object WSLoggerManager {
     * Starts the fallback as long as no other service has been initialized.
     */
   private def startFallbackStderrLogger(): Unit =
-    actualConnection.synchronized {
-      actualConnection match {
+    currentService.synchronized {
+      currentService match {
         case Some(_) =>
         case None    => setUpFallback(LoggingConfig.Default)
       }
     }
 
   private def setUpFallback(config: LoggingConfig): Unit = {
-    actualConnection = Some(FallbackConnection.setup(config, messageQueue))
+    currentService = Some(Fallback.setup(config, messageQueue))
   }
 }

@@ -1,25 +1,26 @@
-package org.enso.loggingservice.internal
+package org.enso.loggingservice.internal.serviceconnection
 
 import java.util.concurrent.LinkedTransferQueue
 
 import org.enso.loggingservice.LoggingConfig
+import org.enso.loggingservice.internal.{InternalLogMessage, StderrPrinter}
 
-case class FallbackConnection(thread: Thread) extends ServiceConnection {
+case class Fallback(thread: Thread) extends Service {
   def terminate(): Unit = {
     thread.interrupt()
   }
 }
 
-object FallbackConnection {
+object Fallback {
   def setup(
     config: LoggingConfig,
     queue: LinkedTransferQueue[InternalLogMessage]
-  ): FallbackConnection = {
+  ): Fallback = {
     if (config.outputToFile.isDefined)
       throw new NotImplementedError("File output is not implemented currently")
     val thread = new Thread(() => run(config, queue))
     thread.start()
-    FallbackConnection(thread)
+    Fallback(thread)
   }
 
   private def run(
