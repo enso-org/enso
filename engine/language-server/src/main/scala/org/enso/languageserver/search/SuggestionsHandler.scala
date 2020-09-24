@@ -173,7 +173,7 @@ final class SuggestionsHandler(
             log.error(
               ex,
               "Error applying suggestion database updates: {}",
-              msg.updates
+              msg.payload
             )
         }
 
@@ -388,26 +388,40 @@ final class SuggestionsHandler(
   private def applyDatabaseUpdates(
     msg: Api.SuggestionsDatabaseUpdateNotification
   ): Future[SuggestionsDatabaseUpdateNotification] = {
-    val (added, removed) = msg.updates
-      .foldLeft((Seq[Suggestion](), Seq[Suggestion]())) {
-        case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Add) =>
-          (add :+ msg.suggestion, remove)
-        case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Remove) =>
-          (add, remove :+ msg.suggestion)
+    val (addCmds, removeCmds, cleanCmds) = msg.payload
+      .flatMap(_.updates)
+      .foldLeft((Seq[Suggestion](), Seq[Suggestion](), Seq[String]())) {
+        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Add) =>
+          (add :+ m.suggestion, remove, clean)
+        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Remove) =>
+          (add, remove :+ m.suggestion, clean)
+        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Clean) =>
+          (add, remove, clean :+ m.module)
       }
+    val versionUpdates = msg.payload
+      .map(p => (p.file, versionCalculator.evalDigest(p.contents)))
     log.debug(
-      s"Applying suggestion updates; added=${added
-        .map(_.name)}; removed=${removed.map(_.name)}"
+      s"Applying suggestion updates: Add(${addCmds.map(_.name).mkString(",")}); Remove(${removeCmds
+        .map(_.name)
+        .mkString(",")}); Clean(${cleanCmds.mkString(",")})"
     )
     for {
-      (_, removedIds)     <- suggestionsRepo.removeAll(removed)
-      (version, addedIds) <- suggestionsRepo.insertAll(added)
+      (_, cleanedIds)     <- suggestionsRepo.removeAllByModule(cleanCmds)
+      (_, removedIds)     <- suggestionsRepo.removeAll(removeCmds)
+      (version, addedIds) <- suggestionsRepo.insertAll(addCmds)
+      _                   <- fileVersionsRepo.updateVersions(versionUpdates)
     } yield {
-      val updatesRemoved = removedIds.collect {
-        case Some(id) => SuggestionsDatabaseUpdate.Remove(id)
-      }
+      val updatesCleaned = cleanedIds.map(SuggestionsDatabaseUpdate.Remove(_))
+      val updatesRemoved =
+        (removedIds zip removeCmds).flatMap {
+          case (Some(id), _) =>
+            Some(SuggestionsDatabaseUpdate.Remove(id))
+          case (None, suggestion) =>
+            log.error("Failed to remove suggestion: {}", suggestion)
+            None
+        }
       val updatesAdded =
-        (addedIds zip added).flatMap {
+        (addedIds zip addCmds).flatMap {
           case (Some(id), suggestion) =>
             Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
           case (None, suggestion) =>
@@ -416,7 +430,7 @@ final class SuggestionsHandler(
         }
       SuggestionsDatabaseUpdateNotification(
         version,
-        updatesRemoved :++ updatesAdded
+        updatesCleaned :++ updatesRemoved :++ updatesAdded
       )
     }
   }

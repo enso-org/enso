@@ -156,9 +156,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     module: Module,
     changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Unit = {
-    // TODO: validate ne null
-    // module.getPath()
-    // module.getLiteralSource()
     val moduleName = module.getName.toString
     if (module.isIndexed) {
       ctx.executionService.getLogger
@@ -179,10 +176,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           .map(Api.SuggestionsDatabaseUpdate.Add)
       )
       sendModuleUpdate(update)
-      // sendSuggestionsUpdateNotification(
-      //   removedSuggestions diff addedSuggestions,
-      //   addedSuggestions diff removedSuggestions
-      // )
     } else {
       ctx.executionService.getLogger
         .finest(s"Analyzing not-indexed module ${module.getName}")
@@ -223,7 +216,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     val prevStage = module.getCompilationStage
     module.compileScope(ctx.executionService.getContext).getModule
     if (prevStage != module.getCompilationStage) {
-      ctx.executionService.getLogger.finer(
+      ctx.executionService.getLogger.finest(
         s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
       )
     }
@@ -302,34 +295,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       }
   }
 
-  // /**
-  //   * Send notification about the suggestions database updates.
-  //   *
-  //   * @param removed the list of suggestions to remove
-  //   * @param added the list of suggestions to add
-  //   * @param ctx the runtime context
-  //   */
-  // private def sendSuggestionsUpdateNotification(
-  //   removed: Seq[Suggestion],
-  //   added: Seq[Suggestion]
-  // )(implicit ctx: RuntimeContext): Unit =
-  //   if (added.nonEmpty || removed.nonEmpty) {
-  //     ctx.endpoint.sendToClient(
-  //       Api.Response(
-  //         Api.SuggestionsDatabaseUpdateNotification(
-  //           removed.map(Api.SuggestionsDatabaseUpdate.Remove) :++
-  //           added.map(Api.SuggestionsDatabaseUpdate.Add)
-  //         )
-  //       )
-  //     )
-  //   }
-
   private def sendModuleUpdate(
-    update: Api.SuggestionsDatabaseModuleUpdate
+    payload: Api.SuggestionsDatabaseModuleUpdate
   )(implicit ctx: RuntimeContext): Unit =
-    ctx.endpoint.sendToClient(
-      Api.Response(Api.SuggestionsDatabaseUpdateNotification(Seq(update)))
-    )
+    if (payload.updates.nonEmpty) {
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.SuggestionsDatabaseUpdateNotification(Seq(payload)))
+      )
+    }
 
   /**
     * Send notification about the re-indexed module updates.

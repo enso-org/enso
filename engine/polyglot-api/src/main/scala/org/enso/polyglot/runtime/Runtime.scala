@@ -745,10 +745,10 @@ object Runtime {
     /**
       * A notification about the changes in the suggestions database.
       *
-      * @param updates the list of database updates
+      * @param payload the list of database updates
       */
     case class SuggestionsDatabaseUpdateNotification(
-      updates: Seq[SuggestionsDatabaseModuleUpdate]
+      payload: Seq[SuggestionsDatabaseModuleUpdate]
     ) extends ApiNotification
 
     /**

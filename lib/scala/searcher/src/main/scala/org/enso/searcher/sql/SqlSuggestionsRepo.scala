@@ -307,13 +307,18 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def removeAllByModuleQuery(
     modules: Seq[String]
   ): DBIO[(Long, Seq[Long])] = {
-    val selectQuery = Suggestions.filter(_.module inSet modules)
-    val deleteQuery = for {
-      rows    <- selectQuery.result
-      n       <- selectQuery.delete
-      version <- if (n > 0) incrementVersionQuery else currentVersionQuery
-    } yield version -> rows.flatMap(_.id)
-    deleteQuery
+    if (modules.nonEmpty) {
+      val selectQuery = Suggestions.filter(_.module inSet modules)
+      for {
+        rows    <- selectQuery.result
+        n       <- selectQuery.delete
+        version <- if (n > 0) incrementVersionQuery else currentVersionQuery
+      } yield version -> rows.flatMap(_.id)
+    } else {
+      for {
+        version <- currentVersionQuery
+      } yield (version, Seq())
+    }
   }
 
   /** The query to remove a list of suggestions.

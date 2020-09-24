@@ -28,6 +28,12 @@ trait FileVersionsRepo[F[_]] {
     */
   def updateVersion(file: File, digest: Array[Byte]): F[Boolean]
 
+  /** Update the versions in batch.
+    *
+    * @param versions files with corresponding digests
+    */
+  def updateVersions(versions: Seq[(File, Array[Byte])]): F[Unit]
+
   /** Remove the version record.
     *
     * @param file the file path

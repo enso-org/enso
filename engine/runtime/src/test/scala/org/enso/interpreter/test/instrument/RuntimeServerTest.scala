@@ -86,7 +86,7 @@ class RuntimeServerTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(3, TimeUnit.SECONDS))
+      Option(messageQueue.poll(9, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
@@ -2237,15 +2237,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Open the new file
-    context.send(
-      Api.Request(
-        Api.OpenFileNotification(
-          mainFile,
-          code,
-          false
-        )
-      )
-    )
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, false)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2306,19 +2298,32 @@ class RuntimeServerTest
         )
       )
     )
+    val codeModified =
+      """from Builtins import all
+        |
+        |Number.lucky = 42
+        |
+        |main = IO.println "I'm a modified!"
+        |""".stripMargin
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseUpdateNotification(
           Seq(
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                "Test.Main",
-                "lucky",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Number",
-                "Any",
-                None
+            Api.SuggestionsDatabaseModuleUpdate(
+              mainFile,
+              codeModified,
+              Seq(
+                Api.SuggestionsDatabaseUpdate.Add(
+                  Suggestion.Method(
+                    None,
+                    "Test.Main",
+                    "lucky",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Number",
+                    "Any",
+                    None
+                  )
+                )
               )
             )
           )
