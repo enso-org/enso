@@ -1,7 +1,10 @@
 package org.enso.loggingservice
 
-import org.enso.loggingservice.internal.server.Server
-import org.enso.loggingservice.internal.serviceconnection.{Fallback, Service}
+import org.enso.loggingservice.internal.serviceconnection.{
+  Fallback,
+  Server,
+  Service
+}
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
   InternalLogMessage,

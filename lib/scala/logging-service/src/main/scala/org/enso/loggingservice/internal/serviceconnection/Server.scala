@@ -1,4 +1,4 @@
-package org.enso.loggingservice.internal.server
+package org.enso.loggingservice.internal.serviceconnection
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -16,7 +16,6 @@ import io.circe.{parser, Error}
 import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
-import org.enso.loggingservice.internal.serviceconnection.Service
 import org.enso.loggingservice.printers.Printer
 
 import scala.annotation.nowarn
@@ -35,8 +34,14 @@ class Server(
     import scala.jdk.CollectionConverters._
     val loggers: java.lang.Iterable[String] =
       Seq("akka.event.Logging$StandardOutLogger").asJava
+
     config.withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))
-    ActorSystem("logging-service-server", config)
+    ActorSystem(
+      "logging-service-server",
+      config,
+      classLoader =
+        classOf[Server].getClassLoader // Note [Actor System Class Loader]
+    )
   }
 
   def start(): Unit = {
@@ -52,11 +57,15 @@ class Server(
   }
 
   private def runQueue(): Unit = {
-    while (!Thread.currentThread().isInterrupted) {
-      val message = queue.nextMessage()
-      if (logLevel.shouldLog(message.logLevel)) {
-        printers.foreach(_.print(message))
+    try {
+      while (!Thread.currentThread().isInterrupted) {
+        val message = queue.nextMessage()
+        if (logLevel.shouldLog(message.logLevel)) {
+          printers.foreach(_.print(message))
+        }
       }
+    } catch {
+      case _: InterruptedException =>
     }
   }
 
@@ -90,7 +99,6 @@ class Server(
   private def messageProcessor =
     Sink.foreach[Message] {
       case tm: TextMessage =>
-        System.err.println(s"Got message $tm")
         val rawMessage     = tm.textStream.fold("")(_ + _)
         val decodedMessage = rawMessage.map(decodeMessage)
         decodedMessage.runForeach {
@@ -152,3 +160,12 @@ object Server {
     }
   }
 }
+
+/* Note [Actor System Class Loader]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Without explicitly setting the ClassLoader, the ActorSystem initialization
+ * fails with `java.lang.ClassCastException: interface akka.event.LoggingFilter
+ * is not assignable from class akka.event.DefaultLoggingFilter` which is most
+ * likely caused by the two instances coming from distinct class loaders, for
+ * reasons that are unclear.
+ */
