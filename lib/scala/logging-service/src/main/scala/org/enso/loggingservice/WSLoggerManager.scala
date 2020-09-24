@@ -1,12 +1,13 @@
 package org.enso.loggingservice
 
+import org.enso.loggingservice.internal.server.Server
 import org.enso.loggingservice.internal.serviceconnection.{Fallback, Service}
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
   InternalLogMessage,
   LoggerConnection
 }
-import org.enso.loggingservice.printers.{Printer, StderrPrinter}
+import org.enso.loggingservice.printers.StderrPrinter
 
 import scala.concurrent.Future
 
@@ -29,6 +30,25 @@ object WSLoggerManager {
     currentLevel = logLevel
     import scala.concurrent.ExecutionContext.Implicits.global
     Future(doSetup(mode, logLevel))
+  }
+
+  /**
+    * Tries to set up the logging service, falling back to a simple logger if it
+    * failed.
+    *
+    * The returned future will contain `true` if the original backend was set-up
+    * or `false` if it had to fall back to stderr.
+    */
+  def setupWithFallbackToLocal(
+    mode: WSLoggerMode,
+    logLevel: LogLevel
+  ): Future[Boolean] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    setup(mode, logLevel).map(_ => true).recoverWith { error =>
+      System.err.println(s"Failed to initialize the logging server: $error.")
+      System.err.println("Falling back to a simple stderr backend.")
+      setup(WSLoggerMode.Local(), logLevel).map(_ => false)
+    }
   }
 
   def tearDown(): Unit = {
@@ -64,18 +84,15 @@ object WSLoggerManager {
           "The logging service has already been set up."
         )
       }
-      mode match {
-        case WSLoggerMode.Client(_)       =>
-        case WSLoggerMode.Server(_, _, _) =>
-        case WSLoggerMode.Local(config)   => setUpFallback(config, logLevel)
-      }
-    }
-  }
 
-  private def setUpFallback(
-    printers: Seq[Printer],
-    logLevel: LogLevel
-  ): Unit = {
-    currentService = Some(Fallback.setup(printers, logLevel, messageQueue))
+      val service = mode match {
+        case WSLoggerMode.Client(_) => ???
+        case WSLoggerMode.Server(port, interface, printers) =>
+          Server.setup(interface, port, messageQueue, printers, logLevel)
+        case WSLoggerMode.Local(printers) =>
+          Fallback.setup(printers, logLevel, messageQueue)
+      }
+      currentService = Some(service)
+    }
   }
 }

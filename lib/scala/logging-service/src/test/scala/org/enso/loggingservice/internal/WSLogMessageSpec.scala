@@ -5,6 +5,10 @@ import java.time.Instant
 
 import io.circe.syntax._
 import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.internal.protocol.{
+  SerializedException,
+  WSLogMessage
+}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

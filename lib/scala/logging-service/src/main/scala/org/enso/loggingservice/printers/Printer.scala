@@ -1,6 +1,6 @@
 package org.enso.loggingservice.printers
 
-import org.enso.loggingservice.internal.WSLogMessage
+import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 trait Printer {
   def print(message: WSLogMessage): Unit

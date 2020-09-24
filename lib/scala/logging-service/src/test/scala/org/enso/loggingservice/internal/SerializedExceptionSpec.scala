@@ -1,6 +1,7 @@
 package org.enso.loggingservice.internal
 
 import io.circe.syntax._
+import org.enso.loggingservice.internal.protocol.SerializedException
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

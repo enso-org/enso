@@ -1,5 +1,7 @@
 package org.enso.loggingservice.internal
 
+import org.enso.loggingservice.internal.protocol.WSLogMessage
+
 trait MessageQueue {
 
   /**

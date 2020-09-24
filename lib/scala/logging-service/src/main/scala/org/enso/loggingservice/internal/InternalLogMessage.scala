@@ -3,6 +3,10 @@ package org.enso.loggingservice.internal
 import java.time.Instant
 
 import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.internal.protocol.{
+  SerializedException,
+  WSLogMessage
+}
 
 case class InternalLogMessage(
   level: LogLevel,

@@ -4,8 +4,9 @@ import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.loggingservice.internal.server.WSExample
 import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
+
+import scala.util.{Failure, Success}
 
 /**
   * Defines the entry point for the launcher.
@@ -32,9 +33,20 @@ object Main {
     setup()
     logger.debug("DEBUG BEFORE SETUP")
     logger.info("BEFORE SETUP")
-    WSLoggerManager.setup(WSLoggerMode.Local(), LogLevel.Debug)
+    import scala.concurrent.ExecutionContext.Implicits.global
+    WSLoggerManager
+      .setupWithFallbackToLocal(
+        WSLoggerMode.Server(port = 8080),
+        LogLevel.Debug
+      )
+      .onComplete {
+        case Failure(exception) =>
+          println(s"failed with $exception")
+        case Success(value) =>
+          println(s"Set up ${if (value) "server" else "fallback"}")
+      }
+
     logger.info("after SETUP")
-    WSExample.test()
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {

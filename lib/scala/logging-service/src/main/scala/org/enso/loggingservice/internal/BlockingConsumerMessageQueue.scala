@@ -3,6 +3,7 @@ package org.enso.loggingservice.internal
 import java.util.concurrent.ArrayBlockingQueue
 
 import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 /**
   * A message queue that can be consumed by a thread in a loop.

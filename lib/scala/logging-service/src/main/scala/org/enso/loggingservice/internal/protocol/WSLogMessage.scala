@@ -1,4 +1,4 @@
-package org.enso.loggingservice.internal
+package org.enso.loggingservice.internal.protocol
 
 import java.time.Instant
 

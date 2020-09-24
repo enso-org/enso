@@ -1,9 +1,7 @@
 package org.enso.loggingservice.printers
 
-import org.enso.loggingservice.internal.{
-  DefaultLogMessageRenderer,
-  WSLogMessage
-}
+import org.enso.loggingservice.internal.DefaultLogMessageRenderer
+import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 object StderrPrinter extends Printer {
   def print(logMessage: WSLogMessage): Unit = {

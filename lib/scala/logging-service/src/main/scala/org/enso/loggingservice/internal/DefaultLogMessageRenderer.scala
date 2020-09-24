@@ -1,8 +1,12 @@
 package org.enso.loggingservice.internal
 
-import java.sql.Timestamp
-import java.time.{LocalDateTime, ZoneId}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneId}
+
+import org.enso.loggingservice.internal.protocol.{
+  SerializedException,
+  WSLogMessage
+}
 
 object DefaultLogMessageRenderer extends LogMessageRenderer {
   // TODO [RW] colors

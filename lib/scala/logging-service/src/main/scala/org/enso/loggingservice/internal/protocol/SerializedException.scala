@@ -1,7 +1,7 @@
-package org.enso.loggingservice.internal
+package org.enso.loggingservice.internal.protocol
 
-import io.circe.{Decoder, Encoder, HCursor, Json, JsonObject}
 import io.circe.syntax._
+import io.circe._
 
 case class SerializedException(
   name: String,
