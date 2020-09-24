@@ -45,7 +45,7 @@ public abstract class EachClusterNode extends Node {
     while (e != BreakIterator.DONE) {
       state =
           invokeCallableNode
-              .execute(fun, frame, state, new Object[] {ix, str.substring(s, e)})
+              .execute(fun, frame, state, new Object[] {ix, Text.create(str.substring(s, e))})
               .getState();
       s = e;
       e = it.next();

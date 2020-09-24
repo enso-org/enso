@@ -147,6 +147,7 @@ public class Builtins {
         text,
         "to_text",
         org.enso.interpreter.node.expression.builtin.text.ToTextMethodGen.makeFunction(language));
+    scope.registerMethod(text, "optimize", OptimizeMethodGen.makeFunction(language));
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));

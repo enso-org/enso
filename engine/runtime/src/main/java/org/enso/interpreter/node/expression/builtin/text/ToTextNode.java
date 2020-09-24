@@ -7,7 +7,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Text", name = "to_text", description = "Text to text conversion, for API purposes.")
 public class ToTextNode extends Node {
-  @CompilerDirectives.TruffleBoundary
   Text execute(Text _this) {
     return _this;
   }

@@ -1,5 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.bench.fixtures.semantic.RecursionFixtures;
 import org.enso.interpreter.test.DefaultInterpreterRunner;
@@ -21,6 +23,62 @@ public class RecursionBenchmarks {
 
   private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundredMillion());
+  }
+
+  public static class CRope {
+    private Object left;
+    private Object right;
+
+    public CRope(Object left, Object right) {
+      this.left = left;
+      this.right = right;
+    }
+
+    public Object getLeft() {
+      return left;
+    }
+
+    public Object getRight() {
+      return right;
+    }
+
+    public String optimize() {
+      Deque<Object> workStack = new ArrayDeque<>();
+      StringBuilder bldr = new StringBuilder();
+      workStack.push(this);
+      while (!workStack.isEmpty()) {
+        Object item = workStack.pop();
+        if (item instanceof String) {
+          bldr.append((String) item);
+        } else {
+          CRope rope = (CRope) item;
+          workStack.push(rope.getRight());
+          workStack.push(rope.getLeft());
+        }
+      }
+      return bldr.toString();
+    }
+  }
+
+  public String buildLongStr() {
+    CRope cr = new CRope("", "");
+    for (long i = 1; i < 1000000; i++) {
+      cr = new CRope(cr, ((Long) i).toString());
+    }
+    return cr.optimize();
+  }
+
+  public String buildLongStrBldr() {
+    StringBuilder bldr = new StringBuilder();
+    for (long i = 1; i < 1000000; i++) {
+      bldr.append(((Long) i).toString());
+    }
+    return bldr.toString();
+  }
+
+  @Benchmark
+  public void benchJavaStr() {
+    buildLongStr();
   }
 
   @Benchmark

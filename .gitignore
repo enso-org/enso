@@ -13,6 +13,7 @@ graal_dumps/
 target/
 *.class
 *.log
+.java-version
 
 ##########
 ## Rust ##
