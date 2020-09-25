@@ -2,8 +2,10 @@ package org.enso.loggingservice.internal.serviceconnection
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import org.enso.loggingservice.InternalLogger
 
-import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
 trait ServiceWithActorSystem extends Service {
   protected def actorSystemName: String
@@ -16,11 +18,17 @@ trait ServiceWithActorSystem extends Service {
 
   abstract override def terminate(): Unit = {
     import actorSystem.dispatcher
-    terminateUser().onComplete(_ => {
-      println("stopping AS")
+    val termination = terminateUser().map(_ => {
       actorSystem.terminate()
-      super.terminate()
     })
+    try {
+      Await.result(termination, 3.seconds)
+    } catch {
+      case _: concurrent.TimeoutException =>
+        InternalLogger.error("The actor system did not terminate in time.")
+    } finally {
+      super.terminate()
+    }
   }
 }
 

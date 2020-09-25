@@ -45,13 +45,14 @@ object WSLoggerManager {
     */
   def setupWithFallbackToLocal(
     mode: WSLoggerMode,
+    fallbackMode: WSLoggerMode,
     logLevel: LogLevel
   ): Future[Boolean] = {
     import scala.concurrent.ExecutionContext.Implicits.global
     setup(mode, logLevel).map(_ => true).recoverWith { error =>
-      System.err.println(s"Failed to initialize the logging server: $error")
-      System.err.println("Falling back to a simple stderr backend.")
-      setup(WSLoggerMode.Local(), logLevel).map(_ => false)
+      InternalLogger.error(s"Failed to initialize the logging server: $error")
+      InternalLogger.error("Falling back to a simple stderr backend.")
+      setup(fallbackMode, logLevel).map(_ => false)
     }
   }
 
@@ -85,7 +86,7 @@ object WSLoggerManager {
   private def handleMissingLogger(): Unit = {
     val danglingMessages = messageQueue.drain()
     if (danglingMessages.nonEmpty) {
-      System.err.println(
+      InternalLogger.error(
         "It seems that the logging service was never set up, " +
         "or log messages were reported after it has been terminated. " +
         "These messages are printed below:"

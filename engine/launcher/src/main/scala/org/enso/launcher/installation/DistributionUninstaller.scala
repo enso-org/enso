@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
+import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{FileSystem, InfoLogger, OS}
@@ -109,7 +109,7 @@ class DistributionUninstaller(
         s"If you still want to remove it, you can just remove the " +
         s"`${manager.paths.dataRoot}` directory."
       )
-      sys.exit(1)
+      Main.exit(1)
     }
   }
 
@@ -132,8 +132,8 @@ class DistributionUninstaller(
       val proceed =
         CLIOutput.askConfirmation("Do you want to proceed?", yesDefault = true)
       if (!proceed) {
-        logger.warn("Installation has been cancelled on user request.")
-        sys.exit(1)
+        logger.warn("Uninstallation has been cancelled on user request.")
+        Main.exit(1)
       }
     }
   }

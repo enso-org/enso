@@ -20,6 +20,7 @@ import org.enso.launcher.installation.{
   DistributionManager
 }
 import org.enso.launcher.locking.DefaultResourceManager
+import org.enso.loggingservice.printers.StderrPrinterWithColors
 import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
 
 /**
@@ -502,16 +503,21 @@ object LauncherApplication {
 
         val actualLogLevel =
           logLevel.getOrElse(LogLevel.Debug) // TODO [RW] info
+        val stderrPrinter = StderrPrinterWithColors.colorPrinterIfAvailable()
+        val printers      = Seq(stderrPrinter)
+        val fallbackMode  = WSLoggerMode.Local(printers)
         connectLogger match {
           case Some(uri) =>
             WSLoggerManager.setupWithFallbackToLocal(
               WSLoggerMode.Client(uri),
+              fallbackMode,
               actualLogLevel
             )
           case None =>
             // TODO [RW] automatic port fnding
             WSLoggerManager.setupWithFallbackToLocal(
-              WSLoggerMode.Server(8080),
+              WSLoggerMode.Server(8080, printers = printers),
+              fallbackMode,
               actualLogLevel
             )
         }

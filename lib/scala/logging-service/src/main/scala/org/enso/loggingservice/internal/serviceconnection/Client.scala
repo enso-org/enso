@@ -4,13 +4,12 @@ import akka.Done
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.model.{StatusCodes, Uri}
+import akka.stream.scaladsl.{Keep, Sink, Source, SourceQueueWithComplete}
 import akka.stream.{OverflowStrategy, QueueOfferResult}
-import akka.stream.scaladsl.SourceQueueWithComplete
-import akka.stream.scaladsl.{Keep, Sink, Source}
 import io.circe.syntax._
-import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
 import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
+import org.enso.loggingservice.{InternalLogger, LogLevel, WSLoggerManager}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
@@ -70,14 +69,14 @@ class Client(
       Await.result(offerResult, 30.seconds) match {
         case QueueOfferResult.Enqueued =>
         case QueueOfferResult.Dropped =>
-          System.err.println(s"A log message has been dropped unexpectedly.")
+          InternalLogger.error(s"A log message has been dropped unexpectedly.")
         case QueueOfferResult.Failure(cause) =>
-          System.err.println(s"A log message could not be sent: $cause.")
+          InternalLogger.error(s"A log message could not be sent: $cause.")
         case QueueOfferResult.QueueClosed => throw new InterruptedException
       }
     } catch {
       case _: concurrent.TimeoutException =>
-        System.err.println(
+        InternalLogger.error(
           s"Adding a log message timed out. Messages may or may not be dropped."
         )
     }
@@ -87,7 +86,7 @@ class Client(
 
   private def onDisconnected(): Unit = {
     if (!shuttingDown) {
-      System.err.println(
+      InternalLogger.error(
         "Server has disconnected, logging is falling back to stderr."
       )
       WSLoggerManager.replaceWithFallback()
@@ -117,7 +116,7 @@ object Client {
   ): Client = {
     val client = new Client(serverUri, queue, logLevel)
     try {
-      Await.result(client.start(), 15.seconds)
+      Await.result(client.start(), 3.seconds)
       client
     } catch {
       case e: Throwable =>

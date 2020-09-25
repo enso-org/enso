@@ -41,6 +41,10 @@ object Main {
           1
       }
 
+    exit(exitCode)
+  }
+
+  def exit(exitCode: Int): Nothing = {
     WSLoggerManager.tearDown()
     DefaultResourceManager.releaseMainLock()
     sys.exit(exitCode)

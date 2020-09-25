@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
+import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.installation.DistributionInstaller.{
   BundleAction,
@@ -86,7 +86,7 @@ class DistributionInstaller(
         val message = s"Installation failed with error: $e."
         logger.error(message, e)
         CLIOutput.println(message)
-        sys.exit(1)
+        Main.exit(1)
     }
   }
 
@@ -107,21 +107,19 @@ class DistributionInstaller(
     */
   private def prepare(): InstallationSettings = {
     if (installedLauncherPath == currentLauncherPath) {
-      logger.error(
+      throw InstallationError(
         "The installation source and destination are the same. Nothing to " +
         "install."
       )
-      sys.exit(1)
     }
 
     if (Files.exists(installed.dataDirectory)) {
-      logger.error(
+      throw InstallationError(
         s"${installed.dataDirectory} already exists. " +
         s"Please uninstall the already existing distribution. " +
         s"If no distribution is installed, please remove the directory " +
         s"${installed.dataDirectory} before installing."
       )
-      sys.exit(1)
     }
 
     if (
@@ -130,12 +128,11 @@ class DistributionInstaller(
     ) {
       logger.warn(s"${installed.configDirectory} already exists.")
       if (!Files.isDirectory(installed.configDirectory)) {
-        logger.error(
+        throw InstallationError(
           s"${installed.configDirectory} already exists but is not a " +
           s"directory. Please remove it or change the installation " +
           s"location by setting `${installed.ENSO_CONFIG_DIRECTORY}`."
         )
-        sys.exit(1)
       }
     }
 
@@ -191,7 +188,7 @@ class DistributionInstaller(
       )
       if (!proceed) {
         CLIOutput.println("Installation has been cancelled.")
-        sys.exit(1)
+        Main.exit(1)
       }
     }
 
@@ -218,6 +215,7 @@ class DistributionInstaller(
       installed.binaryExecutable
     )
     FileSystem.ensureIsExecutable(installed.binaryExecutable)
+    logger.debug("Binary installed.")
   }
 
   /**
@@ -252,6 +250,7 @@ class DistributionInstaller(
   private def copyNonEssentialFiles(): Unit = {
     for (file <- nonEssentialFiles) {
       try {
+        logger.trace(s"Copying `$file`.")
         FileSystem.copyFile(
           manager.paths.dataRoot / file,
           installed.dataDirectory / file
@@ -375,7 +374,7 @@ class DistributionInstaller(
       }
     } else if (bundleAction != IgnoreBundles) {
       throw new IllegalStateException(
-        s"Internal error: The runner is not run in portable mode, " +
+        s"Internal error: The launcher is not run in portable mode, " +
         s"but the final bundle action was not Ignore, but $bundleAction."
       )
     }
@@ -410,7 +409,7 @@ class DistributionInstaller(
     } else {
       Files.delete(currentLauncherPath)
     }
-    sys.exit()
+    Main.exit(0)
   }
 
 }

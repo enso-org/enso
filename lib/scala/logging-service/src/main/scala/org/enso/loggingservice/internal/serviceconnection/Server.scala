@@ -1,6 +1,5 @@
 package org.enso.loggingservice.internal.serviceconnection
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.ws.{
@@ -11,16 +10,15 @@ import akka.http.scaladsl.model.ws.{
 }
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.circe.{parser, Error}
-import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.printers.Printer
+import org.enso.loggingservice.{InternalLogger, LogLevel}
 
 import scala.annotation.nowarn
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
 class Server(
   interface: String,
@@ -33,43 +31,61 @@ class Server(
 
   override protected def actorSystemName: String = "logging-service-server"
 
-  def start(): Unit = {
-    startWebSocketServer()
+  def start(): Future[Unit] = {
     startQueueProcessor()
+    startWebSocketServer()
   }
 
   override protected def processMessage(message: WSLogMessage): Unit = {
     printers.foreach(_.print(message))
   }
 
-  private def startWebSocketServer(): Unit = {
-    val greeterWebSocketService =
-      Flow.fromSinkAndSourceCoupled(messageProcessor, Source.never)
-
+  private def startWebSocketServer(): Future[Unit] = {
     val requestHandler: HttpRequest => HttpResponse = {
       case req @ HttpRequest(GET, Uri.Path("/"), _, _, _) =>
         req.header[UpgradeToWebSocket @nowarn] match {
-          case Some(upgrade) => upgrade.handleMessages(greeterWebSocketService)
+          case Some(upgrade) =>
+            val flow = Flow.fromSinkAndSourceCoupled(
+              createMessageProcessor(),
+              Source.never
+            )
+            upgrade.handleMessages(flow)
           case None =>
             HttpResponse(400, entity = "Not a valid websocket request!")
         }
       case r: HttpRequest =>
-        r.discardEntityBytes() // important to drain incoming HTTP Entity stream
+        r.discardEntityBytes()
         HttpResponse(404, entity = "Unknown resource!")
     }
 
-    binding = Some(
-      Http().bindAndHandleSync(
+    import actorSystem.dispatcher
+    Http()
+      .bindAndHandleSync(
         requestHandler,
         interface = interface,
         port      = port.toInt
       )
-    )
+      .map { serverBinding =>
+        bindingOption = Some(serverBinding)
+      }
   }
 
-  private var binding: Option[Future[Http.ServerBinding]] = None
+  private var bindingOption: Option[Http.ServerBinding] = None
 
-  private def messageProcessor =
+  /**
+    * Creates a separate message processor for each connection.
+    *
+    * Each connection will only report the first invalid message, all further
+    * invalid messages are silently ignored.
+    */
+  private def createMessageProcessor() = {
+    @volatile var invalidWasReported: Boolean = false
+    def reportInvalidMessage(error: Throwable): Unit = {
+      if (!invalidWasReported) {
+        InternalLogger.error(s"Invalid message: $error.")
+        invalidWasReported = true
+      }
+    }
     Sink.foreach[Message] {
       case tm: TextMessage =>
         val rawMessage     = tm.textStream.fold("")(_ + _)
@@ -84,21 +100,15 @@ class Server(
         )
         bm.dataStream.runWith(Sink.ignore)
     }
-
-  private def reportInvalidMessage(error: Throwable): Unit = {
-    // TODO do this only once?
-    System.err.println(s"Invalid message: $error.")
   }
 
   private def decodeMessage(message: String): Either[Error, WSLogMessage] =
     parser.parse(message).flatMap(_.as[WSLogMessage])
 
   override protected def terminateUser(): Future[_] = {
-    println("stopping user")
-    binding match {
-      case Some(bindingFuture) =>
-        import actorSystem.dispatcher
-        bindingFuture.flatMap(_.terminate(hardDeadline = 2.seconds))
+    bindingOption match {
+      case Some(binding) =>
+        binding.terminate(hardDeadline = 2.seconds)
       case None => Future.successful(())
     }
   }
@@ -114,7 +124,7 @@ object Server {
   ): Server = {
     val server = new Server(interface, port, queue, printers, logLevel)
     try {
-      server.start()
+      Await.result(server.start(), 3.seconds)
       server
     } catch {
       case e: Throwable =>

@@ -5,7 +5,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.cli.GlobalCLIOptions
+import org.enso.launcher.cli.{GlobalCLIOptions, Main}
 import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.components.runner.{
   JVMSettings,
@@ -480,7 +480,7 @@ object Launcher {
         "`--ensure-portable` is set, but the launcher is not running in " +
         "portable mode. Terminating."
       )
-      sys.exit(1)
+      Main.exit(1)
     }
   }
 }

@@ -34,7 +34,6 @@ trait ThreadProcessingService extends Service {
     super.terminate()
     queueThread match {
       case Some(thread) =>
-        println("stopping thread")
         thread.interrupt()
         thread.join(100)
       case None =>

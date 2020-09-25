@@ -1,20 +1,17 @@
 package org.enso.loggingservice.internal
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 import org.enso.loggingservice.internal.protocol.{
   SerializedException,
   WSLogMessage
 }
 
-object DefaultLogMessageRenderer extends LogMessageRenderer {
-  // TODO [RW] colors
+class DefaultLogMessageRenderer extends LogMessageRenderer {
   override def render(logMessage: WSLogMessage): String = {
-    val level = logMessage.logLevel.toString
-    val timestamp = LocalDateTime
-      .ofInstant(logMessage.timestamp, timestampZone)
-      .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+    val level     = logMessage.logLevel.toString
+    val timestamp = renderTimestamp(logMessage.timestamp)
     val base =
       s"[$level] [$timestamp] [${logMessage.group}] ${logMessage.message}"
     logMessage.exception match {
@@ -26,7 +23,12 @@ object DefaultLogMessageRenderer extends LogMessageRenderer {
 
   private val timestampZone = ZoneId.of("UTC")
 
-  private def renderException(exception: SerializedException): String = {
+  def renderTimestamp(timestamp: Instant): String =
+    LocalDateTime
+      .ofInstant(timestamp, timestampZone)
+      .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+  def renderException(exception: SerializedException): String = {
     val head = s"${exception.name}: ${exception.message}"
     val trace = exception.stackTrace.map(elem =>
       s"  at ${elem.element}(${elem.location})"
