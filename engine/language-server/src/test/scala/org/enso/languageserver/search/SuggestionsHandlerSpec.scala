@@ -71,7 +71,9 @@ class SuggestionsHandlerSpec
         expectMsg(CapabilityAcquired)
 
         // receive updates
-        handler ! Api.SuggestionsDatabaseUpdateNotification(
+        handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          "",
           Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add)
         )
 
@@ -105,7 +107,9 @@ class SuggestionsHandlerSpec
         expectMsg(CapabilityAcquired)
 
         // receive updates
-        handler ! Api.SuggestionsDatabaseUpdateNotification(
+        handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          "",
           Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add) ++
           Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Remove)
         )
