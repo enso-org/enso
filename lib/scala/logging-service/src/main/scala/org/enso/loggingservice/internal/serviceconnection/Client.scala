@@ -106,6 +106,8 @@ class Client(
       case None => Future.successful(Done)
     }
   }
+
+  override protected def shutdownProcessors(): Unit = {}
 }
 
 object Client {

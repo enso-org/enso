@@ -2,7 +2,7 @@ package org.enso.loggingservice
 
 import org.enso.loggingservice.internal.serviceconnection.{
   Client,
-  Fallback,
+  Local,
   Server,
   Service
 }
@@ -71,7 +71,7 @@ object WSLoggerManager {
 
   def replaceWithFallback(): Unit = {
     val fallback =
-      Fallback.setup(currentLevel, messageQueue, Seq(StderrPrinter))
+      Local.setup(currentLevel, messageQueue, Seq(StderrPrinter))
     val service = currentService.synchronized {
       val service = currentService
       currentService = Some(fallback)
@@ -113,7 +113,7 @@ object WSLoggerManager {
         case WSLoggerMode.Server(port, interface, printers) =>
           Server.setup(interface, port, messageQueue, printers, logLevel)
         case WSLoggerMode.Local(printers) =>
-          Fallback.setup(logLevel, messageQueue, printers)
+          Local.setup(logLevel, messageQueue, printers)
       }
       currentService = Some(service)
     }

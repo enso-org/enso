@@ -105,6 +105,9 @@ class Server(
   private def decodeMessage(message: String): Either[Error, WSLogMessage] =
     parser.parse(message).flatMap(_.as[WSLogMessage])
 
+  override protected def shutdownProcessors(): Unit =
+    printers.foreach(_.shutdown())
+
   override protected def terminateUser(): Future[_] = {
     bindingOption match {
       case Some(binding) =>

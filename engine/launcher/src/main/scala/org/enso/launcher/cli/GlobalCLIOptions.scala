@@ -23,8 +23,8 @@ object GlobalCLIOptions {
   val USE_JSON      = "json"
 
   // TODO ensure these are inherited by child launchers etc.
-  val LOG_LEVEL      = "log-level"
-  val CONNECT_LOGGER = "connect-logger"
+  val LOG_LEVEL      = "launcher-log-level"
+  val CONNECT_LOGGER = "internal-connect-logger"
 
   /**
     * Converts the [[GlobalCLIOptions]] to a sequence of arguments that can be

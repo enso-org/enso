@@ -456,18 +456,20 @@ object LauncherApplication {
       "running actions. May be needed if program output is piped.",
       showInUsage = false
     )
-    // TODO [RW] separate setting for launched components?
+    // TODO [RW] separate setting for launched components
     val logLevel = Opts.optionalParameter[LogLevel](
       GlobalCLIOptions.LOG_LEVEL,
       "LOG-LEVEL",
       "Sets logging verbosity for the launcher."
     )
-    val connectLogger = Opts.optionalParameter[Uri](
-      GlobalCLIOptions.CONNECT_LOGGER,
-      "URI",
-      "Instead of starting its own logging service, " +
-      "connects to the logging service at the provided URI."
-    )
+    val connectLogger = Opts
+      .optionalParameter[Uri](
+        GlobalCLIOptions.CONNECT_LOGGER,
+        "URI",
+        "Instead of starting its own logging service, " +
+        "connects to the logging service at the provided URI."
+      )
+      .hidden
 
     val internalOpts = InternalOpts.topLevelOptions
 
@@ -501,28 +503,8 @@ object LauncherApplication {
           useJSON      = useJSON
         )
 
-        val actualLogLevel =
-          logLevel.getOrElse(LogLevel.Debug) // TODO [RW] info
-        val stderrPrinter = StderrPrinterWithColors.colorPrinterIfAvailable()
-        val printers      = Seq(stderrPrinter)
-        val fallbackMode  = WSLoggerMode.Local(printers)
-        connectLogger match {
-          case Some(uri) =>
-            WSLoggerManager.setupWithFallbackToLocal(
-              WSLoggerMode.Client(uri),
-              fallbackMode,
-              actualLogLevel
-            )
-          case None =>
-            // TODO [RW] automatic port fnding
-            WSLoggerManager.setupWithFallbackToLocal(
-              WSLoggerMode.Server(8080, printers = printers),
-              fallbackMode,
-              actualLogLevel
-            )
-        }
-
         internalOptsCallback(globalCLIOptions)
+        LauncherLogging.setup(logLevel, connectLogger)
         initializeApp()
 
         if (version) {

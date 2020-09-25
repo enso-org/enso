@@ -1,14 +1,17 @@
 package org.enso.loggingservice.internal.serviceconnection
 
-import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.{InternalLogger, LogLevel}
 import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
+
+import scala.util.control.NonFatal
 
 trait ThreadProcessingService extends Service {
   protected def queue:    BlockingConsumerMessageQueue
   protected def logLevel: LogLevel
 
   protected def processMessage(message: WSLogMessage): Unit
+  protected def shutdownProcessors():                  Unit
 
   private var queueThread: Option[Thread] = None
   protected def startQueueProcessor(): Unit = {
@@ -22,7 +25,14 @@ trait ThreadProcessingService extends Service {
       while (!Thread.currentThread().isInterrupted) {
         val message = queue.nextMessage()
         if (logLevel.shouldLog(message.logLevel)) {
-          processMessage(message)
+          try {
+            processMessage(message)
+          } catch {
+            case NonFatal(e) =>
+              InternalLogger.error(
+                s"One of the printers failed to write a message: $e"
+              )
+          }
         }
       }
     } catch {
@@ -36,6 +46,7 @@ trait ThreadProcessingService extends Service {
       case Some(thread) =>
         thread.interrupt()
         thread.join(100)
+        shutdownProcessors()
       case None =>
     }
   }

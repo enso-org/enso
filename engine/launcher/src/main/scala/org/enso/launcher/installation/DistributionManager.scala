@@ -22,6 +22,7 @@ import scala.util.control.NonFatal
   * @param config location of configuration
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components
+  * @param logs a directory for storing logs
   * @param tmp a directory for storing temporary files that is located on the
   *            same filesystem as `runtimes` and `engines`, used during
   *            installation to decrease the possibility of getting a broken
@@ -39,6 +40,7 @@ case class DistributionPaths(
   engines: Path,
   config: Path,
   locks: Path,
+  logs: Path,
   tmp: Path,
   resourceManager: ResourceManager
 ) {
@@ -120,6 +122,7 @@ class DistributionManager(
   val CONFIG_DIRECTORY               = "config"
   val BIN_DIRECTORY                  = "bin"
   val LOCK_DIRECTORY                 = "lock"
+  val LOG_DIRECTORY                  = "log"
   val TMP_DIRECTORY                  = "tmp"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
@@ -138,6 +141,7 @@ class DistributionManager(
         engines  = root / ENGINES_DIRECTORY,
         config   = root / CONFIG_DIRECTORY,
         locks    = root / LOCK_DIRECTORY,
+        logs     = root / LOG_DIRECTORY,
         tmp      = root / TMP_DIRECTORY,
         resourceManager
       )
@@ -151,6 +155,7 @@ class DistributionManager(
         engines  = dataRoot / ENGINES_DIRECTORY,
         config   = configRoot,
         locks    = runRoot / LOCK_DIRECTORY,
+        logs     = LocallyInstalledDirectories.logDirectory,
         tmp      = dataRoot / TMP_DIRECTORY,
         resourceManager
       )
@@ -208,11 +213,13 @@ class DistributionManager(
     val ENSO_CONFIG_DIRECTORY  = "ENSO_CONFIG_DIRECTORY"
     val ENSO_BIN_DIRECTORY     = "ENSO_BIN_DIRECTORY"
     val ENSO_RUNTIME_DIRECTORY = "ENSO_RUNTIME_DIRECTORY"
+    val ENSO_LOG_DIRECTORY     = "ENSO_LOG_DIRECTORY"
 
     private val XDG_DATA_DIRECTORY   = "XDG_DATA_HOME"
     private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_HOME"
     private val XDG_BIN_DIRECTORY    = "XDG_BIN_HOME"
     private val XDG_RUN_DIRECTORY    = "XDG_RUNTIME_DIR"
+    private val XDG_CACHE_DIRECTORY  = "XDG_CACHE_HOME"
 
     private val LINUX_ENSO_DIRECTORY   = "enso"
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
@@ -301,6 +308,26 @@ class DistributionManager(
                 .map(_ / LINUX_ENSO_DIRECTORY)
                 .getOrElse(dataDirectory)
             case _ => dataDirectory
+          }
+        }
+
+    /**
+      * The directory for storing logs.
+      */
+    def logDirectory: Path =
+      env
+        .getEnvPath(ENSO_LOG_DIRECTORY)
+        .getOrElse {
+          OS.operatingSystem match {
+            case OS.Linux =>
+              env
+                .getEnvPath(XDG_CACHE_DIRECTORY)
+                .map(_ / LINUX_ENSO_DIRECTORY)
+                .getOrElse(dataDirectory / LOG_DIRECTORY)
+            case OS.MacOS =>
+              env.getHome / "Library" / "Logs" / MACOS_ENSO_DIRECTORY
+            case OS.Windows =>
+              dataDirectory / LOG_DIRECTORY
           }
         }
 

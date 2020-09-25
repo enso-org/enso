@@ -5,22 +5,25 @@ import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.printers.Printer
 
-case class Fallback(
+case class Local(
   logLevel: LogLevel,
   queue: BlockingConsumerMessageQueue,
   printers: Seq[Printer]
 ) extends ThreadProcessingService {
   override protected def processMessage(message: WSLogMessage): Unit =
     printers.foreach(_.print(message))
+
+  override protected def shutdownProcessors(): Unit =
+    printers.foreach(_.shutdown())
 }
 
-object Fallback {
+object Local {
   def setup(
     logLevel: LogLevel,
     queue: BlockingConsumerMessageQueue,
     printers: Seq[Printer]
-  ): Fallback = {
-    val fallback = new Fallback(logLevel, queue, printers)
+  ): Local = {
+    val fallback = new Local(logLevel, queue, printers)
     fallback.startQueueProcessor()
     fallback
   }
