@@ -22,6 +22,10 @@ object GlobalCLIOptions {
   val AUTO_CONFIRM  = "auto-confirm"
   val USE_JSON      = "json"
 
+  // TODO ensure these are inherited by child launchers etc.
+  val LOG_LEVEL      = "log-level"
+  val CONNECT_LOGGER = "connect-logger"
+
   /**
     * Converts the [[GlobalCLIOptions]] to a sequence of arguments that can be
     * added to a launcher invocation to set the same options.

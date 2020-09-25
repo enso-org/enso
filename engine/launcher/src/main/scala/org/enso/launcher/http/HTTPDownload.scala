@@ -9,8 +9,8 @@ import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.scaladsl.{FileIO, Sink}
 import akka.util.ByteString
+import com.typesafe.scalalogging.Logger
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
-import org.enso.launcher.Logger
 
 import scala.concurrent.Future
 
@@ -41,6 +41,7 @@ case class APIResponse(content: String, headers: Seq[Header])
   * Contains utility functions for fetching data using the HTTP(S) protocol.
   */
 object HTTPDownload {
+  private val logger = Logger[HTTPDownload.type]
 
   /**
     * Determines how many redirects are taken until an error is thrown.
@@ -71,7 +72,7 @@ object HTTPDownload {
     sizeHint: Option[Long] = None,
     encoding: Charset      = StandardCharsets.UTF_8
   ): TaskProgress[APIResponse] = {
-    Logger.debug(s"Fetching ${request.requestImpl.getUri}")
+    logger.debug(s"Fetching ${request.requestImpl.getUri}")
     def combineChunks(chunks: Seq[ByteString]): String =
       chunks.reduceOption(_ ++ _).map(_.decodeString(encoding)).getOrElse("")
     runRequest(
@@ -110,7 +111,7 @@ object HTTPDownload {
     destination: Path,
     sizeHint: Option[Long] = None
   ): TaskProgress[Path] = {
-    Logger.debug(
+    logger.debug(
       s"Downloading ${request.requestImpl.getUri} to $destination"
     )
     runRequest(
@@ -182,7 +183,7 @@ object HTTPDownload {
             )
           }
 
-          Logger.trace(
+          logger.trace(
             s"HTTP response was ${response.status}, redirecting to `$newURI`."
           )
           val newRequest = request.withUri(newURI)

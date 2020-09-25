@@ -3,6 +3,8 @@ package org.enso.launcher
 import java.io.File
 import java.nio.file.Path
 
+import com.typesafe.scalalogging.Logger
+
 import scala.util.Try
 
 /**
@@ -44,7 +46,7 @@ trait Environment {
     def parsePathWithWarning(str: String): Option[Path] = {
       val result = safeParsePath(str)
       if (result.isEmpty) {
-        Logger.warn(
+        Logger[Environment].warn(
           s"System variable `$key` was set (to value `$str`), but it did not " +
           s"represent a valid path, so it has been ignored."
         )
@@ -181,7 +183,7 @@ object Environment extends Environment {
         "in a release build."
       )
     else {
-      Logger.debug(s"[TEST] Overriding location to $newLocation.")
+      Logger("TEST").debug(s"Overriding location to $newLocation.")
       executablePathOverride = Some(newLocation)
     }
 }

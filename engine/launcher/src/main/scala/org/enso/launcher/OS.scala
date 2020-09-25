@@ -1,5 +1,6 @@
 package org.enso.launcher
 
+import com.typesafe.scalalogging.Logger
 import io.circe.{Decoder, DecodingFailure}
 
 /**
@@ -23,6 +24,8 @@ sealed trait OS {
   * behaviour.
   */
 object OS {
+
+  private val logger = Logger[OS.type]
 
   /**
     * Represents the Linux operating system.
@@ -89,12 +92,12 @@ object OS {
       case Some(value) =>
         knownOS.find(value.toLowerCase == _.configName) match {
           case Some(overriden) =>
-            Logger.debug(
+            logger.debug(
               s"OS overriden by $ENSO_OPERATING_SYSTEM to $overriden."
             )
             return overriden
           case None =>
-            Logger.warn(
+            logger.warn(
               s"$ENSO_OPERATING_SYSTEM is set to an unknown value `$value`, " +
               s"ignoring. Possible values are $knownOSPossibleValuesString."
             )
@@ -107,7 +110,7 @@ object OS {
     if (possibleOS.length == 1) {
       possibleOS.head
     } else {
-      Logger.error(
+      logger.error(
         s"Could not determine a supported operating system. Please make sure " +
         s"the OS you are running is supported. You can try to manually " +
         s"override the operating system detection by setting an environment " +

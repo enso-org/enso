@@ -199,7 +199,7 @@ import com.typesafe.scalalogging.Logger
 import org.enso.logger.LoggerSyntax
 
 class Foo {
-  private val logger = Logger[classOf[Foo]]
+  private val logger = Logger[Foo]
 
   def bar(): Unit = {
     logger.info("Hello world") // Logs `Hello world` from context `foo.Foo`.

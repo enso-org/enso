@@ -1,17 +1,19 @@
 package org.enso.loggingservice.internal.serviceconnection
 
 import akka.Done
-import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
-import akka.stream.OverflowStrategy
+import akka.http.scaladsl.model.{StatusCodes, Uri}
+import akka.stream.{OverflowStrategy, QueueOfferResult}
+import akka.stream.scaladsl.SourceQueueWithComplete
 import akka.stream.scaladsl.{Keep, Sink, Source}
-import org.enso.loggingservice.LogLevel
+import io.circe.syntax._
+import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
 import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 
-import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
 class Client(
   serverUri: Uri,
@@ -22,11 +24,11 @@ class Client(
 
   override protected def actorSystemName: String = "logging-service-client"
 
-  def start(): Unit = {
+  def start(): Future[Unit] = {
     val request  = WebSocketRequest(serverUri)
     val flow     = Http().webSocketClientFlow(request)
     val incoming = Sink.ignore
-    val outgoing = Source.queue[TextMessage](0, OverflowStrategy.backpressure)
+    val outgoing = Source.queue[Message](0, OverflowStrategy.backpressure)
 
     val ((outgoingQueue, upgradeResponse), closed) =
       outgoing.viaMat(flow)(Keep.both).toMat(incoming)(Keep.both).run()
@@ -42,16 +44,68 @@ class Client(
       }
     }
 
-    // TODO on connected start queue processor
-    // TODO try throwing errors here and make start a Future and wait for it in setup
-    // TODO on disconnect, warn and start a fallback?
+    connected.map(_ => {
+      closedConnection = Some(closed)
+      webSocketQueue   = Some(outgoingQueue)
+
+      closed.onComplete(_ => onDisconnected())
+
+      startQueueProcessor()
+    })
   }
 
-  override protected def processMessage(message: WSLogMessage): Unit = ???
+  private var webSocketQueue: Option[SourceQueueWithComplete[Message]] = None
+  private var closedConnection: Option[Future[Done]]                   = None
+
+  override protected def processMessage(message: WSLogMessage): Unit = {
+    val queue = webSocketQueue.getOrElse(
+      throw new IllegalStateException(
+        "Internal error: The queue processor thread has been started before " +
+        "the connection has been initialized."
+      )
+    )
+    val serializedMessage = message.asJson.noSpaces
+    val offerResult       = queue.offer(TextMessage.Strict(serializedMessage))
+    try {
+      Await.result(offerResult, 30.seconds) match {
+        case QueueOfferResult.Enqueued =>
+        case QueueOfferResult.Dropped =>
+          System.err.println(s"A log message has been dropped unexpectedly.")
+        case QueueOfferResult.Failure(cause) =>
+          System.err.println(s"A log message could not be sent: $cause.")
+        case QueueOfferResult.QueueClosed => throw new InterruptedException
+      }
+    } catch {
+      case _: concurrent.TimeoutException =>
+        System.err.println(
+          s"Adding a log message timed out. Messages may or may not be dropped."
+        )
+    }
+  }
+
+  @volatile private var shuttingDown: Boolean = false
+
+  private def onDisconnected(): Unit = {
+    if (!shuttingDown) {
+      System.err.println(
+        "Server has disconnected, logging is falling back to stderr."
+      )
+      WSLoggerManager.replaceWithFallback()
+    }
+  }
 
   override protected def terminateUser(): Future[_] = {
-    import actorSystem.dispatcher
-    Future(())
+    shuttingDown = true
+    webSocketQueue match {
+      case Some(wsQueue) =>
+        import actorSystem.dispatcher
+        val promise = concurrent.Promise[Done]()
+        wsQueue.complete()
+        wsQueue.watchCompletion().onComplete(promise.tryComplete)
+        closedConnection.foreach(_.onComplete(promise.tryComplete))
+        promise.future
+      case None => Future.successful(Done)
+    }
   }
 }
 
@@ -63,7 +117,7 @@ object Client {
   ): Client = {
     val client = new Client(serverUri, queue, logLevel)
     try {
-      client.start()
+      Await.result(client.start(), 15.seconds)
       client
     } catch {
       case e: Throwable =>

@@ -49,18 +49,35 @@ object WSLoggerManager {
   ): Future[Boolean] = {
     import scala.concurrent.ExecutionContext.Implicits.global
     setup(mode, logLevel).map(_ => true).recoverWith { error =>
-      System.err.println(s"Failed to initialize the logging server: $error.")
+      System.err.println(s"Failed to initialize the logging server: $error")
       System.err.println("Falling back to a simple stderr backend.")
       setup(WSLoggerMode.Local(), logLevel).map(_ => false)
     }
   }
 
   def tearDown(): Unit = {
-    val service = currentService.synchronized { currentService }
+    val service = currentService.synchronized {
+      val service = currentService
+      currentService = None
+      service
+    }
+
     service match {
       case Some(running) => running.terminate()
       case None          => handleMissingLogger()
     }
+  }
+
+  def replaceWithFallback(): Unit = {
+    val fallback =
+      Fallback.setup(currentLevel, messageQueue, Seq(StderrPrinter))
+    val service = currentService.synchronized {
+      val service = currentService
+      currentService = Some(fallback)
+      service
+    }
+
+    service.foreach(_.terminate())
   }
 
   Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))

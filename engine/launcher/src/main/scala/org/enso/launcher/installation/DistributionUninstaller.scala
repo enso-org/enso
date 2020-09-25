@@ -2,13 +2,14 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
+import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
-import org.enso.launcher.{FileSystem, Logger, OS}
+import org.enso.launcher.{FileSystem, InfoLogger, OS}
 
 import scala.util.control.NonFatal
 
@@ -25,6 +26,7 @@ class DistributionUninstaller(
   resourceManager: ResourceManager,
   autoConfirm: Boolean
 ) {
+  private val logger = Logger[DistributionUninstaller]
 
   /**
     * Uninstalls a locally installed (non-portable) distribution.
@@ -40,7 +42,7 @@ class DistributionUninstaller(
     checkPortable()
     askConfirmation()
     resourceManager.acquireExclusiveMainLock(waitAction = () => {
-      Logger.warn(
+      logger.warn(
         "Please ensure that no other Enso processes are using this " +
         "distribution before uninstalling. The uninstaller will resume once " +
         "all related Enso processes exit."
@@ -61,7 +63,7 @@ class DistributionUninstaller(
     uninstallConfig()
     uninstallExecutableUNIX()
     uninstallDataContents(deferDataRootRemoval = false)
-    Logger.info("Successfully uninstalled the distribution.")
+    InfoLogger.info("Successfully uninstalled the distribution.")
   }
 
   /**
@@ -78,7 +80,7 @@ class DistributionUninstaller(
     uninstallConfig()
     val newPath = partiallyUninstallExecutableWindows()
     uninstallDataContents(deferRootRemoval)
-    Logger.info(
+    InfoLogger.info(
       "Successfully uninstalled the distribution but for the launcher " +
       "executable. It will be removed in a moment after this program " +
       "terminates."
@@ -99,11 +101,11 @@ class DistributionUninstaller(
     */
   private def checkPortable(): Unit = {
     if (manager.isRunningPortable) {
-      Logger.warn(
+      logger.warn(
         "The Enso distribution you are currently running is in portable " +
         "mode, so it cannot be uninstalled."
       )
-      Logger.info(
+      InfoLogger.info(
         s"If you still want to remove it, you can just remove the " +
         s"`${manager.paths.dataRoot}` directory."
       )
@@ -116,12 +118,12 @@ class DistributionUninstaller(
     * will be removed and asks the user if they want to proceed.
     */
   private def askConfirmation(): Unit = {
-    Logger.info(
+    InfoLogger.info(
       s"Uninstalling this distribution will remove the launcher located at " +
       s"`${manager.env.getPathToRunningExecutable}`, all engine and runtime " +
       s"components and configuration managed by this distribution."
     )
-    Logger.info(
+    InfoLogger.info(
       s"ENSO_DATA_DIRECTORY (${manager.paths.dataRoot}) and " +
       s"ENSO_CONFIG_DIRECTORY (${manager.paths.config}) will be removed " +
       s"unless they contain unexpected files."
@@ -130,7 +132,7 @@ class DistributionUninstaller(
       val proceed =
         CLIOutput.askConfirmation("Do you want to proceed?", yesDefault = true)
       if (!proceed) {
-        Logger.warn("Installation has been cancelled on user request.")
+        logger.warn("Installation has been cancelled on user request.")
         sys.exit(1)
       }
     }
@@ -212,7 +214,7 @@ class DistributionUninstaller(
           Files.delete(lock)
         } catch {
           case NonFatal(exception) =>
-            Logger.error(
+            logger.error(
               s"Cannot remove lockfile ${lock.getFileName}.",
               exception
             )
@@ -267,12 +269,12 @@ class DistributionUninstaller(
       def remainingFilesList =
         remainingFiles.map(fileName => s"`$fileName`").mkString(", ")
       if (autoConfirm) {
-        Logger.warn(
+        logger.warn(
           s"$directoryName ($path) contains unexpected files: " +
           s"$remainingFilesList, so it will not be removed."
         )
       } else {
-        Logger.warn(
+        logger.warn(
           s"$directoryName ($path) contains unexpected files: " +
           s"$remainingFilesList."
         )

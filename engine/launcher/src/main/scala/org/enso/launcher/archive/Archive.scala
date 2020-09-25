@@ -3,9 +3,10 @@ package org.enso.launcher.archive
 import java.io.BufferedInputStream
 import java.nio.file.{Files, Path}
 
+import com.typesafe.scalalogging.Logger
 import org.apache.commons.compress.archivers.{
-  ArchiveEntry => ApacheArchiveEntry,
-  ArchiveInputStream
+  ArchiveInputStream,
+  ArchiveEntry => ApacheArchiveEntry
 }
 import org.apache.commons.compress.archivers.tar.{
   TarArchiveEntry,
@@ -20,7 +21,7 @@ import org.apache.commons.io.IOUtils
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
 import org.enso.launcher.archive.internal.{ArchiveIterator, BaseRenamer}
 import org.enso.launcher.internal.ReadProgress
-import org.enso.launcher.{FileSystem, Logger, OS}
+import org.enso.launcher.{FileSystem, OS}
 
 import scala.util.{Try, Using}
 
@@ -31,6 +32,8 @@ import scala.util.{Try, Using}
   * Currently it supports extracting ZIP files and gzipped TAR archives.
   */
 object Archive {
+
+  private val logger = Logger[Archive.type]
 
   /**
     * Extracts the archive at `archivePath` to `destinationDirectory`.
@@ -163,7 +166,7 @@ object Archive {
     val taskProgress = new TaskProgressImplementation[Unit]
 
     def runExtraction(): Unit = {
-      Logger.debug(s"Opening `$archivePath`.")
+      logger.debug(s"Opening `$archivePath`.")
       var missingPermissions: Int = 0
 
       val result = withOpenArchive(archivePath, format) { (archive, progress) =>
@@ -222,7 +225,7 @@ object Archive {
       }
 
       if (missingPermissions > 0) {
-        Logger.warn(
+        logger.warn(
           s"Could not find permissions for $missingPermissions files in " +
           s"archive `$archivePath`, some files may not have been marked as " +
           s"executable."

@@ -2,7 +2,9 @@ package org.enso.launcher.components.runner
 
 import java.nio.file.{Files, Path}
 
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.Environment
 import org.enso.launcher.components.{
   ComponentsManager,
   Engine,
@@ -11,7 +13,6 @@ import org.enso.launcher.components.{
 }
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
-import org.enso.launcher.{Environment, Logger}
 
 import scala.util.Try
 
@@ -229,7 +230,7 @@ class Runner(
     def prepareAndRunCommand(engine: Engine, javaCommand: JavaCommand): R = {
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
-        Logger.debug(
+        Logger[Runner].debug(
           s"Picking up additional JVM options ($opts) from the " +
           s"$JVM_OPTIONS_ENV_VAR environment variable."
         )

@@ -3,6 +3,7 @@ package org.enso.launcher.cli
 import java.nio.file.Path
 import java.util.UUID
 
+import akka.http.scaladsl.model.Uri
 import cats.data.NonEmptyList
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
@@ -19,6 +20,7 @@ import org.enso.launcher.installation.{
   DistributionManager
 }
 import org.enso.launcher.locking.DefaultResourceManager
+import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
 
 /**
   * Defines the CLI commands and options for the program.
@@ -453,6 +455,19 @@ object LauncherApplication {
       "running actions. May be needed if program output is piped.",
       showInUsage = false
     )
+    // TODO [RW] separate setting for launched components?
+    val logLevel = Opts.optionalParameter[LogLevel](
+      GlobalCLIOptions.LOG_LEVEL,
+      "LOG-LEVEL",
+      "Sets logging verbosity for the launcher."
+    )
+    val connectLogger = Opts.optionalParameter[Uri](
+      GlobalCLIOptions.CONNECT_LOGGER,
+      "URI",
+      "Instead of starting its own logging service, " +
+      "connects to the logging service at the provided URI."
+    )
+
     val internalOpts = InternalOpts.topLevelOptions
 
     (
@@ -461,7 +476,9 @@ object LauncherApplication {
       json,
       ensurePortable,
       autoConfirm,
-      hideProgress
+      hideProgress,
+      logLevel,
+      connectLogger
     ) mapN {
       (
         internalOptsCallback,
@@ -469,7 +486,9 @@ object LauncherApplication {
         useJSON,
         shouldEnsurePortable,
         autoConfirm,
-        hideProgress
+        hideProgress,
+        logLevel,
+        connectLogger
       ) => () =>
         if (shouldEnsurePortable) {
           Launcher.ensurePortable()
@@ -480,6 +499,22 @@ object LauncherApplication {
           hideProgress = hideProgress,
           useJSON      = useJSON
         )
+
+        val actualLogLevel =
+          logLevel.getOrElse(LogLevel.Debug) // TODO [RW] info
+        connectLogger match {
+          case Some(uri) =>
+            WSLoggerManager.setupWithFallbackToLocal(
+              WSLoggerMode.Client(uri),
+              actualLogLevel
+            )
+          case None =>
+            // TODO [RW] automatic port fnding
+            WSLoggerManager.setupWithFallbackToLocal(
+              WSLoggerMode.Server(8080),
+              actualLogLevel
+            )
+        }
 
         internalOptsCallback(globalCLIOptions)
         initializeApp()

@@ -15,6 +15,15 @@ object LogLevel {
   case object Debug   extends LogLevel(3)
   case object Trace   extends LogLevel(4)
 
+  val allLevels = Seq(
+    LogLevel.None,
+    LogLevel.Error,
+    LogLevel.Warning,
+    LogLevel.Info,
+    LogLevel.Debug,
+    LogLevel.Trace
+  )
+
   implicit val ord: Ordering[LogLevel] = (x, y) => x.level - y.level
 
   implicit val encoder: Encoder[LogLevel] = {

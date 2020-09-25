@@ -2,9 +2,10 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
+import com.typesafe.scalalogging.Logger
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
-import org.enso.launcher.{Environment, FileSystem, Logger, OS}
+import org.enso.launcher.{Environment, FileSystem, InfoLogger, OS}
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -69,6 +70,7 @@ class DistributionManager(
   val env: Environment,
   resourceManager: ResourceManager
 ) {
+  private val logger = Logger[DistributionManager]
 
   /**
     * Specifies whether the launcher has been run as a portable distribution or
@@ -76,24 +78,24 @@ class DistributionManager(
     */
   lazy val isRunningPortable: Boolean = {
     val portable = detectPortable()
-    Logger.debug(s"Launcher portable mode = $portable")
+    logger.debug(s"Launcher portable mode = $portable")
     if (portable && LocallyInstalledDirectories.installedDistributionExists) {
       val installedRoot   = LocallyInstalledDirectories.dataDirectory
       val installedBinary = LocallyInstalledDirectories.binaryExecutable
 
-      Logger.debug(
+      logger.debug(
         s"The launcher is run in portable mode, but an installed distribution" +
         s" is available at $installedRoot."
       )
 
       if (Files.exists(installedBinary)) {
         if (installedBinary == env.getPathToRunningExecutable) {
-          Logger.debug(
+          logger.debug(
             "That distribution seems to be corresponding to this launcher " +
             "executable, that is running in portable mode."
           )
         } else {
-          Logger.debug(
+          logger.debug(
             s"However, that installed distribution most likely uses another " +
             s"launcher executable, located at $installedBinary."
           )
@@ -108,7 +110,7 @@ class DistributionManager(
     */
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
-    Logger.debug(s"Detected paths are: $paths")
+    logger.debug(s"Detected paths are: $paths")
     paths
   }
 
@@ -168,7 +170,7 @@ class DistributionManager(
     if (Files.exists(tmp)) {
       resourceManager.tryWithExclusiveTemporaryDirectory {
         if (!FileSystem.isDirectoryEmpty(tmp)) {
-          Logger.info(
+          InfoLogger.info(
             "Cleaning up temporary files from a previous installation."
           )
         }
@@ -187,7 +189,7 @@ class DistributionManager(
     for (lockfile <- lockfiles) {
       try {
         Files.delete(lockfile)
-        Logger.debug(s"Removed unused lockfile ${lockfile.getFileName}.")
+        logger.debug(s"Removed unused lockfile ${lockfile.getFileName}.")
       } catch {
         case NonFatal(_) =>
       }

@@ -2,6 +2,7 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
+import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
@@ -12,7 +13,7 @@ import org.enso.launcher.installation.DistributionInstaller.{
   MoveBundles
 }
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
-import org.enso.launcher.{FileSystem, Logger, OS}
+import org.enso.launcher.{FileSystem, InfoLogger, OS}
 
 import scala.util.control.NonFatal
 
@@ -38,6 +39,7 @@ class DistributionInstaller(
   removeOldLauncher: Boolean,
   bundleActionOption: Option[DistributionInstaller.BundleAction]
 ) {
+  private val logger          = Logger[DistributionInstaller]
   final private val installed = manager.LocallyInstalledDirectories
   private val env             = manager.env
 
@@ -65,7 +67,7 @@ class DistributionInstaller(
     try {
       val settings = prepare()
       resourceManager.acquireExclusiveMainLock(waitAction = () => {
-        Logger.warn(
+        logger.warn(
           "No other Enso processes associated with this distribution can be " +
           "running during the installation. The installer will wait until " +
           "other Enso processes are terminated."
@@ -74,7 +76,7 @@ class DistributionInstaller(
       installBinary()
       createDirectoryStructure()
       installBundles(settings.bundleAction)
-      Logger.info("Installation succeeded.")
+      InfoLogger.info("Installation succeeded.")
 
       if (settings.removeInstaller) {
         removeInstaller()
@@ -82,7 +84,7 @@ class DistributionInstaller(
     } catch {
       case NonFatal(e) =>
         val message = s"Installation failed with error: $e."
-        Logger.error(message, e)
+        logger.error(message, e)
         CLIOutput.println(message)
         sys.exit(1)
     }
@@ -105,7 +107,7 @@ class DistributionInstaller(
     */
   private def prepare(): InstallationSettings = {
     if (installedLauncherPath == currentLauncherPath) {
-      Logger.error(
+      logger.error(
         "The installation source and destination are the same. Nothing to " +
         "install."
       )
@@ -113,7 +115,7 @@ class DistributionInstaller(
     }
 
     if (Files.exists(installed.dataDirectory)) {
-      Logger.error(
+      logger.error(
         s"${installed.dataDirectory} already exists. " +
         s"Please uninstall the already existing distribution. " +
         s"If no distribution is installed, please remove the directory " +
@@ -126,9 +128,9 @@ class DistributionInstaller(
       Files.exists(installed.configDirectory) &&
       installed.configDirectory.toFile.exists()
     ) {
-      Logger.warn(s"${installed.configDirectory} already exists.")
+      logger.warn(s"${installed.configDirectory} already exists.")
       if (!Files.isDirectory(installed.configDirectory)) {
-        Logger.error(
+        logger.error(
           s"${installed.configDirectory} already exists but is not a " +
           s"directory. Please remove it or change the installation " +
           s"location by setting `${installed.ENSO_CONFIG_DIRECTORY}`."
@@ -140,14 +142,14 @@ class DistributionInstaller(
     for (file <- nonEssentialFiles) {
       val f = manager.paths.dataRoot / file
       if (!Files.exists(f)) {
-        Logger.warn(s"$f does not exist, it will be skipped.")
+        logger.warn(s"$f does not exist, it will be skipped.")
       }
     }
 
     for (dir <- nonEssentialDirectories) {
       val f = manager.paths.dataRoot / dir
       if (!Files.isDirectory(f)) {
-        Logger.warn(s"$f does not exist, it will be skipped.")
+        logger.warn(s"$f does not exist, it will be skipped.")
       }
     }
 
@@ -175,8 +177,8 @@ class DistributionInstaller(
 
     val additionalMessages = pathMessage.toSeq ++ binMessage.toSeq
 
-    Logger.info(message)
-    additionalMessages.foreach(msg => Logger.warn(msg))
+    InfoLogger.info(message)
+    additionalMessages.foreach(msg => logger.warn(msg))
 
     val removeInstaller = decideIfInstallerShouldBeRemoved()
     val bundleAction    = decideBundleAction()
@@ -256,7 +258,7 @@ class DistributionInstaller(
         )
       } catch {
         case NonFatal(e) =>
-          Logger.warn(
+          logger.warn(
             s"An exception $e prevented some non-essential " +
             s"documentation files from being copied."
           )
@@ -271,7 +273,7 @@ class DistributionInstaller(
         )
       } catch {
         case NonFatal(e) =>
-          Logger.warn(
+          logger.warn(
             s"An exception $e prevented some non-essential directories from " +
             s"being copied."
           )
@@ -324,7 +326,7 @@ class DistributionInstaller(
     } else {
       bundleActionOption match {
         case Some(value) if value != DistributionInstaller.IgnoreBundles =>
-          Logger.warn(
+          logger.warn(
             s"Installer was asked to ${value.description}, but it seems to " +
             s"not be running from a bundle package."
           )
@@ -345,14 +347,16 @@ class DistributionInstaller(
       if (runtimes.length + engines.length > 0) {
         if (bundleAction.copy) {
           for (engine <- engines) {
-            Logger.info(s"Copying bundled Enso engine ${engine.getFileName}.")
+            InfoLogger.info(
+              s"Copying bundled Enso engine ${engine.getFileName}."
+            )
             FileSystem.copyDirectory(
               engine,
               enginesDirectory / engine.getFileName
             )
           }
           for (runtime <- runtimes) {
-            Logger.info(s"Copying bundled runtime ${runtime.getFileName}.")
+            InfoLogger.info(s"Copying bundled runtime ${runtime.getFileName}.")
             FileSystem.copyDirectory(
               runtime,
               runtimesDirectory / runtime.getFileName
@@ -364,7 +368,7 @@ class DistributionInstaller(
           engines.foreach(FileSystem.removeDirectory)
           runtimes.foreach(FileSystem.removeDirectory)
 
-          Logger.info(
+          InfoLogger.info(
             "Cleaned bundled files from the original distribution packages."
           )
         }
