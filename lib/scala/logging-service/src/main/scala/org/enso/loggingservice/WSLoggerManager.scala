@@ -30,7 +30,10 @@ object WSLoggerManager {
     * Sets up the logging service, but in a separate thread to avoid stalling
     * the application.
     */
-  def setup(mode: WSLoggerMode, logLevel: LogLevel): Future[Unit] = {
+  def setup[InitializationResult](
+    mode: WSLoggerMode[InitializationResult],
+    logLevel: LogLevel
+  ): Future[InitializationResult] = {
     currentLevel = logLevel
     import scala.concurrent.ExecutionContext.Implicits.global
     Future(doSetup(mode, logLevel))
@@ -44,8 +47,8 @@ object WSLoggerManager {
     * or `false` if it had to fall back to stderr.
     */
   def setupWithFallbackToLocal(
-    mode: WSLoggerMode,
-    fallbackMode: WSLoggerMode,
+    mode: WSLoggerMode[_],
+    fallbackMode: WSLoggerMode[_],
     logLevel: LogLevel
   ): Future[Boolean] = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -99,7 +102,10 @@ object WSLoggerManager {
     }
   }
 
-  private def doSetup(mode: WSLoggerMode, logLevel: LogLevel): Unit = {
+  private def doSetup[InitializationResult](
+    mode: WSLoggerMode[InitializationResult],
+    logLevel: LogLevel
+  ): InitializationResult = {
     currentService.synchronized {
       if (currentService.isDefined) {
         throw new IllegalStateException(
@@ -107,15 +113,23 @@ object WSLoggerManager {
         )
       }
 
-      val service = mode match {
+      val (service, result: InitializationResult) = mode match {
         case WSLoggerMode.Client(endpoint) =>
-          Client.setup(endpoint, messageQueue, logLevel)
-        case WSLoggerMode.Server(port, interface, printers) =>
-          Server.setup(interface, port, messageQueue, printers, logLevel)
+          (Client.setup(endpoint, messageQueue, logLevel), ())
+        case WSLoggerMode.Server(printers, port, interface) =>
+          val server = Server.setup(
+            interface,
+            port.getOrElse(0),
+            messageQueue,
+            printers,
+            logLevel
+          )
+          (server, server.getBinding())
         case WSLoggerMode.Local(printers) =>
-          Local.setup(logLevel, messageQueue, printers)
+          (Local.setup(logLevel, messageQueue, printers), ())
       }
       currentService = Some(service)
+      result
     }
   }
 }

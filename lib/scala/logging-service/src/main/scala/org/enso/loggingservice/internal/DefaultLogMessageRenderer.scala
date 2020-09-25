@@ -3,6 +3,7 @@ package org.enso.loggingservice.internal
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDateTime, ZoneId}
 
+import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.protocol.{
   SerializedException,
   WSLogMessage
@@ -38,4 +39,14 @@ class DefaultLogMessageRenderer extends LogMessageRenderer {
       .getOrElse("")
     head + trace.map("\n" + _).mkString + cause
   }
+
+  def renderLevel(logLevel: LogLevel): String =
+    logLevel match {
+      case LogLevel.Error   => "error"
+      case LogLevel.Warning => "warn"
+      case LogLevel.Info    => "info"
+      case LogLevel.Debug   => "debug"
+      case LogLevel.Trace   => "trace"
+      case _                => "none"
+    }
 }

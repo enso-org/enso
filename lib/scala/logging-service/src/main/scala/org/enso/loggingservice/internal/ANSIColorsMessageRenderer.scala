@@ -17,13 +17,18 @@ class ANSIColorsMessageRenderer extends DefaultLogMessageRenderer {
     }
   }
 
-  def renderLevelWithColors(logLevel: LogLevel): String =
-    logLevel match {
-      case LogLevel.Error   => s"${AnsiColor.RED}error${AnsiColor.RESET}"
-      case LogLevel.Warning => s"${AnsiColor.YELLOW}warn${AnsiColor.RESET}"
-      case LogLevel.Info    => "info"
-      case LogLevel.Debug   => s"${AnsiColor.CYAN}debug${AnsiColor.RESET}"
-      case LogLevel.Trace   => s"${AnsiColor.CYAN}trace${AnsiColor.RESET}"
-      case _                => "none"
+  def renderLevelWithColors(logLevel: LogLevel): String = {
+    val color = logLevel match {
+      case LogLevel.Error   => Some(AnsiColor.RED)
+      case LogLevel.Warning => Some(AnsiColor.YELLOW)
+      case LogLevel.Debug   => Some(AnsiColor.CYAN)
+      case LogLevel.Trace   => Some(AnsiColor.CYAN)
+      case _                => None
     }
+    color match {
+      case Some(ansiColor) =>
+        s"$ansiColor${renderLevel(logLevel)}${AnsiColor.RESET}"
+      case None => renderLevel(logLevel)
+    }
+  }
 }

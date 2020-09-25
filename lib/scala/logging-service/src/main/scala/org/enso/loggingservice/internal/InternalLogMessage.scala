@@ -1,6 +1,7 @@
 package org.enso.loggingservice.internal
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.protocol.{
@@ -19,7 +20,7 @@ case class InternalLogMessage(
   def toLogMessage(): WSLogMessage =
     WSLogMessage(
       logLevel  = level,
-      timestamp = timestamp,
+      timestamp = timestamp.truncatedTo(ChronoUnit.MILLIS),
       group     = group,
       message   = message,
       exception = throwable.map(SerializedException.fromException)

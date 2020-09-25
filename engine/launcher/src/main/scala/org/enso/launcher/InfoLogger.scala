@@ -1,24 +1,31 @@
 package org.enso.launcher
 
 import com.typesafe.scalalogging.Logger
+import org.enso.cli.CLIOutput
 
 /**
-  * This is a temporary object that should be at some point replaced with the
-  * actual logging service.
+  * Handles displaying of user-facing information.
   *
-  * TODO [RW] this should be replaced with the proper logging service once it
-  *  is implemented in #1031
+  * Info-level messages are used to communicate with the user. This class
+  * handles them in special way, so that they are displayed to the user
+  * regardless of logging settings.
   */
 object InfoLogger {
 
-//  private val logger = Logger("launcher")
+  private val logger = Logger("launcher")
 
   /**
-    * Logs an info level message.
+    * Prints an info level message.
+    *
+    * If the default logger is set-up to display info-messages, they are send to
+    * the logger, otherwise they are printed to stdout.
     */
   def info(msg: => String): Unit = {
-    // TODO [RW] add special handling, rename etc.
-    println(msg)
+    if (logger.underlying.isInfoEnabled) {
+      logger.info(msg)
+    } else {
+      CLIOutput.println(msg)
+    }
   }
 
 }

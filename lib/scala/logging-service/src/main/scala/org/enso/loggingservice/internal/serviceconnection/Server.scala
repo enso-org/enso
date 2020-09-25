@@ -11,6 +11,7 @@ import akka.http.scaladsl.model.ws.{
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import io.circe.{parser, Error}
+import org.enso.loggingservice.WSLoggerMode.ServerBinding
 import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.printers.Printer
@@ -22,7 +23,7 @@ import scala.concurrent.{Await, Future}
 
 class Server(
   interface: String,
-  port: Short,
+  port: Int,
   protected val queue: BlockingConsumerMessageQueue,
   printers: Seq[Printer],
   protected val logLevel: LogLevel
@@ -63,11 +64,21 @@ class Server(
       .bindAndHandleSync(
         requestHandler,
         interface = interface,
-        port      = port.toInt
+        port      = port
       )
       .map { serverBinding =>
         bindingOption = Some(serverBinding)
       }
+  }
+
+  def getBinding(): ServerBinding = {
+    val binding = bindingOption.getOrElse(
+      throw new IllegalStateException(
+        "Binding requested before the server has been initialized."
+      )
+    )
+
+    ServerBinding(port = binding.localAddress.getPort)
   }
 
   private var bindingOption: Option[Http.ServerBinding] = None
@@ -120,7 +131,7 @@ class Server(
 object Server {
   def setup(
     interface: String,
-    port: Short,
+    port: Int,
     queue: BlockingConsumerMessageQueue,
     printers: Seq[Printer],
     logLevel: LogLevel
