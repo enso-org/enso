@@ -2249,6 +2249,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
+    val newline    = System.lineSeparator()
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -2322,7 +2323,7 @@ class RuntimeServerTest
             ),
             TextEdit(
               model.Range(model.Position(2, 0), model.Position(2, 0)),
-              "Number.lucky = 42\n\n"
+              s"Number.lucky = 42$newline$newline"
             )
           )
         )
