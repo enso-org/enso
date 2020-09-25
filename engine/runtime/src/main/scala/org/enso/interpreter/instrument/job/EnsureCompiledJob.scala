@@ -112,7 +112,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(module.getName.toString, module.getIr)
         .filter(isSuggestionGlobal)
-      val update = Api.SuggestionsDatabaseModuleUpdate(
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
         module.getLiteralSource.toString,
         Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
@@ -146,7 +146,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
-      val update = Api.SuggestionsDatabaseModuleUpdate(
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
         module.getLiteralSource.toString,
         Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
@@ -170,7 +170,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions =
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
-      val update = Api.SuggestionsDatabaseModuleUpdate(
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
         module.getLiteralSource.toString,
         removedSuggestions
@@ -187,7 +187,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions =
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
-      val update = Api.SuggestionsDatabaseModuleUpdate(
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
         module.getLiteralSource.toString,
         Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
@@ -313,12 +313,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param ctx the runtime context
     */
   private def sendModuleUpdate(
-    payload: Api.SuggestionsDatabaseModuleUpdate
+    payload: Api.SuggestionsDatabaseModuleUpdateNotification
   )(implicit ctx: RuntimeContext): Unit =
     if (payload.updates.nonEmpty) {
-      ctx.endpoint.sendToClient(
-        Api.Response(Api.SuggestionsDatabaseUpdateNotification(Seq(payload)))
-      )
+      ctx.endpoint.sendToClient(Api.Response(payload))
     }
 
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =

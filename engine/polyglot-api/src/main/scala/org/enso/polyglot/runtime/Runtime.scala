@@ -165,8 +165,8 @@ object Runtime {
         name  = "runtimeServerShutDown"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseUpdateNotification],
-        name  = "suggestionsDatabaseUpdateNotification"
+        value = classOf[Api.SuggestionsDatabaseModuleUpdateNotification],
+        name  = "suggestionsDatabaseModuleUpdateNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.SuggestionsDatabaseReIndexNotification],
@@ -724,25 +724,16 @@ object Runtime {
     case class ProjectRenamed(newName: String) extends ApiResponse
 
     /**
-      * The module updates.
+      * A notification about the changes in the suggestions database.
       *
       * @param file the module file path
       * @param contents the module source
       * @param updates the list of suggestions extracted from module
       */
-    case class SuggestionsDatabaseModuleUpdate(
+    case class SuggestionsDatabaseModuleUpdateNotification(
       file: File,
       contents: String,
       updates: Seq[SuggestionsDatabaseUpdate]
-    )
-
-    /**
-      * A notification about the changes in the suggestions database.
-      *
-      * @param payload the list of database updates
-      */
-    case class SuggestionsDatabaseUpdateNotification(
-      payload: Seq[SuggestionsDatabaseModuleUpdate]
     ) extends ApiNotification
 
     /**

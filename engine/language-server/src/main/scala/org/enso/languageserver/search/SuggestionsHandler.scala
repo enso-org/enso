@@ -90,7 +90,7 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionValuesComputed])
     context.system.eventStream
-      .subscribe(self, classOf[Api.SuggestionsDatabaseUpdateNotification])
+      .subscribe(self, classOf[Api.SuggestionsDatabaseModuleUpdateNotification])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
@@ -139,7 +139,7 @@ final class SuggestionsHandler(
       sender() ! CapabilityReleased
       context.become(initialized(projectName, clients - client.clientId))
 
-    case msg: Api.SuggestionsDatabaseUpdateNotification =>
+    case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
       applyDatabaseUpdates(msg)
         .onComplete {
           case Success(notification) =>
@@ -152,7 +152,7 @@ final class SuggestionsHandler(
             log.error(
               ex,
               "Error applying suggestion database updates: {}",
-              msg.payload
+              msg.file
             )
         }
 
@@ -299,10 +299,9 @@ final class SuggestionsHandler(
     * @return the API suggestions database update notification
     */
   private def applyDatabaseUpdates(
-    msg: Api.SuggestionsDatabaseUpdateNotification
+    msg: Api.SuggestionsDatabaseModuleUpdateNotification
   ): Future[SuggestionsDatabaseUpdateNotification] = {
-    val (addCmds, removeCmds, cleanCmds) = msg.payload
-      .flatMap(_.updates)
+    val (addCmds, removeCmds, cleanCmds) = msg.updates
       .foldLeft((Seq[Suggestion](), Seq[Suggestion](), Seq[String]())) {
         case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Add) =>
           (add :+ m.suggestion, remove, clean)
@@ -311,8 +310,7 @@ final class SuggestionsHandler(
         case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Clean) =>
           (add, remove, clean :+ m.module)
       }
-    val versionUpdates = msg.payload
-      .map(p => (p.file, versionCalculator.evalDigest(p.contents)))
+    val fileVersion = versionCalculator.evalDigest(msg.contents)
     log.debug(
       s"Applying suggestion updates: Add(${addCmds.map(_.name).mkString(",")}); Remove(${removeCmds
         .map(_.name)
@@ -322,7 +320,7 @@ final class SuggestionsHandler(
       (_, cleanedIds)     <- suggestionsRepo.removeAllByModule(cleanCmds)
       (_, removedIds)     <- suggestionsRepo.removeAll(removeCmds)
       (version, addedIds) <- suggestionsRepo.insertAll(addCmds)
-      _                   <- fileVersionsRepo.updateVersions(versionUpdates)
+      _                   <- fileVersionsRepo.setVersion(msg.file, fileVersion)
     } yield {
       val updatesCleaned = cleanedIds.map(SuggestionsDatabaseUpdate.Remove(_))
       val updatesRemoved =
