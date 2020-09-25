@@ -1093,8 +1093,7 @@ lazy val launcher = project
             "--initialize-at-run-time=" +
             "akka.protobuf.DescriptorProtos," +
             "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
-            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder",
-            "--allow-incomplete-classpath"
+            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
           )
         )
         .value,
