@@ -91,10 +91,6 @@ final class SuggestionsHandler(
       .subscribe(self, classOf[Api.ExpressionValuesComputed])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseUpdateNotification])
-    context.system.eventStream
-      .subscribe(self, classOf[Api.SuggestionsDatabaseReIndexNotification])
-    context.system.eventStream
-      .subscribe(self, classOf[Api.SuggestionsDatabaseIndexUpdateNotification])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
@@ -143,23 +139,6 @@ final class SuggestionsHandler(
       sender() ! CapabilityReleased
       context.become(initialized(projectName, clients - client.clientId))
 
-    case msg: Api.SuggestionsDatabaseIndexUpdateNotification =>
-      applyIndexedModuleUpdates(msg.updates.toSeq)
-        .onComplete {
-          case Success(notification) =>
-            if (notification.updates.nonEmpty) {
-              clients.foreach { clientId =>
-                sessionRouter ! DeliverToJsonController(clientId, notification)
-              }
-            }
-          case Failure(ex) =>
-            log.error(
-              ex,
-              "Error applying suggestion database updates: {}",
-              msg.updates.map(_.file)
-            )
-        }
-
     case msg: Api.SuggestionsDatabaseUpdateNotification =>
       applyDatabaseUpdates(msg)
         .onComplete {
@@ -174,24 +153,6 @@ final class SuggestionsHandler(
               ex,
               "Error applying suggestion database updates: {}",
               msg.payload
-            )
-        }
-
-    case msg: Api.SuggestionsDatabaseReIndexNotification =>
-      log.debug(s"ReIndex ${msg.moduleName} ${msg.updates.map(_.suggestion)}")
-      applyReIndexUpdates(msg.updates)
-        .onComplete {
-          case Success(notification) =>
-            if (notification.updates.nonEmpty) {
-              clients.foreach { clientId =>
-                sessionRouter ! DeliverToJsonController(clientId, notification)
-              }
-            }
-          case Failure(ex) =>
-            log.error(
-              ex,
-              "Error applying suggestion re-index updates: {}",
-              msg.updates
             )
         }
 
@@ -210,6 +171,20 @@ final class SuggestionsHandler(
                 SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
             }
             SuggestionsDatabaseUpdateNotification(version, updates)
+        }
+        .onComplete {
+          case Success(notification) =>
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+          case Failure(ex) =>
+            log.error(
+              ex,
+              "Error applying changes from computed values: {}",
+              updates
+            )
         }
 
     case GetSuggestionsDatabaseVersion =>
@@ -311,68 +286,6 @@ final class SuggestionsHandler(
       log.debug("Initialized")
       context.become(initialized(name, Set()))
       unstashAll()
-    }
-  }
-
-  private def applyIndexedModuleUpdates(
-    updates: Seq[Api.IndexedModule]
-  ): Future[SuggestionsDatabaseUpdateNotification] = {
-    def createIndexedModuleUpdatesBatch(
-      contents: String,
-      file: java.io.File,
-      updates: Seq[Api.SuggestionsDatabaseUpdate.Add]
-    ): Future[Seq[Api.SuggestionsDatabaseUpdate.Add]] =
-      fileVersionsRepo
-        .updateVersion(file, versionCalculator.evalDigest(contents))
-        .map(versionChanged => if (versionChanged) updates else Seq())
-    def getBatches =
-      Future
-        .traverse(updates) { indexed =>
-          createIndexedModuleUpdatesBatch(
-            indexed.contents,
-            indexed.file,
-            indexed.updates
-          )
-        }
-        .map(_.flatten)
-    for {
-      batch  <- getBatches
-      update <- applyReIndexUpdates(batch)
-    } yield update
-  }
-
-  /**
-    * Handle the suggestions database re-index update.
-    *
-    * Function clears existing module suggestions from the database, inserts new
-    * suggestions and builds the notification containing combined removed and
-    * added suggestions.
-    *
-    * @param updates the list of updates after the full module re-index
-    * @return the API suggestions database update notification
-    */
-  private def applyReIndexUpdates(
-    updates: Seq[Api.SuggestionsDatabaseUpdate.Add]
-  ): Future[SuggestionsDatabaseUpdateNotification] = {
-    val added   = updates.map(_.suggestion)
-    val modules = updates.map(_.suggestion.module).distinct
-    log.debug(s"Applying re-index updates; modules=$modules")
-    for {
-      (_, removedIds)     <- suggestionsRepo.removeAllByModule(modules)
-      (version, addedIds) <- suggestionsRepo.insertAll(added)
-    } yield {
-      val updatesRemoved = removedIds.map(SuggestionsDatabaseUpdate.Remove)
-      val updatesAdded = (addedIds zip added).flatMap {
-        case (Some(id), suggestion) =>
-          Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
-        case (None, suggestion) =>
-          log.error("Failed to insert re-index suggestion: {}", suggestion)
-          None
-      }
-      SuggestionsDatabaseUpdateNotification(
-        version,
-        updatesRemoved :++ updatesAdded
-      )
     }
   }
 

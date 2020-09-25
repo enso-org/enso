@@ -350,9 +350,7 @@ object Runtime {
         )
       )
     )
-    sealed trait SuggestionsDatabaseUpdate {
-      def module: String
-    }
+    sealed trait SuggestionsDatabaseUpdate
     object SuggestionsDatabaseUpdate {
 
       /**
@@ -360,9 +358,7 @@ object Runtime {
         *
         * @param suggestion the new suggestion
         */
-      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate {
-        override val module = suggestion.module
-      }
+      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
 
       /**
         * Remove the database entry.
@@ -370,9 +366,7 @@ object Runtime {
         * @param suggestion the suggestion to remove
         */
       case class Remove(suggestion: Suggestion)
-          extends SuggestionsDatabaseUpdate {
-        override val module = suggestion.module
-      }
+          extends SuggestionsDatabaseUpdate
 
       /**
         * Remove all module entries from the database.
