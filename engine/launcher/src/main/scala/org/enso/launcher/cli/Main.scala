@@ -19,6 +19,7 @@ object Main {
   private def runAppHandlingParseErrors(args: Array[String]): Int =
     LauncherApplication.application.run(args) match {
       case Left(errors) =>
+        LauncherLogging.setupFallback()
         CLIOutput.println(errors.mkString("\n"))
         1
       case Right(exitCode) =>

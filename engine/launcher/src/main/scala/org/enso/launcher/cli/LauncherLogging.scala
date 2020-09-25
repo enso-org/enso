@@ -16,7 +16,8 @@ import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object LauncherLogging {
-  private val logger = Logger[LauncherLogging.type]
+  private val logger            = Logger[LauncherLogging.type]
+  val defaultLogLevel: LogLevel = LogLevel.Warning
 
   /**
     * Sets up launcher's logging service as either a server that gathers other
@@ -40,7 +41,7 @@ object LauncherLogging {
     logLevel: Option[LogLevel],
     connectToExternalLogger: Option[Uri]
   ): Unit = {
-    val actualLogLevel = logLevel.getOrElse(LogLevel.Warning)
+    val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
     connectToExternalLogger match {
       case Some(uri) =>
         WSLoggerManager
@@ -63,6 +64,16 @@ object LauncherLogging {
       case None =>
         setupLoggingServer(actualLogLevel)
     }
+  }
+
+  /**
+    * Sets up a fallback logger that just logs to stderr.
+    *
+    * It can be used when the application has failed to parse the CLI options
+    * and does not know which logger to set up.
+    */
+  def setupFallback(): Unit = {
+    WSLoggerManager.setup(WSLoggerMode.Local(), defaultLogLevel)
   }
 
   /**
