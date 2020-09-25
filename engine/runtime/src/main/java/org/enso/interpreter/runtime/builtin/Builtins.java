@@ -66,6 +66,8 @@ public class Builtins {
   private final RootCallTarget interopDispatchRoot;
   private final FunctionSchema interopDispatchSchema;
   private final Function newInstanceFunction;
+  private final Function polyglotArrayLengthFunction;
+  private final Function polyglotArrayAtFunction;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -170,6 +172,12 @@ public class Builtins {
             new boolean[] {false, true, false},
             new CallArgumentInfo[0]);
     newInstanceFunction = ConstructorDispatchNode.makeFunction(language);
+    polyglotArrayAtFunction =
+        org.enso.interpreter.node.expression.builtin.interop.syntax.GetArrayElementMethodGen
+            .makeFunction(language);
+    polyglotArrayLengthFunction =
+        org.enso.interpreter.node.expression.builtin.interop.syntax.ArrayLengthMethodGen
+            .makeFunction(language);
 
     module.unsafeBuildIrStub();
   }
@@ -283,6 +291,14 @@ public class Builtins {
   public Function buildPolyglotMethodDispatch(UnresolvedSymbol method) {
     Object[] preAppliedArr = new Object[] {null, method, null};
     return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
+  }
+
+  public Function getPolyglotArrayLengthFunction() {
+    return polyglotArrayLengthFunction;
+  }
+
+  public Function getPolyglotArrayAtFunction() {
+    return polyglotArrayAtFunction;
   }
 
   /** @return a function executing a constructor with given arguments. */

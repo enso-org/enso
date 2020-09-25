@@ -6,6 +6,8 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
@@ -189,6 +191,21 @@ public abstract class MethodResolverNode extends Node {
       @Cached(value = "resolveMethodOnArray(cachedSymbol)", allowUncached = true)
           Function function) {
     return function;
+  }
+
+  @Specialization(guards = {"arrays.hasArrayElements(array)"})
+  Function resolvePolyglotArray(
+      UnresolvedSymbol symbol,
+      Object array,
+      @CachedLibrary(limit = "3") InteropLibrary arrays,
+      @CachedContext(Language.class) Context ctx) {
+    if (symbol.getName().equals("at")) {
+      return ctx.getBuiltins().getPolyglotArrayAtFunction();
+    } else if (symbol.getName().equals("length")) {
+      return ctx.getBuiltins().getPolyglotArrayLengthFunction();
+    } else {
+      throw new MethodDoesNotExistException(array, symbol.getName(), this);
+    }
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})

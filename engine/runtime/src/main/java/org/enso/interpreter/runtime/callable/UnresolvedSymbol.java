@@ -65,10 +65,10 @@ public class UnresolvedSymbol implements TruffleObject {
     return null;
   }
 
-//  @Override
-//  public String toString() {
-//    return "UnresolvedSymbol<" + this.name + ">";
-//  }
+  @Override
+  public String toString() {
+    return "UnresolvedSymbol<" + this.name + ">";
+  }
 
   /**
    * Creates an instance of this node.

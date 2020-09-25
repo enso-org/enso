@@ -4,8 +4,34 @@ from Builtins import Text, Prim_Text_Helpers
 from Builtins export Text
 
 polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import org.enso.base.Text_Utils
 
-consume_iterator 
+each_iterator iter f =
+    fst = iter.first []
+    nxt = iter.next []
+
+    iterate p n = if n == -1 then Unit else
+        f p n
+        nn = iter.next []
+        iterate n nn
+
+    iterate fst nxt
+    Unit
 
 Text.each function =
-    
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    here.each_iterator iterator (s -> e -> function (Text_Utils.substring [this, s, e]))
+    Unit
+
+Text.characters =
+    bldr = Vector.new_builder
+    this.each bldr.append
+    r = bldr.to_vector
+    r
+
+Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
+
+Text.codepoints = Vector.from_polyglot_array (Text_Utils.get_codepoints [this])
+
+Text.split_at separator = Vector.from_polyglot_array (Text_Utils.split_at [this, separator])

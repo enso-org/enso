@@ -10,6 +10,9 @@ polyglot java import java.util.ArrayList
 spec = describe "Java FFI" <|
     it "should call methods imported from Java" <|
         Long.sum [1, 2] . should_equal 3
+
+    ## TODO
+       https://github.com/enso-org/enso/issues/1163
     it "should call constructors imported from Java" pending=True <|
         list = ArrayList.new []
         list.add 432

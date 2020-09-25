@@ -25,6 +25,15 @@ type Vector
     at : Number -> Any
     at index = this.to_array.at index
 
+    new_builder : Builder
+    new_builder = Builder.new
+
+    from_polyglot_array arr =
+        a = Array.new arr.length
+        0.upto arr.length . each i->
+            a.set_at i (arr.at i)
+        Vector a
+
     ## Returns the number of elements stored in this vector.
     length : Number
     length = this.to_array.length
@@ -104,3 +113,32 @@ type Vector
                 folder = str -> ix -> str + ", " + (arr.at ix).to_text
                 tail_elems = 1.upto arr.length . fold "" folder
                 "[" + (arr.at 0 . to_text) + tail_elems + "]"
+
+type Builder
+    type Builder to_array length
+
+    new = Builder (Array.new 1) 0
+
+    capacity = this.to_array.length
+
+    append item = case this.capacity > this.length of
+        True ->
+            this.to_array.set_at this.length item
+            Unsafe.set_atom_field this 1 (this.length + 1)
+        False ->
+            old_array = this.to_array
+            new_array = Array.new old_array.length*2
+            0.upto this.length . each i->
+                new_array.set_at i (old_array.at i)
+                Unit
+            Unsafe.set_atom_field this 0 new_array
+            this.append item
+            Unit
+
+    to_vector =
+        old_array = this.to_array
+        new_array = Array.new this.length
+        0.upto this.length . each i->
+            new_array.set_at i (old_array.at i)
+            Unit
+        Vector new_array
