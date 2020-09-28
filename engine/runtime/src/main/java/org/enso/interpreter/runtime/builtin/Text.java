@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.builtin;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.bool.*;
 import org.enso.interpreter.node.expression.builtin.text.ConcatMethodGen;
-import org.enso.interpreter.node.expression.builtin.text.EachClusterMethodGen;
 import org.enso.interpreter.node.expression.builtin.text.OptimizeMethodGen;
 import org.enso.interpreter.node.expression.builtin.text.TextEqualsMethodGen;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
