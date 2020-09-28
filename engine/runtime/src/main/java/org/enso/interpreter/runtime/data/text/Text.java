@@ -37,14 +37,27 @@ public class Text implements TruffleObject {
     return new Text(new ConcatRope(t1.contents, t2.contents));
   }
 
+  public static Text create(Text t1, String t2) {
+    return new Text(new ConcatRope(t1.contents, t2));
+  }
+
   @ExportMessage
   boolean isString() {
     return true;
   }
 
   @ExportMessage
-  String asString(@Cached("build()") ToJavaStringNode toJavaStringNode) {
+  String asString(@Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     return toJavaStringNode.execute(this);
+  }
+
+  @ExportMessage
+  String toDisplayString(
+      boolean allowSideEffects,
+      @Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
+    String str = toJavaStringNode.execute(this);
+    String replaced = str.replace("\"", "\\\"");
+    return "\"" + replaced + "\"";
   }
 
   public boolean isFlat() {

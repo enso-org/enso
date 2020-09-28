@@ -79,7 +79,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code)
-      consumeOut shouldEqual List("foobar")
+      consumeOut shouldEqual List("\"foobar\"")
     }
 
     "work with lambda consolidation" in {

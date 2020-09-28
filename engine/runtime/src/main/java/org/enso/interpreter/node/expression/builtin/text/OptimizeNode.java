@@ -13,8 +13,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 public class OptimizeNode extends Node {
   private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
-  Text execute(Text _this) {
-    toJavaStringNode.execute(_this);
-    return _this;
+  Text execute(Object _this, Text text) {
+    toJavaStringNode.execute(text);
+    return text;
   }
 }

@@ -238,7 +238,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |main = Cons2 5
           |""".stripMargin
 
-      eval(code).toString shouldEqual "Cons2 5 Nil2"
+      eval(code).toString shouldEqual "(Cons2 5 Nil2)"
     }
 
     "work with constructors" in {

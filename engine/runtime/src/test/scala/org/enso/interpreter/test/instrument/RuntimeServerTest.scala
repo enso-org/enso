@@ -43,7 +43,6 @@ class RuntimeServerTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
@@ -1192,7 +1191,7 @@ class RuntimeServerTest
       ),
       context.executionSuccessful(contextId)
     )
-    context.consumeOut shouldEqual List("Hi")
+    context.consumeOut shouldEqual List("\"Hi\"")
   }
 
   it should "send updates when the method pointer is changed" in {
@@ -1489,7 +1488,7 @@ class RuntimeServerTest
       ),
       context.executionSuccessful(contextId)
     )
-    context.consumeOut shouldEqual List("hie!")
+    context.consumeOut shouldEqual List("\"hie!\"")
 
     // Edit s/Main.hie/"Hello!"/
     context.send(
@@ -1514,7 +1513,7 @@ class RuntimeServerTest
       ),
       context.executionSuccessful(contextId)
     )
-    context.consumeOut shouldEqual List("Hello!")
+    context.consumeOut shouldEqual List("\"Hello!\"")
   }
 
   it should "send updates for overloaded functions" in {
@@ -1928,7 +1927,7 @@ class RuntimeServerTest
       ),
       context.executionSuccessful(contextId)
     )
-    context.consumeOut shouldEqual List("I'm a file!")
+    context.consumeOut shouldEqual List("\"I'm a file!\"")
 
     // Modify the file
     context.send(
@@ -1945,7 +1944,7 @@ class RuntimeServerTest
       )
     )
     context.receive shouldEqual Some(context.executionSuccessful(contextId))
-    context.consumeOut shouldEqual List("I'm a modified!")
+    context.consumeOut shouldEqual List("\"I'm a modified!\"")
 
     // Close the file
     context.send(Api.Request(Api.CloseFileNotification(mainFile)))
@@ -2286,7 +2285,7 @@ class RuntimeServerTest
       ),
       context.executionSuccessful(contextId)
     )
-    context.consumeOut shouldEqual List("I'm a file!")
+    context.consumeOut shouldEqual List("\"I'm a file!\"")
 
     // Modify the file
     context.send(
@@ -2326,7 +2325,7 @@ class RuntimeServerTest
       ),
       context.executionSuccessful(contextId)
     )
-    context.consumeOut shouldEqual List("I'm a modified!")
+    context.consumeOut shouldEqual List("\"I'm a modified!\"")
 
     // Close the file
     context.send(Api.Request(Api.CloseFileNotification(mainFile)))
@@ -2835,7 +2834,7 @@ class RuntimeServerTest
       context.Main2.Update.mainZ(contextId),
       context.executionSuccessful(contextId)
     )
-    context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
+    context.consumeOut shouldEqual List("\"I'm expensive!\"", "\"I'm more expensive!\"")
 
     // recompute
     context.send(

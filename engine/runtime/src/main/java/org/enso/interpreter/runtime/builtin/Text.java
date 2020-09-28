@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** A container class for all Boolean-related stdlib builtins. */
 public class Text {
   private final AtomConstructor text;
-  private final AtomConstructor primTextHelpers;
 
   /**
    * Creates and registers all the boolean constructors.
@@ -22,16 +21,13 @@ public class Text {
   public Text(Language language, ModuleScope scope) {
     text = new AtomConstructor("Text", scope).initializeFields();
     scope.registerConstructor(text);
-    primTextHelpers = new AtomConstructor("Prim_Text_Helper", scope).initializeFields();
+    AtomConstructor primTextHelpers =
+        new AtomConstructor("Prim_Text_Helper", scope).initializeFields();
     scope.registerConstructor(primTextHelpers);
 
     scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
     scope.registerMethod(text, "==", TextEqualsMethodGen.makeFunction(language));
-    scope.registerMethod(
-        text,
-        "to_text",
-        org.enso.interpreter.node.expression.builtin.text.ToTextMethodGen.makeFunction(language));
-    scope.registerMethod(text, "optimize", OptimizeMethodGen.makeFunction(language));
+    scope.registerMethod(primTextHelpers, "optimize", OptimizeMethodGen.makeFunction(language));
   }
 
   public AtomConstructor getText() {

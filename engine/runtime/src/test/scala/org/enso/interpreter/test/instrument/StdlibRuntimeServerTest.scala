@@ -186,7 +186,7 @@ class StdlibRuntimeServerTest
         ) should not contain "Test.Main"
     } should have length 1
 
-    context.consumeOut shouldEqual List("Hello World!")
+    context.consumeOut shouldEqual List("\"Hello World!\"")
   }
 
 }

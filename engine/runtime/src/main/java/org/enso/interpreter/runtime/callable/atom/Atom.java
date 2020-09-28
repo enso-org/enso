@@ -8,9 +8,13 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Arrays;
 import java.util.List;
@@ -91,17 +95,6 @@ public class Atom implements TruffleObject {
     return toString(false);
   }
 
-  /**
-   * Displays a human-readable string representation of this atom.
-   *
-   * @param allowSideEffects whether or not to allow side effects in displaying the string
-   * @return a string representation of this atom
-   */
-  @ExportMessage
-  public Object toDisplayString(boolean allowSideEffects) {
-    return this.toString();
-  }
-
   @ExportMessage
   public boolean hasMembers() {
     return true;
@@ -126,7 +119,7 @@ public class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  public static class InvokeMember {
+  static class InvokeMember {
     static UnresolvedSymbol buildSym(AtomConstructor cons, String name) {
       return UnresolvedSymbol.build(name, cons.getDefinitionScope());
     }
@@ -148,6 +141,19 @@ public class Atom implements TruffleObject {
       args[0] = receiver;
       System.arraycopy(arguments, 0, args, 1, arguments.length);
       return symbols.execute(cachedSym, args);
+    }
+  }
+
+  @ExportMessage
+  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms) {
+    try {
+      return TypesGen.expectText(atoms.invokeMember(this, "to_text"));
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnknownIdentifierException
+        | UnsupportedTypeException
+        | UnexpectedResultException e) {
+      return Text.create(this.toString());
     }
   }
 }

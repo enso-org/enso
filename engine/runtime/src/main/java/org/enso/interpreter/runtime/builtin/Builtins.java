@@ -62,12 +62,7 @@ public class Builtins {
   private final Bool bool;
   private final System system;
   private final Array array;
-
-  private final RootCallTarget interopDispatchRoot;
-  private final FunctionSchema interopDispatchSchema;
-  private final Function newInstanceFunction;
-  private final Function polyglotArrayLengthFunction;
-  private final Function polyglotArrayAtFunction;
+  private final Polyglot polyglot;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -89,6 +84,7 @@ public class Builtins {
     debug = new AtomConstructor("Debug", scope).initializeFields();
     system = new System(language, scope);
     number = new Number(language, scope);
+    polyglot = new Polyglot(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -124,8 +120,6 @@ public class Builtins {
 
     scope.registerConstructor(unsafe);
 
-    createPolyglot(language);
-
     scope.registerMethod(io, "println", PrintlnMethodGen.makeFunction(language));
     scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
@@ -159,40 +153,7 @@ public class Builtins {
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
 
-    interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
-    interopDispatchSchema =
-        new FunctionSchema(
-            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
-            FunctionSchema.CallerFrameAccess.NONE,
-            new ArgumentDefinition[] {
-              new ArgumentDefinition(1, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
-              new ArgumentDefinition(2, "method_name", ArgumentDefinition.ExecutionMode.EXECUTE),
-              new ArgumentDefinition(3, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE)
-            },
-            new boolean[] {false, true, false},
-            new CallArgumentInfo[0]);
-    newInstanceFunction = ConstructorDispatchNode.makeFunction(language);
-    polyglotArrayAtFunction =
-        org.enso.interpreter.node.expression.builtin.interop.syntax.GetArrayElementMethodGen
-            .makeFunction(language);
-    polyglotArrayLengthFunction =
-        org.enso.interpreter.node.expression.builtin.interop.syntax.ArrayLengthMethodGen
-            .makeFunction(language);
-
     module.unsafeBuildIrStub();
-  }
-
-  private void createPolyglot(Language language) {
-    AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
-    scope.registerConstructor(polyglot);
-    scope.registerMethod(polyglot, "execute", ExecuteMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "invoke", InvokeMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "new", InstantiateMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "get_member", GetMemberMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "get_members", GetMembersMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "get_array_size", GetArraySizeMethodGen.makeFunction(language));
-    scope.registerMethod(
-        polyglot, "get_array_element", GetArrayElementMethodGen.makeFunction(language));
   }
 
   /**
@@ -269,6 +230,11 @@ public class Builtins {
     return array;
   }
 
+  /** @return the container for polyglot-related builtins. */
+  public Polyglot polyglot() {
+    return polyglot;
+  }
+
   /**
    * Returns the builtin module scope.
    *
@@ -280,29 +246,5 @@ public class Builtins {
 
   public Module getModule() {
     return module;
-  }
-
-  /**
-   * Builds a function dispatching to a polyglot method call.
-   *
-   * @param method the name and scope of the method this function will dispatch to.
-   * @return a function calling {@code method} with given arguments.
-   */
-  public Function buildPolyglotMethodDispatch(UnresolvedSymbol method) {
-    Object[] preAppliedArr = new Object[] {null, method, null};
-    return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
-  }
-
-  public Function getPolyglotArrayLengthFunction() {
-    return polyglotArrayLengthFunction;
-  }
-
-  public Function getPolyglotArrayAtFunction() {
-    return polyglotArrayAtFunction;
-  }
-
-  /** @return a function executing a constructor with given arguments. */
-  public Function getConstructorDispatch() {
-    return newInstanceFunction;
   }
 }

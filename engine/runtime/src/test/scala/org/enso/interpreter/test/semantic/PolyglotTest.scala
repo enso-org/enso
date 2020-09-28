@@ -51,9 +51,9 @@ class PolyglotTest extends InterpreterTest {
       val count :: methods = consumeOut
       count shouldEqual "3"
       methods.toSet shouldEqual Set(
-        "method1",
-        "method2",
-        "callFunctionAndIncrement"
+        "\"method1\"",
+        "\"method2\"",
+        "\"callFunctionAndIncrement\""
       )
     }
   }

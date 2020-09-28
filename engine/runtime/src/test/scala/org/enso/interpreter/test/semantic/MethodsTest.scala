@@ -30,7 +30,7 @@ class MethodsTest extends InterpreterTest {
           |main = (IO.println "foo").foo
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("foo")
+      consumeOut shouldEqual List("\"foo\"")
     }
 
     "be callable with dot operator" in {

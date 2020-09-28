@@ -1,8 +1,14 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.interop.InteropLibrary;
 
 /** A runtime object representing an arbitrary, user-created error. */
+@ExportLibrary(InteropLibrary.class)
 public class RuntimeError implements TruffleObject {
   private final Object payload;
 
@@ -32,5 +38,17 @@ public class RuntimeError implements TruffleObject {
   @Override
   public String toString() {
     return "Error:" + getPayload().toString();
+  }
+
+  @ExportMessage
+  public String toDisplayString(
+      boolean allowSideEffects,
+      @CachedLibrary(limit = "3") InteropLibrary displays,
+      @CachedLibrary(limit = "3") InteropLibrary strings) {
+    try {
+      return "(Error: " + strings.asString(displays.toDisplayString(payload)) + ")";
+    } catch (UnsupportedMessageException e) {
+      return "Error";
+    }
   }
 }

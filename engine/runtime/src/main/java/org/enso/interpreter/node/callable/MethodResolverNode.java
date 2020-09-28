@@ -200,9 +200,9 @@ public abstract class MethodResolverNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary arrays,
       @CachedContext(Language.class) Context ctx) {
     if (symbol.getName().equals("at")) {
-      return ctx.getBuiltins().getPolyglotArrayAtFunction();
+      return ctx.getBuiltins().polyglot().getPolyglotArrayAtFunction();
     } else if (symbol.getName().equals("length")) {
-      return ctx.getBuiltins().getPolyglotArrayLengthFunction();
+      return ctx.getBuiltins().polyglot().getPolyglotArrayLengthFunction();
     } else {
       throw new MethodDoesNotExistException(array, symbol.getName(), this);
     }
@@ -301,9 +301,11 @@ public abstract class MethodResolverNode extends Node {
 
   Function buildHostResolver(UnresolvedSymbol symbol, Context context) {
     if (symbol.getName().equals("new")) {
-      return context.getBuiltins().getConstructorDispatch();
+      return context.getBuiltins().polyglot().getConstructorDispatch();
+    } else if (symbol.getName().equals("to_text")) {
+      return context.getBuiltins().polyglot().getPolyglotToTextFunction();
     } else {
-      return context.getBuiltins().buildPolyglotMethodDispatch(symbol);
+      return context.getBuiltins().polyglot().buildPolyglotMethodDispatch(symbol);
     }
   }
 

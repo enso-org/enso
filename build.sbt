@@ -852,8 +852,7 @@ lazy val runtime = (project in file("engine/runtime"))
         "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
         "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
         "org.typelevel"      %% "cats-core"             % catsVersion,
-        "eu.timepit"         %% "refined"               % refinedVersion,
-        "com.ibm.icu"         % "icu4j"                 % "67.1"            % "provided"
+        "eu.timepit"         %% "refined"               % refinedVersion
       ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,

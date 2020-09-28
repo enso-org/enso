@@ -17,7 +17,7 @@ class TextTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code)
-      consumeOut shouldEqual List("hello world!")
+      consumeOut shouldEqual List("\"hello world!\"")
     }
 
     "support text concatenation" in {
@@ -30,7 +30,7 @@ class TextTest extends InterpreterTest {
           |    IO.println h+w
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("Hello, World!")
+      consumeOut shouldEqual List("\"Hello, World!\"")
     }
 
     "support converting arbitrary structures to text" in {
@@ -40,12 +40,12 @@ class TextTest extends InterpreterTest {
           |type My_Type a
           |
           |main =
-          |    IO.println 5.to_text
-          |    IO.println (My_Type (My_Type 10)).to_text
-          |    IO.println "123".to_text
+          |    IO.println 5
+          |    IO.println (My_Type (My_Type 10))
+          |    IO.println "123"
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("5", "My_Type (My_Type 10)", "123")
+      consumeOut shouldEqual List("5", "(My_Type (My_Type 10))", "\"123\"")
     }
 
     "support text creation with raw block literals" in {
@@ -62,7 +62,7 @@ class TextTest extends InterpreterTest {
            |""".stripMargin
 
       eval(code)
-      consumeOut shouldEqual List("Foo", "Bar", "  Baz")
+      consumeOut shouldEqual List("\"Foo", "Bar", "  Baz\"")
     }
 
     "support escape sequences in literals" in {
@@ -73,12 +73,11 @@ class TextTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code)
-      consumeOut shouldEqual List("\"Grzegorz Brzeczyszczykiewicz\"")
+      consumeOut shouldEqual List("\"\\\"Grzegorz Brzeczyszczykiewicz\\\"\"")
     }
 
     "support printing to standard error" in {
       val errString = "\"My error string\""
-      val resultStr = errString.drop(1).dropRight(1)
 
       val code =
         s"""from Builtins import all
@@ -87,7 +86,7 @@ class TextTest extends InterpreterTest {
            |""".stripMargin
 
       eval(code)
-      consumeErr shouldEqual List(resultStr)
+      consumeErr shouldEqual List(errString)
     }
 
     "support reading from standard input" in {
