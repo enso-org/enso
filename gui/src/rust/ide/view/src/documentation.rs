@@ -13,7 +13,7 @@ use ensogl::display::scene::Scene;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
 use ensogl::system::web::AttributeSetter;
-
+use ensogl::gui::component;
 
 
 // =================
@@ -22,12 +22,13 @@ use ensogl::system::web::AttributeSetter;
 
 /// Width of Documentation panel.
 pub const VIEW_WIDTH  : f32 = 300.0;
-/// Margin of Documentation panel.
-pub const VIEW_MARGIN : f32 = 15.0;
+/// Height of Documentation panel.
+pub const VIEW_HEIGHT : f32 = 300.0;
 
 /// Content in the documentation view when there is no data available.
 const PLACEHOLDER_STR : &str = "<h3>Documentation Viewer</h3><p>No documentation available</p>";
 const CORNER_RADIUS   : f32  = crate::graph_editor::component::node::CORNER_RADIUS;
+const PADDING         : f32  = 5.0;
 
 /// Get documentation view stylesheet from a CSS file.
 ///
@@ -45,6 +46,14 @@ fn documentation_style() -> String {
 // === ViewModel ===
 // =================
 
+/// The input type for documentation parser. See documentation of `View` for details.
+#[derive(Clone,Copy,Debug)]
+enum InputFormat {
+    AST,Docstring
+}
+
+pub use visualization::container::overlay;
+
 /// Model of Native visualization that generates documentation for given Enso code and embeds
 /// it in a HTML container.
 #[derive(Clone,CloneRef,Debug)]
@@ -53,34 +62,38 @@ pub struct ViewModel {
     logger : Logger,
     dom    : DomSymbol,
     size   : Rc<Cell<Vector2>>,
+    /// The purpose of this overlay is stop propagating events under the documentation panel.
+    //FIXME[ao] This mechanism should be shared between all html elements displayed over the canvas.
+    overlay        : component::ShapeView<overlay::Shape>,
+    display_object : display::object::Instance,
 }
 
 impl ViewModel {
     /// Constructor.
     fn new(scene:&Scene) -> Self {
-        let logger      = Logger::new("DocumentationView");
-        let div         = web::create_div();
-        let dom         = DomSymbol::new(&div);
-        let screen      = scene.camera().screen();
-        let view_height = screen.height - (VIEW_MARGIN * 2.0);
-        let size_vec    = Vector2(VIEW_WIDTH, view_height);
-        let size        = Rc::new(Cell::new(size_vec));
+        let logger         = Logger::new("DocumentationView");
+        let display_object = display::object::Instance::new(&logger);
+        let div            = web::create_div();
+        let dom            = DomSymbol::new(&div);
+        let size           = Rc::new(Cell::new(Vector2(VIEW_WIDTH,VIEW_HEIGHT)));
+        let overlay        = component::ShapeView::<overlay::Shape>::new(&logger,scene);
 
         dom.dom().set_attribute_or_warn("class","scrollable",&logger);
-
         dom.dom().set_style_or_warn("white-space"     ,"normal"                      ,&logger);
         dom.dom().set_style_or_warn("overflow-y"      ,"auto"                        ,&logger);
         dom.dom().set_style_or_warn("overflow-x"      ,"auto"                        ,&logger);
-        dom.dom().set_style_or_warn("background-color","rgba(255, 255, 255, 0.85)"   ,&logger);
-        dom.dom().set_style_or_warn("padding"         ,"5px"                         ,&logger);
+        dom.dom().set_style_or_warn("background-color","#FAF8F4"                     ,&logger);
+        dom.dom().set_style_or_warn("padding"         ,format!("{}px",PADDING)       ,&logger);
         dom.dom().set_style_or_warn("pointer-events"  ,"auto"                        ,&logger);
         dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS) ,&logger);
-        dom.dom().set_style_or_warn("width"           ,format!("{}px",VIEW_WIDTH)    ,&logger);
-        dom.dom().set_style_or_warn("height"          ,format!("{}px",view_height)   ,&logger);
         dom.dom().set_style_or_warn("box-shadow"      ,"0 0 16px rgba(0, 0, 0, 0.06)",&logger);
 
+        overlay.shape.roundness.set(1.0);
+        overlay.shape.radius.set(CORNER_RADIUS);
+        display_object.add_child(&dom);
+        display_object.add_child(&overlay);
         scene.dom.layers.front.manage(&dom);
-        ViewModel {logger,dom,size}.init()
+        ViewModel {logger,dom,size,overlay,display_object}.init()
     }
 
     fn init(self) -> Self {
@@ -91,24 +104,30 @@ impl ViewModel {
     /// Set size of the documentation view.
     fn set_size(&self, size:Vector2) {
         self.size.set(size);
+        self.overlay.shape.sprite.size.set(size);
         self.reload_style();
     }
 
     /// Generate HTML documentation from documented Enso code.
-    fn gen_html_from(program:String) -> FallibleResult<String> {
-        let parser = parser::DocParser::new()?;
-        let output = parser.generate_html_docs(program);
-        Ok(output?)
-    }
-
-    /// Prepare data string for Doc Parser to work with after deserialization.
-    /// FIXME [MM]:  Removes characters that are not supported by Doc Parser yet.
-    ///              https://github.com/enso-org/enso/issues/1063
-    fn prepare_data_string(data_inner:&visualization::Json) -> String {
-        let data_str = serde_json::to_string_pretty(&**data_inner);
-        let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>",e));
-        let data_str = data_str.replace("\\n", "\n");
-        data_str.replace("\"", "")
+    fn gen_html_from(string:&str, input_type: InputFormat) -> FallibleResult<String> {
+        if string.is_empty() {
+            Ok(PLACEHOLDER_STR.into())
+        } else {
+            let parser    = parser::DocParser::new()?;
+            // FIXME [MM]:  Removes characters that are not supported by Doc Parser yet.
+            //              https://github.com/enso-org/enso/issues/1063
+            let processed = string.replace("\\n", "\n").replace("\"", "");
+            let output = match input_type {
+                InputFormat::AST  => parser.generate_html_docs(processed),
+                InputFormat::Docstring => parser.generate_html_doc_pure(processed),
+            };
+            let output = output?;
+            if output.is_empty() {
+                Ok(PLACEHOLDER_STR.into())
+            } else {
+                Ok(output)
+            }
+        }
     }
 
     /// Create a container for generated content and embed it with stylesheet.
@@ -119,15 +138,30 @@ impl ViewModel {
 
     /// Receive data, process and present it in the documentation view.
     fn receive_data(&self, data:&visualization::Data) -> Result<(),visualization::DataError> {
-        let data_inner = match data {
-            visualization::Data::Json {content} => content,
-            _                                   => todo!(),
+        let string = match data {
+            visualization::Data::Json {content} => match serde_json::to_string_pretty(&**content) {
+                Ok(string) => string,
+                Err(err)   => {
+                    error!(self.logger, "Error during documentation vis-data serialization: \
+                        {err:?}");
+                    return Err(visualization::DataError::InternalComputationError);
+                }
+            }
+            _ => return Err(visualization::DataError::InvalidDataType),
+        };
+        self.display_doc(&string, InputFormat::Docstring);
+        Ok(())
+    }
+
+    fn display_doc(&self, content:&str, content_type: InputFormat) {
+        let html = match ViewModel::gen_html_from(content,content_type) {
+            Ok(html)               => html,
+            Err(err)               => {
+                error!(self.logger, "Documentation parsing error: {err:?}");
+                PLACEHOLDER_STR.into()
+            }
         };
 
-        let data_str   = ViewModel::prepare_data_string(data_inner);
-        let output     = ViewModel::gen_html_from(data_str);
-        let mut output = output.unwrap_or_else(|_| String::from(PLACEHOLDER_STR));
-        if output     == "" { output = String::from(PLACEHOLDER_STR) }
         // FIXME [MM] : Because of how Doc Parser was implemented in Engine repo, there is need to
         //              remove stylesheet link from generated code, that would otherwise point to
         //              non-existing file, as now stylesheet is connected by include_str! macro, and
@@ -135,10 +169,9 @@ impl ViewModel {
         //              This hack will be removed when https://github.com/enso-org/enso/issues/1063
         //              will land in Engine's repo, also fixing non-existent character bug.
         let import_css = r#"<link rel="stylesheet" href="style.css" />"#;
-        let output     = output.replace(import_css, "");
+        let html       = html.replace(import_css, "");
 
-        self.push_to_dom(output);
-        Ok(())
+        self.push_to_dom(html);
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
@@ -190,10 +223,30 @@ impl ViewModel {
     }
 
     fn reload_style(&self) {
-        self.dom.set_size(self.size.get());
+        let size        = self.size.get();
+        let real_width  = (size.x - 2.0 * PADDING).max(0.0);
+        let real_height = (size.y - 2.0 * PADDING).max(0.0);
+        let padding     = (size.x.min(size.y) / 2.0).min(PADDING);
+        self.dom.set_size(Vector2(real_width,real_height));
+        self.dom.dom().set_style_or_warn("padding",format!("{}px",padding),&self.logger);
     }
 }
 
+
+
+// ===========
+// === FRP ===
+// ===========
+
+ensogl_text::define_endpoints! {
+    Input {
+        /// Display documentation of the entity represented by given code.
+        display_documentation (String),
+        /// Display documentation represented by docstring.
+        display_docstring (String),
+    }
+    Output {}
+}
 
 
 // ============
@@ -201,13 +254,19 @@ impl ViewModel {
 // ============
 
 /// View of the visualization that renders the given documentation as a HTML page.
+///
+/// The documentation can be provided in two formats: it can be code of the entity (type, method,
+/// function etc) with doc comments, or the docstring only - in the latter case
+/// however we're unable to summarize methods and atoms of types.
+///
+/// The default format is the docstring.
 #[derive(Clone,CloneRef,Debug,Shrinkwrap)]
 #[allow(missing_docs)]
 pub struct View {
     #[shrinkwrap(main_field)]
-    pub model : ViewModel,
-    pub frp   : visualization::instance::Frp,
-    network   : frp::Network,
+    pub model             : ViewModel,
+    pub visualization_frp : visualization::instance::Frp,
+    pub frp               : Frp,
 }
 
 impl View {
@@ -222,41 +281,43 @@ impl View {
 
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
-        let network = default();
-        let frp     = visualization::instance::Frp::new(&network);
-        let model   = ViewModel::new(scene);
+        let frp               = Frp::new_network();
+        let visualization_frp = visualization::instance::Frp::new(&frp.network);
+        let model             = ViewModel::new(scene);
         model.load_waiting_screen();
-        Self {model,frp,network} . init(scene)
+        Self {model,visualization_frp,frp} . init()
     }
 
-    fn init(self, scene:&Scene) -> Self {
-        let network = &self.network;
-        let model   = &self.model;
-        let frp     = &self.frp;
+    fn init(self) -> Self {
+        let network       = &self.frp.network;
+        let model         = &self.model;
+        let visualization = &self.visualization_frp;
+        let frp           = &self.frp;
         frp::extend! { network
-            eval frp.set_size  ((size) model.set_size(*size));
-            eval frp.send_data ([frp, model](data) {
-                if let Err(e) = model.receive_data(data) {
-                    frp.data_receive_error.emit(Some(e));
+
+            // === Displaying documentation ===
+
+            eval frp.display_documentation ((cont) model.display_doc(cont,InputFormat::AST ));
+            eval frp.display_docstring     ((cont) model.display_doc(cont,InputFormat::Docstring));
+            eval visualization.send_data([visualization,model](data) {
+                if let Err(error) = model.receive_data(data) {
+                    visualization.data_receive_error.emit(error)
                 }
-             });
-             eval scene.frp.shape([model,frp](shape) {
-                model.dom.set_position_x((shape.width - VIEW_WIDTH) / 2.0 - VIEW_MARGIN);
-                frp.set_size.emit(Vector2::new(VIEW_WIDTH,shape.height - (VIEW_MARGIN * 2.0)));
             });
+
+
+            // === Size and position ===
+
+            eval visualization.set_size  ((size) model.set_size(*size));
         }
         self
     }
 }
 
 impl From<View> for visualization::Instance {
-    fn from(t: View) -> Self {
-        Self::new(&t,&t.frp,&t.network)
-    }
+    fn from(t: View) -> Self { Self::new(&t,&t.visualization_frp,&t.frp.network) }
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.dom.display_object()
-    }
+    fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
 }

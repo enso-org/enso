@@ -154,22 +154,14 @@ pub struct MockDocGenerator;
 impl MockDocGenerator {
     /// Generate new data set.
     pub fn generate_data(self) -> String {
-        let input = r#"
-##
-   Optional values.
+        let input = r#"Optional values.
 
-   Type `Option` represents an optional value: every `Option` is either `Some`
-   and contains a value, or `None`, and does not.
+Type `Option` represents an optional value: every `Option` is either `Some`
+and contains a value, or `None`, and does not.
 
-   ? Information
-     `Option`s are commonly paired with pattern matching to query the presence of
-     a value and take action, always accounting for the None case.
-type Option a
-    ## The `Some` type indicates a presence of a value.
-    type Some a
-
-    ## The `None` type indicates a lack of a value.
-    type None
+? Information
+ `Option`s are commonly paired with pattern matching to query the presence of
+ a value and take action, always accounting for the None case.
 "#;
         input.to_string()
     }

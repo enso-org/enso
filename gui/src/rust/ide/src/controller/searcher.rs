@@ -109,6 +109,19 @@ pub enum CompletedFragmentId {
     Argument{index:usize}
 }
 
+/// The enum summarizing what user is currently doing basing on the searcher input.
+#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+pub enum UserAction {
+    /// User is about to type/chose function (the input is likely empty).
+    StartingTypingFunction,
+    /// User is about to type next argument.
+    StartingTypingArgument,
+    /// User is in the middle of typing function.
+    TypingFunction,
+    /// User is in the middle of typing argument.
+    TypingArgument,
+}
+
 /// A Searcher Input which is parsed to the _expression_ and _pattern_ parts.
 ///
 /// We parse the input for better understanding what user wants to add.
@@ -182,6 +195,18 @@ impl ParsedInput {
             (_              ,None)       => None,
             (Function       ,Some(expr)) => Some(expr.func.repr()),
             (Argument{index},Some(expr)) => Some(expr.args.get(index)?.sast.wrapped.repr()),
+        }
+    }
+
+    /// Get the user action basing of this input (see `UserAction` docs).
+    pub fn user_action(&self) -> UserAction {
+        use UserAction::*;
+        let empty_pattern = self.pattern.is_empty();
+        match self.next_completion_id() {
+            CompletedFragmentId::Function      if empty_pattern => StartingTypingFunction,
+            CompletedFragmentId::Function                       => TypingFunction,
+            CompletedFragmentId::Argument {..} if empty_pattern => StartingTypingArgument,
+            CompletedFragmentId::Argument {..}                  => TypingArgument,
         }
     }
 }
@@ -728,7 +753,7 @@ impl Searcher {
     /// Get the suggestion that was selected by the user into the function.
     ///
     /// This suggestion shall be used to request better suggestions from the engine.
-    fn intended_function_suggestion(&self) -> Option<suggestion::Completion> {
+    pub fn intended_function_suggestion(&self) -> Option<suggestion::Completion> {
         let id       = CompletedFragmentId::Function;
         let fragment = self.data.borrow().find_picked_fragment(id).cloned();
         fragment.map(|f| f.picked_suggestion.clone_ref())
@@ -758,6 +783,11 @@ impl Searcher {
 
     fn module_qualified_name(&self) -> QualifiedName {
         self.graph.graph().module.path().qualified_module_name(&*self.project_name)
+    }
+
+    /// Get the user action basing of current input (see `UserAction` docs).
+    pub fn current_user_action(&self) -> UserAction {
+        self.data.borrow().input.user_action()
     }
 }
 
