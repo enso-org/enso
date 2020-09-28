@@ -114,6 +114,14 @@ type Vector
                 tail_elems = 1.upto arr.length . fold "" folder
                 "[" + (arr.at 0 . to_text) + tail_elems + "]"
 
+    equals : Vector -> Boolean
+    equals that =
+        arr1 = this.to_array
+        arr2 = that.to_array
+        eq_at i = (arr1.at i) . equals (arr2.at i)
+        r = if arr1.length == arr2.length then 0.upto arr1.length . every eq_at else False
+        r
+
 type Builder
     type Builder to_array length
 

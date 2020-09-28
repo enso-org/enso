@@ -19,4 +19,8 @@ spec = describe "Vectors" <|
         mapped = vec.map x-> x * x
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
+    it "should define equality" <|
+        [1,2,3].equals [1,2] . should_be_false
+        [1,2,3].equals [1,2,3] . should_be_true
+        [1,2,3].equals [3,4,5] . should_be_false
 

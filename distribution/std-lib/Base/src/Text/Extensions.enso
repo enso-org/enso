@@ -32,6 +32,14 @@ Text.characters =
 
 Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
 
-Text.codepoints = Vector.from_polyglot_array (Text_Utils.get_codepoints [this])
+Text.codepoints =
+    Vector.from_polyglot_array (Text_Utils.get_codepoints [this])
 
-Text.split_at separator = Vector.from_polyglot_array (Text_Utils.split_at [this, separator])
+Text.split_at separator =
+    Vector.from_polyglot_array (Text_Utils.split_at [this, separator])
+
+Text.equals that = Text_Utils.equals [this, that]
+
+Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_array]
+
+Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]

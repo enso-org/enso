@@ -2,7 +2,7 @@ import Base.List
 import Base.Vector
 import Base.Number.Extensions
 import Base.Text.Extensions
-from Builtins import Unit, Number, Integer
+from Builtins import Unit, Number, Integer, Any, True, False
 
 from Builtins export all
 
@@ -46,9 +46,18 @@ type Range
         res = it initial this.start this.end
         res
 
+    every predicate =
+        it start end = if start==end then True else
+            r = predicate start
+            if r then (it start+1 end) else False
+        res = it this.start this.end
+        res
+
 type Math
 
 ## The mathematical constant pi, equal to the ratio of a circle circumference
     to its diameter.
 Math.pi : Decimal
 Math.pi = 3.141592653589793
+
+Any.equals that = this == that
