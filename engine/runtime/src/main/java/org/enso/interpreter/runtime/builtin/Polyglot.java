@@ -4,10 +4,8 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.ArrayLengthMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.PolyglotToTextMethodGen;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.*;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.GetArrayElementMethodGen;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -56,9 +54,6 @@ public class Polyglot {
     scope.registerMethod(polyglot, "new", InstantiateMethodGen.makeFunction(language));
     scope.registerMethod(polyglot, "get_member", GetMemberMethodGen.makeFunction(language));
     scope.registerMethod(polyglot, "get_members", GetMembersMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "get_array_size", GetArraySizeMethodGen.makeFunction(language));
-    scope.registerMethod(
-        polyglot, "get_array_element", GetArrayElementMethodGen.makeFunction(language));
   }
 
   /*

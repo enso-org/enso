@@ -18,7 +18,7 @@ class EvalTest extends InterpreterTest {
            |        IO.println "foo"
            |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("\"foo\"")
+      consumeOut shouldEqual List("foo")
     }
 
     "have access to the caller scope" in {
@@ -31,7 +31,7 @@ class EvalTest extends InterpreterTest {
            |        IO.println x
            |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("\"Hello World!\"")
+      consumeOut shouldEqual List("Hello World!")
     }
 
     "have access to the caller module scope" in {

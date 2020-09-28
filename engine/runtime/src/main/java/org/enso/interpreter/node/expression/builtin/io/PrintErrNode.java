@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.io.PrintStream;
 
@@ -29,16 +30,22 @@ public abstract class PrintErrNode extends Node {
     return PrintErrNodeGen.create();
   }
 
-  private @Child InvokeCallableNode invokeCallableNode =
-      InvokeCallableNode.build(
-          new CallArgumentInfo[] {new CallArgumentInfo()},
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
-
   abstract Stateful execute(
       VirtualFrame frame, @MonadicState Object state, Object _this, Object message);
 
   @Specialization
+  Stateful doPrintText(
+          VirtualFrame frame,
+          Object state,
+          Object self,
+          Text message,
+          @CachedContext(Language.class) Context ctx,
+          @Cached("build()") ToJavaStringNode toJavaStringNode) {
+    print(ctx.getErr(), toJavaStringNode.execute(message));
+    return new Stateful(state, ctx.getUnit().newInstance());
+  }
+
+  @Specialization(guards = "!isText(message)")
   Stateful doPrint(
       VirtualFrame frame,
       Object state,
@@ -46,6 +53,7 @@ public abstract class PrintErrNode extends Node {
       Object message,
       @CachedContext(Language.class) Context ctx,
       @Cached("buildSymbol(ctx)") UnresolvedSymbol symbol,
+      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached("build()") ToJavaStringNode toJavaStringNode) {
     Stateful str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     print(ctx.getErr(), toJavaStringNode.execute((Text) str.getValue()));
@@ -55,6 +63,17 @@ public abstract class PrintErrNode extends Node {
   @CompilerDirectives.TruffleBoundary
   private void print(PrintStream err, Object str) {
     err.println(str);
+  }
+
+  boolean isText(Object o) {
+    return TypesGen.isText(o);
+  }
+
+  InvokeCallableNode buildInvokeCallableNode() {
+    return InvokeCallableNode.build(
+            new CallArgumentInfo[] {new CallArgumentInfo()},
+            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+            InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   UnresolvedSymbol buildSymbol(Context ctx) {

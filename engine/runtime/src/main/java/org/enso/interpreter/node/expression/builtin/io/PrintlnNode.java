@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.io;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -17,6 +18,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
 public abstract class PrintlnNode extends Node {
@@ -30,6 +32,18 @@ public abstract class PrintlnNode extends Node {
       VirtualFrame frame, @MonadicState Object state, Object _this, Object message);
 
   @Specialization
+  Stateful doPrintText(
+      VirtualFrame frame,
+      Object state,
+      Object self,
+      Text message,
+      @CachedContext(Language.class) Context ctx,
+      @Cached("build()") ToJavaStringNode toJavaStringNode) {
+    print(ctx.getOut(), toJavaStringNode.execute(message));
+    return new Stateful(state, ctx.getUnit().newInstance());
+  }
+
+  @Specialization(guards = "!isText(message)")
   Stateful doPrint(
       VirtualFrame frame,
       Object state,
@@ -43,6 +57,10 @@ public abstract class PrintlnNode extends Node {
     String strr = toJavaStringNode.execute((Text) str.getValue());
     print(ctx.getOut(), strr);
     return new Stateful(str.getState(), ctx.getUnit().newInstance());
+  }
+
+  boolean isText(Object o) {
+    return TypesGen.isText(o);
   }
 
   @CompilerDirectives.TruffleBoundary

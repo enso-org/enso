@@ -18,7 +18,7 @@ class BooleanTest extends InterpreterTest {
           |    if False then IO.println "true when false" else IO.println "false when false"
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("\"true when true\"", "\"false when false\"")
+      consumeOut shouldEqual List("true when true", "false when false")
     }
 
     "support overriding methods on boolean" in {

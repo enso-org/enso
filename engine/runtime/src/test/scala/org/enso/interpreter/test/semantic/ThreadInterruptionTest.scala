@@ -49,7 +49,7 @@ class ThreadInterruptionTest extends InterpreterTest {
           Thread.sleep(100)
           reportedCount += consumeOut.length
         }
-        val expectedOut = List.fill(n)("\"Interrupted.\"")
+        val expectedOut = List.fill(n)("Interrupted.")
         threads.foreach(_.interrupt())
         langCtx.getThreadManager.checkInterrupts()
         threads.foreach(_.join())

@@ -17,7 +17,7 @@ class TextTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code)
-      consumeOut shouldEqual List("\"hello world!\"")
+      consumeOut shouldEqual List("hello world!")
     }
 
     "support text concatenation" in {
@@ -30,7 +30,7 @@ class TextTest extends InterpreterTest {
           |    IO.println h+w
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("\"Hello, World!\"")
+      consumeOut shouldEqual List("Hello, World!")
     }
 
     "support converting arbitrary structures to text" in {
@@ -45,7 +45,7 @@ class TextTest extends InterpreterTest {
           |    IO.println "123"
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("5", "(My_Type (My_Type 10))", "\"123\"")
+      consumeOut shouldEqual List("5", "(My_Type (My_Type 10))", "123")
     }
 
     "support text creation with raw block literals" in {
@@ -62,7 +62,7 @@ class TextTest extends InterpreterTest {
            |""".stripMargin
 
       eval(code)
-      consumeOut shouldEqual List("\"Foo", "Bar", "  Baz\"")
+      consumeOut shouldEqual List("Foo", "Bar", "  Baz")
     }
 
     "support escape sequences in literals" in {
@@ -73,20 +73,18 @@ class TextTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code)
-      consumeOut shouldEqual List("\"\\\"Grzegorz Brzeczyszczykiewicz\\\"\"")
+      consumeOut shouldEqual List("\"Grzegorz Brzeczyszczykiewicz\"")
     }
 
     "support printing to standard error" in {
-      val errString = "\"My error string\""
-
       val code =
         s"""from Builtins import all
            |
-           |main = IO.print_err $errString
+           |main = IO.print_err "My error string"
            |""".stripMargin
 
       eval(code)
-      consumeErr shouldEqual List(errString)
+      consumeErr shouldEqual List("My error string")
     }
 
     "support reading from standard input" in {

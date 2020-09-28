@@ -24,6 +24,3 @@ spec = describe "Text" <|
         facepalm.codepoints.should_equal facepalm_codes
     it "should convert an array of codepoints to text" <|
         Text.from_codepoints facepalm_codes . should_equal facepalm
-
-
-
