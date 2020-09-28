@@ -13,6 +13,7 @@ import org.enso.launcher.components.{
 }
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
+import org.enso.loggingservice.LogLevel
 
 import scala.util.Try
 
@@ -67,6 +68,7 @@ class Runner(
   def repl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -91,7 +93,11 @@ class Runner(
         case None =>
           Seq("--repl")
       }
-      RunSettings(version, arguments ++ additionalArguments)
+      RunSettings(
+        version,
+        arguments ++ Seq("--log-level", logLevel.toString)
+        ++ additionalArguments
+      )
     }
 
   /**
@@ -102,6 +108,7 @@ class Runner(
   def run(
     path: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -146,7 +153,11 @@ class Runner(
             case None =>
               Seq("--run", actualPath.toString)
           }
-      RunSettings(version, arguments ++ additionalArguments)
+      RunSettings(
+        version,
+        arguments ++ Seq("--log-level", logLevel.toString)
+        ++ additionalArguments
+      )
     }
 
   /**
@@ -157,6 +168,7 @@ class Runner(
   def languageServer(
     options: LanguageServerOptions,
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -173,7 +185,9 @@ class Runner(
         "--rpc-port",
         options.rpcPort.toString,
         "--data-port",
-        options.dataPort.toString
+        options.dataPort.toString,
+        "--log-level",
+        logLevel.toString
       )
       RunSettings(version, arguments ++ additionalArguments)
     }

@@ -5,8 +5,6 @@ import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.util.Collections;
-
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
@@ -16,6 +14,8 @@ import org.enso.interpreter.util.FileDetector;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
+
+import java.util.Collections;
 
 /**
  * The root of the Enso implementation.
@@ -37,12 +37,12 @@ import org.graalvm.options.OptionDescriptors;
     fileTypeDetectors = FileDetector.class,
     services = ExecutionService.class)
 @ProvidedTags({
-  DebuggerTags.AlwaysHalt.class,
-  StandardTags.CallTag.class,
-  StandardTags.ExpressionTag.class,
-  StandardTags.RootTag.class,
-  StandardTags.TryBlockTag.class,
-  IdentifiedTag.class
+    DebuggerTags.AlwaysHalt.class,
+    StandardTags.CallTag.class,
+    StandardTags.ExpressionTag.class,
+    StandardTags.RootTag.class,
+    StandardTags.TryBlockTag.class,
+    IdentifiedTag.class
 })
 public final class Language extends TruffleLanguage<Context> {
   /**
@@ -53,6 +53,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Context createContext(Env env) {
+    TruffleLogger.getLogger("enso").info("HELLO from Context"); // TODO [RW] FIXME remove debug
     Context context = new Context(this, getLanguageHome(), env);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
@@ -65,7 +66,7 @@ public final class Language extends TruffleLanguage<Context> {
   /**
    * Checks if this Enso execution environment is accessible in a multithreaded context.
    *
-   * @param thread the thread to check access for
+   * @param thread         the thread to check access for
    * @param singleThreaded whether or not execution is single threaded
    * @return whether or not thread access is allowed
    */

@@ -3,20 +3,32 @@ package org.enso.loggingservice
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 
-sealed class LogLevel(final val level: Int) {
+sealed abstract class LogLevel(final val level: Int) {
   def shouldLog(other: LogLevel): Boolean =
     other.level <= level
 }
 object LogLevel {
-  case object None    extends LogLevel(-1)
-  case object Error   extends LogLevel(0)
-  case object Warning extends LogLevel(1)
-  case object Info    extends LogLevel(2)
-  case object Debug   extends LogLevel(3)
-  case object Trace   extends LogLevel(4)
+  case object Off extends LogLevel(-1) {
+    override def toString: String = "off"
+  }
+  case object Error extends LogLevel(0) {
+    override def toString: String = "error"
+  }
+  case object Warning extends LogLevel(1) {
+    override def toString: String = "warning"
+  }
+  case object Info extends LogLevel(2) {
+    override def toString: String = "info"
+  }
+  case object Debug extends LogLevel(3) {
+    override def toString: String = "debug"
+  }
+  case object Trace extends LogLevel(4) {
+    override def toString: String = "trace"
+  }
 
   val allLevels = Seq(
-    LogLevel.None,
+    LogLevel.Off,
     LogLevel.Error,
     LogLevel.Warning,
     LogLevel.Info,
@@ -27,7 +39,7 @@ object LogLevel {
   implicit val ord: Ordering[LogLevel] = (x, y) => x.level - y.level
 
   implicit val encoder: Encoder[LogLevel] = {
-    case None =>
+    case Off =>
       throw new IllegalArgumentException(
         "`None` log level should never be used in actual log messages and it " +
         "cannot be serialized to prevent that."

@@ -101,12 +101,23 @@ object LauncherApplication {
       "Advanced option, use carefully.",
       showInUsage = false
     )
-  private def versionOverride =
+  private def versionOverride = {
     Opts.optionalParameter[SemVer](
       "use-enso-version",
       "VERSION",
       "Override the Enso version that would normally be used."
     )
+  }
+  private def engineLogLevel = {
+    Opts
+      .optionalParameter[LogLevel](
+        "log-level",
+        "LOG-LEVEL",
+        "Sets logging verbosity for the engine. Possible levels are: OFF, " +
+        "ERROR, WARNING, INFO, DEBUG and TRACE."
+      )
+      .withDefault(LogLevel.Info)
+  }
 
   private def runCommand: Command[Config => Int] =
     Command(
@@ -128,19 +139,27 @@ object LauncherApplication {
       (
         pathOpt,
         versionOverride,
+        engineLogLevel,
         systemJVMOverride,
         jvmOpts,
         additionalArgs
       ) mapN {
-        (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) =>
-          (config: Config) =>
-            Launcher(config).runRun(
-              path                = path,
-              versionOverride     = versionOverride,
-              useSystemJVM        = systemJVMOverride,
-              jvmOpts             = jvmOpts,
-              additionalArguments = additionalArgs
-            )
+        (
+          path,
+          versionOverride,
+          engineLogLevel,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).runRun(
+            path                = path,
+            versionOverride     = versionOverride,
+            useSystemJVM        = systemJVMOverride,
+            jvmOpts             = jvmOpts,
+            additionalArguments = additionalArgs,
+            logLevel            = engineLogLevel
+          )
       }
     }
 
@@ -156,24 +175,30 @@ object LauncherApplication {
       val path =
         Opts.parameter[Path]("path", "PATH", "Path to the content root.")
       val interface =
-        Opts.optionalParameter[String](
-          "interface",
-          "INTERFACE",
-          "Interface for processing all incoming connections. " +
-          "Defaults to `127.0.0.1`."
-        )
+        Opts
+          .optionalParameter[String](
+            "interface",
+            "INTERFACE",
+            "Interface for processing all incoming connections. " +
+            "Defaults to `127.0.0.1`."
+          )
+          .withDefault("127.0.0.1")
       val rpcPort =
-        Opts.optionalParameter[Int](
-          "rpc-port",
-          "PORT",
-          "RPC port for processing all incoming connections. Defaults to 8080."
-        )
+        Opts
+          .optionalParameter[Int](
+            "rpc-port",
+            "PORT",
+            "RPC port for processing all incoming connections. Defaults to 8080."
+          )
+          .withDefault(8080)
       val dataPort =
-        Opts.optionalParameter[Int](
-          "data-port",
-          "PORT",
-          "Data port for visualisation protocol. Defaults to 8081."
-        )
+        Opts
+          .optionalParameter[Int](
+            "data-port",
+            "PORT",
+            "Data port for visualisation protocol. Defaults to 8081."
+          )
+          .withDefault(8081)
       val additionalArgs = Opts.additionalArguments()
       (
         rootId,
@@ -182,6 +207,7 @@ object LauncherApplication {
         rpcPort,
         dataPort,
         versionOverride,
+        engineLogLevel,
         systemJVMOverride,
         jvmOpts,
         additionalArgs
@@ -193,6 +219,7 @@ object LauncherApplication {
           rpcPort,
           dataPort,
           versionOverride,
+          engineLogLevel,
           systemJVMOverride,
           jvmOpts,
           additionalArgs
@@ -201,14 +228,15 @@ object LauncherApplication {
             options = LanguageServerOptions(
               rootId    = rootId,
               path      = path,
-              interface = interface.getOrElse("127.0.0.1"),
-              rpcPort   = rpcPort.getOrElse(8080),
-              dataPort  = dataPort.getOrElse(8081)
+              interface = interface,
+              rpcPort   = rpcPort,
+              dataPort  = dataPort
             ),
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
-            additionalArguments = additionalArgs
+            additionalArguments = additionalArgs,
+            logLevel            = engineLogLevel
           )
       }
     }
@@ -228,16 +256,30 @@ object LauncherApplication {
         "project if it is launched from within a directory inside a project."
       )
       val additionalArgs = Opts.additionalArguments()
-      (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) mapN {
-        (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) =>
-          (config: Config) =>
-            Launcher(config).runRepl(
-              projectPath         = path,
-              versionOverride     = versionOverride,
-              useSystemJVM        = systemJVMOverride,
-              jvmOpts             = jvmOpts,
-              additionalArguments = additionalArgs
-            )
+      (
+        path,
+        versionOverride,
+        engineLogLevel,
+        systemJVMOverride,
+        jvmOpts,
+        additionalArgs
+      ) mapN {
+        (
+          path,
+          versionOverride,
+          engineLogLevel,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).runRepl(
+            projectPath         = path,
+            versionOverride     = versionOverride,
+            useSystemJVM        = systemJVMOverride,
+            jvmOpts             = jvmOpts,
+            additionalArguments = additionalArgs,
+            logLevel            = engineLogLevel
+          )
       }
     }
 
@@ -459,7 +501,8 @@ object LauncherApplication {
     val logLevel = Opts.optionalParameter[LogLevel](
       GlobalCLIOptions.LOG_LEVEL,
       "LOG-LEVEL",
-      "Sets logging verbosity for the launcher."
+      "Sets logging verbosity for the launcher. Possible levels are: OFF, " +
+      "ERROR, WARNING, INFO, DEBUG and TRACE."
     )
     val connectLogger = Opts
       .optionalParameter[Uri](

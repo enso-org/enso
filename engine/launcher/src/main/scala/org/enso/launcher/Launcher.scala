@@ -22,6 +22,7 @@ import org.enso.launcher.installation.{
 }
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
+import org.enso.loggingservice.LogLevel
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /**
@@ -188,6 +189,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param projectPath if provided, the REPL is run in context of that project
     * @param versionOverride if provided, overrides the default engine version
     *                        that would have been used
+    * @param logLevel log level for the engine
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
@@ -197,13 +199,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRepl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
     val exitCode = runner
       .withCommand(
-        runner.repl(projectPath, versionOverride, additionalArguments).get,
+        runner
+          .repl(projectPath, versionOverride, logLevel, additionalArguments)
+          .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
         command.run().get
@@ -223,6 +228,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param path specifies what to run
     * @param versionOverride if provided, overrides the default engine version
     *                        that would have been used
+    * @param logLevel log level for the engine
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
@@ -232,13 +238,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRun(
     path: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
     val exitCode = runner
       .withCommand(
-        runner.run(path, versionOverride, additionalArguments).get,
+        runner.run(path, versionOverride, logLevel, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
         command.run().get
@@ -255,6 +262,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param options configuration required by the language server
     * @param versionOverride if provided, overrides the default engine version
     *                        that would have been used
+    * @param logLevel log level for the language server
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
@@ -264,6 +272,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runLanguageServer(
     options: LanguageServerOptions,
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -271,7 +280,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val exitCode = runner
       .withCommand(
         runner
-          .languageServer(options, versionOverride, additionalArguments)
+          .languageServer(
+            options,
+            versionOverride,
+            logLevel,
+            additionalArguments
+          )
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>

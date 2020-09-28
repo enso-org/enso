@@ -47,7 +47,7 @@ object WSLoggerManager {
     * The returned future will contain `true` if the original backend was set-up
     * or `false` if it had to fall back to stderr.
     */
-  def setupWithFallbackToLocal(
+  def setupWithFallback(
     mode: WSLoggerMode[_],
     fallbackMode: WSLoggerMode[_],
     logLevel: LogLevel

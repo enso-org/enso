@@ -8,6 +8,7 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
+import org.enso.loggingservice.LogLevel
 
 class RunnerSpec extends ComponentsManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
@@ -119,7 +120,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = None,
           versionOverride     = None,
-          additionalArguments = Seq("arg", "--flag")
+          additionalArguments = Seq("arg", "--flag"),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -143,7 +145,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = Some(projectPath),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -156,7 +159,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = None,
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -169,7 +173,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = Some(projectPath),
           versionOverride     = Some(overridden),
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -196,7 +201,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .languageServer(
           options,
           versionOverride     = None,
-          additionalArguments = Seq("additional")
+          additionalArguments = Seq("additional"),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -215,7 +221,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .languageServer(
           options,
           versionOverride     = Some(overridden),
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
         .version shouldEqual overridden
@@ -233,7 +240,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(projectPath),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -246,7 +254,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = None,
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -259,7 +268,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(projectPath),
           versionOverride     = Some(overridden),
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -272,7 +282,8 @@ class RunnerSpec extends ComponentsManagerTest {
           .run(
             path                = None,
             versionOverride     = None,
-            additionalArguments = Seq()
+            additionalArguments = Seq(),
+            logLevel            = LogLevel.Info
           )
           .isFailure,
         "Running outside project without providing any paths should be an error"
@@ -297,7 +308,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(outsideFile),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -320,7 +332,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(insideFile),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 

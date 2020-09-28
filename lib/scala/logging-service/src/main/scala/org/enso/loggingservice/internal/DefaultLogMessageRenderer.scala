@@ -11,7 +11,7 @@ import org.enso.loggingservice.internal.protocol.{
 
 class DefaultLogMessageRenderer extends LogMessageRenderer {
   override def render(logMessage: WSLogMessage): String = {
-    val level     = logMessage.logLevel.toString
+    val level     = renderLevel(logMessage.logLevel)
     val timestamp = renderTimestamp(logMessage.timestamp)
     val base =
       s"[$level] [$timestamp] [${logMessage.group}] ${logMessage.message}"
@@ -47,6 +47,6 @@ class DefaultLogMessageRenderer extends LogMessageRenderer {
       case LogLevel.Info    => "info"
       case LogLevel.Debug   => "debug"
       case LogLevel.Trace   => "trace"
-      case _                => "none"
+      case LogLevel.Off     => "off"
     }
 }

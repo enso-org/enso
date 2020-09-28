@@ -14,6 +14,7 @@ import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
 
 object LauncherLogging {
   private val logger            = Logger[LauncherLogging.type]
@@ -45,7 +46,7 @@ object LauncherLogging {
     connectToExternalLogger match {
       case Some(uri) =>
         WSLoggerManager
-          .setupWithFallbackToLocal(
+          .setupWithFallback(
             WSLoggerMode.Client(uri),
             WSLoggerMode.Local(),
             actualLogLevel
@@ -53,12 +54,15 @@ object LauncherLogging {
           .onComplete {
             case Failure(exception) =>
               logger.error("Failed to initialize the logger.", exception)
+              loggingServiceEndpointPromise.success(None)
             case Success(connected) =>
               if (connected) {
-                loggingServiceEndpointOpt = Some(uri)
+                loggingServiceEndpointPromise.success(Some(uri))
                 val msg =
                   s"Log messages from this launcher are forwarded to `$uri`."
                 System.err.println(msg)
+              } else {
+                loggingServiceEndpointPromise.success(None)
               }
           }
       case None =>
@@ -76,6 +80,8 @@ object LauncherLogging {
     WSLoggerManager.setup(WSLoggerMode.Local(), defaultLogLevel)
   }
 
+  private val loggingServiceEndpointPromise = Promise[Option[Uri]]()
+
   /**
     * Returns a [[Uri]] of the logging service that launched components can
     * connect to.
@@ -83,10 +89,11 @@ object LauncherLogging {
     * Points to the local server if it has been set up, or to the endpoint that
     * the launcher was told to connect to. May be empty if the initialization
     * failed and local logging is used as a fallback.
+    *
+    * The future is completed once the
     */
-  def loggingServiceEndpoint(): Option[Uri] = loggingServiceEndpointOpt
-
-  private var loggingServiceEndpointOpt: Option[Uri] = None
+  def loggingServiceEndpoint(): Future[Option[Uri]] =
+    loggingServiceEndpointPromise.future
 
   /**
     * Returns a printer for outputting the logs to the standard error output, if
@@ -120,13 +127,14 @@ object LauncherLogging {
             exception
           )
           logger.warn("Falling back to local-only logger.")
+          loggingServiceEndpointPromise.success(None)
           WSLoggerManager.setup(
             WSLoggerMode.Local(printers),
             logLevel
           )
         case Success(serverBinding) =>
           val uri = serverBinding.toUri()
-          loggingServiceEndpointOpt = Some(uri)
+          loggingServiceEndpointPromise.success(Some(uri))
           logger.trace(
             s"Logging service has been set-up and is listening at `$uri`."
           )
