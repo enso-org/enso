@@ -54,12 +54,14 @@ pub mod background {
 
     ensogl::define_shape_system! {
         (style:Style,selected:f32,radius:f32,roundness:f32) {
+            use theme::vars::graph_editor::visualization as visualization_theme;
+
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let width         = &width  - SHADOW_SIZE.px() * 2.0;
             let height        = &height - SHADOW_SIZE.px() * 2.0;
             let radius        = 1.px() * &radius;
-            let color_path    = theme::vars::graph_editor::visualization::background::color;
+            let color_path    = visualization_theme::background::color;
             let color_bg      = style.get_color(color_path);
             let corner_radius = &radius * &roundness;
             let background    = Rect((&width,&height)).corners_radius(&corner_radius);
@@ -72,12 +74,15 @@ pub mod background {
             let width         = &width  + SHADOW_SIZE.px() * 2.0;
             let height        = &height + SHADOW_SIZE.px() * 2.0;
             let shadow        = Rect((&width,&height)).corners_radius(&corner_radius).shrink(1.px());
+            let base_color    = style.get_color(visualization_theme::shadow::color);
+            let fading_color  = style.get_color(visualization_theme::shadow::fading_color);
+            let exponent      = style.get_number_or(visualization_theme::shadow::exponent,2.0);
             let shadow_color  = color::LinearGradient::new()
-                .add(0.0,color::Rgba::new(0.0,0.0,0.0,0.0).into_linear())
-                .add(1.0,color::Rgba::new(0.0,0.0,0.0,0.20).into_linear());
-            let shadow_color  = color::SdfSampler::new(shadow_color)
+                .add(0.0,color::Rgba::from(fading_color).into_linear())
+                .add(1.0,color::Rgba::from(base_color).into_linear());
+            let shadow_color = color::SdfSampler::new(shadow_color)
                 .max_distance(border_size_f)
-                .slope(color::Slope::Exponent(2.0));
+                .slope(color::Slope::Exponent(exponent));
             let shadow        = shadow.fill(shadow_color);
 
             let out = shadow + background;

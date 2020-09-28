@@ -51,9 +51,11 @@ pub mod shape {
 
     ensogl::define_shape_system! {
         (style:Style, selection:f32) {
-            let bg_color        = style.get_color(ensogl_theme::vars::graph_editor::node::background::color);
-            let selection_color = style.get_color(ensogl_theme::vars::graph_editor::node::selection::color);
-            let _selection_size = style.get_number_or(ensogl_theme::vars::graph_editor::node::selection::size,8.0);
+            use ensogl_theme::vars::graph_editor::node as node_theme;
+
+            let bg_color        = style.get_color(node_theme::background::color);
+            let selection_color = style.get_color(node_theme::selection::color);
+            let _selection_size = style.get_number_or(node_theme::selection::size,8.0);
 
             let border_size_f = 16.0;
 
@@ -73,10 +75,15 @@ pub mod shape {
             let shadow_height = &height + &shadow_size * 2.0;
             let shadow_radius = &shadow_height / 2.0;
             let shadow        = Rect((shadow_width,shadow_height)).corners_radius(shadow_radius);
+            let base_color    = style.get_color(node_theme::shadow::color);
+            let fading_color  = style.get_color(node_theme::shadow::fading_color);
+            let exponent      = style.get_number_or(node_theme::shadow::exponent,2.0);
             let shadow_color  = color::LinearGradient::new()
-                .add(0.0,color::Rgba::new(0.0,0.0,0.0,0.0).into_linear())
-                .add(1.0,color::Rgba::new(0.0,0.0,0.0,0.20).into_linear());
-            let shadow_color  = color::SdfSampler::new(shadow_color).max_distance(border_size_f).slope(color::Slope::Exponent(2.0));
+                .add(0.0,color::Rgba::from(fading_color).into_linear())
+                .add(1.0,color::Rgba::from(base_color).into_linear());
+            let shadow_color = color::SdfSampler::new(shadow_color)
+                .max_distance(border_size_f)
+                .slope(color::Slope::Exponent(exponent));
             let shadow        = shadow.fill(shadow_color);
 
 

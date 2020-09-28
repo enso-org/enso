@@ -2,10 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::documentation;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
-use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::searcher;
@@ -15,8 +13,8 @@ use ensogl::application;
 use ensogl::application::Application;
 use ensogl::application::shortcut;
 use ensogl::display;
-use ensogl_gui_list_view as list_view;
 use ensogl::gui::component::Animation;
+
 
 
 // =============
@@ -30,31 +28,21 @@ struct Model {
     display_object : display::object::Instance,
     graph_editor   : GraphEditor,
     searcher       : searcher::View,
-    documentation  : documentation::View,
     //TODO[ao] This view should contain also Text Editor; it should be moved here during refactoring
     // planned in task https://github.com/enso-org/ide/issues/597
 }
 
 impl Model {
     fn new(app:&Application) -> Self {
-        let scene          = app.display.scene();
         let logger         = Logger::new("project::View");
         let display_object = display::object::Instance::new(&logger);
-        let graph_editor   = app.new_view::<GraphEditor>();
         let searcher       = app.new_view::<searcher::View>();
-        let documentation  = documentation::View::new(&scene);
+        let graph_editor   = app.new_view::<GraphEditor>();
         display_object.add_child(&graph_editor);
         display_object.add_child(&searcher);
         display_object.remove_child(&searcher);
-        display_object.add_child(&documentation);
-        display_object.remove_child(&documentation);
         let app = app.clone_ref();
-        Self{app,logger,display_object,graph_editor,searcher,documentation}
-    }
-
-    fn set_documentation_visibility(&self, is_visible:bool) {
-        if is_visible { self.display_object.remove_child(&self.documentation) }
-        else          { self.display_object.add_child(&self.documentation)    }
+        Self{app,logger,display_object,graph_editor,searcher}
     }
 
     fn set_style(&self, is_light:bool) {
@@ -62,14 +50,31 @@ impl Model {
         else        { self.app.themes.set_enabled(&["light"]) }
     }
 
-    fn searcher_left_top_under_node(&self, node_id:NodeId) -> Vector2<f32> {
+    fn searcher_left_top_position_when_under_node_at(position:Vector2<f32>) -> Vector2<f32> {
+        let x = position.x;
+        let y = position.y - node::NODE_HEIGHT/2.0;
+        Vector2(x,y)
+    }
+
+    fn searcher_left_top_position_when_under_node(&self, node_id:NodeId) -> Vector2<f32> {
         if let Some(node) = self.graph_editor.model.nodes.get_cloned_ref(&node_id) {
-            let x = node.position().x;
-            let y = node.position().y - node::NODE_HEIGHT/2.0;
-            Vector2(x,y)
+            Self::searcher_left_top_position_when_under_node_at(node.position().xy())
         } else {
             error!(self.logger, "Trying to show searcher under nonexisting node");
             default()
+        }
+    }
+
+    /// Update Searcher View - its visibility and position - when edited node changed.
+    fn update_searcher_view
+    (&self, edited_node:Option<NodeId>, searcher_left_top_position:&Animation<Vector2<f32>>) {
+        if let Some(id) = edited_node {
+            self.searcher.show();
+            let new_position = self.searcher_left_top_position_when_under_node(id);
+            searcher_left_top_position.set_target_value(new_position);
+        } else {
+            self.searcher.hide();
+            self.searcher.clear_suggestions();
         }
     }
 
@@ -108,11 +113,8 @@ impl application::command::CommandApi for View {
 ensogl_text::define_endpoints! {
     Commands { Commands }
     Input {
-        set_documentation_data (visualization::Data),
-        set_suggestions        (list_view::entry::AnyModelProvider),
     }
     Output {
-        documentation_visible         (bool),
         adding_new_node               (bool),
         edited_node                   (Option<NodeId>),
         old_expression_of_edited_node (Expression),
@@ -140,24 +142,17 @@ impl View {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
 
-        let model             = Model::new(app);
-        let frp               = Frp::new_network();
-        let searcher          = &model.searcher.frp;
-        let graph             = &model.graph_editor.frp;
-        let network           = &frp.network;
-        let searcher_left_top = Animation::<Vector2<f32>>::new(network);
+        let model                      = Model::new(app);
+        let frp                        = Frp::new_network();
+        let searcher                   = &model.searcher.frp;
+        let graph                      = &model.graph_editor.frp;
+        let network                    = &frp.network;
+        let searcher_left_top_position = Animation::<Vector2<f32>>::new(network);
 
         frp::extend!{ network
-
-            // === Documentation Set ===
-
-            eval frp.set_documentation_data ((data) model.documentation.frp.send_data.emit(data));
-            eval frp.set_suggestions        ((provider) model.searcher.frp.set_entries(provider));
-
-
             // === Searcher Position and Size ===
 
-            _eval <- all_with(&searcher_left_top.value,&searcher.size,f!([model](lt,size) {
+            _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
                 let x = lt.x + size.x / 2.0;
                 let y = lt.y - size.y / 2.0;
                 model.searcher.set_position_xy(Vector2(x,y));
@@ -186,20 +181,22 @@ impl View {
                 any(frp.abort_node_editing,searcher.editing_committed,frp.add_new_node);
             eval should_finish_editing ((()) graph.inputs.stop_editing.emit(()));
             _eval <- graph.outputs.edited_node.map2(&searcher.is_visible,
-                f!([model,searcher_left_top](edited_node_id,is_visible) {
-                    if let Some(id) = edited_node_id {
-                        model.searcher.show();
-                        let new_left_top = model.searcher_left_top_under_node(*id);
-                        searcher_left_top.set_target_value(new_left_top);
-                        if !is_visible {
-                            searcher_left_top.skip();
-                        }
-                    } else {
-                        model.searcher.hide();
-                        model.searcher.set_entries(list_view::entry::AnyModelProvider::default());
+                f!([model,searcher_left_top_position](edited_node_id,is_visible) {
+                    model.update_searcher_view(*edited_node_id,&searcher_left_top_position);
+                    if !is_visible {
+                        // Do not animate
+                        searcher_left_top_position.skip();
                     }
-                }
-            ));
+                })
+            );
+            _eval <- graph.outputs.node_position_set.map2(&graph.outputs.edited_node,
+                f!([searcher_left_top_position]((node_id,position),edited_node_id) {
+                    if edited_node_id.contains(node_id) {
+                        let new = Model::searcher_left_top_position_when_under_node_at(*position);
+                        searcher_left_top_position.set_target_value(new);
+                    }
+                })
+            );
             editing_not_aborted          <- editing_aborted.map(|b| !b);
             let editing_finished         =  graph.outputs.node_editing_finished.clone_ref();
             frp.source.editing_committed <+ editing_finished.gate(&editing_not_aborted);
@@ -225,18 +222,8 @@ impl View {
             style_press            <- style_toggle_ev.gate_not(&style_was_pressed);
             style_press_on_off     <- style_press.map2(&frp.style_light, |_,is_light| !is_light);
             frp.source.style_light <+ style_press_on_off;
-
-            // === OUTPUTS REBIND ===
-
-            eval frp.documentation_visible ((vis) model.set_documentation_visibility(*vis));
             eval frp.style_light ((is_light) model.set_style(*is_light));
         }
-
-        let mock_documentation = visualization::MockDocGenerator::default();
-        let data               = mock_documentation.generate_data();
-        let content            = serde_json::to_value(data).unwrap_or_default();
-        let data               = visualization::Data::from(content);
-        frp.set_documentation_data(data);
 
         Self{model,frp}
     }

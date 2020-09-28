@@ -183,11 +183,19 @@ define_theme! { dark
             }
             text {
                 color = color::Lcha::new(1.0,0.0,0.0,0.7);
+                highlight {
+                    color = color::Lcha::new(0.7,0.0,0.0,1.0)
+                }
                 selection {
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
                 }
             }
         }
+    }
+    shadow {
+        color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+        fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+        exponent     = 2.0
     }
 }
 
@@ -210,6 +218,11 @@ define_default_theme! { light
             background {
                 color = color::Lcha::new(0.98,0.013,0.18,1.0)
             }
+            shadow {
+                color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+                fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+                exponent     = 2.0
+            }
             selection {
                 color = color::Lcha::new(0.83,0.58,0.436,1.0);
                 size = 7.0
@@ -224,6 +237,11 @@ define_default_theme! { light
         visualization {
             background {
                 color = color::Lcha::new(0.98,0.013,0.18,1.0)
+            }
+            shadow {
+                color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+                fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+                exponent     = 2.0
             }
             text {
                 color = color::Lcha::new(0.0,0.0,0.0,0.7);
@@ -275,11 +293,19 @@ define_default_theme! { light
             background {
                 color = color::Lcha::new(0.98,0.013,0.18,1.0)
             }
+            shadow {
+                color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+                fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+                exponent     = 2.0
+            }
             highlight {
                 color = color::Lcha::new(0.55,0.65,0.79,1.0)
             }
             text {
                 color = color::Lcha::new(0.0,0.0,0.0,0.7);
+                highlight {
+                    color = color::Lcha::new(0.8,0.0,0.0,1.0)
+                }
                 selection {
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
                 }
