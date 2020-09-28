@@ -175,13 +175,13 @@ class DistributionUninstaller(
   private val knownDataFiles = Seq("README.md", "NOTICE")
 
   /**
-    * Directories that are expected to be inside of the data root.
+    * Directories that are expected to be inside of the data root, except for
+    * the locks directory which is handled separately.
     */
-  private val knownDataDirectories = Seq(
-    manager.TMP_DIRECTORY,
-    manager.CONFIG_DIRECTORY,
-    "components-licences"
-  )
+  private val knownDataDirectories =
+    Set.from(
+      manager.LocallyInstalledDirectories.possibleDirectoriesInsideData
+    ) - manager.LOCK_DIRECTORY
 
   /**
     * Removes all files contained in the ENSO_DATA_DIRECTORY and possibly the

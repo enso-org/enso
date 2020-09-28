@@ -249,6 +249,19 @@ class DistributionManager(
         .toAbsolutePath
 
     /**
+      * Returns names of directories that may be located inside of the data
+      * directory.
+      */
+    def possibleDirectoriesInsideData: Seq[String] =
+      Seq(
+        CONFIG_DIRECTORY,
+        TMP_DIRECTORY,
+        LOG_DIRECTORY,
+        LOCK_DIRECTORY,
+        "components-licences"
+      )
+
+    /**
       * Config directory for an installed distribution.
       */
     def configDirectory: Path =
