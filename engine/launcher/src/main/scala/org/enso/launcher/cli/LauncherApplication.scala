@@ -20,8 +20,7 @@ import org.enso.launcher.installation.{
   DistributionManager
 }
 import org.enso.launcher.locking.DefaultResourceManager
-import org.enso.loggingservice.printers.StderrPrinterWithColors
-import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
+import org.enso.loggingservice.LogLevel
 
 /**
   * Defines the CLI commands and options for the program.

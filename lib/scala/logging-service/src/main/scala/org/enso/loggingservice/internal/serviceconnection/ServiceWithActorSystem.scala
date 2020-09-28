@@ -2,7 +2,7 @@ package org.enso.loggingservice.internal.serviceconnection
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import org.enso.loggingservice.InternalLogger
+import org.enso.loggingservice.internal.InternalLogger
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}

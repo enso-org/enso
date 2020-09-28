@@ -1,4 +1,4 @@
-package org.enso.loggingservice
+package org.enso.loggingservice.internal
 
 object InternalLogger {
   def error(msg: String): Unit = {

@@ -1,7 +1,10 @@
 package org.enso.loggingservice.internal.serviceconnection
 
-import org.enso.loggingservice.{InternalLogger, LogLevel}
-import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
+import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.internal.{
+  BlockingConsumerMessageQueue,
+  InternalLogger
+}
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.util.control.NonFatal

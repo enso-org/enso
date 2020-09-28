@@ -9,6 +9,7 @@ import org.enso.loggingservice.internal.serviceconnection.{
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
   InternalLogMessage,
+  InternalLogger,
   LoggerConnection
 }
 import org.enso.loggingservice.printers.StderrPrinter
@@ -72,6 +73,8 @@ object WSLoggerManager {
     }
   }
 
+  Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))
+
   def replaceWithFallback(): Unit = {
     val fallback =
       Local.setup(currentLevel, messageQueue, Seq(StderrPrinter))
@@ -84,7 +87,13 @@ object WSLoggerManager {
     service.foreach(_.terminate())
   }
 
-  Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))
+  /**
+    * Removes any pending logs (so that [[handleMissingLogger]] will not print
+    * them).
+    *
+    * An internal method that is only used by [[TestLogger]].
+    */
+  def dropPendingLogs(): Unit = messageQueue.drain()
 
   private def handleMissingLogger(): Unit = {
     val danglingMessages = messageQueue.drain()
@@ -113,7 +122,7 @@ object WSLoggerManager {
         )
       }
 
-      val (service, result: InitializationResult) = mode match {
+      val (service, result): (Service, InitializationResult) = mode match {
         case WSLoggerMode.Client(endpoint) =>
           (Client.setup(endpoint, messageQueue, logLevel), ())
         case WSLoggerMode.Server(printers, port, interface) =>

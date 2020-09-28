@@ -7,9 +7,12 @@ import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.stream.scaladsl.{Keep, Sink, Source, SourceQueueWithComplete}
 import akka.stream.{OverflowStrategy, QueueOfferResult}
 import io.circe.syntax._
-import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
+import org.enso.loggingservice.internal.{
+  BlockingConsumerMessageQueue,
+  InternalLogger
+}
 import org.enso.loggingservice.internal.protocol.WSLogMessage
-import org.enso.loggingservice.{InternalLogger, LogLevel, WSLoggerManager}
+import org.enso.loggingservice.{LogLevel, WSLoggerManager}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
