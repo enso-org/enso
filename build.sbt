@@ -897,7 +897,11 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Test / compile) := (Test / compile)
         .dependsOn(Def.task {
-          Seq("mvn", "package", "-f", "std-bits") !
+          if (sys.props("os.name").toLowerCase().contains("windows")) {
+            Seq("mvn.exe", "package", "-f", "std-bits")!
+          } else {
+            Seq("mvn", "package", "-f", "std-bits") !
+          }
         })
         .value
   )
