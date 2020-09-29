@@ -5,6 +5,7 @@ import org.enso.cli.CLIOutput
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.loggingservice.WSLoggerManager
+import org.enso.nativeimage.workarounds.AnsiTerm
 
 /**
   * Defines the entry point for the launcher.
@@ -30,6 +31,8 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     logger.debug("DEBUG BEFORE SETUP")
+    val handle = AnsiTerm.GetStdHandle(AnsiTerm.STD_ERROR_HANDLE)
+    AnsiTerm.SetConsoleMode(handle, 0)
     setup()
     val exitCode =
       try {
