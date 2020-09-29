@@ -74,8 +74,17 @@ public class Text implements TruffleObject {
       boolean allowSideEffects,
       @Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     String str = toJavaStringNode.execute(this);
-    String replaced = str.replace("\"", "\\\"");
-    return "\"" + replaced + "\"";
+    String replaced =
+        str.replace("'", "\\'")
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+            .replace("\u0007", "\\a")
+            .replace("\u0008", "\\b")
+            .replace("\u000c", "\\f")
+            .replace("\r", "\\r")
+            .replace("\u000B", "\\v")
+            .replace("\u001B", "\\e");
+    return "'" + replaced + "'";
   }
 
   /** @return true if this text wraps a string literal and does not require any optimization. */

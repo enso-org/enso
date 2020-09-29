@@ -27,8 +27,8 @@ type Vector
 
     ## Creates a new vector builder instance.
 
-       A vector builder is a mutable data structure, that allows to gather a
-       number of elements and then convert them to a vector. This is
+       A vector builder is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
        particularly useful when the number of elements is not known upfront.
 
        > Example

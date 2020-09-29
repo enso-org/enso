@@ -32,6 +32,7 @@ public class Polyglot {
    */
   public Polyglot(Language language, ModuleScope scope) {
 
+    // Note [Syntactic Functions]
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
     interopDispatchSchema =
         new FunctionSchema(
@@ -51,6 +52,14 @@ public class Polyglot {
 
     createPolyglot(language, scope);
   }
+
+  /* Note [Syntactic Functions]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * Certain functions in this module (ones that are not being directly registered in the scope)
+   * are not parts of the standard library. Instead, they are used by the method dispatch system
+   * to call into functionality of polyglot objects. As such, they are represented as Enso-level
+   * functions, but they are not directly accessible through the standard library.
+   */
 
   private void createPolyglot(Language language, ModuleScope scope) {
     AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();

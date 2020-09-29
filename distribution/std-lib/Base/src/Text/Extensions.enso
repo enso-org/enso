@@ -6,19 +6,6 @@ from Builtins export Text
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
 
-## PRIVATE
-each_iterator iter f =
-    fst = iter.first []
-    nxt = iter.next []
-
-    iterate p n = if n == -1 then Unit else
-        f p n
-        nn = iter.next []
-        iterate n nn
-
-    iterate fst nxt
-    Unit
-
 ## Applies `function` to each character in `this`.
 
    A character is defined as an Extended Grapheme Cluster, see
@@ -30,7 +17,15 @@ Text.each : (Text -> Any) -> Unit
 Text.each function =
     iterator = BreakIterator.getCharacterInstance []
     iterator.setText [this]
-    here.each_iterator iterator (s -> e -> function (Text_Utils.substring [this, s, e]))
+
+    fst = iterator.first []
+    nxt = iterator.next []
+
+    iterate prev nxt = if nxt == -1 then Unit else
+        function (Text_Utils.substring [this, prev, nxt])
+        next_nxt = iterator.next []
+        iterate nxt next_nxt
+    iterate fst nxt
     Unit
 
 ## Returns a vector containing all characters in the given text.
@@ -74,7 +69,6 @@ Text.split_at separator =
          ('é'.equals 'e\u0301') == True
 Text.equals : Text -> Boolean
 Text.equals that = Text_Utils.equals [this, that]
-
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.

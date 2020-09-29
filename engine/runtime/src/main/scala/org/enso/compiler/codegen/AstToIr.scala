@@ -560,7 +560,7 @@ object AstToIr {
                   val str = new String(buffer.array(), "UTF-32")
                   bldr.addAll(str)
               }
-            case e: Escape.Character => bldr.addAll(e.repr)
+            case e: Escape.Character => bldr.addOne(e.code)
             case e: Escape.Control   => bldr.addAll(e.repr)
           }
         case SegmentPlain(text) => bldr.addAll(text)
