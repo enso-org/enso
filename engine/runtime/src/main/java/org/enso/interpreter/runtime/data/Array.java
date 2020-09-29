@@ -9,7 +9,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 /** A primitve boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
 public class Array implements TruffleObject {
-  private Object[] items;
+  private final Object[] items;
 
   /**
    * Creates a new array
@@ -33,7 +33,6 @@ public class Array implements TruffleObject {
   public Object[] getItems() {
     return items;
   }
-
 
   /**
    * Marks the object as array-like for Polyglot APIs.

@@ -193,19 +193,17 @@ public abstract class MethodResolverNode extends Node {
     return function;
   }
 
-  @Specialization(guards = {"arrays.hasArrayElements(array)"})
+  @Specialization(
+      guards = {"isPolyglotArrayMethod(cachedSymbol)", "arrays.hasArrayElements(array)"})
   Function resolvePolyglotArray(
       UnresolvedSymbol symbol,
       Object array,
       @CachedLibrary(limit = "3") InteropLibrary arrays,
-      @CachedContext(Language.class) Context ctx) {
-    if (symbol.getName().equals("at")) {
-      return ctx.getBuiltins().polyglot().getPolyglotArrayAtFunction();
-    } else if (symbol.getName().equals("length")) {
-      return ctx.getBuiltins().polyglot().getPolyglotArrayLengthFunction();
-    } else {
-      throw new MethodDoesNotExistException(array, symbol.getName(), this);
-    }
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) Context ctx,
+      @Cached(value = "resolveMethodOnPolyglotArray(cachedSymbol, ctx)", allowUncached = true)
+          Function function) {
+    return function;
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})
@@ -306,6 +304,18 @@ public abstract class MethodResolverNode extends Node {
       return context.getBuiltins().polyglot().getPolyglotToTextFunction();
     } else {
       return context.getBuiltins().polyglot().buildPolyglotMethodDispatch(symbol);
+    }
+  }
+
+  static boolean isPolyglotArrayMethod(UnresolvedSymbol symbol) {
+    return symbol.getName().equals("at") || symbol.getName().equals("length");
+  }
+
+  Function resolveMethodOnPolyglotArray(UnresolvedSymbol symbol, Context context) {
+    if (symbol.getName().equals("length")) {
+      return context.getBuiltins().polyglot().getPolyglotArrayLengthFunction();
+    } else {
+      return context.getBuiltins().polyglot().getPolyglotArrayAtFunction();
     }
   }
 

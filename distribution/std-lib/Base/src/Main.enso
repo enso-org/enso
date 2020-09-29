@@ -46,6 +46,7 @@ type Range
         res = it initial this.start this.end
         res
 
+    ## Checks whether `predicate` is satisfied for every number in this range.
     every predicate =
         it start end = if start==end then True else
             r = predicate start
@@ -60,4 +61,7 @@ type Math
 Math.pi : Decimal
 Math.pi = 3.141592653589793
 
+## Equality definition for types defining `==`.
+
+   TODO remove when operators can be defined in-language.
 Any.equals that = this == that

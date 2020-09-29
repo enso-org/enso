@@ -133,42 +133,42 @@ object Escape {
     case object a extends Character {
       val code: Int     = '\u0007'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\u0007"
     }
     case object b extends Character {
       val code: Int     = '\u0008'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\u0008"
     }
     case object f extends Character {
       val code: Int     = '\u000C'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\u000C"
     }
     case object n extends Character {
       val code: Int     = '\n'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\n"
     }
     case object r extends Character {
       val code: Int     = '\r'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\r"
     }
     case object t extends Character {
       val code: Int     = '\u0009'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\u0009"
     }
     case object v extends Character {
       val code: Int     = '\u000B'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\u000B"
     }
     case object e extends Character {
       val code: Int     = '\u001B'
       def name: String  = toString
-      override val repr = name
+      override val repr = "\u001B"
     }
     val codes = ADT.constructors[Character]
   }

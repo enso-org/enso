@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-/** A container class for all Boolean-related stdlib builtins. */
+/** A container class for all Polyglot-related stdlib builtins. */
 public class Polyglot {
 
   private final RootCallTarget interopDispatchRoot;
@@ -24,6 +24,12 @@ public class Polyglot {
   private final Function polyglotArrayAtFunction;
   private final Function polyglotToTextFunction;
 
+  /**
+   * Creates and registers all polyglot-related functions and types.
+   *
+   * @param language the current language instance.
+   * @param scope the builtin scope.
+   */
   public Polyglot(Language language, ModuleScope scope) {
 
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
@@ -67,14 +73,20 @@ public class Polyglot {
     return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
   }
 
+  /** @return a function taking a polyglot array and returning its length. */
   public Function getPolyglotArrayLengthFunction() {
     return polyglotArrayLengthFunction;
   }
 
+  /**
+   * @return a function taking a polyglot array and an index and accessing the item at the given
+   *     index.
+   */
   public Function getPolyglotArrayAtFunction() {
     return polyglotArrayAtFunction;
   }
 
+  /** @return a function taking a polyglot object and displaying it as a human-readable string. */
   public Function getPolyglotToTextFunction() {
     return polyglotToTextFunction;
   }

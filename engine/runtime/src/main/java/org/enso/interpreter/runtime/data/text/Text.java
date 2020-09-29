@@ -10,14 +10,12 @@ import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
 public class Text implements TruffleObject {
-  private static final long UNITIALIZED = -1;
-
   private volatile Object contents;
   private volatile boolean isFlat;
-  private long length = UNITIALIZED;
-  private Lock lock = new ReentrantLock();
+  private final Lock lock = new ReentrantLock();
 
   private Text(String string) {
     this.contents = string;
@@ -29,14 +27,34 @@ public class Text implements TruffleObject {
     this.isFlat = false;
   }
 
+  /**
+   * Wraps a string in an instance of Text.
+   *
+   * @param string the string to wrap.
+   * @return a Text corresponding to the original string.
+   */
   public static Text create(String string) {
     return new Text(string);
   }
 
+  /**
+   * Creates a new Text by concatenating two other texts.
+   *
+   * @param t1 the left operand.
+   * @param t2 the right operand.
+   * @return a Text representing concatenation of t1 and t2.
+   */
   public static Text create(Text t1, Text t2) {
     return new Text(new ConcatRope(t1.contents, t2.contents));
   }
 
+  /**
+   * Creates a new Text by concatenating a text and a string.
+   *
+   * @param t1 the left operand.
+   * @param t2 the right operand.
+   * @return a Text representing concatenation of t1 and t2.
+   */
   public static Text create(Text t1, String t2) {
     return new Text(new ConcatRope(t1.contents, t2));
   }
@@ -60,22 +78,31 @@ public class Text implements TruffleObject {
     return "\"" + replaced + "\"";
   }
 
+  /** @return true if this text wraps a string literal and does not require any optimization. */
   public boolean isFlat() {
     return isFlat;
   }
 
+  /** @param flat the new value of the isFlat flag. */
   public void setFlat(boolean flat) {
     isFlat = flat;
   }
 
+  /** @return the contents of this text. */
   public Object getContents() {
     return contents;
   }
 
+  /**
+   * Sets the contents of this text.
+   *
+   * @param contents the new contents.
+   */
   public void setContents(Object contents) {
     this.contents = contents;
   }
 
+  /** @return the lock required for modification of this text. */
   public Lock getLock() {
     return lock;
   }

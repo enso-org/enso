@@ -9,7 +9,12 @@ import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.Shape.{SegmentEscape, SegmentExpr, SegmentPlain, SegmentRawEscape}
+import org.enso.syntax.text.Shape.{
+  SegmentEscape,
+  SegmentExpr,
+  SegmentPlain,
+  SegmentRawEscape
+}
 import org.enso.syntax.text.ast.text.Escape
 import org.enso.syntax.text.ast.text.Escape.Unicode
 
@@ -486,65 +491,22 @@ object AstToIr {
               .mkString("\n")
 
             Literal.Text(fullString, getIdentifiedLocation(literal))
-          case AST.Literal.Text.Block.Fmt(_, _, _) =>
-            Error.Syntax(
-              literal,
-              Error.Syntax.UnsupportedSyntax("format strings")
-            )
-          case AST.Literal.Text.Line.Fmt(segments) =>
-            val bldr                  = new StringBuilder
-            var err: Option[IR.Error] = None
-            breakable {
-              segments.foreach {
-                case SegmentEscape(code) =>
-                  code match {
-                    case Escape.Number(_) =>
-                      err = Some(
-                        Error.Syntax(
-                          literal,
-                          Error.Syntax.UnsupportedSyntax("escaped numbers")
-                        )
-                      )
-                      break()
-                    case unicode: Escape.Unicode =>
-                      unicode match {
-                        case Unicode.InvalidUnicode(unicode) =>
-                          err = Some(
-                            Error.Syntax(
-                              literal,
-                              Error.Syntax.InvalidEscapeSequence(unicode.repr)
-                            )
-                          )
-                          break()
-                        case Unicode._U16(digits) =>
-                          val buffer = ByteBuffer.allocate(2)
-                          buffer.putChar(
-                            Integer.parseInt(digits, 16).asInstanceOf[Char]
-                          )
-                          val str = new String(buffer.array(), "UTF-16")
-                          bldr.addAll(str)
-                        case Unicode._U32(digits) =>
-                          val buffer = ByteBuffer.allocate(4)
-                          buffer.putInt(Integer.parseInt(digits, 16))
-                          val str = new String(buffer.array(), "UTF-32")
-                          bldr.addAll(str)
-                        case Unicode._U21(digits) =>
-                          val buffer = ByteBuffer.allocate(4)
-                          buffer.putInt(Integer.parseInt(digits, 16))
-                          val str = new String(buffer.array(), "UTF-32")
-                          bldr.addAll(str)
-                      }
-                    case _: Escape.Character =>
-                    case _: Escape.Control   =>
-                  }
-                case SegmentPlain(text)  => bldr.addAll(text)
-                case SegmentExpr(_)      =>
-                case SegmentRawEscape(_) =>
-              }
+          case AST.Literal.Text.Block.Fmt(lines, _, _) =>
+            val ls  = lines.map(l => parseFmtSegments(literal, l.text))
+            val err = ls.collectFirst { case Left(e) => e }
+            err match {
+              case Some(err) => err
+              case None =>
+                val str = ls.collect { case Right(str) => str }.mkString("\n")
+                IR.Literal.Text(str, getIdentifiedLocation(literal))
             }
-            err.getOrElse(
-              IR.Literal.Text(bldr.toString(), getIdentifiedLocation(literal))
-            )
+          case AST.Literal.Text.Line.Fmt(segments) =>
+            parseFmtSegments(literal, segments) match {
+              case Left(err) => err
+              case Right(str) =>
+                IR.Literal.Text(str, getIdentifiedLocation(literal))
+            }
+
           case _ =>
             throw new UnhandledEntity(literal.shape, "translateLiteral")
         }
@@ -552,9 +514,69 @@ object AstToIr {
     }
   }
 
-//  private def decodeUtf(hex: String, charset: Charset): String = {
-//
-//  }
+  private def parseFmtSegments(
+    literal: AST,
+    segments: Seq[AST.Literal.Text.Segment[AST]]
+  ): Either[IR.Error, String] = {
+    val bldr                  = new StringBuilder
+    var err: Option[IR.Error] = None
+    breakable {
+      segments.foreach {
+        case SegmentEscape(code) =>
+          code match {
+            case Escape.Number(_) =>
+              err = Some(
+                Error.Syntax(
+                  literal,
+                  Error.Syntax.UnsupportedSyntax("escaped numbers")
+                )
+              )
+              break()
+            case unicode: Escape.Unicode =>
+              unicode match {
+                case Unicode.InvalidUnicode(unicode) =>
+                  err = Some(
+                    Error.Syntax(
+                      literal,
+                      Error.Syntax.InvalidEscapeSequence(unicode.repr)
+                    )
+                  )
+                  break()
+                case Unicode._U16(digits) =>
+                  val buffer = ByteBuffer.allocate(2)
+                  buffer.putChar(
+                    Integer.parseInt(digits, 16).asInstanceOf[Char]
+                  )
+                  val str = new String(buffer.array(), "UTF-16")
+                  bldr.addAll(str)
+                case Unicode._U32(digits) =>
+                  val buffer = ByteBuffer.allocate(4)
+                  buffer.putInt(Integer.parseInt(digits, 16))
+                  val str = new String(buffer.array(), "UTF-32")
+                  bldr.addAll(str)
+                case Unicode._U21(digits) =>
+                  val buffer = ByteBuffer.allocate(4)
+                  buffer.putInt(Integer.parseInt(digits, 16))
+                  val str = new String(buffer.array(), "UTF-32")
+                  bldr.addAll(str)
+              }
+            case e: Escape.Character => bldr.addAll(e.repr)
+            case e: Escape.Control   => bldr.addAll(e.repr)
+          }
+        case SegmentPlain(text) => bldr.addAll(text)
+        case SegmentExpr(_) =>
+          err = Some(
+            Error.Syntax(
+              literal,
+              Error.Syntax.UnsupportedSyntax("interpolated expressions")
+            )
+          )
+          break()
+        case SegmentRawEscape(e) => bldr.addAll(e.repr)
+      }
+    }
+    err.map(Left(_)).getOrElse(Right(bldr.toString))
+  }
 
   /**
     * Translates a sequence literal into its [[IR]] counterpart.
