@@ -153,10 +153,10 @@ object NativeImage {
       }
     }
 
-  private def isWindows: Boolean =
+  def isWindows: Boolean =
     sys.props("os.name").toLowerCase().contains("windows")
 
-  private def isLinux: Boolean =
+  def isLinux: Boolean =
     sys.props("os.name").toLowerCase().contains("linux")
 
   /**

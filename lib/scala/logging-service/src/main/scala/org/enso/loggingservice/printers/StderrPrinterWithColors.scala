@@ -1,5 +1,8 @@
 package org.enso.loggingservice.printers
-import org.enso.loggingservice.internal.ANSIColorsMessageRenderer
+import org.enso.loggingservice.internal.{
+  ANSIColorsMessageRenderer,
+  AnsiTerminal
+}
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.io.AnsiColor
@@ -17,8 +20,9 @@ object StderrPrinterWithColors extends Printer {
     System.err.flush()
   }
 
-  def canUseColors: Boolean =
-    System.console() != null
+  def canUseColors: Boolean = {
+    (System.console() != null) && AnsiTerminal.tryEnabling()
+  }
 
   def colorPrinterIfAvailable(): Printer =
     if (canUseColors) this else StderrPrinter
