@@ -1,6 +1,12 @@
 from Base import all
 import Base.Test
 
+type Auto a
+
+type Manual b
+
+Manual.to_text = "[[[MyREP " + this.b.to_text + "]]]"
+
 spec = describe "Text" <|
     kshi = '\u0915\u094D\u0937\u093F'
     kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
@@ -24,3 +30,6 @@ spec = describe "Text" <|
         facepalm.codepoints.should_equal facepalm_codes
     it "should convert an array of codepoints to text" <|
         Text.from_codepoints facepalm_codes . should_equal facepalm
+    it "should convert any type to text automatically and using provided methods" <|
+        t = Auto (Manual 123) . to_text
+        t.should_equal "(Auto [[[MyREP 123]]])"
