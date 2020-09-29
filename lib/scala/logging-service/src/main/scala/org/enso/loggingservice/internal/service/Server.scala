@@ -27,10 +27,10 @@ import scala.concurrent.{Await, Future}
 class Server(
   interface: String,
   port: Int,
-  protected val queue: BlockingConsumerMessageQueue,
+  queue: BlockingConsumerMessageQueue,
   printers: Seq[Printer],
-  protected val logLevel: LogLevel
-) extends ThreadProcessingService
+  logLevel: LogLevel
+) extends Local(logLevel, queue, printers)
     with ServiceWithActorSystem {
 
   override protected def actorSystemName: String = "logging-service-server"
@@ -38,10 +38,6 @@ class Server(
   def start(): Future[Unit] = {
     startQueueProcessor()
     startWebSocketServer()
-  }
-
-  override protected def processMessage(message: WSLogMessage): Unit = {
-    printers.foreach(_.print(message))
   }
 
   private def startWebSocketServer(): Future[Unit] = {
@@ -118,9 +114,6 @@ class Server(
 
   private def decodeMessage(message: String): Either[Error, WSLogMessage] =
     parser.parse(message).flatMap(_.as[WSLogMessage])
-
-  override protected def shutdownProcessors(): Unit =
-    printers.foreach(_.shutdown())
 
   override protected def terminateUser(): Future[_] = {
     bindingOption match {

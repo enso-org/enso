@@ -23,19 +23,22 @@ trait ThreadProcessingService extends Service {
     thread.start()
   }
 
+  /**
+    * The runner filters out internal messages that have disabled log levels,
+    * but passes through all external messages (as their log level is set
+    * independently and can be lower).
+    */
   private def runQueue(): Unit = {
     try {
       while (!Thread.currentThread().isInterrupted) {
-        val message = queue.nextMessage()
-        if (logLevel.shouldLog(message.logLevel)) {
-          try {
-            processMessage(message)
-          } catch {
-            case NonFatal(e) =>
-              InternalLogger.error(
-                s"One of the printers failed to write a message: $e"
-              )
-          }
+        val message = queue.nextMessage(logLevel)
+        try {
+          processMessage(message)
+        } catch {
+          case NonFatal(e) =>
+            InternalLogger.error(
+              s"One of the printers failed to write a message: $e"
+            )
         }
       }
     } catch {

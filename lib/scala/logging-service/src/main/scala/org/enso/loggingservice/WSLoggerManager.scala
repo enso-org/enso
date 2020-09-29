@@ -88,11 +88,10 @@ object WSLoggerManager {
     *
     * An internal method that is only used by [[TestLogger]].
     */
-  def dropPendingLogs(): Unit = messageQueue.drain()
+  def dropPendingLogs(): Unit = messageQueue.drain(LogLevel.Off)
 
   private def handleMissingLogger(): Unit = {
-    val danglingMessages =
-      messageQueue.drain().filter(msg => currentLevel.shouldLog(msg.logLevel))
+    val danglingMessages = messageQueue.drain(currentLevel)
     if (danglingMessages.nonEmpty) {
       InternalLogger.error(
         "It seems that the logging service was never set up, " +
