@@ -895,9 +895,11 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
-    (Compile / compile) := (Compile/compile).dependsOn(Def.task {
-      Seq("mvn", "package", "-f", "std-bits")!
-    }).value
+    (Test / compile) := (Test / compile)
+        .dependsOn(Def.task {
+          Seq("mvn", "package", "-f", "std-bits") !
+        })
+        .value
   )
   .settings(
     logBuffered := false,
@@ -995,12 +997,12 @@ lazy val runner = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-        "org.graalvm.sdk"     % "polyglot-tck"   % graalVersion % "provided",
-        "org.graalvm.truffle" % "truffle-api"    % graalVersion % "provided",
-        "commons-cli"         % "commons-cli"    % commonsCliVersion,
-        "com.monovore"       %% "decline"        % declineVersion,
-        "org.jline"           % "jline"          % jlineVersion,
-        "org.typelevel"      %% "cats-core"      % catsVersion,
+        "org.graalvm.sdk"     % "polyglot-tck" % graalVersion % "provided",
+        "org.graalvm.truffle" % "truffle-api"  % graalVersion % "provided",
+        "commons-cli"         % "commons-cli"  % commonsCliVersion,
+        "com.monovore"       %% "decline"      % declineVersion,
+        "org.jline"           % "jline"        % jlineVersion,
+        "org.typelevel"      %% "cats-core"    % catsVersion
       ),
     connectInput in run := true
   )
