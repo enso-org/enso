@@ -53,7 +53,6 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Context createContext(Env env) {
-    TruffleLogger.getLogger("enso").info("HELLO from Context"); // TODO [RW] FIXME remove debug
     Context context = new Context(this, getLanguageHome(), env);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);

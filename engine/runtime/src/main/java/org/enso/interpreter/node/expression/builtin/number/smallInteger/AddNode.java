@@ -16,9 +16,6 @@ import java.util.logging.Level;
 public abstract class AddNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  // TODO [RW] FIXME remove debug
-  private final TruffleLogger tlogger = TruffleLogger.getLogger("enso", "AddNode");
-
   abstract Object execute(long _this, Object that);
 
   static AddNode build() {
@@ -27,11 +24,6 @@ public abstract class AddNode extends Node {
 
   @Specialization(rewriteOn = ArithmeticException.class)
   long doLong(long _this, long that) {
-    // TODO [RW] FIXME remove debug
-    if (tlogger.isLoggable(Level.FINE)) {
-      tlogger.fine("Add " + _this + " to " + that + ".");
-    }
-
     return Math.addExact(_this, that);
   }
 
