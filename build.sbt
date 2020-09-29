@@ -4,6 +4,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
   licenseReportNotes,
   licenseReportStyleRules
 }
+import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
@@ -892,6 +893,11 @@ lazy val runtime = (project in file("engine/runtime"))
     (Compile / compile) := (Compile / compile)
         .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
         .value
+  )
+  .settings(
+    (Compile / compile) := (Compile/compile).dependsOn(Def.task {
+      Seq("mvn", "package", "-f", "std-bits")!
+    }).value
   )
   .settings(
     logBuffered := false,

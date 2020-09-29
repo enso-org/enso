@@ -109,11 +109,6 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors compile
-      - name: Build Base Java Extensions
-        shell: bash
-        run: |
-          cd std-bits
-          mvn package
 
       # Tests
       - name: Setup Tests on Windows
