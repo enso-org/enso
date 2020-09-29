@@ -3,6 +3,7 @@ package org.enso.launcher.components.runner
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
+import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.components.ComponentsManagerTest
@@ -10,8 +11,12 @@ import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 
+import scala.concurrent.Future
+
 class RunnerSpec extends ComponentsManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
+
+  private val fakeUri = Uri("ws://test:1234/")
 
   def makeFakeRunner(
     cwdOverride: Option[Path]     = None,
@@ -25,7 +30,13 @@ class RunnerSpec extends ComponentsManagerTest {
     val projectManager = new ProjectManager(configurationManager)
     val cwd            = cwdOverride.getOrElse(getTestDirectory)
     val runner =
-      new Runner(projectManager, configurationManager, componentsManager, env) {
+      new Runner(
+        projectManager,
+        configurationManager,
+        componentsManager,
+        env,
+        Future.successful(Some(fakeUri))
+      ) {
         override protected val currentWorkingDirectory: Path = cwd
       }
     runner
@@ -37,8 +48,12 @@ class RunnerSpec extends ComponentsManagerTest {
       val runner =
         makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
 
-      val runSettings = RunSettings(SemVer(0, 0, 0), Seq("arg1", "--flag2"))
-      val jvmOptions  = Seq(("locally-added-options", "value1"))
+      val runSettings = RunSettings(
+        SemVer(0, 0, 0),
+        Seq("arg1", "--flag2"),
+        connectLoggerIfAvailable = true
+      )
+      val jvmOptions = Seq(("locally-added-options", "value1"))
 
       val enginePath =
         getTestDirectory / "test_data" / "dist" / "0.0.0"
@@ -48,22 +63,27 @@ class RunnerSpec extends ComponentsManagerTest {
         (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
 
       def checkCommandLine(command: Command): Unit = {
-        val commandLine = command.command.mkString(" ")
-        val arguments   = command.command.tail
-        arguments should contain("-Xfrom-env")
-        arguments should contain("-Denv=env")
-        arguments should contain("-Dlocally-added-options=value1")
-        arguments should contain("-Dlocally-added-options=value1")
-        arguments should contain("-Doptions-added-from-manifest=42")
-        arguments should contain("-Xanother-one")
-        commandLine should endWith("arg1 --flag2")
+        val arguments     = command.command.tail
+        val javaArguments = arguments.takeWhile(_ != "-jar")
+        val appArguments  = arguments.dropWhile(_ != runnerPath.toString).tail
+        javaArguments should contain("-Xfrom-env")
+        javaArguments should contain("-Denv=env")
+        javaArguments should contain("-Dlocally-added-options=value1")
+        javaArguments should contain("-Dlocally-added-options=value1")
+        javaArguments should contain("-Doptions-added-from-manifest=42")
+        javaArguments should contain("-Xanother-one")
 
-        arguments should contain(s"-Dtruffle.class.path.append=$runtimePath")
-        arguments.filter(
+        javaArguments should contain(
+          s"-Dtruffle.class.path.append=$runtimePath"
+        )
+        javaArguments.filter(
           _.contains("truffle.class.path.append")
         ) should have length 1
 
-        commandLine should include(s"-jar $runnerPath")
+        val appCommandLine = appArguments.mkString(" ")
+
+        appCommandLine shouldEqual s"--logger-connect $fakeUri arg1 --flag2"
+        command.command.mkString(" ") should include(s"-jar $runnerPath")
       }
 
       runner.withCommand(

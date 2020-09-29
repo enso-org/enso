@@ -5,7 +5,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.cli.{GlobalCLIOptions, Main}
+import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
 import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.components.runner.{
   JVMSettings,
@@ -43,7 +43,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       projectManager,
       configurationManager,
       componentsManager,
-      Environment
+      Environment,
+      LauncherLogging.loggingServiceEndpoint()
     )
   private lazy val upgrader = LauncherUpgrader.default(cliOptions)
   upgrader.runCleanup(isStartup = true)

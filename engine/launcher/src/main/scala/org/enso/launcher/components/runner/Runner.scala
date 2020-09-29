@@ -2,6 +2,7 @@ package org.enso.launcher.components.runner
 
 import java.nio.file.{Files, Path}
 
+import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.Environment
@@ -15,6 +16,8 @@ import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
 
 /**
@@ -26,7 +29,8 @@ class Runner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,
   componentsManager: ComponentsManager,
-  environment: Environment
+  environment: Environment,
+  loggerConnection: Future[Option[Uri]]
 ) {
 
   /**
@@ -57,7 +61,7 @@ class Runner(
           "--new-project-name",
           name
         ) ++ authorNameOption ++ authorEmailOption ++ additionalArguments
-      RunSettings(version, arguments)
+      RunSettings(version, arguments, connectLoggerIfAvailable = false)
     }
 
   /**
@@ -96,7 +100,8 @@ class Runner(
       RunSettings(
         version,
         arguments ++ Seq("--log-level", logLevel.toString)
-        ++ additionalArguments
+        ++ additionalArguments,
+        connectLoggerIfAvailable = true
       )
     }
 
@@ -156,7 +161,8 @@ class Runner(
       RunSettings(
         version,
         arguments ++ Seq("--log-level", logLevel.toString)
-        ++ additionalArguments
+        ++ additionalArguments,
+        connectLoggerIfAvailable = true
       )
     }
 
@@ -189,7 +195,12 @@ class Runner(
         "--log-level",
         logLevel.toString
       )
-      RunSettings(version, arguments ++ additionalArguments)
+      RunSettings(
+        version,
+        arguments ++ additionalArguments,
+        connectLoggerIfAvailable =
+          false // TODO [RW] set to true when language server gets logging support
+      )
     }
 
   /**
@@ -221,7 +232,10 @@ class Runner(
           case None        => WhichEngine.Default
         }
 
-      (RunSettings(version, arguments), whichEngine)
+      (
+        RunSettings(version, arguments, connectLoggerIfAvailable = false),
+        whichEngine
+      )
     }
   }
 
@@ -270,8 +284,13 @@ class Runner(
         manifestOptions ++ environmentOptions ++ commandLineOptions ++
         Seq("-jar", runnerJar)
 
+      val loggingConnectionArguments =
+        if (runSettings.connectLoggerIfAvailable)
+          forceLoggerConnectionArguments()
+        else Seq()
+
       val command = Seq(javaCommand.executableName) ++
-        jvmArguments ++ runSettings.runnerArguments
+        jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val extraEnvironmentOverrides =
         javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
@@ -317,4 +336,25 @@ class Runner(
       javaHomeOverride =
         Some(runtime.javaHome.toAbsolutePath.normalize.toString)
     )
+
+  private def forceLoggerConnectionArguments(): Seq[String] = {
+    val connectionSetting = {
+      try {
+        Await.result(loggerConnection, 3.seconds)
+      } catch {
+        case exception: TimeoutException =>
+          Logger[Runtime].warn(
+            "The logger has not been set up within the 3 second time limit, " +
+            "the launched component will be started but it will not be " +
+            "connected to the logging service.",
+            exception
+          )
+          None
+      }
+    }
+    connectionSetting match {
+      case Some(uri) => Seq("--logger-connect", uri.toString)
+      case None      => Seq()
+    }
+  }
 }
