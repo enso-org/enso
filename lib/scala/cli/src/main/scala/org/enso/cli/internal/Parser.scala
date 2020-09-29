@@ -89,7 +89,11 @@ object Parser {
       tokenProvider.consumeToken() match {
         case PlainToken(value) =>
           if (opts.wantsArgument()) {
-            val continuation = opts.consumeArgument(value, Seq(applicationName))
+            val continuation = opts.consumeArgument(
+              value,
+              Seq(applicationName),
+              suppressUnexpectedArgument
+            )
             continuation match {
               case ParserContinuation.ContinueNormally =>
               case ParserContinuation.Stop =>

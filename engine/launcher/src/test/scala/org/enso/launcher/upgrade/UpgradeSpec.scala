@@ -233,10 +233,7 @@ class UpgradeSpec
       )
 
       checkVersion() shouldEqual SemVer(0, 0, 0)
-      // run(Seq("upgrade", "0.0.3")) should returnSuccess
-      val proc = startLauncher(Seq("upgrade", "0.0.3"))
-      proc.printIO()
-      proc.join(timeoutSeconds = 20) should returnSuccess
+      run(Seq("upgrade", "0.0.3")) should returnSuccess
 
       checkVersion() shouldEqual SemVer(0, 0, 3)
 

@@ -96,7 +96,8 @@ object WSLoggerManager {
   def dropPendingLogs(): Unit = messageQueue.drain()
 
   private def handleMissingLogger(): Unit = {
-    val danglingMessages = messageQueue.drain()
+    val danglingMessages =
+      messageQueue.drain().filter(msg => currentLevel.shouldLog(msg.logLevel))
     if (danglingMessages.nonEmpty) {
       InternalLogger.error(
         "It seems that the logging service was never set up, " +
@@ -104,9 +105,7 @@ object WSLoggerManager {
         "These messages are printed below:"
       )
       danglingMessages.foreach { message =>
-        if (currentLevel.shouldLog(message.logLevel)) {
-          StderrPrinter.print(message)
-        }
+        StderrPrinter.print(message)
       }
     }
   }

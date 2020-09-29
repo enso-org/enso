@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
-import org.enso.launcher.cli.GlobalCLIOptions
+import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
 import org.enso.launcher.components.{ComponentsManager, RuntimeVersion}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
@@ -131,7 +131,8 @@ class ConcurrencyTest
       GlobalCLIOptions(
         autoConfirm  = true,
         hideProgress = true,
-        useJSON      = false
+        useJSON      = false,
+        colorMode    = ColorMode.Never
       ),
       distributionManager,
       resourceManager,

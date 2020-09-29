@@ -3,6 +3,9 @@ package org.enso.loggingservice.internal
 import com.typesafe.scalalogging.Logger
 import org.graalvm.nativeimage.ImageInfo
 
+/**
+  * Handles VT-compatible color output in the terminal.
+  */
 object AnsiTerminal {
 
   /**
@@ -34,4 +37,22 @@ object AnsiTerminal {
 
   private def isWindows: Boolean =
     System.getProperty("os.name").toLowerCase.contains("win")
+
+  /**
+    * Checks if output of this program may be piped.
+    */
+  def isLikelyPiped(): Boolean = System.console() == null
+
+  /**
+    * Checks if the output is connected to a terminal that can handle color
+    * output.
+    *
+    * On Windows, this function also enables color output, so any code that
+    * wants to use VT escape codes for colors (and is not assuming that its
+    * output is redirected) should first call this function to try enabling it
+    * and only use them if this function returned true.
+    */
+  def canUseColors(): Boolean = {
+    !isLikelyPiped() && AnsiTerminal.tryEnabling()
+  }
 }

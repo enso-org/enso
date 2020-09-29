@@ -500,9 +500,8 @@ object LauncherApplication {
     // TODO [RW] separate setting for launched components
     val logLevel = Opts.optionalParameter[LogLevel](
       GlobalCLIOptions.LOG_LEVEL,
-      "LOG-LEVEL",
-      "Sets logging verbosity for the launcher. Possible levels are: OFF, " +
-      "ERROR, WARNING, INFO, DEBUG and TRACE."
+      "(error | warning | info | debug | trace)",
+      "Sets logging verbosity for the launcher."
     )
     val connectLogger = Opts
       .optionalParameter[Uri](
@@ -512,6 +511,17 @@ object LauncherApplication {
         "connects to the logging service at the provided URI."
       )
       .hidden
+    val colorMode =
+      Opts
+        .aliasedOptionalParameter[ColorMode](
+          GlobalCLIOptions.COLOR_MODE,
+          "colour",
+          "colors"
+        )(
+          "(auto | yes | always | no | never)",
+          "Specifies if colors should be used in the output, defaults to auto."
+        )
+        .withDefault(ColorMode.Auto)
 
     val internalOpts = InternalOpts.topLevelOptions
 
@@ -523,7 +533,8 @@ object LauncherApplication {
       autoConfirm,
       hideProgress,
       logLevel,
-      connectLogger
+      connectLogger,
+      colorMode
     ) mapN {
       (
         internalOptsCallback,
@@ -533,7 +544,8 @@ object LauncherApplication {
         autoConfirm,
         hideProgress,
         logLevel,
-        connectLogger
+        connectLogger,
+        colorMode
       ) => () =>
         if (shouldEnsurePortable) {
           Launcher.ensurePortable()
@@ -542,11 +554,12 @@ object LauncherApplication {
         val globalCLIOptions = GlobalCLIOptions(
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,
-          useJSON      = useJSON
+          useJSON      = useJSON,
+          colorMode    = colorMode
         )
 
         internalOptsCallback(globalCLIOptions)
-        LauncherLogging.setup(logLevel, connectLogger)
+        LauncherLogging.setup(logLevel, connectLogger, globalCLIOptions)
         initializeApp()
 
         if (version) {

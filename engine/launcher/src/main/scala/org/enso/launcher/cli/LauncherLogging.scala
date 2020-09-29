@@ -40,7 +40,8 @@ object LauncherLogging {
     */
   def setup(
     logLevel: Option[LogLevel],
-    connectToExternalLogger: Option[Uri]
+    connectToExternalLogger: Option[Uri],
+    globalCLIOptions: GlobalCLIOptions
   ): Unit = {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
     connectToExternalLogger match {
@@ -66,7 +67,7 @@ object LauncherLogging {
               }
           }
       case None =>
-        setupLoggingServer(actualLogLevel)
+        setupLoggingServer(actualLogLevel, globalCLIOptions)
     }
   }
 
@@ -99,15 +100,27 @@ object LauncherLogging {
     * Returns a printer for outputting the logs to the standard error output, if
     * it is enabled.
     */
-  private def stderrPrinter(): Option[Printer] =
-    Some(StderrPrinterWithColors.colorPrinterIfAvailable())
+  private def stderrPrinter(
+    globalCLIOptions: GlobalCLIOptions
+  ): Option[Printer] =
+    globalCLIOptions.colorMode match {
+      case ColorMode.Never =>
+        Some(StderrPrinter)
+      case ColorMode.Auto =>
+        Some(StderrPrinterWithColors.colorPrinterIfAvailable())
+      case ColorMode.Always =>
+        Some(StderrPrinterWithColors.forceCreate())
+    }
 
-  private def setupLoggingServer(logLevel: LogLevel): Unit = {
+  private def setupLoggingServer(
+    logLevel: LogLevel,
+    globalCLIOptions: GlobalCLIOptions
+  ): Unit = {
     val printers =
       try {
         val filePrinter =
           FileOutputPrinter.create(DistributionManager.paths.logs)
-        stderrPrinter().toSeq ++ Seq(filePrinter)
+        stderrPrinter(globalCLIOptions).toSeq ++ Seq(filePrinter)
       } catch {
         case NonFatal(error) =>
           logger.error(

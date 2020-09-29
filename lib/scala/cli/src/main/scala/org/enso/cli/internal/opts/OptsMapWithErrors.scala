@@ -4,7 +4,8 @@ import cats.data.NonEmptyList
 import org.enso.cli.arguments.{Opts, OptsParseError}
 import org.enso.cli.internal.ParserContinuation
 
-class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
+class OptsMapWithErrors[A, B](a: Opts[A], f: A => Either[OptsParseError, B])
+    extends Opts[B] {
   override private[cli] def flags              = a.flags
   override private[cli] def parameters         = a.parameters
   override private[cli] def prefixedParameters = a.prefixedParameters
@@ -32,7 +33,7 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
 
   override private[cli] def result(
     commandPrefix: Seq[String]
-  ): Either[OptsParseError, B] = a.result(commandPrefix).map(f)
+  ): Either[OptsParseError, B] = a.result(commandPrefix).flatMap(f)
 
   override def availableOptionsHelp(): Seq[String] = a.availableOptionsHelp()
   override def availablePrefixedParametersHelp(): Seq[String] =

@@ -3,7 +3,7 @@ package org.enso.launcher.components
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.cli.GlobalCLIOptions
+import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.locking.TestLocalResourceManager
 import org.enso.launcher.releases.engine.EngineReleaseProvider
@@ -57,7 +57,8 @@ class ComponentsManagerTest
       GlobalCLIOptions(
         autoConfirm  = true,
         hideProgress = true,
-        useJSON      = false
+        useJSON      = false,
+        colorMode    = ColorMode.Never
       ),
       distributionManager,
       TestLocalResourceManager.create(),
