@@ -1,4 +1,4 @@
-package org.enso.loggingservice.internal.serviceconnection
+package org.enso.loggingservice.internal.service
 
 import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
@@ -23,8 +23,8 @@ object Local {
     queue: BlockingConsumerMessageQueue,
     printers: Seq[Printer]
   ): Local = {
-    val fallback = new Local(logLevel, queue, printers)
-    fallback.startQueueProcessor()
-    fallback
+    val local = new Local(logLevel, queue, printers)
+    local.startQueueProcessor()
+    local
   }
 }

@@ -15,7 +15,13 @@ class TestPrinter extends Printer {
     }
   }
 
-  def shutdown(): Unit = {}
+  @volatile private var alreadyShutdown = false
+
+  def shutdown(): Unit = {
+    alreadyShutdown = true
+  }
+
+  def wasShutdown(): Boolean = alreadyShutdown
 
   def getLoggedMessages(): Seq[TestLogMessage] = messages.toSeq
 }

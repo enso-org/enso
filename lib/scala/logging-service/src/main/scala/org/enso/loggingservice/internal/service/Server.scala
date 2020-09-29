@@ -1,4 +1,4 @@
-package org.enso.loggingservice.internal.serviceconnection
+package org.enso.loggingservice.internal.service
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._

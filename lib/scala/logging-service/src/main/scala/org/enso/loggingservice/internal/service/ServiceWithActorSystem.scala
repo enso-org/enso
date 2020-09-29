@@ -1,4 +1,4 @@
-package org.enso.loggingservice.internal.serviceconnection
+package org.enso.loggingservice.internal.service
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}

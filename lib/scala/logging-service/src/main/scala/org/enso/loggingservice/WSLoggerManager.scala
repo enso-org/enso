@@ -1,11 +1,6 @@
 package org.enso.loggingservice
 
-import org.enso.loggingservice.internal.serviceconnection.{
-  Client,
-  Local,
-  Server,
-  Service
-}
+import org.enso.loggingservice.internal.service.{Client, Local, Server, Service}
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
   InternalLogMessage,

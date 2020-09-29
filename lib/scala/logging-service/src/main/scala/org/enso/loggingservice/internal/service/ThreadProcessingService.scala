@@ -1,4 +1,4 @@
-package org.enso.loggingservice.internal.serviceconnection
+package org.enso.loggingservice.internal.service
 
 import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.{
