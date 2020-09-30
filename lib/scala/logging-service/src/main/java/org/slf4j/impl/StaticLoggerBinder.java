@@ -5,7 +5,7 @@ import org.slf4j.ILoggerFactory;
 
 /**
  * Binds the logging service as an SLF4J backend.
- *
+ * <p>
  * The public interface of this class must conform to what is expected by an
  * SLF4J backend. See slf4j-simple for reference.
  */

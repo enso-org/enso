@@ -37,12 +37,12 @@ import org.graalvm.options.OptionDescriptors;
     fileTypeDetectors = FileDetector.class,
     services = ExecutionService.class)
 @ProvidedTags({
-    DebuggerTags.AlwaysHalt.class,
-    StandardTags.CallTag.class,
-    StandardTags.ExpressionTag.class,
-    StandardTags.RootTag.class,
-    StandardTags.TryBlockTag.class,
-    IdentifiedTag.class
+  DebuggerTags.AlwaysHalt.class,
+  StandardTags.CallTag.class,
+  StandardTags.ExpressionTag.class,
+  StandardTags.RootTag.class,
+  StandardTags.TryBlockTag.class,
+  IdentifiedTag.class
 })
 public final class Language extends TruffleLanguage<Context> {
   /**
@@ -65,7 +65,7 @@ public final class Language extends TruffleLanguage<Context> {
   /**
    * Checks if this Enso execution environment is accessible in a multithreaded context.
    *
-   * @param thread         the thread to check access for
+   * @param thread the thread to check access for
    * @param singleThreaded whether or not execution is single threaded
    * @return whether or not thread access is allowed
    */
