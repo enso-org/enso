@@ -11,6 +11,12 @@ parse fmt = Instant.parse [fmt]
 now : Instant
 now = Instant.now []
 
+of_epoch_milli : Integer -> Instant
+of_epoch_milli epoch_millis = Instant.ofEpochMilli [epoch_millis]
+
+of_epoch_second : Integer -> Instant
+of_epoch_second epoch_seconds = Instant.ofEpochSecond [epoch_seconds]
+
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneOffset -> Instant
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
     date_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset]

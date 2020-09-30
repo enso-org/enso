@@ -1,0 +1,18 @@
+from Base import all
+import Time.Instant
+
+polyglot java import java.lang.System
+
+## The number of seconds that have elapsed since the Unix epoch.
+unix_time : Integer
+unix_time = Instant.now . getEpochSecond []
+
+## The number of milliseconds that have elapsed since the Unix epoch.
+unix_time_millis : Integer
+unix_time_millis = Instant.now . toEpochMilli []
+
+## The current value of the running program's high-resolution time source, in
+   nanoseconds. This method can only be used to measure elapsed time and is not
+   related to any other notion of system or wall-clock time.
+nano_time : Integer
+nano_time = System.nanoTime []
