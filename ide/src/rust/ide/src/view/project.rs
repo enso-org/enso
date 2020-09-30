@@ -15,10 +15,12 @@ use ensogl::display::shape::text::glyph::font;
 use ensogl::system::web;
 use enso_frp::io::keyboard::Keyboard;
 use enso_frp::io::keyboard;
+use enso_protocol::language_server::MethodPointer;
 use enso_shapely::shared;
 use ensogl_theme;
 use ide_view::graph_editor;
 use nalgebra::Vector2;
+use parser::Parser;
 
 
 
@@ -43,8 +45,21 @@ pub const INITIAL_MODULE_NAME:&str = "Main";
 /// This is the definition whose graph will be opened on IDE start.
 pub const MAIN_DEFINITION_NAME:&str = "main";
 
-/// The default content of the newly created initial module file.
-pub const DEFAULT_MAIN_CONTENT:&str = r#"main = IO.println "Hello, World!""#;
+/// The code with definition of the default `main` method.
+pub fn default_main_method_code() -> String {
+    format!(r#"{} = "Hello, World!""#, MAIN_DEFINITION_NAME)
+}
+
+/// The default content of the newly created initial main module file.
+pub fn default_main_module_code() -> String {
+    default_main_method_code()
+}
+
+/// Method pointer that described the main method, i.e. the method that project view wants to open
+/// and which presence is currently required.
+pub fn main_method_ptr(project_name:impl Str, module_path:&model::module::Path) -> MethodPointer {
+    module_path.method_pointer(project_name,MAIN_DEFINITION_NAME)
+}
 
 
 
@@ -91,20 +106,43 @@ pub async fn recreate_if_missing(project:&model::Project, path:&FilePath, defaul
     Ok(())
 }
 
+/// Add main method definition to the given module, if the method is not already defined.
+///
+/// The lookup will be done using the given `main_ptr` value.
+pub fn add_main_if_missing
+(module:&model::Module, main_ptr:&MethodPointer, parser:&Parser) -> FallibleResult<()> {
+    if module.lookup_method(main_ptr).is_err() {
+        let mut info  = module.info();
+        let main_code = default_main_method_code();
+        let main_ast  = parser.parse_line(main_code)?;
+        info.add_ast(main_ast,double_representation::module::Placement::End)?;
+        module.update_ast(info.ast);
+
+        // TODO [mwu] Add imports required by the default main definition (when needed).
+    }
+    Ok(())
+}
+
 impl ProjectView {
     /// Create a new ProjectView.
-    pub async fn new(logger:impl AnyLogger, model:model::Project)
-    -> FallibleResult<Self> {
+    pub async fn new(logger:impl AnyLogger, project:model::Project) -> FallibleResult<Self> {
         let logger      = Logger::sub(logger,"ProjectView");
-        let module_path = initial_module_path(&model)?;
+        let module_path = initial_module_path(&project)?;
         let file_path   = module_path.file_path().clone();
         // TODO [mwu] This solution to recreate missing main file should be considered provisional
         //   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
-        recreate_if_missing(&model,&file_path,DEFAULT_MAIN_CONTENT.into()).await?;
-        let text_controller   = controller::Text::new(&logger,&model,file_path).await?;
-        let method            = module_path.method_pointer(model.name(),MAIN_DEFINITION_NAME);
-        let graph_controller  = controller::ExecutedGraph::new(&logger,model.clone_ref(),method);
+        recreate_if_missing(&project, &file_path, default_main_method_code()).await?;
+
+        let method = main_method_ptr(project.name(),&module_path);
+        let module = project.module(module_path).await?;
+        add_main_if_missing(&module,&method,&project.parser())?;
+
+        // Here, we should be relatively certain (except race conditions in case of multiple clients
+        // that we currently do not support) that main module exists and contains main method.
+        // Thus, we should be able to successfully create a graph controller for it.
+        let graph_controller  = controller::ExecutedGraph::new(&logger,project.clone_ref(),method);
         let graph_controller  = graph_controller.await?;
+        let text_controller   = controller::Text::new(&logger, &project, file_path).await?;
         let application       = Application::new(&web::get_html_element_by_id("root").unwrap());
         let scene             = application.display.scene();
         let camera            = scene.camera();
@@ -119,10 +157,11 @@ impl ProjectView {
         let mut keyboard_actions     = keyboard::Actions::new(&keyboard);
         let resize_callback          = None;
         let mut fonts                = font::Registry::new();
-        let visualization_controller = model.visualization().clone();
-        let layout = ViewLayout::new(&logger,&mut keyboard_actions,&application, text_controller,
-            graph_controller,visualization_controller,model.clone_ref(),&mut fonts).await?;
-        let data = ProjectViewData {application,layout,resize_callback,model,keyboard,
+        let visualization_controller = project.visualization().clone();
+        let layout = ViewLayout::new(&logger,&mut keyboard_actions,&application,text_controller,
+            graph_controller,visualization_controller,project.clone_ref(),&mut fonts).await?;
+        let model = project;
+        let data = ProjectViewData {model,application,layout,resize_callback,keyboard,
             keyboard_bindings,keyboard_actions,navigator};
         Ok(Self::new_from_data(data).init())
     }
@@ -148,5 +187,45 @@ impl ProjectView {
     /// Forgets ProjectView, so it won't get dropped when it goes out of scope.
     pub fn forget(self) {
         std::mem::forget(self)
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+
+    #[wasm_bindgen_test]
+    fn adding_missing_main() {
+        let _ctx        = TestWithLocalPoolExecutor::set_up();
+        let parser      = parser::Parser::new_or_panic();
+        let mut data    = crate::test::mock::Unified::new();
+        let module_name = data.module_path.module_name();
+        let main_ptr    = main_method_ptr(&data.project_name,&data.module_path);
+
+        // Check that module without main gets it after the call.
+        let empty_module_code = "";
+        data.set_code(empty_module_code);
+        let module = data.module();
+        assert!(module.lookup_method(&main_ptr).is_err());
+        add_main_if_missing(&module,&main_ptr,&parser).unwrap();
+        assert!(module.lookup_method(&main_ptr).is_ok());
+
+        // Now check that modules that have main already defined won't get modified.
+        let mut expect_intact = move |code:&str| {
+            data.set_code(code);
+            let module = data.module();
+            add_main_if_missing(&module,&main_ptr,&parser).unwrap();
+            assert_eq!(code,module.ast().repr());
+        };
+        expect_intact("main = 5");
+        expect_intact("here.main = 5");
+        expect_intact(&format!("{}.main = 5",module_name));
     }
 }

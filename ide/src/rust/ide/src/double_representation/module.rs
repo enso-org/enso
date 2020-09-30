@@ -2,11 +2,12 @@
 
 use crate::prelude::*;
 
+use crate::constants::keywords::HERE;
 use crate::double_representation::definition;
-use crate::double_representation::definition::DefinitionName;
 use crate::double_representation::definition::DefinitionProvider;
 use crate::double_representation::identifier;
 use crate::double_representation::identifier::Identifier;
+use crate::double_representation::identifier::NormalizedName;
 use crate::double_representation::identifier::LocatedName;
 use crate::double_representation::identifier::ReferentName;
 
@@ -415,13 +416,13 @@ impl Info {
         index_to_place_at
     }
 
-    /// Add a new method definition to the module.
-    pub fn add_method
-    (&mut self, method:definition::ToAdd, location:Placement, parser:&parser::Parser)
-    -> FallibleResult<()> {
-        let no_indent      = 0;
-        let definition_ast = method.ast(no_indent,parser)?;
-
+    /// Place the line with given AST in the module's body.
+    ///
+    /// Unlike `add_line` (which is more low-level) will introduce empty lines around introduced
+    /// line and describes the added line location in relation to other definitions.
+    ///
+    /// Typically used to place lines with definitions in the module.
+    pub fn add_ast(&mut self, ast:Ast, location:Placement) -> FallibleResult<()> {
         #[derive(Clone,Copy,Debug,Eq,PartialEq)]
         enum BlankLinePlacement {Before,After,None};
         let blank_line = match location {
@@ -447,12 +448,21 @@ impl Info {
         if blank_line == BlankLinePlacement::Before {
             add_line(None);
         }
-        add_line(Some(definition_ast));
+        add_line(Some(ast));
         if blank_line == BlankLinePlacement::After {
             add_line(None);
         }
 
         Ok(())
+    }
+
+    /// Add a new method definition to the module.
+    pub fn add_method
+    (&mut self, method:definition::ToAdd, location:Placement, parser:&parser::Parser)
+    -> FallibleResult<()> {
+        let no_indent      = 0;
+        let definition_ast = method.ast(no_indent,parser)?;
+        self.add_ast(definition_ast,location)
     }
 
     #[cfg(test)]
@@ -587,7 +597,7 @@ pub fn locate
     // Not exactly regular - we need special case for the first crumb as it is not a definition nor
     // a children. After this we can go just from one definition to another.
     let first_crumb = crumbs_iter.next().ok_or(EmptyDefinitionId)?;
-    let mut child = ast.def_iter().find_by_name(&first_crumb)?;
+    let mut child   = ast.def_iter().find_by_name(&first_crumb)?;
     for crumb in crumbs_iter {
         child = definition::resolve_single_name(child,crumb)?;
     }
@@ -598,18 +608,27 @@ pub fn locate
 ///
 /// The module is assumed to be in the file identified by the `method.file` (for the purpose of
 /// desugaring implicit extensions methods for modules).
+///
+/// The `module_name` parameter is the name of the module that contains `ast`. It affects how the
+/// `here` keyword is resolved.
 pub fn lookup_method
-(ast:&known::Module, method:&language_server::MethodPointer) -> FallibleResult<definition::Id> {
-    let module_name                    = QualifiedName::try_from(method)?;
-    let explicitly_extends_looked_type = method.defined_on_type == module_name.name().as_ref();
-
+(module_name:&ReferentName, ast:&known::Module, method:&language_server::MethodPointer)
+-> FallibleResult<definition::Id> {
+    let normalized_typename        = NormalizedName::new(&method.defined_on_type);
+    let accept_here_methods        = module_name.normalized() == normalized_typename;
+    let module_name                = QualifiedName::try_from(method)?;
+    let implicit_extension_allowed = method.defined_on_type == module_name.name().as_ref();
     for child in ast.def_iter() {
-        let child_name : &DefinitionName = &child.name.item;
+        let child_name   = &child.name.item;
         let name_matches = child_name.name.item == method.name;
         let type_matches = match child_name.extended_target.as_slice() {
-            []         => explicitly_extends_looked_type,
-            [typename] => typename.item == method.defined_on_type,
-            _          => child_name.explicitly_extends_type(&method.defined_on_type),
+            []         => implicit_extension_allowed,
+            [typename] => {
+                let explicit_type_matching  = typename.item == method.defined_on_type;
+                let here_extension_matching = typename.item == HERE && accept_here_methods;
+                explicit_type_matching || here_extension_matching
+            }
+            _ => child_name.explicitly_extends_type(&method.defined_on_type),
         };
         if name_matches && type_matches {
             return Ok(definition::Id::new_single_crumb(child_name.clone()))
@@ -717,16 +736,11 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn implicit_method_resolution() {
-        let parser = parser::Parser::new_or_panic();
-        let foo_method = MethodPointer {
-            defined_on_type : "Main".into(),
-            module          : "ProjectName.Main".into(),
-            name            : "foo".into(),
-        };
-
-        let expect_find = |code,expected:definition::Id| {
+        let parser         = parser::Parser::new_or_panic();
+        let module_name    = ReferentName::new("Main").unwrap();
+        let expect_find    = |method:&MethodPointer, code,expected:&definition::Id| {
             let module = parser.parse_module(code,default()).unwrap();
-            let result = lookup_method(&module,&foo_method);
+            let result = lookup_method(&module_name,&module,method);
             assert_eq!(result.unwrap().to_string(),expected.to_string());
 
             // TODO [mwu]
@@ -736,21 +750,50 @@ mod tests {
             //  ones. Definition ID should not require any location info.
         };
 
-        let expect_not_found = |code| {
+        let expect_not_found = |method:&MethodPointer, code| {
             let module = parser.parse_module(code,default()).unwrap();
-            lookup_method(&module,&foo_method).expect_err("expected method not found");
+            lookup_method(&module_name,&module,method).expect_err("expected method not found");
+        };
+
+
+        // === Lookup the Main (local module type) extension method ===
+
+        let ptr = MethodPointer {
+            defined_on_type : "Main".into(),
+            module          : "ProjectName.Main".into(),
+            name            : "foo".into(),
         };
 
         // Implicit module extension method.
         let id = definition::Id::new_plain_name("foo");
-        expect_find("foo a b = a + b", id);
-        // Explicit module extension method
+        expect_find(&ptr,"foo a b = a + b",&id);
+        // Explicit module extension method.
         let id = definition::Id::new_single_crumb(DefinitionName::new_method("Main","foo"));
-        expect_find("Main.foo a b = a + b", id);
+        expect_find(&ptr,"Main.foo a b = a + b",&id);
+        // Explicit extensions using "here" keyword.
+        let id = definition::Id::new_single_crumb(DefinitionName::new_method("here","foo"));
+        expect_find(&ptr,"here.foo a b = a + b",&id);
+        // Matching name but extending wrong type.
+        expect_not_found(&ptr,"Int.foo a b = a + b");
+        // Mismatched name.
+        expect_not_found(&ptr,"bar a b = a + b");
 
-        expect_not_found("bar a b = a + b");
+
+        // === Lookup the Int (non-local type) extension method ===
+
+        let ptr = MethodPointer {
+            defined_on_type : "Int".into(),
+            module          : "ProjectName.Main".into(),
+            name            : "foo".into(),
+        };
+
+        expect_not_found(&ptr,"foo a b = a + b");
+        let id = definition::Id::new_single_crumb(DefinitionName::new_method("Int","foo"));
+        expect_find(&ptr,"Int.foo a b = a + b",&id);
+        expect_not_found(&ptr,"Text.foo a b = a + b");
+        expect_not_found(&ptr,"here.foo a b = a + b");
+        expect_not_found(&ptr,"bar a b = a + b");
     }
-
 
     #[wasm_bindgen_test]
     fn test_definition_location() {

@@ -571,10 +571,10 @@ mod tests {
     fn generating_definition_to_add() {
         let parser     = Parser::new_or_panic();
         let mut to_add = ToAdd {
-            name : DefinitionName::new_method("Main","add"),
+            name                     : DefinitionName::new_method("Main","add"),
             explicit_parameter_names : vec!["arg1".into(), "arg2".into()],
-            body_head : Ast::infix_var("ret","=","arg2"),
-            body_tail : default(),
+            body_head                : Ast::infix_var("ret","=","arg2"),
+            body_tail                : default(),
         };
 
         // First, if we generate definition with single line and it is assignment,

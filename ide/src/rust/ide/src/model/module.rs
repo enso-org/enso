@@ -454,6 +454,22 @@ pub trait API:Debug {
     fn id(&self) -> Id {
         self.path().id()
     }
+
+    /// Get a definition ID that points to a method matching given pointer.
+    ///
+    /// The module is assumed to be in the file identified by the `method.file` (for the purpose of
+    /// desugaring implicit extensions methods for modules).
+    fn lookup_method
+    (&self, method:&MethodPointer) -> FallibleResult<double_representation::definition::Id> {
+        let name = self.path().module_name();
+        let ast  = self.ast();
+        double_representation::module::lookup_method(&name,&ast,method)
+    }
+
+    /// Get the double representation information about module.
+    fn info(&self) -> double_representation::module::Info {
+        double_representation::module::Info::from(self.ast())
+    }
 }
 
 /// The general, shared Module Model handle.
