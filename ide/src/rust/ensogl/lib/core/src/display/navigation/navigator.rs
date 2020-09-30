@@ -7,8 +7,7 @@ use crate::control::callback;
 use crate::display::camera::Camera2d;
 use crate::display::object::traits::*;
 use crate::display::Scene;
-use crate::system::web::dom;
-use crate::system::web;
+
 use events::NavigatorEvents;
 use events::PanEvent;
 use events::ZoomEvent;
@@ -29,13 +28,12 @@ pub struct Navigator {
 
 impl Navigator {
     pub fn new(scene:&Scene, camera:&Camera2d) -> Self {
-        let dom                    = scene.dom.root.clone_ref();
         let zoom_speed             = 10.0;
         let min_zoom               = 10.0;
         let max_zoom               = 10000.0;
         let scaled_down_zoom_speed = zoom_speed / 1000.0;
         let (simulator,resize_callback,_events) = Self::start_navigator_events
-            (&dom.into(),camera,min_zoom,max_zoom,scaled_down_zoom_speed);
+            (&scene,camera,min_zoom,max_zoom,scaled_down_zoom_speed);
         Self {simulator,_events,resize_callback}
     }
 
@@ -49,17 +47,17 @@ impl Navigator {
     }
 
     fn start_navigator_events
-    ( dom        : &dom::WithKnownShape<web::EventTarget>
-    , camera     : &Camera2d
-    , min_zoom   : f32
-    , max_zoom   : f32
-    , zoom_speed : f32
+    ( scene         : &Scene
+    , camera        : &Camera2d
+    , min_zoom      : f32
+    , max_zoom      : f32
+    , zoom_speed    : f32
     ) -> (physics::inertia::DynSimulator<Vector3>,callback::Handle,NavigatorEvents) {
         let simulator        = Self::create_simulator(&camera);
-        let panning_callback = enclose!((dom,camera,mut simulator) move |pan: PanEvent| {
+        let panning_callback = enclose!((scene,camera,mut simulator) move |pan: PanEvent| {
             let fovy_slope                  = camera.half_fovy_slope();
             let distance                    = camera.position().z;
-            let distance_to_show_full_ui    = dom.shape().height / 2.0 / fovy_slope;
+            let distance_to_show_full_ui    = scene.shape().value().height / 2.0 / fovy_slope;
             let movement_scale_for_distance = distance / distance_to_show_full_ui;
 
             let diff = Vector3::new(pan.movement.x,pan.movement.y,0.0)*movement_scale_for_distance;
@@ -75,9 +73,9 @@ impl Navigator {
             })
         );
 
-        let zoom_callback = enclose!((dom,camera,simulator) move |zoom:ZoomEvent| {
+        let zoom_callback = enclose!((scene,camera,simulator) move |zoom:ZoomEvent| {
                 let point       = zoom.focus;
-                let normalized  = normalize_point2(point,dom.shape().into());
+                let normalized  = normalize_point2(point,scene.shape().value().into());
                 let normalized  = normalized_to_range2(normalized, -1.0, 1.0);
                 let half_height = 1.0;
 
@@ -100,7 +98,7 @@ impl Navigator {
                 position          += direction * zoom_factor;
                 simulator.set_target_value(position);
         });
-        (simulator,resize_callback, NavigatorEvents::new(&dom, panning_callback, zoom_callback, zoom_speed))
+        (simulator,resize_callback, NavigatorEvents::new(&scene.mouse.mouse_manager,panning_callback,zoom_callback,zoom_speed))
     }
 }
 

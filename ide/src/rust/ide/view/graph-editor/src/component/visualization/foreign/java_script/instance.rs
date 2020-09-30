@@ -22,7 +22,6 @@ use ensogl::display::Scene;
 use ensogl::display;
 use ensogl::system::web;
 use ensogl::system::web::JsValue;
-use ensogl::system::web::StyleSetter;
 use js_sys;
 use std::fmt::Formatter;
 
@@ -99,7 +98,6 @@ impl InstanceModel {
     fn create_root() -> result::Result<DomSymbol, Error> {
         let div       = web::create_div();
         let root_node = DomSymbol::new(&div);
-        root_node.dom().set_style_or_warn("pointer-events", "none", &Logger::new("CreateRoot"));
         root_node.dom().set_attribute("class","visualization")
             .map_err(|js_error|Error::ConstructorError{js_error})?;
         Ok(root_node)
@@ -217,10 +215,10 @@ impl Instance {
         let frp     = visualization::instance::Frp::new(&network);
         let model   = InstanceModel::from_class(class)?;
         model.set_dom_layer(&scene.dom.layers.back);
-        Ok(Instance{model,frp,network}.init_frp().inti_preprocessor_change_callback())
+        Ok(Instance{model,frp,network}.init_frp(&scene).inti_preprocessor_change_callback())
     }
 
-    fn init_frp(self) -> Self {
+    fn init_frp(self, scene:&Scene) -> Self {
         let network = &self.network;
         let model   = self.model.clone_ref();
         let frp     = self.frp.clone_ref();
@@ -230,7 +228,15 @@ impl Instance {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));
                 }
-             });
+            });
+
+            let mouse_up       =  scene.mouse.frp.up.clone_ref();
+            let mouse_down     =  scene.mouse.frp.down.clone_ref();
+            let mouse_wheel    =  scene.mouse.frp.wheel.clone_ref();
+            let mouse_position =  scene.mouse.frp.position.clone_ref();
+            caught_mouse       <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
+            should_process     <- caught_mouse.gate(&frp.is_active);
+            eval_ should_process (scene.frp.pass_current_js_event_to_dom.emit(()));
         }
         self
     }
