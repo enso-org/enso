@@ -12,10 +12,11 @@ import scala.annotation.tailrec
 case class ParserDef() extends flexer.Parser[AST.Module] {
   import ParserDef2._
 
-  final def unwrap[T](opt: Option[T]): T = opt match {
-    case None    => throw new Error("Internal Error")
-    case Some(t) => t
-  }
+  final def unwrap[T](opt: Option[T]): T =
+    opt match {
+      case None    => throw new Error("Internal Error")
+      case Some(t) => t
+    }
 
   /////////////
   //// API ////
@@ -42,44 +43,49 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   //// Result ////
   ////////////////
 
-  override def getResult() = result.current.flatMap {
-    case AST.Module.any(mod) => Some(mod)
-    case _                   => None
-  }
+  override def getResult() =
+    result.current.flatMap {
+      case AST.Module.any(mod) => Some(mod)
+      case _                   => None
+    }
 
   final object result {
 
     var current: Option[AST]     = None
     var stack: List[Option[AST]] = Nil
 
-    def push(): Unit = logger.trace {
-      logger.log(s"Pushed: $current")
-      stack +:= current
-      current = None
-    }
+    def push(): Unit =
+      logger.trace {
+        logger.log(s"Pushed: $current")
+        stack +:= current
+        current = None
+      }
 
-    def pop(): Unit = logger.trace {
-      current = stack.head
-      stack   = stack.tail
-      logger.log(s"New result: ${current.map(_.show()).getOrElse("None")}")
-    }
+    def pop(): Unit =
+      logger.trace {
+        current = stack.head
+        stack   = stack.tail
+        logger.log(s"New result: ${current.map(_.show()).getOrElse("None")}")
+      }
 
     def app(fn: String => AST): Unit =
       app(fn(currentMatch))
 
-    def app(ast: AST): Unit = logger.trace {
-      current = Some(current match {
-        case None    => ast
-        case Some(r) => AST.App.Prefix(r, off.use(), ast)
-      })
-    }
+    def app(ast: AST): Unit =
+      logger.trace {
+        current = Some(current match {
+          case None    => ast
+          case Some(r) => AST.App.Prefix(r, off.use(), ast)
+        })
+      }
 
     def last(): Option[AST] = {
       @tailrec
-      def go(ast: AST): AST = ast match {
-        case AST.App.Prefix.any(t) => go(t.arg)
-        case t                     => t
-      }
+      def go(ast: AST): AST =
+        ast match {
+          case AST.App.Prefix.any(t) => go(t.arg)
+          case t                     => t
+        }
       current.map(go)
     }
   }
@@ -92,30 +98,34 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     var current: Int     = 0
     var stack: List[Int] = Nil
 
-    def push(): Unit = logger.trace {
-      stack +:= current
-      current = 0
-    }
+    def push(): Unit =
+      logger.trace {
+        stack +:= current
+        current = 0
+      }
 
-    def pop(): Unit = logger.trace {
-      current = stack.head
-      stack   = stack.tail
-      logger.log(s"New offset: $current")
-    }
+    def pop(): Unit =
+      logger.trace {
+        current = stack.head
+        stack   = stack.tail
+        logger.log(s"New offset: $current")
+      }
 
-    def use(): Int = logger.trace {
-      val offset = current
-      current = 0
-      offset
-    }
+    def use(): Int =
+      logger.trace {
+        val offset = current
+        current = 0
+        offset
+      }
 
     def on(): Unit = on(0)
 
-    def on(shift: Int): Unit = logger.trace {
-      val diff = currentMatch.length + shift
-      current += diff
-      logger.log(s"lastOffset + $diff = $current")
-    }
+    def on(shift: Int): Unit =
+      logger.trace {
+        val diff = currentMatch.length + shift
+        current += diff
+        logger.log(s"lastOffset + $diff = $current")
+      }
   }
 
   ////////////////////
@@ -126,35 +136,41 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     var current: Option[AST.Ident] = None
 
-    def on(cons: String => AST.Ident): Unit = logger.trace_ {
-      on(cons(currentMatch))
-    }
+    def on(cons: String => AST.Ident): Unit =
+      logger.trace_ {
+        on(cons(currentMatch))
+      }
 
-    def on(ast: AST.Ident): Unit = logger.trace {
-      current = Some(ast)
-      state.begin(SFX_CHECK)
-    }
+    def on(ast: AST.Ident): Unit =
+      logger.trace {
+        current = Some(ast)
+        state.begin(SFX_CHECK)
+      }
 
-    def submit(): Unit = logger.trace {
-      result.app(unwrap(current))
-      current = None
-    }
+    def submit(): Unit =
+      logger.trace {
+        result.app(unwrap(current))
+        current = None
+      }
 
-    def onErrSfx(): Unit = logger.trace {
-      val ast = AST.Ident.InvalidSuffix(unwrap(current), currentMatch)
-      result.app(ast)
-      current = None
-      state.end()
-    }
+    def onErrSfx(): Unit =
+      logger.trace {
+        val ast = AST.Ident.InvalidSuffix(unwrap(current), currentMatch)
+        result.app(ast)
+        current = None
+        state.end()
+      }
 
-    def onNoErrSfx(): Unit = logger.trace {
-      submit()
-      state.end()
-    }
+    def onNoErrSfx(): Unit =
+      logger.trace {
+        submit()
+        state.end()
+      }
 
-    def finalizer(): Unit = logger.trace {
-      if (current.isDefined) submit()
-    }
+    def finalizer(): Unit =
+      logger.trace {
+        if (current.isDefined) submit()
+      }
 
     val char: Pattern   = alphaNum | '_'
     val body: Pattern   = char.many >> '\''.many
@@ -177,33 +193,39 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   //////////////////
 
   final object opr {
-    def on(cons: String => AST.Ident): Unit = logger.trace {
-      on(cons(currentMatch))
-    }
+    def on(cons: String => AST.Ident): Unit =
+      logger.trace {
+        on(cons(currentMatch))
+      }
 
-    def onGrp(cons: String => AST.Ident): Unit = logger.trace {
-      ident.current = Some(cons(currentMatch))
-      ident.onNoErrSfx()
-    }
+    def onGrp(cons: String => AST.Ident): Unit =
+      logger.trace {
+        ident.current = Some(cons(currentMatch))
+        ident.onNoErrSfx()
+      }
 
-    def onNoMod(cons: String => AST.Ident): Unit = logger.trace {
-      onNoMod(cons(currentMatch))
-    }
+    def onNoMod(cons: String => AST.Ident): Unit =
+      logger.trace {
+        onNoMod(cons(currentMatch))
+      }
 
-    def on(ast: AST.Ident): Unit = logger.trace {
-      ident.current = Some(ast)
-      state.begin(MOD_CHECK)
-    }
+    def on(ast: AST.Ident): Unit =
+      logger.trace {
+        ident.current = Some(ast)
+        state.begin(MOD_CHECK)
+      }
 
-    def onNoMod(ast: AST.Ident): Unit = logger.trace {
-      ident.current = Some(ast)
-      state.begin(SFX_CHECK)
-    }
+    def onNoMod(ast: AST.Ident): Unit =
+      logger.trace {
+        ident.current = Some(ast)
+        state.begin(SFX_CHECK)
+      }
 
-    def onMod(): Unit = logger.trace {
-      val opr = AST.Mod(unwrap(ident.current).asInstanceOf[AST.Opr].name)
-      ident.current = Some(opr)
-    }
+    def onMod(): Unit =
+      logger.trace {
+        val opr = AST.Mod(unwrap(ident.current).asInstanceOf[AST.Opr].name)
+        ident.current = Some(opr)
+      }
 
     val char: Pattern     = anyOf(";!$%&*+-/<>?^~|:\\")
     val errChar: Pattern  = char | "=" | "," | "."
@@ -236,39 +258,45 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     var part1: String = ""
     var part2: String = ""
 
-    def reset(): Unit = logger.trace {
-      part1 = ""
-      part2 = ""
-    }
+    def reset(): Unit =
+      logger.trace {
+        part1 = ""
+        part2 = ""
+      }
 
-    def submit(): Unit = logger.trace {
-      val base = if (part1 == "") None else Some(part1)
-      result.app(AST.Number(base, part2))
-      reset()
-    }
+    def submit(): Unit =
+      logger.trace {
+        val base = if (part1 == "") None else Some(part1)
+        result.app(AST.Number(base, part2))
+        reset()
+      }
 
-    def onDanglingBase(): Unit = logger.trace {
-      state.end()
-      result.app(AST.Number.DanglingBase(part2))
-      reset()
-    }
+    def onDanglingBase(): Unit =
+      logger.trace {
+        state.end()
+        result.app(AST.Number.DanglingBase(part2))
+        reset()
+      }
 
-    def onDecimal(): Unit = logger.trace {
-      part2 = currentMatch
-      state.begin(PHASE2)
-    }
+    def onDecimal(): Unit =
+      logger.trace {
+        part2 = currentMatch
+        state.begin(PHASE2)
+      }
 
-    def onExplicitBase(): Unit = logger.trace {
-      state.end()
-      part1 = part2
-      part2 = currentMatch.substring(1)
-      submit()
-    }
+    def onExplicitBase(): Unit =
+      logger.trace {
+        state.end()
+        part1 = part2
+        part2 = currentMatch.substring(1)
+        submit()
+      }
 
-    def onNoExplicitBase(): Unit = logger.trace {
-      state.end()
-      submit()
-    }
+    def onNoExplicitBase(): Unit =
+      logger.trace {
+        state.end()
+        submit()
+      }
 
     val decimal: Pattern = digit.many1
 
@@ -301,202 +329,244 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     var stack: List[TextState] = Nil
     var text: TextState        = _
 
-    def push(): Unit = logger.trace {
-      stack +:= text
-    }
+    def push(): Unit =
+      logger.trace {
+        stack +:= text
+      }
 
-    def pop(): Unit = logger.trace {
-      text  = stack.head
-      stack = stack.tail
-    }
+    def pop(): Unit =
+      logger.trace {
+        text  = stack.head
+        stack = stack.tail
+      }
 
-    def onInvalidQuote(): Unit = logger.trace {
-      result.app(AST.Text.InvalidQuote(currentMatch))
-    }
+    def onInvalidQuote(): Unit =
+      logger.trace {
+        result.app(AST.Text.InvalidQuote(currentMatch))
+      }
 
-    def onInlineBlock(): Unit = logger.trace {
-      result.app(AST.Text.InlineBlock(currentMatch))
-    }
+    def onInlineBlock(): Unit =
+      logger.trace {
+        result.app(AST.Text.InlineBlock(currentMatch))
+      }
 
     def finish(
       raw: List[Line[Segment.Raw]] => AST,
       fmt: List[Line[Segment.Fmt]] => AST
-    ): Unit = logger.trace {
-      submitLine()
-      val isFMT = state.current.parent.contains(FMT)
-      val body  = text.lines.reverse
-      val t =
-        if (isFMT) fmt(body)
-        else raw(body.asInstanceOf[List[Line[Segment.Raw]]])
-      pop()
-      state.end()
-      result.app(t)
-    }
-
-    def submit(segment: Segment.Fmt): Unit = logger.trace {
-      text.lineBuilder +:= segment
-    }
-
-    def submit(): Unit = logger.trace {
-      finish(t => AST.Text.Raw(t.head.text: _*), t => AST.Text(t.head.text: _*))
-    }
-
-    def submitMissingQuote(): Unit = logger.trace {
-      rewind()
-      submitUnclosed()
-    }
-
-    def submitInvalidQuote(): Unit = logger.trace {
-      submitUnclosed()
-      onInvalidQuote()
-    }
-
-    def submitUnclosed(): Unit = logger.trace {
-      val Text = AST.Text.Unclosed
-      finish(t => Text.Raw(t.head.text: _*), t => Text(t.head.text: _*))
-    }
-
-    def onEndOfBlock(): Unit = logger.trace {
-      if (text.lineBuilder.isEmpty)
-        block.emptyLines = text.emptyLines ++ block.emptyLines
-      val (s, o) = (text.spaces, text.offset)
-      finish(t => AST.Text.Raw(s, o, t: _*), t => AST.Text(s, o, t: _*))
-      off.push()
-      rewind()
-    }
-
-    def onBegin(grp: State): Unit = logger.trace {
-      push()
-      state.begin(grp)
-      text = new TextState(0, 0, Nil, Nil, Nil)
-    }
-
-    def onBeginBlock(grp: State): Unit = logger.trace {
-      val offset = if (state.current == block.FIRSTCHAR) {
+    ): Unit =
+      logger.trace {
+        submitLine()
+        val isFMT = state.current.parent.contains(FMT)
+        val body  = text.lines.reverse
+        val t =
+          if (isFMT) fmt(body)
+          else raw(body.asInstanceOf[List[Line[Segment.Raw]]])
+        pop()
         state.end()
-        block.current.offset
-      } else
-        OFFSET_OF_FIRST_LINE_FOUND
-      if (currentMatch.last == '\n') {
-        onBegin(grp)
-        text.offset = offset
-        text.spaces = currentMatch.length - BLOCK_QUOTE_SIZE - 1
-        state.begin(NEWLINE)
-      } else {
-        val spaces = currentMatch.length - BLOCK_QUOTE_SIZE
-        result.app(
-          if (grp == FMT_BLCK) AST.Text(spaces = spaces, offset)
-          else AST.Text.Raw(spaces             = spaces, offset)
+        result.app(t)
+      }
+
+    def submit(segment: Segment.Fmt): Unit =
+      logger.trace {
+        text.lineBuilder +:= segment
+      }
+
+    def submit(): Unit =
+      logger.trace {
+        finish(
+          t => AST.Text.Raw(t.head.text: _*),
+          t => AST.Text(t.head.text: _*)
         )
-        onEOF()
       }
-    }
 
-    def submitPlainSegment(): Unit = logger.trace {
-      text.lineBuilder = text.lineBuilder match {
-        case Shape.SegmentPlain(t) :: _ =>
-          Segment.Plain(t + currentMatch) :: text.lineBuilder.tail
-        case _ => Segment.Plain(currentMatch) :: text.lineBuilder
+    def submitMissingQuote(): Unit =
+      logger.trace {
+        rewind()
+        submitUnclosed()
       }
-    }
 
-    def onEscape(code: Segment.Escape): Unit = logger.trace {
-      submit(Shape.SegmentEscape(code))
-    }
+    def submitInvalidQuote(): Unit =
+      logger.trace {
+        submitUnclosed()
+        onInvalidQuote()
+      }
 
-    def onEscape(code: Segment.RawEscape): Unit = logger.trace {
-      submit(Shape.SegmentRawEscape(code))
-    }
+    def submitUnclosed(): Unit =
+      logger.trace {
+        val Text = AST.Text.Unclosed
+        finish(t => Text.Raw(t.head.text: _*), t => Text(t.head.text: _*))
+      }
 
-    def onEscapeU16(): Unit = logger.trace {
-      val code = currentMatch.drop(2)
-      onEscape(Segment.Escape.Unicode.U16(code))
-    }
+    def onEndOfBlock(): Unit =
+      logger.trace {
+        if (text.lineBuilder.isEmpty)
+          block.emptyLines = text.emptyLines ++ block.emptyLines
+        val (s, o) = (text.spaces, text.offset)
+        finish(t => AST.Text.Raw(s, o, t: _*), t => AST.Text(s, o, t: _*))
+        off.push()
+        rewind()
+      }
 
-    def onEscapeU32(): Unit = logger.trace {
-      val code = currentMatch.drop(2)
-      onEscape(Segment.Escape.Unicode.U32(code))
-    }
+    def onBegin(grp: State): Unit =
+      logger.trace {
+        push()
+        state.begin(grp)
+        text = new TextState(0, 0, Nil, Nil, Nil)
+      }
 
-    def onEscapeInt(): Unit = logger.trace {
-      val int = currentMatch.drop(1).toInt
-      onEscape(Segment.Escape.Number(int))
-    }
+    def onBeginBlock(grp: State): Unit =
+      logger.trace {
+        val offset = if (state.current == block.FIRSTCHAR) {
+          state.end()
+          block.current.offset
+        } else
+          OFFSET_OF_FIRST_LINE_FOUND
+        if (currentMatch.last == '\n') {
+          onBegin(grp)
+          text.offset = offset
+          text.spaces = currentMatch.length - BLOCK_QUOTE_SIZE - 1
+          state.begin(NEWLINE)
+        } else {
+          val spaces = currentMatch.length - BLOCK_QUOTE_SIZE
+          result.app(
+            if (grp == FMT_BLCK) AST.Text(spaces = spaces, offset)
+            else AST.Text.Raw(spaces             = spaces, offset)
+          )
+          onEOF()
+        }
+      }
 
-    def onEscapeInvalid(): Unit = logger.trace {
-      val chr = currentMatch.charAt(1)
-      onEscape(Segment.Escape.Invalid(chr))
-    }
+    def submitPlainSegment(): Unit =
+      logger.trace {
+        text.lineBuilder = text.lineBuilder match {
+          case Shape.SegmentPlain(t) :: _ =>
+            Segment.Plain(t + currentMatch) :: text.lineBuilder.tail
+          case _ => Segment.Plain(currentMatch) :: text.lineBuilder
+        }
+      }
 
-    def onEscapeUnfinished(): Unit = logger.trace {
-      onEscape(Segment.Escape.Unfinished)
-    }
+    def onEscape(code: Segment.Escape): Unit =
+      logger.trace {
+        submit(Shape.SegmentEscape(code))
+      }
 
-    def onEscapeSlash(): Unit = logger.trace {
-      onEscape(Segment.Escape.Slash)
-    }
+    def onEscape(code: Segment.RawEscape): Unit =
+      logger.trace {
+        submit(Shape.SegmentRawEscape(code))
+      }
 
-    def onEscapeQuote(): Unit = logger.trace {
-      onEscape(Segment.Escape.Quote)
-    }
+    def onEscapeU21(): Unit =
+      logger.trace {
+        val code = currentMatch.drop(3).dropRight(1)
+        onEscape(Segment.Escape.Unicode.U21(code))
+      }
 
-    def onEscapeRawQuote(): Unit = logger.trace {
-      onEscape(Segment.Escape.RawQuote)
-    }
+    def onEscapeU16(): Unit =
+      logger.trace {
+        val code = currentMatch.drop(2)
+        onEscape(Segment.Escape.Unicode.U16(code))
+      }
 
-    def onInterpolateBegin(): Unit = logger.trace {
-      result.push()
-      off.push()
-      state.begin(INTERPOLATE)
-    }
+    def onEscapeU32(): Unit =
+      logger.trace {
+        val code = currentMatch.drop(2)
+        onEscape(Segment.Escape.Unicode.U32(code))
+      }
 
-    def onInterpolateEnd(): Unit = logger.trace {
-      if (state.isInside(INTERPOLATE)) {
-        state.endTill(INTERPOLATE)
-        submit(Segment.Expr(result.current))
-        result.pop()
-        off.pop()
+    def onEscapeInt(): Unit =
+      logger.trace {
+        val int = currentMatch.drop(1).toInt
+        onEscape(Segment.Escape.Number(int))
+      }
+
+    def onEscapeInvalid(): Unit =
+      logger.trace {
+        val chr = currentMatch.charAt(1)
+        onEscape(Segment.Escape.Invalid(chr))
+      }
+
+    def onEscapeUnfinished(): Unit =
+      logger.trace {
+        onEscape(Segment.Escape.Unfinished)
+      }
+
+    def onEscapeSlash(): Unit =
+      logger.trace {
+        onEscape(Segment.Escape.Slash)
+      }
+
+    def onEscapeQuote(): Unit =
+      logger.trace {
+        onEscape(Segment.Escape.Quote)
+      }
+
+    def onEscapeRawQuote(): Unit =
+      logger.trace {
+        onEscape(Segment.Escape.RawQuote)
+      }
+
+    def onInterpolateBegin(): Unit =
+      logger.trace {
+        result.push()
+        off.push()
+        state.begin(INTERPOLATE)
+      }
+
+    def onInterpolateEnd(): Unit =
+      logger.trace {
+        if (state.isInside(INTERPOLATE)) {
+          state.endTill(INTERPOLATE)
+          submit(Segment.Expr(result.current))
+          result.pop()
+          off.pop()
+          state.end()
+        } else {
+          onUnrecognized()
+        }
+      }
+
+    def submitLine(): Unit =
+      logger.trace {
+        if (
+          state.current == FMT_LINE || state.current == RAW_LINE || text.lineBuilder.nonEmpty
+        ) {
+          val Line = Shape.TextBlockLine
+          text.lines +:= Line(text.emptyLines.reverse, text.lineBuilder.reverse)
+          text.lineBuilder = Nil
+          text.emptyLines  = Nil
+        }
+      }
+
+    def onEndOfLine(): Unit =
+      logger.trace {
+        state.begin(NEWLINE)
+        submitLine()
+      }
+
+    def onNewLine(): Unit =
+      logger.trace {
         state.end()
-      } else {
-        onUnrecognized()
+        if (text.offset == OFFSET_OF_FIRST_LINE_FOUND)
+          text.offset = currentMatch.length
+        val leadingSpaces = currentMatch.length - text.offset
+        if (leadingSpaces < 0) {
+          onEndOfBlock()
+          state.begin(block.NEWLINE)
+        } else if (leadingSpaces != 0)
+          text.lineBuilder +:= Segment.Plain(" " * leadingSpaces)
       }
-    }
 
-    def submitLine(): Unit = logger.trace {
-      if (state.current == FMT_LINE || state.current == RAW_LINE || text.lineBuilder.nonEmpty) {
-        val Line = Shape.TextBlockLine
-        text.lines +:= Line(text.emptyLines.reverse, text.lineBuilder.reverse)
-        text.lineBuilder = Nil
-        text.emptyLines  = Nil
+    def onEmptyLine(): Unit =
+      logger.trace {
+        text.emptyLines :+= currentMatch.length - 1
       }
-    }
 
-    def onEndOfLine(): Unit = logger.trace {
-      state.begin(NEWLINE)
-      submitLine()
-    }
-
-    def onNewLine(): Unit = logger.trace {
-      state.end()
-      if (text.offset == OFFSET_OF_FIRST_LINE_FOUND)
-        text.offset = currentMatch.length
-      val leadingSpaces = currentMatch.length - text.offset
-      if (leadingSpaces < 0) {
+    def onEOFNewLine(): Unit =
+      logger.trace {
+        state.end()
         onEndOfBlock()
         state.begin(block.NEWLINE)
-      } else if (leadingSpaces != 0)
-        text.lineBuilder +:= Segment.Plain(" " * leadingSpaces)
-    }
-
-    def onEmptyLine(): Unit = logger.trace {
-      text.emptyLines :+= currentMatch.length - 1
-    }
-
-    def onEOFNewLine(): Unit = logger.trace {
-      state.end()
-      onEndOfBlock()
-      state.begin(block.NEWLINE)
-    }
+      }
 
     val BLOCK_QUOTE_SIZE           = 3
     val OFFSET_OF_FIRST_LINE_FOUND = -1
@@ -504,9 +574,11 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val fmtBlock   = "'''" >> space.opt >> (eof | newline)
     val rawBlock   = "\"\"\"" >> space.opt >> (eof | newline)
     val fmtChar    = noneOf("'`\\\n")
+    val escapeChar = noneOf("'\\\"`\\\\\\n\\r{}")
     val escape_int = "\\" >> num.decimal
-    val escape_u16 = "\\u" >> repeat(fmtChar, 0, 4)
-    val escape_u32 = "\\U" >> repeat(fmtChar, 0, 8)
+    val escape_u21 = "\\u{" >> repeat(escapeChar, 0, 8) >> "}"
+    val escape_u16 = "\\u" >> repeat(escapeChar, 0, 4)
+    val escape_u32 = "\\U" >> repeat(escapeChar, 0, 8)
     val fmtSeg     = fmtChar.many1
     val rawSeg     = noneOf("\"\n\\").many1
     val fmtBSeg    = noneOf("\n\\`").many1
@@ -570,6 +642,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     text.FMT || s"\\$code" run s"text.onEscape($ctrl)"
   }
 
+  text.FMT || text.escape_u21 || text.onEscapeU21()
   text.FMT || text.escape_u16 || text.onEscapeU16()
   text.FMT || text.escape_u32 || text.onEscapeU32()
   text.FMT || text.escape_int || text.onEscapeInt()
@@ -611,124 +684,137 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         emptyLines = Nil
       }
 
-    def pop(): Unit = logger.trace {
-      current = stack.head
-      stack   = stack.tail
-    }
-
-    def build(): AST.Block = logger.trace {
-      submitLine()
-      AST.Block(
-        current.isOrphan,
-        AST.Block.Continuous,
-        current.offset,
-        current.emptyLines,
-        unwrap(current.firstLine),
-        current.lines.reverse
-      )
-    }
-
-    def submit(): Unit = logger.trace {
-      val block = build()
-      result.pop()
-      off.pop()
-      pop()
-      val block2: AST.Block = result.last() match {
-        case Some(AST.Opr.any(_)) => block.replaceType(AST.Block.Discontinuous)
-        case _                    => block
+    def pop(): Unit =
+      logger.trace {
+        current = stack.head
+        stack   = stack.tail
       }
-      result.app(block2)
-      off.push()
-      logger.endGroup()
-    }
 
-    def submitModule(): Unit = logger.trace {
-      val body = current.firstLine match {
-        case None       => current.lines.reverse
-        case Some(line) => line.toOptional +: current.lines.reverse
-      }
-      val line :: lines = (current.emptyLines
-          .map(AST.Block.Line(None, _)): List[AST.Block.OptLine]) ++ body
-      val module = AST.Module(line, lines)
-      result.current = Some(module)
-      logger.endGroup()
-    }
-
-    def submitLine(): Unit = logger.trace {
-      result.current match {
-        case None =>
-        case Some(r) =>
-          off.pop()
-          current.firstLine match {
-            case None =>
-              current.firstLine = Some(AST.Block.Line.Required(r, off.use()))
-            case Some(_) =>
-              current.lines +:= AST.Block.Line(result.current, off.use())
-          }
-      }
-      emptyLines.reverse.foreach(current.lines +:= AST.Block.OptLine(_))
-      emptyLines     = Nil
-      result.current = None
-    }
-
-    def onEmptyLine(): Unit = logger.trace {
-      off.on(-1)
-      emptyLines +:= off.use()
-    }
-
-    def onModuleBegin(): Unit = logger.trace {
-      current.emptyLines = emptyLines.reverse
-      emptyLines         = Nil
-      rewind()
-      off.push()
-      state.end()
-      state.begin(NEWLINE)
-    }
-
-    def onBegin(newIndent: Int): Unit = logger.trace {
-      val isOrphan = result.current.isEmpty
-      result.push()
-      push(newIndent, isOrphan)
-      logger.beginGroup()
-    }
-
-    def onEOFLine(): Unit = logger.trace {
-      state.end()
-      submitLine()
-      off.on()
-      current.lines +:= AST.Block.OptLine(off.use())
-      off.pop()
-      onEOF()
-    }
-
-    def onEndLine(): Unit = logger.trace {
-      off.push()
-      state.begin(NEWLINE)
-    }
-
-    def onNewLine(): Unit = logger.trace {
-      state.end()
-      off.on()
-      if (off.current == current.offset)
+    def build(): AST.Block =
+      logger.trace {
         submitLine()
-      else if (off.current > current.offset)
-        onBegin(off.use())
-      else
-        onEnd(off.use())
-      state.begin(FIRSTCHAR)
-    }
+        AST.Block(
+          current.isOrphan,
+          AST.Block.Continuous,
+          current.offset,
+          current.emptyLines,
+          unwrap(current.firstLine),
+          current.lines.reverse
+        )
+      }
 
-    def onEnd(newIndent: Int): Unit = logger.trace {
-      while (newIndent < current.offset) submit()
-      if (newIndent > current.offset) {
-        logger.log("Block with invalid indentation")
-        onBegin(newIndent)
-        current.isValid = false
-      } else {
+    def submit(): Unit =
+      logger.trace {
+        val block = build()
+        result.pop()
+        off.pop()
+        pop()
+        val block2: AST.Block = result.last() match {
+          case Some(AST.Opr.any(_)) =>
+            block.replaceType(AST.Block.Discontinuous)
+          case _ => block
+        }
+        result.app(block2)
         off.push()
-        submitLine()
+        logger.endGroup()
       }
-    }
+
+    def submitModule(): Unit =
+      logger.trace {
+        val body = current.firstLine match {
+          case None       => current.lines.reverse
+          case Some(line) => line.toOptional +: current.lines.reverse
+        }
+        val line :: lines = (current.emptyLines
+            .map(AST.Block.Line(None, _)): List[AST.Block.OptLine]) ++ body
+        val module = AST.Module(line, lines)
+        result.current = Some(module)
+        logger.endGroup()
+      }
+
+    def submitLine(): Unit =
+      logger.trace {
+        result.current match {
+          case None =>
+          case Some(r) =>
+            off.pop()
+            current.firstLine match {
+              case None =>
+                current.firstLine = Some(AST.Block.Line.Required(r, off.use()))
+              case Some(_) =>
+                current.lines +:= AST.Block.Line(result.current, off.use())
+            }
+        }
+        emptyLines.reverse.foreach(current.lines +:= AST.Block.OptLine(_))
+        emptyLines     = Nil
+        result.current = None
+      }
+
+    def onEmptyLine(): Unit =
+      logger.trace {
+        off.on(-1)
+        emptyLines +:= off.use()
+      }
+
+    def onModuleBegin(): Unit =
+      logger.trace {
+        current.emptyLines = emptyLines.reverse
+        emptyLines         = Nil
+        rewind()
+        off.push()
+        state.end()
+        state.begin(NEWLINE)
+      }
+
+    def onBegin(newIndent: Int): Unit =
+      logger.trace {
+        val isOrphan = result.current.isEmpty
+        result.push()
+        push(newIndent, isOrphan)
+        logger.beginGroup()
+      }
+
+    def onEOFLine(): Unit =
+      logger.trace {
+        state.end()
+        submitLine()
+        off.on()
+        current.lines +:= AST.Block.OptLine(off.use())
+        off.pop()
+        onEOF()
+      }
+
+    def onEndLine(): Unit =
+      logger.trace {
+        off.push()
+        state.begin(NEWLINE)
+      }
+
+    def onNewLine(): Unit =
+      logger.trace {
+        state.end()
+        off.on()
+        if (off.current == current.offset)
+          submitLine()
+        else if (off.current > current.offset)
+          onBegin(off.use())
+        else
+          onEnd(off.use())
+        state.begin(FIRSTCHAR)
+      }
+
+    def onEnd(newIndent: Int): Unit =
+      logger.trace {
+        while (newIndent < current.offset) submit()
+        if (newIndent > current.offset) {
+          logger.log("Block with invalid indentation")
+          onBegin(newIndent)
+          current.isValid = false
+        } else {
+          off.push()
+          submitLine()
+        }
+      }
 
     val MODULE    = state.define("Module")
     val NEWLINE   = state.define("Newline")
@@ -747,17 +833,19 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   /// Defaults ///
   ////////////////
 
-  final def onUnrecognized(): Unit = logger.trace {
-    result.app(AST.Invalid.Unrecognized(_))
-  }
+  final def onUnrecognized(): Unit =
+    logger.trace {
+      result.app(AST.Invalid.Unrecognized(_))
+    }
 
-  final def onEOF(): Unit = logger.trace {
-    ident.finalizer()
-    off.push()
-    block.submitLine()
-    block.onEnd(0)
-    block.submitModule()
-  }
+  final def onEOF(): Unit =
+    logger.trace {
+      ident.finalizer()
+      off.push()
+      block.submitLine()
+      block.onEnd(0)
+      block.submitModule()
+    }
 
   ROOT || space || off.on()
   ROOT || eof   || onEOF()

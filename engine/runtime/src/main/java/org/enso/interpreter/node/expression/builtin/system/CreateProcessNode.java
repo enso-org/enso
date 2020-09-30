@@ -1,14 +1,17 @@
 package org.enso.interpreter.node.expression.builtin.system;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import java.io.*;
@@ -25,9 +28,9 @@ public abstract class CreateProcessNode extends Node {
 
   abstract Object execute(
       Object _this,
-      String command,
+      Text command,
       Array arguments,
-      String input,
+      Text input,
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr);
@@ -36,21 +39,25 @@ public abstract class CreateProcessNode extends Node {
   @CompilerDirectives.TruffleBoundary
   Object doCreate(
       Object _this,
-      String command,
+      Text command,
       Array arguments,
-      String input,
+      Text input,
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
-      @CachedContext(Language.class) Context ctx) {
-    String[] cmd = new String[(int) arguments.getItems().length + 1];
-    cmd[0] = command;
-    System.arraycopy(arguments.getItems(), 0, cmd, 1, (int) arguments.getItems().length);
+      @CachedContext(Language.class) Context ctx,
+      @Cached("build()") ToJavaStringNode toJavaStringNode) {
+    String[] cmd = new String[arguments.getItems().length + 1];
+    cmd[0] = toJavaStringNode.execute(command);
+    for (int i = 1; i <= arguments.getItems().length; i++) {
+      cmd[i] = toJavaStringNode.execute((Text) arguments.getItems()[i - 1]);
+    }
     TruffleProcessBuilder pb = ctx.getEnvironment().newProcessBuilder(cmd);
 
     try {
       Process p = pb.start();
-      ByteArrayInputStream in = new ByteArrayInputStream(input.getBytes());
+      ByteArrayInputStream in =
+          new ByteArrayInputStream(toJavaStringNode.execute(input).getBytes());
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       ByteArrayOutputStream err = new ByteArrayOutputStream();
 
@@ -106,8 +113,8 @@ public abstract class CreateProcessNode extends Node {
       }
 
       long exitCode = p.exitValue();
-      String returnOut = new String(out.toByteArray());
-      String returnErr = new String(err.toByteArray());
+      Text returnOut = Text.create(new String(out.toByteArray()));
+      Text returnErr = Text.create(new String(err.toByteArray()));
 
       return ctx.getBuiltins()
           .system()

@@ -13,6 +13,7 @@ graal_dumps/
 target/
 *.class
 *.log
+.java-version
 
 ##########
 ## Rust ##
@@ -62,6 +63,7 @@ package-lock.json
 *.swp
 .projections.json
 .nvmrc
+*.iml
 
 ############################
 ## Rendered Documentation ##

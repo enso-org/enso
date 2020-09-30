@@ -1,0 +1,3 @@
+
+Lists of 1 third-party dependencies.
+     (Unicode/ICU License) ICU4J (com.ibm.icu:icu4j:67.1 - http://icu-project.org/)

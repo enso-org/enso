@@ -1,0 +1,105 @@
+from Base import all
+from Builtins import Text, Prim_Text_Helpers
+
+from Builtins export Text
+
+polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import org.enso.base.Text_Utils
+
+## Applies `function` to each character in `this`.
+
+   A character is defined as an Extended Grapheme Cluster, see
+   [Unicode Standard Annex #29](https://unicode.org/reports/tr29/).
+
+   This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
+Text.each : (Text -> Any) -> Unit
+Text.each function =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+
+    fst = iterator.first []
+    nxt = iterator.next []
+
+    iterate prev nxt = if nxt == -1 then Unit else
+        function (Text_Utils.substring [this, prev, nxt])
+        next_nxt = iterator.next []
+        iterate nxt next_nxt
+    iterate fst nxt
+    Unit
+
+## Returns a vector containing all characters in the given text.
+
+   A character is defined as an Extended Grapheme Cluster, see
+   [Unicode Standard Annex #29](https://unicode.org/reports/tr29/).
+
+   This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
+Text.characters : Vector
+Text.characters =
+    bldr = Vector.new_builder
+    this.each bldr.append
+    r = bldr.to_vector
+    r
+
+## Takes a separator string and returns a vector resulting from splitting
+   `this` on each occurence of `separator`.
+
+   > Example
+     In the following example, we'll split the text into a vector of
+     comma-separated items:
+         "ham,eggs,cheese,tomatoes".split_at ","
+     The code above returns:
+         ["ham", "eggs", "cheese", "tomatoes"]
+Text.split_at : Text -> Vector
+Text.split_at separator =
+    Vector.from_polyglot_array (Text_Utils.split_at [this, separator])
+
+## Checks whether `this` is equal to `that`.
+
+   The definition of equality includes Unicode canonicalization. I.e. two texts
+   are equal if they are identical after canonical decomposition. This ensures
+   that different ways of expressing the same character in the underlying
+   binary representation are considered equal.
+
+   > Example
+     The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH
+     ACUTE) is canonically the same as the string 'e\u0301' (i.e. the letter
+     `e` followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
+         ('é'.equals 'e\u0301') == True
+Text.equals : Text -> Boolean
+Text.equals that = Text_Utils.equals [this, that]
+
+## Returns a vector containing bytes representing the UTF-8 encoding of the
+   input text.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+Text.utf_8 : Vector
+Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
+
+## Takes an array of bytes and returns Text resulting from decoding it as
+   UTF-8.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+Text.from_utf_8 : Vector -> Text
+Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]
+
+## Returns a vector containing integers representing the Unicode codepoints of
+   the input text.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+Text.codepoints : Vector
+Text.codepoints =
+    Vector.from_polyglot_array (Text_Utils.get_codepoints [this])
+
+## Takes an array of numbers and returns the text resulting from interpreting it
+   as a sequence of Unicode codepoints.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+Text.from_codepoints : Vector -> Text
+Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_array]
+

@@ -1,4 +1,5 @@
 from Builtins import System
+from Base import all
 
 type Os
     type Linux
@@ -10,7 +11,7 @@ type Os
    Create an Os object from text.
 from_text: Text -> Os
 from_text os =
-    if os == "linux" then Linux else if os == "macos" then MacOS else if os == "windows" then Windows else Unknown
+    if os.equals "linux" then Linux else if os.equals "macos" then MacOS else if os.equals "windows" then Windows else Unknown
 
 ## Return the type of operating system.
 

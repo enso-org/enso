@@ -29,7 +29,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    x = Panic.recover @
           |    x.catch to_text
           |""".stripMargin
-      eval(code) shouldEqual "Syntax_Error Unrecognized token."
+      eval(code) shouldEqual "(Syntax_Error 'Unrecognized token.')"
     }
 
     "surface redefinition errors in the language" in {
@@ -42,7 +42,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |
           |main = Panic.recover here.foo . catch to_text
           |""".stripMargin
-      eval(code) shouldEqual "Compile_Error Variable x is being redefined."
+      eval(code) shouldEqual "(Compile_Error 'Variable x is being redefined.')"
     }
   }
 }

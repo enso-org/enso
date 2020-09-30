@@ -82,4 +82,4 @@ Integer.upto n = Range this n
 
    Returns `True` when `this` and `that` are at most `epsilon` apart.
 Number.equals : Number -> Number -> Boolean
-Number.equals that epsilon = (this - that).abs <= epsilon
+Number.equals that epsilon=0.0 = (this - that).abs <= epsilon

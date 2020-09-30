@@ -128,47 +128,49 @@ object Escape {
   }
 
   // Reference: https://en.wikipedia.org/wiki/String_literal
-  sealed trait Character extends Escape
+  sealed trait Character extends Escape {
+    def code: Char
+  }
   object Character {
     case object a extends Character {
-      val code: Int     = '\u0007'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\u0007'
+      def name: String        = toString
+      override val repr       = name
     }
     case object b extends Character {
-      val code: Int     = '\u0008'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\u0008'
+      def name: String        = toString
+      override val repr       = name
     }
     case object f extends Character {
-      val code: Int     = '\u000C'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\u000C'
+      def name: String        = toString
+      override val repr       = name
     }
     case object n extends Character {
-      val code: Int     = '\n'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\n'
+      def name: String        = toString
+      override val repr       = name
     }
     case object r extends Character {
-      val code: Int     = '\r'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\r'
+      def name: String        = toString
+      override val repr       = name
     }
     case object t extends Character {
-      val code: Int     = '\u0009'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\u0009'
+      def name: String        = toString
+      override val repr       = name
     }
     case object v extends Character {
-      val code: Int     = '\u000B'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\u000B'
+      def name: String        = toString
+      override val repr       = name
     }
     case object e extends Character {
-      val code: Int     = '\u001B'
-      def name: String  = toString
-      override val repr = name
+      override val code: Char = '\u001B'
+      def name: String        = toString
+      override val repr       = name
     }
     val codes = ADT.constructors[Character]
   }
@@ -229,32 +231,32 @@ object Escape {
       override val repr = name
     }
     case object LF extends Control {
-      val code: Int     = 0x0A
+      val code: Int     = 0x0a
       def name: String  = toString
       override val repr = name
     }
     case object VT extends Control {
-      val code: Int     = 0x0B
+      val code: Int     = 0x0b
       def name: String  = toString
       override val repr = name
     }
     case object FF extends Control {
-      val code: Int     = 0x0C
+      val code: Int     = 0x0c
       def name: String  = toString
       override val repr = name
     }
     case object CR extends Control {
-      val code: Int     = 0x0D
+      val code: Int     = 0x0d
       def name: String  = toString
       override val repr = name
     }
     case object SO extends Control {
-      val code: Int     = 0x0E
+      val code: Int     = 0x0e
       def name: String  = toString
       override val repr = name
     }
     case object SI extends Control {
-      val code: Int     = 0x0F
+      val code: Int     = 0x0f
       def name: String  = toString
       override val repr = name
     }
@@ -309,37 +311,37 @@ object Escape {
       override val repr = name
     }
     case object SUB extends Control {
-      val code: Int     = 0x1A
+      val code: Int     = 0x1a
       def name: String  = toString
       override val repr = name
     }
     case object ESC extends Control {
-      val code: Int     = 0x1B
+      val code: Int     = 0x1b
       def name: String  = toString
       override val repr = name
     }
     case object FS extends Control {
-      val code: Int     = 0x1C
+      val code: Int     = 0x1c
       def name: String  = toString
       override val repr = name
     }
     case object GS extends Control {
-      val code: Int     = 0x1D
+      val code: Int     = 0x1d
       def name: String  = toString
       override val repr = name
     }
     case object RS extends Control {
-      val code: Int     = 0x1E
+      val code: Int     = 0x1e
       def name: String  = toString
       override val repr = name
     }
     case object US extends Control {
-      val code: Int     = 0x1F
+      val code: Int     = 0x1f
       def name: String  = toString
       override val repr = name
     }
     case object DEL extends Control {
-      val code: Int     = 0x7F
+      val code: Int     = 0x7f
       def name: String  = toString
       override val repr = name
     }

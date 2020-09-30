@@ -24,6 +24,7 @@ import org.enso.interpreter.instrument.{
   Visualisation
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
+import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.service.error.ServiceException
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
@@ -301,6 +302,7 @@ trait ProgramExecutionSupport {
         .leftMap(_.getMessage)
         .flatMap {
           case text: String       => Right(text.getBytes("UTF-8"))
+          case text: Text         => Right(text.toString.getBytes("UTF-8"))
           case bytes: Array[Byte] => Right(bytes)
           case other =>
             Left(s"Cannot encode ${other.getClass} to byte array")

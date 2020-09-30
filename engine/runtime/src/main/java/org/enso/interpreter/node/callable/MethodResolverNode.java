@@ -6,6 +6,8 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
@@ -18,6 +20,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -153,7 +156,7 @@ public abstract class MethodResolverNode extends Node {
   @Specialization(guards = "cachedSymbol == symbol")
   Function resolveString(
       UnresolvedSymbol symbol,
-      String self,
+      Text self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
       @Cached(value = "resolveMethodOnString(cachedSymbol)", allowUncached = true)
           Function function) {
@@ -186,6 +189,19 @@ public abstract class MethodResolverNode extends Node {
       Array self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
       @Cached(value = "resolveMethodOnArray(cachedSymbol)", allowUncached = true)
+          Function function) {
+    return function;
+  }
+
+  @Specialization(
+      guards = {"isPolyglotArrayMethod(cachedSymbol)", "arrays.hasArrayElements(array)"})
+  Function resolvePolyglotArray(
+      UnresolvedSymbol symbol,
+      Object array,
+      @CachedLibrary(limit = "3") InteropLibrary arrays,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) Context ctx,
+      @Cached(value = "resolveMethodOnPolyglotArray(cachedSymbol, ctx)", allowUncached = true)
           Function function) {
     return function;
   }
@@ -262,7 +278,7 @@ public abstract class MethodResolverNode extends Node {
 
   Function resolveMethodOnString(UnresolvedSymbol symbol) {
     return ensureMethodExists(
-        symbol.resolveFor(getBuiltins().text(), getBuiltins().any()), "Text", symbol);
+        symbol.resolveFor(getBuiltins().text().getText(), getBuiltins().any()), "Text", symbol);
   }
 
   Function resolveMethodOnFunction(UnresolvedSymbol symbol) {
@@ -283,9 +299,23 @@ public abstract class MethodResolverNode extends Node {
 
   Function buildHostResolver(UnresolvedSymbol symbol, Context context) {
     if (symbol.getName().equals("new")) {
-      return context.getBuiltins().getConstructorDispatch();
+      return context.getBuiltins().polyglot().getConstructorDispatch();
+    } else if (symbol.getName().equals("to_text")) {
+      return context.getBuiltins().polyglot().getPolyglotToTextFunction();
     } else {
-      return context.getBuiltins().buildPolyglotMethodDispatch(symbol);
+      return context.getBuiltins().polyglot().buildPolyglotMethodDispatch(symbol);
+    }
+  }
+
+  static boolean isPolyglotArrayMethod(UnresolvedSymbol symbol) {
+    return symbol.getName().equals("at") || symbol.getName().equals("length");
+  }
+
+  Function resolveMethodOnPolyglotArray(UnresolvedSymbol symbol, Context context) {
+    if (symbol.getName().equals("length")) {
+      return context.getBuiltins().polyglot().getPolyglotArrayLengthFunction();
+    } else {
+      return context.getBuiltins().polyglot().getPolyglotArrayAtFunction();
     }
   }
 

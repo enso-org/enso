@@ -46,7 +46,7 @@ class EvalTest extends InterpreterTest {
            |        IO.println (MyType x)
            |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("MyType 10")
+      consumeOut shouldEqual List("(MyType 10)")
     }
 
     "return a value usable in the caller scope" in {
