@@ -66,9 +66,9 @@ trait ServiceTest
       "; Waiting for messages timed out."
     )
     service.terminate()
-    assert(testPrinter.wasShutdown())
+    assert(testPrinter.wasShutdown)
 
-    testPrinter.getLoggedMessages() shouldEqual Seq(
+    testPrinter.getLoggedMessages shouldEqual Seq(
       TestLogMessage(LogLevel.Debug, "message")
     )
   }

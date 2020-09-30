@@ -5,26 +5,41 @@ import java.time.Instant
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, JsonObject}
 import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.internal.BaseLogMessage
 
+/**
+  * The encoded log message that can be sent over the WebSocket connection or
+  * passed to a printer.
+  *
+  * @param level log level
+  * @param timestamp timestamp indicating when the message was created
+  * @param group group associated with the message
+  * @param message text message
+  * @param exception optional serialized exception attached to the message
+  */
 case class WSLogMessage(
-  logLevel: LogLevel,
+  level: LogLevel,
   timestamp: Instant,
   group: String,
   message: String,
   exception: Option[SerializedException]
-)
+) extends BaseLogMessage[SerializedException]
 
 object WSLogMessage {
-  object JsonFields {
+  private object JsonFields {
     val Level     = "level"
     val Timestamp = "time"
     val Group     = "group"
     val Message   = "message"
     val Exception = "exception"
   }
+
+  /**
+    * [[Encoder]] instance for [[WSLogMessage]].
+    */
   implicit val encoder: Encoder[WSLogMessage] = { message =>
     val base = JsonObject(
-      JsonFields.Level     -> message.logLevel.asJson,
+      JsonFields.Level     -> message.level.asJson,
       JsonFields.Timestamp -> message.timestamp.toEpochMilli.asJson,
       JsonFields.Group     -> message.group.asJson,
       JsonFields.Message   -> message.message.asJson
@@ -40,6 +55,9 @@ object WSLogMessage {
     result.asJson
   }
 
+  /**
+    * [[Decoder]] instance for [[WSLogMessage]].
+    */
   implicit val decoder: Decoder[WSLogMessage] = { json =>
     for {
       level <- json.get[LogLevel](JsonFields.Level)
@@ -50,7 +68,7 @@ object WSLogMessage {
       exception <-
         json.getOrElse[Option[SerializedException]](JsonFields.Exception)(None)
     } yield WSLogMessage(
-      logLevel  = level,
+      level     = level,
       timestamp = timestamp,
       group     = group,
       message   = message,

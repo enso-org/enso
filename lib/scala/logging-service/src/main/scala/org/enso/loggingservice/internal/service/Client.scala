@@ -17,6 +17,13 @@ import org.enso.loggingservice.{LogLevel, LoggingServiceManager}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
+/**
+  * A client [[Service]] that passes incoming log messages to a server.
+  *
+  * @param serverUri uri of the server to connect to
+  * @param queue log message queue
+  * @param logLevel log level used to filter messages
+  */
 class Client(
   serverUri: Uri,
   protected val queue: BlockingConsumerMessageQueue,
@@ -24,8 +31,17 @@ class Client(
 ) extends ThreadProcessingService
     with ServiceWithActorSystem {
 
+  /**
+    * @inheritdoc
+    */
   override protected def actorSystemName: String = "logging-service-client"
 
+  /**
+    * Starts the client service by trying to connect to the server.
+    *
+    * Returns a future that is completed once the connection has been
+    * established.
+    */
   def start(): Future[Unit] = {
     val request  = WebSocketRequest(serverUri)
     val flow     = Http().webSocketClientFlow(request)
@@ -59,6 +75,15 @@ class Client(
   private var webSocketQueue: Option[SourceQueueWithComplete[Message]] = None
   private var closedConnection: Option[Future[Done]]                   = None
 
+  /**
+    * Tries to send the log message to the server by appending it to the queue
+    * of outgoing messages.
+    *
+    * It waits for the offer to complete for a long time to handle the case in
+    * which the server is unresponsive for a longer time. Any pending messages
+    * are just enqueued onto the main [[BlockingConsumerMessageQueue]] and will
+    * be sent after this one.
+    */
   override protected def processMessage(message: WSLogMessage): Unit = {
     val queue = webSocketQueue.getOrElse(
       throw new IllegalStateException(
@@ -87,6 +112,10 @@ class Client(
 
   @volatile private var shuttingDown: Boolean = false
 
+  /**
+    * If the remote server closes the connection, notifies the logging service
+    * to start the fallback logger.
+    */
   private def onDisconnected(): Unit = {
     if (!shuttingDown) {
       InternalLogger.error(
@@ -96,6 +125,9 @@ class Client(
     }
   }
 
+  /**
+    * Closes the connection.
+    */
   override protected def terminateUser(): Future[_] = {
     shuttingDown = true
     webSocketQueue match {
@@ -110,10 +142,23 @@ class Client(
     }
   }
 
-  override protected def shutdownProcessors(): Unit = {}
+  /**
+    * No additional actions are performed after the thread has been shut down as
+    * termination happens in [[terminateUser()]].
+    */
+  override protected def afterShutdown(): Unit = {}
 }
 
 object Client {
+
+  /**
+    * Waits for the [[Client]] to start up and returns it or throws an exception
+    * on setup failure.
+    *
+    * @param serverUri uri of the server to connect to
+    * @param queue log message queue
+    * @param logLevel log level used to filter messages
+    */
   def setup(
     serverUri: Uri,
     queue: BlockingConsumerMessageQueue,

@@ -24,6 +24,19 @@ import scala.annotation.nowarn
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
+/**
+  * A server [[Service]] which handles both messages incoming from a WebSocket
+  * connection and local log messages.
+  *
+  * @param interface interface to bind to
+  * @param port port to bind to; if set to 0, the system will allocate some
+  *             available port
+  * @param queue log message queue
+  * @param printers printers defining handling of the log messages
+  * @param logLevel log level used to filter the local messages (messages from
+  *                 clients are passed as-is as they may use different log
+  *                 levels)
+  */
 class Server(
   interface: String,
   port: Int,
@@ -33,13 +46,23 @@ class Server(
 ) extends Local(logLevel, queue, printers)
     with ServiceWithActorSystem {
 
+  /**
+    * @inheritdoc
+    */
   override protected def actorSystemName: String = "logging-service-server"
 
+  /**
+    * Immediately starts processing local messages and returns a [[Future]] that
+    * will complete once the server has been started.
+    */
   def start(): Future[Unit] = {
     startQueueProcessor()
     startWebSocketServer()
   }
 
+  /**
+    * Starts the WebSocket server.
+    */
   private def startWebSocketServer(): Future[Unit] = {
     val requestHandler: HttpRequest => HttpResponse = {
       case req @ HttpRequest(GET, Uri.Path("/"), _, _, _) =>
@@ -70,6 +93,12 @@ class Server(
       }
   }
 
+  /**
+    * Returns the binding that describes how to connect to the started server.
+    *
+    * This method can only be called after the future returned from [[start]]
+    * has completed.
+    */
   def getBinding(): ServerBinding = {
     val binding = bindingOption.getOrElse(
       throw new IllegalStateException(
@@ -115,6 +144,9 @@ class Server(
   private def decodeMessage(message: String): Either[Error, WSLogMessage] =
     parser.parse(message).flatMap(_.as[WSLogMessage])
 
+  /**
+    * Shuts down the server.
+    */
   override protected def terminateUser(): Future[_] = {
     bindingOption match {
       case Some(binding) =>
@@ -125,6 +157,20 @@ class Server(
 }
 
 object Server {
+
+  /**
+    * Waits for the [[Server]] to start up and returns it or throws an exception
+    * on setup failure.
+    *
+    * @param interface interface to bind to
+    * @param port port to bind to; if set to 0, the system will allocate some
+    *             available port
+    * @param queue log message queue
+    * @param printers printers defining handling of the log messages
+    * @param logLevel log level used to filter the local messages (messages from
+    *                 clients are passed as-is as they may use different log
+    *                 levels)
+    */
   def setup(
     interface: String,
     port: Int,

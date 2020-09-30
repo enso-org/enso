@@ -31,6 +31,6 @@ object TestLogger {
     )
     action
     LoggingServiceManager.tearDown()
-    printer.getLoggedMessages()
+    printer.getLoggedMessages
   }
 }

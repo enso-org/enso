@@ -3,13 +3,20 @@ package org.enso.loggingservice.printers
 import org.enso.loggingservice.TestLogger.TestLogMessage
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 
+/**
+  * A [[Printer]] instance that may be used in tests to gather reported log
+  * messages.
+  */
 class TestPrinter extends Printer {
   private val messages =
     scala.collection.mutable.ListBuffer.empty[TestLogMessage]
 
-  def print(message: WSLogMessage): Unit = {
+  /**
+    * @inheritdoc
+    */
+  override def print(message: WSLogMessage): Unit = {
     val testMessage =
-      TestLogMessage(logLevel = message.logLevel, message = message.message)
+      TestLogMessage(logLevel = message.level, message = message.message)
     messages.synchronized {
       messages.append(testMessage)
     }
@@ -17,11 +24,20 @@ class TestPrinter extends Printer {
 
   @volatile private var alreadyShutdown = false
 
+  /**
+    * @inheritdoc
+    */
   def shutdown(): Unit = {
     alreadyShutdown = true
   }
 
-  def wasShutdown(): Boolean = alreadyShutdown
+  /**
+    * Reports if [[shutdown]] has been called.
+    */
+  def wasShutdown: Boolean = alreadyShutdown
 
-  def getLoggedMessages(): Seq[TestLogMessage] = messages.toSeq
+  /**
+    * Returns all log messages that have been gathered so far.
+    */
+  def getLoggedMessages: Seq[TestLogMessage] = messages.toSeq
 }

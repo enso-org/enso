@@ -8,22 +8,39 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 import org.enso.loggingservice.internal.DefaultLogMessageRenderer
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 
-class FileOutputPrinter(logDirectory: Path, printStackTraces: Boolean = true)
+/**
+  * Creates a new file in [[logDirectory]] and writes incoming log messages to
+  * this file.
+  *
+  * @param logDirectory the directory to create the logfile in
+  * @param printExceptions whether to print exceptions attached to the log
+  *                        messages
+  */
+class FileOutputPrinter(logDirectory: Path, printExceptions: Boolean)
     extends Printer {
 
-  private val renderer = new DefaultLogMessageRenderer(printStackTraces)
+  private val renderer = new DefaultLogMessageRenderer(printExceptions)
   private val writer   = initializeWriter()
 
-  def print(message: WSLogMessage): Unit = {
+  /**
+    * @inheritdoc
+    */
+  override def print(message: WSLogMessage): Unit = {
     val lines = renderer.render(message)
     writer.println(lines)
   }
 
-  def shutdown(): Unit = {
+  /**
+    * @inheritdoc
+    */
+  override def shutdown(): Unit = {
     writer.flush()
     writer.close()
   }
 
+  /**
+    * Opens the log file for writing.
+    */
   private def initializeWriter(): PrintWriter = {
     val logPath = logDirectory.resolve(makeLogFilename())
     Files.createDirectories(logDirectory)
@@ -36,6 +53,9 @@ class FileOutputPrinter(logDirectory: Path, printStackTraces: Boolean = true)
     )
   }
 
+  /**
+    * Creates a log filename that is created based on the current timestamp.
+    */
   private def makeLogFilename(): String = {
     val timestampZone = ZoneId.of("UTC")
     val timestamp = LocalDateTime
@@ -46,6 +66,13 @@ class FileOutputPrinter(logDirectory: Path, printStackTraces: Boolean = true)
 }
 
 object FileOutputPrinter {
-  def create(logDirectory: Path): FileOutputPrinter =
-    new FileOutputPrinter(logDirectory)
+
+  /**
+    * Creates a new [[FileOutputPrinter]].
+    */
+  def create(
+    logDirectory: Path,
+    printExceptions: Boolean = true
+  ): FileOutputPrinter =
+    new FileOutputPrinter(logDirectory, printExceptions)
 }

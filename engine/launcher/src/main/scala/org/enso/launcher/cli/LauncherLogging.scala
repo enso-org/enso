@@ -91,7 +91,7 @@ object LauncherLogging {
     )
   }
 
-  private def fallbackPrinter = StderrPrinter.create(printStackTraces = true)
+  private def fallbackPrinter = StderrPrinter.create(printExceptions = true)
 
   private val loggingServiceEndpointPromise = Promise[Option[Uri]]()
 
@@ -113,32 +113,32 @@ object LauncherLogging {
     */
   private def stderrPrinter(
     globalCLIOptions: GlobalCLIOptions,
-    printStackTraces: Boolean
+    printExceptions: Boolean
   ): Printer =
     globalCLIOptions.colorMode match {
       case ColorMode.Never =>
-        StderrPrinter.create(printStackTraces)
+        StderrPrinter.create(printExceptions)
       case ColorMode.Auto =>
-        StderrPrinterWithColors.colorPrinterIfAvailable(printStackTraces)
+        StderrPrinterWithColors.colorPrinterIfAvailable(printExceptions)
       case ColorMode.Always =>
-        StderrPrinterWithColors.forceCreate(printStackTraces)
+        StderrPrinterWithColors.forceCreate(printExceptions)
     }
 
   private def setupLoggingServer(
     logLevel: LogLevel,
     globalCLIOptions: GlobalCLIOptions
   ): Unit = {
-    val printStackTracesInStderr =
+    val printExceptionsInStderr =
       implicitly[Ordering[LogLevel]].compare(logLevel, LogLevel.Debug) >= 0
     logger.warn(
-      s"Log level is $logLevel, so stack traces are $printStackTracesInStderr"
+      s"Log level is $logLevel, so stack traces are $printExceptionsInStderr"
     )
     val printers =
       try {
         val filePrinter =
           FileOutputPrinter.create(DistributionManager.paths.logs)
         Seq(
-          stderrPrinter(globalCLIOptions, printStackTracesInStderr),
+          stderrPrinter(globalCLIOptions, printExceptionsInStderr),
           filePrinter
         )
       } catch {
@@ -148,7 +148,7 @@ object LauncherLogging {
             "falling back to stderr only.",
             error
           )
-          Seq(stderrPrinter(globalCLIOptions, printStackTraces = true))
+          Seq(stderrPrinter(globalCLIOptions, printExceptions = true))
       }
 
     LoggingServiceManager

@@ -1,20 +1,19 @@
 package org.enso.loggingservice.internal
 import org.enso.loggingservice.LogLevel
-import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.io.AnsiColor
 
-class ANSIColorsMessageRenderer(printStackTraces: Boolean)
-    extends DefaultLogMessageRenderer(printStackTraces) {
-  override def render(logMessage: WSLogMessage): String = {
-    val level     = renderLevelWithColors(logMessage.logLevel)
-    val timestamp = renderTimestamp(logMessage.timestamp)
-    val base =
-      s"[$level] [$timestamp] [${logMessage.group}] ${logMessage.message}"
-    addStackTrace(base, logMessage.exception)
-  }
+/**
+  * Renders log messages in the same way as [[DefaultLogMessageRenderer]] but
+  * adds ANSI escape codes to display the log level in color.
+  */
+class ANSIColorsMessageRenderer(printExceptions: Boolean)
+    extends DefaultLogMessageRenderer(printExceptions) {
 
-  def renderLevelWithColors(logLevel: LogLevel): String = {
+  /**
+    * @inheritdoc
+    */
+  override def renderLevel(logLevel: LogLevel): String = {
     val color = logLevel match {
       case LogLevel.Error   => Some(AnsiColor.RED)
       case LogLevel.Warning => Some(AnsiColor.YELLOW)
@@ -24,8 +23,8 @@ class ANSIColorsMessageRenderer(printStackTraces: Boolean)
     }
     color match {
       case Some(ansiColor) =>
-        s"$ansiColor${renderLevel(logLevel)}${AnsiColor.RESET}"
-      case None => renderLevel(logLevel)
+        s"$ansiColor${super.renderLevel(logLevel)}${AnsiColor.RESET}"
+      case None => super.renderLevel(logLevel)
     }
   }
 }

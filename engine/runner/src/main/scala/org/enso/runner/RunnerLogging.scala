@@ -24,7 +24,7 @@ object RunnerLogging {
     */
   def setup(connectionUri: Option[Uri], logLevel: LogLevel): Unit = {
     val local =
-      LoggerMode.Local(Seq(StderrPrinter.create(printStackTraces = true)))
+      LoggerMode.Local(Seq(StderrPrinter.create(printExceptions = true)))
     connectionUri match {
       case Some(uri) =>
         import scala.concurrent.ExecutionContext.Implicits.global

@@ -8,13 +8,18 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
 import scala.annotation.tailrec
 
 /**
-  * A message queue that can be consumed by a thread in a loop.
-  *
-  * TODO [RW] doc
+  * A message queue that can be consumed by a thread in a loop with a limited
+  * buffer.
   */
-class BlockingConsumerMessageQueue(bufferSize: Int = 5000)
-    extends MessageQueue {
-  override def send(message: Either[InternalLogMessage, WSLogMessage]): Unit = {
+class BlockingConsumerMessageQueue(bufferSize: Int = 5000) {
+
+  /**
+    * Enqueues the `message` to be sent and returns immediately.
+    *
+    * If any underlying buffers are full, they may be removed and a warning will
+    * be issued.
+    */
+  def send(message: Either[InternalLogMessage, WSLogMessage]): Unit = {
     val inserted = queue.offer(message)
     if (!inserted) {
       queue.clear()
@@ -64,7 +69,7 @@ class BlockingConsumerMessageQueue(bufferSize: Int = 5000)
   private def isMessageRelevant(
     internalLogLevel: LogLevel
   )(message: WSLogMessage, internal: Boolean): Boolean =
-    !internal || internalLogLevel.shouldLog(message.logLevel)
+    !internal || internalLogLevel.shouldLog(message.level)
 
   /**
     * Returns the encoded message and a boolean value indicating if it was
@@ -73,7 +78,7 @@ class BlockingConsumerMessageQueue(bufferSize: Int = 5000)
   private def encodeMessage(
     message: Either[InternalLogMessage, WSLogMessage]
   ): (WSLogMessage, Boolean) =
-    message.fold(msg => (msg.toLogMessage(), true), (_, false))
+    message.fold(msg => (msg.toLogMessage, true), (_, false))
 
   private val queueOverflowMessage: InternalLogMessage =
     InternalLogMessage(

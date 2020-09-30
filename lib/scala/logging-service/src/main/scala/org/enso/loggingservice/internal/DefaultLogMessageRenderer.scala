@@ -9,18 +9,29 @@ import org.enso.loggingservice.internal.protocol.{
   WSLogMessage
 }
 
-class DefaultLogMessageRenderer(printStackTraces: Boolean)
+/**
+  * Renders the log message using the default format, including attached
+  * exceptions if [[printExceptions]] is set.
+  */
+class DefaultLogMessageRenderer(printExceptions: Boolean)
     extends LogMessageRenderer {
+
+  /**
+    * @inheritdoc
+    */
   override def render(logMessage: WSLogMessage): String = {
-    val level     = renderLevel(logMessage.logLevel)
+    val level     = renderLevel(logMessage.level)
     val timestamp = renderTimestamp(logMessage.timestamp)
     val base =
       s"[$level] [$timestamp] [${logMessage.group}] ${logMessage.message}"
-    addStackTrace(base, logMessage.exception)
+    addException(base, logMessage.exception)
   }
 
   private val timestampZone = ZoneId.of("UTC")
 
+  /**
+    * Renders the timestamp.
+    */
   def renderTimestamp(timestamp: Instant): String =
     LocalDateTime
       .ofInstant(timestamp, timestampZone)
@@ -30,16 +41,19 @@ class DefaultLogMessageRenderer(printStackTraces: Boolean)
     * Adds attached exception's stack trace (if available) to the log if
     * printing stack traces is enabled.
     */
-  def addStackTrace(
+  def addException(
     message: String,
     exception: Option[SerializedException]
   ): String =
     exception match {
-      case Some(e) if printStackTraces =>
+      case Some(e) if printExceptions =>
         message + "\n" + renderException(e)
       case _ => message
     }
 
+  /**
+    * Renders an exception with its strack trace.
+    */
   def renderException(exception: SerializedException): String = {
     val head = s"${exception.name}: ${exception.message}"
     val trace = exception.stackTrace.map(elem =>
@@ -51,6 +65,9 @@ class DefaultLogMessageRenderer(printStackTraces: Boolean)
     head + trace.map("\n" + _).mkString + cause
   }
 
+  /**
+    * Renders a log level.
+    */
   def renderLevel(logLevel: LogLevel): String =
     logLevel match {
       case LogLevel.Error   => "error"

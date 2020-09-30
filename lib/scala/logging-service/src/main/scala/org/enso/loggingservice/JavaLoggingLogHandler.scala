@@ -24,7 +24,7 @@ class JavaLoggingLogHandler(
         timestamp = record.getInstant,
         group     = record.getLoggerName,
         message   = record.getMessage,
-        throwable = Option(record.getThrown)
+        exception = Option(record.getThrown)
       )
       connection.send(message)
     }

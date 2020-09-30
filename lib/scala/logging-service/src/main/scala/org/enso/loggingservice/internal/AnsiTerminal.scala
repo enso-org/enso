@@ -41,7 +41,7 @@ object AnsiTerminal {
   /**
     * Checks if output of this program may be piped.
     */
-  def isLikelyPiped(): Boolean = System.console() == null
+  def isLikelyPiped: Boolean = System.console() == null
 
   /**
     * Checks if the output is connected to a terminal that can handle color
@@ -53,6 +53,6 @@ object AnsiTerminal {
     * and only use them if this function returned true.
     */
   def canUseColors(): Boolean = {
-    !isLikelyPiped() && AnsiTerminal.tryEnabling()
+    !isLikelyPiped && AnsiTerminal.tryEnabling()
   }
 }

@@ -59,7 +59,7 @@ class ClientServerServiceSpec extends ServiceTest {
             semaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS),
             "; Waiting for messages timed out."
           )
-          testPrinter.getLoggedMessages() shouldEqual Seq(
+          testPrinter.getLoggedMessages shouldEqual Seq(
             TestLogMessage(LogLevel.Debug, "message")
           )
         } finally {
