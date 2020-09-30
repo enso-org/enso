@@ -22,6 +22,7 @@ loadScript('https://d3js.org/d3.v4.min.js');
  */
 class ScatterPlot extends Visualization {
     static inputType = "Any"
+    static label = "Scatter Plot (JS)"
 
     onDataReceived(data) {
         while (this.dom.firstChild) {

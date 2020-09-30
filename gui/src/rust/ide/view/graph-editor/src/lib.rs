@@ -1001,7 +1001,7 @@ impl GraphEditorModelWithNetwork {
     , input_press    : &frp::Source<EdgeTarget>
     , expression_set : &frp::Source<(NodeId,String)>
     ) -> NodeId {
-        let view    = component::Node::new(&self.app);
+        let view    = component::Node::new(&self.app,self.visualizations.clone_ref());
         let node    = Node::new(view);
         let node_id = node.id();
         self.add_child(&node);
@@ -1125,15 +1125,16 @@ impl GraphEditorModelWithNetwork {
 
 #[derive(Debug,Clone,CloneRef)]
 pub struct GraphEditorModel {
-    pub logger             : Logger,
-    pub display_object     : display::object::Instance,
-    pub app                : Application,
-    pub breadcrumbs        : component::Breadcrumbs,
-    pub cursor             : cursor::Cursor,
-    pub nodes              : Nodes,
-    pub edges              : Edges,
-    touch_state            : TouchState,
-    frp                    : FrpInputs,
+    pub logger         : Logger,
+    pub display_object : display::object::Instance,
+    pub app            : Application,
+    pub breadcrumbs    : component::Breadcrumbs,
+    pub cursor         : cursor::Cursor,
+    pub nodes          : Nodes,
+    pub edges          : Edges,
+    pub visualizations : visualization::Registry,
+    touch_state        : TouchState,
+    frp                : FrpInputs,
 }
 
 
@@ -1151,11 +1152,14 @@ impl GraphEditorModel {
         let display_object     = display::object::Instance::new(&logger);
         let nodes              = Nodes::new(&logger);
         let edges              = default();
+        let visualizations     = visualization::Registry::with_default_visualizations();
         let frp                = FrpInputs::new(network);
         let touch_state        = TouchState::new(network,&scene.mouse.frp);
         let breadcrumbs        = component::Breadcrumbs::new(scene,focus_manager);
         let app                = app.clone_ref();
-        Self {logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs}.init()
+        Self {
+            logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs,visualizations
+        }.init()
     }
 
     fn init(self) -> Self {
@@ -1694,7 +1698,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     let inputs         = &model.frp;
     let mouse          = &scene.mouse.frp;
     let touch          = &model.touch_state;
-    let visualizations = visualization::Registry::with_default_visualizations();
+    let visualizations = &model.visualizations;
     let logger         = &model.logger;
     let outputs        = UnsealedFrpOutputs::new();
     let sealed_outputs = outputs.seal(); // Done here to keep right eval order.
@@ -2288,54 +2292,19 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 //        visualizations.set_selected(id);
 //    }));
 
-
-    // === Vis Cycling ===
-
-//    let cycle_count = Rc::new(Cell::new(0));
-//    def _cycle_visualization = inputs.cycle_visualization_for_selected_node.map(f!([scene,visualizations,visualizations,logger](_) {
-//        let vis_classes = visualizations.valid_sources(&"[[Float,Float,Float]]".into());
-//        cycle_count.set(cycle_count.get() % vis_classes.len());
-//        let vis       = &vis_classes[cycle_count.get()];
-//        let vis       = vis.new_instance(&scene);
-//        match vis {
-//            Ok(vis)  => visualizations.set_vis_for_selected(vis),
-//            Err(e)=>  logger.warning(|| format!("Failed to cycle visualization: {}",e)),
-//        };
-//
-//        cycle_count.set(cycle_count.get() + 1);
-//    }));
-//
-//    // === Vis Fullscreen ===
-//
-//    def _toggle_fullscreen = inputs.toggle_fullscreen_for_selected_visualization.map(f!([visualizations](_) {
-//        visualizations.toggle_fullscreen_for_selected_visualization();
-//    }));
-
-
    // === Vis Set ===
    frp::extend! { network
 
-   def _update_vis_data = inputs.set_visualization.map(f!([logger,nodes,scene,visualizations]((node_id,vis_path)) {
+   def _update_vis_data = inputs.set_visualization.map(f!([logger,nodes,visualizations]((node_id,vis_path)) {
        match (&nodes.get_cloned_ref(node_id), vis_path) {
             (Some(node), Some(vis_path)) => {
                 let vis_definition = visualizations.definition_from_path(vis_path);
-                if let Some(definition) = vis_definition {
-                    match definition.new_instance(&scene) {
-                        Ok(vis)  => node.visualization.frp.set_visualization.emit(Some(vis)),
-                        Err(err) => {
-                            logger.warning(
-                                || format!("Failed to instantiate visualisation: {:?}",err));
-                        },
-                    };
-                } else {
-                    logger.warning(|| format!("Failed to get visualisation: {:?}",vis_path));
-                }
+                node.visualization.frp.set_visualization.emit(vis_definition);
             },
             (Some(node), None) => node.visualization.frp.set_visualization.emit(None),
              _                 => logger.warning(|| format!("Failed to get node: {:?}",node_id)),
 
        }
-
    }));
 
 
@@ -2362,17 +2331,16 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
      node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
 
      let cycle_count = Rc::new(Cell::new(0));
-     def _cycle_visualization = node_to_cycle.map(f!([scene,nodes,visualizations,logger](node_id) {
+     def _cycle_visualization = node_to_cycle.map(f!([nodes,visualizations,logger](node_id) {
         let visualizations = visualizations.valid_sources(&"Any".into());
         cycle_count.set(cycle_count.get() % visualizations.len());
-        let vis  = &visualizations[cycle_count.get()];
-        let vis  = vis.new_instance(&scene);
+        let vis  = visualizations.get(cycle_count.get());
         let node = nodes.get_cloned_ref(node_id);
         match (vis, node) {
-            (Ok(vis), Some(node))  => {
-                node.visualization.frp.set_visualization.emit(Some(vis));
+            (Some(vis), Some(node))  => {
+                node.visualization.frp.set_visualization.emit(vis.clone());
             },
-            (Err(e), _) => logger.warning(|| format!("Failed to cycle visualization: {:?}", e)),
+            (None, _) => logger.warning(|| "Failed to get visualization while cycling.".to_string()),
             _           => {}
         };
         cycle_count.set(cycle_count.get() + 1);
