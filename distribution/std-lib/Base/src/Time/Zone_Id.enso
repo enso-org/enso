@@ -1,0 +1,16 @@
+from Base import all
+
+polyglot java import java.time.ZoneId
+polyglot java import java.time.ZoneOffset
+
+parse : Text -> ZoneId
+parse zone = ZoneId.of [zone]
+
+of_offset : Text -> ZoneOffset -> ZoneId
+of_offset prefix offset = ZoneId.ofOffset [prefix, offset]
+
+system : ZoneId
+system = ZoneId.systemDefault []
+
+utc : ZoneId
+utc = here.parse "UTC"

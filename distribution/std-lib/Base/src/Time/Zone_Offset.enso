@@ -1,0 +1,10 @@
+from Base import all
+
+polyglot java import java.time.ZoneOffset
+
+new : Number -> Number -> Number -> ZoneOffset
+new (hours = 0) (minutes = 0) (seconds = 0) =
+    ZoneOffset.ofHoursMinutesSeconds [hours, minutes, seconds]
+
+utc : ZoneOffset
+utc = here.new

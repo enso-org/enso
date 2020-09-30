@@ -1,0 +1,78 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Instant
+import Base.Time.Local_Date
+import Base.Time.Local_Date_Time
+import Base.Time.Local_Time
+import Base.Time.Offset_Date_Time
+import Base.Time.Zone_Id
+import Base.Time.Zone_Offset
+import Base.Time.Zoned_Date_Time
+
+spec =
+    describe "Zone_Offset" <|
+        it "should create zone offset" <|
+            offset = Zone_Offset.new 1 30
+            offset . getTotalSeconds [] . should_equal 5400
+        it "should create zone offset utc" <|
+            offset = Zone_Offset.utc
+            offset . getTotalSeconds [] . should_equal 0
+    describe "Zone_Id" <|
+        it "should get system zone id" <|
+            Zone_Id.system
+        it "should parse zone id" <|
+            zone = "UTC"
+            id = Zone_Id.parse zone
+            id . getId [] . should_equal zone
+        it "should get utc zone id" <|
+            id = Zone_Id.utc
+            id . getId [] . should_equal "UTC"
+    describe "Instant" <|
+        it "should get time istant now" <|
+            now_milli = Instant.now.toEpochMilli []
+            (now_milli > 0) . should_be_true
+        it "should create time instant with default parameters" <|
+            time = Instant.new
+            time . toEpochMilli [] . should_equal 0
+        it "should create time instant" <|
+            time = Instant.new 2020 12 21
+            time . toEpochMilli [] . should_equal 1608508800000
+        it "should parse time instant" <|
+            time = Instant.parse "1970-01-01T00:00:00.01Z"
+            time . toEpochMilli [] . should_equal 10
+    describe "Local_Date" <|
+        it "should create local date" <|
+            date = Local_Date.new 2020 1 1
+            date.getYear [] . should_equal 2020
+        it "should parse local date" <|
+            date = Local_Date.parse "1999-01-01"
+            date.getYear [] . should_equal 1999
+    describe "Local_Time" <|
+        it "should create local time" <|
+            time = Local_Time.new 1 0 0
+            time.toSecondOfDay [] . should_equal 3600
+        it "should parse local time" <|
+            time = Local_Time.parse "10:00:00"
+            time.toSecondOfDay [] . should_equal 36000
+    describe "Local_Date_Time" <|
+        it "should create local date time" <|
+            time = Local_Date_Time.new
+            time . toEpochSecond [Zone_Offset.utc] . should_equal 0
+        it "should parse local date time" <|
+            time = Local_Date_Time.parse "1970-01-01T00:00:01.00"
+            time . toEpochSecond [Zone_Offset.utc] . should_equal 1
+    describe "Offset_Date_Time" <|
+        it "should create offset date time" <|
+            time = Offset_Date_Time.new
+            time . toEpochSecond [] . should_equal 0
+        it "should parse offset date time" <|
+            time = Offset_Date_Time.parse "1970-01-01T00:00:01.00Z"
+            time . toEpochSecond [] . should_equal 1
+    describe "Zoned_Date_Time" <|
+        it "should create zoned date time" <|
+            time = Zoned_Date_Time.new
+            time . toEpochSecond [] . should_equal 0
+        it "should parse zoned date time" <|
+            time = Zoned_Date_Time.parse "1970-01-01T00:00:01.00Z"
+            time . toEpochSecond [] . should_equal 1

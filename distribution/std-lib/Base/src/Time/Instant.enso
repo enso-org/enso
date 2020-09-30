@@ -1,0 +1,18 @@
+from Base import all
+import Base.Time.Zone_Offset
+
+polyglot java import java.time.Instant
+polyglot java import java.time.OffsetDateTime
+
+
+parse : Text -> Instant
+parse fmt = Instant.parse [fmt]
+
+now : Instant
+now = Instant.now []
+
+new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Instant
+new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
+    date_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, Zone_Offset.utc]
+    instant = date_time.toInstant []
+    instant

@@ -1,0 +1,14 @@
+from Base import all
+
+polyglot java import java.time.LocalDate
+
+
+parse : Text -> LocalDate
+parse fmt = LocalDate.parse [fmt]
+
+now : LocalDate
+now = LocalDate.now []
+
+new : Number -> Number -> Number -> LocalDate
+new (year = 1970) (month = 1) (day = 1) =
+    LocalDate.of [year, month, day]

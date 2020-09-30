@@ -1,0 +1,15 @@
+from Base import all
+import Base.Time.Zone_Id
+
+polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.ZoneId
+
+parse : Text -> ZonedDateTime
+parse fmt = ZonedDateTime.parse [fmt]
+
+now : ZonedDateTime
+now = ZonedDateTime.now []
+
+new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneId -> ZonedDateTime
+new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Id.utc) =
+    ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset]

@@ -1,0 +1,14 @@
+from Base import all
+import Base.Time.Zone_Offset
+
+polyglot java import java.time.LocalTime
+
+parse : Text -> LocalTime
+parse fmt = LocalTime.parse [fmt]
+
+now : LocalTime
+now = LocalTime.now []
+
+new : Number -> Number -> Number -> Number -> LocalTime
+new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
+    LocalTime.of [hour, minute, second, nanosecond]
