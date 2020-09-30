@@ -6,34 +6,34 @@ Integer.nano : Duration
 Integer.nano = Duration.ofNanos [this]
 
 Integer.nanos : Duration
-Integer.nanos = Duration.ofNanos [this]
+Integer.nanos = this.nano
 
 Integer.nanosecond : Duration
 Integer.nanosecond = Duration.ofNanos [this]
 
 Integer.nanoseconds : Duration
-Integer.nanoseconds = Duration.ofNanos [this]
+Integer.nanoseconds = this.nanosecond
 
 Integer.second : Duration
 Integer.second = Duration.ofSeconds [this]
 
 Integer.seconds : Duration
-Integer.seconds = Duration.ofSeconds [this]
+Integer.seconds = this.second
 
 Integer.minute : Duration
 Integer.minute = Duration.ofMinutes [this]
 
 Integer.minutes : Duration
-Integer.minutes = Duration.ofMinutes [this]
+Integer.minutes = this.minute
 
 Integer.hour : Duration
 Integer.hour = Duration.ofHours [this]
 
 Integer.hours : Duration
-Integer.hours = Duration.ofHours [this]
+Integer.hours = this.hour
 
 Integer.day : Duration
 Integer.day = Duration.ofDays [this]
 
 Integer.days : Duration
-Integer.days = Duration.ofDays [this]
+Integer.days = this.day

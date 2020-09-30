@@ -1,0 +1,14 @@
+from Base import all
+import Base.Time.Period.Extensions
+
+polyglot java import java.time.Period
+polyglot java import java.time.LocalDate
+
+from Base.Time.Period.Extensions export all hiding Period
+
+parse : Text -> Period
+parse txt = Period.parse [txt]
+
+between : LocalDate -> LocalDate -> Period
+between start_inclusive end_exclusive =
+   Period.between [start_inclusive, end_exclusive]

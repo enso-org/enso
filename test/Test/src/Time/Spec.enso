@@ -1,8 +1,6 @@
 from Base import all
 
 import Base.Test
-import Base.Time.Duration
-import Base.Time.Duration.Extensions
 import Base.Time.Instant
 import Base.Time.Local_Date
 import Base.Time.Local_Date_Time
@@ -11,6 +9,8 @@ import Base.Time.Offset_Date_Time
 import Base.Time.Zone_Id
 import Base.Time.Zone_Offset
 import Base.Time.Zoned_Date_Time
+import Test.Time.Duration.Spec as Duration_Spec
+import Test.Time.Period.Spec as Period_Spec
 
 spec =
     describe "Zone_Offset" <|
@@ -98,12 +98,5 @@ spec =
         it "should parse zoned date time" <|
             time = Zoned_Date_Time.parse "1970-01-01T00:00:01.00Z"
             time . toEpochSecond [] . should_equal 1
-    describe "Duration" <|
-        it "should create durations" <|
-            duration = 1.seconds
-            duration . getSeconds [] . should_equal 1
-        it "should create duration in between dwo dates" <|
-            instant1 = Local_Time.new 0 0 1
-            instant2 = Local_Time.new 0 0 10
-            duration = Duration.between instant1 instant2
-            duration . getSeconds [] . should_equal 9
+    Duration_Spec.spec
+    Period_Spec.spec

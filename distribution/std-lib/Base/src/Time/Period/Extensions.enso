@@ -1,0 +1,27 @@
+from Base import all
+
+polyglot java import java.time.Period
+
+Integer.day : Period
+Integer.day = Period.ofDays [this]
+
+Integer.days : Period
+Integer.days = this.day
+
+Integer.week : Period
+Integer.week = Period.ofWeeks [this]
+
+Integer.weeks : Period
+Integer.weeks = this.week
+
+Integer.month : Period
+Integer.month = Period.ofMonths [this]
+
+Integer.months : Period
+Integer.months = this.Month
+
+Integer.year : Period
+Integer.year = Period.ofYears [this]
+
+Integer.years : Period
+Integer.years = this.year

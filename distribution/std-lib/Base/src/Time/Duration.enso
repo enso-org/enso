@@ -4,8 +4,10 @@ import Base.Time.Duration.Extensions
 polyglot java import java.time.Duration
 polyglot java import java.time.temporal.Temporal
 
-## FIXME: compiler crash
-## from Base.Time.Duration.Extensions export all
+from Base.Time.Duration.Extensions export all hiding Duration
+
+parse : Text -> Duration
+parse txt = Duration.parse [txt]
 
 between : Temporal -> Temporal -> Duration
 between start_inclusive end_exclusive =

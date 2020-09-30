@@ -1,0 +1,21 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Duration
+import Base.Time.Local_Time
+
+spec =
+    describe "Duration" <|
+        it "should create duration seconds" <|
+            time_unit = 5
+            duration1 = time_unit.second
+            duration2 = time_unit.seconds
+            duration1 . toSeconds [] . should_equal (duration2 . toSeconds [])
+        it "should parse duration" <|
+            duration = Duration.parse "PT10M"
+            duration . toSeconds [] . should_equal 600
+        it "should create duration in between dwo dates" <|
+            instant1 = Local_Time.new 0 0 1
+            instant2 = Local_Time.new 0 0 10
+            duration = Duration.between instant1 instant2
+            duration . getSeconds [] . should_equal 9
