@@ -1,13 +1,20 @@
 from Base import all
 
+polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
-
+polyglot java import java.time.ZoneOffset
 
 parse : Text -> LocalDate
 parse fmt = LocalDate.parse [fmt]
 
 now : LocalDate
 now = LocalDate.now []
+
+of_instant : Instant -> ZoneOffset -> LocalDate
+of_instant instant offset =
+    offset_time = instant.atOffset [offset]
+    local_date = offset_time.toLocalDate []
+    local_date
 
 new : Number -> Number -> Number -> LocalDate
 new (year = 1970) (month = 1) (day = 1) =

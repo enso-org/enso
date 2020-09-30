@@ -1,6 +1,7 @@
 from Base import all
 import Base.Time.Zone_Offset
 
+polyglot java import java.time.Instant
 polyglot java import java.time.OffsetDateTime
 polyglot java import java.time.ZoneOffset
 
@@ -9,6 +10,9 @@ parse fmt = OffsetDateTime.parse [fmt]
 
 now : OffsetDateTime
 now = OffsetDateTime.now []
+
+of_instant : Instant -> ZoneOffset -> ZonedDateTime
+of_instant instant offset = instant.atOffset [offset]
 
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneOffset -> OffsetDateTime
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
