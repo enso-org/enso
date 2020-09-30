@@ -92,6 +92,13 @@ files are included by the CI build within the built artifacts.
 
 ### Engine Components
 
+#### Standard Library
+
+The third-party licenses for Java extensions of the standard library are
+gathered in the `third-party-licenses` directory in the `Base` library. The
+gathering process is automatic, triggered by the `package` goal of the
+associated Maven configuration file.
+
 > The actionables for this section are:
 >
 > - The engine components as distributed as a JAR archive that everyone can
