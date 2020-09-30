@@ -217,6 +217,11 @@ impl ReferentName {
     pub fn new(name:impl Str) -> Result<ReferentName, NotReferentName> {
         Self::validate(name.as_ref()).map(|_| ReferentName(name.into()))
     }
+
+    /// Get a normalized version of this identifier.
+    pub fn normalized(&self) -> NormalizedName {
+        NormalizedName::new(self)
+    }
 }
 
 
