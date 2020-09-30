@@ -1082,10 +1082,12 @@ lazy val launcher = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
         "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
-        "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
         "org.typelevel"              %% "cats-core"        % catsVersion,
         "nl.gn0s1s"                  %% "bump"             % bumpVersion,
-        "org.apache.commons"          % "commons-compress" % commonsCompressVersion
+        "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+        "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+        akkaHttp,
+        akkaSLF4J
       )
   )
   .settings(
@@ -1101,7 +1103,8 @@ lazy val launcher = project
             "--initialize-at-run-time=" +
             "akka.protobuf.DescriptorProtos," +
             "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
-            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
+            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder," +
+            "org.enso.loggingservice.WSLoggerManager$" // Note [WSLoggerManager Shutdown Hook]
           )
         )
         .value,
@@ -1158,4 +1161,13 @@ lazy val launcher = project
  * the `svm` module and that is why this additional dependency is needed as long
  * as that workaround is in-place. The dependency is marked as "provided"
  * because it is included within the native-image build.
+ */
+
+/* Note [WSLoggerManager Shutdown Hook]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As the WSLoggerManager registers a shutdown hook when its initialized to
+ * ensure that logs are not lost in case of logging service initialization
+ * failure, it has to be initialized at runtime, as otherwise if the
+ * initialization was done at build time, the shutdown hook would actually also
+ * run at build time and have no effect at runtime.
  */

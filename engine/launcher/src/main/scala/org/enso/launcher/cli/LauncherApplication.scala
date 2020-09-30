@@ -497,7 +497,6 @@ object LauncherApplication {
       "running actions. May be needed if program output is piped.",
       showInUsage = false
     )
-    // TODO [RW] separate setting for launched components
     val logLevel = Opts.optionalParameter[LogLevel](
       GlobalCLIOptions.LOG_LEVEL,
       "(error | warning | info | debug | trace)",

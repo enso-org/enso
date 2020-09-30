@@ -55,6 +55,16 @@ object WSLoggerManager {
     }
   }
 
+  /**
+    * Shuts down the logging service if it was initialized or runs
+    * [[handleMissingLogger]] to handle logs that would be dropped due to the
+    * logging service never being initialized.
+    *
+    * This method is also called as a shutdown hook, but it is good to call it
+    * before shutting down to ensure that everything has a chance to terminate
+    * correctly before the application exits. It can be safely called multiple
+    * times.
+    */
   def tearDown(): Unit = {
     val service = currentService.synchronized {
       val service = currentService
@@ -72,7 +82,7 @@ object WSLoggerManager {
 
   def replaceWithFallback(): Unit = {
     val fallback =
-      Local.setup(currentLevel, messageQueue, Seq(StderrPrinter))
+      Local.setup(currentLevel, messageQueue, Seq(StderrPrinter.create()))
     val service = currentService.synchronized {
       val service = currentService
       currentService = Some(fallback)
@@ -98,8 +108,9 @@ object WSLoggerManager {
         "or log messages were reported after it has been terminated. " +
         "These messages are printed below:"
       )
+      val stderrPrinter = StderrPrinter.create()
       danglingMessages.foreach { message =>
-        StderrPrinter.print(message)
+        stderrPrinter.print(message)
       }
     }
   }

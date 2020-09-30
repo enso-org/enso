@@ -4,17 +4,14 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.io.AnsiColor
 
-class ANSIColorsMessageRenderer extends DefaultLogMessageRenderer {
+class ANSIColorsMessageRenderer(printStackTraces: Boolean)
+    extends DefaultLogMessageRenderer(printStackTraces) {
   override def render(logMessage: WSLogMessage): String = {
     val level     = renderLevelWithColors(logMessage.logLevel)
     val timestamp = renderTimestamp(logMessage.timestamp)
     val base =
       s"[$level] [$timestamp] [${logMessage.group}] ${logMessage.message}"
-    logMessage.exception match {
-      case Some(exception) =>
-        base + "\n" + renderException(exception)
-      case None => base
-    }
+    addStackTrace(base, logMessage.exception)
   }
 
   def renderLevelWithColors(logLevel: LogLevel): String = {

@@ -2,13 +2,15 @@ package org.enso.runner
 
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
+import org.enso.loggingservice.printers.StderrPrinter
 import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
 
 import scala.util.{Failure, Success}
 
 object RunnerLogging {
   def setup(connectionUri: Option[Uri], logLevel: LogLevel): Unit = {
-    val local = WSLoggerMode.Local()
+    val local =
+      WSLoggerMode.Local(Seq(StderrPrinter.create(printStackTraces = true)))
     connectionUri match {
       case Some(uri) =>
         import scala.concurrent.ExecutionContext.Implicits.global

@@ -9,17 +9,14 @@ import org.enso.loggingservice.internal.protocol.{
   WSLogMessage
 }
 
-class DefaultLogMessageRenderer extends LogMessageRenderer {
+class DefaultLogMessageRenderer(printStackTraces: Boolean)
+    extends LogMessageRenderer {
   override def render(logMessage: WSLogMessage): String = {
     val level     = renderLevel(logMessage.logLevel)
     val timestamp = renderTimestamp(logMessage.timestamp)
     val base =
       s"[$level] [$timestamp] [${logMessage.group}] ${logMessage.message}"
-    logMessage.exception match {
-      case Some(exception) =>
-        base + "\n" + renderException(exception)
-      case None => base
-    }
+    addStackTrace(base, logMessage.exception)
   }
 
   private val timestampZone = ZoneId.of("UTC")
@@ -28,6 +25,20 @@ class DefaultLogMessageRenderer extends LogMessageRenderer {
     LocalDateTime
       .ofInstant(timestamp, timestampZone)
       .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+  /**
+    * Adds attached exception's stack trace (if available) to the log if
+    * printing stack traces is enabled.
+    */
+  def addStackTrace(
+    message: String,
+    exception: Option[SerializedException]
+  ): String =
+    exception match {
+      case Some(e) if printStackTraces =>
+        message + "\n" + renderException(e)
+      case _ => message
+    }
 
   def renderException(exception: SerializedException): String = {
     val head = s"${exception.name}: ${exception.message}"

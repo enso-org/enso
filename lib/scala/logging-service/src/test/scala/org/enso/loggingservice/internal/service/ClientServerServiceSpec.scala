@@ -56,7 +56,7 @@ class ClientServerServiceSpec extends ServiceTest {
           clientQueue.send(Left(message))
           clientQueue.send(Left(skippedMessage))
           assert(
-            semaphore.tryAcquire(1, 100, TimeUnit.MILLISECONDS),
+            semaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS),
             "; Waiting for messages timed out."
           )
           testPrinter.getLoggedMessages() shouldEqual Seq(

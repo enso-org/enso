@@ -49,7 +49,7 @@ object LauncherLogging {
         WSLoggerManager
           .setupWithFallback(
             WSLoggerMode.Client(uri),
-            WSLoggerMode.Local(),
+            WSLoggerMode.Local(Seq(fallbackPrinter)),
             actualLogLevel
           )
           .onComplete {
@@ -78,8 +78,13 @@ object LauncherLogging {
     * and does not know which logger to set up.
     */
   def setupFallback(): Unit = {
-    WSLoggerManager.setup(WSLoggerMode.Local(), defaultLogLevel)
+    WSLoggerManager.setup(
+      WSLoggerMode.Local(Seq(fallbackPrinter)),
+      defaultLogLevel
+    )
   }
+
+  private def fallbackPrinter = StderrPrinter.create(printStackTraces = true)
 
   private val loggingServiceEndpointPromise = Promise[Option[Uri]]()
 
@@ -97,30 +102,38 @@ object LauncherLogging {
     loggingServiceEndpointPromise.future
 
   /**
-    * Returns a printer for outputting the logs to the standard error output, if
-    * it is enabled.
+    * Returns a printer for outputting the logs to the standard error.
     */
   private def stderrPrinter(
-    globalCLIOptions: GlobalCLIOptions
-  ): Option[Printer] =
+    globalCLIOptions: GlobalCLIOptions,
+    printStackTraces: Boolean
+  ): Printer =
     globalCLIOptions.colorMode match {
       case ColorMode.Never =>
-        Some(StderrPrinter)
+        StderrPrinter.create(printStackTraces)
       case ColorMode.Auto =>
-        Some(StderrPrinterWithColors.colorPrinterIfAvailable())
+        StderrPrinterWithColors.colorPrinterIfAvailable(printStackTraces)
       case ColorMode.Always =>
-        Some(StderrPrinterWithColors.forceCreate())
+        StderrPrinterWithColors.forceCreate(printStackTraces)
     }
 
   private def setupLoggingServer(
     logLevel: LogLevel,
     globalCLIOptions: GlobalCLIOptions
   ): Unit = {
+    val printStackTracesInStderr =
+      implicitly[Ordering[LogLevel]].compare(logLevel, LogLevel.Debug) >= 0
+    logger.warn(
+      s"Log level is $logLevel, so stack traces are $printStackTracesInStderr"
+    )
     val printers =
       try {
         val filePrinter =
           FileOutputPrinter.create(DistributionManager.paths.logs)
-        stderrPrinter(globalCLIOptions).toSeq ++ Seq(filePrinter)
+        Seq(
+          stderrPrinter(globalCLIOptions, printStackTracesInStderr),
+          filePrinter
+        )
       } catch {
         case NonFatal(error) =>
           logger.error(
@@ -128,7 +141,7 @@ object LauncherLogging {
             "falling back to stderr only.",
             error
           )
-          Seq(StderrPrinter)
+          Seq(stderrPrinter(globalCLIOptions, printStackTraces = true))
       }
 
     WSLoggerManager

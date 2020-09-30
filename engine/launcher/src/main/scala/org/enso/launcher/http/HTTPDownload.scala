@@ -9,6 +9,7 @@ import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.scaladsl.{FileIO, Sink}
 import akka.util.ByteString
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
 
@@ -122,9 +123,15 @@ object HTTPDownload {
     )
   }
 
-  implicit private lazy val actorSystem: ActorSystem = ActorSystem(
-    "http-requests-actor-system"
-  )
+  implicit private lazy val actorSystem: ActorSystem = {
+    val config = ConfigFactory
+      .load()
+      .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
+    ActorSystem(
+      "http-requests-actor-system",
+      config
+    )
+  }
 
   /**
     * Starts the request and returns a [[TaskProgress]] that can be used to

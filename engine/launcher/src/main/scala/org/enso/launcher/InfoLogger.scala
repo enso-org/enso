@@ -19,6 +19,10 @@ object InfoLogger {
     *
     * If the default logger is set-up to display info-messages, they are send to
     * the logger, otherwise they are printed to stdout.
+    *
+    * It is important to note that these messages should always be displayed to
+    * the user, so unless run in debug mode, all launcher settings should ensure
+    * that info-level logs are printed to the console output.
     */
   def info(msg: => String): Unit = {
     if (logger.underlying.isInfoEnabled) {

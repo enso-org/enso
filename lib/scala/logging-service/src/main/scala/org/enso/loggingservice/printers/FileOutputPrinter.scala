@@ -8,9 +8,10 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 import org.enso.loggingservice.internal.DefaultLogMessageRenderer
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 
-class FileOutputPrinter(logDirectory: Path) extends Printer {
+class FileOutputPrinter(logDirectory: Path, printStackTraces: Boolean = true)
+    extends Printer {
 
-  private val renderer = new DefaultLogMessageRenderer
+  private val renderer = new DefaultLogMessageRenderer(printStackTraces)
   private val writer   = initializeWriter()
 
   def print(message: WSLogMessage): Unit = {

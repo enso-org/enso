@@ -8,8 +8,9 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.io.AnsiColor
 
-class StderrPrinterWithColors private extends Printer {
-  private val renderer = new ANSIColorsMessageRenderer
+class StderrPrinterWithColors private (printStackTraces: Boolean)
+    extends Printer {
+  private val renderer = new ANSIColorsMessageRenderer(printStackTraces)
 
   override def print(message: WSLogMessage): Unit = {
     val lines = renderer.render(message)
@@ -28,9 +29,10 @@ object StderrPrinterWithColors {
     * Returns a color-supporting printer if color output is available in the
     * console.
     */
-  def colorPrinterIfAvailable(): Printer =
-    if (AnsiTerminal.canUseColors()) new StderrPrinterWithColors
-    else StderrPrinter
+  def colorPrinterIfAvailable(printStackTraces: Boolean): Printer =
+    if (AnsiTerminal.canUseColors())
+      new StderrPrinterWithColors(printStackTraces)
+    else new StderrPrinter(printStackTraces)
 
   /**
     * Returns a color-supporting printer regardless of if color output is
@@ -44,7 +46,7 @@ object StderrPrinterWithColors {
     * If color support cannot be enabled and the output seems to not be piped, a
     * warning is issued that colors are not supported.
     */
-  def forceCreate(): StderrPrinterWithColors = {
+  def forceCreate(printStackTraces: Boolean): StderrPrinterWithColors = {
     if (!AnsiTerminal.tryEnabling() && !AnsiTerminal.isLikelyPiped()) {
       Logger[StderrPrinterWithColors].warn(
         "Color output requested on stderr console, but it is unavailable. " +
@@ -52,6 +54,6 @@ object StderrPrinterWithColors {
         "be garbled."
       )
     }
-    new StderrPrinterWithColors
+    new StderrPrinterWithColors(printStackTraces)
   }
 }

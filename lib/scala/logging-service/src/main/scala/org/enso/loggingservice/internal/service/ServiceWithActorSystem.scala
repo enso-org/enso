@@ -45,6 +45,7 @@ object ServiceWithActorSystem {
         "akka.logging-filter",
         ConfigValueFactory.fromAnyRef("akka.event.DefaultLoggingFilter")
       )
+      .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
     ActorSystem(
       name,
       config,

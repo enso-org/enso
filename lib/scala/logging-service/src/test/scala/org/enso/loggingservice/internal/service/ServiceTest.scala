@@ -62,7 +62,7 @@ trait ServiceTest
     val service = serviceConstructor(LogLevel.Debug, queue, Seq(testPrinter))
     queue.send(Left(skippedMessage))
     assert(
-      semaphore.tryAcquire(1, 500, TimeUnit.MILLISECONDS),
+      semaphore.tryAcquire(1, 1000, TimeUnit.MILLISECONDS),
       "; Waiting for messages timed out."
     )
     service.terminate()

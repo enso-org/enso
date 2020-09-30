@@ -237,12 +237,7 @@ other configuration which may not be accessed immediately. To help with this,
 the logger will buffer any log messages that are issued before the
 initialization has happened and send them as soon as the service is initialized.
 
-In a rare situation where the service would not be initialized for a long time,
-after exceeding some set message limit, the service will automatically set to
-_Fallback mode_ and print the buffered messages to avoid storing too many of
-them. If it is properly initialized later, these messages will be 'lost', but
-any new messages will be redirected to the proper service.
-
-> TODO: if possible we may also try adding a JVM shutdown hook that will check
-> if the logger was initialized and if it wasn't, dump all queued messages
-> before shutdown
+In a rare situation where the service would not be initialized at all, a
+shutdown hook is added that will print the pending log messages before exitting.
+Some of the messages may be dropped though if more messages are buffered than
+the buffer can hold.

@@ -29,7 +29,6 @@ object Main {
   private val logger = Logger[Main.type]
 
   def main(args: Array[String]): Unit = {
-    logger.debug("DEBUG BEFORE SETUP")
     setup()
     val exitCode =
       try {

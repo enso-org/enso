@@ -2,7 +2,7 @@ package org.enso.loggingservice
 
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.Uri.{Authority, Host, Path}
-import org.enso.loggingservice.printers.{Printer, StderrPrinter}
+import org.enso.loggingservice.printers.Printer
 
 sealed trait WSLoggerMode[InitializationResult]
 object WSLoggerMode {
@@ -25,9 +25,9 @@ object WSLoggerMode {
     * @param interface interface to listen at
     */
   case class Server(
-    printers: Seq[Printer] = Seq(StderrPrinter),
-    port: Option[Int]      = None,
-    interface: String      = "localhost"
+    printers: Seq[Printer],
+    port: Option[Int] = None,
+    interface: String = "localhost"
   ) extends WSLoggerMode[ServerBinding]
 
   /**
@@ -35,8 +35,7 @@ object WSLoggerMode {
     *
     * @param printers a list of printers that process the incoming messages
     */
-  case class Local(printers: Seq[Printer] = Seq(StderrPrinter))
-      extends WSLoggerMode[Unit]
+  case class Local(printers: Seq[Printer]) extends WSLoggerMode[Unit]
 
   case class ServerBinding(port: Int) {
     def toUri(host: String = "localhost"): Uri =

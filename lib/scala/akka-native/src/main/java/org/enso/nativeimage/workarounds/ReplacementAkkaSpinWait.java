@@ -7,6 +7,6 @@ import com.oracle.svm.core.annotate.TargetClass;
 final class ReplacementAkkaSpinWait {
   @Substitute
   public static void spinWait() {
-    Thread.onSpinWait(); // TODO [RW] or maybe this should be a no-op instead?
+    Thread.onSpinWait();
   }
 }

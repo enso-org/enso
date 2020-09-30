@@ -166,7 +166,35 @@
     "allDeclaredConstructors": true
   },
   {
+    "name": "akka.event.LoggerMailboxType",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
     "name": "akka.event.LoggerMessageQueueSemantics"
+  },
+  {
+    "name": "akka.event.slf4j.Slf4jLogger",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.event.slf4j.Slf4jLoggingFilter",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "akka.event.EventStream"
+        ]
+      }
+    ]
   },
   {
     "name": "akka.http.DefaultParsingErrorHandler$",
@@ -210,6 +238,13 @@
   },
   {
     "name": "akka.io.dns.RecordType[]"
+  },
+  {
+    "name": "akka.pattern.PromiseActorRef",
+    "fields": [
+      { "name": "_stateDoNotCallMeDirectly", "allowUnsafeAccess": true },
+      { "name": "_watchedByDoNotCallMeDirectly", "allowUnsafeAccess": true }
+    ]
   },
   {
     "name": "akka.routing.ConsistentHashingPool",
