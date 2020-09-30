@@ -100,9 +100,8 @@ pub struct BubbleChart {
 #[allow(missing_docs)]
 impl BubbleChart {
     pub fn definition() -> Definition {
-        let path = Path::builtin("[Demo] Bubble Visualization");
         Definition::new(
-            Signature::new_for_any_type(path,Format::Json),
+            Self::signature(),
             |scene| { Ok(Self::new(scene).into()) }
         )
     }
@@ -115,8 +114,7 @@ impl BubbleChart {
         let frp            = visualization::instance::Frp::new(&network);
         let size           = default();
         let scene          = scene.clone_ref();
-        let signature      = Signature::new_for_any_type(Path::builtin("[Demo] Bubble Chart"),
-                                                         Format::Json);
+        let signature      = Self::signature();
         let model = BubbleChartModel{display_object,views,logger,size,scene,signature};
 
         BubbleChart {frp,network,model} . init()
@@ -136,6 +134,10 @@ impl BubbleChart {
              });
         }
         self
+    }
+
+    fn signature() -> Signature {
+        Signature::new_for_any_type(Path::builtin("Bubbles (WebGL)"),Format::Json)
     }
 }
 

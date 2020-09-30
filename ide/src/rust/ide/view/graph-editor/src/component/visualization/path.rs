@@ -45,3 +45,9 @@ impl Path {
         Self::new(library,name)
     }
 }
+
+impl Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.name)
+    }
+}

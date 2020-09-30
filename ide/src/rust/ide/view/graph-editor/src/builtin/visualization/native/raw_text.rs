@@ -35,7 +35,7 @@ pub struct RawText {
 impl RawText {
     /// Definition of this visualization.
     pub fn definition() -> Definition {
-        let path = Path::builtin("Raw Text Visualization (native)");
+        let path = Path::builtin("JSON");
         Definition::new(
             Signature::new_for_any_type(path,Format::Json),
             |scene| { Ok(Self::new(scene).into()) }

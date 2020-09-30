@@ -8,7 +8,6 @@ use crate::builtin;
 use crate::component::visualization;
 use crate::data::EnsoType;
 
-use ensogl::display::scene::Scene;
 use enso_prelude::CloneRef;
 
 
@@ -80,12 +79,10 @@ impl Registry {
         self.path_map.borrow().get(path).cloned()
     }
 
-    /// Return a default visualisation class.
-    pub fn default_visualisation(scene:&Scene) -> visualization::Instance {
-        let instance = builtin::visualization::native::RawText::new(scene);
-        instance.into()
+    /// Return a default visualisation definition.
+    pub fn default_visualisation() -> visualization::Definition {
+        builtin::visualization::native::RawText::definition()
     }
-
 }
 
 impl Default for Registry {

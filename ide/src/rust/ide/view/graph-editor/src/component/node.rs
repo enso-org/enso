@@ -40,7 +40,6 @@ pub const TEXT_OFF           : f32 = 10.0;
 pub const SHADOW_SIZE        : f32 = 10.0;
 
 
-
 // ============
 // === Node ===
 // ============
@@ -141,7 +140,7 @@ ensogl_text::define_endpoints! {
         deselect            (),
         set_expression      (Expression),
         set_expression_type ((ast::Id,Option<Type>)),
-        set_visualization   (Option<visualization::Instance>),
+        set_visualization   (Option<visualization::Definition>),
     }
     Output {
         expression (Text)
@@ -195,7 +194,7 @@ pub struct NodeModel {
 
 impl NodeModel {
     /// Constructor.
-    pub fn new(app:&Application, network:&frp::Network) -> Self {
+    pub fn new(app:&Application, network:&frp::Network,registry:visualization::Registry) -> Self {
         let scene  = app.display.scene();
         let logger = Logger::new("node");
         edge::sort_hack_1(scene);
@@ -222,7 +221,7 @@ impl NodeModel {
         let input = FrpInputs::new(&network);
         let frp   = FrpEndpoints::new(&network,input);
 
-        let visualization = visualization::Container::new(&logger,&scene);
+        let visualization = visualization::Container::new(&logger,&app,registry);
         visualization.mod_position(|t| {
             t.x = 60.0;
             t.y = -120.0;
@@ -279,6 +278,7 @@ impl NodeModel {
         self.output_ports.frp.set_size.emit(size);
         self.output_ports.mod_position(|t| t.x = width/2.0);
         self.output_ports.mod_position(|t| t.y = height/2.0);
+
     }
 
     pub fn visualization(&self) -> &visualization::Container {
@@ -287,9 +287,9 @@ impl NodeModel {
 }
 
 impl Node {
-    pub fn new(app:&Application) -> Self {
+    pub fn new(app:&Application,registry:visualization::Registry) -> Self {
         let frp_network      = frp::Network::new();
-        let model            = Rc::new(NodeModel::new(app,&frp_network));
+        let model            = Rc::new(NodeModel::new(app,&frp_network,registry));
         let inputs           = &model.frp.input;
         let selection        = Animation::<f32>::new(&frp_network);
 

@@ -8,11 +8,15 @@
 // FIXME separate camera (view?) per visualization? This is also connected to a question how to
 // FIXME create efficient dashboard view.
 
+mod action_bar;
+mod visualization_chooser;
+
 use crate::prelude::*;
 
 use crate::data::EnsoCode;
 use crate::visualization;
 
+use action_bar::ActionBar;
 use enso_frp as frp;
 use ensogl::data::color;
 use ensogl::display::DomSymbol;
@@ -22,6 +26,7 @@ use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component::Animation;
+use ensogl::application::Application;
 use ensogl::gui::component;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
@@ -29,13 +34,15 @@ use ensogl_theme as theme;
 
 
 
+
 // =================
 // === Constants ===
 // =================
 
-const DEFAULT_SIZE  : (f32,f32) = (200.0,200.0);
-const CORNER_RADIUS : f32       = super::super::node::CORNER_RADIUS;
-const SHADOW_SIZE   : f32       = super::super::node::SHADOW_SIZE;
+const DEFAULT_SIZE      : (f32,f32) = (200.0,200.0);
+const CORNER_RADIUS     : f32       = super::super::node::CORNER_RADIUS;
+const SHADOW_SIZE       : f32       = super::super::node::SHADOW_SIZE;
+const ACTION_BAR_HEIGHT : f32       = 2.0 * CORNER_RADIUS;
 
 
 // =============
@@ -90,7 +97,6 @@ pub mod background {
         }
     }
 }
-
 
 /// Container background shape definition.
 ///
@@ -149,7 +155,7 @@ pub mod overlay {
 pub struct Frp {
     pub set_visibility     : frp::Source<bool>,
     pub toggle_visibility  : frp::Source,
-    pub set_visualization  : frp::Source<Option<visualization::Instance>>,
+    pub set_visualization  : frp::Source<Option<visualization::Definition>>,
     pub set_data           : frp::Source<visualization::Data>,
     pub select             : frp::Source,
     pub deselect           : frp::Source,
@@ -320,11 +326,19 @@ pub struct ContainerModel {
     view            : View,
     fullscreen_view : FullscreenView,
     is_fullscreen   : Rc<Cell<bool>>,
+    registry        : visualization::Registry,
+
+    action_bar      : ActionBar,
 }
+
+
 
 impl ContainerModel {
     /// Constructor.
-    pub fn new(logger:&Logger, scene:&Scene, network:&frp::Network) -> Self {
+    pub fn new
+    (logger:&Logger, app:&Application, network:&frp::Network, registry:visualization::Registry)
+    -> Self {
+        let scene           = app.display.scene();
         let logger          = Logger::sub(logger,"visualization_container");
         let display_object  = display::object::Instance::new(&logger);
         let visualization   = default();
@@ -333,8 +347,12 @@ impl ContainerModel {
         let fullscreen_view = FullscreenView::new(&logger,scene);
         let scene           = scene.clone_ref();
         let is_fullscreen   = default();
-        Self {logger,frp,visualization,display_object,view,fullscreen_view,scene,is_fullscreen}
-            . init()
+
+        let action_bar      = ActionBar::new(&app);
+        view.add_child(&action_bar);
+
+        Self {logger,frp,visualization,display_object,view,fullscreen_view,scene,is_fullscreen,
+              action_bar,registry}.init()
     }
 
     fn init(self) -> Self {
@@ -360,6 +378,7 @@ impl ContainerModel {
     fn set_visibility(&self, visibility:bool) {
         if visibility {
             self.add_child(&self.view);
+            self.show_visualisation();
             self.scene.add_child(&self.fullscreen_view);
         }
         else {
@@ -408,6 +427,7 @@ impl ContainerModel {
             self.view.background_dom.dom().set_style_or_warn("height","0",&self.logger);
             self.fullscreen_view.background_dom.dom().set_style_or_warn("width", format!("{}px", size[0]), &self.logger);
             self.fullscreen_view.background_dom.dom().set_style_or_warn("height", format!("{}px", size[1]), &self.logger);
+            self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
             // self.view.background.shape.radius.set(CORNER_RADIUS);
             self.view.overlay.shape.radius.set(CORNER_RADIUS);
@@ -418,7 +438,12 @@ impl ContainerModel {
             self.fullscreen_view.background_dom.dom().set_style_or_warn("width", "0", &self.logger);
             self.fullscreen_view.background_dom.dom().set_style_or_warn("height", "0", &self.logger);
             // self.fullscreen_view.background.shape.sprite.size.set(zero());
+
+            let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
+            self.action_bar.frp.set_size.emit(action_bar_size);
         }
+
+        self.action_bar.set_position_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {
             viz.set_size.emit(size);
@@ -433,6 +458,12 @@ impl ContainerModel {
         self.view.overlay.shape.roundness.set(value);
         // self.view.background.shape.roundness.set(value);
         // self.fullscreen_view.background.shape.roundness.set(value);
+    }
+
+    fn show_visualisation(&self) {
+        if let Some(vis) = self.visualization.borrow().as_ref() {
+            self.view.add_child(vis);
+        }
     }
 
     /// Check if given mouse-event-target means this visualization.
@@ -470,26 +501,53 @@ pub struct Container {
 
 impl Container {
     /// Constructor.
-    pub fn new(logger:&Logger,scene:&Scene) -> Self {
+    pub fn new(logger:&Logger,app:&Application,registry:visualization::Registry) -> Self {
         let network = frp::Network::new();
-        let model   = Rc::new(ContainerModel::new(logger,scene,&network));
+        let model   = Rc::new(ContainerModel::new(logger,app,&network,registry));
         let frp     = model.frp.clone_ref();
-        Self {model,frp,network} . init(scene)
+        Self {model,frp,network} . init()
     }
 
-    fn init(self,scene:&Scene) -> Self {
-        let inputs     = &self.frp;
-        let network    = &self.network;
-        let model      = &self.model;
-        let fullscreen = Animation::new(network);
-        let size       = Animation::<Vector2>::new(network);
+    fn init(self) -> Self {
+        let inputs              = &self.frp;
+        let network             = &self.network;
+        let model               = &self.model;
+        let fullscreen          = Animation::new(network);
+        let size                = Animation::<Vector2>::new(network);
         let fullscreen_position = Animation::<Vector3>::new(network);
+        let scene               = &self.model.scene;
+        let logger              = &self.model.logger;
 
+        let action_bar          = &model.action_bar.frp;
+        let registry            = &model.registry;
         frp::extend! { network
             eval  inputs.set_visibility    ((v) model.set_visibility(*v));
             eval_ inputs.toggle_visibility (model.toggle_visibility());
-            eval  inputs.set_visualization ((v) model.set_visualization(v.clone()));
+            eval  inputs.set_visualization (
+                [model,action_bar,registry,scene,logger](vis_definition) {
+
+                if let Some(definition) = vis_definition {
+                    match definition.new_instance(&scene) {
+                        Ok(vis)  => {
+                            model.set_visualization(Some(vis));
+                            let input_type            = &definition.signature.input_type;
+                            let alternatives          = registry.valid_sources(input_type);
+                            let alternatives          = alternatives.into_iter();
+                            let alternative_paths     = alternatives.map(|def| def.signature.path);
+                            let alternative_paths_vec = alternative_paths.collect_vec();
+                            action_bar.set_visualization_alternatives.emit(alternative_paths_vec);
+                            let path                  = Some(definition.signature.path.clone());
+                            action_bar.set_selected_visualization.emit(path);
+                        },
+                        Err(err) => {
+                            logger.warning(
+                                || format!("Failed to instantiate visualisation: {:?}",err));
+                        },
+                    };
+                }
+            });
             eval  inputs.set_data          ((t) model.set_visualization_data(t));
+
             eval_ inputs.enable_fullscreen (model.set_visibility(true));
             eval_ inputs.enable_fullscreen (model.enable_fullscreen());
             eval_ inputs.enable_fullscreen (fullscreen.set_target_value(1.0));
@@ -525,16 +583,31 @@ impl Container {
                     let pp = Vector3(pos.x,pos.y,pos.z);
                     let current_pos = pp * weight_inv;
                     model.fullscreen_view.set_position(current_pos);
-
             }));
 
             eval fullscreen_position.value ((p) model.fullscreen_view.set_position(*p));
             eval model.frp.preprocessor    ((code) inputs.preprocessor_select.emit(code));
         }
 
+
+        // ===  Visualisation chooser frp bindings ===
+        frp::extend! { network
+            eval action_bar.visualisation_selection([model,registry,scene,action_bar](visualization_path) {
+                if let Some(path) = visualization_path {
+                    if let Some(definition) = registry.definition_from_path(path) {
+                        if let Ok(visualization) = definition.new_instance(&scene) {
+                            model.set_visualization(Some(visualization));
+                            model.action_bar.frp.set_selected_visualization.emit(Some(definition.signature.path));
+                        }
+                    }
+                    action_bar.hide_icons.emit(());
+                }
+            });
+        }
+
         inputs.set_size.emit(Vector2(DEFAULT_SIZE.0,DEFAULT_SIZE.1));
         size.skip();
-        model.set_visualization(Some(visualization::Registry::default_visualisation(scene)));
+        inputs.set_visualization.emit(Some(visualization::Registry::default_visualisation()));
         self
     }
 }

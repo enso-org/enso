@@ -70,6 +70,12 @@ impl Model {
     }
 }
 
+impl<T:Display> From<T> for Model {
+    fn from(item: T) -> Self {
+        Model::new(item.to_string())
+    }
+}
+
 
 // === Entry Model Provider ===
 
@@ -115,6 +121,101 @@ pub struct EmptyProvider;
 impl ModelProvider for EmptyProvider {
     fn entry_count(&self)          -> usize         { 0    }
     fn get        (&self, _:usize) -> Option<Model> { None }
+}
+
+
+// === Model Provider for Vectors ===
+
+impl<T:Into<Model> + Debug + Clone> ModelProvider for Vec<T> {
+    fn entry_count(&self) -> usize {
+        self.len()
+    }
+
+    fn get(&self, id:usize) -> Option<Model> {
+       Some(<[T]>::get(self, id)?.clone().into())
+    }
+}
+
+
+// === Masked Model Provider ===
+
+/// An Entry Model Provider that wraps a `AnyModelProvider` and allows the masking of a single item.
+#[derive(Clone,Debug)]
+pub struct SingleMaskedProvider {
+    content : AnyModelProvider,
+    mask    : Cell<Option<Id>>,
+}
+
+impl ModelProvider for SingleMaskedProvider {
+    fn entry_count(&self) -> usize {
+        match self.mask.get() {
+            None    => self.content.entry_count(),
+            Some(_) => self.content.entry_count().saturating_sub(1),
+        }
+    }
+
+    fn get(&self, ix:usize) -> Option<Model> {
+        let internal_ix = self.unmasked_index(ix);
+        self.content.get(internal_ix)
+    }
+}
+
+impl SingleMaskedProvider {
+
+    /// Return the index to the unmasked underlying data. Will only be valid to use after
+    /// calling `clear_mask`.
+    ///
+    /// Transform index of an element visible in the menu, to the index of the all the objects,
+    /// accounting for the removal of the selected item.
+    ///
+    /// Example:
+    /// Mask              `Some(1)`
+    /// Masked indices    [0,     1, 2]
+    /// Unmasked Index    [0, 1,  2, 3]
+    /// -------------------------------
+    /// Mask              `None`
+    /// Masked indices    [0, 1, 2, 3]
+    /// Unmasked Index    [0, 1, 2, 3]
+    ///
+    /// ```
+    ///
+    /// ```
+    pub fn unmasked_index(&self, ix:Id) -> Id {
+        match self.mask.get() {
+            None                 => ix,
+            Some(id) if ix < id  => ix,
+            Some(_)              => ix+1,
+        }
+    }
+
+    /// Mask out the given index. All methods will now skip this item and the `SingleMaskedProvider`
+    /// will behave as if it was not there.
+    ///
+    /// *Important:* The index is interpreted according to the _masked_ position of elements.
+    pub fn set_mask(&self, ix:Id) {
+        let internal_ix = self.unmasked_index(ix);
+        self.mask.set(Some(internal_ix));
+    }
+
+    /// Mask out the given index. All methods will now skip this item and the `SingleMaskedProvider`
+    /// will behave as if it was not there.
+    ///
+    /// *Important:* The index is interpreted according to the _unmasked_ position of elements.
+    pub fn set_mask_raw(&self, ix:Id) {
+        self.mask.set(Some(ix));
+    }
+
+    /// Clear the masked item.
+    pub fn clear_mask(&self) {
+        self.mask.set(None)
+    }
+}
+
+impl From<AnyModelProvider> for SingleMaskedProvider {
+    fn from(content:AnyModelProvider) -> Self {
+        let mask = default();
+        SingleMaskedProvider{content,mask}
+    }
 }
 
 
@@ -339,4 +440,48 @@ impl List {
 
 impl display::Object for List {
     fn display_object(&self) -> &display::object::Instance { &self.display_object }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_masked_provider() {
+        let test_data   = vec!["A", "B", "C", "D"];
+        let test_models = test_data.into_iter().map(|label| Model::new(label)).collect_vec();
+        let provider:AnyModelProvider     = test_models.into();
+        let provider:SingleMaskedProvider = provider.into();
+
+        assert_eq!(provider.entry_count(), 4);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "B");
+        assert_eq!(provider.get(2).unwrap().label, "C");
+        assert_eq!(provider.get(3).unwrap().label, "D");
+
+        provider.set_mask_raw(0);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "B");
+        assert_eq!(provider.get(1).unwrap().label, "C");
+        assert_eq!(provider.get(2).unwrap().label, "D");
+
+        provider.set_mask_raw(1);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "C");
+        assert_eq!(provider.get(2).unwrap().label, "D");
+
+        provider.set_mask_raw(2);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "B");
+        assert_eq!(provider.get(2).unwrap().label, "D");
+
+        provider.set_mask_raw(3);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "B");
+        assert_eq!(provider.get(2).unwrap().label, "C");
+    }
 }
