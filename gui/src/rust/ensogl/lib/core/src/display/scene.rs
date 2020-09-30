@@ -10,6 +10,7 @@ use crate::prelude::*;
 
 use crate::animation;
 use crate::control::callback;
+use crate::control::io::keyboard::listener::KeyboardFrpBindings;
 use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse;
 use crate::data::color;
@@ -21,21 +22,21 @@ use crate::display::render::RenderComposer;
 use crate::display::render::RenderPipeline;
 use crate::display::scene::dom::DomScene;
 use crate::display::shape::text::glyph::font;
+use crate::display::shape::ShapeSystemInstance;
+use crate::display::shape::system::ShapeSystemOf;
 use crate::display::style;
+use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
 use crate::display;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
+use crate::system::web;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
-use crate::system::web;
-use crate::display::shape::ShapeSystemInstance;
-use crate::display::shape::system::ShapeSystemOf;
-use crate::control::io::keyboard::listener::KeyboardFrpBindings;
+use crate::system::web::IgnoreContextMenuHandle;
 
-use display::style::data::DataMatch;
 use enso_frp as frp;
 use std::any::TypeId;
 use web_sys::HtmlElement;
@@ -292,7 +293,7 @@ pub struct Mouse {
     pub position      : Uniform<Vector2<i32>>,
     pub hover_ids     : Uniform<Vector4<u32>>,
     pub target        : Rc<Cell<Target>>,
-    pub handles       : Rc<Vec<callback::Handle>>,
+    pub handles       : Rc<[callback::Handle;3]>,
     pub frp           : enso_frp::io::Mouse,
     pub scene_frp     : Frp,
     pub logger        : Logger
@@ -309,8 +310,8 @@ impl Mouse {
         let body            = web::dom::WithKnownShape::new(&web::document().body().unwrap());
         let mouse_manager   = MouseManager::new_separated(&body.into(),&web::window());
         let frp             = frp::io::Mouse::new();
-        let on_move         = mouse_manager.on_move.add(f!([frp,scene_frp,position,last_position]
-            (event:&mouse::OnMove) {
+        let on_move         = mouse_manager.on_move.add(Self::make_handler(&scene_frp,
+            f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
                 let shape       = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio as i32;
                 let screen_x    = event.client_x();
@@ -326,10 +327,12 @@ impl Mouse {
                     frp.position.emit(position);
                 }
             }
-        ));
-        let on_down = mouse_manager.on_down . add(f!((event) frp.down . emit(event.button())));
-        let on_up   = mouse_manager.on_up   . add(f!((event) frp.up   . emit(event.button())));
-        let handles = Rc::new(vec![on_move,on_down,on_up]);
+        )));
+        let on_down = mouse_manager.on_down.add(Self::make_handler(&scene_frp,
+            f!((event:&mouse::OnDown) frp.down.emit(event.button()))));
+        let on_up   = mouse_manager.on_up.add(Self::make_handler(&scene_frp,
+            f!((event:&mouse::OnUp) frp.up.emit(event.button()))));
+        let handles = Rc::new([on_move,on_down,on_up]);
         Self {mouse_manager,last_position,position,hover_ids,target,handles,frp,scene_frp,logger}
     }
 
@@ -358,6 +361,21 @@ impl Mouse {
         let new_pos  = self.last_position.get();
         let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
         self.frp.position.emit(position);
+    }
+
+    /// A helper function for creating mouse event handlers.
+    ///
+    /// This wraps the `processing_fn` so before processing the `current_js_event` in scene FRP is
+    /// set to the received js event, and after processing it is set back to `None`.
+    fn make_handler<JsEvent,Event>
+    (scene_frp:&Frp, mut processing_fn:impl FnMut(&Event)) -> impl FnMut(&Event)
+    where Event   : AsRef<JsEvent>,
+          JsEvent : AsRef<web_sys::Event> {
+        f!([scene_frp] (event) {
+            scene_frp.current_js_event_source.emit(Some(event.as_ref().as_ref().clone()));
+            processing_fn(event);
+            scene_frp.current_js_event_source.emit(None);
+        })
     }
 }
 
@@ -749,26 +767,57 @@ impl Views {
 /// FRP Scene interface.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Frp {
-    pub network        : frp::Network,
-    pub shape          : frp::Sampler<Shape>,
-    pub camera_changed : frp::Stream,
-    pub frame_time     : frp::Stream<f32>,
-
-    camera_changed_source : frp::Source,
-    frame_time_source     : frp::Source<f32>,
+    pub network                      : frp::Network,
+    pub shape                        : frp::Sampler<Shape>,
+    pub camera_changed               : frp::Stream,
+    pub frame_time                   : frp::Stream<f32>,
+    pub current_js_event             : frp::Stream<Option<web_sys::Event>>,
+    /// Emitting this signal while handling js event (`current_js_event` is Some) makes this event
+    /// pass to the DOM elements. Otherwise the js event propagation will be stopped.
+    pub pass_current_js_event_to_dom : frp::Source<()>,
+    camera_changed_source            : frp::Source,
+    frame_time_source                : frp::Source<f32>,
+    current_js_event_source          : frp::Source<Option<web_sys::Event>>,
 }
 
 impl Frp {
     /// Constructor
     pub fn new(shape:&frp::Sampler<Shape>) -> Self {
         frp::new_network! { network
-            camera_changed_source <- source();
-            frame_time_source     <- source();
+            camera_changed_source        <- source();
+            frame_time_source            <- source();
+            current_js_event_source      <- source();
+            pass_current_js_event_to_dom <- source();
+            event_is_passed_to_dom       <- any(...);
+            event_is_passed_to_dom       <+ pass_current_js_event_to_dom.constant(true);
+            current_js_event             <- any(...);
+
+            new_current_js_event <- current_js_event_source.map3
+                (&current_js_event,&event_is_passed_to_dom,Self::on_current_js_event_change);
+            event_is_passed_to_dom <+ new_current_js_event.constant(false);
+            current_js_event       <+ new_current_js_event;
         }
-        let shape          = shape.clone_ref();
-        let camera_changed = camera_changed_source.clone_ref().into();
-        let frame_time     = frame_time_source.clone_ref().into();
-        Self {network,shape,camera_changed,frame_time,camera_changed_source,frame_time_source}
+        let shape            = shape.clone_ref();
+        let camera_changed   = camera_changed_source.clone_ref().into();
+        let frame_time       = frame_time_source.clone_ref().into();
+        let current_js_event = current_js_event.into();
+        Self {network,shape,camera_changed,frame_time,current_js_event,pass_current_js_event_to_dom,
+            camera_changed_source,frame_time_source,current_js_event_source}
+    }
+
+    // The bool is passed by reference to match the signatures expected by FRP eval.
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn on_current_js_event_change
+    (new:&Option<web_sys::Event>, current:&Option<web_sys::Event>, is_passed:&bool)
+    -> Option<web_sys::Event> {
+        // Whenever the current js event change, we pass the processed one to the dom if someone
+        // asked to.
+        if let Some(e) = current {
+            if !is_passed {
+                e.stop_propagation();
+            }
+        }
+        new.clone()
     }
 }
 
@@ -804,26 +853,27 @@ impl Extensions {
 
 #[derive(Clone,CloneRef,Debug)]
 pub struct SceneData {
-    pub display_object  : display::object::Instance,
-    pub dom             : Dom,
-    pub context         : Context,
-    pub symbols         : SymbolRegistry,
-    pub variables       : UniformScope,
-    pub mouse           : Mouse,
-    pub keyboard        : Keyboard,
-    pub uniforms        : Uniforms,
-    pub shapes          : ShapeRegistry,
-    pub stats           : Stats,
-    pub dirty           : Dirty,
-    pub logger          : Logger,
-    pub renderer        : Renderer,
-    pub views           : Views,
-    pub style_sheet     : style::Sheet,
-    pub bg_color_var    : style::Var,
-    pub bg_color_change : callback::Handle,
-    pub fonts           : font::SharedRegistry,
-    pub frp             : Frp,
-    extensions          : Extensions,
+    pub display_object   : display::object::Instance,
+    pub dom              : Dom,
+    pub context          : Context,
+    pub symbols          : SymbolRegistry,
+    pub variables        : UniformScope,
+    pub mouse            : Mouse,
+    pub keyboard         : Keyboard,
+    pub uniforms         : Uniforms,
+    pub shapes           : ShapeRegistry,
+    pub stats            : Stats,
+    pub dirty            : Dirty,
+    pub logger           : Logger,
+    pub renderer         : Renderer,
+    pub views            : Views,
+    pub style_sheet      : style::Sheet,
+    pub bg_color_var     : style::Var,
+    pub bg_color_change  : callback::Handle,
+    pub fonts            : font::SharedRegistry,
+    pub frp              : Frp,
+    extensions           : Extensions,
+    disable_context_menu : Rc<IgnoreContextMenuHandle>,
 }
 
 impl SceneData {
@@ -836,35 +886,37 @@ impl SceneData {
         parent_dom.append_child(&dom.root).unwrap();
         dom.recompute_shape_with_reflow();
 
-        let display_object  = display::object::Instance::new(&logger);
-        let context         = web::get_webgl2_context(&dom.layers.canvas);
-        let sub_logger      = Logger::sub(&logger,"shape_dirty");
-        let shape_dirty     = ShapeDirty::new(sub_logger,Box::new(on_mut.clone()));
-        let sub_logger      = Logger::sub(&logger,"symbols_dirty");
-        let dirty_flag      = SymbolRegistryDirty::new(sub_logger,Box::new(on_mut));
-        let on_change       = enclose!((dirty_flag) move || dirty_flag.set());
-        let variables       = UniformScope::new(Logger::sub(&logger,"global_variables"),&context);
-        let symbols         = SymbolRegistry::mk(&variables,&stats,&context,&logger,on_change);
-        let screen_shape    = dom.shape();
-        let width           = screen_shape.width;
-        let height          = screen_shape.height;
-        let symbols_dirty   = dirty_flag;
-        let views           = Views::mk(&logger,width,height);
-        let stats           = stats.clone();
-        let shapes          = ShapeRegistry::default();
-        let uniforms        = Uniforms::new(&variables);
-        let dirty           = Dirty {symbols:symbols_dirty,shape:shape_dirty};
-        let renderer        = Renderer::new(&logger,&dom,&context,&variables);
-        let style_sheet     = style::Sheet::new();
-        let fonts           = font::SharedRegistry::new();
-        let frp             = Frp::new(&dom.root.shape);
-        let mouse_logger    = Logger::sub(&logger,"mouse");
-        let mouse           = Mouse::new(&frp,&variables,mouse_logger);
-        let keyboard        = Keyboard::new();
-        let network         = &frp.network;
-        let extensions      = Extensions::default();
-        let bg_color_var    = style_sheet.var("application . background . color");
-        let bg_color_change = bg_color_var.on_change(f!([dom](change){
+        let display_object       = display::object::Instance::new(&logger);
+        let context              = web::get_webgl2_context(&dom.layers.canvas);
+        let sub_logger           = Logger::sub(&logger,"shape_dirty");
+        let shape_dirty          = ShapeDirty::new(sub_logger,Box::new(on_mut.clone()));
+        let sub_logger           = Logger::sub(&logger,"symbols_dirty");
+        let dirty_flag           = SymbolRegistryDirty::new(sub_logger,Box::new(on_mut));
+        let on_change            = enclose!((dirty_flag) move || dirty_flag.set());
+        let var_logger           = Logger::sub(&logger,"global_variables");
+        let variables            = UniformScope::new(var_logger,&context);
+        let symbols              = SymbolRegistry::mk(&variables,&stats,&context,&logger,on_change);
+        let screen_shape         = dom.shape();
+        let width                = screen_shape.width;
+        let height               = screen_shape.height;
+        let symbols_dirty        = dirty_flag;
+        let views                = Views::mk(&logger,width,height);
+        let stats                = stats.clone();
+        let shapes               = ShapeRegistry::default();
+        let uniforms             = Uniforms::new(&variables);
+        let dirty                = Dirty {symbols:symbols_dirty,shape:shape_dirty};
+        let renderer             = Renderer::new(&logger,&dom,&context,&variables);
+        let style_sheet          = style::Sheet::new();
+        let fonts                = font::SharedRegistry::new();
+        let frp                  = Frp::new(&dom.root.shape);
+        let mouse_logger         = Logger::sub(&logger,"mouse");
+        let mouse                = Mouse::new(&frp,&variables,mouse_logger);
+        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root).unwrap());
+        let keyboard             = Keyboard::new();
+        let network              = &frp.network;
+        let extensions           = Extensions::default();
+        let bg_color_var         = style_sheet.var("application . background . color");
+        let bg_color_change      = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
                 let color = color::Rgba::from(color);
                 let color = format!("rgba({},{},{},{})",255.0*color.red,255.0*color.green,255.0*color.blue,255.0*color.alpha);
@@ -879,7 +931,7 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables,stats
              ,uniforms,mouse,keyboard,shapes,style_sheet,bg_color_var,bg_color_change,fonts,frp
-             ,extensions}
+             ,extensions,disable_context_menu}
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {

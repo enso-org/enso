@@ -5,3 +5,5 @@ pub mod primitive;
 pub mod text;
 
 pub use primitive::*;
+// We have two Shape and two ShapeOps traits. This one takes precedence.
+pub use primitive::def::class::ShapeOps;

@@ -434,6 +434,12 @@ impl ContainerModel {
         // self.view.background.shape.roundness.set(value);
         // self.fullscreen_view.background.shape.roundness.set(value);
     }
+
+    /// Check if given mouse-event-target means this visualization.
+    fn is_this_target(&self, target:scene::Target) -> bool {
+        use ensogl::display::shape::primitive::system::ShapeOps;
+        self.view.overlay.shape.is_this_target(target)
+    }
 }
 
 impl display::Object for ContainerModel {
@@ -471,21 +477,6 @@ impl Container {
         Self {model,frp,network} . init(scene)
     }
 
-    /// Sets pointer-events `value` of all `HtmlElement`s of the `visualization` class.
-    pub fn set_all_visualizations_pointer_events(value:impl Str) {
-        use wasm_bindgen::JsCast;
-        let value    = value.into();
-        let elements = ensogl::system::web::get_elements_by_class_name("visualization");
-        let logger   = Logger::new("Visualizations");
-        if let Ok(elements) = elements {
-            for element in elements {
-                if let Ok(html_element) = element.dyn_into::<web_sys::HtmlElement>() {
-                    html_element.set_style_or_warn("pointer-events",&value,&logger)
-                }
-            }
-        }
-    }
-
     fn init(self,scene:&Scene) -> Self {
         let inputs     = &self.frp;
         let network    = &self.network;
@@ -503,8 +494,19 @@ impl Container {
             eval_ inputs.enable_fullscreen (model.enable_fullscreen());
             eval_ inputs.enable_fullscreen (fullscreen.set_target_value(1.0));
             eval  inputs.set_size          ((s) size.set_target_value(*s));
-            eval_ model.view.overlay.events.mouse_down([] {
-                Container::set_all_visualizations_pointer_events("auto");
+
+            mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
+            eval mouse_down_target ([model] (target){
+                let vis        = &model.visualization;
+                let activate   = || vis.borrow().as_ref().map(|v| v.activate.clone_ref());
+                let deactivate = || vis.borrow().as_ref().map(|v| v.deactivate.clone_ref());
+                if model.is_this_target(*target) {
+                    if let Some(activate) = activate() {
+                        activate.emit(());
+                    }
+                } else if let Some(deactivate) = deactivate() {
+                    deactivate.emit(());
+                }
             });
 
             _eval <- fullscreen.value.all_with3(&size.value,&inputs.scene_shape,

@@ -36,7 +36,6 @@ pub mod data;
 use crate::component::node;
 use crate::component::visualization;
 use crate::component::visualization::MockDataGenerator3D;
-use crate::component::visualization::Container;
 
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -1713,18 +1712,6 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     frp::extend! { network
         eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.frp.debug.push_breadcrumb.emit(None));
         eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.frp.debug.pop_breadcrumb.emit(()));
-    }
-
-
-
-    // ============================
-    // === Visualization Events ===
-    // ============================
-
-    frp::extend! { network
-        eval_ touch.background.selected([] {
-            Container::set_all_visualizations_pointer_events("none")
-        });
     }
 
 

@@ -150,6 +150,18 @@ pub trait Shape : display::Object + CloneRef + Debug + Sized {
 /// Accessor for the `Shape::System` associated type.
 pub type ShapeSystemOf<T> = <T as Shape>::System;
 
+/// Additional operations implemented for all structures implementing `Shape`.
+pub trait ShapeOps {
+    /// Check if given mouse-event-target means this shape.
+    fn is_this_target(&self,target:display::scene::Target) -> bool;
+}
+
+impl<T:Shape> ShapeOps for T {
+    fn is_this_target(&self, target:display::scene::Target) -> bool {
+        self.sprites().iter().any(|s| s.is_this_target(target))
+    }
+}
+
 
 
 // ==================

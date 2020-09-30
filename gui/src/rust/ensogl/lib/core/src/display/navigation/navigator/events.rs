@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
 use crate::control::callback;
-use crate::system::web::IgnoreContextMenuHandle;
-use crate::system::web;
 
 use nalgebra::Vector2;
 use nalgebra::zero;
@@ -176,23 +174,20 @@ pub struct NavigatorEvents {
     #[derivative(Debug="ignore")]
     mouse_leave          : Option<callback::Handle>,
     #[derivative(Debug="ignore")]
-    disable_context_menu : Option<IgnoreContextMenuHandle>,
-    #[derivative(Debug="ignore")]
     wheel_zoom           : Option<callback::Handle>
 }
 
 impl NavigatorEvents {
     pub fn new
-    <P,Z>(event_target:&web::dom::WithKnownShape<web::EventTarget>, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Self
+    <P,Z>(mouse_manager:&MouseManager, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Self
     where P : FnPanEvent, Z : FnZoomEvent {
-        let mouse_manager        = MouseManager::new(event_target);
+        let mouse_manager        = mouse_manager.clone_ref();
         let pan_callback         = Box::new(pan_callback);
         let zoom_callback        = Box::new(zoom_callback);
         let mouse_move           = default();
         let mouse_up             = default();
         let mouse_down           = default();
         let wheel_zoom           = default();
-        let disable_context_menu = default();
         let mouse_leave          = default();
         let data = NavigatorEventsData::new(pan_callback,zoom_callback,zoom_speed);
         let mut event_handler = Self {
@@ -202,16 +197,14 @@ impl NavigatorEvents {
             mouse_move,
             mouse_up,
             mouse_leave,
-            disable_context_menu,
             wheel_zoom
         };
 
-        event_handler.initialize_mouse_events(event_target);
+        event_handler.initialize_mouse_events();
         event_handler
     }
 
-    fn initialize_mouse_events(&mut self, target:&web::EventTarget) {
-        self.disable_context_menu(target);
+    fn initialize_mouse_events(&mut self) {
         self.initialize_wheel_zoom();
         self.initialize_mouse_start_event();
         self.initialize_mouse_move_event();
@@ -259,10 +252,6 @@ impl NavigatorEvents {
             }
         });
         self.mouse_down = Some(listener);
-    }
-
-    fn disable_context_menu(&mut self, target:&web::EventTarget) {
-        self.disable_context_menu = Some(web::ignore_context_menu(target).unwrap());
     }
 
     fn initialize_mouse_end_event(&mut self) {

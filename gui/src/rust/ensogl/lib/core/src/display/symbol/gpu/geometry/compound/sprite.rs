@@ -198,6 +198,15 @@ impl Sprite {
     pub fn symbol_id(&self) -> i32 {
         self.symbol.id
     }
+
+    /// Check if given mouse-event-target means this visualization.
+    pub fn is_this_target(&self, target:display::scene::Target) -> bool {
+        match target {
+            display::scene::Target::Background                      => false,
+            display::scene::Target::Symbol {symbol_id, instance_id} =>
+                self.symbol_id() == symbol_id as i32 && *self.instance_id == instance_id as usize,
+        }
+    }
 }
 
 impl display::Object for Sprite {

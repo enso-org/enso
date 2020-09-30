@@ -35,10 +35,13 @@ pub struct Frp {
     pub on_change             : frp::Stream<EnsoCode>,
     pub on_preprocess_change  : frp::Stream<EnsoCode>,
     pub on_data_receive_error : frp::Stream<Option<DataError>>,
+    pub is_active             : frp::Stream<bool>,
 
     pub data_receive_error    : frp::Source<Option<DataError>>,
     pub change                : frp::Source<EnsoCode>,
     pub preprocess_change     : frp::Source<EnsoCode>,
+    pub activate              : frp::Source,
+    pub deactivate            : frp::Source,
 }
 
 impl FrpInputs {
@@ -59,13 +62,17 @@ impl Frp {
             def change             = source();
             def preprocess_change  = source();
             def data_receive_error = source();
+            def activate           = source();
+            def deactivate         = source();
+            is_active              <- bool(&deactivate,&activate);
+            trace is_active;
         };
         let on_change             = change.clone_ref().into();
         let on_preprocess_change  = preprocess_change.clone_ref().into();
         let on_data_receive_error = data_receive_error.clone_ref().into();
         let inputs                = FrpInputs::new(&network);
-        Self {on_change,on_preprocess_change,on_data_receive_error,change,preprocess_change
-             ,inputs,data_receive_error}
+        Self {on_change,on_preprocess_change,on_data_receive_error,is_active,change,
+            preprocess_change,inputs,data_receive_error,activate,deactivate}
     }
 }
 
