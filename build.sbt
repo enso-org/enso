@@ -897,10 +897,14 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Test / compile) := (Test / compile)
         .dependsOn(Def.task {
-          if (sys.props("os.name").toLowerCase().contains("windows")) {
-            "mvn.cmd package -f .\\std-bits"!
+          val cmd = Seq("mvn", "package", "-f", "std-bits")
+          val exitCode = if (sys.props("os.name").toLowerCase().contains("win")) {
+            (Seq("cmd", "/c") ++ cmd).!
           } else {
-            Seq("mvn", "package", "-f", "std-bits") !
+            cmd.!
+          }
+          if (exitCode != 0) {
+            throw new RuntimeException("std-bits build failed.")
           }
         })
         .value
