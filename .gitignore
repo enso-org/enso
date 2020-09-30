@@ -102,9 +102,3 @@ bench-report.xml
 #################
 
 build-cache/
-
-###################
-## License Files ##
-###################
-
-distribution/std-lib/Base/third-party-licenses/**
