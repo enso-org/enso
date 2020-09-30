@@ -11,7 +11,7 @@ import akka.http.scaladsl.model.ws.{
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import io.circe.{parser, Error}
-import org.enso.loggingservice.WSLoggerMode.ServerBinding
+import org.enso.loggingservice.LoggerMode.ServerBinding
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
   InternalLogger

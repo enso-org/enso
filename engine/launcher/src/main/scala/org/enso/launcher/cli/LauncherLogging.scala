@@ -9,15 +9,22 @@ import org.enso.loggingservice.printers.{
   StderrPrinter,
   StderrPrinterWithColors
 }
-import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
+import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 
+/**
+  * Manages setting up the logging service within the launcher.
+  */
 object LauncherLogging {
-  private val logger            = Logger[LauncherLogging.type]
+  private val logger = Logger[LauncherLogging.type]
+
+  /**
+    * Default logl level to use if none is provided.
+    */
   val defaultLogLevel: LogLevel = LogLevel.Warning
 
   /**
@@ -46,10 +53,10 @@ object LauncherLogging {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
     connectToExternalLogger match {
       case Some(uri) =>
-        WSLoggerManager
+        LoggingServiceManager
           .setupWithFallback(
-            WSLoggerMode.Client(uri),
-            WSLoggerMode.Local(Seq(fallbackPrinter)),
+            LoggerMode.Client(uri),
+            LoggerMode.Local(Seq(fallbackPrinter)),
             actualLogLevel
           )
           .onComplete {
@@ -78,8 +85,8 @@ object LauncherLogging {
     * and does not know which logger to set up.
     */
   def setupFallback(): Unit = {
-    WSLoggerManager.setup(
-      WSLoggerMode.Local(Seq(fallbackPrinter)),
+    LoggingServiceManager.setup(
+      LoggerMode.Local(Seq(fallbackPrinter)),
       defaultLogLevel
     )
   }
@@ -144,8 +151,8 @@ object LauncherLogging {
           Seq(stderrPrinter(globalCLIOptions, printStackTraces = true))
       }
 
-    WSLoggerManager
-      .setup(WSLoggerMode.Server(printers), logLevel)
+    LoggingServiceManager
+      .setup(LoggerMode.Server(printers), logLevel)
       .onComplete {
         case Failure(exception) =>
           logger.error(
@@ -154,8 +161,8 @@ object LauncherLogging {
           )
           logger.warn("Falling back to local-only logger.")
           loggingServiceEndpointPromise.success(None)
-          WSLoggerManager.setup(
-            WSLoggerMode.Local(printers),
+          LoggingServiceManager.setup(
+            LoggerMode.Local(printers),
             logLevel
           )
         case Success(serverBinding) =>

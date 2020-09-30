@@ -1,13 +1,19 @@
 package org.enso.loggingservice
 
-import org.enso.loggingservice.internal.InternalLogMessage
+import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
 import org.slf4j.helpers.MessageFormatter
-import org.slf4j.{Logger, Marker}
+import org.slf4j.{Logger => SLF4JLogger, Marker}
 
 import scala.annotation.unused
 
-class WSLogger(name: String, connection: internal.LoggerConnection)
-    extends Logger {
+/**
+  * A [[SLF4JLogger]] instance for the SLF4J backend which passes all log
+  * messages to a [[LoggerConnection]].
+  *
+  * @param name name of the logger
+  * @param connection the connection to pass the log messages to
+  */
+class Logger(name: String, connection: LoggerConnection) extends SLF4JLogger {
   override def getName: String = name
 
   private def isEnabled(level: LogLevel): Boolean =

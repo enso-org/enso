@@ -11,12 +11,28 @@ import org.enso.loggingservice.printers.StderrPrinter
 
 import scala.concurrent.Future
 
-object WSLoggerManager {
+/**
+  * Manages the logging service.
+  */
+object LoggingServiceManager {
   private val messageQueue           = new BlockingConsumerMessageQueue()
   private var currentLevel: LogLevel = LogLevel.Trace
+
+  /**
+    * The default [[LoggerConnection]] that should be used by all backends which
+    * want to use the logging service.
+    */
   object Connection extends LoggerConnection {
+
+    /**
+      * @inheritdoc
+      */
     override def send(message: InternalLogMessage): Unit =
       messageQueue.send(Left(message))
+
+    /**
+      * @inheritdoc
+      */
     override def logLevel: LogLevel = currentLevel
   }
 
@@ -25,9 +41,11 @@ object WSLoggerManager {
   /**
     * Sets up the logging service, but in a separate thread to avoid stalling
     * the application.
+    *
+    * The returned [[InitializationResult]] depends on the mode.
     */
   def setup[InitializationResult](
-    mode: WSLoggerMode[InitializationResult],
+    mode: LoggerMode[InitializationResult],
     logLevel: LogLevel
   ): Future[InitializationResult] = {
     currentLevel = logLevel
@@ -43,8 +61,8 @@ object WSLoggerManager {
     * or `false` if it had to fall back to stderr.
     */
   def setupWithFallback(
-    mode: WSLoggerMode[_],
-    fallbackMode: WSLoggerMode[_],
+    mode: LoggerMode[_],
+    fallbackMode: LoggerMode[_],
     logLevel: LogLevel
   ): Future[Boolean] = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -80,6 +98,13 @@ object WSLoggerManager {
 
   Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))
 
+  /**
+    * Terminates the currently running logging service (if any) and replaces it
+    * with a fallback logging service.
+    *
+    * Can be used if the currently logging service fails after initialization
+    * and has to be shutdown.
+    */
   def replaceWithFallback(): Unit = {
     val fallback =
       Local.setup(currentLevel, messageQueue, Seq(StderrPrinter.create()))
@@ -100,6 +125,10 @@ object WSLoggerManager {
     */
   def dropPendingLogs(): Unit = messageQueue.drain(LogLevel.Off)
 
+  /**
+    * Prints any messages that have been buffered but have not been logged yet
+    * due to no loggers being active.
+    */
   private def handleMissingLogger(): Unit = {
     val danglingMessages = messageQueue.drain(currentLevel)
     if (danglingMessages.nonEmpty) {
@@ -116,7 +145,7 @@ object WSLoggerManager {
   }
 
   private def doSetup[InitializationResult](
-    mode: WSLoggerMode[InitializationResult],
+    mode: LoggerMode[InitializationResult],
     logLevel: LogLevel
   ): InitializationResult = {
     currentService.synchronized {
@@ -127,9 +156,9 @@ object WSLoggerManager {
       }
 
       val (service, result): (Service, InitializationResult) = mode match {
-        case WSLoggerMode.Client(endpoint) =>
+        case LoggerMode.Client(endpoint) =>
           (Client.setup(endpoint, messageQueue, logLevel), ())
-        case WSLoggerMode.Server(printers, port, interface) =>
+        case LoggerMode.Server(printers, port, interface) =>
           val server = Server.setup(
             interface,
             port.getOrElse(0),
@@ -138,7 +167,7 @@ object WSLoggerManager {
             logLevel
           )
           (server, server.getBinding())
-        case WSLoggerMode.Local(printers) =>
+        case LoggerMode.Local(printers) =>
           (Local.setup(logLevel, messageQueue, printers), ())
       }
       currentService = Some(service)

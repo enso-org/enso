@@ -500,7 +500,8 @@ object LauncherApplication {
     val logLevel = Opts.optionalParameter[LogLevel](
       GlobalCLIOptions.LOG_LEVEL,
       "(error | warning | info | debug | trace)",
-      "Sets logging verbosity for the launcher."
+      "Sets logging verbosity for the launcher. If not provided, defaults to" +
+      s"${LauncherLogging.defaultLogLevel}."
     )
     val connectLogger = Opts
       .optionalParameter[Uri](
@@ -554,7 +555,9 @@ object LauncherApplication {
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,
           useJSON      = useJSON,
-          colorMode    = colorMode
+          colorMode    = colorMode,
+          internalOptions =
+            GlobalCLIOptions.InternalOptions(logLevel, connectLogger)
         )
 
         internalOptsCallback(globalCLIOptions)

@@ -3,7 +3,7 @@ package org.enso.runner
 import java.io.InputStream
 import java.io.OutputStream
 
-import org.enso.loggingservice.{LogLevel, WSLogHandler}
+import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
@@ -51,9 +51,11 @@ class ContextFactory {
       }
       .option(
         RuntimeOptions.LOG_LEVEL,
-        WSLogHandler.getTruffleLogLevelFor(logLevel).getName
+        JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
       )
-      .logHandler(WSLogHandler.create(WSLogHandler.defaultTruffleLevelMapping))
+      .logHandler(
+        JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
+      )
       .build
     new PolyglotContext(context)
   }

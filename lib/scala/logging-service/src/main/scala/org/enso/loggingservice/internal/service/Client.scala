@@ -12,7 +12,7 @@ import org.enso.loggingservice.internal.{
   InternalLogger
 }
 import org.enso.loggingservice.internal.protocol.WSLogMessage
-import org.enso.loggingservice.{LogLevel, WSLoggerManager}
+import org.enso.loggingservice.{LogLevel, LoggingServiceManager}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
@@ -92,7 +92,7 @@ class Client(
       InternalLogger.error(
         "Server has disconnected, logging is falling back to stderr."
       )
-      WSLoggerManager.replaceWithFallback()
+      LoggingServiceManager.replaceWithFallback()
     }
   }
 

@@ -5,6 +5,8 @@ import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.util.Collections;
+
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
@@ -14,8 +16,6 @@ import org.enso.interpreter.util.FileDetector;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
-
-import java.util.Collections;
 
 /**
  * The root of the Enso implementation.

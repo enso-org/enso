@@ -252,7 +252,7 @@ class DistributionManager(
       * Returns names of directories that may be located inside of the data
       * directory.
       */
-    def possibleDirectoriesInsideData: Seq[String] =
+    def possibleDirectoriesInsideDataDirectory: Seq[String] =
       Seq(
         CONFIG_DIRECTORY,
         TMP_DIRECTORY,

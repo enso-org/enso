@@ -3,20 +3,34 @@ package org.enso.runner
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import org.enso.loggingservice.printers.StderrPrinter
-import org.enso.loggingservice.{LogLevel, WSLoggerManager, WSLoggerMode}
+import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
 import scala.util.{Failure, Success}
 
+/**
+  * Manages setting up the logging service within the runner.
+  */
 object RunnerLogging {
+
+  /**
+    * Sets up the runner's logging service.
+    *
+    * If `connectionUri` is provided it tries to connect to a logging service
+    * server and pass logs to it. If it is not provided or the connection could
+    * not be established, falls back to logging to standard error output.
+    *
+    * @param connectionUri optional uri of logging service server to connect to
+    * @param logLevel log level to use for the runner and runtime
+    */
   def setup(connectionUri: Option[Uri], logLevel: LogLevel): Unit = {
     val local =
-      WSLoggerMode.Local(Seq(StderrPrinter.create(printStackTraces = true)))
+      LoggerMode.Local(Seq(StderrPrinter.create(printStackTraces = true)))
     connectionUri match {
       case Some(uri) =>
         import scala.concurrent.ExecutionContext.Implicits.global
-        WSLoggerManager
+        LoggingServiceManager
           .setupWithFallback(
-            WSLoggerMode.Client(uri),
+            LoggerMode.Client(uri),
             local,
             logLevel
           )
@@ -30,7 +44,7 @@ object RunnerLogging {
               }
           }
       case None =>
-        WSLoggerManager.setup(local, logLevel)
+        LoggingServiceManager.setup(local, logLevel)
     }
   }
 

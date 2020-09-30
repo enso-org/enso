@@ -337,6 +337,18 @@ class Runner(
         Some(runtime.javaHome.toAbsolutePath.normalize.toString)
     )
 
+  /**
+    * Returns arguments that should be added to a launched component to connect
+    * it to launcher's logging service.
+    *
+    * It waits until the logging service has been set up and should be called as
+    * late as possible (for example after installing any required components) to
+    * avoid blocking other actions by the logging service setup.
+    *
+    * If the logging service is not available in 3 seconds after calling this
+    * method, it assumes that it failed to boot and returns arguments that will
+    * cause the launched component to use its own local logging.
+    */
   private def forceLoggerConnectionArguments(): Seq[String] = {
     val connectionSetting = {
       try {

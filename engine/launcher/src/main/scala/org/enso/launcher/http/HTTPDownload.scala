@@ -164,8 +164,7 @@ object HTTPDownload {
     val total        = new java.util.concurrent.atomic.AtomicLong(0)
     import actorSystem.dispatcher
 
-    val redirectRetries = 10
-    val http            = Http()
+    val http = Http()
 
     def handleRedirects(retriesLeft: Int)(
       response: HttpResponse
@@ -200,7 +199,7 @@ object HTTPDownload {
         } else {
           throw HTTPException("Too many redirects.")
         }
-      } else Future(response)
+      } else Future.successful(response)
 
     def handleFinalResponse(
       response: HttpResponse
@@ -219,7 +218,7 @@ object HTTPDownload {
 
     http
       .singleRequest(request)
-      .flatMap(handleRedirects(redirectRetries))
+      .flatMap(handleRedirects(maximumRedirects))
       .flatMap(handleFinalResponse)
       .map(resultMapping.tupled)
       .onComplete(taskProgress.setComplete)

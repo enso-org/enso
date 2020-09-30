@@ -41,6 +41,12 @@ trait Opts[+A] {
     * A callback for arguments.
     *
     * Should not be called if [[wantsArgument]] returns false.
+    *
+    * @param arg argument to consume
+    * @param commandPrefix current command prefix to display in error/help
+    *                      messages
+    * @param suppressUnexpectedArgument if set, unexpected argument error should
+    *                                   be suppressed
     */
   private[cli] def consumeArgument(
     arg: String,
@@ -307,6 +313,13 @@ object Opts {
     }
 
     implicit class MapWithErrorsSyntax[A](val opts: Opts[A]) {
+
+      /**
+        * Allows to map an Opts instance in a way that may result in an error.
+        *
+        * If `f` returns a [[Left]], a parse error is reported. Otherwise,
+        * proceeds as `map` would with the result of `Right`.
+        */
       def mapWithErrors[B](f: A => Either[OptsParseError, B]): Opts[B] =
         new OptsMapWithErrors(opts, f)
     }

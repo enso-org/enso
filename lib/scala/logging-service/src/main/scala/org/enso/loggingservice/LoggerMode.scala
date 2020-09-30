@@ -4,18 +4,28 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.Uri.{Authority, Host, Path}
 import org.enso.loggingservice.printers.Printer
 
-sealed trait WSLoggerMode[InitializationResult]
-object WSLoggerMode {
+/**
+  * Represents modes the logging service can be running in.
+  *
+  * @tparam InitializationResult type that is returned when
+  *                              [[LoggingServiceManager]] sets up the given
+  *                              mode
+  */
+sealed trait LoggerMode[InitializationResult]
+object LoggerMode {
 
   /**
     * Forwards log messages to a logging service server.
     *
     * @param endpoint URI that is used to connect to the server via WebSockets
     */
-  case class Client(endpoint: Uri) extends WSLoggerMode[Unit]
+  case class Client(endpoint: Uri) extends LoggerMode[Unit]
 
   /**
     * Starts gathering messages from this and other components.
+    *
+    * Its initialization returns a [[ServerBinding]] that can be used to connect
+    * to the initialized server.
     *
     * @param printers a list of printers that process the incoming messages
     * @param port optional port to listen at, if not provided, the OS will
@@ -28,14 +38,14 @@ object WSLoggerMode {
     printers: Seq[Printer],
     port: Option[Int] = None,
     interface: String = "localhost"
-  ) extends WSLoggerMode[ServerBinding]
+  ) extends LoggerMode[ServerBinding]
 
   /**
     * Processes log messages locally.
     *
     * @param printers a list of printers that process the incoming messages
     */
-  case class Local(printers: Seq[Printer]) extends WSLoggerMode[Unit]
+  case class Local(printers: Seq[Printer]) extends LoggerMode[Unit]
 
   case class ServerBinding(port: Int) {
     def toUri(host: String = "localhost"): Uri =

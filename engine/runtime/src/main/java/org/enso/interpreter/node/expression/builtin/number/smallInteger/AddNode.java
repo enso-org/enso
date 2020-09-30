@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -10,11 +9,10 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-import java.util.logging.Level;
-
 @BuiltinMethod(type = "Small_Integer", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child
+  ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
   abstract Object execute(long _this, Object that);
 

@@ -22,12 +22,15 @@ object TestLogger {
     * to be modified to gather the logs.
     */
   def gatherLogs(action: => Unit): Seq[TestLogMessage] = {
-    WSLoggerManager.dropPendingLogs()
-    WSLoggerManager.tearDown()
+    LoggingServiceManager.dropPendingLogs()
+    LoggingServiceManager.tearDown()
     val printer = new TestPrinter
-    WSLoggerManager.setup(WSLoggerMode.Local(Seq(printer)), LogLevel.Debug)
+    LoggingServiceManager.setup(
+      LoggerMode.Local(Seq(printer)),
+      LogLevel.Debug
+    )
     action
-    WSLoggerManager.tearDown()
+    LoggingServiceManager.tearDown()
     printer.getLoggedMessages()
   }
 }

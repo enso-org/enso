@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.loggingservice.WSLoggerManager
+import org.enso.loggingservice.LoggingServiceManager
 
 /**
   * Defines the entry point for the launcher.
@@ -28,6 +28,9 @@ object Main {
 
   private val logger = Logger[Main.type]
 
+  /**
+    * Entry point of the application.
+    */
   def main(args: Array[String]): Unit = {
     setup()
     val exitCode =
@@ -44,8 +47,20 @@ object Main {
     exit(exitCode)
   }
 
+  /**
+    * Exits the program in a safe way.
+    *
+    * It is not strictly necessary to favour this method over `sys.exit`, as all
+    * resources should be released anyway, but using it makes sure that they are
+    * released immediately whereas with `sys.exit`, it is the obligation of the
+    * OS to release them and it such cleanup (especially releasing locks) may
+    * take more time. It also ensures that the logging service is properly
+    * terminated and all logfiles are flushed.
+    *
+    * @param exitCode exit code to return
+    */
   def exit(exitCode: Int): Nothing = {
-    WSLoggerManager.tearDown()
+    LoggingServiceManager.tearDown()
     DefaultResourceManager.releaseMainLock()
     sys.exit(exitCode)
   }

@@ -180,7 +180,7 @@ class DistributionUninstaller(
     */
   private val knownDataDirectories =
     Set.from(
-      manager.LocallyInstalledDirectories.possibleDirectoriesInsideData
+      manager.LocallyInstalledDirectories.possibleDirectoriesInsideDataDirectory
     ) - manager.LOCK_DIRECTORY
 
   /**
