@@ -1,11 +1,14 @@
 import Base.Test
+
+import Test.Semantic.Import_Loop.Spec as Import_Loop_Spec
+import Test.Semantic.Deep_Export.Spec as Deep_Export_Spec
+import Test.Semantic.Java_Interop_Spec
+import Test.Semantic.Error_Spec
+import Test.Semantic.Names_Spec
+
 import Test.List_Spec
 import Test.Number_Spec
-import Test.Import_Loop_Spec
-import Test.Deep_Export_Spec
-import Test.Names_Spec
 import Test.Process_Spec
-import Test.Java_Interop.Spec as Java_Spec
 import Test.Vector.Spec as Vector_Spec
 import Test.Numbers.Spec as Numbers_Spec
 import Test.Text.Spec as Text_Spec
@@ -15,9 +18,10 @@ main = Test.Suite.runMain <|
     Number_Spec.spec
     Import_Loop_Spec.spec
     Names_Spec.spec
+    Error_Spec.spec
     Deep_Export_Spec.spec
     Process_Spec.spec
-    Java_Spec.spec
+    Java_Interop_Spec.spec
     Vector_Spec.spec
     Numbers_Spec.spec
     Text_Spec.spec

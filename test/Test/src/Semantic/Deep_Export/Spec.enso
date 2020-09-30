@@ -1,5 +1,5 @@
 import Base.Test
-import Test.Deep_Export.Internal
+import Test.Semantic.Deep_Export.Internal
 
 spec =
     describe "Deep Exports" <|

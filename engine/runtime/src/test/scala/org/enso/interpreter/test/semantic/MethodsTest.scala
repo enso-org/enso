@@ -1,16 +1,16 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
-  InterpreterTest,
   InterpreterContext,
-  InterpreterException
+  InterpreterException,
+  InterpreterTest
 }
 
 class MethodsTest extends InterpreterTest {
   override def subject: String = "Methods"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
     "be defined in the global scope and dispatched to" in {
       val code =
@@ -127,7 +127,9 @@ class MethodsTest extends InterpreterTest {
         """
           |main = foo 7
           |""".stripMargin
-      the[InterpreterException] thrownBy eval(code) should have message "Object Integer does not define method foo."
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "No_Such_Method_Error 7 foo"
     }
 
     "be callable for any type when defined on Any" in {
