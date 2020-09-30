@@ -33,3 +33,10 @@ spec = describe "Text" <|
     it "should convert any type to text automatically and using provided methods" <|
         t = Auto (Manual 123) . to_text
         t.should_equal "(Auto [[[MyREP 123]]])"
+    it "should escape special characters when debug-printing text" <|
+        text_1 = '''
+            foo
+            bar\r\tbaz
+        text_1.to_text.should_equal "'foo\\nbar\\r\\tbaz'"
+        text_2 = '\n\t\a\b\f\r\v\e\''
+        text_2.to_text.should_equal "'\\n\\t\\a\\b\\f\\r\\v\\e\\''"

@@ -74,6 +74,7 @@ public class Text implements TruffleObject {
       boolean allowSideEffects,
       @Cached("build()") @Cached.Shared("strings") ToJavaStringNode toJavaStringNode) {
     String str = toJavaStringNode.execute(this);
+    // TODO This should be more extensible
     String replaced =
         str.replace("'", "\\'")
             .replace("\n", "\\n")
