@@ -33,4 +33,16 @@ object TestLogger {
     LoggingServiceManager.tearDown()
     printer.getLoggedMessages
   }
+
+  /**
+    * Drops any logs that are pending due to the logging service not being set
+    * up.
+    *
+    * This method should be used only inside of tests. Any tests using it should
+    * be ran with `parallelExecution` set to false, as global logger state has
+    * to be modified to gather the logs.
+    */
+  def dropLogs(): Unit = {
+    LoggingServiceManager.dropPendingLogs()
+  }
 }

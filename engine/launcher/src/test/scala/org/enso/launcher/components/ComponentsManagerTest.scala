@@ -9,7 +9,12 @@ import org.enso.launcher.locking.TestLocalResourceManager
 import org.enso.launcher.releases.engine.EngineReleaseProvider
 import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.releases.testing.FakeReleaseProvider
-import org.enso.launcher.{Environment, FakeEnvironment, WithTemporaryDirectory}
+import org.enso.launcher.{
+  DropLogs,
+  Environment,
+  FakeEnvironment,
+  WithTemporaryDirectory
+}
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
@@ -20,7 +25,8 @@ class ComponentsManagerTest
     with Matchers
     with OptionValues
     with WithTemporaryDirectory
-    with FakeEnvironment {
+    with FakeEnvironment
+    with DropLogs {
 
   /**
     * Creates the [[DistributionManager]], [[ComponentsManager]] and an

@@ -13,6 +13,7 @@ import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.releases.testing.FakeReleaseProvider
 import org.enso.launcher.{
   components,
+  DropLogs,
   FakeEnvironment,
   FileSystem,
   WithTemporaryDirectory
@@ -28,7 +29,8 @@ class ConcurrencyTest
     with Matchers
     with WithTemporaryDirectory
     with FakeEnvironment
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with DropLogs {
 
   case class WrapEngineRelease(
     originalRelease: EngineRelease,
