@@ -1,7 +1,7 @@
-## LocalDate is an immutable date-time object that represents a date, often
+## `LocalDate` is an immutable date-time object that represents a date, often
    viewed as year-month-day. Other date fields, such as day-of-year, day-of-week
    and week-of-year, can also be accessed. For example, the value
-   "2nd October 2007" can be stored in a LocalDate.
+   "2nd October 2007" can be stored in a `LocalDate`.
 
    This class does not store or represent a time or time-zone. Instead, it is a
    description of the date, as used for birthdays. It cannot represent an
@@ -14,7 +14,7 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
 polyglot java import java.time.ZoneOffset
 
-## Obtains an instance of LocalDate from a text string such as 2007-12-03.
+## Obtains an instance of `LocalDate` from a text string such as 2007-12-03.
 
    The string must represent a valid date and is parsed using the ISO-8601
    extended local date format. The format consists of:
@@ -31,7 +31,7 @@ polyglot java import java.time.ZoneOffset
      digits.
 
    > Example
-     Parse the date 2020-12-23.
+     Parse the date of 23rd December 2020.
          Local_Date.parse "2020-12-23"
 parse : Text -> LocalDate
 parse fmt = LocalDate.parse [fmt]
@@ -40,7 +40,7 @@ parse fmt = LocalDate.parse [fmt]
 now : LocalDate
 now = LocalDate.now []
 
-## Obtains an instance of LocalDate from an Instant and zone offset.
+## Obtains an instance of `LocalDate` from an `Instant` and `ZoneOffset`.
 
    > Example
      Get local date now in the UTC time zone.
@@ -51,7 +51,7 @@ of_instant instant offset =
     local_date = offset_time.toLocalDate []
     local_date
 
-## Obtains an instance of LocalDate from a year, month and day.
+## Obtains an instance of `LocalDate` from a year, month and day.
 
    The day must be valid for the year and month, otherwise an exception will be
    thrown.
@@ -64,7 +64,7 @@ of_instant instant offset =
          Local_Date.new
 
    > Example
-     Get the 5 August 1986.
+     Get the local date of 5th August 1986.
          Local_Date.new 1986 8 5
 new : Number -> Number -> Number -> LocalDate
 new (year = 1970) (month = 1) (day = 1) =

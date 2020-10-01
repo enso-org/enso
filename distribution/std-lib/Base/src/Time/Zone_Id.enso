@@ -1,5 +1,5 @@
-## A ZoneId is used to identify the rules used to convert between an Instant and
-   a LocalDateTime. There are two distinct types of ID:
+## A `ZoneId` is used to identify the rules used to convert between an
+   `Instant` and a `LocalDateTime`. There are two distinct types of ID:
 
    - Fixed offsets - a fully resolved offset from UTC/Greenwich, that uses the
      same offset for all local date-times
@@ -11,7 +11,8 @@ from Base import all
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 
-## This method parses the ID producing a ZoneId
+## This method parses the ID producing a `ZoneId`.
+
    Parsing matches the zone ID step by step as follows.
 
    - If the zone ID equals 'Z', the result is `ZoneOffset.UTC`.
@@ -56,7 +57,7 @@ polyglot java import java.time.ZoneOffset
 parse : Text -> ZoneId
 parse zone = ZoneId.of [zone]
 
-## Obtains an instance of ZoneId wrapping an offset.
+## Obtains an instance of `ZoneId` wrapping an offset.
 
    If the prefix is "GMT", "UTC", or "UT" a ZoneId with the prefix and the
    non-zero offset is returned. If the prefix is empty "" the `ZoneOffset` is

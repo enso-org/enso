@@ -21,15 +21,15 @@ parse text = Instant.parse [text]
 now : Instant
 now = Instant.now []
 
-## Obtains an instance of Instant using milliseconds from the Unix epoch.
+## Obtains an instance of `Instant` using milliseconds from the Unix epoch.
 of_epoch_milli : Integer -> Instant
 of_epoch_milli epoch_millis = Instant.ofEpochMilli [epoch_millis]
 
-## Obtains an instance of Instant using seconds from the Unix epoch.
+## Obtains an instance of `Instant` using seconds from the Unix epoch.
 of_epoch_second : Integer -> Instant
 of_epoch_second epoch_seconds = Instant.ofEpochSecond [epoch_seconds]
 
-## Obtains an instance of OffsetDateTime from a year, month, day, hour, minute,
+## Obtains an instance of `Instant` from a year, month, day, hour, minute,
    second, nanosecond and offset.
 
    > Example
@@ -37,7 +37,7 @@ of_epoch_second epoch_seconds = Instant.ofEpochSecond [epoch_seconds]
          Instant.new
 
    > Example
-     Create a new instant at 2011-12-03 midnight UTC.
+     Create a new instant of 3rd December 2011 at midnight UTC.
          Instant.new 2011 12 03
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneOffset -> Instant
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =

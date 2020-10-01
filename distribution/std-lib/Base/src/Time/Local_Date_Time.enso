@@ -1,4 +1,4 @@
-## LocalDateTime is an immutable date-time object that represents a date-time,
+## `LocalDateTime` is an immutable date-time object that represents a date-time,
    often viewed as year-month-day-hour-minute-second. Other date and time
    fields, such as day-of-year, day-of-week and week-of-year, can also be
    accessed. Time is represented to nanosecond precision. For example, the value
@@ -16,7 +16,7 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalDateTime
 polyglot java import java.time.ZoneOffset
 
-## Obtains an instance of LocalDateTime from a text string such as
+## Obtains an instance of `LocalDateTime` from a text string such as
    2007-12-03T10:15:30.
 
    The string must represent a valid date-time and is parsed using the ISO-8601
@@ -27,7 +27,7 @@ polyglot java import java.time.ZoneOffset
    - The ISO local time
 
    > Example
-     Parse the 1990-05-15 at 10:15:30.
+     Parse the local date of 15th May 1990 at 10:15:30.
          Local_Date_Time.parse "1990-05-15T10:15:30"
 parse : Text -> LocalDateTime
 parse fmt = LocalDateTime.parse [fmt]
@@ -37,7 +37,7 @@ parse fmt = LocalDateTime.parse [fmt]
 now : LocalDateTime
 now = LocalDateTime.now []
 
-## Obtains an instance of LocalDateTime from an Instant and zone offset.
+## Obtains an instance of `LocalDateTime` from an `Instant` and `ZoneOffset`.
 
    > Example
    Get the local date time now in the -12h time zone.
@@ -48,7 +48,7 @@ of_instant instant offset =
     local = offset_time.toLocalDateTime []
     local
 
-## Obtains an instance of LocalDateTime from year, month, day, hour, minute,
+## Obtains an instance of `LocalDateTime` from year, month, day, hour, minute,
    second and nanosecond.
 
    The day must be valid for the year and month, otherwise an exception will be
@@ -66,7 +66,7 @@ of_instant instant offset =
          Local_Date_Time.new
 
    > Example
-     Get the 5 August 1986 at 23:00.
+     Get the local date of 5th August 1986 at 23:00.
          Local_Date_Time.new 1986 8 5 23
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> LocalDateTime
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =

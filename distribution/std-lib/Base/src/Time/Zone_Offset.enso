@@ -39,7 +39,7 @@ polyglot java import java.time.ZoneOffset
 parse : Text -> ZoneOffset
 parse text = ZoneOffset.of [text]
 
-## Obtains an instance of ZoneOffset using an offset in hours, minutes
+## Obtains an instance of `ZoneOffset` using an offset in hours, minutes
    and seconds.
 
    - the time-zone offset in hours, from -18 to +18
@@ -49,7 +49,7 @@ parse text = ZoneOffset.of [text]
      minutes
 
    > Example
-     Get time zone 1 hour 1 minute and 50 seconds of Greenwich.
+     Get time zone 1 hour 1 minute and 50 seconds of UTC/Greenwich.
          Zone_Offset.new 1 1 50
 new : Number -> Number -> Number -> ZoneOffset
 new (hours = 0) (minutes = 0) (seconds = 0) =

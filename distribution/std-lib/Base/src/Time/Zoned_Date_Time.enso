@@ -1,4 +1,4 @@
-## ZonedDateTime is an immutable representation of a date-time with a
+## `ZonedDateTime` is an immutable representation of a date-time with a
    time-zone. This class stores all date and time fields, to a precision of
    nanoseconds, and a time-zone, with a zone offset used to handle ambiguous
    local date-times. For example, the value "2nd October 2007 at
@@ -17,7 +17,7 @@ polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.ZoneId
 
 
-## Obtains an instance of ZonedDateTime from a text string such as
+## Obtains an instance of `ZonedDateTime` from a text string such as
    2007-12-03T10:15:30+01:00[Europe/Paris].
 
    The string must represent a valid date-time and is parsed using the ISO-8601
@@ -54,7 +54,7 @@ now = ZonedDateTime.now []
 of_instant : Instant -> ZoneId -> ZonedDateTime
 of_instant instant zone_id = instant.atZone [zone_id]
 
-## Obtains an instance of ZonedDateTime from a year, month, day, hour, minute,
+## Obtains an instance of `ZonedDateTime` from a year, month, day, hour, minute,
    second, nanosecond and time-zone.
 
    The day must be valid for the year and month, otherwise an exception will be

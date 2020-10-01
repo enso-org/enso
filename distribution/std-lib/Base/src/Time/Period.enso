@@ -20,7 +20,7 @@ polyglot java import java.time.LocalDate
 
 from Base.Time.Period.Extensions export all hiding Period
 
-## Obtains a Period from a text string such as PnYnMnD.
+## Obtains a `Period` from a text string such as PnYnMnD.
 
    This will parse the string produced by `toString []` which is based on the
    ISO-8601 period formats PnYnMnD and PnW.
@@ -55,8 +55,8 @@ from Base.Time.Period.Extensions export all hiding Period
 parse : Text -> Period
 parse txt = Period.parse [txt]
 
-## Obtains a Period consisting of the number of years, months, and days between
-   two dates.
+## Obtains a `Period` consisting of the number of years, months, and days
+   between two dates.
 
    > Example
      Period in 1 year between two local dates.

@@ -14,7 +14,7 @@ polyglot java import java.time.temporal.Temporal
 
 from Base.Time.Duration.Extensions export all hiding Duration
 
-## Obtains a Duration from a text string such as PnDTnHnMn.nS.
+## Obtains a `Duration` from a text string such as PnDTnHnMn.nS.
 
    This will parse a textual representation of a duration, including the string
    produced by `toString []`. The formats accepted are based on the ISO-8601
@@ -52,7 +52,7 @@ from Base.Time.Duration.Extensions export all hiding Duration
      Duration of +6 hours and -3 minutes.
          Duration.parse "-PT-6H+3M"
 parse : Text -> Duration
-parse txt = Duration.parse [txt]
+parse text = Duration.parse [text]
 
 ## Obtains a Duration representing the duration between two temporal objects.
 

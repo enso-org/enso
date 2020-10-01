@@ -15,7 +15,7 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import java.time.ZoneOffset
 
-## Obtains an instance of LocalTime from a text string such as 10:15.
+## Obtains an instance of `LocalTime` from a text string such as 10:15.
 
    The string must represent a valid time and is parsed using the ISO-8601
    extended local time format. The format consists of:

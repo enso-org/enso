@@ -1,10 +1,10 @@
-## OffsetDateTime is an immutable representation of a date-time with an
+## `OffsetDateTime` is an immutable representation of a date-time with an
    offset. This class stores all date and time fields, to a precision of
    nanoseconds, as well as the offset from UTC/Greenwich. For example, the value
    "2nd October 2007 at 13:45:30.123456789 +02:00" can be stored in an
    `OffsetDateTime`.
 
-   OffsetDateTime, `ZonedDateTime` and Instant all store an instant on the
+   `OffsetDateTime`, `ZonedDateTime` and `Instant` all store an instant on the
    time-line to nanosecond precision. Instant is the simplest, simply
    representing the instant. `OffsetDateTime` adds to the instant the offset
    from UTC/Greenwich, which allows the local date-time to be
@@ -18,7 +18,7 @@ polyglot java import java.time.OffsetDateTime
 polyglot java import java.time.ZoneOffset
 
 
-## Obtains an instance of OffsetDateTime from a text string such as
+## Obtains an instance of `OffsetDateTime` from a text string such as
    2007-12-03T10:15:30+01:00.
 
    The string must represent a valid date-time and is parsed using the ISO-8601
@@ -31,7 +31,7 @@ polyglot java import java.time.ZoneOffset
      case insensitive.
 
    > Example
-     Parse offset date time in utc time zone.
+     Parse offset date time in UTC time zone.
          Offset_Date_Time.parse "2007-12-03T10:15:30Z"
 
    > Example
@@ -44,7 +44,7 @@ parse fmt = OffsetDateTime.parse [fmt]
 now : OffsetDateTime
 now = OffsetDateTime.now []
 
-## Obtains an instance of OffsetDateTime from an Instant and zone offset.
+## Obtains an instance of `OffsetDateTime` from an `Instant` and `ZoneOffset`.
 
    > Example
      Get offset date time now in the -03:00 time zone.
@@ -52,7 +52,7 @@ now = OffsetDateTime.now []
 of_instant : Instant -> ZoneOffset -> ZonedDateTime
 of_instant instant offset = instant.atOffset [offset]
 
-## Obtains an instance of OffsetDateTime from a year, month, day, hour, minute,
+## Obtains an instance of `OffsetDateTime` from a year, month, day, hour, minute,
    second, nanosecond and offset.
 
    The day must be valid for the year and month, otherwise an exception will be
@@ -71,7 +71,7 @@ of_instant instant offset = instant.atOffset [offset]
          Offset_Date_Time.new
 
    > Example
-     Get the offset date time of 1992-12-21 at 16:30 UTC time.
+     Get the offset date time of 21th December 1992 at 16:30 UTC time.
          Offset_Date_Time.new 1992 12 21 16 30
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneOffset -> OffsetDateTime
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
