@@ -718,6 +718,12 @@ object IR {
           sealed trait Entity {
             val langName: String
 
+            /** Returns the name this object is visible as from Enso code.
+              *
+              * @return the visible name of this object
+              */
+            def getVisibleName: String
+
             def showCode(indent: Int = 0): String
           }
 
@@ -731,6 +737,14 @@ object IR {
               extends Entity {
             val langName = "java"
 
+            override def getVisibleName: String = className
+
+            /** Returns the fully qualified Java name of this object.
+              *
+              * @return the Java-side name of the imported entity
+              */
+            def getJavaName: String = s"$packageName.$className"
+
             override def showCode(indent: Int): String =
               s"$packageName.$className"
           }
@@ -739,12 +753,15 @@ object IR {
         /** An import of a polyglot class.
           *
           * @param entity language-specific information on the imported entity
+          * @param rename the name this object should be visible under in the
+          *               importing scope
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
         sealed case class Polyglot(
           entity: Polyglot.Entity,
+          rename: Option[String],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -755,6 +772,8 @@ object IR {
           /** Creates a copy of `this`.
             *
             * @param entity language-specific information on the imported entity
+            * @param rename the name this object should be visible under in the
+            *               importing scope
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
@@ -763,13 +782,14 @@ object IR {
             */
           def copy(
             entity: Polyglot.Entity              = entity,
+            rename: Option[String]               = rename,
             location: Option[IdentifiedLocation] = location,
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
           ): Polyglot = {
             val res =
-              Polyglot(entity, location, passData, diagnostics)
+              Polyglot(entity, rename, location, passData, diagnostics)
             res.id = id
             res
           }
@@ -795,10 +815,17 @@ object IR {
           override def mapExpressions(fn: Expression => Expression): Polyglot =
             this
 
+          /** Returns the name this object is visible as from Enso code.
+            *
+            * @return the visible name of this object
+            */
+          def getVisibleName: String = rename.getOrElse(entity.getVisibleName)
+
           override def toString: String =
             s"""
             |IR.Module.Scope.Import.Polyglot(
             |entity = $entity,
+            |rename = $rename,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -809,7 +836,8 @@ object IR {
           override def children: List[IR] = List()
 
           override def showCode(indent: Int): String = {
-            s"polyglot ${entity.langName} import ${entity.showCode(indent)}"
+            val renamePart = rename.map(name => s"as $name").getOrElse("")
+            s"polyglot ${entity.langName} import ${entity.showCode(indent)} $renamePart"
           }
         }
       }
