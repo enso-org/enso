@@ -36,6 +36,7 @@ class FileOutputPrinter(logDirectory: Path, printExceptions: Boolean)
   override def shutdown(): Unit = {
     writer.flush()
     writer.close()
+    System.err.println("Closed the logfile.")
   }
 
   /**
