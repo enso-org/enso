@@ -45,7 +45,12 @@ trait ServiceWithActorSystem extends Service {
         ConfigValueFactory.fromAnyRef("akka.event.DefaultLoggingFilter")
       )
       .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
-    ActorSystem(name, config)
+    ActorSystem(
+      name,
+      config,
+      classLoader =
+        classOf[Server].getClassLoader // Note [Actor System Class Loader]
+    )
   }
 
   /**
@@ -77,3 +82,12 @@ trait ServiceWithActorSystem extends Service {
     }
   }
 }
+
+/* Note [Actor System Class Loader]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Without explicitly setting the ClassLoader, the ActorSystem initialization
+ * fails (at least if run in `sbt`) with `java.lang.ClassCastException:
+ * interface akka.event.LoggingFilter is not assignable from class
+ * akka.event.DefaultLoggingFilter` which is most likely caused by the two
+ * instances coming from distinct class loaders.
+ */

@@ -6,9 +6,9 @@ import org.enso.cli.CLIOutput
 /**
   * Handles displaying of user-facing information.
   *
-  * Info-level messages are used to communicate with the user. This class
-  * handles them in special way, so that they are displayed to the user
-  * regardless of logging settings.
+  * Info-level messages are used to communicate with the user. They are handled
+  * in a special way, so that they are displayed to the user regardless of
+  * logging settings.
   */
 object InfoLogger {
 

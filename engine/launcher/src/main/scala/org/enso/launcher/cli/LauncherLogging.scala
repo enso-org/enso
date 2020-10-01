@@ -35,7 +35,7 @@ object LauncherLogging {
     * development-mode feature that is not designed to be used by end-users
     * unless they specifically know what they are doing. Redirecting logs to an
     * external server may result in some important information not being printed
-    * by the launcher as it is forwarded.
+    * by the launcher, being forwarded instead.
     *
     * @param logLevel the log level to use for launcher's logs; does not affect
     *                 other component's log level, which has to be set

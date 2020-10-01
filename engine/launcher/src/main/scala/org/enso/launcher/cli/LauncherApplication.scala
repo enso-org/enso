@@ -112,9 +112,8 @@ object LauncherApplication {
     Opts
       .optionalParameter[LogLevel](
         "log-level",
-        "LOG-LEVEL",
-        "Sets logging verbosity for the engine. Possible levels are: OFF, " +
-        "ERROR, WARNING, INFO, DEBUG and TRACE."
+        "(error | warning | info | debug | trace)",
+        "Sets logging verbosity for the engine. Defaults to info."
       )
       .withDefault(LogLevel.Info)
   }

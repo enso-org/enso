@@ -71,7 +71,7 @@ object FileSystem {
         } catch {
           case e: Exception =>
             logger.error(
-              s"Cannot ensure the launcher binary is executable: $e",
+              s"Cannot ensure the binary is executable: $e",
               e
             )
         }

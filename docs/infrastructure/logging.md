@@ -8,10 +8,11 @@ order: 6
 
 # Logging
 
-A centralized service has been created to better manage logging from multiple
-components. This service can be started with one of the main components,
-allowing other components connect to it. All logs are gathered in one place for
-easier analysis of component's interaction.
+The Enso project features a centralised logging service to allow for the
+aggregation of logs from multiple components. This service can be started with
+one of the main components, allowing other components connect to it. The service
+aggregates all logs in one place for easier analysis of the interaction between
+components.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -27,11 +28,10 @@ easier analysis of component's interaction.
 
 ## Protocol
 
-The service is designed to be usable by a variety of components. It relies on a
-WebSocket connection to a specified endpoint that exchanges JSON-encoded text
-messages. The communication is uni-directional - the only messages are log
-messages that are sent from a connected client to the server that gathers all
-logs.
+The service relies on a WebSocket connection to a specified endpoint that
+exchanges JSON-encoded text messages. The communication is uni-directional - the
+only messages are log messages that are sent from a connected client to the
+server that aggregates the logs.
 
 ### Types
 
@@ -46,7 +46,7 @@ The log level encoded as a number. Possible values are:
 - 4 - indicating `TRACE` level.
 
 ```typescript
-type LogLevel = number;
+type LogLevel = 0 | 1 | 2 | 3 | 4;
 ```
 
 ##### `UTCTime`
@@ -62,7 +62,8 @@ type UTCTime = number;
 
 Encodes an exception that is related to a log message.
 
-The `cause` field may be omitted if the exception does not have another cause.
+The `cause` field may be omitted if the exception does not have another
+exception as its cause.
 
 ```typescript
 interface Exception {
@@ -129,6 +130,13 @@ response.
 The `exception` field may be omitted if there is no exception associated with
 the message.
 
+In general, the `group` name can be arbitrary, but it is often the quallified
+name of the class that the log message originates from and it is sometimes
+extended with additional nested context, for example:
+
+- `org.enso.launcher.cli.Main`
+- `org.enso.compiler.pass.analyse.AliasAnalysis.analyseType`
+
 ### Examples
 
 For example, an error message with an attached exception may look like this (the
@@ -191,7 +199,8 @@ One can use the `org.slf4j.LoggerFactory` directly, but for Scala code, it is
 much better to use the `com.typesafe.scalalogging.Logger` which wraps the SLF4J
 logger with macros that compute the log messages only if the given logging level
 is enabled, and allows much prettier initialisation. Additionally, the
-`logging-service` provides a syntactic sugar for entering nested contexts.
+`logging-service` provides syntactic sugar for working with nested logging
+contexts.
 
 ```
 package foo
@@ -220,9 +229,10 @@ to use other conventions if needed.
 
 ### Setting Up Logging
 
-The logger described above must know where it should send its logs, this is
-handled by the `WSLoggerManager`. It allows to configure the logging location,
-log level and setup the logging service for three modes:
+The logger described above must know where it should send its logs, and this is
+handled by the `LoggingServiceManager`. It allows to configure the logging
+location, log level and setup the logging service in one of three different
+modes:
 
 - _Server mode_, that will listen on a given port, gather both local and remote
   logs and print them to stderr and to a file.
@@ -238,6 +248,6 @@ the logger will buffer any log messages that are issued before the
 initialization has happened and send them as soon as the service is initialized.
 
 In a rare situation where the service would not be initialized at all, a
-shutdown hook is added that will print the pending log messages before exitting.
-Some of the messages may be dropped though if more messages are buffered than
+shutdown hook is added that will print the pending log messages before exiting.
+Some of the messages may be dropped, however, if more messages are buffered than
 the buffer can hold.
