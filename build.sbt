@@ -347,7 +347,6 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= scalaCompiler
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -364,7 +363,6 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
       )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -383,7 +381,6 @@ lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
       )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -441,7 +438,6 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
   )
-  .settings(licenseSettings)
 
 lazy val `text-buffer` = project
   .in(file("lib/scala/text-buffer"))
@@ -453,7 +449,6 @@ lazy val `text-buffer` = project
         "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
       )
   )
-  .settings(licenseSettings)
 
 lazy val graph = (project in file("lib/scala/graph/"))
   .dependsOn(logger.jvm)
@@ -481,7 +476,6 @@ lazy val graph = (project in file("lib/scala/graph/"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
 
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
@@ -494,7 +488,6 @@ lazy val pkg = (project in file("lib/scala/pkg"))
         "commons-io"     % "commons-io" % commonsIoVersion
       )
   )
-  .settings(licenseSettings)
 
 lazy val `akka-native` = project
   .in(file("lib/scala/akka-native"))
@@ -507,7 +500,6 @@ lazy val `akka-native` = project
     // Note [Native Image Workaround for GraalVM 20.2]
     libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
-  .settings(licenseSettings)
 
 lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
@@ -531,7 +523,6 @@ lazy val `logging-service` = project
     else
       (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
   )
-  .settings(licenseSettings)
   .dependsOn(`akka-native`)
 
 lazy val cli = project
@@ -564,7 +555,6 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           )
       }.taskValue
   )
-  .settings(licenseSettings)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
@@ -670,7 +660,6 @@ lazy val `json-rpc-server` = project
         "org.scalatest" %% "scalatest"     % scalatestVersion % Test
       )
   )
-  .settings(licenseSettings)
 
 lazy val `json-rpc-server-test` = project
   .in(file("lib/scala/json-rpc-server-test"))
@@ -683,7 +672,6 @@ lazy val `json-rpc-server-test` = project
         "org.scalatest" %% "scalatest" % scalatestVersion
       )
   )
-  .settings(licenseSettings)
   .dependsOn(`json-rpc-server`)
 
 lazy val testkit = project
@@ -720,7 +708,6 @@ lazy val `core-definition` = (project in file("lib/scala/core-definition"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
 
@@ -741,7 +728,6 @@ lazy val searcher = project
     fork in Benchmark := true
   )
   .dependsOn(testkit % Test)
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
@@ -749,7 +735,6 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     version := "0.1",
     libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
   )
-  .settings(licenseSettings)
 
 // ============================================================================
 // === Sub-Projects ===========================================================
@@ -794,7 +779,6 @@ lazy val `polyglot-api` = project
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
 
