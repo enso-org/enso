@@ -101,7 +101,8 @@ object AstToIr {
             val cls    = imp.path.last.name
             val rename = imp.rename.map(_.name)
             Module.Scope.Import.Polyglot(
-              Module.Scope.Import.Polyglot.Java(pkg.mkString("."), cls, rename),
+              Module.Scope.Import.Polyglot.Java(pkg.mkString("."), cls),
+              rename,
               getIdentifiedLocation(imp)
             )
         }
