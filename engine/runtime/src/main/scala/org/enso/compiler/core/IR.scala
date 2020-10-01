@@ -726,6 +726,8 @@ object IR {
             * @param packageName the name of the package containing the imported
             *                    class
             * @param className the class name
+            * @param rename the name this object should be visible under in the
+            *               importing scope
             */
           case class Java(
             packageName: String,
