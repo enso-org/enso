@@ -52,7 +52,7 @@ case object BindingAnalysis extends IRPass {
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>
         val sym = poly.entity match {
-          case Polyglot.Java(_, className) => className
+          case java: Polyglot.Java => java.getVisibleName
         }
         BindingsMap.PolyglotSymbol(sym)
     }

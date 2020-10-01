@@ -727,12 +727,29 @@ object IR {
             *                    class
             * @param className the class name
             */
-          case class Java(packageName: String, className: String)
-              extends Entity {
+          case class Java(
+            packageName: String,
+            className: String,
+            rename: Option[String]
+          ) extends Entity {
             val langName = "java"
 
+            /** Returns the name this object is visible as from Enso code.
+              *
+              * @return the visible name of this object
+              */
+            def getVisibleName: String = rename.getOrElse(className)
+
+            /** Returns the fully qualified Java name of this object.
+              *
+              * @return the Java-side name of the imported entity
+              */
+            def getJavaName: String = s"$packageName.$className"
+
             override def showCode(indent: Int): String =
-              s"$packageName.$className"
+              s"$packageName.$className" + rename
+                .map(n => s"as $n")
+                .getOrElse("")
           }
         }
 

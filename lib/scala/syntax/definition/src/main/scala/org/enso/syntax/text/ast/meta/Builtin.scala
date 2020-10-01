@@ -98,21 +98,30 @@ object Builtin {
     val polyglotJavaImport = {
       val javaQualName =
         Pattern.SepList(Pattern.Cons().or(Pattern.Var()), AST.Opr("."))
+      val rename = Var("as") :: Pattern.Cons()
       Definition(
         Var("polyglot") -> Pattern.fromAST(Var("java")),
-        Var("import")   -> javaQualName
+        Var("import")   -> (javaQualName :: rename.opt)
       ) { ctx =>
         ctx.body match {
-          case List(_, segments) =>
+          case List(_, nameAndRename) =>
+            val (nameMatch, renameMatch) =
+              nameAndRename.body.asInstanceOf[Match.Seq[Shifted[AST]]].elem
             val nonDot: List[AST.Ident] =
-              segments.body.toStream.map(_.wrapped).collect {
+              nameMatch.toStream.map(_.wrapped).collect {
                 case AST.Ident.Var.any(v)  => v: AST.Ident
                 case AST.Ident.Cons.any(c) => c: AST.Ident
               }
+            val rename: Option[AST.Ident.Cons] = {
+              renameMatch.toStream.map(_.wrapped).collectFirst {
+                case AST.Ident.Cons.any(n) => n
+              }
+            }
             // The optional unwrap is safe by construction - the pattern
             // guarantees at least one Var or Cons in the match result.
             AST.JavaImport(
-              List1.fromListOption(nonDot).getOrElse(internalError)
+              List1.fromListOption(nonDot).getOrElse(internalError),
+              rename
             )
           case _ => internalError
         }
