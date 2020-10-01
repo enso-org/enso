@@ -130,9 +130,6 @@ object LauncherLogging {
   ): Unit = {
     val printExceptionsInStderr =
       implicitly[Ordering[LogLevel]].compare(logLevel, LogLevel.Debug) >= 0
-    logger.warn(
-      s"Log level is $logLevel, so stack traces are $printExceptionsInStderr"
-    )
     val printers =
       try {
         val filePrinter =

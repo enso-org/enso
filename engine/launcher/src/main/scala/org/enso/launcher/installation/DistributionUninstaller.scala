@@ -202,7 +202,10 @@ class DistributionUninstaller(
 
     val dataRoot = manager.paths.dataRoot
 
-    if (manager.paths.logs.startsWith(dataRoot)) {
+    val logsInsideData = manager.paths.logs.toAbsolutePath.normalize.startsWith(
+      dataRoot.toAbsolutePath.normalize
+    )
+    if (logsInsideData) {
       LauncherLogging.prepareForUninstall(globalCLIOptions)
     }
 

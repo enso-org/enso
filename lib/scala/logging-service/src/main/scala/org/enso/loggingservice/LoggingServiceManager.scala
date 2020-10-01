@@ -75,7 +75,7 @@ object LoggingServiceManager {
 
   /**
     * Shuts down the logging service if it was initialized or runs
-    * [[handleMissingLogger]] to handle logs that would be dropped due to the
+    * [[handlePendingMessages]] to handle logs that would be dropped due to the
     * logging service never being initialized.
     *
     * This method is also called as a shutdown hook, but it is good to call it
@@ -92,8 +92,10 @@ object LoggingServiceManager {
 
     service match {
       case Some(running) => running.terminate()
-      case None          => handleMissingLogger()
+      case None          =>
     }
+
+    handlePendingMessages()
   }
 
   Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))
@@ -120,7 +122,7 @@ object LoggingServiceManager {
   }
 
   /**
-    * Removes any pending logs (so that [[handleMissingLogger]] will not print
+    * Removes any pending logs (so that [[handlePendingMessages]] will not print
     * them).
     *
     * An internal method that is only used by [[TestLogger]].
@@ -131,7 +133,7 @@ object LoggingServiceManager {
     * Prints any messages that have been buffered but have not been logged yet
     * due to no loggers being active.
     */
-  private def handleMissingLogger(): Unit = {
+  private def handlePendingMessages(): Unit = {
     val danglingMessages = messageQueue.drain(currentLevel)
     if (danglingMessages.nonEmpty) {
       InternalLogger.error(
