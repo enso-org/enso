@@ -117,6 +117,10 @@ lazy val bootstrap =
   taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
 bootstrap := {}
 
+lazy val gatherLicenses =
+  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+gatherLicenses := GatherLicenses.run.value
+
 // ============================================================================
 // === Global Project =========================================================
 // ============================================================================
