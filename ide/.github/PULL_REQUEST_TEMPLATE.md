@@ -14,7 +14,7 @@
 Please include the following checklist in your PR:
 
 - [ ] The documentation has been updated if necessary.
-- [ ] All code conforms to the [Rust](https://github.com/luna/enso/blob/main/docs/style-guide/rust.md).
+- [ ] All code conforms to the [Rust](https://github.com/luna/enso/blob/main/docs/style-guide/rust.md) style guide.
 - [ ] All code has been tested where possible.
 - [ ] All code has been profiled where possible.
 
