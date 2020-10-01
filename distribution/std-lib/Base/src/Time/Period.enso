@@ -1,3 +1,17 @@
+## This class models a quantity or amount of time in terms of years, months and
+   days. See `Duration` for the time-based equivalent to this class.
+
+   Durations and periods differ in their treatment of daylight savings time when
+   added to `ZonedDateTime`. A `Duration` will add an exact number of seconds,
+   thus a duration of one day is always exactly 24 hours. By contrast, a
+   `Period` will add a conceptual day, trying to maintain the local time.
+
+   For example, consider adding a period of one day and a duration of one day to
+   18:00 on the evening before a daylight savings gap. The Period will add the
+   conceptual day and result in a `ZonedDateTime` at 18:00 the following day. By
+   contrast, the `Duration` will add exactly 24 hours, resulting in a
+   `ZonedDateTime` at 19:00 the following day (assuming a one hour DST gap).
+
 from Base import all
 import Base.Time.Period.Extensions
 
@@ -8,8 +22,8 @@ from Base.Time.Period.Extensions export all hiding Period
 
 ## Obtains a Period from a text string such as PnYnMnD.
 
-   This will parse the string produced by `toString []` which is based
-   on the ISO-8601 period formats PnYnMnD and PnW.
+   This will parse the string produced by `toString []` which is based on the
+   ISO-8601 period formats PnYnMnD and PnW.
 
    > Example
      Period of 2 years.
@@ -41,8 +55,8 @@ from Base.Time.Period.Extensions export all hiding Period
 parse : Text -> Period
 parse txt = Period.parse [txt]
 
-## Obtains a Period consisting of the number of years, months, and
-   days between two dates.
+## Obtains a Period consisting of the number of years, months, and days between
+   two dates.
 
    > Example
      Period in 1 year between two local dates.

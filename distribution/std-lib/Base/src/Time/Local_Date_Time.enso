@@ -1,3 +1,14 @@
+## LocalDateTime is an immutable date-time object that represents a date-time,
+   often viewed as year-month-day-hour-minute-second. Other date and time
+   fields, such as day-of-year, day-of-week and week-of-year, can also be
+   accessed. Time is represented to nanosecond precision. For example, the value
+   "2nd October 2007 at 13:45.30.123456789" can be stored in a `LocalDateTime`.
+
+   This class does not store or represent a time-zone. Instead, it is a
+   description of the date, as used for birthdays, combined with the local time
+   as seen on a wall clock. It cannot represent an instant on the time-line
+   without additional information such as an offset or time-zone.
+
 from Base import all
 import Base.Time.Zone_Offset
 
@@ -8,8 +19,8 @@ polyglot java import java.time.ZoneOffset
 ## Obtains an instance of LocalDateTime from a text string such as
    2007-12-03T10:15:30.
 
-   The string must represent a valid date-time and is parsed using
-   ISO-8601 extended offset date-time format. The format consists of:
+   The string must represent a valid date-time and is parsed using the ISO-8601
+   extended offset date-time format. The format consists of:
 
    - The ISO local date
    - The letter 'T'. Parsing is case insensitive.
@@ -37,11 +48,11 @@ of_instant instant offset =
     local = offset_time.toLocalDateTime []
     local
 
-## Obtains an instance of LocalDateTime from year, month, day, hour,
-   minute, second and nanosecond.
+## Obtains an instance of LocalDateTime from year, month, day, hour, minute,
+   second and nanosecond.
 
-   The day must be valid for the year and month, otherwise an
-   exception will be thrown.
+   The day must be valid for the year and month, otherwise an exception will be
+   thrown.
 
    - month - the month-of-year to represent, from 1 (January) to 12 (December)
    - day - the day-of-month to represent, from 1 to 31

@@ -1,3 +1,11 @@
+## This class models a quantity or amount of time in terms of seconds
+   and nanoseconds.
+
+   It can be accessed using other duration-based units, such as minutes and
+   hours. In addition, the DAYS unit can be used and is treated as exactly equal
+   to 24 hours, thus ignoring daylight savings effects. See `Period` for the
+   date-based equivalent to this class.
+
 from Base import all
 import Base.Time.Duration.Extensions
 
@@ -8,10 +16,9 @@ from Base.Time.Duration.Extensions export all hiding Duration
 
 ## Obtains a Duration from a text string such as PnDTnHnMn.nS.
 
-   This will parse a textual representation of a duration, including
-   the string produced by `toString()`. The formats accepted are based
-   on the ISO-8601 duration format PnDTnHnMn.nS with days considered
-   to be exactly 24 hours.
+   This will parse a textual representation of a duration, including the string
+   produced by `toString []`. The formats accepted are based on the ISO-8601
+   duration format PnDTnHnMn.nS with days considered to be exactly 24 hours.
 
    > Example
      Duration of 20.345 seconds.
@@ -47,8 +54,7 @@ from Base.Time.Duration.Extensions export all hiding Duration
 parse : Text -> Duration
 parse txt = Duration.parse [txt]
 
-## Obtains a Duration representing the duration between two temporal
-   objects.
+## Obtains a Duration representing the duration between two temporal objects.
 
    > Example
      Duration in hour between two local times.

@@ -1,3 +1,15 @@
+## OffsetDateTime is an immutable representation of a date-time with an
+   offset. This class stores all date and time fields, to a precision of
+   nanoseconds, as well as the offset from UTC/Greenwich. For example, the value
+   "2nd October 2007 at 13:45:30.123456789 +02:00" can be stored in an
+   `OffsetDateTime`.
+
+   OffsetDateTime, `ZonedDateTime` and Instant all store an instant on the
+   time-line to nanosecond precision. Instant is the simplest, simply
+   representing the instant. `OffsetDateTime` adds to the instant the offset
+   from UTC/Greenwich, which allows the local date-time to be
+   obtained. `ZonedDateTime` adds full time-zone rules.
+
 from Base import all
 import Base.Time.Zone_Offset
 
@@ -9,14 +21,14 @@ polyglot java import java.time.ZoneOffset
 ## Obtains an instance of OffsetDateTime from a text string such as
    2007-12-03T10:15:30+01:00.
 
-   The string must represent a valid date-time and is parsed using the
-   ISO-8601 extended offset date-time format. The format consists of:
+   The string must represent a valid date-time and is parsed using the ISO-8601
+   extended offset date-time format. The format consists of:
 
    - The ISO local date time.
-   - The offset ID. If the offset has seconds then they will be
-     handled even though this is not part of the ISO-8601
-     standard. The offset parsing is lenient, which allows the minutes
-     and seconds to be optional. Parsing is case insensitive.
+   - The offset ID. If the offset has seconds then they will be handled even
+     though this is not part of the ISO-8601 standard. The offset parsing is
+     lenient, which allows the minutes and seconds to be optional. Parsing is
+     case insensitive.
 
    > Example
      Parse offset date time in utc time zone.
@@ -40,11 +52,11 @@ now = OffsetDateTime.now []
 of_instant : Instant -> ZoneOffset -> ZonedDateTime
 of_instant instant offset = instant.atOffset [offset]
 
-## Obtains an instance of OffsetDateTime from a year, month, day,
-   hour, minute, second, nanosecond and offset.
+## Obtains an instance of OffsetDateTime from a year, month, day, hour, minute,
+   second, nanosecond and offset.
 
-   The day must be valid for the year and month, otherwise an
-   exception will be thrown.
+   The day must be valid for the year and month, otherwise an exception will be
+   thrown.
 
    - month - the month-of-year to represent, from 1 (January) to 12 (December)
    - dayOfMonth - the day-of-month to represent, from 1 to 31

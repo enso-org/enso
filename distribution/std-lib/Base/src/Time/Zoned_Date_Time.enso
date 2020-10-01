@@ -1,3 +1,14 @@
+## ZonedDateTime is an immutable representation of a date-time with a
+   time-zone. This class stores all date and time fields, to a precision of
+   nanoseconds, and a time-zone, with a zone offset used to handle ambiguous
+   local date-times. For example, the value "2nd October 2007 at
+   13:45.30.123456789 +02:00 in the Europe/Paris time-zone" can be stored in a
+   `ZonedDateTime`.
+
+   This class handles conversion from the local time-line of `LocalDateTime` to
+   the instant time-line of Instant. The difference between the two time-lines
+   is the offset from UTC/Greenwich, represented by a `ZoneOffset`.
+
 from Base import all
 import Base.Time.Zone_Id
 
@@ -9,17 +20,16 @@ polyglot java import java.time.ZoneId
 ## Obtains an instance of ZonedDateTime from a text string such as
    2007-12-03T10:15:30+01:00[Europe/Paris].
 
-   The string must represent a valid date-time and is parsed using the
-   ISO-8601 extended offset date-time format to add the time-zone. The
-   section in square brackets is not part of the ISO-8601
-   standard. The format consists of:
+   The string must represent a valid date-time and is parsed using the ISO-8601
+   extended offset date-time format to add the time-zone. The section in square
+   brackets is not part of the ISO-8601 standard. The format consists of:
 
    - The ISO offset date time.
-   - If the zone ID is not available or is a `ZoneOffset` then the
-     format is complete.
+   - If the zone ID is not available or is a `ZoneOffset` then the format is
+     complete.
    - An open square bracket '['.
-   - The zone ID. This is not part of the ISO-8601 standard. Parsing
-     is case sensitive.
+   - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+     sensitive.
    - A close square bracket ']'.
 
    > Example
@@ -44,11 +54,11 @@ now = ZonedDateTime.now []
 of_instant : Instant -> ZoneId -> ZonedDateTime
 of_instant instant zone_id = instant.atZone [zone_id]
 
-## Obtains an instance of ZonedDateTime from a year, month, day, hour,
-   minute, second, nanosecond and time-zone.
+## Obtains an instance of ZonedDateTime from a year, month, day, hour, minute,
+   second, nanosecond and time-zone.
 
-   The day must be valid for the year and month, otherwise an
-   exception will be thrown.
+   The day must be valid for the year and month, otherwise an exception will be
+   thrown.
 
    - month - the month-of-year to represent, from 1 (January) to 12 (December)
    - day - the day-of-month to represent, from 1 to 31

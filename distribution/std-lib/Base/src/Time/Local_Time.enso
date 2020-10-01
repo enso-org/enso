@@ -1,3 +1,13 @@
+## LocalTime is an immutable date-time object that represents a time, often
+   viewed as hour-minute-second. Time is represented to nanosecond
+   precision. For example, the value "13:45.30.123456789" can be stored in a
+   `LocalTime`.
+
+   This class does not store or represent a date or time-zone. Instead, it is a
+   description of the local time as seen on a wall clock. It cannot represent an
+   instant on the time-line without additional information such as an offset or
+   time-zone
+
 from Base import all
 import Base.Time.Zone_Offset
 
@@ -7,24 +17,22 @@ polyglot java import java.time.ZoneOffset
 
 ## Obtains an instance of LocalTime from a text string such as 10:15.
 
-   The string must represent a valid time and is parsed using the
-   ISO-8601 extended local time format. The format consists of:
+   The string must represent a valid time and is parsed using the ISO-8601
+   extended local time format. The format consists of:
 
-   - Two digits for the hour-of-day. This is pre-padded by zero to
-     ensure two digits.
+   - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+     digits.
    - A colon
-   - Two digits for the minute-of-hour. This is pre-padded by zero to
-     ensure two digits.
-   - If the second-of-minute is not available then the format is
-     complete.
+   - Two digits for the minute-of-hour. This is pre-padded by zero to ensure two
+     digits.
+   - If the second-of-minute is not available then the format is complete.
    - A colon
-   - Two digits for the second-of-minute. This is pre-padded by zero
-     to ensure two digits.
-   - If the nano-of-second is zero or not available then the format is
-     complete.
+   - Two digits for the second-of-minute. This is pre-padded by zero to ensure
+     two digits.
+   - If the nano-of-second is zero or not available then the format is complete.
    - A decimal point
-   - One to nine digits for the nano-of-second. As many digits will be
-     output as required.
+   - One to nine digits for the nano-of-second. As many digits will be output as
+     required.
 
    > Example
      Get the time 15:05:30.
@@ -47,8 +55,7 @@ of_instant instant offset =
     local_time = offset_time.toLocalTime []
     local_time
 
-## Obtains an instance of LocalTime from an hour, minute, second and
-   nanosecond.
+## Obtains an instance of LocalTime from an hour, minute, second and nanosecond.
 
    - hour - the hour-of-day to represent, from 0 to 23
    - minute - the minute-of-hour to represent, from 0 to 59

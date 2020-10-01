@@ -1,3 +1,13 @@
+## LocalDate is an immutable date-time object that represents a date, often
+   viewed as year-month-day. Other date fields, such as day-of-year, day-of-week
+   and week-of-year, can also be accessed. For example, the value
+   "2nd October 2007" can be stored in a LocalDate.
+
+   This class does not store or represent a time or time-zone. Instead, it is a
+   description of the date, as used for birthdays. It cannot represent an
+   instant on the time-line without additional information such as an offset or
+   time-zone.
+
 from Base import all
 
 polyglot java import java.time.Instant
@@ -6,18 +16,19 @@ polyglot java import java.time.ZoneOffset
 
 ## Obtains an instance of LocalDate from a text string such as 2007-12-03.
 
-   The string must represent a valid date and is parsed using the
-   ISO-8601 extended local date format. The format consists of:
+   The string must represent a valid date and is parsed using the ISO-8601
+   extended local date format. The format consists of:
 
    - Four digits or more for the year. Years in the range 0000 to 9999
      will be pre-padded by zero to ensure four digits. Years outside
      that range will have a prefixed positive or negative symbol.
+
    - A dash
-   - Two digits for the month-of-year. This is pre-padded by zero to
-     ensure two digits.
+   - Two digits for the month-of-year. This is pre-padded by zero to ensure two
+     digits.
    - A dash
-   - Two digits for the day-of-month. This is pre-padded by zero to
-     ensure two digits.
+   - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+     digits.
 
    > Example
      Parse the date 2020-12-23.
@@ -42,8 +53,8 @@ of_instant instant offset =
 
 ## Obtains an instance of LocalDate from a year, month and day.
 
-   The day must be valid for the year and month, otherwise an
-   exception will be thrown.
+   The day must be valid for the year and month, otherwise an exception will be
+   thrown.
 
    - month - the month-of-year to represent, from 1 (January) to 12 (December)
    - day - the day-of-month to represent, from 1 to 31

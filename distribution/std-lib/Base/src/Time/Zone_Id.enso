@@ -1,3 +1,11 @@
+## A ZoneId is used to identify the rules used to convert between an Instant and
+   a LocalDateTime. There are two distinct types of ID:
+
+   - Fixed offsets - a fully resolved offset from UTC/Greenwich, that uses the
+     same offset for all local date-times
+   - Geographical regions - an area where a specific set of rules for finding
+     the offset from UTC/Greenwich apply
+
 from Base import all
 
 polyglot java import java.time.ZoneId
@@ -7,12 +15,16 @@ polyglot java import java.time.ZoneOffset
    Parsing matches the zone ID step by step as follows.
 
    - If the zone ID equals 'Z', the result is `ZoneOffset.UTC`.
+
    - If the zone ID consists of a single letter, the zone ID is invalid and
      `DateTimeException` is thrown.
-   - If the zone ID starts with '+' or '-', the ID is parsed as a
-     `ZoneOffset` using `ZoneOffset.of(String)`.
+
+   - If the zone ID starts with '+' or '-', the ID is parsed as a `ZoneOffset`
+     using `ZoneOffset.of(String)`.
+
    - If the zone ID equals 'GMT', 'UTC' or 'UT' then the result is a `ZoneId`
      with the same ID and rules equivalent to `ZoneOffset.UTC`.
+
    - If the zone ID starts with 'UTC+', 'UTC-', 'GMT+', 'GMT-', 'UT+' or 'UT-'
      then the ID is a prefixed offset-based ID. The ID is split in two, with a
      two or three letter prefix and a suffix starting with the sign. The suffix
@@ -20,6 +32,7 @@ polyglot java import java.time.ZoneOffset
      specified UTC/GMT/UT prefix and the normalized offset ID as per
      `ZoneOffset.getId()`. The rules of the returned `ZoneId` will be equivalent
      to the parsed `ZoneOffset`.
+
    - All other IDs are parsed as region-based zone IDs. Region IDs must match
      the regular expression [A-Za-z][A-Za-z0-9~/._+-]+ otherwise a
      `DateTimeException` is thrown. If the zone ID is not in the configured set
