@@ -1,7 +1,6 @@
 package org.enso.loggingservice
 
 import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.model.Uri.{Authority, Host, Path}
 import org.enso.loggingservice.printers.Printer
 
 /**
@@ -46,13 +45,4 @@ object LoggerMode {
     * @param printers a list of printers that process the incoming messages
     */
   case class Local(printers: Seq[Printer]) extends LoggerMode[Unit]
-
-  case class ServerBinding(port: Int) {
-    def toUri(host: String = "localhost"): Uri =
-      Uri(
-        scheme    = "ws",
-        authority = Authority(host = Host(host), port = port),
-        path      = Path./
-      )
-  }
 }

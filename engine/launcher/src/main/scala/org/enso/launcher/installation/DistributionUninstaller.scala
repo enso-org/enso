@@ -205,6 +205,9 @@ class DistributionUninstaller(
     val logsInsideData = manager.paths.logs.toAbsolutePath.normalize.startsWith(
       dataRoot.toAbsolutePath.normalize
     )
+    System.err.println(
+      s"${manager.paths.logs} -- ${dataRoot} -> $logsInsideData"
+    )
     if (logsInsideData) {
       LauncherLogging.prepareForUninstall(globalCLIOptions)
     }

@@ -11,14 +11,13 @@ import akka.http.scaladsl.model.ws.{
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import io.circe.{parser, Error}
-import org.enso.loggingservice.LoggerMode.ServerBinding
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
   InternalLogger
 }
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.printers.Printer
-import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.{LogLevel, ServerBinding}
 
 import scala.annotation.nowarn
 import scala.concurrent.duration.DurationInt

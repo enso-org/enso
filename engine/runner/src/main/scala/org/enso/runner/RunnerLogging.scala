@@ -16,7 +16,7 @@ object RunnerLogging {
     * Sets up the runner's logging service.
     *
     * If `connectionUri` is provided it tries to connect to a logging service
-    * server and pass logs to it. If it is not provided or the connection could
+    * server and pass logs to it. If it is not provided, or the connection could
     * not be established, falls back to logging to standard error output.
     *
     * @param connectionUri optional uri of logging service server to connect to
