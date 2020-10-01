@@ -88,6 +88,14 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         }
       current.map(go)
     }
+
+    def takeLast(): Option[AST] = {
+      current.map(c => {
+        val app = c.asInstanceOf[AST.App.Prefix]
+        current = Some(app.func)
+        app.arg
+      })
+    }
   }
 
   ////////////////
@@ -227,8 +235,20 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         ident.current = Some(opr)
       }
 
+    def onValidSuffix(): Unit =
+      logger.trace {
+        ident.current match {
+          case Some(_) =>
+            ident.onNoErrSfx()
+            val suffixOperator = AST.Var(currentMatch)
+            currentMatch = ""
+            result.app(suffixOperator)
+          case None => throw new RuntimeException("Should never happen")
+        }
+      }
+
     val char: Pattern     = anyOf(";!$%&*+-/<>?^~|:\\")
-    val errChar: Pattern  = char | "=" | "," | "."
+    val errChar: Pattern  = "=" | "," | "."
     val errSfx: Pattern   = errChar.many1
     val body: Pattern     = char.many1
     val opsEq: Pattern    = "=" | "==" | ">=" | "<=" | "/=" | "#="
@@ -246,6 +266,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   ROOT          || opr.opsNoMod || opr.onNoMod(AST.Opr(_))
   ROOT          || opr.opsGrp   || opr.onGrp(AST.Opr(_))
   opr.MOD_CHECK || "="          || opr.onMod()
+  opr.SFX_CHECK || opr.body     || opr.onValidSuffix()
   opr.SFX_CHECK || opr.errSfx   || ident.onErrSfx()
   opr.SFX_CHECK || always       || ident.onNoErrSfx()
 
