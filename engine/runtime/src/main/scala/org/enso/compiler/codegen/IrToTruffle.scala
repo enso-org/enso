@@ -157,11 +157,10 @@ class IrToTruffle(
 
     // Register the imports in scope
     imports.foreach {
-      case Import.Polyglot(Import.Polyglot.Java(pkg, cls), _, _, _) =>
-        val fullName = s"$pkg.$cls"
+      case poly @ Import.Polyglot(i: Import.Polyglot.Java, _, _, _, _) =>
         this.moduleScope.registerPolyglotSymbol(
-          cls,
-          context.getEnvironment.lookupHostSymbol(fullName)
+          poly.getVisibleName,
+          context.getEnvironment.lookupHostSymbol(i.getJavaName)
         )
       case i: Import.Module =>
         this.moduleScope.addImport(

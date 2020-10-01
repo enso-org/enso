@@ -97,10 +97,12 @@ object AstToIr {
         val imports = presentBlocks.collect {
           case AST.Import.any(list) => translateImport(list)
           case AST.JavaImport.any(imp) =>
-            val pkg = imp.path.init.map(_.name)
-            val cls = imp.path.last.name
+            val pkg    = imp.path.init.map(_.name)
+            val cls    = imp.path.last.name
+            val rename = imp.rename.map(_.name)
             Module.Scope.Import.Polyglot(
               Module.Scope.Import.Polyglot.Java(pkg.mkString("."), cls),
+              rename,
               getIdentifiedLocation(imp)
             )
         }

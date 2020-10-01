@@ -353,8 +353,11 @@ object Shape extends ShapeImplicit {
     isAll: Boolean,
     onlyNames: Option[List1[AST.Ident]],
     hidingNames: Option[List1[AST.Ident]]
-  )                                                      extends SpacelessAST[T]
-  final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
+  ) extends SpacelessAST[T]
+  final case class JavaImport[T](
+    path: List1[AST.Ident],
+    rename: Option[AST.Ident.Cons]
+  ) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
   final case class Group[T](body: Option[T])          extends SpacelessAST[T]
@@ -2422,7 +2425,8 @@ object AST {
   type JavaImport = ASTOf[Shape.JavaImport]
 
   object JavaImport {
-    def apply(path: List1[Ident]): JavaImport = Shape.JavaImport[AST](path)
+    def apply(path: List1[Ident], rename: Option[Ident.Cons]): JavaImport =
+      Shape.JavaImport[AST](path, rename)
     def unapply(t: AST): Option[List1[Ident]] =
       Unapply[JavaImport].run(t => t.path)(t)
     val any = UnapplyByType[JavaImport]
