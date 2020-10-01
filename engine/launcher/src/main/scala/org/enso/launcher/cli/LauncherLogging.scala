@@ -173,4 +173,20 @@ object LauncherLogging {
           )
       }
   }
+
+  /**
+    * Turns off the main logging service, falling back to just a stderr backend.
+    *
+    * This method should be called as part of uninstalling the distribution. The
+    * server can be safely shutdown as during uninstallation no other components
+    * should be running.
+    *
+    * This is necessary on Windows to ensure that the logs file is closed, so
+    * that the log directory can be removed.
+    */
+  def prepareForUninstall(globalCLIOptions: GlobalCLIOptions): Unit = {
+    LoggingServiceManager.replaceWithFallback(printers =
+      Seq(stderrPrinter(globalCLIOptions, printExceptions = true))
+    )
+  }
 }

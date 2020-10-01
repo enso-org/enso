@@ -7,7 +7,7 @@ import org.enso.loggingservice.internal.{
   InternalLogger,
   LoggerConnection
 }
-import org.enso.loggingservice.printers.StderrPrinter
+import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
 import scala.concurrent.Future
 
@@ -105,9 +105,11 @@ object LoggingServiceManager {
     * Can be used if the currently logging service fails after initialization
     * and has to be shutdown.
     */
-  def replaceWithFallback(): Unit = {
+  def replaceWithFallback(
+    printers: Seq[Printer] = Seq(StderrPrinter.create())
+  ): Unit = {
     val fallback =
-      Local.setup(currentLevel, messageQueue, Seq(StderrPrinter.create()))
+      Local.setup(currentLevel, messageQueue, printers)
     val service = currentService.synchronized {
       val service = currentService
       currentService = Some(fallback)

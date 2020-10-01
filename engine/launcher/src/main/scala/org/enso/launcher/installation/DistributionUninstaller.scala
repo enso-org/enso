@@ -6,7 +6,12 @@ import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
+import org.enso.launcher.cli.{
+  GlobalCLIOptions,
+  InternalOpts,
+  LauncherLogging,
+  Main
+}
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
 import org.enso.launcher.{FileSystem, InfoLogger, OS}
@@ -18,15 +23,14 @@ import scala.util.control.NonFatal
   *
   * @param manager a distribution manager instance which defines locations for
   *                the distribution that will be uninstalled
-  * @param autoConfirm if set to true, the uninstaller will use defaults
-  *                    instead of asking questions
   */
 class DistributionUninstaller(
   manager: DistributionManager,
   resourceManager: ResourceManager,
-  autoConfirm: Boolean
+  globalCLIOptions: GlobalCLIOptions
 ) {
-  private val logger = Logger[DistributionUninstaller]
+  private val autoConfirm = globalCLIOptions.autoConfirm
+  private val logger      = Logger[DistributionUninstaller]
 
   /**
     * Uninstalls a locally installed (non-portable) distribution.
@@ -197,6 +201,11 @@ class DistributionUninstaller(
     FileSystem.removeDirectory(manager.paths.runtimes)
 
     val dataRoot = manager.paths.dataRoot
+
+    if (manager.paths.logs.startsWith(dataRoot)) {
+      LauncherLogging.prepareForUninstall(globalCLIOptions)
+    }
+
     for (dirName <- knownDataDirectories) {
       FileSystem.removeDirectoryIfExists(dataRoot / dirName)
     }
@@ -351,6 +360,6 @@ object DistributionUninstaller {
     new DistributionUninstaller(
       DistributionManager,
       DefaultResourceManager,
-      globalCLIOptions.autoConfirm
+      globalCLIOptions
     )
 }
