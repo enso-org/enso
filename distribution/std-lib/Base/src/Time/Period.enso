@@ -6,9 +6,47 @@ polyglot java import java.time.LocalDate
 
 from Base.Time.Period.Extensions export all hiding Period
 
+## Obtains a Period from a text string such as PnYnMnD.
+
+   This will parse the string produced by `toString []` which is based
+   on the ISO-8601 period formats PnYnMnD and PnW.
+
+   > Example
+     Period of 2 years.
+         Period.parse "P2Y"
+
+   > Example
+     Period of 3 months.
+         Period.parse "P3M"
+
+   > Example
+     Period of 4 weeks.
+         Period.parse "P4W"
+
+   > Example
+     Period of 1 year, 2 months and 3 days.
+         Period.parse "P1Y2M3D"
+
+   > Example
+     Period of 1 year, 2 months, 3 weekks and 4 days.
+         Period.parse "P1Y2M3W4D"
+
+   > Example
+     Period of -1 year and 2 months.
+         Period.parse "P-1Y2M"
+
+   > Example
+     Period of -1 year and -2 months.
+         Period.parse "-P1Y2M"
 parse : Text -> Period
 parse txt = Period.parse [txt]
 
+## Obtains a Period consisting of the number of years, months, and
+   days between two dates.
+
+   > Example
+     Period in 1 year between two local dates.
+         Period.between (Local_Date.new 2009) (Local_Date.new 2010)
 between : LocalDate -> LocalDate -> Period
 between start_inclusive end_exclusive =
-   Period.between [start_inclusive, end_exclusive]
+    Period.between [start_inclusive, end_exclusive]

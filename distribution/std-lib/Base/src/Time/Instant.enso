@@ -1,3 +1,7 @@
+## An instantaneous point on the time-line. This class models a single
+   instantaneous point on the time-line. This might be used to record event
+   time-stamps in the application.
+
 from Base import all
 import Base.Time.Zone_Offset
 
@@ -5,20 +9,38 @@ polyglot java import java.time.Instant
 polyglot java import java.time.OffsetDateTime
 polyglot java import java.time.ZoneOffset
 
-parse : Text -> Instant
-parse fmt = Instant.parse [fmt]
+## Obtains an instance of Instant from a text string in ISO-8601 format.
 
+   > Example
+     Create an Instant from an ISO formatted string.
+         parse "2011-12-03T10:15:30Z"
+parse : Text -> Instant
+parse text = Instant.parse [text]
+
+## Obtains the current instant from the system clock.
 now : Instant
 now = Instant.now []
 
+## Obtains an instance of Instant using milliseconds from the Unix epoch.
 of_epoch_milli : Integer -> Instant
 of_epoch_milli epoch_millis = Instant.ofEpochMilli [epoch_millis]
 
+## Obtains an instance of Instant using seconds from the Unix epoch.
 of_epoch_second : Integer -> Instant
 of_epoch_second epoch_seconds = Instant.ofEpochSecond [epoch_seconds]
 
+## Obtains an instance of OffsetDateTime from a year, month, day, hour, minute,
+   second, nanosecond and offset.
+
+   > Example
+     Create a new instant at Unix epoch.
+         Instant.new
+
+   > Example
+     Create a new instant at 2011-12-03 midnight UTC.
+         Instant.new 2011 12 03
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneOffset -> Instant
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
-    date_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset]
-    instant = date_time.toInstant []
+    offset_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset]
+    instant = offset_time.toInstant []
     instant

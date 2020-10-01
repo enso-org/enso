@@ -2,38 +2,50 @@ from Base import all
 
 polyglot java import java.time.Duration
 
+## Duration in nanoseconds.
 Integer.nano : Duration
 Integer.nano = Duration.ofNanos [this]
 
+## Duration in nanoseconds.
 Integer.nanos : Duration
 Integer.nanos = this.nano
 
+## Duration in nanoseconds.
 Integer.nanosecond : Duration
 Integer.nanosecond = Duration.ofNanos [this]
 
+## Duration in nanoseconds.
 Integer.nanoseconds : Duration
 Integer.nanoseconds = this.nanosecond
 
+## Duration in seconds.
 Integer.second : Duration
 Integer.second = Duration.ofSeconds [this]
 
+## Duration in seconds.
 Integer.seconds : Duration
 Integer.seconds = this.second
 
+## Duration in minutes.
 Integer.minute : Duration
 Integer.minute = Duration.ofMinutes [this]
 
+## Duration in minutes.
 Integer.minutes : Duration
 Integer.minutes = this.minute
 
+## Duration in hours.
 Integer.hour : Duration
 Integer.hour = Duration.ofHours [this]
 
+## Duration in hours.
 Integer.hours : Duration
 Integer.hours = this.hour
 
+## Duration in days.
 Integer.day : Duration
 Integer.day = Duration.ofDays [this]
 
+## Duration in days.
 Integer.days : Duration
 Integer.days = this.day

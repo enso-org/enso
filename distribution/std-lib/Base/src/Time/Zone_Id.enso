@@ -3,14 +3,58 @@ from Base import all
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 
+## This method parses the ID producing a ZoneId
+   Parsing matches the zone ID step by step as follows.
+
+   - If the zone ID equals 'Z', the result is `ZoneOffset.UTC`.
+   - If the zone ID consists of a single letter, the zone ID is invalid and
+     `DateTimeException` is thrown.
+   - If the zone ID starts with '+' or '-', the ID is parsed as a
+     `ZoneOffset` using `ZoneOffset.of(String)`.
+   - If the zone ID equals 'GMT', 'UTC' or 'UT' then the result is a `ZoneId`
+     with the same ID and rules equivalent to `ZoneOffset.UTC`.
+   - If the zone ID starts with 'UTC+', 'UTC-', 'GMT+', 'GMT-', 'UT+' or 'UT-'
+     then the ID is a prefixed offset-based ID. The ID is split in two, with a
+     two or three letter prefix and a suffix starting with the sign. The suffix
+     is parsed as a `ZoneOffset`. The result will be a `ZoneId` with the
+     specified UTC/GMT/UT prefix and the normalized offset ID as per
+     `ZoneOffset.getId()`. The rules of the returned `ZoneId` will be equivalent
+     to the parsed `ZoneOffset`.
+   - All other IDs are parsed as region-based zone IDs. Region IDs must match
+     the regular expression [A-Za-z][A-Za-z0-9~/._+-]+ otherwise a
+     `DateTimeException` is thrown. If the zone ID is not in the configured set
+     of IDs, `ZoneRulesException` is thrown. The detailed format of the region
+     ID depends on the group supplying the data. The default set of data is
+     supplied by the IANA Time Zone Database (TZDB). This has region IDs of the
+     form '{area}/{city}', such as 'Europe/Paris' or 'America/New_York'. This is
+     compatible with most IDs from `TimeZone`.
+
+   > Example
+     Get Central European Time.
+         Zone_Id.parse "CET"
+
+   > Example
+     Get Moscow time.
+         Zone_Id.parse "Europe/Moscow"
+
+   > Example
+     Get time zone -06:00.
+         Zone_Id.parse "-06:00"
 parse : Text -> ZoneId
 parse zone = ZoneId.of [zone]
 
+## Obtains an instance of ZoneId wrapping an offset.
+
+   If the prefix is "GMT", "UTC", or "UT" a ZoneId with the prefix and the
+   non-zero offset is returned. If the prefix is empty "" the `ZoneOffset` is
+   returned.
 of_offset : Text -> ZoneOffset -> ZoneId
 of_offset prefix offset = ZoneId.ofOffset [prefix, offset]
 
+## The system default time-zone.
 system : ZoneId
 system = ZoneId.systemDefault []
 
+## UTC time zone.
 utc : ZoneId
 utc = here.parse "UTC"

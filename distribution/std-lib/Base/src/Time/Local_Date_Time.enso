@@ -5,18 +5,58 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalDateTime
 polyglot java import java.time.ZoneOffset
 
+## Obtains an instance of LocalDateTime from a text string such as
+   2007-12-03T10:15:30.
+
+   The string must represent a valid date-time and is parsed using
+   ISO-8601 extended offset date-time format. The format consists of:
+
+   - The ISO local date
+   - The letter 'T'. Parsing is case insensitive.
+   - The ISO local time
+
+   > Example
+     Parse the 1990-05-15 at 10:15:30.
+         Local_Date_Time.parse "1990-05-15T10:15:30"
 parse : Text -> LocalDateTime
 parse fmt = LocalDateTime.parse [fmt]
 
+## Obtains the current date-time from the system clock in the default
+   time-zone.
 now : LocalDateTime
 now = LocalDateTime.now []
 
+## Obtains an instance of LocalDateTime from an Instant and zone offset.
+
+   > Example
+   Get the local date time now in the -12h time zone.
+       Local_Date_Time.of_instant Instant.now (Zone_Offset.new -12)
 of_instant : Instant -> ZoneOffset -> LocalDateTime
 of_instant instant offset =
     offset_time = instant.atOffset [offset]
     local = offset_time.toLocalDateTime []
     local
 
+## Obtains an instance of LocalDateTime from year, month, day, hour,
+   minute, second and nanosecond.
+
+   The day must be valid for the year and month, otherwise an
+   exception will be thrown.
+
+   - month - the month-of-year to represent, from 1 (January) to 12 (December)
+   - day - the day-of-month to represent, from 1 to 31
+   - hour - the hour-of-day to represent, from 0 to 23
+   - minute - the minute-of-hour to represent, from 0 to 59
+   - second - the second-of-minute to represent, from 0 to 59
+   - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
+
+   > Example
+     Create a new local date time at Unix epoch.
+         Local_Date_Time.new
+
+   > Example
+     Get the 5 August 1986 at 23:00.
+         Local_Date_Time.new 1986 8 5 23
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> LocalDateTime
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     LocalDateTime.of [year, month, day, hour, minute, second, nanosecond]

@@ -5,18 +5,63 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import java.time.ZoneOffset
 
+## Obtains an instance of LocalTime from a text string such as 10:15.
+
+   The string must represent a valid time and is parsed using the
+   ISO-8601 extended local time format. The format consists of:
+
+   - Two digits for the hour-of-day. This is pre-padded by zero to
+     ensure two digits.
+   - A colon
+   - Two digits for the minute-of-hour. This is pre-padded by zero to
+     ensure two digits.
+   - If the second-of-minute is not available then the format is
+     complete.
+   - A colon
+   - Two digits for the second-of-minute. This is pre-padded by zero
+     to ensure two digits.
+   - If the nano-of-second is zero or not available then the format is
+     complete.
+   - A decimal point
+   - One to nine digits for the nano-of-second. As many digits will be
+     output as required.
+
+   > Example
+     Get the time 15:05:30.
+         Local_Time.parse "15:05:30"
 parse : Text -> LocalTime
 parse fmt = LocalTime.parse [fmt]
 
+## Obtains the current time from the system clock in the default time-zone.
 now : LocalTime
 now = LocalTime.now []
 
+## Obtains an instance of LocalTime from an Instant and zone offset.
+
+  > Example
+    Get local time now in the UTC time zone.
+       Local_Time.of_instant Instant.now Zone_Offset.utc
 of_instant : Instant -> ZoneOffset -> LocalTime
 of_instant instant offset =
     offset_time = instant.atOffset [offset]
     local_time = offset_time.toLocalTime []
     local_time
 
+## Obtains an instance of LocalTime from an hour, minute, second and
+   nanosecond.
+
+   - hour - the hour-of-day to represent, from 0 to 23
+   - minute - the minute-of-hour to represent, from 0 to 59
+   - second - the second-of-minute to represent, from 0 to 59
+   - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
+
+   > Example
+     Create a new local time at Unix epoch.
+         Local_Time.new
+
+   > Example
+     Get the local time at 9:30.
+         Local_Time.new 9 30
 new : Number -> Number -> Number -> Number -> LocalTime
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     LocalTime.of [hour, minute, second, nanosecond]

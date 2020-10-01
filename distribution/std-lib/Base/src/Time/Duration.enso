@@ -6,9 +6,53 @@ polyglot java import java.time.temporal.Temporal
 
 from Base.Time.Duration.Extensions export all hiding Duration
 
+## Obtains a Duration from a text string such as PnDTnHnMn.nS.
+
+   This will parse a textual representation of a duration, including
+   the string produced by `toString()`. The formats accepted are based
+   on the ISO-8601 duration format PnDTnHnMn.nS with days considered
+   to be exactly 24 hours.
+
+   > Example
+     Duration of 20.345 seconds.
+         Duration.parse "PT20.345S"
+
+   > Example
+     Duration of 15 minutes.
+         Duration.parse "PT15M"
+
+   > Example
+     Duration of 10 hours.
+         Duration.parse "PT10H"
+
+   > Example
+     Duration of 2 days.
+         Duration.parse "P2D"
+
+   > Example
+     Duration of 2 days, 3 hours and 4 minutes.
+         Duration.parse "P2DT3H4M"
+
+   > Example
+     Duration of -6 hours and +3 minutes.
+         Duration.parse "PT-6H3M"
+
+   > Example
+     Duration of -6 hours and -3 minutes.
+         Duration.parse "-PT6H3M"
+
+   > Example
+     Duration of +6 hours and -3 minutes.
+         Duration.parse "-PT-6H+3M"
 parse : Text -> Duration
 parse txt = Duration.parse [txt]
 
+## Obtains a Duration representing the duration between two temporal
+   objects.
+
+   > Example
+     Duration in hour between two local times.
+         Duration.between (Local_Time.new 0) (Local_Time.new 1)
 between : Temporal -> Temporal -> Duration
 between start_inclusive end_exclusive =
    Duration.between [start_inclusive, end_exclusive]

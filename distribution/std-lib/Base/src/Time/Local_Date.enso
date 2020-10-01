@@ -4,18 +4,57 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
 polyglot java import java.time.ZoneOffset
 
+## Obtains an instance of LocalDate from a text string such as 2007-12-03.
+
+   The string must represent a valid date and is parsed using the
+   ISO-8601 extended local date format. The format consists of:
+
+   - Four digits or more for the year. Years in the range 0000 to 9999
+     will be pre-padded by zero to ensure four digits. Years outside
+     that range will have a prefixed positive or negative symbol.
+   - A dash
+   - Two digits for the month-of-year. This is pre-padded by zero to
+     ensure two digits.
+   - A dash
+   - Two digits for the day-of-month. This is pre-padded by zero to
+     ensure two digits.
+
+   > Example
+     Parse the date 2020-12-23.
+         Local_Date.parse "2020-12-23"
 parse : Text -> LocalDate
 parse fmt = LocalDate.parse [fmt]
 
+## Obtains the current date from the system clock in the default time-zone.
 now : LocalDate
 now = LocalDate.now []
 
+## Obtains an instance of LocalDate from an Instant and zone offset.
+
+   > Example
+     Get local date now in the UTC time zone.
+         Local_Date.of_instant Instant.now Zone_Offset.utc
 of_instant : Instant -> ZoneOffset -> LocalDate
 of_instant instant offset =
     offset_time = instant.atOffset [offset]
     local_date = offset_time.toLocalDate []
     local_date
 
+## Obtains an instance of LocalDate from a year, month and day.
+
+   The day must be valid for the year and month, otherwise an
+   exception will be thrown.
+
+   - month - the month-of-year to represent, from 1 (January) to 12 (December)
+   - day - the day-of-month to represent, from 1 to 31
+
+   > Example
+     Create a new local date at Unix epoch.
+         Local_Date.new
+
+   > Example
+     Get the 5 August 1986.
+         Local_Date.new 1986 8 5
 new : Number -> Number -> Number -> LocalDate
 new (year = 1970) (month = 1) (day = 1) =
     LocalDate.of [year, month, day]

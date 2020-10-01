@@ -5,15 +5,62 @@ polyglot java import java.time.Instant
 polyglot java import java.time.OffsetDateTime
 polyglot java import java.time.ZoneOffset
 
+
+## Obtains an instance of OffsetDateTime from a text string such as
+   2007-12-03T10:15:30+01:00.
+
+   The string must represent a valid date-time and is parsed using the
+   ISO-8601 extended offset date-time format. The format consists of:
+
+   - The ISO local date time.
+   - The offset ID. If the offset has seconds then they will be
+     handled even though this is not part of the ISO-8601
+     standard. The offset parsing is lenient, which allows the minutes
+     and seconds to be optional. Parsing is case insensitive.
+
+   > Example
+     Parse offset date time in utc time zone.
+         Offset_Date_Time.parse "2007-12-03T10:15:30Z"
+
+   > Example
+     Parse offset date time in -1h time zone.
+         Offset_Date_Time.parse "2007-12-03T10:15:30-01:00"
 parse : Text -> OffsetDateTime
 parse fmt = OffsetDateTime.parse [fmt]
 
+## Obtains the current date-time from the system clock in the default time-zone.
 now : OffsetDateTime
 now = OffsetDateTime.now []
 
+## Obtains an instance of OffsetDateTime from an Instant and zone offset.
+
+   > Example
+     Get offset date time now in the -03:00 time zone.
+         Offset_Date_Time.of_instant Instant.now (ZoneOffset.new -3)
 of_instant : Instant -> ZoneOffset -> ZonedDateTime
 of_instant instant offset = instant.atOffset [offset]
 
+## Obtains an instance of OffsetDateTime from a year, month, day,
+   hour, minute, second, nanosecond and offset.
+
+   The day must be valid for the year and month, otherwise an
+   exception will be thrown.
+
+   - month - the month-of-year to represent, from 1 (January) to 12 (December)
+   - dayOfMonth - the day-of-month to represent, from 1 to 31
+   - hour - the hour-of-day to represent, from 0 to 23
+   - minute - the minute-of-hour to represent, from 0 to 59
+   - second - the second-of-minute to represent, from 0 to 59
+   - nanoOfSecond - the nano-of-second to represent, from 0 to 999,999,999
+   - offset - the zone offset, not null
+
+   > Example
+     Create a new offset date time at Unix epoch.
+         Offset_Date_Time.new
+
+   > Example
+     Get the offset date time of 1992-12-21 at 16:30 UTC time.
+         Offset_Date_Time.new 1992 12 21 16 30
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneOffset -> OffsetDateTime
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
     OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset]
