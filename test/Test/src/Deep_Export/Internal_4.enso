@@ -1,3 +1,0 @@
-import Test.Deep_Export.Internal_5
-
-from Test.Deep_Export.Internal_5 export Const

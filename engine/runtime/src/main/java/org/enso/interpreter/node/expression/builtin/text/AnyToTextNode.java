@@ -1,17 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.text;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
 public abstract class AnyToTextNode extends Node {
@@ -32,24 +29,24 @@ public abstract class AnyToTextNode extends Node {
     if (at.getFields().length == 0) {
       return Text.create(at.getConstructor().getName());
     } else {
-      return doComplexAtom(at, displays, strings);
+      return doComplexAtom(at);
     }
   }
 
   @Fallback
   Text doOther(Object object) {
     try {
-      return Text.create(strings.asString(displays.toDisplayString(object)));
+      return Text.create(showObject(object));
     } catch (UnsupportedMessageException e) {
       return Text.create(object.toString());
     }
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Text doComplexAtom(Atom atom, InteropLibrary displays, InteropLibrary strings) {
+  private Text doComplexAtom(Atom atom) {
     Text res = Text.create("(" + atom.getConstructor().getName() + " ");
     try {
-      res = Text.create(res, strings.asString(displays.toDisplayString(atom.getFields()[0])));
+      res = Text.create(res, showObject(atom.getFields()[0]));
     } catch (UnsupportedMessageException e) {
       res = Text.create(res, atom.getFields()[0].toString());
     }
@@ -63,5 +60,14 @@ public abstract class AnyToTextNode extends Node {
     }
     res = Text.create(res, ")");
     return res;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private String showObject(Object child) throws UnsupportedMessageException {
+    if (child instanceof Boolean) {
+      return (boolean) child ? "True" : "False";
+    } else {
+      return strings.asString(displays.toDisplayString(child));
+    }
   }
 }

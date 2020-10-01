@@ -1,0 +1,3 @@
+from Test.Semantic.Deep_Export.Internal_2 import Const
+
+from Test.Semantic.Deep_Export.Internal_2 export Const
