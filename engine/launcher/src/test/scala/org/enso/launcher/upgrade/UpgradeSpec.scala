@@ -341,12 +341,13 @@ class UpgradeSpec
         secondFailed.stderr should include("Another upgrade is in progress")
         secondFailed.exitCode shouldEqual 1
       } catch {
-        case _: TimeoutException =>
+        case e: TimeoutException =>
           System.err.println(
             "Waiting for the lock timed out, " +
             "the process had the following output:"
           )
           firstSuspended.printIO()
+          throw e
       } finally {
         lock.release()
       }
