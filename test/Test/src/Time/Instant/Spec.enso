@@ -1,6 +1,7 @@
 from Base import all
 
 import Base.Test
+import Base.Time.Duration
 import Base.Time.Instant
 
 spec =
@@ -17,3 +18,9 @@ spec =
         it "should parse time instant" <|
             time = Instant.parse "1970-01-01T00:00:00.01Z"
             time . to_epoch_milli . should_equal 10
+        it "should add duration" <|
+            time = Instant.new.plus 1.hour
+            time . to_epoch_milli . should_equal 3600000
+        it "should subtract duration" <|
+            time = Instant.new.minus 1.hour
+            time . to_epoch_milli . should_equal -3600000

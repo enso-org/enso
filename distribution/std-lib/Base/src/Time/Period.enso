@@ -3,6 +3,7 @@ import Base.Time.Period.Extensions
 
 polyglot java import java.time.Period as Java_Period
 polyglot java import java.time.LocalDate
+polyglot java import java.time.temporal.TemporalAmount
 
 from Base.Time.Period.Extensions export all hiding Java_Period
 
@@ -20,6 +21,9 @@ from Base.Time.Period.Extensions export all hiding Java_Period
    contrast, the `Duration` will add exactly 24 hours, resulting in a
    `Zoned_Date_Time` at 19:00 the following day (assuming a one hour DST gap).
 type Period internal_period
+
+Period.internal_temporal_amount : TemporalAmount
+Period.internal_temporal_amount = this . internal_period
 
 Period.get_years : Integer
 Period.get_years = this . internal_period . getYears []

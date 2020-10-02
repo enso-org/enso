@@ -3,6 +3,7 @@ import Base.Time.Duration.Extensions
 import Base.Time.Temporal
 
 polyglot java import java.time.Duration as Java_Duration
+polyglot java import java.time.temporal.TemporalAmount
 
 from Base.Time.Duration.Extensions export all hiding Java_Duration
 
@@ -14,6 +15,9 @@ from Base.Time.Duration.Extensions export all hiding Java_Duration
    to 24 hours, thus ignoring daylight savings effects. See `Period` for the
    date-based equivalent to this class.
 type Duration internal_duration
+
+Duration.internal_temporal_amount : TemporalAmount
+Duration.internal_temporal_amount = this . internal_duration
 
 ## Gets the number of seconds in this duration.
 Duration.to_seconds : Integer

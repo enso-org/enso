@@ -4,6 +4,7 @@
 
 from Base import all
 import Base.Time.Offset_Date_Time
+import Base.Time.Duration
 import Base.Time.Zoned_Date_Time
 import Base.Time.Zone_Offset
 import Base.Time.Zone_Id
@@ -22,6 +23,14 @@ Instant.internal_temporal = this.internal_instant
 ## Return the number of milliseconds from the Unix epoch.
 Instant.to_epoch_milli : Integer
 Instant.to_epoch_milli = this . internal_instant . toEpochMilli []
+
+## Add specified amount of time to this instant.
+Instant.plus : Duration -> Instant
+Instant.plus amount = Instant (this . internal_instant . plus [amount.internal_duration])
+
+## Subtract specified amount of time to this instant.
+Instant.minus : Duration -> Instant
+Instant.minus amount = Instant (this . internal_instant . minus [amount.internal_duration])
 
 ## Combines this instant with an offset to create an `Offset_Date_Time`.
 

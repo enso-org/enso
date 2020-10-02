@@ -1,6 +1,7 @@
 from Base import all
 
 import Base.Test
+import Base.Time.Period
 import Base.Time.Instant
 import Base.Time.Local_Date
 import Base.Time.Local_Time
@@ -20,3 +21,13 @@ spec =
         it "should parse local date" <|
             date = Local_Date.parse "1999-01-01"
             date . get_year . should_equal 1999
+        it "should add period" <|
+            date = Local_Date.new.plus 1.day
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 1
+            date . get_day . should_equal 2
+        it "should subtract period" <|
+            date = Local_Date.new.minus 1.year
+            date . get_year . should_equal 1969
+            date . get_month . should_equal 1
+            date . get_day . should_equal 1

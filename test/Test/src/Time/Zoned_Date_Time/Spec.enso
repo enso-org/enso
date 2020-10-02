@@ -1,6 +1,8 @@
 from Base import all
 
 import Base.Test
+import Base.Time.Duration
+import Base.Time.Period
 import Base.Time.Instant
 import Base.Time.Zoned_Date_Time
 import Base.Time.Zone_Id
@@ -25,3 +27,39 @@ spec =
         it "should parse zoned date time" <|
             time = Zoned_Date_Time.parse "1970-01-01T00:00:01.00Z"
             time . to_epoch_second . should_equal 1
+        it "should add duration" <|
+            date = Zoned_Date_Time.new.plus 1.nanosecond
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 1
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 1
+        it "should add period" <|
+            date = Zoned_Date_Time.new.plus 1.month
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 2
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
+        it "should subtract duration" <|
+            date = Zoned_Date_Time.new.minus 1.hour
+            date . get_year . should_equal 1969
+            date . get_month . should_equal 12
+            date . get_day . should_equal 31
+            date . get_hour . should_equal 23
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
+        it "should subtract period" <|
+            date = Zoned_Date_Time.new.minus 1.month
+            date . get_year . should_equal 1969
+            date . get_month . should_equal 12
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0

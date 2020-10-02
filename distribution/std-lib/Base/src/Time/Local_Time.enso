@@ -38,6 +38,14 @@ Local_Time.get_second = this . internal_local_time . getSecond []
 Local_Time.to_second_of_day : Integer
 Local_Time.to_second_of_day = this . internal_local_time . toSecondOfDay []
 
+## Add specified amount of time to this instant.
+Local_Time.plus : Duration -> Local_Time
+Local_Time.plus amount = Local_Time (this . internal_local_time . plus [amount.internal_duration])
+
+## Subtract specified amount of time to this instant.
+Local_Time.minus : Duration -> Local_Time
+Local_Time.minus amount = Local_Time (this . internal_local_time . minus [amount.internal_duration])
+
 ## Obtains an instance of `LocalTime` from a text string such as 10:15.
 
    The string must represent a valid time and is parsed using the ISO-8601

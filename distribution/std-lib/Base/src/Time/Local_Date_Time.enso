@@ -1,4 +1,5 @@
 from Base import all
+import Base.Time.Temporal_Amount
 import Base.Time.Zone_Offset
 
 polyglot java import java.time.Instant
@@ -56,6 +57,14 @@ Local_Date_Time.get_nanosecond = this . get_nano
 ## Return the number of seconds from the Unix epoch.
 Local_Date_Time.to_epoch_second : Zone_Offset -> Integer
 Local_Date_Time.to_epoch_second offset = this . internal_local_date_time . toEpochSecond [offset.internal_zone_offset]
+
+## Add specified amount of time to this instant.
+Local_Date_Time.plus : Temporal_Amount -> Local_Date_Time
+Local_Date_Time.plus amount = Local_Date_Time (this . internal_local_date_time . plus [amount.internal_temporal_amount])
+
+## Subtract specified amount of time to this instant.
+Local_Date_Time.minus : Temporal_Amount -> Local_Date_Time
+Local_Date_Time.minus amount = Local_Date_Time (this . internal_local_date_time . minus [amount.internal_temporal_amount])
 
 ## Obtains an instance of `Local_Date_Time` from a text string such as
    2007-12-03T10:15:30.

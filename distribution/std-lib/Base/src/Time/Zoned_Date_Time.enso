@@ -59,6 +59,14 @@ Zoned_Date_Time.internal_temporal = this.internal_zoned_date_time
 Zoned_Date_Time.to_epoch_second : Integer
 Zoned_Date_Time.to_epoch_second = this . internal_zoned_date_time . toEpochSecond []
 
+## Add specified amount of time to this instant.
+Zoned_Date_Time.plus : Temporal_Amount -> Zoned_Date_Time
+Zoned_Date_Time.plus amount = Zoned_Date_Time (this . internal_zoned_date_time . plus [amount.internal_temporal_amount])
+
+## Subtract specified amount of time to this instant.
+Zoned_Date_Time.minus : Temporal_Amount -> Zoned_Date_Time
+Zoned_Date_Time.minus amount = Zoned_Date_Time (this . internal_zoned_date_time . minus [amount.internal_temporal_amount])
+
 ## Obtains an instance of `Zoned_Date_Time` from a text string such as
    2007-12-03T10:15:30+01:00[Europe/Paris].
 

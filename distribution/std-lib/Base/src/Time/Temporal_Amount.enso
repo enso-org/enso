@@ -1,0 +1,4 @@
+from Base import all
+
+## The interface defining an amount of time, such as `Duration` and `Period`.
+type Temporal_Amount internal_temporal_amount

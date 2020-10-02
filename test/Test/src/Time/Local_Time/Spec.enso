@@ -1,6 +1,7 @@
 from Base import all
 
 import Base.Test
+import Base.Time.Duration
 import Base.Time.Instant
 import Base.Time.Local_Time
 import Base.Time.Zone_Offset
@@ -20,3 +21,9 @@ spec =
         it "should parse local time" <|
             time = Local_Time.parse "10:00:00"
             time.to_second_of_day . should_equal 36000
+        it "should add duration" <|
+            time = Local_Time.new.plus 1.minute
+            time . to_second_of_day . should_equal 60
+        it "should subtract duration" <|
+            time = Local_Time.new.minus 1.minute
+            time . to_second_of_day . should_equal 86340
