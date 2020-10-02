@@ -33,22 +33,22 @@ Duration.to_hours : Integer
 Duration.to_hours = this . internal_duration . toHours []
 
 ## Gets the number of days in this duration.
-
-   > Example
-     Add 1 minute to an hour.
-         1.hour.plus 1.minute
 Duration.to_days : Integer
 Duration.to_days = this . internal_duration . toDays []
 
 ## Add specified amount of time to this duration.
 
    > Example
-     Subtract 1 second from a minute.
-         1.minute.minus 1.second
+     Add 1 minute to an hour.
+         1.hour.plus 1.minute
 Duration.plus : Duration -> Duration
 Duration.plus other = Duration (this . internal_duration . plus [other.internal_duration])
 
 ## Add specified amount of time to this duration.
+
+   > Example
+     Subtract 1 second from a minute.
+         1.minute.minus 1.second
 Duration.minus : Duration -> Duration
 Duration.minus other = Duration (this . internal_duration . minus [other.internal_duration])
 
