@@ -54,6 +54,10 @@ pub use weak_table::WeakKeyHashMap;
 pub use weak_table::WeakValueHashMap;
 pub use weak_table;
 
+pub use std::collections::hash_map::DefaultHasher;
+pub use std::hash::Hash;
+pub use std::hash::Hasher;
+
 use std::cell::UnsafeCell;
 
 

@@ -123,6 +123,77 @@ pub fn ignore_context_menu(target:&EventTarget) -> Option<IgnoreContextMenuHandl
 // === DOM Helpers ===
 // ===================
 
+//#[cfg(target_arch = "wasm32")]
+
+static mut START_TIME : Option<std::time::Instant> = None;
+static mut TIME_OFFSET : f64 = 0.0;
+
+/// Initializes global stats of the program, like its start time. This function should be called
+/// exactly once, as the first operation of a program.
+///
+/// # Safety
+/// This function modifies a global variable, however, it should be safe as it should be called
+/// exactly once on program entry point.
+#[allow(unsafe_code)]
+pub fn init() -> std::time::Instant {
+    unsafe {
+        let now = std::time::Instant::now();
+        START_TIME = Some(now);
+        now
+    }
+}
+
+/// Start time of the program. Please note that the program should call the `init` function as its
+/// first operation.
+///
+/// # Safety
+/// The following modifies a global variable, however, even in case of a race condition, nothing
+/// bad should happen (the variable may be initialized several times). Moreover, the variable should
+/// be initialized on program start, so this should be always safe.
+#[allow(unsafe_code)]
+pub fn start_time() -> std::time::Instant {
+    unsafe {
+        match START_TIME {
+            Some(time) => time,
+            None       => init()
+        }
+    }
+}
+
+/// Time difference between the start time and current point in time.
+///
+/// # Safety
+/// The following code will always be safe if the program called the `init` function on entry. Even
+/// if that did not happen, the worst thing that may happen is re-initialization of the program
+/// start time variable.
+#[allow(unsafe_code)]
+#[cfg(target_arch = "wasm32")]
+pub fn time_from_start() -> f64 {
+    unsafe { performance().now() + TIME_OFFSET }
+}
+
+/// Time difference between the start time and current point in time.
+///
+/// # Safety
+/// The following code will always be safe if the program called the `init` function on entry. Even
+/// if that did not happen, the worst thing that may happen is re-initialization of the program
+/// start time variable.
+#[allow(unsafe_code)]
+#[cfg(not(target_arch = "wasm32"))]
+pub fn time_from_start() -> f64 {
+    unsafe { start_time().elapsed().as_millis() as f64 + TIME_OFFSET }
+}
+
+/// Simulates a time interval. This function will exit immediately, but the next time you will check
+/// the `time_from_start`, it will be increased.
+///
+/// # Safety
+/// This function is safe only in single-threaded environments.
+#[allow(unsafe_code)]
+pub fn simulate_sleep(duration:f64) {
+    unsafe { TIME_OFFSET += duration }
+}
+
 /// Access the `window` object if exists.
 pub fn try_window() -> Result<Window> {
     web_sys::window().ok_or_else(|| Error("Cannot access 'window'."))

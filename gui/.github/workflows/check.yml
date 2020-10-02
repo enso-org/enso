@@ -34,7 +34,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.18.0'
+          node-version: '12.18.4'
 
       - name: Build
         run: node ./run build
@@ -58,7 +58,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.18.0'
+          node-version: '12.18.4'
 
       - name: Building Rust Sources
         run: node ./run lint
@@ -79,7 +79,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.18.0'
+          node-version: '12.18.4'
 
       - name: Run tests
         run: node ./run test --no-wasm
@@ -112,7 +112,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.18.0'
+          node-version: '12.18.4'
 
       - name: Run tests
         run: node ./run test --no-native
@@ -134,7 +134,7 @@ jobs:
   #     - name: Install Node
   #       uses: actions/setup-node@v1
   #       with:
-  #         node-version: '12.18.0'
+  #         node-version: '12.18.4'
   #
   #     - name: Generate test profile
   #       working-directory: src/rust

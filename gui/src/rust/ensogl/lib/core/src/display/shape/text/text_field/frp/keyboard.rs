@@ -7,11 +7,11 @@ use crate::display::shape::text::text_field::TextField;
 use crate::display::shape::text::text_field::WeakTextField;
 use crate::system::web::text_input::KeyboardBinding;
 use crate::system::web::text_input::bind_frp_to_js_keyboard_actions;
-use crate::system::web::platform::Platform;
+use crate::system::web::platform;
 
 use enso_frp as frp;
-use enso_frp::io::Keyboard;
-use enso_frp::io::keyboard;
+use enso_frp::io::keyboard_old::Keyboard;
+use enso_frp::io::keyboard_old;
 
 
 
@@ -34,7 +34,7 @@ pub struct TextFieldKeyboardFrp {
     pub keyboard: Keyboard,
     /// Keyboard actions. Here we define shortcuts for all actions except letters input, copying
     /// and pasting.
-    pub actions: keyboard::Actions,
+    pub actions: keyboard_old::Actions,
     pub network: frp::Network,
     /// Event sent once cut operation was requested.
     pub on_cut: frp::Source,
@@ -58,7 +58,7 @@ impl TextFieldKeyboardFrp {
     /// Create FRP graph operating on given TextField pointer.
     pub fn new(text_field:WeakTextField) -> Self {
         let keyboard    = Keyboard::default();
-        let mut actions = keyboard::Actions::new(&keyboard);
+        let mut actions = keyboard_old::Actions::new(&keyboard);
         let cut         = Self::copy_lambda(true,text_field.clone_ref());
         let copy        = Self::copy_lambda(false,text_field.clone_ref());
         let paste       = Self::paste_lambda(text_field.clone_ref());
@@ -133,22 +133,22 @@ impl TextFieldKeyboardFrp {
         }
     }
 
-    fn enables_writing(mask:&keyboard::KeyMask) -> bool {
-        let modifiers = &[keyboard::Key::Control,keyboard::Key::Alt,keyboard::Key::Meta];
+    fn enables_writing(mask:&keyboard_old::KeyMask) -> bool {
+        let modifiers = &[keyboard_old::Key::Control, keyboard_old::Key::Alt, keyboard_old::Key::Meta];
         let is_modifier  = modifiers.iter().any(|key| mask.contains(key));
-        let is_alt_graph = mask.contains(&keyboard::Key::AltGraph);
-        match Platform::query() {
+        let is_alt_graph = mask.contains(&keyboard_old::Key::AltGraph);
+        match platform::current() {
             // On Windows AltGraph is emitted as both AltGraph and Ctrl. Therefore we don't
             // care about modifiers when AltGraph is pressed.
-            Platform::Windows => !is_modifier || is_alt_graph,
+            platform::Windows => !is_modifier || is_alt_graph,
             _                 => !is_modifier
         }
     }
 
-    fn char_typed_lambda(text_field:WeakTextField) -> impl Fn(&keyboard::Key,&keyboard::KeyMask) {
+    fn char_typed_lambda(text_field:WeakTextField) -> impl Fn(&keyboard_old::Key,&keyboard_old::KeyMask) {
         move |key,mask| {
             text_field.upgrade().for_each(|text_field| {
-                if let keyboard::Key::Character(string) = key {
+                if let keyboard_old::Key::Character(string) = key {
                     if Self::enables_writing(mask) {
                         text_field.write(string);
                     }
@@ -158,8 +158,8 @@ impl TextFieldKeyboardFrp {
     }
 
     fn initialize_actions_map
-    (actions:&mut keyboard::Actions, text_field:WeakTextField) {
-        use keyboard::Key::*;
+    (actions:&mut keyboard_old::Actions, text_field:WeakTextField) {
+        use keyboard_old::Key::*;
         let mut setter = TextFieldActionsSetter{actions,text_field};
         setter.set_navigation_action(&[ArrowLeft],          Step::Left);
         setter.set_navigation_action(&[ArrowRight],         Step::Right);
@@ -184,51 +184,51 @@ impl TextFieldKeyboardFrp {
 
 // === Keys combinations ===
 
-fn line_begin_keys() -> Vec<keyboard::Key> {
-    if let Platform::MacOS = Platform::query() {
-        vec![keyboard::Key::Meta,keyboard::Key::ArrowLeft]
+fn line_begin_keys() -> Vec<keyboard_old::Key> {
+    if let platform::MacOS = platform::current() {
+        vec![keyboard_old::Key::Meta, keyboard_old::Key::ArrowLeft]
     } else {
-        vec![keyboard::Key::Home]
+        vec![keyboard_old::Key::Home]
     }
 }
 
-fn line_end_keys() -> Vec<keyboard::Key> {
-    if let Platform::MacOS = Platform::query() {
-        vec![keyboard::Key::Meta,keyboard::Key::ArrowRight]
+fn line_end_keys() -> Vec<keyboard_old::Key> {
+    if let platform::MacOS = platform::current() {
+        vec![keyboard_old::Key::Meta, keyboard_old::Key::ArrowRight]
     } else {
-        vec![keyboard::Key::End]
+        vec![keyboard_old::Key::End]
     }
 }
 
-fn doc_begin_keys() -> Vec<keyboard::Key> {
-    if let Platform::MacOS = Platform::query() {
-        vec![keyboard::Key::Meta,keyboard::Key::ArrowUp]
+fn doc_begin_keys() -> Vec<keyboard_old::Key> {
+    if let platform::MacOS = platform::current() {
+        vec![keyboard_old::Key::Meta, keyboard_old::Key::ArrowUp]
     } else {
-        vec![keyboard::Key::Control,keyboard::Key::Home]
+        vec![keyboard_old::Key::Control, keyboard_old::Key::Home]
     }
 }
 
-fn doc_end_keys() -> Vec<keyboard::Key> {
-    if let Platform::MacOS = Platform::query() {
-        vec![keyboard::Key::Meta,keyboard::Key::ArrowDown]
+fn doc_end_keys() -> Vec<keyboard_old::Key> {
+    if let platform::MacOS = platform::current() {
+        vec![keyboard_old::Key::Meta, keyboard_old::Key::ArrowDown]
     } else {
-        vec![keyboard::Key::Control,keyboard::Key::End]
+        vec![keyboard_old::Key::Control, keyboard_old::Key::End]
     }
 }
 
-fn left_word_keys() -> Vec<keyboard::Key> {
-    if let Platform::MacOS = Platform::query() {
-        vec![keyboard::Key::Alt,keyboard::Key::ArrowLeft]
+fn left_word_keys() -> Vec<keyboard_old::Key> {
+    if let platform::MacOS = platform::current() {
+        vec![keyboard_old::Key::Alt, keyboard_old::Key::ArrowLeft]
     } else {
-        vec![keyboard::Key::Control,keyboard::Key::ArrowLeft]
+        vec![keyboard_old::Key::Control, keyboard_old::Key::ArrowLeft]
     }
 }
 
-fn right_word_keys() -> Vec<keyboard::Key> {
-    if let Platform::MacOS = Platform::query() {
-        vec![keyboard::Key::Alt,keyboard::Key::ArrowRight]
+fn right_word_keys() -> Vec<keyboard_old::Key> {
+    if let platform::MacOS = platform::current() {
+        vec![keyboard_old::Key::Alt, keyboard_old::Key::ArrowRight]
     } else {
-        vec![keyboard::Key::Control,keyboard::Key::ArrowRight]
+        vec![keyboard_old::Key::Control, keyboard_old::Key::ArrowRight]
     }
 }
 
@@ -239,11 +239,11 @@ fn right_word_keys() -> Vec<keyboard::Key> {
 /// for its usage.
 struct TextFieldActionsSetter<'a> {
     text_field : WeakTextField,
-    actions    : &'a mut keyboard::Actions,
+    actions    : &'a mut keyboard_old::Actions,
 }
 
 impl<'a> TextFieldActionsSetter<'a> {
-    fn set_action<F>(&mut self, keys:&[keyboard::Key], action:F)
+    fn set_action<F>(&mut self, keys:&[keyboard_old::Key], action:F)
     where F : Fn(&TextField) + 'static {
         let ptr = self.text_field.clone_ref();
         self.actions.add_action_for_key_mask(keys.into(), move || {
@@ -253,8 +253,8 @@ impl<'a> TextFieldActionsSetter<'a> {
         }).forget(); // FIXME remove forget
     }
 
-    fn set_navigation_action(&mut self, base:&[keyboard::Key], step:Step) {
-        let selecting   = base.iter().cloned().chain(std::iter::once(keyboard::Key::Shift)).collect_vec();
+    fn set_navigation_action(&mut self, base:&[keyboard_old::Key], step:Step) {
+        let selecting   = base.iter().cloned().chain(std::iter::once(keyboard_old::Key::Shift)).collect_vec();
         self.set_action(base, move |t| t.navigate_cursors(step,false));
         self.set_action(selecting.as_ref(), move |t| t.navigate_cursors(step,true));
     }

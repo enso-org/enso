@@ -1,3 +1,6 @@
+//! FIXME DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+//! This file is deprecated and is left only to support `keyboard_old` for the moment.
+
 //! Keyboard listener and related utils.
 
 use crate::prelude::*;
@@ -5,8 +8,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::system::web;
 
-use enso_frp::io::keyboard::Key;
-use enso_frp::io::Keyboard;
+use enso_frp::io::keyboard_old::Key;
+use enso_frp::io::keyboard_old::Keyboard;
 use js_sys::Function;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;

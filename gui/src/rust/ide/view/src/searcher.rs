@@ -8,7 +8,6 @@ use crate::prelude::*;
 use crate::documentation;
 
 use enso_frp as frp;
-use enso_frp::io::keyboard::Key;
 use ensogl::application;
 use ensogl::application::{Application, shortcut};
 use ensogl::display;
@@ -269,8 +268,8 @@ impl application::View for View {
 
 impl application::shortcut::DefaultShortcutProvider for View {
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
-        vec!
-        [ Self::self_shortcut(shortcut::Action::press   (&[Key::Tab], &[]) , "pick_suggestion"),
-        ]
+        use shortcut::ActionType::*;
+        (&[ (Press , "tab" , "pick_suggestion"),
+        ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
     }
 }

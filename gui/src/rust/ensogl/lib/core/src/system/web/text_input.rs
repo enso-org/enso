@@ -9,8 +9,8 @@
 use crate::prelude::*;
 
 use enso_frp::*;
-use enso_frp::io::keyboard;
-use enso_frp::io::keyboard::Keyboard;
+use enso_frp::io::keyboard_old;
+use enso_frp::io::keyboard_old::Keyboard;
 use std::fmt::Debug;
 use std::fmt::Formatter;
 use std::fmt::Error;
@@ -165,12 +165,12 @@ impl Debug for KeyboardBinding {
 /// source events in this graph.
 pub fn bind_frp_to_js_keyboard_actions(frp:&Keyboard, binding:&mut KeyboardBinding) {
     binding.set_key_down_handler(enclose!((frp.on_pressed => frp) move |event:KeyboardEvent| {
-        if let Ok(key) = event.key().parse::<keyboard::Key>() {
+        if let Ok(key) = event.key().parse::<keyboard_old::Key>() {
             frp.emit(key);
         }
     }));
     binding.set_key_up_handler(enclose!((frp.on_released => frp) move |event:KeyboardEvent| {
-        if let Ok(key) = event.key().parse::<keyboard::Key>() {
+        if let Ok(key) = event.key().parse::<keyboard_old::Key>() {
             frp.emit(key);
         }
     }));

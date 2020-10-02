@@ -168,7 +168,7 @@ impl PartialEq for Identifier {
 impl Eq for Identifier {}
 
 impl Hash for Identifier {
-    fn hash<H:std::hash::Hasher>(&self, state:&mut H) {
+    fn hash<H:Hasher>(&self, state:&mut H) {
         self.name().hash(state)
     }
 }

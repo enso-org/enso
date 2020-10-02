@@ -21,18 +21,6 @@ pub trait View : command::Provider + shortcut::DefaultShortcutProvider {
 
 
 
-// ==================
-// === Definition ===
-// ==================
-
-/// View definition. Keeps shortcut handles for each registered view.
-#[derive(Debug)]
-pub struct Definition {
-    shortcut_handles : Vec<shortcut::Handle>
-}
-
-
-
 // ================
 // === Registry ===
 // ================
@@ -46,7 +34,7 @@ pub struct Registry {
     pub display           : World,
     pub command_registry  : command::Registry,
     pub shortcut_registry : shortcut::Registry,
-    pub definitions       : Rc<RefCell<HashMap<String,Definition>>>,
+    pub definitions       : Rc<RefCell<HashSet<String>>>,
 }
 
 impl Registry {
@@ -67,12 +55,11 @@ impl Registry {
 
     /// View registration.
     pub fn register<V:View>(&self) {
-        let label            = V::label().into();
-        let shortcut_handles = V::default_shortcuts().into_iter().map(|shortcut| {
+        let label = V::label().into();
+        for shortcut in V::default_shortcuts() {
             self.shortcut_registry.add(shortcut)
-        }).collect();
-        let definition = Definition {shortcut_handles};
-        self.definitions.borrow_mut().insert(label,definition);
+        }
+        self.definitions.borrow_mut().insert(label);
         self.command_registry.register::<V>();
     }
 

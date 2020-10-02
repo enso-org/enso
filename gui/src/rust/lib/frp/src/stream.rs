@@ -141,21 +141,27 @@ impl<Input> Debug for EventInput<Input> {
 /// networks drastically.
 #[derive(Debug)]
 pub struct NodeData<Out=()> {
-    label         : Label,
+    /// Please be very careful when working with this field. When an event is emitted, this field
+    /// is borrowed mutable. You should always borrow it only if `during_call` is false. Otherwise,
+    /// if you want to register new outputs during a call, use `new_targets` field instead. It will
+    /// be merged into `targets` directly after the call.
     targets       : RefCell<Vec<EventInput<Out>>>,
+    new_targets   : RefCell<Vec<EventInput<Out>>>,
     value_cache   : RefCell<Out>,
     during_call   : Cell<bool>,
     watch_counter : watch::Counter,
+    label         : Label,
 }
 
 impl<Out:Default> NodeData<Out> {
     /// Constructor.
     pub fn new(label:Label) -> Self {
         let targets       = default();
+        let new_targets   = default();
         let value_cache   = default();
         let during_call   = default();
         let watch_counter = default();
-        Self {label,targets,value_cache,during_call,watch_counter}
+        Self {label,targets,new_targets,value_cache,during_call,watch_counter}
     }
 
     fn use_caching(&self) -> bool {
@@ -175,12 +181,21 @@ impl<Out:Data> EventEmitter for NodeData<Out> {
                 *self.value_cache.borrow_mut() = value.clone();
             }
             self.targets.borrow_mut().retain(|target| target.data.on_event_if_exists(value));
+            let mut new_targets = self.new_targets.borrow_mut();
+            if !new_targets.is_empty() {
+                let new_targets_ref : &mut Vec<EventInput<Out>> = &mut new_targets;
+                self.targets.borrow_mut().extend(mem::take(new_targets_ref));
+            }
             self.during_call.set(false);
         }
     }
 
     fn register_target(&self,target:EventInput<Out>) {
-        self.targets.borrow_mut().push(target)
+        if self.during_call.get() {
+            self.new_targets.borrow_mut().push(target);
+        } else {
+            self.targets.borrow_mut().push(target);
+        }
     }
 
     fn register_watch(&self) -> watch::Handle {

@@ -63,6 +63,11 @@ impl Button {
             Button4 => 4,
         }
     }
+
+    /// Simple, user-friendly name of a key. Used in shortcut manager.
+    pub fn simple_name(self) -> String {
+        format!("mouse-button-{}",self.code())
+    }
 }
 
 impl Default for Button {
