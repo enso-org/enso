@@ -4,6 +4,10 @@ import sbt._
 // import sbt.internal.util.ManagedLogger
 
 object GatherLicenses {
+  val distributions = taskKey[Seq[DistributionDescription]](
+    "Defines descriptions of distributions."
+  )
+
   lazy val run = Def.task {
     val log = state.value.log
     log.info(
@@ -11,9 +15,25 @@ object GatherLicenses {
       "This task may take a long time."
     )
 
-    val licenseInfo = updateLicenses.value
+    for (distribution <- distributions.value) {
+      log.info(s"Processing ${distribution.artifactName} distribution")
+      val projectNames = distribution.sbtComponents.map(_.name)
+      log.info(
+        s"It consists of the following sbt project roots:" +
+        s" ${projectNames.mkString(", ")}"
+      )
 
-    println(licenseInfo)
+      val combinedDependencies = (for {
+        component <- distribution.sbtComponents
+        dep       <- component.report.licenses
+      } yield dep).distinct
+
+      log.info(s"${combinedDependencies.length} unique dependencies found")
+
+      for (dependency <- combinedDependencies) {
+        println(s"${dependency.module} -> ${dependency.license}")
+      }
+    }
 
     log.warn(
       "Finished gathering license information. " +

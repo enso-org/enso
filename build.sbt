@@ -4,7 +4,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
   licenseReportNotes,
   licenseReportStyleRules
 }
-import scala.sys.process._
+
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
@@ -116,10 +116,6 @@ lazy val buildNativeImage =
 lazy val bootstrap =
   taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
 bootstrap := {}
-
-lazy val gatherLicenses =
-  taskKey[Unit]("Gathers licensing information for relevant dependencies")
-gatherLicenses := GatherLicenses.run.value
 
 // ============================================================================
 // === Global Project =========================================================
@@ -1147,3 +1143,35 @@ lazy val launcher = project
  * initialization was done at build time, the shutdown hook would actually also
  * run at build time and have no effect at runtime.
  */
+
+lazy val gatherLicenses =
+  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+gatherLicenses := GatherLicenses.run.value
+GatherLicenses.distributions := Seq(
+    DistributionDescription(
+      artifactName = "launcher",
+      sbtComponents = Seq(
+        DistributionComponent("launcher", (launcher / updateLicenses).value)
+      )
+    ),
+    DistributionDescription(
+      artifactName = "engine",
+      /*
+/build.sbt:1170: error: reference to runner is ambiguous;
+it is imported twice in the same scope by
+import _root_.sbt.Keys._
+and import $6e3fa6960dfdf20211fd._
+        DistributionComponent("runner", (runner / updateLicenses).value),
+
+The runner may need to be renamed due to this weird issue?
+       */
+      sbtComponents = Seq(
+        DistributionComponent("runtime", (runtime / updateLicenses).value),
+//        DistributionComponent("runner", (runner / updateLicenses).value),
+        DistributionComponent(
+          "project-manager",
+          (`project-manager` / updateLicenses).value
+        )
+      )
+    )
+  )
