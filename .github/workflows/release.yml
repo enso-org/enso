@@ -90,6 +90,13 @@ jobs:
             ~/.cache
           key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
+      - name: Cache Local Maven Repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       # Build Artifacts
       - name: Enable Release Mode
@@ -192,7 +199,7 @@ jobs:
         shell: bash
         run: |
           cd std-bits
-          mvn package
+          mvn --no-transfer-progress package
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
