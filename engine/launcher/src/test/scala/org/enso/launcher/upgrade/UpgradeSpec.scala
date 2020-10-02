@@ -331,7 +331,8 @@ class UpgradeSpec
       )
       try {
         firstSuspended.waitForMessageOnErrorStream(
-          "INTERNAL-TEST-ACQUIRING-LOCK"
+          "INTERNAL-TEST-ACQUIRING-LOCK",
+          timeoutSeconds = 30
         )
 
         val secondFailed = run(Seq("upgrade", "0.0.0"))
