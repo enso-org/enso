@@ -26,9 +26,16 @@ trait ServiceWithActorSystem extends Service {
   /**
     * Initializes an [[ActorSystem]], overriding the default logging settings.
     *
-    * The default logger cannot be used, because if it is set to use the logging
-    * service, logging service errors could potentially lead to cycles or errors
-    * not being displayed if the logging service fails.
+    * The Actor System responsible for the logging service cannot use the
+    * default configured logger, because this logger is likely to be the one
+    * bound to the logging service itself. The logging service cannot use itself
+    * for logging, because if it failed, it could not log its own failure or
+    * there could be a risk of entering an infinite loop if writing a log
+    * message triggered another log message.
+    *
+    * To avoid these issues, the Actor System responsible for the logging
+    * service overrides its logger setting to use the default standard output
+    * logger and is configured to only log warnings or errors.
     */
   private def initializeActorSystemForLoggingService(
     name: String
