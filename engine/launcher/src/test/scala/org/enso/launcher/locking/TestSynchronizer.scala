@@ -103,7 +103,12 @@ class TestSynchronizer {
   def summarizeReports(): Seq[String] = reports.asScala.toSeq
 
   private def reportException(thread: Thread, throwable: Throwable): Unit = {
-    System.err.println(s"${thread.getName} got an exception: $throwable")
+    throwable match {
+      case _: InterruptedException =>
+        System.err.println(s"${thread.getName} was interrupted: $throwable")
+      case _ =>
+        System.err.println(s"${thread.getName} got an exception: $throwable")
+    }
     throwable.printStackTrace()
     hadException = true
   }
@@ -118,13 +123,22 @@ class TestSynchronizer {
     */
   def join(joinTimeOutSeconds: Long = timeOutSeconds): Unit = {
     var hadTimeout = false
-    for (thread <- threads.reverse) {
-      thread.join(joinTimeOutSeconds * 1000)
-      if (thread.isAlive) {
-        System.err.println(s"Thread ${thread.getName} timed out.")
-        thread.interrupt()
-        hadTimeout = true
+    try {
+      for (thread <- threads.reverse) {
+        thread.join(joinTimeOutSeconds * 1000)
+        if (thread.isAlive) {
+          System.err.println(s"Thread ${thread.getName} timed out.")
+          thread.interrupt()
+          hadTimeout = true
+        }
       }
+    } catch {
+      case interrupt: InterruptedException =>
+        for (thread <- threads) {
+          try thread.interrupt()
+          catch { case _: Throwable => }
+        }
+        throw interrupt
     }
 
     if (hadException) {

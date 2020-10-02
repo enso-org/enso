@@ -4,12 +4,12 @@ import java.nio.file.Path
 
 import io.circe._
 import io.circe.parser._
-import org.apache.http.Header
 import org.enso.cli.TaskProgress
 import org.enso.launcher.http.{
   APIResponse,
   HTTPDownload,
   HTTPRequestBuilder,
+  Header,
   URIBuilder
 }
 import org.enso.launcher.releases.ReleaseProviderException
@@ -134,9 +134,9 @@ object GithubAPI {
     defaultError: => Throwable
   ): Throwable = {
     def isLimitExceeded(header: Header): Boolean =
-      header.getValue.toIntOption.contains(0)
+      header.value.toIntOption.contains(0)
 
-    response.headers.find(_.getName == "X-RateLimit-Remaining") match {
+    response.headers.find(_.is("X-RateLimit-Remaining")) match {
       case Some(header) if isLimitExceeded(header) =>
         ReleaseProviderException(
           "GitHub Release API rate limit exceeded for your IP address. " +

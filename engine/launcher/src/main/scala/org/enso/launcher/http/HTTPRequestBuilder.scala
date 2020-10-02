@@ -1,8 +1,7 @@
 package org.enso.launcher.http
 
-import java.net.URI
-
-import org.apache.http.client.methods.{HttpUriRequest, RequestBuilder}
+import akka.http.scaladsl.model.HttpHeader.ParsingResult
+import akka.http.scaladsl.model._
 
 /**
   * A simple immutable builder for HTTP requests.
@@ -11,14 +10,14 @@ import org.apache.http.client.methods.{HttpUriRequest, RequestBuilder}
   * the launcher. It can be easily extended if necessary.
   */
 case class HTTPRequestBuilder private (
-  uri: URI,
+  uri: Uri,
   headers: Vector[(String, String)]
 ) {
 
   /**
     * Builds a GET request with the specified settings.
     */
-  def GET: HttpUriRequest = build(RequestBuilder.get())
+  def GET: HTTPRequest = build(HttpMethods.GET)
 
   /**
     * Adds an additional header that will be included in the request.
@@ -29,12 +28,22 @@ case class HTTPRequestBuilder private (
   def addHeader(name: String, value: String): HTTPRequestBuilder =
     copy(headers = headers.appended((name, value)))
 
-  private def build(requestBuilder: RequestBuilder): HttpUriRequest = {
-    val withUri = requestBuilder.setUri(uri)
-    val withHeaders = headers.foldLeft(withUri)((builder, header) =>
-      builder.addHeader(header._1, header._2)
-    )
-    withHeaders.build()
+  private def build(
+    method: HttpMethod
+  ): HTTPRequest = {
+    val httpHeaders = headers.map {
+      case (name, value) =>
+        HttpHeader.parse(name, value) match {
+          case ParsingResult.Ok(header, errors) if errors.isEmpty =>
+            header
+          case havingErrors =>
+            throw new IllegalStateException(
+              s"Internal error: " +
+              s"Invalid value for header $name: ${havingErrors.errors}."
+            )
+        }
+    }
+    HTTPRequest(HttpRequest(method = method, uri = uri, headers = httpHeaders))
   }
 }
 
@@ -43,7 +52,7 @@ object HTTPRequestBuilder {
   /**
     * Creates a request builder that will send the request for the given URI.
     */
-  def fromURI(uri: URI): HTTPRequestBuilder =
+  def fromURI(uri: Uri): HTTPRequestBuilder =
     new HTTPRequestBuilder(uri, Vector.empty)
 
   /**
@@ -51,5 +60,5 @@ object HTTPRequestBuilder {
     * builder that will send the request to the given `uri`.
     */
   def fromURIString(uri: String): HTTPRequestBuilder =
-    fromURI(new URI(uri))
+    fromURI(Uri.parseAbsolute(uri))
 }

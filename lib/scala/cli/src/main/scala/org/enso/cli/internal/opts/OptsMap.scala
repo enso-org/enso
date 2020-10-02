@@ -17,9 +17,10 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override private[cli] def wantsArgument() = a.wantsArgument()
   override private[cli] def consumeArgument(
     arg: String,
-    commandPrefix: Seq[String]
+    commandPrefix: Seq[String],
+    suppressUnexpectedArgument: Boolean
   ): ParserContinuation =
-    a.consumeArgument(arg, commandPrefix)
+    a.consumeArgument(arg, commandPrefix, suppressUnexpectedArgument)
   override private[cli] def requiredArguments: Seq[String] = a.requiredArguments
   override private[cli] def optionalArguments: Seq[String] = a.optionalArguments
   override private[cli] def trailingArguments: Option[String] =

@@ -2,7 +2,7 @@ package org.enso.launcher.config
 
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{FakeEnvironment, WithTemporaryDirectory}
+import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.locking.TestLocalResourceManager
 import org.scalatest.OptionValues
@@ -14,7 +14,8 @@ class GlobalConfigurationManagerSpec
     with Matchers
     with WithTemporaryDirectory
     with FakeEnvironment
-    with OptionValues {
+    with OptionValues
+    with DropLogs {
   def makeConfigManager(): GlobalConfigurationManager = {
     val env = fakeInstalledEnvironment()
     val distributionManager =

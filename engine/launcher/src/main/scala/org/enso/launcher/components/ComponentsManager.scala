@@ -2,6 +2,7 @@ package org.enso.launcher.components
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
@@ -20,7 +21,7 @@ import org.enso.launcher.releases.runtime.{
   RuntimeReleaseProvider
 }
 import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
-import org.enso.launcher.{FileSystem, Logger}
+import org.enso.launcher.{FileSystem, InfoLogger}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -46,6 +47,7 @@ class ComponentsManager(
   runtimeReleaseProvider: RuntimeReleaseProvider
 ) {
   private val showProgress = !cliOptions.hideProgress
+  private val logger       = Logger[ComponentsManager]
 
   /**
     * Tries to find runtime for the provided engine.
@@ -183,7 +185,7 @@ class ComponentsManager(
       case Some(found) => found
       case None =>
         def complainAndAsk(): Boolean = {
-          Logger.warn(
+          logger.warn(
             s"Runtime ${engine.manifest.runtimeVersion} required for $engine " +
             s"is missing."
           )
@@ -231,7 +233,7 @@ class ComponentsManager(
     getEngine(version)
       .map { engine =>
         if (engine.isMarkedBroken) {
-          Logger.warn(
+          logger.warn(
             s"Running an engine release ($version) that is marked as broken. " +
             s"Please consider upgrading to a stable release."
           )
@@ -270,7 +272,7 @@ class ComponentsManager(
       case Some(found) => found
       case None =>
         def complainAndAsk(): Boolean = {
-          Logger.warn(s"Engine $version is missing.")
+          logger.warn(s"Engine $version is missing.")
           cliOptions.autoConfirm || CLIOutput.askConfirmation(
             "Do you want to install the missing engine?",
             yesDefault = true
@@ -284,7 +286,7 @@ class ComponentsManager(
           ) {
             findEngine(version) match {
               case Some(engine) =>
-                Logger.info(
+                InfoLogger.info(
                   "The engine has already been installed by a different " +
                   "process."
                 )
@@ -335,7 +337,7 @@ class ComponentsManager(
   ): Seq[A] =
     result match {
       case (path, Failure(exception)) =>
-        Logger.warn(
+        logger.warn(
           s"$name at $path has been skipped due to the following error: " +
           s"$exception"
         )
@@ -359,12 +361,12 @@ class ComponentsManager(
       (Resource.Engine(version), LockType.Exclusive)
     ) {
       val engine = getEngine(version).getOrElse {
-        Logger.warn(s"Enso Engine $version is not installed.")
+        logger.warn(s"Enso Engine $version is not installed.")
         throw ComponentMissingError(s"Enso Engine $version is not installed.")
       }
 
       safelyRemoveComponent(engine.path)
-      Logger.info(s"Uninstalled $engine.")
+      InfoLogger.info(s"Uninstalled $engine.")
       cleanupRuntimes()
     }
 
@@ -393,14 +395,14 @@ class ComponentsManager(
     }
     if (engineRelease.isBroken) {
       if (cliOptions.autoConfirm) {
-        Logger.warn(
+        logger.warn(
           s"The engine release $version is marked as broken and it should " +
           s"not be used. Since `auto-confirm` is set, the installation will " +
           s"continue, but you may want to reconsider changing versions to a " +
           s"stable release."
         )
       } else {
-        Logger.warn(
+        logger.warn(
           s"The engine release $version is marked as broken and it should " +
           s"not be used."
         )
@@ -417,9 +419,9 @@ class ComponentsManager(
       }
     }
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
-      Logger.debug(s"Downloading packages to $directory")
+      logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
-      Logger.info(s"Downloading ${enginePackage.getFileName}.")
+      InfoLogger.info(s"Downloading ${enginePackage.getFileName}.")
       engineRelease
         .downloadPackage(enginePackage)
         .waitForResult(showProgress)
@@ -428,7 +430,7 @@ class ComponentsManager(
       val engineDirectoryName =
         engineDirectoryNameForVersion(engineRelease.version)
 
-      Logger.info(s"Extracting the engine.")
+      InfoLogger.info(s"Extracting the engine.")
       Archive
         .extractArchive(
           enginePackage,
@@ -503,7 +505,7 @@ class ComponentsManager(
             distributionManager.paths.engines / engineDirectoryName
           FileSystem.atomicMove(engineTemporaryPath, enginePath)
           val engine = getEngine(version).getOrElse {
-            Logger.error(
+            logger.error(
               "fatal: Could not load the installed engine." +
               "Reverting the installation."
             )
@@ -517,7 +519,7 @@ class ComponentsManager(
             )
           }
 
-          Logger.info(s"Installed $engine.")
+          InfoLogger.info(s"Installed $engine.")
           engine
         }
 
@@ -604,13 +606,13 @@ class ComponentsManager(
           case Some(graalVersion) =>
             Some(RuntimeVersion(graalVersion, javaVersionString))
           case None =>
-            Logger.warn(
+            logger.warn(
               s"Invalid runtime version string `$graalVersionString`."
             )
             None
         }
       case _ =>
-        Logger.warn(
+        logger.warn(
           s"Unrecognized runtime name `$name`."
         )
         None
@@ -677,7 +679,7 @@ class ComponentsManager(
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
-      Logger.info(s"Downloading ${runtimePackage.getFileName}.")
+      InfoLogger.info(s"Downloading ${runtimePackage.getFileName}.")
       runtimeReleaseProvider
         .downloadPackage(runtimeVersion, runtimePackage)
         .waitForResult(showProgress)
@@ -685,7 +687,7 @@ class ComponentsManager(
 
       val runtimeDirectoryName = graalDirectoryForVersion(runtimeVersion)
 
-      Logger.info(s"Extracting the runtime.")
+      InfoLogger.info(s"Extracting the runtime.")
       Archive
         .extractArchive(
           runtimePackage,
@@ -723,7 +725,7 @@ class ComponentsManager(
           )
         }
 
-        Logger.info(s"Installed $runtime.")
+        InfoLogger.info(s"Installed $runtime.")
         runtime
       } catch {
         case NonFatal(e) =>
@@ -746,7 +748,7 @@ class ComponentsManager(
   private def cleanupRuntimes(): Unit = {
     for (runtime <- listInstalledRuntimes()) {
       if (findEnginesUsingRuntime(runtime).isEmpty) {
-        Logger.info(
+        InfoLogger.info(
           s"Removing $runtime, because it is not used by any installed Enso " +
           s"versions."
         )

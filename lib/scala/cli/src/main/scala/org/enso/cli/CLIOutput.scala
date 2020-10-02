@@ -53,6 +53,14 @@ object CLIOutput {
     Predef.println(alignAndWrap(text))
   }
 
+  def readLine(): String = {
+    Option(Console.in.readLine()).getOrElse(
+      throw new RuntimeException(
+        "End of stream has been reached when asking for user input."
+      )
+    )
+  }
+
   /**
     * Prints out the given question and asks the user to confirm the action by
     * typing 'y' or 'n'.
@@ -72,7 +80,7 @@ object CLIOutput {
     val prompt = if (yesDefault) "[Y/n]" else "[y/N]"
     val text   = alignAndWrap(question + " " + prompt + " ")
     Predef.print(text)
-    val line = Console.in.readLine().strip().toLowerCase
+    val line = readLine().strip().toLowerCase
     if (line.isEmpty) yesDefault
     else if (line == "y") true
     else if (line == "n") false
@@ -126,7 +134,7 @@ object CLIOutput {
         question + " " + explanations + " " + shortcuts + " "
       )
     Predef.print(prompt)
-    val line = Console.in.readLine().strip().toLowerCase
+    val line = readLine().strip().toLowerCase
     if (line.isEmpty)
       answers.head
     else
