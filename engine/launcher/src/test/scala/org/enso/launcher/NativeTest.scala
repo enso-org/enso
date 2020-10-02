@@ -302,7 +302,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       */
     def join(
       waitForDescendants: Boolean = true,
-      timeoutSeconds: Long        = 10
+      timeoutSeconds: Long        = 15
     ): RunResult = {
       var descendants: Seq[ProcessHandle] = Seq()
       try {

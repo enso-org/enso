@@ -104,14 +104,10 @@ object LoggingServiceManager {
     }
 
     previousService match {
-      case Some(value) =>
-        System.err.println("Terminating prevoius service")
-        value.terminate()
-        System.err.println("Prevoius service has been terminated")
+      case Some(service) =>
+        service.terminate()
       case None =>
-        System.err.println("No service was running")
     }
-
   }
 
   /**

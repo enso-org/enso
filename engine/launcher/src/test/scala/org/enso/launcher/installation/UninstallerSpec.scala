@@ -54,22 +54,11 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
     "uninstall a simple distribution" in {
       val (launcher, env) = prepareInstalledDistribution()
 
-//      runLauncherAt(
-//        launcher,
-//        Seq("--auto-confirm", "uninstall", "distribution"),
-//        env
-//      ) should returnSuccess
-      val proc = start(
-        Seq(
-          launcher.toAbsolutePath.normalize.toString,
-          "--auto-confirm",
-          "uninstall",
-          "distribution"
-        ),
-        env.toSeq
-      )
-      proc.printIO()
-      proc.join(timeoutSeconds = 15)
+      runLauncherAt(
+        launcher,
+        Seq("--auto-confirm", "uninstall", "distribution"),
+        env
+      ) should returnSuccess
 
       assert(Files.notExists(installedRoot), "Should remove the data root.")
       assert(

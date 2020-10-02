@@ -67,7 +67,6 @@ trait ServiceWithActorSystem extends Service {
     * termination, then handles any other termination logic.
     */
   abstract override def terminate(): Unit = {
-    System.err.println("terminating Akka")
     import actorSystem.dispatcher
     val termination = terminateUser().map(_ => {
       actorSystem.terminate()
@@ -78,7 +77,6 @@ trait ServiceWithActorSystem extends Service {
       case _: concurrent.TimeoutException =>
         InternalLogger.error("The actor system did not terminate in time.")
     } finally {
-      System.err.println("Akka calling parent terminate")
       super.terminate()
     }
   }

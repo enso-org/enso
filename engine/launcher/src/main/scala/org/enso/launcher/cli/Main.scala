@@ -60,11 +60,6 @@ object Main {
   def exit(exitCode: Int): Nothing = {
     LauncherLogging.tearDown()
     DefaultResourceManager.releaseMainLock()
-    System.err.println("Bye bye")
-    (new RuntimeException("Bye bye")).fillInStackTrace().printStackTrace()
-    Thread.sleep(100)
-    System.out.flush()
-    System.err.flush()
     sys.exit(exitCode)
   }
 }

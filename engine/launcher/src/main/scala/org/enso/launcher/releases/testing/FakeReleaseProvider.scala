@@ -129,11 +129,11 @@ case class FakeAsset(
       val lockType = LockType.Shared
       val lock =
         DefaultFileLockManager.tryAcquireLock(name, lockType) match {
-          case Some(lock) =>
+          case Some(immediateLock) =>
             System.err.println(
               "[TEST] Error: Lock was unexpectedly acquired immediately."
             )
-            lock
+            immediateLock
           case None =>
             System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
             DefaultFileLockManager.acquireLock(name, lockType)

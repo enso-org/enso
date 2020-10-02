@@ -28,7 +28,6 @@ case class Local(
     * Shuts down the printers.
     */
   override protected def afterShutdown(): Unit = {
-    System.err.println(s"Shutting down ${printers.length} printers")
     printers.foreach(_.shutdown())
   }
 }
