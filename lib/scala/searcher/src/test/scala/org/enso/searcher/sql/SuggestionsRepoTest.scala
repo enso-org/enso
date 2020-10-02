@@ -509,15 +509,15 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     "search suggestion by empty module" taggedAs Retry in withRepo { repo =>
       val action = for {
-        _   <- repo.insert(suggestion.atom)
-        _   <- repo.insert(suggestion.method)
+        id1 <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
         res <- repo.search(Some(""), None, None, None, None)
-      } yield res._2
+      } yield (res._2, Seq(id1, id2))
 
-      val res = Await.result(action, Timeout)
-      res.isEmpty shouldEqual true
+      val (res, globals) = Await.result(action, Timeout)
+      res should contain theSameElementsAs globals.flatten
     }
 
     "search suggestion by self type" taggedAs Retry in withRepo { repo =>

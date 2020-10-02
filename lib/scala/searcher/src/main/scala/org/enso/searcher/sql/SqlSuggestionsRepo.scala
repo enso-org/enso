@@ -425,6 +425,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** Create a search query by the provided parameters.
     *
+    * Even if the module is specified, the response includes all available
+    * global symbols (atoms and method).
+    *
     * @param module the module name search parameter
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
@@ -441,7 +444,8 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
       .filterOpt(module) {
-        case (row, value) => row.module === value
+        case (row, value) =>
+          row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
       .filterOpt(selfType) {
         case (row, value) => row.selfType === value
