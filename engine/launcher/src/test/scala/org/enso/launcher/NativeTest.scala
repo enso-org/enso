@@ -1,6 +1,6 @@
 package org.enso.launcher
 
-import java.io.{BufferedReader, InputStream, InputStreamReader}
+import java.io.{BufferedReader, IOException, InputStream, InputStreamReader}
 import java.lang.{ProcessBuilder => JProcessBuilder}
 import java.nio.file.{Files, Path}
 import java.util.concurrent.{Semaphore, TimeUnit}
@@ -223,9 +223,15 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
         case StdErr => errQueue
         case StdOut => outQueue
       }
-      while ({ line = reader.readLine(); line != null }) {
-        queue.add(line)
-        ioHandlers.foreach(f => f(line, streamType))
+      try {
+        while ({ line = reader.readLine(); line != null }) {
+          queue.add(line)
+          ioHandlers.foreach(f => f(line, streamType))
+        }
+      } catch {
+        case _: InterruptedException =>
+        case _: IOException =>
+          ioHandlers.foreach(f => f("<Unexpected EOF>", streamType))
       }
     }
 
@@ -288,6 +294,13 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       errQueue.asScala.toSeq.foreach(line =>
         println(s"stderr-before-printIO> $line")
       )
+    }
+
+    /**
+      * Tries to kill the process immediately.
+      */
+    def kill(): Unit = {
+      process.destroyForcibly()
     }
 
     /**

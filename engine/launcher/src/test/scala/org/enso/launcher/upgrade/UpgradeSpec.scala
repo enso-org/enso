@@ -94,7 +94,11 @@ class UpgradeSpec
     val sourceLauncherLocation =
       launcherVersion.map(builtLauncherBinary).getOrElse(baseLauncherLocation)
     Files.createDirectories(launcherPath.getParent)
-    Files.copy(sourceLauncherLocation, launcherPath)
+    Files.copy(
+      sourceLauncherLocation,
+      launcherPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
     if (portable) {
       val root = launcherPath.getParent.getParent
       FileSystem.writeTextFile(root / ".enso.portable", "mark")
@@ -309,7 +313,8 @@ class UpgradeSpec
       result.stdout should include(message)
     }
 
-    "fail if another upgrade is running in parallel" taggedAs Retry in {
+    "fail if another upgrade is running in parallel" taggedAs Retry in
+    allowForRetry {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 1))
@@ -328,7 +333,12 @@ class UpgradeSpec
       )
 
       val firstSuspended = startLauncher(
-        Seq("upgrade", "0.0.2", "--internal-emulate-repository-wait")
+        Seq(
+          "upgrade",
+          "0.0.2",
+          "--internal-emulate-repository-wait",
+          "--launcher-log-level=trace"
+        )
       )
       try {
         firstSuspended.waitForMessageOnErrorStream(
@@ -347,6 +357,7 @@ class UpgradeSpec
             "the process had the following output:"
           )
           firstSuspended.printIO()
+          firstSuspended.kill()
           throw e
       } finally {
         lock.release()
