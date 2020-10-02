@@ -5,11 +5,11 @@ polyglot java import java.lang.System
 
 ## The number of seconds that have elapsed since the Unix epoch.
 epoch_time : Integer
-epoch_time = Instant.now . getEpochSecond []
+epoch_time = Instant.now . to_epoch_second
 
 ## The number of milliseconds that have elapsed since the Unix epoch.
 epoch_time_millis : Integer
-epoch_time_millis = Instant.now . toEpochMilli []
+epoch_time_millis = Instant.now . to_epoch_milli
 
 ## The current value of the running program's high-resolution time source, in
    nanoseconds. This method can only be used to measure elapsed time and is not

@@ -1,4 +1,6 @@
 from Base import all
+import Base.Test
+import Base.Time
 
 import Test.Time.Duration.Spec as Duration_Spec
 import Test.Time.Instant.Spec as Instant_Spec
@@ -13,6 +15,17 @@ import Test.Time.Zone_Id.Spec as Zone_Id_Spec
 import Test.Time.Zone_Offset.Spec as Zone_Offset_Spec
 
 spec =
+    describe "Time" <|
+       it "should get epoch time seconds" <|
+           time = Time.epoch_time
+           (time > 0) . should_be_true
+       it "should get epoch time millis" <|
+           time = Time.epoch_time_millis
+           (time > 0) . should_be_true
+       it "should get nano time" <|
+           time1 = Time.nano_time
+           time2 = Time.nano_time
+           (time1 <= time2) . should_be_true
     Zone_Offset_Spec.spec
     Zone_Id_Spec.spec
     Instant_Spec.spec

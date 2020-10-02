@@ -19,6 +19,10 @@ type Instant internal_instant
 Instant.internal_temporal : Temporal
 Instant.internal_temporal = this.internal_instant
 
+## Return the number of seconds from the Unix epoch.
+Instant.to_epoch_second : Integer
+Instant.to_epoch_second = this . internal_instant . getEpochSecond []
+
 ## Return the number of milliseconds from the Unix epoch.
 Instant.to_epoch_milli : Integer
 Instant.to_epoch_milli = this . internal_instant . toEpochMilli []
