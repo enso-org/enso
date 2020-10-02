@@ -5,6 +5,9 @@ category: product
 tags: [product,ui]
 ---
 
+### The <kbd>meta</kbd> key.
+The <kbd>meta</kbd> key was introduced to make the shortcuts consistent across platforms. It is defined as <kbd>command</kbd> on macOS, and as <kbd>ctlr</kbd> on Windows and Linux.
+
 ### Graph Editor
 | Shortcut | Action |
 | -------- | ------ |
@@ -13,32 +16,32 @@ tags: [product,ui]
 #### Node Editing
 | Shortcut | Action |
 | -------- | ------ |
-| <kbd>Shift</kbd>+<kbd>Tab</kbd> | Show searcher for adding new node. |
-| <kbd>Ctrl</kbd>+<kbd>Backspace</kbd> | Removes the selected nodes. |
-| <kbd>Ctrl</kbd>+<kbd>g</kbd> | Collapses the selected nodes. |
-| <kbd>Ctrl</kbd>+<kbd>LMB</kbd> | Start editing node expression. |
-| <kbd>Enter</kbd> when suggestion is selected, or <kbd>LMB</kbd> on suggestion | Pick selected suggestion and commit editing. |
-| <kbd>Enter</kbd> *when suggestion is not selected* | Commit editing with the current input. |
+| <kbd>shift</kbd>+<kbd>tab</kbd> | Show searcher for adding new node. |
+| <kbd>ctrl</kbd>+<kbd>backspace</kbd> | Removes the selected nodes. |
+| <kbd>ctrl</kbd>+<kbd>g</kbd> | Collapses the selected nodes. |
+| <kbd>meta</kbd>+<kbd>left-mouse-button</kbd> | Start editing node expression. |
+| <kbd>enter</kbd> when suggestion is selected, or <kbd>LMB</kbd> on suggestion | Pick selected suggestion and commit editing. |
+| <kbd>enter</kbd> *when suggestion is not selected* | Commit editing with the current input. |
 
 #### Navigation
 
 | Shortcut | Action |
 | -------- | ------ |
-| <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | Step into the last selected node.
-| <kbd>Ctrl</kbd>+<kbd>Arrow Up</kbd> | Step out of the current node.
+| <kbd>ctrl</kbd>+<kbd>enter</kbd> | Step into the last selected node.
+| <kbd>ctrl</kbd>+<kbd>up</kbd> | Step out of the current node.
 
 
 #### Node Selection
 
 | Shortcut | Action |
 | --- | --- |
-| <kbd>LMB</kbd> click node name                                        | Deselect all nodes. Select the target node. |
-| <kbd>LMB</kbd> click background                                       | Deselect all nodes. |
-| <kbd>LMB</kbd> drag background                                        | Deselect all nodes. Select nodes using selection-box. |
-| <kbd>shift</kbd> + <kbd>LMB</kbd> click node name                     | Add node to the selection group. |
-| <kbd>shift</kbd> + <kbd>LMB</kbd> drag background                     | Add nodes to the selection group. |
-| <kbd>option</kbd> + <kbd>LMB</kbd> click node name                    | Remove node from the selection group. |
-| <kbd>option</kbd> + <kbd>LMB</kbd> drag background                    | Remove nodes from the selection group. |
+| <kbd>left-mouse-button</kbd> click node name                          | Deselect all nodes. Select the target node. |
+| <kbd>left-mouse-button</kbd> click background                         | Deselect all nodes. |
+| <kbd>left-mouse-button</kbd> drag background                          | Deselect all nodes. Select nodes using selection-box. |
+| <kbd>shift</kbd> + <kbd>left-mouse-button</kbd> click node name       | Add node to the selection group. |
+| <kbd>shift</kbd> + <kbd>left-mouse-button</kbd> drag background       | Add nodes to the selection group. |
+| <kbd>option</kbd> + <kbd>left-mouse-button</kbd> click node name      | Remove node from the selection group. |
+| <kbd>option</kbd> + <kbd>left-mouse-button</kbd> drag background      | Remove nodes from the selection group. |
 | <kbd>option</kbd> + <kbd>shift</kbd> + <kbd>LMB</kbd> click node name | Inverse node selection. |
 | <kbd>option</kbd> + <kbd>shift</kbd> + <kbd>LMB</kbd> drag background | Inverse nodes selection. |
 
@@ -48,8 +51,8 @@ tags: [product,ui]
 
 | Shortcut | Action |
 | -------- | ------ |
-| LMB drag non-selected node name | Move the node to new position. |
-| LMB drag selected node name     | Move all selected nodes the node to new positions. |
+| left-mouse-button drag non-selected node name | Move the node to new position. |
+| left-mouse-button drag selected node name     | Move all selected nodes the node to new positions. |
 
 
 
