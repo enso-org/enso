@@ -2,6 +2,7 @@ package org.enso.launcher.upgrade
 
 import java.nio.file.{Files, Path}
 
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
@@ -17,7 +18,8 @@ import org.enso.launcher.locking.{
 }
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
-import org.enso.launcher.{CurrentVersion, FileSystem, Logger, OS}
+import org.enso.launcher.{CurrentVersion, FileSystem, InfoLogger, OS}
+import org.enso.logger.LoggerSyntax
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -29,6 +31,8 @@ class LauncherUpgrader(
   resourceManager: ResourceManager,
   originalExecutablePath: Option[Path]
 ) {
+
+  private val logger = Logger[LauncherUpgrader]
 
   /**
     * Queries the release provider for the latest available valid launcher
@@ -57,14 +61,14 @@ class LauncherUpgrader(
       val release = releaseProvider.fetchRelease(targetVersion).get
       if (release.isMarkedBroken) {
         if (globalCLIOptions.autoConfirm) {
-          Logger.warn(
+          logger.warn(
             s"The launcher release $targetVersion is marked as broken and it " +
             s"should not be used. Since `auto-confirm` is set, the upgrade " +
             s"will continue, but you may want to reconsider upgrading to a " +
             s"stable release."
           )
         } else {
-          Logger.warn(
+          logger.warn(
             s"The launcher release $targetVersion is marked as broken and it " +
             s"should not be used."
           )
@@ -104,15 +108,15 @@ class LauncherUpgrader(
     val temporaryFiles =
       FileSystem.listDirectory(binRoot).filter(isTemporaryExecutable)
     if (temporaryFiles.nonEmpty && isStartup) {
-      Logger.debug("Cleaning temporary files from a previous upgrade.")
+      logger.debug("Cleaning temporary files from a previous upgrade.")
     }
     for (file <- temporaryFiles) {
       try {
         Files.delete(file)
-        Logger.debug(s"Upgrade cleanup: removed `$file`.")
+        logger.debug(s"Upgrade cleanup: removed `$file`.")
       } catch {
         case NonFatal(e) =>
-          Logger.debug(s"Cannot remove temporary file $file: $e", e)
+          logger.debug(s"Cannot remove temporary file $file: $e", e)
       }
     }
   }
@@ -177,7 +181,7 @@ class LauncherUpgrader(
   private def performStepByStepUpgrade(release: LauncherRelease): Unit = {
     val availableVersions = releaseProvider.fetchAllValidVersions().get
     val nextStepRelease   = nextVersionToUpgradeTo(release, availableVersions)
-    Logger.info(
+    InfoLogger.info(
       s"Cannot upgrade to ${release.version} directly, " +
       s"so a multiple-step upgrade will be performed, first upgrading to " +
       s"${nextStepRelease.version}."
@@ -187,19 +191,19 @@ class LauncherUpgrader(
       "new." + nextStepRelease.version.toString
     )
     FileSystem.withTemporaryDirectory("enso-upgrade-step") { directory =>
-      Logger.info(s"Downloading ${nextStepRelease.packageFileName}.")
+      InfoLogger.info(s"Downloading ${nextStepRelease.packageFileName}.")
       val packagePath = directory / nextStepRelease.packageFileName
       nextStepRelease
         .downloadPackage(packagePath)
         .waitForResult(showProgress)
         .get
 
-      Logger.info(
+      InfoLogger.info(
         s"Extracting the executable from ${nextStepRelease.packageFileName}."
       )
       extractExecutable(packagePath, temporaryExecutable)
 
-      Logger.info(
+      InfoLogger.info(
         s"Upgraded to ${nextStepRelease.version}. " +
         s"Proceeding to the next step of the upgrade."
       )
@@ -222,7 +226,7 @@ class LauncherUpgrader(
       )
     }
     val nextRelease = releaseProvider.fetchRelease(minimumValidVersion).get
-    Logger.debug(
+    logger.debug(
       s"To upgrade to ${release.version}, " +
       s"the launcher will have to upgrade to ${nextRelease.version} first."
     )
@@ -293,7 +297,7 @@ class LauncherUpgrader(
       }
     } catch {
       case NonFatal(e) =>
-        Logger.error(
+        logger.error(
           "An error occurred when copying one of the non-crucial files and " +
           "directories. The upgrade will continue, but the README or " +
           "licences may be out of date.",
@@ -303,11 +307,11 @@ class LauncherUpgrader(
 
   private def performUpgradeTo(release: LauncherRelease): Unit = {
     FileSystem.withTemporaryDirectory("enso-upgrade") { directory =>
-      Logger.info(s"Downloading ${release.packageFileName}.")
+      InfoLogger.info(s"Downloading ${release.packageFileName}.")
       val packagePath = directory / release.packageFileName
       release.downloadPackage(packagePath).waitForResult(showProgress).get
 
-      Logger.info("Extracting package.")
+      InfoLogger.info("Extracting package.")
       Archive
         .extractArchive(packagePath, directory, None)
         .waitForResult(showProgress)
@@ -322,13 +326,13 @@ class LauncherUpgrader(
 
       copyNonEssentialFiles(extractedRoot, release)
 
-      Logger.info("Replacing the old launcher executable with the new one.")
+      InfoLogger.info("Replacing the old launcher executable with the new one.")
       replaceLauncherExecutable(temporaryExecutable)
 
       val verb =
         if (release.version >= CurrentVersion.version) "upgraded"
         else "downgraded"
-      Logger.info(s"Successfully $verb the launcher to ${release.version}.")
+      InfoLogger.info(s"Successfully $verb the launcher to ${release.version}.")
     }
   }
 
@@ -346,7 +350,7 @@ class LauncherUpgrader(
     *                      one
     */
   private def replaceLauncherExecutable(newExecutable: Path): Unit = {
-    Logger.debug(s"Replacing $originalExecutable with $newExecutable")
+    logger.debug(s"Replacing $originalExecutable with $newExecutable")
     if (OS.isWindows) {
       val oldName = temporaryExecutablePath(s"old-${CurrentVersion.version}")
       Files.move(originalExecutable, oldName)
@@ -415,16 +419,17 @@ object LauncherUpgrader {
     upgradeRequiredError: LauncherUpgradeRequiredError,
     originalArguments: Array[String]
   ): Int = {
+    val logger      = Logger[LauncherUpgrader].enter("auto-upgrade")
     val autoConfirm = upgradeRequiredError.globalCLIOptions.autoConfirm
     def shouldProceed: Boolean =
       if (autoConfirm) {
-        Logger.warn(
+        logger.warn(
           "A more recent launcher version is required. Since `auto-confirm` " +
           "is set, the launcher upgrade will be peformed automatically."
         )
         true
       } else {
-        Logger.warn(
+        logger.warn(
           s"A more recent launcher version (at least " +
           s"${upgradeRequiredError.expectedLauncherVersion}) is required to " +
           s"continue."
@@ -445,19 +450,21 @@ object LauncherUpgrader {
     try {
       upgrader.upgrade(targetVersion)
 
-      Logger.info("Re-running the current command with the upgraded launcher.")
+      InfoLogger.info(
+        "Re-running the current command with the upgraded launcher."
+      )
 
       val arguments =
         InternalOpts.removeInternalTestOptions(originalArguments.toIndexedSeq)
       val rerunCommand =
         Seq(launcherExecutable.toAbsolutePath.normalize.toString) ++ arguments
-      Logger.debug(s"Running `${rerunCommand.mkString(" ")}`.")
+      logger.debug(s"Running `${rerunCommand.mkString(" ")}`.")
       val processBuilder = new ProcessBuilder(rerunCommand: _*)
       val process        = processBuilder.inheritIO().start()
       process.waitFor()
     } catch {
       case _: AnotherUpgradeInProgressError =>
-        Logger.error(
+        logger.error(
           "Another upgrade is in progress." +
           "Please wait for it to finish and manually re-run the requested " +
           "command."

@@ -1,6 +1,6 @@
 package org.enso.launcher.components.runner
 
-import org.enso.launcher.Logger
+import com.typesafe.scalalogging.Logger
 
 import scala.sys.process.Process
 import scala.util.{Failure, Try}
@@ -12,6 +12,7 @@ import scala.util.{Failure, Try}
   * @param extraEnv environment variables that should be overridden
   */
 case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
+  private val logger = Logger[Command]
 
   /**
     * Runs the command and returns its exit code.
@@ -21,7 +22,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     */
   def run(): Try[Int] =
     wrapError {
-      Logger.debug(s"Executing $toString")
+      logger.debug(s"Executing $toString")
       val processBuilder = new java.lang.ProcessBuilder(command: _*)
       for ((key, value) <- extraEnv) {
         processBuilder.environment().put(key, value)
@@ -41,7 +42,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     */
   def captureOutput(): Try[String] =
     wrapError {
-      Logger.debug(s"Executing $toString")
+      logger.debug(s"Executing $toString")
       val processBuilder = Process(command, None, extraEnv: _*)
       processBuilder.!!
     }

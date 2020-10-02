@@ -25,12 +25,10 @@ class DefaultVersionSpec extends ComponentsManagerTest {
     }
 
     "fallback to latest installed version" in {
-      Logger.suppressWarnings {
-        val (componentsManager, configManager) =
-          makeConfigAndComponentsManagers()
-        componentsManager.findOrInstallEngine(SemVer(0, 0, 0))
-        configManager.defaultVersion shouldEqual SemVer(0, 0, 0)
-      }
+      val (componentsManager, configManager) =
+        makeConfigAndComponentsManagers()
+      componentsManager.findOrInstallEngine(SemVer(0, 0, 0))
+      configManager.defaultVersion shouldEqual SemVer(0, 0, 0)
     }
 
     "set an exact version in the config" in {

@@ -3,6 +3,8 @@ package org.enso.cli.internal.opts
 import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.cli.internal.ParserContinuation
 
+import scala.annotation.unused
+
 class OptionalPositionalArgument[A: Argument](
   metavar: String,
   helpComment: Option[String]
@@ -20,7 +22,8 @@ class OptionalPositionalArgument[A: Argument](
 
   override private[cli] def consumeArgument(
     arg: String,
-    commandPrefix: Seq[String]
+    @unused commandPrefix: Seq[String],
+    @unused suppressUnexpectedArgument: Boolean
   ): ParserContinuation = {
     value = for {
       parsed <- Argument[A].read(arg)

@@ -3,11 +3,11 @@ package org.enso.launcher.config
 import java.io.BufferedWriter
 import java.nio.file.{Files, NoSuchFileException, Path}
 
+import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
 import io.circe.{yaml, Json}
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.Logger
 import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.installation.DistributionManager
 
@@ -21,6 +21,8 @@ class GlobalConfigurationManager(
   componentsManager: ComponentsManager,
   distributionManager: DistributionManager
 ) {
+
+  private val logger = Logger[GlobalConfigurationManager]
 
   /**
     * Returns the default Enso version that should be used when running Enso
@@ -43,7 +45,7 @@ class GlobalConfigurationManager(
             .lastOption
         latestInstalled.getOrElse {
           val latestAvailable = componentsManager.fetchLatestEngineVersion()
-          Logger.warn(
+          logger.warn(
             s"No Enso versions installed, defaulting to the latest available " +
             s"release: $latestAvailable."
           )
@@ -69,7 +71,7 @@ class GlobalConfigurationManager(
       .readConfig(configLocation)
       .recoverWith {
         case _: NoSuchFileException =>
-          Logger.debug(
+          logger.debug(
             s"Global config (at ${configLocation.toAbsolutePath} not found, " +
             s"falling back to defaults."
           )

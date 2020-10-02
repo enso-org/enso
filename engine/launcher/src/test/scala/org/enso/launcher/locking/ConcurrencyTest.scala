@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
-import org.enso.launcher.cli.GlobalCLIOptions
+import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
 import org.enso.launcher.components.{ComponentsManager, RuntimeVersion}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
@@ -12,11 +13,11 @@ import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.releases.testing.FakeReleaseProvider
 import org.enso.launcher.{
   components,
+  DropLogs,
   FakeEnvironment,
   FileSystem,
   WithTemporaryDirectory
 }
-import org.enso.launcher.FileSystem.PathSyntax
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -28,7 +29,8 @@ class ConcurrencyTest
     with Matchers
     with WithTemporaryDirectory
     with FakeEnvironment
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with DropLogs {
 
   case class WrapEngineRelease(
     originalRelease: EngineRelease,
@@ -131,7 +133,8 @@ class ConcurrencyTest
       GlobalCLIOptions(
         autoConfirm  = true,
         hideProgress = true,
-        useJSON      = false
+        useJSON      = false,
+        colorMode    = ColorMode.Never
       ),
       distributionManager,
       resourceManager,

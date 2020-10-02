@@ -73,7 +73,7 @@ As the Native Image builds a native binary, certain capabilities, like
 [reflection](https://github.com/oracle/graal/blob/master/substratevm/REFLECTION.md),
 may be limited. The build system tries to automatically detect some reflective
 accesses, but it cannot detect everything. It is possible for the built binary
-to fail with the following error:
+to fail with `java.lang.ClassNotFoundException` or the following error:
 
 ```
 java.lang.InstantiationException: Type `XYZ` can not be instantiated reflectively as it does not have a no-parameter constructor or the no-parameter constructor has not been added explicitly to the native image.`
@@ -117,7 +117,44 @@ It is possible that different classes are reflectively accessed on different
 platforms. In that case it may be necessary to run the agent on multiple
 platforms and merge the configs. If the conflicts were conflicting (i.e. some
 reflectively accessed classes existed only on one platform), it may be necessary
-to maintain separate configs for each platform. Currently in the Launcher this
-is not the case - the reflective accesses seem to be platform independent, as
-the launcher built with a config created on Linux runs successfully on other
-platforms.
+to maintain separate configs for each platform. Currently, the
+`native-image-agent` is not available on Windows, so Windows-specific reflective
+accesses may have to be gathered manually. For some types of accesses it may be
+possible to force the Windows-specific code paths to run on Linux and gather
+these accesses semi-automatically.
+
+### Launcher Configuration
+
+In case of the launcher, to gather the relevant reflective accesses one wants to
+test as many execution paths as possible, especially the ones that are likely to
+use reflection. One of these areas is HTTP support and archive extraction.
+
+To trace this accesses, it is good to run at least
+`... launcher.jar install engine` which will trigger HTTP downloads and archive
+extraction.
+
+Currently, archive-related accesses are platform dependent - Linux launcher only
+uses `.tar.gz` and Windows uses `.zip`. While the Linux launcher never unpacks
+ZIP files, we can manually force it to do so, to register the reflection
+configuration that will than be used on Windows to enable ZIP extraction.
+
+To force the launcher to extract a ZIP on Linux, one can add the following code
+snippet (with the necessary imports) to `org.enso.launcher.cli.Main.main`:
+
+```
+Archive.extractArchive(Path.of("enso-engine-windows.zip"), Path.of("somewhere"), None)
+```
+
+With this snippet, `launcher.jar` should be built using the
+`launcher / assembly` task, and the tracing tool should be re-run as shown
+above.
+
+Moreover, some reflective accesses may not be detected by the tool
+automatically, so they may need to be added manually. One of them is an access
+to the class `[B` when using Akka, so it would require manually adding it to the
+`reflect-config.json`. This strange looking access is most likely reflective
+access to an array of bytes. To make it easier, a package `akka-native` has been
+created that gathers workarounds required to be able to build native images
+using Akka, so it is enough to just add it as a dependency. It does not handle
+other reflective accesses that are related to Akka, because the ones that are
+needed are gathered automatically using the tool described above.

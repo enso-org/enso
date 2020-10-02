@@ -3,11 +3,13 @@ package org.enso.runner
 import java.io.File
 import java.util.UUID
 
+import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
+import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, SemVerEnsoVersion}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
@@ -35,6 +37,8 @@ object Main {
   private val IN_PROJECT_OPTION           = "in-project"
   private val VERSION_OPTION              = "version"
   private val JSON_OPTION                 = "json"
+  private val LOG_LEVEL                   = "log-level"
+  private val LOGGER_CONNECT              = "logger-connect"
 
   /**
     * Builds the [[Options]] object representing the CLI syntax.
@@ -151,6 +155,23 @@ object Main {
       .longOpt(JSON_OPTION)
       .desc("Switches the --version option to JSON output.")
       .build
+    val logLevelOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("log-level")
+      .longOpt(LOG_LEVEL)
+      .desc(
+        "Sets the runtime log level. Possible values are: OFF, ERROR, " +
+        "WARNING, INFO, DEBUG and TRACE. Default: INFO."
+      )
+      .build
+    val loggerConnectOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("uri")
+      .longOpt(LOGGER_CONNECT)
+      .desc("Connects to a logging service server and passes all logs to it.")
+      .build
 
     val options = new Options
     options
@@ -170,6 +191,8 @@ object Main {
       .addOption(inProjectOption)
       .addOption(version)
       .addOption(json)
+      .addOption(logLevelOption)
+      .addOption(loggerConnectOption)
 
     options
   }
@@ -183,10 +206,16 @@ object Main {
     new HelpFormatter().printHelp(LanguageInfo.ID, options)
 
   /** Terminates the process with a failure exit code. */
-  private def exitFail(): Nothing = sys.exit(1)
+  private def exitFail(): Nothing = exit(1)
 
   /** Terminates the process with a success exit code. */
-  private def exitSuccess(): Unit = sys.exit(0)
+  private def exitSuccess(): Nothing = exit(0)
+
+  /** Shuts down the logging service and terminates the process. */
+  private def exit(exitCode: Int): Nothing = {
+    RunnerLogging.tearDown()
+    sys.exit(exitCode)
+  }
 
   /**
     * Handles the `--new` CLI option.
@@ -236,8 +265,13 @@ object Main {
     * @param path path of the project or file to execute
     * @param projectPath if specified, the script is run in context of a
     *                    project located at that path
+    * @param logLevel log level to set for the engine runtime
     */
-  private def run(path: String, projectPath: Option[String]): Unit = {
+  private def run(
+    path: String,
+    projectPath: Option[String],
+    logLevel: LogLevel
+  ): Unit = {
     val file = new File(path)
     if (!file.exists) {
       println(s"File $file does not exist.")
@@ -263,7 +297,8 @@ object Main {
       System.in,
       System.out,
       Repl(TerminalIO()),
-      strictErrors = true
+      strictErrors = true,
+      logLevel     = logLevel
     )
     if (projectMode) {
       val pkg  = PackageManager.Default.fromDirectory(file)
@@ -369,9 +404,10 @@ object Main {
     *
     * @param projectPath if specified, the REPL is run in context of a project
     *                    at the given path
+    * @param logLevel log level to set for the engine runtime
     */
-  private def runRepl(projectPath: Option[String]): Unit = {
-    val mainMethodName           = "internal_repl_entry_point___"
+  private def runRepl(projectPath: Option[String], logLevel: LogLevel): Unit = {
+    val mainMethodName = "internal_repl_entry_point___"
     // TODO[MK, RW]: when CI-testing can use a fully-built distribution,
     // switch to `from Base import all` here.
     val dummySourceToTriggerRepl =
@@ -379,14 +415,15 @@ object Main {
          |
          |$mainMethodName = Debug.breakpoint
          |""".stripMargin
-    val replModuleName           = "Internal_Repl_Module___"
-    val packagePath              = projectPath.getOrElse("")
+    val replModuleName = "Internal_Repl_Module___"
+    val packagePath    = projectPath.getOrElse("")
     val context =
       new ContextFactory().create(
         packagePath,
         System.in,
         System.out,
-        Repl(TerminalIO())
+        Repl(TerminalIO()),
+        logLevel = logLevel
       )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -398,8 +435,11 @@ object Main {
     * Handles `--server` CLI option
     *
     * @param line a CLI line
+    * @param logLevel log level to set for the engine runtime
     */
-  private def runLanguageServer(line: CommandLine): Unit = {
+  private def runLanguageServer(line: CommandLine, logLevel: LogLevel): Unit = {
+    val _ = logLevel // TODO [RW] handle logging in the Language Server (#1144)
+
     val maybeConfig = parseSeverOptions(line)
 
     maybeConfig match {
@@ -453,6 +493,36 @@ object Main {
   }
 
   /**
+    * Parses the log level option.
+    */
+  def parseLogLevel(levelOption: String): LogLevel = {
+    val name = levelOption.toLowerCase
+    LogLevel.allLevels.find(_.toString.toLowerCase == name).getOrElse {
+      val possible =
+        LogLevel.allLevels.map(_.toString.toLowerCase).mkString(", ")
+      System.err.println(s"Invalid log level. Possible values are $possible.")
+      exitFail()
+    }
+  }
+
+  /**
+    * Parses an URI that specifies the logging service connection.
+    */
+  def parseUri(string: String): Uri =
+    try {
+      Uri(string)
+    } catch {
+      case _: IllegalUriException =>
+        System.err.println(s"`$string` is not a valid URI.")
+        exitFail()
+    }
+
+  /**
+    * Default log level to use if the LOG_LEVEL option is not provided.
+    */
+  val defaultLogLevel: LogLevel = LogLevel.Info
+
+  /**
     * Main entry point for the CLI program.
     *
     * @param args the command line arguments
@@ -472,6 +542,14 @@ object Main {
       displayVersion(useJson = line.hasOption(JSON_OPTION))
       exitSuccess()
     }
+
+    val logLevel = Option(line.getOptionValue(LOG_LEVEL))
+      .map(parseLogLevel)
+      .getOrElse(defaultLogLevel)
+    val connectionUri =
+      Option(line.getOptionValue(LOGGER_CONNECT)).map(parseUri)
+    RunnerLogging.setup(connectionUri, logLevel)
+
     if (line.hasOption(NEW_OPTION)) {
       createNew(
         path        = line.getOptionValue(NEW_OPTION),
@@ -480,17 +558,19 @@ object Main {
         authorEmail = Option(line.getOptionValue(PROJECT_AUTHOR_EMAIL_OPTION))
       )
     }
+
     if (line.hasOption(RUN_OPTION)) {
       run(
         line.getOptionValue(RUN_OPTION),
-        Option(line.getOptionValue(IN_PROJECT_OPTION))
+        Option(line.getOptionValue(IN_PROJECT_OPTION)),
+        logLevel
       )
     }
     if (line.hasOption(REPL_OPTION)) {
-      runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)))
+      runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      runLanguageServer(line)
+      runLanguageServer(line, logLevel)
     }
     printHelp(options)
     exitFail()

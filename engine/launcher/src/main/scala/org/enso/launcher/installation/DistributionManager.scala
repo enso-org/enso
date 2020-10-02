@@ -2,9 +2,10 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
+import com.typesafe.scalalogging.Logger
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
-import org.enso.launcher.{Environment, FileSystem, Logger, OS}
+import org.enso.launcher.{Environment, FileSystem, InfoLogger, OS}
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -21,6 +22,7 @@ import scala.util.control.NonFatal
   * @param config location of configuration
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components
+  * @param logs a directory for storing logs
   * @param tmp a directory for storing temporary files that is located on the
   *            same filesystem as `runtimes` and `engines`, used during
   *            installation to decrease the possibility of getting a broken
@@ -38,6 +40,7 @@ case class DistributionPaths(
   engines: Path,
   config: Path,
   locks: Path,
+  logs: Path,
   tmp: Path,
   resourceManager: ResourceManager
 ) {
@@ -69,6 +72,7 @@ class DistributionManager(
   val env: Environment,
   resourceManager: ResourceManager
 ) {
+  private val logger = Logger[DistributionManager]
 
   /**
     * Specifies whether the launcher has been run as a portable distribution or
@@ -76,24 +80,24 @@ class DistributionManager(
     */
   lazy val isRunningPortable: Boolean = {
     val portable = detectPortable()
-    Logger.debug(s"Launcher portable mode = $portable")
+    logger.debug(s"Launcher portable mode = $portable")
     if (portable && LocallyInstalledDirectories.installedDistributionExists) {
       val installedRoot   = LocallyInstalledDirectories.dataDirectory
       val installedBinary = LocallyInstalledDirectories.binaryExecutable
 
-      Logger.debug(
+      logger.debug(
         s"The launcher is run in portable mode, but an installed distribution" +
         s" is available at $installedRoot."
       )
 
       if (Files.exists(installedBinary)) {
         if (installedBinary == env.getPathToRunningExecutable) {
-          Logger.debug(
+          logger.debug(
             "That distribution seems to be corresponding to this launcher " +
             "executable, that is running in portable mode."
           )
         } else {
-          Logger.debug(
+          logger.debug(
             s"However, that installed distribution most likely uses another " +
             s"launcher executable, located at $installedBinary."
           )
@@ -108,7 +112,7 @@ class DistributionManager(
     */
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
-    Logger.debug(s"Detected paths are: $paths")
+    logger.debug(s"Detected paths are: $paths")
     paths
   }
 
@@ -118,6 +122,7 @@ class DistributionManager(
   val CONFIG_DIRECTORY               = "config"
   val BIN_DIRECTORY                  = "bin"
   val LOCK_DIRECTORY                 = "lock"
+  val LOG_DIRECTORY                  = "log"
   val TMP_DIRECTORY                  = "tmp"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
@@ -136,6 +141,7 @@ class DistributionManager(
         engines  = root / ENGINES_DIRECTORY,
         config   = root / CONFIG_DIRECTORY,
         locks    = root / LOCK_DIRECTORY,
+        logs     = root / LOG_DIRECTORY,
         tmp      = root / TMP_DIRECTORY,
         resourceManager
       )
@@ -149,6 +155,7 @@ class DistributionManager(
         engines  = dataRoot / ENGINES_DIRECTORY,
         config   = configRoot,
         locks    = runRoot / LOCK_DIRECTORY,
+        logs     = LocallyInstalledDirectories.logDirectory,
         tmp      = dataRoot / TMP_DIRECTORY,
         resourceManager
       )
@@ -168,7 +175,7 @@ class DistributionManager(
     if (Files.exists(tmp)) {
       resourceManager.tryWithExclusiveTemporaryDirectory {
         if (!FileSystem.isDirectoryEmpty(tmp)) {
-          Logger.info(
+          InfoLogger.info(
             "Cleaning up temporary files from a previous installation."
           )
         }
@@ -187,7 +194,7 @@ class DistributionManager(
     for (lockfile <- lockfiles) {
       try {
         Files.delete(lockfile)
-        Logger.debug(s"Removed unused lockfile ${lockfile.getFileName}.")
+        logger.debug(s"Removed unused lockfile ${lockfile.getFileName}.")
       } catch {
         case NonFatal(_) =>
       }
@@ -206,11 +213,13 @@ class DistributionManager(
     val ENSO_CONFIG_DIRECTORY  = "ENSO_CONFIG_DIRECTORY"
     val ENSO_BIN_DIRECTORY     = "ENSO_BIN_DIRECTORY"
     val ENSO_RUNTIME_DIRECTORY = "ENSO_RUNTIME_DIRECTORY"
+    val ENSO_LOG_DIRECTORY     = "ENSO_LOG_DIRECTORY"
 
     private val XDG_DATA_DIRECTORY   = "XDG_DATA_HOME"
     private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_HOME"
     private val XDG_BIN_DIRECTORY    = "XDG_BIN_HOME"
     private val XDG_RUN_DIRECTORY    = "XDG_RUNTIME_DIR"
+    private val XDG_CACHE_DIRECTORY  = "XDG_CACHE_HOME"
 
     private val LINUX_ENSO_DIRECTORY   = "enso"
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
@@ -238,6 +247,19 @@ class DistributionManager(
           }
         }
         .toAbsolutePath
+
+    /**
+      * Returns names of directories that may be located inside of the data
+      * directory.
+      */
+    def possibleDirectoriesInsideDataDirectory: Seq[String] =
+      Seq(
+        CONFIG_DIRECTORY,
+        TMP_DIRECTORY,
+        LOG_DIRECTORY,
+        LOCK_DIRECTORY,
+        "components-licences"
+      )
 
     /**
       * Config directory for an installed distribution.
@@ -299,6 +321,26 @@ class DistributionManager(
                 .map(_ / LINUX_ENSO_DIRECTORY)
                 .getOrElse(dataDirectory)
             case _ => dataDirectory
+          }
+        }
+
+    /**
+      * The directory for storing logs.
+      */
+    def logDirectory: Path =
+      env
+        .getEnvPath(ENSO_LOG_DIRECTORY)
+        .getOrElse {
+          OS.operatingSystem match {
+            case OS.Linux =>
+              env
+                .getEnvPath(XDG_CACHE_DIRECTORY)
+                .map(_ / LINUX_ENSO_DIRECTORY)
+                .getOrElse(dataDirectory / LOG_DIRECTORY)
+            case OS.MacOS =>
+              env.getHome / "Library" / "Logs" / MACOS_ENSO_DIRECTORY
+            case OS.Windows =>
+              dataDirectory / LOG_DIRECTORY
           }
         }
 

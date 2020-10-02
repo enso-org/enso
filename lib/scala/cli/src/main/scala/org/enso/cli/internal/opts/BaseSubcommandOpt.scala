@@ -67,12 +67,13 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
 
   override private[cli] def consumeArgument(
     arg: String,
-    commandPrefix: Seq[String]
+    commandPrefix: Seq[String],
+    suppressUnexpectedArgument: Boolean
   ): ParserContinuation = {
     val prefix = extendPrefix(commandPrefix)
     selectedCommand match {
       case Some(command) =>
-        command.opts.consumeArgument(arg, prefix)
+        command.opts.consumeArgument(arg, prefix, suppressUnexpectedArgument)
       case None =>
         availableSubcommands.find(_.name == arg) match {
           case Some(command) =>
@@ -88,7 +89,8 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
                 addError(relatedMessage)
                 ParserContinuation.Stop
               case None =>
-                handleUnknownCommand(arg)
+                if (suppressUnexpectedArgument) ParserContinuation.Stop
+                else handleUnknownCommand(arg)
             }
         }
     }

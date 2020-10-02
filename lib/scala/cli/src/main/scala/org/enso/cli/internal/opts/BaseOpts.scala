@@ -3,6 +3,8 @@ package org.enso.cli.internal.opts
 import org.enso.cli.arguments.Opts
 import org.enso.cli.internal.ParserContinuation
 
+import scala.annotation.unused
+
 abstract class BaseOpts[A] extends Opts[A] {
   override private[cli] val flags: Map[String, () => Unit]          = Map.empty
   override private[cli] val parameters: Map[String, String => Unit] = Map.empty
@@ -15,8 +17,9 @@ abstract class BaseOpts[A] extends Opts[A] {
 
   override private[cli] def wantsArgument() = false
   override private[cli] def consumeArgument(
-    arg: String,
-    commandPrefix: Seq[String]
+    @unused arg: String,
+    @unused commandPrefix: Seq[String],
+    @unused suppressUnexpectedArgument: Boolean
   ): ParserContinuation =
     throw new IllegalStateException(
       "Internal error: " +

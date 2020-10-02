@@ -16,9 +16,10 @@ class HiddenOpts[A](opts: Opts[A]) extends Opts[A] {
   override private[cli] def wantsArgument() = opts.wantsArgument()
   override private[cli] def consumeArgument(
     arg: String,
-    commandPrefix: Seq[String]
+    commandPrefix: Seq[String],
+    suppressUnexpectedArgument: Boolean
   ): ParserContinuation =
-    opts.consumeArgument(arg, commandPrefix)
+    opts.consumeArgument(arg, commandPrefix, suppressUnexpectedArgument)
 
   override private[cli] val requiredArguments: Seq[String]    = Seq()
   override private[cli] val optionalArguments: Seq[String]    = Seq()

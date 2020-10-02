@@ -139,6 +139,8 @@ lazy val enso = (project in file("."))
     logger.jvm,
     pkg,
     cli,
+    `logging-service`,
+    `akka-native`,
     `version-output`,
     runner,
     runtime,
@@ -306,7 +308,6 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val apacheHttpClientVersion = "4.5.12"
 val bcpkixJdk15Version      = "1.65"
 val bumpVersion             = "0.1.3"
 val declineVersion          = "1.2.0"
@@ -327,6 +328,7 @@ val scalameterVersion       = "0.19"
 val scalatagsVersion        = "0.9.1"
 val scalatestVersion        = "3.3.0-SNAP2"
 val shapelessVersion        = "2.4.0-M1"
+val slf4jVersion            = "1.7.30"
 val slickVersion            = "3.3.2"
 val sqliteVersion           = "3.31.1"
 val tikaVersion             = "1.24.1"
@@ -493,6 +495,44 @@ lazy val pkg = (project in file("lib/scala/pkg"))
       )
   )
   .settings(licenseSettings)
+
+lazy val `akka-native` = project
+  .in(file("lib/scala/akka-native"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        akkaActor
+      ),
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
+  )
+  .settings(licenseSettings)
+
+lazy val `logging-service` = project
+  .in(file("lib/scala/logging-service"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+        "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+        akkaStream,
+        akkaHttp,
+        "io.circe"              %%% "circe-core"   % circeVersion,
+        "io.circe"              %%% "circe-parser" % circeVersion,
+        "org.scalatest"          %% "scalatest"    % scalatestVersion % Test,
+        "org.graalvm.nativeimage" % "svm"          % graalVersion     % "provided"
+      )
+  )
+  .settings(
+    if (Platform.isWindows)
+      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-windows"
+    else
+      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
+  )
+  .settings(licenseSettings)
+  .dependsOn(`akka-native`)
 
 lazy val cli = project
   .in(file("lib/scala/cli"))
@@ -895,19 +935,7 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
-    (Test / compile) := (Test / compile)
-        .dependsOn(Def.task {
-          val cmd = Seq("mvn", "package", "-f", "std-bits")
-          val exitCode = if (sys.props("os.name").toLowerCase().contains("win")) {
-            (Seq("cmd", "/c") ++ cmd).!
-          } else {
-            cmd.!
-          }
-          if (exitCode != 0) {
-            throw new RuntimeException("std-bits build failed.")
-          }
-        })
-        .value
+    (Test / compile) := (Test / compile).dependsOn(StdBits.preparePackage).value
   )
   .settings(
     logBuffered := false,
@@ -1033,6 +1061,7 @@ lazy val runner = project
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`logging-service`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1040,11 +1069,13 @@ lazy val launcher = project
   .settings(
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-        "org.scalatest"            %% "scalatest"        % scalatestVersion % Test,
-        "org.typelevel"            %% "cats-core"        % catsVersion,
-        "nl.gn0s1s"                %% "bump"             % bumpVersion,
-        "org.apache.commons"        % "commons-compress" % commonsCompressVersion,
-        "org.apache.httpcomponents" % "httpclient"       % apacheHttpClientVersion
+        "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+        "org.typelevel"              %% "cats-core"        % catsVersion,
+        "nl.gn0s1s"                  %% "bump"             % bumpVersion,
+        "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+        "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+        akkaHttp,
+        akkaSLF4J
       )
   )
   .settings(
@@ -1053,14 +1084,18 @@ lazy val launcher = project
           "enso",
           staticOnLinux = true,
           Seq(
+            "-J-Xmx4G",
             "--enable-all-security-services", // Note [HTTPS in the Launcher]
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-            "-H:IncludeResources=.*Main.enso$"
+            "-H:IncludeResources=.*Main.enso$",
+            "--initialize-at-run-time=" +
+            "akka.protobuf.DescriptorProtos," +
+            "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
+            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder," +
+            "org.enso.loggingservice.WSLoggerManager$" // Note [WSLoggerManager Shutdown Hook]
           )
         )
         .value,
-    // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided",
     test in assembly := {},
     assemblyOutputPath in assembly := file("launcher.jar")
   )
@@ -1082,6 +1117,7 @@ lazy val launcher = project
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`logging-service`)
 
 /* Note [HTTPS in the Launcher]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1113,4 +1149,13 @@ lazy val launcher = project
  * the `svm` module and that is why this additional dependency is needed as long
  * as that workaround is in-place. The dependency is marked as "provided"
  * because it is included within the native-image build.
+ */
+
+/* Note [WSLoggerManager Shutdown Hook]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As the WSLoggerManager registers a shutdown hook when its initialized to
+ * ensure that logs are not lost in case of logging service initialization
+ * failure, it has to be initialized at runtime, as otherwise if the
+ * initialization was done at build time, the shutdown hook would actually also
+ * run at build time and have no effect at runtime.
  */

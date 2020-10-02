@@ -3,15 +3,20 @@ package org.enso.launcher.components.runner
 import java.nio.file.{Files, Path}
 import java.util.UUID
 
+import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.Logger
 import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
+import org.enso.loggingservice.LogLevel
+
+import scala.concurrent.Future
 
 class RunnerSpec extends ComponentsManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
+
+  private val fakeUri = Uri("ws://test:1234/")
 
   def makeFakeRunner(
     cwdOverride: Option[Path]     = None,
@@ -25,7 +30,13 @@ class RunnerSpec extends ComponentsManagerTest {
     val projectManager = new ProjectManager(configurationManager)
     val cwd            = cwdOverride.getOrElse(getTestDirectory)
     val runner =
-      new Runner(projectManager, configurationManager, componentsManager, env) {
+      new Runner(
+        projectManager,
+        configurationManager,
+        componentsManager,
+        env,
+        Future.successful(Some(fakeUri))
+      ) {
         override protected val currentWorkingDirectory: Path = cwd
       }
     runner
@@ -33,57 +44,64 @@ class RunnerSpec extends ComponentsManagerTest {
 
   "Runner" should {
     "create a command from settings" in {
-      Logger.suppressWarnings {
-        val envOptions = "-Xfrom-env -Denv=env"
-        val runner =
-          makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
+      val envOptions = "-Xfrom-env -Denv=env"
+      val runner =
+        makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
 
-        val runSettings = RunSettings(SemVer(0, 0, 0), Seq("arg1", "--flag2"))
-        val jvmOptions  = Seq(("locally-added-options", "value1"))
+      val runSettings = RunSettings(
+        SemVer(0, 0, 0),
+        Seq("arg1", "--flag2"),
+        connectLoggerIfAvailable = true
+      )
+      val jvmOptions = Seq(("locally-added-options", "value1"))
 
-        val enginePath =
-          getTestDirectory / "test_data" / "dist" / "0.0.0"
-        val runtimePath =
-          (enginePath / "component" / "runtime.jar").toAbsolutePath.normalize
-        val runnerPath =
-          (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
+      val enginePath =
+        getTestDirectory / "test_data" / "dist" / "0.0.0"
+      val runtimePath =
+        (enginePath / "component" / "runtime.jar").toAbsolutePath.normalize
+      val runnerPath =
+        (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
 
-        def checkCommandLine(command: Command): Unit = {
-          val commandLine = command.command.mkString(" ")
-          val arguments   = command.command.tail
-          arguments should contain("-Xfrom-env")
-          arguments should contain("-Denv=env")
-          arguments should contain("-Dlocally-added-options=value1")
-          arguments should contain("-Dlocally-added-options=value1")
-          arguments should contain("-Doptions-added-from-manifest=42")
-          arguments should contain("-Xanother-one")
-          commandLine should endWith("arg1 --flag2")
+      def checkCommandLine(command: Command): Unit = {
+        val arguments     = command.command.tail
+        val javaArguments = arguments.takeWhile(_ != "-jar")
+        val appArguments  = arguments.dropWhile(_ != runnerPath.toString).tail
+        javaArguments should contain("-Xfrom-env")
+        javaArguments should contain("-Denv=env")
+        javaArguments should contain("-Dlocally-added-options=value1")
+        javaArguments should contain("-Dlocally-added-options=value1")
+        javaArguments should contain("-Doptions-added-from-manifest=42")
+        javaArguments should contain("-Xanother-one")
 
-          arguments should contain(s"-Dtruffle.class.path.append=$runtimePath")
-          arguments.filter(
-            _.contains("truffle.class.path.append")
-          ) should have length 1
+        javaArguments should contain(
+          s"-Dtruffle.class.path.append=$runtimePath"
+        )
+        javaArguments.filter(
+          _.contains("truffle.class.path.append")
+        ) should have length 1
 
-          commandLine should include(s"-jar $runnerPath")
-        }
+        val appCommandLine = appArguments.mkString(" ")
 
-        runner.withCommand(
-          runSettings,
-          JVMSettings(useSystemJVM = true, jvmOptions = jvmOptions)
-        ) { systemCommand =>
-          systemCommand.command.head shouldEqual "java"
-          checkCommandLine(systemCommand)
-        }
+        appCommandLine shouldEqual s"--logger-connect $fakeUri arg1 --flag2"
+        command.command.mkString(" ") should include(s"-jar $runnerPath")
+      }
 
-        runner.withCommand(
-          runSettings,
-          JVMSettings(useSystemJVM = false, jvmOptions = jvmOptions)
-        ) { managedCommand =>
-          managedCommand.command.head should include("java")
-          val javaHome =
-            managedCommand.extraEnv.find(_._1 == "JAVA_HOME").value._2
-          javaHome should include("graalvm-ce")
-        }
+      runner.withCommand(
+        runSettings,
+        JVMSettings(useSystemJVM = true, jvmOptions = jvmOptions)
+      ) { systemCommand =>
+        systemCommand.command.head shouldEqual "java"
+        checkCommandLine(systemCommand)
+      }
+
+      runner.withCommand(
+        runSettings,
+        JVMSettings(useSystemJVM = false, jvmOptions = jvmOptions)
+      ) { managedCommand =>
+        managedCommand.command.head should include("java")
+        val javaHome =
+          managedCommand.extraEnv.find(_._1 == "JAVA_HOME").value._2
+        javaHome should include("graalvm-ce")
       }
     }
 
@@ -122,7 +140,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = None,
           versionOverride     = None,
-          additionalArguments = Seq("arg", "--flag")
+          additionalArguments = Seq("arg", "--flag"),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -146,7 +165,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = Some(projectPath),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -159,7 +179,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = None,
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -172,7 +193,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .repl(
           projectPath         = Some(projectPath),
           versionOverride     = Some(overridden),
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -199,7 +221,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .languageServer(
           options,
           versionOverride     = None,
-          additionalArguments = Seq("additional")
+          additionalArguments = Seq("additional"),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -218,7 +241,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .languageServer(
           options,
           versionOverride     = Some(overridden),
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
         .version shouldEqual overridden
@@ -236,7 +260,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(projectPath),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -249,7 +274,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = None,
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -262,7 +288,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(projectPath),
           versionOverride     = Some(overridden),
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -275,7 +302,8 @@ class RunnerSpec extends ComponentsManagerTest {
           .run(
             path                = None,
             versionOverride     = None,
-            additionalArguments = Seq()
+            additionalArguments = Seq(),
+            logLevel            = LogLevel.Info
           )
           .isFailure,
         "Running outside project without providing any paths should be an error"
@@ -300,7 +328,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(outsideFile),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
@@ -323,7 +352,8 @@ class RunnerSpec extends ComponentsManagerTest {
         .run(
           path                = Some(insideFile),
           versionOverride     = None,
-          additionalArguments = Seq()
+          additionalArguments = Seq(),
+          logLevel            = LogLevel.Info
         )
         .get
 
