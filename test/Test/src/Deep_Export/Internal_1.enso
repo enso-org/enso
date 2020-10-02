@@ -1,3 +1,0 @@
-from Test.Deep_Export.Internal_2 import Const
-
-from Test.Deep_Export.Internal_2 export Const

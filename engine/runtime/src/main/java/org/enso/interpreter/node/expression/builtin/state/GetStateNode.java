@@ -51,7 +51,7 @@ public abstract class GetStateNode extends Node {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
       throw new PanicException(
-          ctxRef.get().getBuiltins().error().unitializedState().newInstance(key), this);
+          ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this);
     } else {
       return state.getValues()[idx];
     }
@@ -60,12 +60,12 @@ public abstract class GetStateNode extends Node {
   @Specialization
   Object doEmpty(
       EmptyMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
-    throw new PanicException(ctx.getBuiltins().error().unitializedState().newInstance(key), this);
+    throw new PanicException(ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 
   @Specialization
   Object doSingletonError(
       SingletonMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
-    throw new PanicException(ctx.getBuiltins().error().unitializedState().newInstance(key), this);
+    throw new PanicException(ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 }
