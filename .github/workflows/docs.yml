@@ -7,7 +7,7 @@ on:
     branches: ["*"]
 
 env:
-  nodeVersion: 12.18.0
+  nodeVersion: 12.18.3
 
 jobs:
   check:
