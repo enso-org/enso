@@ -107,6 +107,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "/="    ?= Sides("/=")
   ".+"    ?= Sect.Right(".", 0, Var("+"))
   ".<*>"  ?= Sect.Right(".", 0, Var("<*>"))
+  ".=="   ?= Sect.Right(".", 0, Var("=="))
   "Foo.+" ?= App.Infix(Cons("Foo"), 0, Opr("."), 0, Var("+"))
   "+="    ?= Mod("+")
   "-="    ?= Mod("-")

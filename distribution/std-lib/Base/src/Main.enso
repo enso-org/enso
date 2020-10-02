@@ -60,8 +60,3 @@ type Math
     to its diameter.
 Math.pi : Decimal
 Math.pi = 3.141592653589793
-
-## Equality definition for types defining `==`.
-
-   TODO remove when operators can be defined in-language.
-Any.equals that = this == that

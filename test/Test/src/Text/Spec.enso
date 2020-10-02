@@ -15,7 +15,7 @@ spec = describe "Text" <|
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
     it "should compare strings using utf normalization" <|
-        "abc".equals "def" . should_be_false
+        "abc"=="def" . should_be_false
         accent_1 . should_equal accent_2
     it "should split the text into grapheme clusters" <|
         str = kshi + facepalm + accent_1 + accent_2
