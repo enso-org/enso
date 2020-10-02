@@ -122,7 +122,3 @@ provides detailed instructions for building and hacking on Enso.
 If you believe that you have found a security vulnerability in Enso, or that you
 have a bug report that poses a security risk to Enso's users, please take a look
 at our [security guidelines](./docs/SECURITY.md) for a course of action.
-
-<a href="https://github.com/enso-org/enso/graphs/contributors">
-  <img src="https://opencollective.com/enso-language/contributors.svg?width=890&button=false">
-</a>
