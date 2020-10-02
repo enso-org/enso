@@ -526,7 +526,7 @@ lazy val `logging-service` = project
       )
   )
   .settings(
-    if (NativeImage.isWindows)
+    if (Platform.isWindows)
       (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-windows"
     else
       (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
@@ -935,19 +935,7 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
-    (Test / compile) := (Test / compile)
-        .dependsOn(Def.task {
-          val cmd = Seq("mvn", "package", "-f", "std-bits")
-          val exitCode = if (sys.props("os.name").toLowerCase().contains("win")) {
-            (Seq("cmd", "/c") ++ cmd).!
-          } else {
-            cmd.!
-          }
-          if (exitCode != 0) {
-            throw new RuntimeException("std-bits build failed.")
-          }
-        })
-        .value
+    (Test / compile) := (Test / compile).dependsOn(StdBits.preparePackage).value
   )
   .settings(
     logBuffered := false,

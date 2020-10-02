@@ -14,7 +14,8 @@ import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future, Promise}
 
 /**
   * Manages setting up the logging service within the launcher.
@@ -53,26 +54,7 @@ object LauncherLogging {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
     connectToExternalLogger match {
       case Some(uri) =>
-        LoggingServiceManager
-          .setupWithFallback(
-            LoggerMode.Client(uri),
-            LoggerMode.Local(Seq(fallbackPrinter)),
-            actualLogLevel
-          )
-          .onComplete {
-            case Failure(exception) =>
-              logger.error("Failed to initialize the logger.", exception)
-              loggingServiceEndpointPromise.success(None)
-            case Success(connected) =>
-              if (connected) {
-                loggingServiceEndpointPromise.success(Some(uri))
-                val msg =
-                  s"Log messages from this launcher are forwarded to `$uri`."
-                System.err.println(msg)
-              } else {
-                loggingServiceEndpointPromise.success(None)
-              }
-          }
+        setupLoggingConnection(uri, actualLogLevel)
       case None =>
         setupLoggingServer(actualLogLevel, globalCLIOptions)
     }
@@ -130,7 +112,14 @@ object LauncherLogging {
   ): Unit = {
     val printExceptionsInStderr =
       implicitly[Ordering[LogLevel]].compare(logLevel, LogLevel.Debug) >= 0
-    val printers =
+
+    /**
+      * Creates a stderr printer and a file printer if a log file can be opened.
+      *
+      * This is a `def` on purpose, as even if the service fails, the printers
+      * are shut down, so the fallback must create new instances.
+      */
+    def createPrinters() =
       try {
         val filePrinter =
           FileOutputPrinter.create(DistributionManager.paths.logs)
@@ -149,7 +138,7 @@ object LauncherLogging {
       }
 
     LoggingServiceManager
-      .setup(LoggerMode.Server(printers), logLevel)
+      .setup(LoggerMode.Server(createPrinters()), logLevel)
       .onComplete {
         case Failure(exception) =>
           logger.error(
@@ -158,10 +147,20 @@ object LauncherLogging {
           )
           logger.warn("Falling back to local-only logger.")
           loggingServiceEndpointPromise.success(None)
-          LoggingServiceManager.setup(
-            LoggerMode.Local(printers),
-            logLevel
-          )
+          LoggingServiceManager
+            .setup(
+              LoggerMode.Local(createPrinters()),
+              logLevel
+            )
+            .onComplete {
+              case Failure(fallbackException) =>
+                System.err.println(
+                  s"Failed to initialize the fallback logger: " +
+                  s"$fallbackException"
+                )
+                fallbackException.printStackTrace()
+              case Success(_) =>
+            }
         case Success(serverBinding) =>
           val uri = serverBinding.toUri()
           loggingServiceEndpointPromise.success(Some(uri))
@@ -169,6 +168,54 @@ object LauncherLogging {
             s"Logging service has been set-up and is listening at `$uri`."
           )
       }
+  }
+
+  /**
+    * Connects this launcher to an external logging service.
+    *
+    * Currently, this is an internal function used mostly for testing purposes.
+    * It is not a user-facing API.
+    */
+  private def setupLoggingConnection(uri: Uri, logLevel: LogLevel): Unit = {
+    LoggingServiceManager
+      .setup(
+        LoggerMode.Client(uri),
+        logLevel
+      )
+      .map(_ => true)
+      .recoverWith { _ =>
+        LoggingServiceManager
+          .setup(
+            LoggerMode.Local(Seq(fallbackPrinter)),
+            logLevel
+          )
+          .map(_ => false)
+      }
+      .onComplete {
+        case Failure(exception) =>
+          System.err.println(s"Failed to initialize the logger: $exception")
+          exception.printStackTrace()
+          loggingServiceEndpointPromise.success(None)
+        case Success(connected) =>
+          if (connected) {
+            loggingServiceEndpointPromise.success(Some(uri))
+            val msg =
+              s"Log messages from this launcher are forwarded to `$uri`."
+            System.err.println(msg)
+          } else {
+            loggingServiceEndpointPromise.success(None)
+          }
+      }
+  }
+
+  /**
+    * Waits until the logging service has been set-up.
+    *
+    * Due to limitations of how the logging service is implemented, it can only
+    * be terminated after it has been set up.
+    */
+  def waitForSetup(): Unit = {
+    Await.ready(loggingServiceEndpointPromise.future, 5.seconds)
   }
 
   /**
@@ -182,6 +229,7 @@ object LauncherLogging {
     * that the log directory can be removed.
     */
   def prepareForUninstall(globalCLIOptions: GlobalCLIOptions): Unit = {
+    waitForSetup()
     LoggingServiceManager.replaceWithFallback(printers =
       Seq(stderrPrinter(globalCLIOptions, printExceptions = true))
     )

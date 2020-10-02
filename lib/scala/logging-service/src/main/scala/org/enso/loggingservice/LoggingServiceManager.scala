@@ -43,6 +43,11 @@ object LoggingServiceManager {
     * the application.
     *
     * The returned [[InitializationResult]] depends on the mode.
+    *
+    * It is important to note that any printers passed inside of `mode` are from
+    * now on owned by the setup function and the created service, so if service
+    * creation fails, they will be shutdown alongside service termination. Any
+    * printers passed to this function must not be reused.
     */
   def setup[InitializationResult](
     mode: LoggerMode[InitializationResult],
@@ -51,26 +56,6 @@ object LoggingServiceManager {
     currentLevel = logLevel
     import scala.concurrent.ExecutionContext.Implicits.global
     Future(doSetup(mode, logLevel))
-  }
-
-  /**
-    * Tries to set up the logging service, falling back to a simple logger if it
-    * failed.
-    *
-    * The returned future will contain `true` if the original backend was set-up
-    * or `false` if it had to fall back to stderr.
-    */
-  def setupWithFallback(
-    mode: LoggerMode[_],
-    fallbackMode: LoggerMode[_],
-    logLevel: LogLevel
-  ): Future[Boolean] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    setup(mode, logLevel).map(_ => true).recoverWith { error =>
-      InternalLogger.error(s"Failed to initialize the logging server: $error")
-      InternalLogger.error("Falling back to a simple stderr backend.")
-      setup(fallbackMode, logLevel).map(_ => false)
-    }
   }
 
   /**

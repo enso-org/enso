@@ -33,7 +33,7 @@ object NativeImage {
         val javaHome       = System.getProperty("java.home")
         val subProjectRoot = baseDirectory.value
         val nativeImagePath =
-          if (isWindows)
+          if (Platform.isWindows)
             s"$javaHome\\bin\\native-image.cmd"
           else s"$javaHome/bin/native-image"
         val classPath =
@@ -54,7 +54,7 @@ object NativeImage {
           if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
 
         val (staticParameters, pathExts) =
-          if (staticOnLinux && isLinux) {
+          if (staticOnLinux && Platform.isLinux) {
             // Note [Static Build On Linux]
             val buildCache =
               subProjectRoot / "build-cache"
@@ -154,23 +154,11 @@ object NativeImage {
     }
 
   /**
-    * Returns true if the build system is running on Windows.
-    */
-  def isWindows: Boolean =
-    sys.props("os.name").toLowerCase().contains("windows")
-
-  /**
-    * Returns true if the build system is running on Linux.
-    */
-  def isLinux: Boolean =
-    sys.props("os.name").toLowerCase().contains("linux")
-
-  /**
     * [[File]] representing the artifact called `name` built with the Native
     * Image.
     */
   def artifactFile(name: String): File =
-    if (isWindows) file(name + ".exe")
+    if (Platform.isWindows) file(name + ".exe")
     else file(name)
 
   private val muslBundleUrl =

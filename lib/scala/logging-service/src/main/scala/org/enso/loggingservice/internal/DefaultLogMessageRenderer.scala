@@ -1,7 +1,7 @@
 package org.enso.loggingservice.internal
 
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDateTime, ZoneId}
+import java.time.{Instant, ZoneOffset, ZonedDateTime}
 
 import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.protocol.{
@@ -27,15 +27,15 @@ class DefaultLogMessageRenderer(printExceptions: Boolean)
     addException(base, logMessage.exception)
   }
 
-  private val timestampZone = ZoneId.of("UTC")
+  private val timestampZone = ZoneOffset.UTC
 
   /**
     * Renders the timestamp.
     */
   def renderTimestamp(timestamp: Instant): String =
-    LocalDateTime
+    ZonedDateTime
       .ofInstant(timestamp, timestampZone)
-      .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+      .format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
 
   /**
     * Adds attached exception's stack trace (if available) to the log if

@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.Logger
 import org.enso.loggingservice.printers.StderrPrinter
 import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 /**
@@ -23,30 +24,45 @@ object RunnerLogging {
     * @param logLevel log level to use for the runner and runtime
     */
   def setup(connectionUri: Option[Uri], logLevel: LogLevel): Unit = {
-    val local =
-      LoggerMode.Local(Seq(StderrPrinter.create(printExceptions = true)))
-    connectionUri match {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val loggerSetup = connectionUri match {
       case Some(uri) =>
-        import scala.concurrent.ExecutionContext.Implicits.global
         LoggingServiceManager
-          .setupWithFallback(
+          .setup(
             LoggerMode.Client(uri),
-            local,
             logLevel
           )
-          .onComplete {
-            case Failure(exception) =>
-              System.err.println(s"Failed to initialize logging: $exception")
-            case Success(connected) =>
-              val logger = Logger[RunnerLogging.type]
-              if (connected) {
-                logger.trace(s"Connected to logging service at `$uri`.")
-              }
+          .map { _ =>
+            logger.trace(s"Connected to logging service at `$uri`.")
+          }
+          .recoverWith { _ =>
+            logger.error(
+              "Failed to connect to the logging service server, " +
+              "falling back to local logging."
+            )
+            setupLocalLogger(logLevel)
           }
       case None =>
-        LoggingServiceManager.setup(local, logLevel)
+        setupLocalLogger(logLevel)
+    }
+    loggerSetup.onComplete {
+      case Failure(exception) =>
+        System.err.println(s"Failed to initialize logging: $exception")
+        exception.printStackTrace()
+      case Success(_) =>
     }
   }
+
+  private def setupLocalLogger(logLevel: LogLevel): Future[Unit] =
+    LoggingServiceManager
+      .setup(
+        LoggerMode.Local(
+          Seq(StderrPrinter.create(printExceptions = true))
+        ),
+        logLevel
+      )
+
+  private val logger = Logger[RunnerLogging.type]
 
   /**
     * Shuts down the logging service gracefully.

@@ -24,7 +24,7 @@ trait ServiceTest
     with OptionValues
     with TimeLimitedTests {
 
-  override def timeLimit: Span = 5.seconds
+  override def timeLimit: Span = 20.seconds
 
   def testServiceMessageGathering(
     serviceConstructor: (
