@@ -7,14 +7,18 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher._
 import org.enso.launcher.locking.{FileLockManager, LockType}
+import org.enso.testkit.RetrySpec
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
+
+import scala.concurrent.TimeoutException
 
 class UpgradeSpec
     extends NativeTest
     with WithTemporaryDirectory
     with BeforeAndAfterAll
-    with OptionValues {
+    with OptionValues
+    with RetrySpec {
 
   /**
     * Location of the fake releases root.
@@ -305,7 +309,7 @@ class UpgradeSpec
       result.stdout should include(message)
     }
 
-    "fail if another upgrade is running in parallel" in {
+    "fail if another upgrade is running in parallel" taggedAs Retry in {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 1))
@@ -336,6 +340,13 @@ class UpgradeSpec
 
         secondFailed.stderr should include("Another upgrade is in progress")
         secondFailed.exitCode shouldEqual 1
+      } catch {
+        case _: TimeoutException =>
+          System.err.println(
+            "Waiting for the lock timed out, " +
+            "the process had the following output:"
+          )
+          firstSuspended.printIO()
       } finally {
         lock.release()
       }

@@ -438,7 +438,7 @@ object Main {
     * @param logLevel log level to set for the engine runtime
     */
   private def runLanguageServer(line: CommandLine, logLevel: LogLevel): Unit = {
-    val _ = logLevel // TODO [RW] handle logging in the Language Server
+    val _ = logLevel // TODO [RW] handle logging in the Language Server (#1144)
 
     val maybeConfig = parseSeverOptions(line)
 

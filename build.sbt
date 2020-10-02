@@ -1118,6 +1118,7 @@ lazy val launcher = project
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
+  .dependsOn(testkit % Test)
 
 /* Note [HTTPS in the Launcher]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

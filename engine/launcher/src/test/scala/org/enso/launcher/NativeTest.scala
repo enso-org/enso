@@ -1,18 +1,19 @@
 package org.enso.launcher
 
 import java.io.{BufferedReader, InputStream, InputStreamReader}
-import java.nio.file.{Files, Path}
 import java.lang.{ProcessBuilder => JProcessBuilder}
-import java.util.concurrent.{Semaphore, TimeUnit, TimeoutException}
+import java.nio.file.{Files, Path}
+import java.util.concurrent.{Semaphore, TimeUnit}
 
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.time.Span
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.time.SpanSugar._
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.Factory
+import scala.concurrent.TimeoutException
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 
@@ -257,7 +258,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
       val acquired = semaphore.tryAcquire(timeoutSeconds, TimeUnit.SECONDS)
       if (!acquired) {
-        throw new RuntimeException(s"Waiting for `$message` timed out.")
+        throw new TimeoutException(s"Waiting for `$message` timed out.")
       }
     }
 

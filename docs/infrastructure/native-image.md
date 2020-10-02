@@ -121,16 +121,40 @@ to maintain separate configs for each platform. Currently, the
 `native-image-agent` is not available on Windows, so Windows-specific reflective
 accesses may have to be gathered manually. For some types of accesses it may be
 possible to force the Windows-specific code paths to run on Linux and gather
-these accesses semi-automatically. That is currently the case with
-archive-related accesses - while the Linux launcher never unpacks ZIP files, we
-can manually force it to do so, to register the reflection configuration that
-will than be used on Windows to enable ZIP extraction.
+these accesses semi-automatically.
+
+### Launcher Configuration
+
+In case of the launcher, to gather the relevant reflective accesses one wants to
+test as many execution paths as possible, especially the ones that are likely to
+use reflection. One of these areas is HTTP support and archive extraction.
+
+To trace this accesses, it is good to run at least
+`... launcher.jar install engine` which will trigger HTTP downloads and archive
+extraction.
+
+Currently, archive-related accesses are platform dependent - Linux launcher only
+uses `.tar.gz` and Windows uses `.zip`. While the Linux launcher never unpacks
+ZIP files, we can manually force it to do so, to register the reflection
+configuration that will than be used on Windows to enable ZIP extraction.
+
+To force the launcher to extract a ZIP on Linux, one can add the following code
+snippet (with the necessary imports) to `org.enso.launcher.cli.Main.main`:
+
+```
+Archive.extractArchive(Path.of("enso-engine-windows.zip"), Path.of("somewhere"), None)
+```
+
+With this snippet, `launcher.jar` should be built using the
+`launcher / assembly` task, and the tracing tool should be re-run as shown
+above.
 
 Moreover, some reflective accesses may not be detected by the tool
 automatically, so they may need to be added manually. One of them is an access
 to the class `[B` when using Akka, so it would require manually adding it to the
-`reflect-config.json`. However, to make it easier, a package `akka-native` has
-been created that gathers workarounds required to be able to build native images
+`reflect-config.json`. This strange looking access is most likely reflective
+access to an array of bytes. To make it easier, a package `akka-native` has been
+created that gathers workarounds required to be able to build native images
 using Akka, so it is enough to just add it as a dependency. It does not handle
 other reflective accesses that are related to Akka, because the ones that are
 needed are gathered automatically using the tool described above.

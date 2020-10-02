@@ -198,8 +198,9 @@ class Runner(
       RunSettings(
         version,
         arguments ++ additionalArguments,
-        connectLoggerIfAvailable =
-          false // TODO [RW] set to true when language server gets logging support
+        // TODO [RW] set to true when language server gets logging support
+        //  (#1144)
+        connectLoggerIfAvailable = false
       )
     }
 
