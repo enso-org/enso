@@ -22,6 +22,38 @@ polyglot java import java.time.ZoneOffset
 
 type Offset_Date_Time internal_offset_date_time
 
+## Get the year field.
+Offset_Date_Time.get_year : Integer
+Offset_Date_Time.get_year = this . internal_offset_date_time . getYear []
+
+## Get the month of year field from 1 to 12.
+Offset_Date_Time.get_month : Integer
+Offset_Date_Time.get_month = this . internal_offset_date_time . getMonthValue []
+
+## Get the day of month field.
+Offset_Date_Time.get_day : Integer
+Offset_Date_Time.get_day = this . internal_offset_date_time . getDayOfMonth []
+
+## Get the hour of day field.
+Offset_Date_Time.get_hour : Integer
+Offset_Date_Time.get_hour = this . internal_offset_date_time . getHour []
+
+## Get the minute of hour field.
+Offset_Date_Time.get_minute : Integer
+Offset_Date_Time.get_minute = this . internal_offset_date_time . getMinute []
+
+## Get the second of minute field
+Offset_Date_Time.get_second : Integer
+Offset_Date_Time.get_second = this . internal_offset_date_time . getSecond []
+
+## Gets the nano-of-second field.
+Offset_Date_Time.get_nano : Integer
+Offset_Date_Time.get_nano = this . internal_offset_date_time . getNano []
+
+## Gets the nano-of-second field.
+Offset_Date_Time.get_nanosecond : Integer
+Offset_Date_Time.get_nanosecond = this . get_nano
+
 ## Return the internal temporal object.
 Offset_Date_Time.internal_temporal : Temporal
 Offset_Date_Time.internal_temporal = this.internal_offset_date_time

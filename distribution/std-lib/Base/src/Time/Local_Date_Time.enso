@@ -21,6 +21,38 @@ type Local_Date_Time internal_local_date_time
 Local_Date_Time.internal_temporal : Temporal
 Local_Date_Time.internal_temporal = this.internal_local_date_time
 
+## Get the year field.
+Local_Date_Time.get_year : Integer
+Local_Date_Time.get_year = this . internal_local_date_time . getYear []
+
+## Get the month of year field from 1 to 12.
+Local_Date_Time.get_month : Integer
+Local_Date_Time.get_month = this . internal_local_date_time . getMonthValue []
+
+## Get the day of month field.
+Local_Date_Time.get_day : Integer
+Local_Date_Time.get_day = this . internal_local_date_time . getDayOfMonth []
+
+## Get the hour of day field.
+Local_Date_Time.get_hour : Integer
+Local_Date_Time.get_hour = this . internal_local_date_time . getHour []
+
+## Get the minute of hour field.
+Local_Date_Time.get_minute : Integer
+Local_Date_Time.get_minute = this . internal_local_date_time . getMinute []
+
+## Get the second of minute field
+Local_Date_Time.get_second : Integer
+Local_Date_Time.get_second = this . internal_local_date_time . getSecond []
+
+## Gets the nano-of-second field.
+Local_Date_Time.get_nano : Integer
+Local_Date_Time.get_nano = this . internal_local_date_time . getNano []
+
+## Gets the nano-of-second field.
+Local_Date_Time.get_nanosecond : Integer
+Local_Date_Time.get_nanosecond = this . get_nano
+
 ## Return the number of seconds from the Unix epoch.
 Local_Date_Time.to_epoch_second : Zone_Offset -> Integer
 Local_Date_Time.to_epoch_second offset = this . internal_local_date_time . toEpochSecond [offset.internal_zone_offset]
