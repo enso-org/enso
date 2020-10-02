@@ -57,7 +57,7 @@ public abstract class MethodResolverNode extends Node {
    */
   public abstract Function execute(UnresolvedSymbol symbol, Object self);
 
-  @Specialization(guards = "isValidAtomCache(symbol, cachedSymbol, atom, cachedConstructor)", limit = "500")
+  @Specialization(guards = "isValidAtomCache(symbol, cachedSymbol, atom, cachedConstructor)")
   Function resolveAtom(
       UnresolvedSymbol symbol,
       Atom atom,
