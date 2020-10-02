@@ -302,7 +302,9 @@ final class SuggestionsHandler(
     msg: Api.SuggestionsDatabaseModuleUpdateNotification
   ): Future[SuggestionsDatabaseUpdateNotification] = {
     val (addCmds, removeCmds, cleanCmds) = msg.updates
-      .foldLeft((Seq[Suggestion](), Seq[Suggestion](), Seq[String]())) {
+      .foldLeft(
+        (Vector[Suggestion](), Vector[Suggestion](), Vector[String]())
+      ) {
         case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Add) =>
           (add :+ m.suggestion, remove, clean)
         case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Remove) =>
@@ -322,7 +324,7 @@ final class SuggestionsHandler(
       (version, addedIds) <- suggestionsRepo.insertAll(addCmds)
       _                   <- fileVersionsRepo.setVersion(msg.file, fileVersion)
     } yield {
-      val updatesCleaned = cleanedIds.map(SuggestionsDatabaseUpdate.Remove(_))
+      val updatesCleaned = cleanedIds.map(SuggestionsDatabaseUpdate.Remove)
       val updatesRemoved =
         (removedIds zip removeCmds).flatMap {
           case (Some(id), _) =>
