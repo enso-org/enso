@@ -1,0 +1,27 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Instant
+import Base.Time.Zoned_Date_Time
+import Base.Time.Zone_Id
+
+spec =
+    describe "Zoned_Date_Time" <|
+        it "should create zoned date time" <|
+            time = Zoned_Date_Time.new
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . to_epoch_second . should_equal 0
+            time . to_epoch_second . should_equal 0
+        it "should create zoned date time from instant" <|
+            instant = Instant.new 1970 1 1 0 0 1
+            time = Zoned_Date_Time.of_instant instant Zone_Id.utc
+            time . to_epoch_second . should_equal 1
+        it "should parse zoned date time" <|
+            time = Zoned_Date_Time.parse "1970-01-01T00:00:01.00Z"
+            time . to_epoch_second . should_equal 1

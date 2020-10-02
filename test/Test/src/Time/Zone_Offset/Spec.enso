@@ -1,0 +1,16 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Zone_Offset
+
+spec =
+    describe "Zone_Offset" <|
+        it "should create zone offset" <|
+            offset = Zone_Offset.new 1 30
+            offset . get_total_seconds . should_equal 5400
+        it "should parse zone offset" <|
+            offset = Zone_Offset.parse "+03:00"
+            offset . get_total_seconds . should_equal 10800
+        it "should create zone offset utc" <|
+            offset = Zone_Offset.utc
+            offset . get_total_seconds . should_equal 0

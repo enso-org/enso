@@ -1,0 +1,19 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Instant
+
+spec =
+    describe "Instant" <|
+        it "should get time istant now" <|
+            now_milli = Instant.now . to_epoch_milli
+            (now_milli > 0) . should_be_true
+        it "should create time instant with default parameters" <|
+            time = Instant.new
+            time . to_epoch_milli . should_equal 0
+        it "should create time instant" <|
+            time = Instant.new 2020 12 21
+            time . to_epoch_milli . should_equal 1608508800000
+        it "should parse time instant" <|
+            time = Instant.parse "1970-01-01T00:00:00.01Z"
+            time . to_epoch_milli . should_equal 10

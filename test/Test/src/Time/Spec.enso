@@ -1,137 +1,26 @@
 from Base import all
 
-import Base.Test
-import Base.Time.Instant
-import Base.Time.Local_Date
-import Base.Time.Local_Date_Time
-import Base.Time.Local_Time
-import Base.Time.Offset_Date_Time
-import Base.Time.Zone_Id
-import Base.Time.Zone_Offset
-import Base.Time.Zoned_Date_Time
 import Test.Time.Duration.Spec as Duration_Spec
+import Test.Time.Instant.Spec as Instant_Spec
+import Test.Time.Local_Time.Spec as Local_Time_Spec
+import Test.Time.Local_Date.Spec as Local_Date_Spec
+import Test.Time.Local_Date_Time.Spec as Local_Date_Time_Spec
+import Test.Time.Offset_Date_Time.Spec as Offset_Date_Time_Spec
+import Test.Time.Zoned_Date_Time.Spec as Zoned_Date_Time_Spec
 import Test.Time.Period.Spec as Period_Spec
 import Test.Time.Temporal.Spec as Temporal_Spec
+import Test.Time.Zone_Id.Spec as Zone_Id_Spec
+import Test.Time.Zone_Offset.Spec as Zone_Offset_Spec
 
 spec =
-    describe "Zone_Offset" <|
-        it "should create zone offset" <|
-            offset = Zone_Offset.new 1 30
-            offset . get_total_seconds . should_equal 5400
-        it "should parse zone offset" <|
-            offset = Zone_Offset.parse "+03:00"
-            offset . get_total_seconds . should_equal 10800
-        it "should create zone offset utc" <|
-            offset = Zone_Offset.utc
-            offset . get_total_seconds . should_equal 0
-    describe "Zone_Id" <|
-        it "should get system zone id" <|
-            Zone_Id.system
-        it "should parse zone id" <|
-            zone = "UTC"
-            id = Zone_Id.parse zone
-            id . get_id . should_equal zone
-        it "should get utc zone id" <|
-            id = Zone_Id.utc
-            id . get_id . should_equal "UTC"
-    describe "Instant" <|
-        it "should get time istant now" <|
-            now_milli = Instant.now . to_epoch_milli
-            (now_milli > 0) . should_be_true
-        it "should create time instant with default parameters" <|
-            time = Instant.new
-            time . to_epoch_milli . should_equal 0
-        it "should create time instant" <|
-            time = Instant.new 2020 12 21
-            time . to_epoch_milli . should_equal 1608508800000
-        it "should parse time instant" <|
-            time = Instant.parse "1970-01-01T00:00:00.01Z"
-            time . to_epoch_milli . should_equal 10
-    describe "Local_Time" <|
-        it "should create local time" <|
-            time = Local_Time.new 1 0 0
-            time . get_hour . should_equal 1
-            time . get_minute . should_equal 0
-            time . get_second . should_equal 0
-            time . to_second_of_day . should_equal 3600
-        it "should create local time from instant" <|
-            instant = Instant.new 1970 1 1 0 0 1
-            time = Local_Time.of_instant instant Zone_Offset.utc
-            time . to_second_of_day . should_equal 1
-        it "should parse local time" <|
-            time = Local_Time.parse "10:00:00"
-            time.to_second_of_day . should_equal 36000
-    describe "Local_Date" <|
-        it "should create local date" <|
-            date = Local_Date.new 2020 1 1
-            date . get_year . should_equal 2020
-            date . get_month . should_equal 1
-            date . get_day . should_equal 1
-        it "should create local date from instant" <|
-            instant = Instant.new 1970 1 1 0 0 1
-            date = Local_Date.of_instant instant Zone_Offset.utc
-            date . to_epoch_second Local_Time.new Zone_Offset.utc . should_equal 0
-        it "should parse local date" <|
-            date = Local_Date.parse "1999-01-01"
-            date . get_year . should_equal 1999
-    describe "Local_Date_Time" <|
-        it "should create local date time" <|
-            time = Local_Date_Time.new
-            time . get_year . should_equal 1970
-            time . get_month . should_equal 1
-            time . get_day . should_equal 1
-            time . get_hour . should_equal 0
-            time . get_minute . should_equal 0
-            time . get_second . should_equal 0
-            time . get_nanosecond . should_equal 0
-            time . to_epoch_second Zone_Offset.utc . should_equal 0
-        it "should create local date time from instant" <|
-            instant = Instant.new 1970 1 1 0 0 1
-            time = Local_Date_Time.of_instant instant Zone_Offset.utc
-            time . to_epoch_second Zone_Offset.utc . should_equal 1
-        it "should parse local date time" <|
-            time = Local_Date_Time.parse "1970-01-01T00:00:01.00"
-            time . to_epoch_second Zone_Offset.utc . should_equal 1
-    describe "Offset_Date_Time" <|
-        it "should create offset date time" <|
-            time = Offset_Date_Time.new
-            time . get_year . should_equal 1970
-            time . get_month . should_equal 1
-            time . get_day . should_equal 1
-            time . get_hour . should_equal 0
-            time . get_minute . should_equal 0
-            time . get_second . should_equal 0
-            time . get_nanosecond . should_equal 0
-            time . to_epoch_second . should_equal 0
-        it "should create offset date time from instant" <|
-            instant = Instant.new 1970 1 1 0 0 1
-            time = Offset_Date_Time.of_instant instant Zone_Offset.utc
-            time . to_epoch_second . should_equal 1
-        it "should parse offset date time" <|
-            time = Offset_Date_Time.parse "1970-01-01T00:00:01.00Z"
-            time . to_epoch_second . should_equal 1
-    describe "Zoned_Date_Time" <|
-        it "should create zoned date time" <|
-            time = Zoned_Date_Time.new
-            time . get_year . should_equal 1970
-            time . get_month . should_equal 1
-            time . get_day . should_equal 1
-            time . get_hour . should_equal 0
-            time . get_minute . should_equal 0
-            time . get_second . should_equal 0
-            time . get_nanosecond . should_equal 0
-            time . to_epoch_second . should_equal 0
-            time . to_epoch_second . should_equal 0
-        it "should create zoned date time from instant" <|
-            instant = Instant.new 1970 1 1 0 0 1
-            time = Zoned_Date_Time.of_instant instant Zone_Id.utc
-            time . to_epoch_second . should_equal 1
-        it "should parse zoned date time" <|
-            time = Zoned_Date_Time.parse "1970-01-01T00:00:01.00Z"
-            time . to_epoch_second . should_equal 1
-    describe "Temporal" <|
-        it "Local_Date is temporal" <|
-            Local_Date.now . internal_temporal
+    Zone_Offset_Spec.spec
+    Zone_Id_Spec.spec
+    Instant_Spec.spec
+    Local_Time_Spec.spec
+    Local_Date_Spec.spec
+    Local_Date_Time_Spec.spec
+    Offset_Date_Time_Spec.spec
+    Zoned_Date_Time_Spec.spec
     Duration_Spec.spec
     Period_Spec.spec
     Temporal_Spec.spec

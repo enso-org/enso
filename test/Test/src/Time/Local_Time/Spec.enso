@@ -1,0 +1,22 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Instant
+import Base.Time.Local_Time
+import Base.Time.Zone_Offset
+
+spec =
+    describe "Local_Time" <|
+        it "should create local time" <|
+            time = Local_Time.new 1 0 0
+            time . get_hour . should_equal 1
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . to_second_of_day . should_equal 3600
+        it "should create local time from instant" <|
+            instant = Instant.new 1970 1 1 0 0 1
+            time = Local_Time.of_instant instant Zone_Offset.utc
+            time . to_second_of_day . should_equal 1
+        it "should parse local time" <|
+            time = Local_Time.parse "10:00:00"
+            time.to_second_of_day . should_equal 36000
