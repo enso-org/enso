@@ -43,7 +43,6 @@ trait ServiceWithActorSystem extends Service {
     import scala.jdk.CollectionConverters._
     val loggers: java.lang.Iterable[String] =
       Seq("akka.event.Logging$StandardOutLogger").asJava
-    akka.event.Logging
     val config = ConfigFactory
       .load()
       .withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))

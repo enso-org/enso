@@ -30,7 +30,7 @@ class StderrPrinterWithColors private (printExceptions: Boolean)
     * @inheritdoc
     */
   override def shutdown(): Unit = {
-    System.err.println(AnsiColor.RESET)
+    System.err.print(AnsiColor.RESET)
     System.err.flush()
   }
 }

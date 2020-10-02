@@ -199,9 +199,9 @@ object LauncherLogging {
         case Success(connected) =>
           if (connected) {
             loggingServiceEndpointPromise.success(Some(uri))
-            val msg =
+            System.err.println(
               s"Log messages from this launcher are forwarded to `$uri`."
-            System.err.println(msg)
+            )
           } else {
             loggingServiceEndpointPromise.success(None)
           }
