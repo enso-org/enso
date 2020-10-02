@@ -84,12 +84,15 @@ trait ThreadProcessingService extends Service {
     * @inheritdoc
     */
   abstract override def terminate(): Unit = {
-    System.err.println("terminating thread")
+    System.err.println("terminating super")
     super.terminate()
     queueThread match {
       case Some(thread) =>
+        System.err.println("terminating thread")
         thread.interrupt()
         thread.join(100)
+        queueThread = None
+        System.err.println("after shutdown")
         afterShutdown()
       case None =>
     }

@@ -112,13 +112,21 @@ object LoggingServiceManager {
   ): Unit = {
     val fallback =
       Local.setup(currentLevel, messageQueue, printers)
-    val service = currentService.synchronized {
-      val service = currentService
+    val previousService = currentService.synchronized {
+      val previous = currentService
       currentService = Some(fallback)
-      service
+      previous
     }
 
-    service.foreach(_.terminate())
+    previousService match {
+      case Some(value) =>
+        System.err.println("Terminating prevoius service")
+        value.terminate()
+        System.err.println("Prevoius service has been terminated")
+      case None =>
+        System.err.println("No service was running")
+    }
+
   }
 
   /**

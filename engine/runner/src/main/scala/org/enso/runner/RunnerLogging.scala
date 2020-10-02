@@ -48,4 +48,9 @@ object RunnerLogging {
     }
   }
 
+  /**
+    * Shuts down the logging service gracefully.
+    */
+  def tearDown(): Unit =
+    LoggingServiceManager.tearDown()
 }

@@ -78,6 +78,7 @@ trait ServiceWithActorSystem extends Service {
       case _: concurrent.TimeoutException =>
         InternalLogger.error("The actor system did not terminate in time.")
     } finally {
+      System.err.println("Akka calling parent terminate")
       super.terminate()
     }
   }

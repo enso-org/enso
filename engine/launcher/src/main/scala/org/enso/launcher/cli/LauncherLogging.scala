@@ -186,4 +186,10 @@ object LauncherLogging {
       Seq(stderrPrinter(globalCLIOptions, printExceptions = true))
     )
   }
+
+  /**
+    * Shuts down the logging service gracefully.
+    */
+  def tearDown(): Unit =
+    LoggingServiceManager.tearDown()
 }

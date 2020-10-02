@@ -206,10 +206,16 @@ object Main {
     new HelpFormatter().printHelp(LanguageInfo.ID, options)
 
   /** Terminates the process with a failure exit code. */
-  private def exitFail(): Nothing = sys.exit(1)
+  private def exitFail(): Nothing = exit(1)
 
   /** Terminates the process with a success exit code. */
-  private def exitSuccess(): Unit = sys.exit(0)
+  private def exitSuccess(): Nothing = exit(0)
+
+  /** Shuts down the logging service and terminates the process. */
+  private def exit(exitCode: Int): Nothing = {
+    RunnerLogging.tearDown()
+    sys.exit(exitCode)
+  }
 
   /**
     * Handles the `--new` CLI option.
