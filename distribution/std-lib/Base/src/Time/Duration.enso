@@ -1,3 +1,11 @@
+from Base import all
+import Base.Time.Duration.Extensions
+
+polyglot java import java.time.Duration as Java_Duration
+polyglot java import java.time.temporal.Temporal
+
+from Base.Time.Duration.Extensions export all hiding Java_Duration
+
 ## This class models a quantity or amount of time in terms of seconds
    and nanoseconds.
 
@@ -5,19 +13,18 @@
    hours. In addition, the DAYS unit can be used and is treated as exactly equal
    to 24 hours, thus ignoring daylight savings effects. See `Period` for the
    date-based equivalent to this class.
+type Duration from_duration
 
-from Base import all
-import Base.Time.Duration.Extensions
+Duration.to_seconds : Integer
+Duration.to_seconds = this . from_duration . toSeconds []
 
-polyglot java import java.time.Duration
-polyglot java import java.time.temporal.Temporal
-
-from Base.Time.Duration.Extensions export all hiding Duration
+## PRIVATE
+wrap a = Duration a
 
 ## Obtains a `Duration` from a text string such as PnDTnHnMn.nS.
 
    This will parse a textual representation of a duration, including the string
-   produced by `toString []`. The formats accepted are based on the ISO-8601
+   produced by `to_text`. The formats accepted are based on the ISO-8601
    duration format PnDTnHnMn.nS with days considered to be exactly 24 hours.
 
    > Example
@@ -52,7 +59,7 @@ from Base.Time.Duration.Extensions export all hiding Duration
      Duration of +6 hours and -3 minutes.
          Duration.parse "-PT-6H+3M"
 parse : Text -> Duration
-parse text = Duration.parse [text]
+parse text = Duration (Java_Duration.parse [text])
 
 ## Obtains a Duration representing the duration between two temporal objects.
 
@@ -61,4 +68,4 @@ parse text = Duration.parse [text]
          Duration.between (Local_Time.new 0) (Local_Time.new 1)
 between : Temporal -> Temporal -> Duration
 between start_inclusive end_exclusive =
-   Duration.between [start_inclusive, end_exclusive]
+   Duration (Java_Duration.between [start_inclusive, end_exclusive])

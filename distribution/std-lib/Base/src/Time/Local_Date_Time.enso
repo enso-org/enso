@@ -1,14 +1,3 @@
-## `LocalDateTime` is an immutable date-time object that represents a date-time,
-   often viewed as year-month-day-hour-minute-second. Other date and time
-   fields, such as day-of-year, day-of-week and week-of-year, can also be
-   accessed. Time is represented to nanosecond precision. For example, the value
-   "2nd October 2007 at 13:45.30.123456789" can be stored in a `LocalDateTime`.
-
-   This class does not store or represent a time-zone. Instead, it is a
-   description of the date, as used for birthdays, combined with the local time
-   as seen on a wall clock. It cannot represent an instant on the time-line
-   without additional information such as an offset or time-zone.
-
 from Base import all
 import Base.Time.Zone_Offset
 
@@ -16,7 +5,25 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalDateTime
 polyglot java import java.time.ZoneOffset
 
-## Obtains an instance of `LocalDateTime` from a text string such as
+## `Local_Date_Time` is an immutable date-time object that represents a date-time,
+   often viewed as year-month-day-hour-minute-second. Other date and time
+   fields, such as day-of-year, day-of-week and week-of-year, can also be
+   accessed. Time is represented to nanosecond precision. For example, the value
+   "2nd October 2007 at 13:45.30.123456789" can be stored in a `Local_Date_Time`.
+
+   This class does not store or represent a time-zone. Instead, it is a
+   description of the date, as used for birthdays, combined with the local time
+   as seen on a wall clock. It cannot represent an instant on the time-line
+   without additional information such as an offset or time-zone.
+type Local_Date_Time from_local_date_time
+
+Local_Date_Time.to_epoch_second : Zone_Offset -> Integer
+Local_Date_Time.to_epoch_second offset = this . from_local_date_time . toEpochSecond [offset.from_zone_offset]
+
+## PRIVATE
+wrap a = Local_Date_Time a
+
+## Obtains an instance of `Local_Date_Time` from a text string such as
    2007-12-03T10:15:30.
 
    The string must represent a valid date-time and is parsed using the ISO-8601
@@ -29,26 +36,26 @@ polyglot java import java.time.ZoneOffset
    > Example
      Parse the local date of 15th May 1990 at 10:15:30.
          Local_Date_Time.parse "1990-05-15T10:15:30"
-parse : Text -> LocalDateTime
-parse fmt = LocalDateTime.parse [fmt]
+parse : Text -> Local_Date_Time
+parse text = Local_Date_Time (LocalDateTime.parse [text])
 
 ## Obtains the current date-time from the system clock in the default
    time-zone.
-now : LocalDateTime
-now = LocalDateTime.now []
+now : Local_Date_Time
+now = Local_Date_Time (LocalDateTime.now [])
 
 ## Obtains an instance of `LocalDateTime` from an `Instant` and `ZoneOffset`.
 
    > Example
    Get the local date time now in the -12h time zone.
        Local_Date_Time.of_instant Instant.now (Zone_Offset.new -12)
-of_instant : Instant -> ZoneOffset -> LocalDateTime
+of_instant : Instant -> Zone_Offset -> Local_Date_Time
 of_instant instant offset =
-    offset_time = instant.atOffset [offset]
-    local = offset_time.toLocalDateTime []
+    offset_time = instant.at_offset offset
+    local = offset_time.to_local_date_time
     local
 
-## Obtains an instance of `LocalDateTime` from year, month, day, hour, minute,
+## Obtains an instance of `Local_Date_Time` from year, month, day, hour, minute,
    second and nanosecond.
 
    The day must be valid for the year and month, otherwise an exception will be
@@ -68,6 +75,6 @@ of_instant instant offset =
    > Example
      Get the local date of 5th August 1986 at 23:00.
          Local_Date_Time.new 1986 8 5 23
-new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> LocalDateTime
+new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Local_Date_Time
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    LocalDateTime.of [year, month, day, hour, minute, second, nanosecond]
+    Local_Date_Time (LocalDateTime.of [year, month, day, hour, minute, second, nanosecond])

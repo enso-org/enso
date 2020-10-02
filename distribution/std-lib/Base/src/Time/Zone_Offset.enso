@@ -1,3 +1,7 @@
+from Base import all
+
+polyglot java import java.time.ZoneOffset
+
 ## A time-zone offset is the amount of time that a time-zone differs from
    Greenwich/UTC. This is usually a fixed number of hours and minutes.
 
@@ -6,12 +10,12 @@
 
    For example, Paris is one hour ahead of Greenwich/UTC in winter and two hours
    ahead in summer. The ZoneId instance for Paris will reference two
-   `ZoneOffset` instances - a +01:00 instance for winter, and a +02:00 instance
+   `Zone_Offset` instances - a +01:00 instance for winter, and a +02:00 instance
    for summer.
+type Zone_Offset from_zone_offset
 
-from Base import all
-
-polyglot java import java.time.ZoneOffset
+Zone_Offset.get_total_seconds : Integer
+Zone_Offset.get_total_seconds = this . from_zone_offset . getTotalSeconds []
 
 ## Obtains an instance of ZoneOffset using the ID.
 
@@ -36,10 +40,10 @@ polyglot java import java.time.ZoneOffset
    > Example
      Get time zone -3 hours of Greenwich.
          Zone_Offset.parse "-03:00"
-parse : Text -> ZoneOffset
-parse text = ZoneOffset.of [text]
+parse : Text -> Zone_Offset
+parse text = Zone_Offset (ZoneOffset.of [text])
 
-## Obtains an instance of `ZoneOffset` using an offset in hours, minutes
+## Obtains an instance of `Zone_Offset` using an offset in hours, minutes
    and seconds.
 
    - the time-zone offset in hours, from -18 to +18
@@ -49,12 +53,12 @@ parse text = ZoneOffset.of [text]
      minutes
 
    > Example
-     Get time zone 1 hour 1 minute and 50 seconds of UTC/Greenwich.
+     Get time zone 1 hour 1 minute and 50 seconds of Greenwich/UTC.
          Zone_Offset.new 1 1 50
-new : Number -> Number -> Number -> ZoneOffset
+new : Number -> Number -> Number -> Zone_Offset
 new (hours = 0) (minutes = 0) (seconds = 0) =
-    ZoneOffset.ofHoursMinutesSeconds [hours, minutes, seconds]
+    Zone_Offset (ZoneOffset.ofHoursMinutesSeconds [hours, minutes, seconds])
 
 ## UTC time zone.
-utc : ZoneOffset
+utc : Zone_Offset
 utc = here.new

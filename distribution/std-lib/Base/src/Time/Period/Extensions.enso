@@ -1,10 +1,11 @@
 from Base import all
+from Base.Time.Period import Period
 
-polyglot java import java.time.Period
+polyglot java import java.time.Period as Java_Period
 
 ## Period in days.
 Integer.day : Period
-Integer.day = Period.ofDays [this]
+Integer.day = Period.period (Java_Period.ofDays [this])
 
 ## Period in days.
 Integer.days : Period
@@ -12,7 +13,7 @@ Integer.days = this.day
 
 ## Period in weeks.
 Integer.week : Period
-Integer.week = Period.ofWeeks [this]
+Integer.week = Period.period (Java_Period.ofWeeks [this])
 
 ## Period in weeks.
 Integer.weeks : Period
@@ -20,7 +21,7 @@ Integer.weeks = this.week
 
 ## Period in months.
 Integer.month : Period
-Integer.month = Period.ofMonths [this]
+Integer.month = Period.period (Java_Period.ofMonths [this])
 
 ## Period in months.
 Integer.months : Period
@@ -28,7 +29,7 @@ Integer.months = this.Month
 
 ## Period in years.
 Integer.year : Period
-Integer.year = Period.ofYears [this]
+Integer.year = Period.period (Java_Period.ofYears [this])
 
 ## Period in years.
 Integer.years : Period

@@ -10,12 +10,12 @@ spec =
             time_unit = 5
             period1 = time_unit.year
             period2 = time_unit.years
-            period1 . getYears [] . should_equal (period2 . getYears [])
+            period1 . get_years . should_equal (period2 . get_years)
         it "should parse period" <|
             period = Period.parse "P2Y"
-            period . getYears [] . should_equal 2
-        it "should create period in between dwo dates" <|
+            period . get_years . should_equal 2
+        it "should create period in between two dates" <|
             instant1 = Local_Date.new 2020
             instant2 = Local_Date.new 2021
             period = Period.between instant1 instant2
-            period . getYears [] . should_equal 1
+            period . get_years . should_equal 1

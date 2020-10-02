@@ -1,28 +1,32 @@
+from Base import all
+import Base.Time.Period.Extensions
+
+polyglot java import java.time.Period as Java_Period
+polyglot java import java.time.LocalDate
+
+from Base.Time.Period.Extensions export all hiding Java_Period
+
 ## This class models a quantity or amount of time in terms of years, months and
    days. See `Duration` for the time-based equivalent to this class.
 
    Durations and periods differ in their treatment of daylight savings time when
-   added to `ZonedDateTime`. A `Duration` will add an exact number of seconds,
+   added to `Zoned_Date_Time`. A `Duration` will add an exact number of seconds,
    thus a duration of one day is always exactly 24 hours. By contrast, a
    `Period` will add a conceptual day, trying to maintain the local time.
 
    For example, consider adding a period of one day and a duration of one day to
    18:00 on the evening before a daylight savings gap. The Period will add the
-   conceptual day and result in a `ZonedDateTime` at 18:00 the following day. By
+   conceptual day and result in a `Zoned_Date_Time` at 18:00 the following day. By
    contrast, the `Duration` will add exactly 24 hours, resulting in a
-   `ZonedDateTime` at 19:00 the following day (assuming a one hour DST gap).
+   `Zoned_Date_Time` at 19:00 the following day (assuming a one hour DST gap).
+type Period from_period
 
-from Base import all
-import Base.Time.Period.Extensions
-
-polyglot java import java.time.Period
-polyglot java import java.time.LocalDate
-
-from Base.Time.Period.Extensions export all hiding Period
+Period.get_years : Integer
+Period.get_years = this . from_period . getYears []
 
 ## Obtains a `Period` from a text string such as PnYnMnD.
 
-   This will parse the string produced by `toString []` which is based on the
+   This will parse the string produced by `to_text` which is based on the
    ISO-8601 period formats PnYnMnD and PnW.
 
    > Example
@@ -53,7 +57,7 @@ from Base.Time.Period.Extensions export all hiding Period
      Period of -1 year and -2 months.
          Period.parse "-P1Y2M"
 parse : Text -> Period
-parse txt = Period.parse [txt]
+parse text = Period (Java_Period.parse [text])
 
 ## Obtains a `Period` consisting of the number of years, months, and days
    between two dates.
@@ -61,6 +65,6 @@ parse txt = Period.parse [txt]
    > Example
      Period in 1 year between two local dates.
          Period.between (Local_Date.new 2009) (Local_Date.new 2010)
-between : LocalDate -> LocalDate -> Period
+between : Local_Date -> Local_Date -> Period
 between start_inclusive end_exclusive =
-    Period.between [start_inclusive, end_exclusive]
+    Period (Java_Period.between [start_inclusive.from_local_date, end_exclusive.from_local_date])

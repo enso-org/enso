@@ -3,11 +3,25 @@
    time-stamps in the application.
 
 from Base import all
+import Base.Time.Offset_Date_Time
+import Base.Time.Zoned_Date_Time
 import Base.Time.Zone_Offset
+import Base.Time.Zone_Id
 
-polyglot java import java.time.Instant
+polyglot java import java.time.Instant as Java_Instant
 polyglot java import java.time.OffsetDateTime
 polyglot java import java.time.ZoneOffset
+
+type Instant from_instant
+
+Instant.to_epoch_milli : Integer
+Instant.to_epoch_milli = this . from_instant . toEpochMilli []
+
+Instant.at_offset : Zone_Offset -> Offset_Date_Time
+Instant.at_offset offset = Offset_Date_Time.wrap (this . from_instant . atOffset [offset.from_zone_offset])
+
+Instant.at_zone : Zone_Id -> Zoned_Date_Time
+Instant.at_zone zone = Zoned_Date_Time.wrap (this . from_instant . atZone [zone.from_zone_id])
 
 ## Obtains an instance of Instant from a text string in ISO-8601 format.
 
@@ -15,19 +29,19 @@ polyglot java import java.time.ZoneOffset
      Create an Instant from an ISO formatted string.
          parse "2011-12-03T10:15:30Z"
 parse : Text -> Instant
-parse text = Instant.parse [text]
+parse text = Instant (Java_Instant.parse [text])
 
 ## Obtains the current instant from the system clock.
 now : Instant
-now = Instant.now []
+now = Instant (Java_Instant.now [])
 
 ## Obtains an instance of `Instant` using milliseconds from the Unix epoch.
 of_epoch_milli : Integer -> Instant
-of_epoch_milli epoch_millis = Instant.ofEpochMilli [epoch_millis]
+of_epoch_milli epoch_millis = Instant (Java_Instant.ofEpochMilli [epoch_millis])
 
 ## Obtains an instance of `Instant` using seconds from the Unix epoch.
 of_epoch_second : Integer -> Instant
-of_epoch_second epoch_seconds = Instant.ofEpochSecond [epoch_seconds]
+of_epoch_second epoch_seconds = Instant (Java_Instant.ofEpochSecond [epoch_seconds])
 
 ## Obtains an instance of `Instant` from a year, month, day, hour, minute,
    second, nanosecond and offset.
@@ -39,8 +53,8 @@ of_epoch_second epoch_seconds = Instant.ofEpochSecond [epoch_seconds]
    > Example
      Create a new instant of 3rd December 2011 at midnight UTC.
          Instant.new 2011 12 03
-new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneOffset -> Instant
+new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Offset -> Instant
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
-    offset_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset]
-    instant = offset_time.toInstant []
+    offset_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.from_zone_offset]
+    instant = Instant (offset_time.toInstant [])
     instant

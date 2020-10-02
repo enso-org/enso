@@ -1,20 +1,40 @@
-## `LocalDate` is an immutable date-time object that represents a date, often
+from Base import all
+import Base.Time.Zone_Offset
+
+polyglot java import java.time.Instant
+polyglot java import java.time.LocalDate
+
+## `Local_Date` is an immutable date-time object that represents a date, often
    viewed as year-month-day. Other date fields, such as day-of-year, day-of-week
    and week-of-year, can also be accessed. For example, the value
-   "2nd October 2007" can be stored in a `LocalDate`.
+   "2nd October 2007" can be stored in a `Local_Date`.
 
    This class does not store or represent a time or time-zone. Instead, it is a
    description of the date, as used for birthdays. It cannot represent an
    instant on the time-line without additional information such as an offset or
    time-zone.
+type Local_Date from_local_date
 
-from Base import all
+## Get the year.
+Local_Date.get_year : Integer
+Local_Date.get_year = this . from_local_date . getYear []
 
-polyglot java import java.time.Instant
-polyglot java import java.time.LocalDate
-polyglot java import java.time.ZoneOffset
+## Get the month value from 1 to 12.
+Local_Date.get_month : Integer
+Local_Date.get_month = this . from_local_date . getMonthValue []
 
-## Obtains an instance of `LocalDate` from a text string such as 2007-12-03.
+## Get the day of month.
+Local_Date.get_day : Integer
+Local_Date.get_day = this . from_local_date . getDayOfMonth []
+
+Local_Date.to_epoch_second : Local_Time -> Zone_Offset -> Integer
+Local_Date.to_epoch_second local_time zone_offset =
+    this . from_local_date . toEpochSecond [local_time.from_local_time, zone_offset.from_zone_offset]
+
+## PRIVATE
+wrap a = Local_Date a
+
+## Obtains an instance of `Local_Date` from a text string such as 2007-12-03.
 
    The string must represent a valid date and is parsed using the ISO-8601
    extended local date format. The format consists of:
@@ -33,25 +53,25 @@ polyglot java import java.time.ZoneOffset
    > Example
      Parse the date of 23rd December 2020.
          Local_Date.parse "2020-12-23"
-parse : Text -> LocalDate
-parse fmt = LocalDate.parse [fmt]
+parse : Text -> Local_Date
+parse fmt = Local_Date (LocalDate.parse [fmt])
 
 ## Obtains the current date from the system clock in the default time-zone.
-now : LocalDate
-now = LocalDate.now []
+now : Local_Date
+now = Local_Date (LocalDate.now [])
 
-## Obtains an instance of `LocalDate` from an `Instant` and `ZoneOffset`.
+## Obtains an instance of `Local_Date` from an instant and zone offset.
 
    > Example
      Get local date now in the UTC time zone.
          Local_Date.of_instant Instant.now Zone_Offset.utc
-of_instant : Instant -> ZoneOffset -> LocalDate
+of_instant : Instant -> Zone_Offset -> Local_Date
 of_instant instant offset =
-    offset_time = instant.atOffset [offset]
-    local_date = offset_time.toLocalDate []
-    local_date
+    offset_time = instant.at_offset offset
+    date = offset_time.to_local_date
+    date
 
-## Obtains an instance of `LocalDate` from a year, month and day.
+## Obtains an instance of `Local_Date` from a year, month and day.
 
    The day must be valid for the year and month, otherwise an exception will be
    thrown.
@@ -66,6 +86,6 @@ of_instant instant offset =
    > Example
      Get the local date of 5th August 1986.
          Local_Date.new 1986 8 5
-new : Number -> Number -> Number -> LocalDate
+new : Number -> Number -> Number -> Local_Date
 new (year = 1970) (month = 1) (day = 1) =
-    LocalDate.of [year, month, day]
+    Local_Date (LocalDate.of [year, month, day])

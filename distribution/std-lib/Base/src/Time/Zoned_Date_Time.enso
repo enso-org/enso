@@ -1,14 +1,3 @@
-## `ZonedDateTime` is an immutable representation of a date-time with a
-   time-zone. This class stores all date and time fields, to a precision of
-   nanoseconds, and a time-zone, with a zone offset used to handle ambiguous
-   local date-times. For example, the value "2nd October 2007 at
-   13:45.30.123456789 +02:00 in the Europe/Paris time-zone" can be stored in a
-   `ZonedDateTime`.
-
-   This class handles conversion from the local time-line of `LocalDateTime` to
-   the instant time-line of Instant. The difference between the two time-lines
-   is the offset from UTC/Greenwich, represented by a `ZoneOffset`.
-
 from Base import all
 import Base.Time.Zone_Id
 
@@ -16,8 +5,26 @@ polyglot java import java.time.Instant
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.ZoneId
 
+## `Zoned_Date_Time` is an immutable representation of a date-time with a
+   time-zone. This class stores all date and time fields, to a precision of
+   nanoseconds, and a time-zone, with a zone offset used to handle ambiguous
+   local date-times. For example, the value "2nd October 2007 at
+   13:45.30.123456789 +02:00 in the Europe/Paris time-zone" can be stored in a
+   `ZonedDateTime`.
 
-## Obtains an instance of `ZonedDateTime` from a text string such as
+   This class handles conversion from the local time-line of `Local_Date_Time` to
+   the instant time-line of `Instant`. The difference between the two time-lines
+   is the offset from UTC/Greenwich, represented by a `Zone_Offset`.
+
+type Zoned_Date_Time from_zoned_date_time
+
+Zoned_Date_Time.to_epoch_second : Integer
+Zoned_Date_Time.to_epoch_second = this . from_zoned_date_time . toEpochSecond []
+
+## PRIVATE
+wrap a = Zoned_Date_Time a
+
+## Obtains an instance of `Zoned_Date_Time` from a text string such as
    2007-12-03T10:15:30+01:00[Europe/Paris].
 
    The string must represent a valid date-time and is parsed using the ISO-8601
@@ -25,7 +32,7 @@ polyglot java import java.time.ZoneId
    brackets is not part of the ISO-8601 standard. The format consists of:
 
    - The ISO offset date time.
-   - If the zone ID is not available or is a `ZoneOffset` then the format is
+   - If the zone ID is not available or is a `Zone_Offset` then the format is
      complete.
    - An open square bracket '['.
    - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
@@ -43,18 +50,18 @@ polyglot java import java.time.ZoneId
    > Example
      Parse New York time with nanoseconds.
          Zoned_Date_Time.parse "2020-10-01T04:11:12.177528-04:00"
-parse : Text -> ZonedDateTime
-parse fmt = ZonedDateTime.parse [fmt]
+parse : Text -> Zoned_Date_Time
+parse text = Zoned_Date_Time (ZonedDateTime.parse [text])
 
 ## Obtains the current date-time from the system clock in the default time-zone.
-now : ZonedDateTime
-now = ZonedDateTime.now []
+now : Zoned_Date_Time
+now = Zoned_Date_Time (ZonedDateTime.now [])
 
 ## Obtains an instance of `ZonedDateTime` from an instant and zone ID.
-of_instant : Instant -> ZoneId -> ZonedDateTime
-of_instant instant zone_id = instant.atZone [zone_id]
+of_instant : Instant -> Zone_Id -> Zoned_Date_Time
+of_instant instant zone_id = instant.at_zone zone_id
 
-## Obtains an instance of `ZonedDateTime` from a year, month, day, hour, minute,
+## Obtains an instance of `Zoned_Date_Time` from a year, month, day, hour, minute,
    second, nanosecond and time-zone.
 
    The day must be valid for the year and month, otherwise an exception will be
@@ -75,6 +82,6 @@ of_instant instant zone_id = instant.atZone [zone_id]
    > Example
      Get the 5 August 1986 at midnight UTC.
          Zoned_Date_Time.new 1986 8 5
-new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> ZoneId -> ZonedDateTime
+new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Id -> Zoned_Date_Time
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Id.utc) =
-    ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset]
+    Zoned_Date_Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.from_zone_id])
