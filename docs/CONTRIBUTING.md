@@ -204,7 +204,7 @@ rustup component add clippy
 You will also need `node` in order to run the `wasm` tests. We only support the
 latest LTS version of [NodeJS](https://nodejs.org/en/download) and NPM. We
 recommend using [`nvm`](https://github.com/nvm-sh/nvm) to manage node versions.
-The current LTS is `v12.18.0`.
+The current LTS is `v12.18.3`.
 
 ### Getting Set Up (JVM)
 
