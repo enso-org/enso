@@ -1,5 +1,5 @@
 from Base import all
-import Time.Instant
+import Base.Time.Instant
 
 polyglot java import java.lang.System
 

@@ -1,7 +1,3 @@
-## An instantaneous point on the time-line. This class models a single
-   instantaneous point on the time-line. This might be used to record event
-   time-stamps in the application.
-
 from Base import all
 import Base.Time.Offset_Date_Time
 import Base.Time.Duration
@@ -14,6 +10,9 @@ polyglot java import java.time.Instant as Java_Instant
 polyglot java import java.time.OffsetDateTime
 polyglot java import java.time.ZoneOffset
 
+## An instantaneous point on the time-line. This class models a single
+   instantaneous point on the time-line. This might be used to record event
+   time-stamps in the application.
 type Instant internal_instant
 
 ## Return the internal temporal object.
