@@ -22,11 +22,37 @@ from Base.Time.Period.Extensions export all hiding Java_Period
    `Zoned_Date_Time` at 19:00 the following day (assuming a one hour DST gap).
 type Period internal_period
 
+## Return the internal temporal amount.
 Period.internal_temporal_amount : TemporalAmount
 Period.internal_temporal_amount = this . internal_period
 
+## Gets the amount of years of this period.
 Period.get_years : Integer
 Period.get_years = this . internal_period . getYears []
+
+## Gets the amount of months of this period.
+Period.get_months : Integer
+Period.get_months = this . internal_period . getMonths []
+
+## Gets the amount of days of this period.
+Period.get_days : Integer
+Period.get_days = this . internal_period . getDays []
+
+## Add specified amount of time to this period.
+
+   > Example
+     Add 1 day to a month.
+         1.month.plus 1.day
+Period.plus : Period -> Period
+Period.plus other = Period (this . internal_period . plus [other.internal_period])
+
+## Add specified amount of time to this period.
+
+   > Example
+     Subtract 1 day from a year.
+         1.year.minus 1.day
+Period.minus : Period -> Period
+Period.minus other = Period (this . internal_period . minus [other.internal_period])
 
 ## Obtains a `Period` from a text string such as PnYnMnD.
 

@@ -11,6 +11,8 @@ spec =
             period1 = time_unit.year
             period2 = time_unit.years
             period1 . get_years . should_equal (period2 . get_years)
+            period1 . get_months . should_equal (period2 . get_months)
+            period1 . get_days . should_equal (period2 . get_days)
         it "should parse period" <|
             period = Period.parse "P2Y"
             period . get_years . should_equal 2
@@ -19,3 +21,13 @@ spec =
             instant2 = Local_Date.new 2021
             period = Period.between instant1 instant2
             period . get_years . should_equal 1
+        it "should add period"
+            period = 1.year.plus 1.month
+            period . get_years . should_equal 1
+            period . get_months . should_equal 1
+            period . get_days . should_equal 0
+        it "should subtract period"
+            period = 1.year.minus 1.month
+            period . get_years . should_equal 1
+            period . get_months . should_equal -1
+            period . get_days . should_equal 0

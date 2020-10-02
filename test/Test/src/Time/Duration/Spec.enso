@@ -19,3 +19,9 @@ spec =
             instant2 = Local_Time.new 0 0 10
             duration = Duration.between instant1 instant2
             duration . to_seconds . should_equal 9
+        it "should add duration"
+            duration = 1.hour.plus 1.minute
+            duration . to_seconds . should_equal 3660
+        it "should subtract duration"
+            duration = 1.hour.minus 1.minute
+            duration . to_seconds . should_equal 3540

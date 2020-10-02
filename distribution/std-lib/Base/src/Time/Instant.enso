@@ -25,10 +25,18 @@ Instant.to_epoch_milli : Integer
 Instant.to_epoch_milli = this . internal_instant . toEpochMilli []
 
 ## Add specified amount of time to this instant.
+
+   > Example
+     Add 1 hour to an instant.
+         Instant.new.plus 1.hour
 Instant.plus : Duration -> Instant
 Instant.plus amount = Instant (this . internal_instant . plus [amount.internal_duration])
 
 ## Subtract specified amount of time to this instant.
+
+   > Example
+     Subtract 1 second from an instant.
+         Instant.new.minus 1.second
 Instant.minus : Duration -> Instant
 Instant.minus amount = Instant (this . internal_instant . minus [amount.internal_duration])
 

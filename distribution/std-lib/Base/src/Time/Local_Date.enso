@@ -38,10 +38,18 @@ Local_Date.to_epoch_second local_time zone_offset =
     this . internal_local_date . toEpochSecond [local_time.internal_local_time, zone_offset.internal_zone_offset]
 
 ## Add specified amount of time to this instant.
+
+   > Example
+     Add 100 years to a local date.
+         Local_Date.new.plus 100.years
 Local_Date.plus : Period -> Local_Date
 Local_Date.plus amount = Local_Date (this . internal_local_date . plus [amount.internal_period])
 
 ## Subtract specified amount of time to this instant.
+
+   > Example
+     Subtract 1 month from a local date.
+         Local_Date.new.minus 1.month
 Local_Date.minus : Period -> Local_Date
 Local_Date.minus amount = Local_Date (this . internal_local_date . minus [amount.internal_period])
 

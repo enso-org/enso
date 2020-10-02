@@ -16,12 +16,41 @@ from Base.Time.Duration.Extensions export all hiding Java_Duration
    date-based equivalent to this class.
 type Duration internal_duration
 
+## Return the internal temporal amount.
 Duration.internal_temporal_amount : TemporalAmount
 Duration.internal_temporal_amount = this . internal_duration
 
 ## Gets the number of seconds in this duration.
 Duration.to_seconds : Integer
 Duration.to_seconds = this . internal_duration . toSeconds []
+
+## Gets the number of minutes in this duration.
+Duration.to_minutes : Integer
+Duration.to_minutes = this . internal_duration . toMinutes []
+
+## Gets the number of hours in this duration.
+Duration.to_hours : Integer
+Duration.to_hours = this . internal_duration . toHours []
+
+## Gets the number of days in this duration.
+
+   > Example
+     Add 1 minute to an hour.
+         1.hour.plus 1.minute
+Duration.to_days : Integer
+Duration.to_days = this . internal_duration . toDays []
+
+## Add specified amount of time to this duration.
+
+   > Example
+     Subtract 1 second from a minute.
+         1.minute.minus 1.second
+Duration.plus : Duration -> Duration
+Duration.plus other = Duration (this . internal_duration . plus [other.internal_duration])
+
+## Add specified amount of time to this duration.
+Duration.minus : Duration -> Duration
+Duration.minus other = Duration (this . internal_duration . minus [other.internal_duration])
 
 ## Obtains a `Duration` from a text string such as PnDTnHnMn.nS.
 

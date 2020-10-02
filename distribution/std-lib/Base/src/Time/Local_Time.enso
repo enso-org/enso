@@ -39,10 +39,18 @@ Local_Time.to_second_of_day : Integer
 Local_Time.to_second_of_day = this . internal_local_time . toSecondOfDay []
 
 ## Add specified amount of time to this instant.
+
+   > Example
+     Add 15 minutes to a local time.
+         Local_Time.new.plus 15.minutes
 Local_Time.plus : Duration -> Local_Time
 Local_Time.plus amount = Local_Time (this . internal_local_time . plus [amount.internal_duration])
 
 ## Subtract specified amount of time to this instant.
+
+   > Example
+     Subtract 3 hours from a local time.
+         Local_Time.new.minus 3.hours
 Local_Time.minus : Duration -> Local_Time
 Local_Time.minus amount = Local_Time (this . internal_local_time . minus [amount.internal_duration])
 

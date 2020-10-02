@@ -74,11 +74,28 @@ Offset_Date_Time.to_local_date_time = Local_Date_Time.local_date_time (this . in
 ## Return the number of seconds from Unix epoch.
 Offset_Date_Time.to_epoch_second : Integer
 Offset_Date_Time.to_epoch_second = this . internal_offset_date_time . toEpochSecond []
+
 ## Add specified amount of time to this instant.
+
+   > Example
+     Add 1 hour to an offset date time.
+         Offset_Date_Time.new.plus 1.hour
+
+   > Example
+     Add 5 years and 6 months to an offset date time.
+         Offset_Date_Time.new.plus (5.years.plus 6.months)
 Offset_Date_Time.plus : Temporal_Amount -> Offset_Date_Time
 Offset_Date_Time.plus amount = Offset_Date_Time (this . internal_offset_date_time . plus [amount.internal_temporal_amount])
 
 ## Subtract specified amount of time to this instant.
+
+   > Example
+     Subtract 10 days from an offset date time.
+         Offset_Date_Time.new.minus 10.days
+
+   > Example
+     Subtract 15 years and 3 months from an offset date time.
+         Offset_Date_Time.new.minus (15.years.minus 3.months)
 Offset_Date_Time.minus : Temporal_Amount -> Offset_Date_Time
 Offset_Date_Time.minus amount = Offset_Date_Time (this . internal_offset_date_time . minus [amount.internal_temporal_amount])
 
