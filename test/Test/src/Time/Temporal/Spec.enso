@@ -1,0 +1,21 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Local_Date
+import Base.Time.Local_Time
+import Base.Time.Local_Date_Time
+import Base.Time.Offset_Date_Time
+import Base.Time.Zoned_Date_Time
+
+spec =
+    describe "Temporal" <|
+        it "Local_Date is temporal" <|
+            Local_Date.now . internal_temporal
+        it "Local_Time is temporal" <|
+            Local_Time.now . internal_temporal
+        it "Local_Date_Time is temporal" <|
+            Local_Date_Time.now . internal_temporal
+        it "Offset_Date_Time is temporal" <|
+            Offset_Date_Time.now . internal_temporal
+        it "Zoned_Date_Time is temporal" <|
+            Zoned_Date_Time.now . internal_temporal

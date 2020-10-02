@@ -4,6 +4,7 @@ import Base.Time.Zone_Offset
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import java.time.ZoneOffset
+polyglot java import java.time.temporal.Temporal
 
 ## `Local_Time` is an immutable date-time object that represents a time, often
    viewed as hour-minute-second. Time is represented to nanosecond
@@ -15,13 +16,15 @@ polyglot java import java.time.ZoneOffset
    instant on the time-line without additional information such as an offset or
    time-zone
 
-type Local_Time from_local_time
+type Local_Time internal_local_time
 
+## Return the internal temporal object.
+Local_Time.internal_temporal : Temporal
+Local_Time.internal_temporal = this.internal_local_time
+
+## Extracts the time as seconds of day, from 0 to 24 * 60 * 60 - 1.
 Local_Time.to_second_of_day : Integer
-Local_Time.to_second_of_day = this . from_local_time . toSecondOfDay []
-
-## PRIVATE
-wrap a = Local_Time a
+Local_Time.to_second_of_day = this . internal_local_time . toSecondOfDay []
 
 ## Obtains an instance of `LocalTime` from a text string such as 10:15.
 

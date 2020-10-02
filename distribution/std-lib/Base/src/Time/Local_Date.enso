@@ -3,6 +3,7 @@ import Base.Time.Zone_Offset
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
+polyglot java import java.time.temporal.Temporal
 
 ## `Local_Date` is an immutable date-time object that represents a date, often
    viewed as year-month-day. Other date fields, such as day-of-year, day-of-week
@@ -13,26 +14,28 @@ polyglot java import java.time.LocalDate
    description of the date, as used for birthdays. It cannot represent an
    instant on the time-line without additional information such as an offset or
    time-zone.
-type Local_Date from_local_date
+type Local_Date internal_local_date
+
+## Return the internal temporal object.
+Local_Date.internal_temporal : Temporal
+Local_Date.internal_temporal = this.internal_local_date
 
 ## Get the year.
 Local_Date.get_year : Integer
-Local_Date.get_year = this . from_local_date . getYear []
+Local_Date.get_year = this . internal_local_date . getYear []
 
 ## Get the month value from 1 to 12.
 Local_Date.get_month : Integer
-Local_Date.get_month = this . from_local_date . getMonthValue []
+Local_Date.get_month = this . internal_local_date . getMonthValue []
 
 ## Get the day of month.
 Local_Date.get_day : Integer
-Local_Date.get_day = this . from_local_date . getDayOfMonth []
+Local_Date.get_day = this . internal_local_date . getDayOfMonth []
 
+## Return the number of seconds since Unix epoch.
 Local_Date.to_epoch_second : Local_Time -> Zone_Offset -> Integer
 Local_Date.to_epoch_second local_time zone_offset =
-    this . from_local_date . toEpochSecond [local_time.from_local_time, zone_offset.from_zone_offset]
-
-## PRIVATE
-wrap a = Local_Date a
+    this . internal_local_date . toEpochSecond [local_time.internal_local_time, zone_offset.internal_zone_offset]
 
 ## Obtains an instance of `Local_Date` from a text string such as 2007-12-03.
 

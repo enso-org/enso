@@ -8,22 +8,34 @@ import Base.Time.Zoned_Date_Time
 import Base.Time.Zone_Offset
 import Base.Time.Zone_Id
 
+polyglot java import java.time.temporal.Temporal
 polyglot java import java.time.Instant as Java_Instant
 polyglot java import java.time.OffsetDateTime
 polyglot java import java.time.ZoneOffset
 
-type Instant from_instant
+type Instant internal_instant
 
+## Return the internal temporal object.
+Instant.internal_temporal : Temporal
+Instant.internal_temporal = this.internal_instant
+
+## Return the number of milliseconds from the Unix epoch.
 Instant.to_epoch_milli : Integer
-Instant.to_epoch_milli = this . from_instant . toEpochMilli []
+Instant.to_epoch_milli = this . internal_instant . toEpochMilli []
 
+## Combines this instant with an offset to create an `Offset_Date_Time`.
+
+   > Example
+     Convert the instant to UTC+3 `Offset_Date_Time`
+         Instant.at_offset (Zone_Offset.new 3)
 Instant.at_offset : Zone_Offset -> Offset_Date_Time
-Instant.at_offset offset = Offset_Date_Time.wrap (this . from_instant . atOffset [offset.from_zone_offset])
+Instant.at_offset offset = Offset_Date_Time.offset_date_time (this . internal_instant . atOffset [offset.internal_zone_offset])
 
+## Combines this instant with a time-zone to create a `Zoned_Date_Time`.
 Instant.at_zone : Zone_Id -> Zoned_Date_Time
-Instant.at_zone zone = Zoned_Date_Time.wrap (this . from_instant . atZone [zone.from_zone_id])
+Instant.at_zone zone = Zoned_Date_Time.zoned_date_time (this . internal_instant . atZone [zone.internal_zone_id])
 
-## Obtains an instance of Instant from a text string in ISO-8601 format.
+## Obtains an instance of `Instant` from a text string in ISO-8601 format.
 
    > Example
      Create an Instant from an ISO formatted string.
@@ -55,6 +67,6 @@ of_epoch_second epoch_seconds = Instant (Java_Instant.ofEpochSecond [epoch_secon
          Instant.new 2011 12 03
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Offset -> Instant
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
-    offset_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.from_zone_offset]
+    offset_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_offset]
     instant = Instant (offset_time.toInstant [])
     instant

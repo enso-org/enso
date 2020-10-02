@@ -1,8 +1,8 @@
 from Base import all
 import Base.Time.Duration.Extensions
+import Base.Time.Temporal
 
 polyglot java import java.time.Duration as Java_Duration
-polyglot java import java.time.temporal.Temporal
 
 from Base.Time.Duration.Extensions export all hiding Java_Duration
 
@@ -13,13 +13,11 @@ from Base.Time.Duration.Extensions export all hiding Java_Duration
    hours. In addition, the DAYS unit can be used and is treated as exactly equal
    to 24 hours, thus ignoring daylight savings effects. See `Period` for the
    date-based equivalent to this class.
-type Duration from_duration
+type Duration internal_duration
 
+## Gets the number of seconds in this duration.
 Duration.to_seconds : Integer
-Duration.to_seconds = this . from_duration . toSeconds []
-
-## PRIVATE
-wrap a = Duration a
+Duration.to_seconds = this . internal_duration . toSeconds []
 
 ## Obtains a `Duration` from a text string such as PnDTnHnMn.nS.
 
@@ -68,4 +66,4 @@ parse text = Duration (Java_Duration.parse [text])
          Duration.between (Local_Time.new 0) (Local_Time.new 1)
 between : Temporal -> Temporal -> Duration
 between start_inclusive end_exclusive =
-   Duration (Java_Duration.between [start_inclusive, end_exclusive])
+   Duration (Java_Duration.between [start_inclusive.internal_temporal, end_exclusive.internal_temporal])

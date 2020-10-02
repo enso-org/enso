@@ -19,10 +19,10 @@ from Base.Time.Period.Extensions export all hiding Java_Period
    conceptual day and result in a `Zoned_Date_Time` at 18:00 the following day. By
    contrast, the `Duration` will add exactly 24 hours, resulting in a
    `Zoned_Date_Time` at 19:00 the following day (assuming a one hour DST gap).
-type Period from_period
+type Period internal_period
 
 Period.get_years : Integer
-Period.get_years = this . from_period . getYears []
+Period.get_years = this . internal_period . getYears []
 
 ## Obtains a `Period` from a text string such as PnYnMnD.
 
@@ -67,4 +67,4 @@ parse text = Period (Java_Period.parse [text])
          Period.between (Local_Date.new 2009) (Local_Date.new 2010)
 between : Local_Date -> Local_Date -> Period
 between start_inclusive end_exclusive =
-    Period (Java_Period.between [start_inclusive.from_local_date, end_exclusive.from_local_date])
+    Period (Java_Period.between [start_inclusive.internal_local_date, end_exclusive.internal_local_date])

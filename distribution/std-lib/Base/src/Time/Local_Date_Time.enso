@@ -15,13 +15,15 @@ polyglot java import java.time.ZoneOffset
    description of the date, as used for birthdays, combined with the local time
    as seen on a wall clock. It cannot represent an instant on the time-line
    without additional information such as an offset or time-zone.
-type Local_Date_Time from_local_date_time
+type Local_Date_Time internal_local_date_time
 
+## Return the internal temporal object.
+Local_Date_Time.internal_temporal : Temporal
+Local_Date_Time.internal_temporal = this.internal_local_date_time
+
+## Return the number of seconds from the Unix epoch.
 Local_Date_Time.to_epoch_second : Zone_Offset -> Integer
-Local_Date_Time.to_epoch_second offset = this . from_local_date_time . toEpochSecond [offset.from_zone_offset]
-
-## PRIVATE
-wrap a = Local_Date_Time a
+Local_Date_Time.to_epoch_second offset = this . internal_local_date_time . toEpochSecond [offset.internal_zone_offset]
 
 ## Obtains an instance of `Local_Date_Time` from a text string such as
    2007-12-03T10:15:30.

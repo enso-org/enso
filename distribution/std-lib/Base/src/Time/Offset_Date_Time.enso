@@ -20,24 +20,27 @@ polyglot java import java.time.ZoneOffset
    from UTC/Greenwich, which allows the local date-time to be
    obtained. `Zoned_Date_Time` adds full time-zone rules.
 
-type Offset_Date_Time from_offset_date_time
+type Offset_Date_Time internal_offset_date_time
 
+## Return the internal temporal object.
+Offset_Date_Time.internal_temporal : Temporal
+Offset_Date_Time.internal_temporal = this.internal_offset_date_time
+
+## Gets the `Local_Date` part of this date-time.
 Offset_Date_Time.to_local_date : Local_Date
-Offset_Date_Time.to_local_date = Local_Date.wrap (this . from_offset_date_time . toLocalDate [])
+Offset_Date_Time.to_local_date = Local_Date.local_date (this . internal_offset_date_time . toLocalDate [])
 
+## Gets the `Local_Time` part of this date-time.
 Offset_Date_Time.to_local_time : Local_Time
-Offset_Date_Time.to_local_time = Local_Time.wrap (this . from_offset_date_time . toLocalTime [])
+Offset_Date_Time.to_local_time = Local_Time.local_time (this . internal_offset_date_time . toLocalTime [])
 
+## Gets the `Local_Date_Time` part of this date-time.
 Offset_Date_Time.to_local_date_time : Local_Date_Time
-Offset_Date_Time.to_local_date_time = Local_Date_Time.wrap (this . from_offset_date_time . toLocalDateTime [])
+Offset_Date_Time.to_local_date_time = Local_Date_Time.local_date_time (this . internal_offset_date_time . toLocalDateTime [])
 
+## Return the number of seconds from Unix epoch.
 Offset_Date_Time.to_epoch_second : Integer
-Offset_Date_Time.to_epoch_second = this . from_offset_date_time . toEpochSecond []
-
-## PRIVATE
-wrap OffsetDateTime -> Offset_Date_Time
-wrap a = Offset_Date_Time a
-
+Offset_Date_Time.to_epoch_second = this . internal_offset_date_time . toEpochSecond []
 ## Obtains an instance of `Offset_Date_Time` from a text string such as
    2007-12-03T10:15:30+01:00.
 
@@ -95,4 +98,4 @@ of_instant instant offset = instant.at_offset offset
          Offset_Date_Time.new 1992 12 21 16 30
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Offset -> Offset_Date_Time
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
-    Offset_Date_Time (OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.from_zone_offset])
+    Offset_Date_Time (OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_offset])

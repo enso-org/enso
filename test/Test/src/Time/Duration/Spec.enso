@@ -15,7 +15,7 @@ spec =
             duration = Duration.parse "PT10M"
             duration . to_seconds . should_equal 600
         it "should create duration in between two dates" <|
-            instant1 = Local_Time.new 0 0 1 . from_local_time
-            instant2 = Local_Time.new 0 0 10 . from_local_time
+            instant1 = Local_Time.new 0 0 1
+            instant2 = Local_Time.new 0 0 10
             duration = Duration.between instant1 instant2
             duration . to_seconds . should_equal 9

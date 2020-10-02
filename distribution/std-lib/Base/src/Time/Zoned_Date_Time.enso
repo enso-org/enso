@@ -4,25 +4,28 @@ import Base.Time.Zone_Id
 polyglot java import java.time.Instant
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.ZoneId
+polyglot java import java.time.temporal.Temporal
 
 ## `Zoned_Date_Time` is an immutable representation of a date-time with a
    time-zone. This class stores all date and time fields, to a precision of
    nanoseconds, and a time-zone, with a zone offset used to handle ambiguous
    local date-times. For example, the value "2nd October 2007 at
    13:45.30.123456789 +02:00 in the Europe/Paris time-zone" can be stored in a
-   `ZonedDateTime`.
+   `Zoned_Date_Time`.
 
    This class handles conversion from the local time-line of `Local_Date_Time` to
    the instant time-line of `Instant`. The difference between the two time-lines
    is the offset from UTC/Greenwich, represented by a `Zone_Offset`.
 
-type Zoned_Date_Time from_zoned_date_time
+type Zoned_Date_Time internal_zoned_date_time
 
+## Return the internal temporal object.
+Zoned_Date_Time.internal_temporal : Temporal
+Zoned_Date_Time.internal_temporal = this.internal_zoned_date_time
+
+## Return the number of seconds from the Unix epoch.
 Zoned_Date_Time.to_epoch_second : Integer
-Zoned_Date_Time.to_epoch_second = this . from_zoned_date_time . toEpochSecond []
-
-## PRIVATE
-wrap a = Zoned_Date_Time a
+Zoned_Date_Time.to_epoch_second = this . internal_zoned_date_time . toEpochSecond []
 
 ## Obtains an instance of `Zoned_Date_Time` from a text string such as
    2007-12-03T10:15:30+01:00[Europe/Paris].
@@ -84,4 +87,4 @@ of_instant instant zone_id = instant.at_zone zone_id
          Zoned_Date_Time.new 1986 8 5
 new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Id -> Zoned_Date_Time
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Id.utc) =
-    Zoned_Date_Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.from_zone_id])
+    Zoned_Date_Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_id])

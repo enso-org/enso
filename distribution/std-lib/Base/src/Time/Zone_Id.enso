@@ -10,10 +10,11 @@ polyglot java import java.time.ZoneOffset
      same offset for all local date-times
    - Geographical regions - an area where a specific set of rules for finding
      the offset from UTC/Greenwich apply
-type Zone_Id from_zone_id
+type Zone_Id internal_zone_id
 
+## Gets the unique time-zone ID.
 Zone_Id.get_id : Text
-Zone_Id.get_id = this . from_zone_id . getId []
+Zone_Id.get_id = this . internal_zone_id . getId []
 
 ## This method parses the ID producing a `Zone_Id`.
 
@@ -62,11 +63,11 @@ parse text = Zone_Id (ZoneId.of [text])
 
 ## Obtains an instance of `ZoneId` wrapping an offset.
 
-   If the prefix is "GMT", "UTC", or "UT" a ZoneId with the prefix and the
-   non-zero offset is returned. If the prefix is empty "" the `ZoneOffset` is
+   If the prefix is "GMT", "UTC", or "UT" a `Zone_Id` with the prefix and the
+   non-zero offset is returned. If the prefix is empty "" the `Zone_Offset` is
    returned.
 of_offset : Text -> Zone_Offset -> Zone_Id
-of_offset prefix offset = Zone_Id (ZoneId.ofOffset [prefix, offset.from_zone_offset])
+of_offset prefix offset = Zone_Id (ZoneId.ofOffset [prefix, offset.internal_zone_offset])
 
 ## The system default time-zone.
 system : Zone_Id
