@@ -2,7 +2,10 @@ package org.enso.launcher.components.runner
 
 import java.nio.file.{Files, Path}
 
+import akka.http.scaladsl.model.Uri
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.Environment
 import org.enso.launcher.components.{
   ComponentsManager,
   Engine,
@@ -11,8 +14,10 @@ import org.enso.launcher.components.{
 }
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
-import org.enso.launcher.{Environment, Logger}
+import org.enso.loggingservice.LogLevel
 
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
 
 /**
@@ -24,7 +29,8 @@ class Runner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,
   componentsManager: ComponentsManager,
-  environment: Environment
+  environment: Environment,
+  loggerConnection: Future[Option[Uri]]
 ) {
 
   /**
@@ -55,7 +61,7 @@ class Runner(
           "--new-project-name",
           name
         ) ++ authorNameOption ++ authorEmailOption ++ additionalArguments
-      RunSettings(version, arguments)
+      RunSettings(version, arguments, connectLoggerIfAvailable = false)
     }
 
   /**
@@ -66,6 +72,7 @@ class Runner(
   def repl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -90,7 +97,12 @@ class Runner(
         case None =>
           Seq("--repl")
       }
-      RunSettings(version, arguments ++ additionalArguments)
+      RunSettings(
+        version,
+        arguments ++ Seq("--log-level", logLevel.toString)
+        ++ additionalArguments,
+        connectLoggerIfAvailable = true
+      )
     }
 
   /**
@@ -101,6 +113,7 @@ class Runner(
   def run(
     path: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -145,7 +158,12 @@ class Runner(
             case None =>
               Seq("--run", actualPath.toString)
           }
-      RunSettings(version, arguments ++ additionalArguments)
+      RunSettings(
+        version,
+        arguments ++ Seq("--log-level", logLevel.toString)
+        ++ additionalArguments,
+        connectLoggerIfAvailable = true
+      )
     }
 
   /**
@@ -156,6 +174,7 @@ class Runner(
   def languageServer(
     options: LanguageServerOptions,
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -172,9 +191,17 @@ class Runner(
         "--rpc-port",
         options.rpcPort.toString,
         "--data-port",
-        options.dataPort.toString
+        options.dataPort.toString,
+        "--log-level",
+        logLevel.toString
       )
-      RunSettings(version, arguments ++ additionalArguments)
+      RunSettings(
+        version,
+        arguments ++ additionalArguments,
+        // TODO [RW] set to true when language server gets logging support
+        //  (#1144)
+        connectLoggerIfAvailable = false
+      )
     }
 
   /**
@@ -206,7 +233,10 @@ class Runner(
           case None        => WhichEngine.Default
         }
 
-      (RunSettings(version, arguments), whichEngine)
+      (
+        RunSettings(version, arguments, connectLoggerIfAvailable = false),
+        whichEngine
+      )
     }
   }
 
@@ -229,7 +259,7 @@ class Runner(
     def prepareAndRunCommand(engine: Engine, javaCommand: JavaCommand): R = {
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
-        Logger.debug(
+        Logger[Runner].debug(
           s"Picking up additional JVM options ($opts) from the " +
           s"$JVM_OPTIONS_ENV_VAR environment variable."
         )
@@ -255,8 +285,13 @@ class Runner(
         manifestOptions ++ environmentOptions ++ commandLineOptions ++
         Seq("-jar", runnerJar)
 
+      val loggingConnectionArguments =
+        if (runSettings.connectLoggerIfAvailable)
+          forceLoggerConnectionArguments()
+        else Seq()
+
       val command = Seq(javaCommand.executableName) ++
-        jvmArguments ++ runSettings.runnerArguments
+        jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val extraEnvironmentOverrides =
         javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
@@ -302,4 +337,37 @@ class Runner(
       javaHomeOverride =
         Some(runtime.javaHome.toAbsolutePath.normalize.toString)
     )
+
+  /**
+    * Returns arguments that should be added to a launched component to connect
+    * it to launcher's logging service.
+    *
+    * It waits until the logging service has been set up and should be called as
+    * late as possible (for example after installing any required components) to
+    * avoid blocking other actions by the logging service setup.
+    *
+    * If the logging service is not available in 3 seconds after calling this
+    * method, it assumes that it failed to boot and returns arguments that will
+    * cause the launched component to use its own local logging.
+    */
+  private def forceLoggerConnectionArguments(): Seq[String] = {
+    val connectionSetting = {
+      try {
+        Await.result(loggerConnection, 3.seconds)
+      } catch {
+        case exception: TimeoutException =>
+          Logger[Runtime].warn(
+            "The logger has not been set up within the 3 second time limit, " +
+            "the launched component will be started but it will not be " +
+            "connected to the logging service.",
+            exception
+          )
+          None
+      }
+    }
+    connectionSetting match {
+      case Some(uri) => Seq("--logger-connect", uri.toString)
+      case None      => Seq()
+    }
+  }
 }

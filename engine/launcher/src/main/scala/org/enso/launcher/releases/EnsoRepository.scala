@@ -2,7 +2,7 @@ package org.enso.launcher.releases
 
 import java.nio.file.Path
 
-import org.enso.launcher.Logger
+import com.typesafe.scalalogging.Logger
 import org.enso.launcher.http.URIBuilder
 import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
 import org.enso.launcher.releases.fallback.SimpleReleaseProviderWithFallback
@@ -82,7 +82,7 @@ object EnsoRepository {
         "release build."
       )
     else {
-      Logger.debug(s"[TEST] Using a fake repository at $fakeRepositoryRoot.")
+      Logger("TEST").debug(s"Using a fake repository at $fakeRepositoryRoot.")
       launcherRepository =
         makeFakeRepository(fakeRepositoryRoot, shouldWaitForAssets)
     }

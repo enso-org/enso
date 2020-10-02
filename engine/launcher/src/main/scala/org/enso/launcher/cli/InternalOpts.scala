@@ -184,7 +184,7 @@ object InternalOpts {
           LauncherUpgrader
             .default(config, originalExecutablePath = originalPath)
             .internalContinueUpgrade(version)
-          sys.exit(0)
+          Main.exit(0)
         }
     }
   }

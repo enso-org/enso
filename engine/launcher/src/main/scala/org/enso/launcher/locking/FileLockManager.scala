@@ -3,7 +3,7 @@ package org.enso.launcher.locking
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Files, Path, StandardOpenOption}
 
-import org.enso.launcher.Logger
+import com.typesafe.scalalogging.Logger
 
 import scala.util.control.NonFatal
 
@@ -107,7 +107,7 @@ abstract class FileLockManager extends LockManager {
   ) extends Lock {
 
     if (isShared(lockType) && !fileLock.isShared) {
-      Logger.warn(
+      Logger[FileLockManager].warn(
         "A request for a shared lock returned an exclusive lock. " +
         "The platform that you are running on may not support shared locks, " +
         "this may result in only a single Enso instance being able to run at " +

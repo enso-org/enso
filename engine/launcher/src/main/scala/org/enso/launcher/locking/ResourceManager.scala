@@ -1,6 +1,6 @@
 package org.enso.launcher.locking
 
-import org.enso.launcher.Logger
+import com.typesafe.scalalogging.Logger
 
 import scala.util.Using
 
@@ -8,6 +8,8 @@ import scala.util.Using
   * Uses a [[LockManager]] implementation to synchronize access to [[Resource]].
   */
 class ResourceManager(lockManager: LockManager) {
+
+  private val logger = Logger[ResourceManager]
 
   /**
     * Runs the `action` while holding a lock (of `lockType`) for the `resource`.
@@ -29,7 +31,7 @@ class ResourceManager(lockManager: LockManager) {
         () =>
           waitingAction
             .map(_.apply(resource))
-            .getOrElse(Logger.warn(resource.waitMessage))
+            .getOrElse(logger.warn(resource.waitMessage))
       )
     } { _ => action }.get
 
@@ -143,7 +145,7 @@ class ResourceManager(lockManager: LockManager) {
     val lock = lockManager.acquireLockWithWaitingAction(
       TemporaryDirectory.name,
       LockType.Shared,
-      () => Logger.warn(TemporaryDirectory.waitMessage)
+      () => logger.warn(TemporaryDirectory.waitMessage)
     )
     temporaryDirectoryLock = Some(lock)
   }

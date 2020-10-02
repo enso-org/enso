@@ -41,10 +41,17 @@ trait Opts[+A] {
     * A callback for arguments.
     *
     * Should not be called if [[wantsArgument]] returns false.
+    *
+    * @param arg argument to consume
+    * @param commandPrefix current command prefix to display in error/help
+    *                      messages
+    * @param suppressUnexpectedArgument if set, unexpected argument error should
+    *                                   be suppressed
     */
   private[cli] def consumeArgument(
     arg: String,
-    commandPrefix: Seq[String]
+    commandPrefix: Seq[String],
+    suppressUnexpectedArgument: Boolean
   ): ParserContinuation
 
   /**
@@ -304,7 +311,21 @@ object Opts {
         */
       def hidden: Opts[A] = new HiddenOpts(opts)
     }
+
+    implicit class MapWithErrorsSyntax[A](val opts: Opts[A]) {
+
+      /**
+        * Allows to map an Opts instance in a way that may result in an error.
+        *
+        * If `f` returns a [[Left]], a parse error is reported. Otherwise,
+        * proceeds as `map` would with the result of `Right`.
+        */
+      def mapWithErrors[B](f: A => Either[OptsParseError, B]): Opts[B] =
+        new OptsMapWithErrors(opts, f)
+    }
   }
+
+  import implicits._
 
   /**
     * An option that accepts a single (required) positional argument and returns
@@ -425,6 +446,8 @@ object Opts {
     * @param metavar the name of the argument of the parameter, displayed in
     *                help
     * @param help the help message included in the available options list
+    * @param showInUsage specifies whether this flag should be included in the
+    *                    usage command line
     * @tparam A type of the value that is parsed; needs an [[Argument]]
     *           instance
     */
@@ -435,6 +458,61 @@ object Opts {
     showInUsage: Boolean = false
   ): Opts[Option[A]] =
     new OptionalParameter[A](name, metavar, help, showInUsage)
+
+  /**
+    * An optional parameter with multiple aliases.
+    *
+    * Returns a value if it is present for exactly one of the aliases or none if
+    * no alias is present. If values are present for mulitple aliases, raises a
+    * parse error.
+    *
+    * @param primaryName primary name that is displayed in help and suggestions
+    * @param aliases additional aliases
+    * @param metavar the name of the argument of the parameter, displayed in
+    *                help
+    * @param help the help message included in the available options list
+    * @param showInUsage specifies whether this flag should be included in the
+    *                    usage command line
+    * @tparam A type of the value that is parsed; needs an [[Argument]]
+    *           instance
+    */
+  def aliasedOptionalParameter[A: Argument](
+    primaryName: String,
+    aliases: String*
+  )(
+    metavar: String,
+    help: String,
+    showInUsage: Boolean = false
+  ): Opts[Option[A]] = {
+    def withName(name: String)(option: Option[A]): Option[(A, String)] =
+      option.map((_, name))
+    val primaryOpt = optionalParameter[A](
+      primaryName,
+      metavar,
+      help,
+      showInUsage = showInUsage
+    ).map(withName(primaryName))
+    val aliasedOpts = aliases.map(aliasName =>
+      optionalParameter[A](aliasName, metavar, help, showInUsage = false)
+        .map(withName(aliasName))
+        .hidden
+    )
+    sequence(primaryOpt :: aliasedOpts.toList).mapWithErrors { resultOptions =>
+      val results = resultOptions.flatten
+      results match {
+        case Nil             => Right(None)
+        case (one, _) :: Nil => Right(Some(one))
+        case more =>
+          val presentOptions = more.map(res => s"`--${res._2}`")
+          OptsParseError.left(
+            s"Multiple values for aliases of the same option " +
+            s"(${presentOptions.init.mkString(", ")} and " +
+            s"${presentOptions.last}) have been provided. Please provide " +
+            s"just one value for `--$primaryName`."
+          )
+      }
+    }
+  }
 
   /**
     * An option that accepts an arbitrary amount of parameters with a fixed
@@ -502,4 +580,25 @@ object Opts {
     * value.
     */
   def pure[A](a: A): Opts[A] = new OptsPure[A](a)
+
+  /**
+    * Turns a sequence of options into a single option that returns results of
+    * these options, if all of them parsed successfully.
+    */
+  def sequence[A](opts: Seq[Opts[A]]): Opts[Seq[A]] =
+    sequence(opts.toList).map(_.toSeq)
+
+  /**
+    * Turns a list of options into a single option that returns results of
+    * these options, if all of them parsed successfully.
+    */
+  def sequence[A](opts: List[Opts[A]]): Opts[List[A]] =
+    opts match {
+      case Nil => Opts.pure(Nil)
+      case head :: tail =>
+        val tailSequenced = sequence(tail)
+        (head, tailSequenced) mapN { (headResult, tailResult) =>
+          headResult :: tailResult
+        }
+    }
 }

@@ -3,6 +3,7 @@ package org.enso.launcher.cli
 import java.nio.file.Path
 import java.util.UUID
 
+import akka.http.scaladsl.model.Uri
 import cats.data.NonEmptyList
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
@@ -19,6 +20,7 @@ import org.enso.launcher.installation.{
   DistributionManager
 }
 import org.enso.launcher.locking.DefaultResourceManager
+import org.enso.loggingservice.LogLevel
 
 /**
   * Defines the CLI commands and options for the program.
@@ -99,12 +101,22 @@ object LauncherApplication {
       "Advanced option, use carefully.",
       showInUsage = false
     )
-  private def versionOverride =
+  private def versionOverride = {
     Opts.optionalParameter[SemVer](
       "use-enso-version",
       "VERSION",
       "Override the Enso version that would normally be used."
     )
+  }
+  private def engineLogLevel = {
+    Opts
+      .optionalParameter[LogLevel](
+        "log-level",
+        "(error | warning | info | debug | trace)",
+        "Sets logging verbosity for the engine. Defaults to info."
+      )
+      .withDefault(LogLevel.Info)
+  }
 
   private def runCommand: Command[Config => Int] =
     Command(
@@ -126,19 +138,27 @@ object LauncherApplication {
       (
         pathOpt,
         versionOverride,
+        engineLogLevel,
         systemJVMOverride,
         jvmOpts,
         additionalArgs
       ) mapN {
-        (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) =>
-          (config: Config) =>
-            Launcher(config).runRun(
-              path                = path,
-              versionOverride     = versionOverride,
-              useSystemJVM        = systemJVMOverride,
-              jvmOpts             = jvmOpts,
-              additionalArguments = additionalArgs
-            )
+        (
+          path,
+          versionOverride,
+          engineLogLevel,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).runRun(
+            path                = path,
+            versionOverride     = versionOverride,
+            useSystemJVM        = systemJVMOverride,
+            jvmOpts             = jvmOpts,
+            additionalArguments = additionalArgs,
+            logLevel            = engineLogLevel
+          )
       }
     }
 
@@ -154,24 +174,30 @@ object LauncherApplication {
       val path =
         Opts.parameter[Path]("path", "PATH", "Path to the content root.")
       val interface =
-        Opts.optionalParameter[String](
-          "interface",
-          "INTERFACE",
-          "Interface for processing all incoming connections. " +
-          "Defaults to `127.0.0.1`."
-        )
+        Opts
+          .optionalParameter[String](
+            "interface",
+            "INTERFACE",
+            "Interface for processing all incoming connections. " +
+            "Defaults to `127.0.0.1`."
+          )
+          .withDefault("127.0.0.1")
       val rpcPort =
-        Opts.optionalParameter[Int](
-          "rpc-port",
-          "PORT",
-          "RPC port for processing all incoming connections. Defaults to 8080."
-        )
+        Opts
+          .optionalParameter[Int](
+            "rpc-port",
+            "PORT",
+            "RPC port for processing all incoming connections. Defaults to 8080."
+          )
+          .withDefault(8080)
       val dataPort =
-        Opts.optionalParameter[Int](
-          "data-port",
-          "PORT",
-          "Data port for visualisation protocol. Defaults to 8081."
-        )
+        Opts
+          .optionalParameter[Int](
+            "data-port",
+            "PORT",
+            "Data port for visualisation protocol. Defaults to 8081."
+          )
+          .withDefault(8081)
       val additionalArgs = Opts.additionalArguments()
       (
         rootId,
@@ -180,6 +206,7 @@ object LauncherApplication {
         rpcPort,
         dataPort,
         versionOverride,
+        engineLogLevel,
         systemJVMOverride,
         jvmOpts,
         additionalArgs
@@ -191,6 +218,7 @@ object LauncherApplication {
           rpcPort,
           dataPort,
           versionOverride,
+          engineLogLevel,
           systemJVMOverride,
           jvmOpts,
           additionalArgs
@@ -199,14 +227,15 @@ object LauncherApplication {
             options = LanguageServerOptions(
               rootId    = rootId,
               path      = path,
-              interface = interface.getOrElse("127.0.0.1"),
-              rpcPort   = rpcPort.getOrElse(8080),
-              dataPort  = dataPort.getOrElse(8081)
+              interface = interface,
+              rpcPort   = rpcPort,
+              dataPort  = dataPort
             ),
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
-            additionalArguments = additionalArgs
+            additionalArguments = additionalArgs,
+            logLevel            = engineLogLevel
           )
       }
     }
@@ -226,16 +255,30 @@ object LauncherApplication {
         "project if it is launched from within a directory inside a project."
       )
       val additionalArgs = Opts.additionalArguments()
-      (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) mapN {
-        (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) =>
-          (config: Config) =>
-            Launcher(config).runRepl(
-              projectPath         = path,
-              versionOverride     = versionOverride,
-              useSystemJVM        = systemJVMOverride,
-              jvmOpts             = jvmOpts,
-              additionalArguments = additionalArgs
-            )
+      (
+        path,
+        versionOverride,
+        engineLogLevel,
+        systemJVMOverride,
+        jvmOpts,
+        additionalArgs
+      ) mapN {
+        (
+          path,
+          versionOverride,
+          engineLogLevel,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).runRepl(
+            projectPath         = path,
+            versionOverride     = versionOverride,
+            useSystemJVM        = systemJVMOverride,
+            jvmOpts             = jvmOpts,
+            additionalArguments = additionalArgs,
+            logLevel            = engineLogLevel
+          )
       }
     }
 
@@ -453,6 +496,32 @@ object LauncherApplication {
       "running actions. May be needed if program output is piped.",
       showInUsage = false
     )
+    val logLevel = Opts.optionalParameter[LogLevel](
+      GlobalCLIOptions.LOG_LEVEL,
+      "(error | warning | info | debug | trace)",
+      "Sets logging verbosity for the launcher. If not provided, defaults to" +
+      s"${LauncherLogging.defaultLogLevel}."
+    )
+    val connectLogger = Opts
+      .optionalParameter[Uri](
+        GlobalCLIOptions.CONNECT_LOGGER,
+        "URI",
+        "Instead of starting its own logging service, " +
+        "connects to the logging service at the provided URI."
+      )
+      .hidden
+    val colorMode =
+      Opts
+        .aliasedOptionalParameter[ColorMode](
+          GlobalCLIOptions.COLOR_MODE,
+          "colour",
+          "colors"
+        )(
+          "(auto | yes | always | no | never)",
+          "Specifies if colors should be used in the output, defaults to auto."
+        )
+        .withDefault(ColorMode.Auto)
+
     val internalOpts = InternalOpts.topLevelOptions
 
     (
@@ -461,7 +530,10 @@ object LauncherApplication {
       json,
       ensurePortable,
       autoConfirm,
-      hideProgress
+      hideProgress,
+      logLevel,
+      connectLogger,
+      colorMode
     ) mapN {
       (
         internalOptsCallback,
@@ -469,7 +541,10 @@ object LauncherApplication {
         useJSON,
         shouldEnsurePortable,
         autoConfirm,
-        hideProgress
+        hideProgress,
+        logLevel,
+        connectLogger,
+        colorMode
       ) => () =>
         if (shouldEnsurePortable) {
           Launcher.ensurePortable()
@@ -478,10 +553,14 @@ object LauncherApplication {
         val globalCLIOptions = GlobalCLIOptions(
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,
-          useJSON      = useJSON
+          useJSON      = useJSON,
+          colorMode    = colorMode,
+          internalOptions =
+            GlobalCLIOptions.InternalOptions(logLevel, connectLogger)
         )
 
         internalOptsCallback(globalCLIOptions)
+        LauncherLogging.setup(logLevel, connectLogger, globalCLIOptions)
         initializeApp()
 
         if (version) {

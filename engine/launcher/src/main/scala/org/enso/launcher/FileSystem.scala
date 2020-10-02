@@ -15,12 +15,15 @@ import org.apache.commons.io.FileUtils
 import scala.collection.Factory
 import scala.jdk.StreamConverters._
 import scala.util.Using
+import com.typesafe.scalalogging.Logger
 
 /**
   * Gathers some helper methods that are used for interaction with the
   * filesystem.
   */
 object FileSystem {
+
+  private val logger = Logger[FileSystem.type]
 
   /**
     * Returns a sequence of files in the given directory (without traversing it
@@ -58,7 +61,7 @@ object FileSystem {
   def ensureIsExecutable(file: Path): Unit = {
     if (!Files.isExecutable(file)) {
       if (OS.isWindows) {
-        Logger.error("Cannot ensure the launcher binary is executable.")
+        logger.error("Cannot ensure that the binary is executable.")
       } else {
         try {
           Files.setPosixFilePermissions(
@@ -67,8 +70,8 @@ object FileSystem {
           )
         } catch {
           case e: Exception =>
-            Logger.error(
-              s"Cannot ensure the launcher binary is executable: $e",
+            logger.error(
+              s"Cannot ensure the binary is executable: $e",
               e
             )
         }

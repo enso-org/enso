@@ -1,18 +1,19 @@
 package org.enso.launcher
 
-import java.io.{BufferedReader, InputStream, InputStreamReader}
-import java.nio.file.{Files, Path}
+import java.io.{BufferedReader, IOException, InputStream, InputStreamReader}
 import java.lang.{ProcessBuilder => JProcessBuilder}
-import java.util.concurrent.{Semaphore, TimeUnit, TimeoutException}
+import java.nio.file.{Files, Path}
+import java.util.concurrent.{Semaphore, TimeUnit}
 
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.time.Span
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.time.SpanSugar._
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.Factory
+import scala.concurrent.TimeoutException
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 
@@ -222,9 +223,15 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
         case StdErr => errQueue
         case StdOut => outQueue
       }
-      while ({ line = reader.readLine(); line != null }) {
-        queue.add(line)
-        ioHandlers.foreach(f => f(line, streamType))
+      try {
+        while ({ line = reader.readLine(); line != null }) {
+          queue.add(line)
+          ioHandlers.foreach(f => f(line, streamType))
+        }
+      } catch {
+        case _: InterruptedException =>
+        case _: IOException =>
+          ioHandlers.foreach(f => f("<Unexpected EOF>", streamType))
       }
     }
 
@@ -255,9 +262,11 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
         ioHandlers ++= Seq(handler _)
       }
 
+      errQueue.asScala.toSeq.foreach(handler(_, StdErr))
+
       val acquired = semaphore.tryAcquire(timeoutSeconds, TimeUnit.SECONDS)
       if (!acquired) {
-        throw new RuntimeException(s"Waiting for `$message` timed out.")
+        throw new TimeoutException(s"Waiting for `$message` timed out.")
       }
     }
 
@@ -290,6 +299,13 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     }
 
     /**
+      * Tries to kill the process immediately.
+      */
+    def kill(): Unit = {
+      process.destroyForcibly()
+    }
+
+    /**
       * Waits for the process to finish and returns its [[RunResult]].
       *
       * If `waitForDescendants` is set, tries to wait for descendants of the
@@ -301,7 +317,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       */
     def join(
       waitForDescendants: Boolean = true,
-      timeoutSeconds: Long        = 10
+      timeoutSeconds: Long        = 15
     ): RunResult = {
       var descendants: Seq[ProcessHandle] = Seq()
       try {
