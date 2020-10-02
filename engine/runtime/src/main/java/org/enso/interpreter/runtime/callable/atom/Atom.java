@@ -2,12 +2,23 @@ package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.type.TypesGen;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /** A runtime representation of an Atom in Enso. */
@@ -84,14 +95,65 @@ public class Atom implements TruffleObject {
     return toString(false);
   }
 
-  /**
-   * Displays a human-readable string representation of this atom.
-   *
-   * @param allowSideEffects whether or not to allow side effects in displaying the string
-   * @return a string representation of this atom
-   */
   @ExportMessage
-  public Object toDisplayString(boolean allowSideEffects) {
-    return this.toString();
+  public boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  public Array getMembers(boolean includeInternal) {
+    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    if (members == null) {
+      return new Array(0);
+    }
+    Object[] mems = members.keySet().toArray();
+    return new Array(mems);
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  public boolean isMemberInvocable(String member) {
+    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    return members != null && members.containsKey(member);
+  }
+
+  @ExportMessage
+  static class InvokeMember {
+    static UnresolvedSymbol buildSym(AtomConstructor cons, String name) {
+      return UnresolvedSymbol.build(name, cons.getDefinitionScope());
+    }
+
+    @Specialization(
+        guards = {"receiver.getConstructor() == cachedConstructor", "member.equals(cachedMember)"})
+    static Object doCached(
+        Atom receiver,
+        String member,
+        Object[] arguments,
+        @Cached(value = "receiver.getConstructor()", allowUncached = true)
+            AtomConstructor cachedConstructor,
+        @Cached(value = "member", allowUncached = true) String cachedMember,
+        @Cached(value = "buildSym(cachedConstructor, cachedMember)", allowUncached = true)
+            UnresolvedSymbol cachedSym,
+        @CachedLibrary("cachedSym") InteropLibrary symbols)
+        throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+      Object[] args = new Object[arguments.length + 1];
+      args[0] = receiver;
+      System.arraycopy(arguments, 0, args, 1, arguments.length);
+      return symbols.execute(cachedSym, args);
+    }
+  }
+
+  @ExportMessage
+  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms) {
+    try {
+      return TypesGen.expectText(atoms.invokeMember(this, "to_text"));
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnknownIdentifierException
+        | UnsupportedTypeException
+        | UnexpectedResultException e) {
+      return Text.create(this.toString());
+    }
   }
 }

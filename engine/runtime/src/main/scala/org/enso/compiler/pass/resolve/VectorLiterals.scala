@@ -99,7 +99,7 @@ case object VectorLiterals extends IRPass {
       case seq: IR.Application.Literal.Sequence =>
         val trans = seq.mapExpressions(doExpression(_, vec))
         IR.Application.Prefix(
-          vec,
+          vec.duplicate(),
           List(IR.CallArgument.Specified(None, trans, None, None)),
           false,
           None

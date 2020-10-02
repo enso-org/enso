@@ -74,7 +74,7 @@ class InteropTest extends InterpreterTest {
       val code   = "main = to_text"
       val symbol = eval(code)
       symbol.call(1) shouldEqual "1"
-      symbol.execute("Foo") shouldEqual "Foo"
+      symbol.execute("Foo") shouldEqual "'Foo'"
     }
   }
 }

@@ -54,7 +54,7 @@ public abstract class PutStateNode extends Node {
     int index = state.indexOf(key);
     if (index == SmallMap.NOT_FOUND) {
       throw new PanicException(
-          ctxRef.get().getBuiltins().error().unitializedState().newInstance(key), this);
+          ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this);
     } else {
       return doExistingMultiCached(state, _this, key, new_state, key, state.getKeys(), index);
     }
@@ -67,6 +67,6 @@ public abstract class PutStateNode extends Node {
       Object key,
       Object new_state,
       @CachedContext(Language.class) Context ctx) {
-    throw new PanicException(ctx.getBuiltins().error().unitializedState().newInstance(key), this);
+    throw new PanicException(ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 }

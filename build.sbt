@@ -4,6 +4,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
   licenseReportNotes,
   licenseReportStyleRules
 }
+import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
@@ -894,6 +895,21 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
+    (Test / compile) := (Test / compile)
+        .dependsOn(Def.task {
+          val cmd = Seq("mvn", "package", "-f", "std-bits")
+          val exitCode = if (sys.props("os.name").toLowerCase().contains("win")) {
+            (Seq("cmd", "/c") ++ cmd).!
+          } else {
+            cmd.!
+          }
+          if (exitCode != 0) {
+            throw new RuntimeException("std-bits build failed.")
+          }
+        })
+        .value
+  )
+  .settings(
     logBuffered := false,
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
@@ -989,12 +1005,12 @@ lazy val runner = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-        "org.graalvm.sdk"     % "polyglot-tck"   % graalVersion % "provided",
-        "org.graalvm.truffle" % "truffle-api"    % graalVersion % "provided",
-        "commons-cli"         % "commons-cli"    % commonsCliVersion,
-        "com.monovore"       %% "decline"        % declineVersion,
-        "org.jline"           % "jline"          % jlineVersion,
-        "org.typelevel"      %% "cats-core"      % catsVersion,
+        "org.graalvm.sdk"     % "polyglot-tck" % graalVersion % "provided",
+        "org.graalvm.truffle" % "truffle-api"  % graalVersion % "provided",
+        "commons-cli"         % "commons-cli"  % commonsCliVersion,
+        "com.monovore"       %% "decline"      % declineVersion,
+        "org.jline"           % "jline"        % jlineVersion,
+        "org.typelevel"      %% "cats-core"    % catsVersion
       ),
     connectInput in run := true
   )

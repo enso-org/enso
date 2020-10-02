@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -28,7 +29,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
   long.class,
   boolean.class,
   double.class,
-  String.class,
+  Text.class,
   Function.class,
   Atom.class,
   AtomConstructor.class,
@@ -109,7 +110,7 @@ public class Types {
       return "Number";
     } else if (TypesGen.isBoolean(value)) {
       return "Boolean";
-    } else if (TypesGen.isString(value)) {
+    } else if (TypesGen.isText(value)) {
       return "Text";
     } else if (TypesGen.isFunction(value)) {
       return "Function";

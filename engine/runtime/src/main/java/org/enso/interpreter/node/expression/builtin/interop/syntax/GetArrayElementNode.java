@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.interop.generic;
+package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -10,17 +10,18 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Polyglot",
-    name = "get_array_element",
-    description = "Gets an element by index from a polyglot array.")
+    type = "Any",
+    name = "<polyglot_array_at>",
+    description = "Returns the element of a polyglot array at a given index.")
 public class GetArrayElementNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private @Child HostValueToEnsoNode hostValueToEnsoNode = HostValueToEnsoNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object array, long index) {
+  public Object execute(Object _this, long index) {
     try {
-      return library.readArrayElement(array, index);
+      return hostValueToEnsoNode.execute(library.readArrayElement(_this, index));
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       err.enter();
       throw new PanicException(e.getMessage(), this);

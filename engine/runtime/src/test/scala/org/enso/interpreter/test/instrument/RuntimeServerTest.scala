@@ -2732,7 +2732,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(Api.ExecutionFailed(contextId, "Error in function main."))
+      Api.Response(Api.ExecutionFailed(contextId, "No_Such_Method_Error UnresolvedSymbol<x> +"))
     )
   }
 
@@ -2831,7 +2831,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Object Number does not define method pi."
+          "No_Such_Method_Error Number pi"
         )
       )
     )

@@ -1,15 +1,18 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.data.text.Text;
 
 /**
  * Converts a value returned by a polyglot call back to a value that can be further used within Enso
  * programs.
  */
 @ReportPolymorphism
+@GenerateUncached
 public abstract class HostValueToEnsoNode extends Node {
   public static HostValueToEnsoNode build() {
     return HostValueToEnsoNodeGen.create();
@@ -46,6 +49,11 @@ public abstract class HostValueToEnsoNode extends Node {
   @Specialization
   long doChar(char i) {
     return i;
+  }
+
+  @Specialization
+  Text doString(String txt) {
+    return Text.create(txt);
   }
 
   @Fallback

@@ -85,7 +85,7 @@ jobs:
           native-image: true
       - name: Set Up SBT
         run: |
-          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
@@ -214,7 +214,7 @@ jobs:
           native-image: true
       - name: Set Up SBT
         run: |
-          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
@@ -319,6 +319,12 @@ jobs:
         shell: bash
         run: |
           cp enso.exe ${{ env.LAUNCHER_DIST_DIR }}/bin/
+
+      - name: Build Base Java Extensions
+        shell: bash
+        run: |
+          cd std-bits
+          mvn package
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would

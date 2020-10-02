@@ -9,6 +9,7 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -66,8 +67,13 @@ public abstract class InteropApplicationNode extends Node {
       Object[] arguments,
       @CachedContext(Language.class) Context context,
       @Cached("arguments.length") int cachedArgsLength,
-      @Cached("buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode) {
-    return sorterNode.execute(function, null, state, arguments).getValue();
+      @Cached("buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode,
+      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
+    Object[] args = new Object[cachedArgsLength];
+    for (int i = 0; i < cachedArgsLength; i++) {
+      args[i] = hostValueToEnsoNode.execute(arguments[i]);
+    }
+    return sorterNode.execute(function, null, state, args).getValue();
   }
 
   @Specialization(replaces = "callCached")
@@ -75,13 +81,18 @@ public abstract class InteropApplicationNode extends Node {
       Function function,
       Object state,
       Object[] arguments,
-      @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
+      @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode,
+      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
+    Object[] args = new Object[arguments.length];
+    for (int i = 0; i < arguments.length; i++) {
+      args[i] = hostValueToEnsoNode.execute(arguments[i]);
+    }
     return indirectInvokeFunctionNode
         .execute(
             function,
             null,
             state,
-            arguments,
+            args,
             buildSchema(arguments.length),
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,

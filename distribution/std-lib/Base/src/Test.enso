@@ -22,16 +22,18 @@ Suite.is_fail = this.specs.any is_fail
 type Assertion
     type Success
     type Failure message
+    type Pending
 
     is_fail = case this of
         Success -> False
         Failure _ -> True
+        Pending -> False
 
 ## Fail a test with the given message.
 fail message = Panic.throw (Failure message)
 
 ## Asserts that `this` value is equal to the expected value.
-Any.should_equal that = case this == that of
+Any.should_equal that = case this.equals that of
     True -> Success
     False ->
         msg = this.to_text + " did not equal " + that.to_text + "."
@@ -64,6 +66,8 @@ Spec.print_report =
             Failure msg ->
                 IO.print_err ("    - [FAILED] " + behavior.name)
                 IO.print_err ("        Reason: " + msg)
+            Pending ->
+                IO.print_err ("    - [PENDING] " + behavior.name)
 
 ## Creates a new test group, desribing properties of the object
    described by `this`.
@@ -93,16 +97,21 @@ Text.describe ~behaviors =
                      2+3 . should_equal 5
                  it "should define multiplication" <|
                      2*3 . should_equal 6
-Text.it ~behavior =
+Text.it ~behavior pending=False =
+    result = if pending then Pending else here.run_spec behavior
     spec = State.get Spec
+    new_spec = Spec spec.name (Cons (Behavior this result) spec.behaviors)
+    State.put Spec new_spec
+
+run_spec ~behavior =
     maybeExc = case Panic.recover behavior of
         _ -> Success
     result = maybeExc.catch ex->
         case ex of
             Failure _ -> ex
             _ -> Failure ("Unexpected error has been thrown: " + ex.to_text)
-    new_spec = Spec spec.name (Cons (Behavior this result) spec.behaviors)
-    State.put Spec new_spec
+    result
+
 
 ## Runs a suite of tests, consisting of multiple `describe` blocks.
 

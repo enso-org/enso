@@ -9,6 +9,8 @@ import java.io.IOException;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 
 @BuiltinMethod(type = "IO", name = "readln", description = "Reads a line from standard in.")
@@ -21,11 +23,11 @@ public abstract class ReadlnNode extends Node {
 
   @Specialization
   @TruffleBoundary
-  Object doRead(Object _this, @CachedContext(Language.class) Context ctx) {
+  Text doRead(Object _this, @CachedContext(Language.class) Context ctx) {
     try {
-      return ctx.getInReader().readLine();
+      return Text.create(ctx.getInReader().readLine());
     } catch (IOException e) {
-      return new RuntimeError("Empty input stream.");
+      throw new PanicException("Empty input stream", this);
     }
   }
 }

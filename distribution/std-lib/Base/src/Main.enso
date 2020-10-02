@@ -1,13 +1,15 @@
 import Base.List
 import Base.Vector
 import Base.Number.Extensions
-from Builtins import Unit, Number, Integer
+import Base.Text.Extensions
+from Builtins import Unit, Number, Integer, Any, True, False
 
 from Builtins export all
 
 from Base.List export Nil, Cons
 from Base.Vector export Vector
 from Base.Number.Extensions export all hiding Math
+from Base.Text.Extensions export Text
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -44,9 +46,22 @@ type Range
         res = it initial this.start this.end
         res
 
+    ## Checks whether `predicate` is satisfied for every number in this range.
+    every predicate =
+        it start end = if start==end then True else
+            r = predicate start
+            if r then (it start+1 end) else False
+        res = it this.start this.end
+        res
+
 type Math
 
 ## The mathematical constant pi, equal to the ratio of a circle circumference
     to its diameter.
 Math.pi : Decimal
 Math.pi = 3.141592653589793
+
+## Equality definition for types defining `==`.
+
+   TODO remove when operators can be defined in-language.
+Any.equals that = this == that

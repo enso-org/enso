@@ -42,10 +42,10 @@ class PolyglotTest extends InterpreterTest {
           |    class = Java.lookup_class "org.enso.example.TestClass"
           |    instance = Polyglot.new class Array.empty
           |    members = Polyglot.get_members instance
-          |    IO.println (Polyglot.get_array_size members)
-          |    IO.println (Polyglot.get_array_element members 0)
-          |    IO.println (Polyglot.get_array_element members 1)
-          |    IO.println (Polyglot.get_array_element members 2)
+          |    IO.println members.length
+          |    IO.println (members.at 0)
+          |    IO.println (members.at 1)
+          |    IO.println (members.at 2)
           |""".stripMargin
       eval(code)
       val count :: methods = consumeOut

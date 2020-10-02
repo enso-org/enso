@@ -25,6 +25,40 @@ type Vector
     at : Number -> Any
     at index = this.to_array.at index
 
+    ## Creates a new vector builder instance.
+
+       A vector builder is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       > Example
+         In the following example we'll read items from the standard input,
+         until the string "end" is entered by the user and then return a vector
+         containing all items.
+             from Base import all
+
+             main =
+                  builder = Vector.new_builder
+                  do_read =
+                      item = IO.readln
+                      if item.equals "end" then Unit else
+                          builder.append item
+                          do_read
+                  do_read
+                  vec = builder.to_vector
+                  IO.println vec
+    new_builder : Builder
+    new_builder = Builder.new
+
+    ## Converts a polyglot value representing an array into a vector. This is
+       useful when wrapping polyglot APIs for further use in Enso.
+    from_polyglot_array : Any -> Vector
+    from_polyglot_array arr =
+        a = Array.new arr.length
+        0.upto arr.length . each i->
+            a.set_at i (arr.at i)
+        Vector a
+
     ## Returns the number of elements stored in this vector.
     length : Number
     length = this.to_array.length
@@ -104,3 +138,71 @@ type Vector
                 folder = str -> ix -> str + ", " + (arr.at ix).to_text
                 tail_elems = 1.upto arr.length . fold "" folder
                 "[" + (arr.at 0 . to_text) + tail_elems + "]"
+
+    ## Checks whether this vector is equal to `that`. Two vectors are considered
+       equal, when they have the same length and their items are pairwise equal.
+    equals : Vector -> Boolean
+    equals that =
+        arr1 = this.to_array
+        arr2 = that.to_array
+        eq_at i = (arr1.at i) . equals (arr2.at i)
+        r = if arr1.length == arr2.length then 0.upto arr1.length . every eq_at else False
+        r
+
+## A builder type for Enso vectors.
+
+   A vector builder is a mutable data structure, that allows to gather a
+   number of elements and then convert them to a vector. This is
+   particularly useful when the number of elements is not known upfront.
+
+   > Example
+     In the following example we'll read items from the standard input,
+     until the string "end" is entered by the user and then return a vector
+     containing all items.
+         from Base import all
+
+         main =
+              builder = Vector.new_builder
+              do_read =
+                  item = IO.readln
+                  if item.equals "end" then Unit else
+                      builder.append item
+                      do_read
+              do_read
+              vec = builder.to_vector
+              IO.println vec
+type Builder
+    type Builder to_array length
+
+    ## Creates a new builder.
+    new = Builder (Array.new 1) 0
+
+    ## Returns the current capacity (i.e. the size of the underlying storage)
+       of this builder.
+    capacity = this.to_array.length
+
+    ## Appends a new element into this builder.
+    append : Any -> Unit
+    append item = case this.capacity > this.length of
+        True ->
+            this.to_array.set_at this.length item
+            Unsafe.set_atom_field this 1 (this.length + 1)
+        False ->
+            old_array = this.to_array
+            new_array = Array.new old_array.length*2
+            0.upto this.length . each i->
+                new_array.set_at i (old_array.at i)
+                Unit
+            Unsafe.set_atom_field this 0 new_array
+            this.append item
+            Unit
+
+    ## Converts this builder to a vector containing all the appended elements.
+    to_vector : Vector
+    to_vector =
+        old_array = this.to_array
+        new_array = Array.new this.length
+        0.upto this.length . each i->
+            new_array.set_at i (old_array.at i)
+            Unit
+        Vector new_array

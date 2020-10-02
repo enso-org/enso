@@ -1,0 +1,3 @@
+from Test.Semantic.Import_Loop.B import My_Type
+
+foo = My_Type.bar 10

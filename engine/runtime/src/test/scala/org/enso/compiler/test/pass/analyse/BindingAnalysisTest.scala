@@ -51,6 +51,7 @@ class BindingAnalysisTest extends CompilerTest {
     val ir =
       """
         |polyglot java import foo.bar.baz.MyClass
+        |polyglot java import foo.bar.baz.OtherClass as Renamed_Class
         |
         |type Foo a b c
         |type Bar
@@ -66,7 +67,7 @@ class BindingAnalysisTest extends CompilerTest {
       ir.getMetadata(BindingAnalysis) shouldEqual Some(
         BindingsMap(
           List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),
-          List(PolyglotSymbol("MyClass")),
+          List(PolyglotSymbol("MyClass"), PolyglotSymbol("Renamed_Class")),
           List(ModuleMethod("foo")),
           ctx.module
         )

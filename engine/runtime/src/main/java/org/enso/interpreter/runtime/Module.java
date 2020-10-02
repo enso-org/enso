@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
@@ -205,10 +206,7 @@ public class Module implements TruffleObject {
     return scope;
   }
 
-  /**
-   * Create scope if it does not exist.
-   *
-   */
+  /** Create scope if it does not exist. */
   public void ensureScopeExists() {
     if (scope == null) {
       scope = new ModuleScope(this);
@@ -387,7 +385,7 @@ public class Module implements TruffleObject {
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       Object state = context.getBuiltins().unit().newInstance();
       return callOptimiserNode
-          .executeDispatch(eval, callerInfo, state, new Object[] {debug, expr})
+          .executeDispatch(eval, callerInfo, state, new Object[] {debug, Text.create(expr)})
           .getValue();
     }
 
