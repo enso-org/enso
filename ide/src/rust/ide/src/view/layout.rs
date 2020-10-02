@@ -9,7 +9,7 @@ use crate::view::text_editor::TextEditor;
 use crate::view::node_editor::NodeEditor;
 
 use enso_frp as frp;
-use frp::io::keyboard;
+use frp::io::keyboard_old;
 use ensogl::application::Application;
 use ensogl::display::shape::text::glyph::font;
 use ensogl::display::traits::*;
@@ -77,7 +77,7 @@ impl ViewLayout {
     #[allow(clippy::too_many_arguments)]
     pub async fn new
     ( logger                   : impl AnyLogger
-    , kb_actions               : &mut keyboard::Actions
+    , kb_actions               : &mut keyboard_old::Actions
     , application              : &Application
     , text_controller          : controller::Text
     , graph_controller         : controller::ExecutedGraph

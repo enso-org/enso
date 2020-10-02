@@ -21,6 +21,7 @@ members = [
     "ide/view",
     "ide/view/graph-editor",
 
+    "lib/automata",
     "lib/callback",
     "lib/code-builder",
     "lib/data",
@@ -34,6 +35,8 @@ members = [
     "lib/generics",
     "lib/logger",
     "lib/optics",
+    "lib/shortcuts",
+    "lib/shortcuts/example",
     "lib/system/web",
     "lib/types",
 ]

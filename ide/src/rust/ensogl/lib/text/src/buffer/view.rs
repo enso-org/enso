@@ -548,6 +548,10 @@ impl ViewBuffer {
         self.modify(Transform::Left,"")
     }
 
+    fn delete_right(&self) -> selection::Group {
+        self.modify(Transform::Right,"")
+    }
+
     /// Generic buffer modify utility. For each selection, it transforms it with the provided
     /// `transform`, and then it replaces the resulting selection diff with the provided `text`.
     /// See its usages across the file to learn more.
@@ -650,6 +654,7 @@ define_endpoints! {
         paste                      (Vec<String>),
         remove_all_cursors         (),
         delete_left                (),
+        delete_right               (),
         delete_word_left           (),
         clear_selection            (),
         keep_first_selection_only  (),
@@ -710,7 +715,8 @@ impl View {
             sel_on_insert              <- input.insert.map(f!((s) m.insert(s)));
             sel_on_paste               <- input.paste.map(f!((s) m.paste(s)));
             sel_on_delete_left         <- input.delete_left.map(f_!(m.delete_left()));
-            sel_on_change              <- any(sel_on_insert,sel_on_paste,sel_on_delete_left);
+            sel_on_delete_right        <- input.delete_right.map(f_!(m.delete_right()));
+            sel_on_change              <- any(sel_on_insert,sel_on_paste,sel_on_delete_left,sel_on_delete_right);
             has_cursor                 <- sel_on_change.map(|sel| !sel.is_empty());
             output.source.text_changed <+ sel_on_change.gate(&has_cursor).constant(());
 
@@ -759,6 +765,7 @@ impl View {
             output.source.selection_edit_mode     <+ sel_on_insert;
             output.source.selection_edit_mode     <+ sel_on_paste;
             output.source.selection_edit_mode     <+ sel_on_delete_left;
+            output.source.selection_edit_mode     <+ sel_on_delete_right;
             output.source.selection_non_edit_mode <+ sel_on_remove_all;
 
             eval output.source.selection_edit_mode     ((t) m.set_selection(t));

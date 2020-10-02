@@ -262,7 +262,7 @@ macro_rules! def_status_api {
 /// Defines new `Command` API. See docs of `CommandApi` to learn more.
 #[macro_export]
 macro_rules! def_command_api {
-    ( $name:ident
+    ( $([$($opts:tt)*])? $name:ident
         $(
             #[doc=$($doc:tt)*]
             $field:ident
@@ -289,7 +289,7 @@ macro_rules! def_command_api {
         impl $name {
             /// Constructor.
             pub fn new(network:&frp::Network) -> Self {
-                frp::extend! { network
+                frp::extend! { $($($opts)*)? network
                     $($field <- source();)*
                 }
                 Self { $($field),* }

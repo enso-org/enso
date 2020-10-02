@@ -8,7 +8,7 @@ use crate::display::Scene;
 use crate::display::shape::text::text_field::frp::keyboard::TextFieldKeyboardFrp;
 use crate::display::shape::text::text_field::WeakTextField;
 
-use enso_frp::io::keyboard;
+use enso_frp::io::keyboard_old;
 use enso_frp::io::Mouse;
 use enso_frp as frp;
 use nalgebra::Vector2;
@@ -37,12 +37,12 @@ impl TextFieldMouseFrp {
     /// Create FRP graph doing actions on given TextField.
     pub fn new(text_field_ptr:WeakTextField, keyboard:&TextFieldKeyboardFrp)
     -> Self {
-        use keyboard::Key::*;
+        use keyboard_old::Key::*;
         let mouse               = Mouse::default();
         let loc_text_field_ptr  = text_field_ptr.clone();
         let is_inside           = move |t:Vector2<f32>| Self::is_inside_text_field(&loc_text_field_ptr,t);
-        let is_multicursor_mode = |mask:&keyboard::KeyMask| mask == &[Alt,Shift].iter().collect();
-        let is_block_selection  = |mask:&keyboard::KeyMask| mask == &[Alt].iter().collect();
+        let is_multicursor_mode = |mask:&keyboard_old::KeyMask| mask == &[Alt,Shift].iter().collect();
+        let is_block_selection  = |mask:&keyboard_old::KeyMask| mask == &[Alt].iter().collect();
         let loc_text_field_ptr  = text_field_ptr.clone();
         let set_cursor_action   = move |p,m| Self::set_cursor(&loc_text_field_ptr,p,m);
         let select_action       = move |p,s| Self::select(&text_field_ptr,p,s);

@@ -1,11 +1,36 @@
-//! FRP keyboard bindings.
+//! Keyboard implementation and FRP bindings.
 
 use crate::prelude::*;
 
 use crate as frp;
-use crate::data::bitfield::BitField256;
-use crate::data::bitfield::BitField;
-use enso_callback as callback;
+use ensogl_system_web as web;
+use web_sys::KeyboardEvent;
+use wasm_bindgen::prelude::*;
+use web_sys::HtmlElement;
+use wasm_bindgen::JsCast;
+use unicode_segmentation::UnicodeSegmentation;
+use inflector::Inflector;
+
+
+
+// ============
+// === Side ===
+// ============
+
+/// The key placement enum.
+#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub enum Side { Left, Right }
+
+impl Side {
+    /// Convert the side to a lowercase string representation.
+    pub fn simple_name(self) -> &'static str {
+        match self {
+            Self::Left  => "left",
+            Self::Right => "right"
+        }
+    }
+}
 
 
 
@@ -13,130 +38,216 @@ use enso_callback as callback;
 // === Key ===
 // ===========
 
-/// A key representation.
-pub use keyboard_types::Key;
+macro_rules! define_keys {
+    (Side { $($side:ident),* $(,)? } Regular { $($regular:ident),* $(,)? }) => {
+        /// A key representation.
+        ///
+        /// For reference, see the following links:
+        /// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
+        #[derive(Clone,Debug,Eq,Hash,PartialEq)]
+        #[allow(missing_docs)]
+        pub enum Key {
+            $($side(Side),)*
+            $($regular,)*
+            Character (String),
+            Other     (String),
+        }
+
+
+        // === KEY_NAME_MAP ===
+
+        lazy_static! {
+            /// A mapping from a name to key instance. Please note that all side-aware keys are
+            /// instantiated to the left binding. The correct assignment (left/right) is done in a
+            /// separate step.
+            static ref KEY_NAME_MAP: HashMap<&'static str,Key> = {
+                use Key::*;
+                use Side::*;
+                let mut m = HashMap::new();
+                $(m.insert(stringify!($side), $side(Left));)*
+                $(m.insert(stringify!($regular), $regular);)*
+                m
+            };
+        }
+    };
+}
+
+define_keys! {
+    Side    {Alt,AltGr,AltGraph,Control,Meta,Shift}
+    Regular {
+        ArrowDown,
+        ArrowLeft,
+        ArrowRight,
+        ArrowUp,
+        Backspace,
+        Delete,
+        End,
+        Enter,
+        Home,
+        Insert,
+        PageDown,
+        PageUp,
+        Space,
+    }
+}
+
+impl Key {
+    /// Constructor. The `key` is used to distinguish between keys, while the `code` is used to
+    /// check whether it was left or right key in case of side-aware keys. It's important to use the
+    /// `key` to distinguish between keys, as it it hardware independent. For example, `alt a` could
+    /// result in key `ą` in some keyboard layouts and the code `KeyA`. When layout changes, the
+    /// symbol `ą` could be mapped to a different hardware key. Check the following site for more
+    /// info: https://keycode.info.
+    pub fn new(key:String, code:String) -> Self {
+        let label_ref : &str = &key;
+        let code_ref  : &str = &code;
+        if key.graphemes(true).count() == 1 { Self::Character(key) } else {
+            let key = KEY_NAME_MAP.get(label_ref).cloned().unwrap_or(Self::Other(key));
+            match (key,code_ref) {
+                (Self::Alt      (_), "AltRight")     => Self::Alt      (Side::Right),
+                (Self::AltGr    (_), "AltRight")     => Self::AltGr    (Side::Right),
+                (Self::AltGraph (_), "AltRight")     => Self::AltGraph (Side::Right),
+                (Self::Control  (_), "ControlRight") => Self::Control  (Side::Right),
+                (Self::Meta     (_), "MetaRight")    => Self::Meta     (Side::Right),
+                (Self::Shift    (_), "ShiftRight")   => Self::Shift    (Side::Right),
+                (other,_)                            => other,
+            }
+        }
+    }
+
+    /// When the meta key is down on MacOS, the key up event is not fired for almost every key. This
+    /// function checks whether the event will be emitted for a particular key. Please note that
+    /// although this is MacOS specific issue, we are simulating this behavior on all platforms to
+    /// keep it consistent.
+    pub fn can_be_missing_when_meta_is_down(&self) -> bool {
+        match self {
+            Self::Alt      (_) => false,
+            Self::AltGr    (_) => false,
+            Self::AltGraph (_) => false,
+            Self::Control  (_) => false,
+            Self::Meta     (_) => false,
+            Self::Shift    (_) => false,
+            _                  => true
+        }
+    }
+
+    /// Simple, kebab-case name of a key.
+    pub fn simple_name(&self) -> String {
+        let fmt = |side:&Side,repr| format!("{}-{}",repr,side.simple_name());
+        match self {
+            Self::Alt       (side) => fmt(side,"alt"),
+            Self::AltGr     (side) => fmt(side,"alt-graph"),
+            Self::AltGraph  (side) => fmt(side,"alt-graph"),
+            Self::Control   (side) => fmt(side,"ctrl"),
+            Self::Meta      (side) => fmt(side,"meta"),
+            Self::Shift     (side) => fmt(side,"shift"),
+
+            Self::ArrowDown        => "arrow-down".into(),
+            Self::ArrowLeft        => "arrow-left".into(),
+            Self::ArrowRight       => "arrow-right".into(),
+            Self::ArrowUp          => "arrow-up".into(),
+            Self::Backspace        => "backspace".into(),
+            Self::Delete           => "delete".into(),
+            Self::End              => "end".into(),
+            Self::Enter            => "enter".into(),
+            Self::Home             => "home".into(),
+            Self::Insert           => "insert".into(),
+            Self::PageDown         => "page-down".into(),
+            Self::PageUp           => "page-up".into(),
+            Self::Space            => "space".into(),
+
+            Self::Character (repr) => repr.into(),
+            Self::Other     (repr) => repr.to_kebab_case()
+        }
+    }
+}
+
+impl Default for Key {
+    fn default() -> Self {
+        Self::Other("".into())
+    }
+}
 
 
 
-// ===============
-// === KeyMask ===
-// ===============
+// =====================
+// === KeyboardModel ===
+// =====================
 
-// FIXME: The following implementation uses `key.legacy_keycode` which reports key codes for a very
-//        small amount of keys. We need a better mechanism here.
+/// Model keeping track of currently pressed keys.
+#[derive(Clone,CloneRef,Debug,Default)]
+pub struct KeyboardModel {
+    set : Rc<RefCell<HashSet<Key>>>,
+}
 
-/// The key bitmask (each bit represents one key). Used for matching key combinations.
-#[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
+impl KeyboardModel {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Check whether the meta key is currently pressed.
+    pub fn is_meta_down(&self) -> bool {
+        self.is_down(&Key::Meta(Side::Left)) || self.is_down(&Key::Meta(Side::Right))
+    }
+
+    /// Checks whether the provided key is currently pressed.
+    pub fn is_down(&self, key:&Key) -> bool {
+        self.set.borrow().contains(key)
+    }
+
+    /// Simulate press of the provided key.
+    pub fn press(&self, key:&Key) {
+        self.set.borrow_mut().insert(key.clone());
+    }
+
+    /// Simulate release of the provided key.
+    pub fn release(&self, key:&Key) {
+        self.set.borrow_mut().remove(key);
+    }
+
+    /// Release all keys which can become "sticky" when meta key is down. To learn more, refer to
+    /// the docs of `can_be_missing_when_meta_is_down`.
+    #[allow(clippy::unnecessary_filter_map)] // Allows not cloning the element.
+    pub fn release_meta_dependent(&self) -> Vec<Key> {
+        let mut to_release = Vec::new();
+        let new_set        = self.set.borrow_mut().drain().filter_map(|key| {
+            if key.can_be_missing_when_meta_is_down() {
+                to_release.push(key);
+                None
+            } else {
+                Some(key)
+            }
+        }).collect();
+        *self.set.borrow_mut() = new_set;
+        to_release
+    }
+}
+
+
+
+// ======================
+// === KeyboardSource ===
+// ======================
+
+/// The source of FRP keyboard inputs (press / release).
+#[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
-pub struct KeyMask {
-    pub bits : BitField256
+pub struct KeyboardSource {
+    pub up   : frp::Source<Key>,
+    pub down : frp::Source<Key>,
 }
 
-impl KeyMask {
-    /// Creates Key::Meta + Key::Character.
-    pub fn meta_plus(character:char) -> Self {
-        Self::from_vec(vec![Key::Meta, Key::Character(character.to_string())])
-    }
-
-    /// Creates Key::Control + Key::Character.
-    pub fn control_plus(character:char) -> Self {
-        Self::from_vec(vec![Key::Control, Key::Character(character.to_string())])
-    }
-
-    /// Creates Key::Alt + Key::Character.
-    pub fn alt_plus(character:char) -> Self {
-        Self::from_vec(vec![Key::Alt, Key::Character(character.to_string())])
-    }
-
-    /// Creates KeyMask from Vec<Key>.
-    pub fn from_vec(keys:Vec<Key>) -> Self {
-        keys.iter().collect()
-    }
-
-    /// Check if key bit is on.
-    pub fn contains(&self, key:&Key) -> bool {
-        self.bits.get_bit(key.legacy_keycode() as usize)
-    }
-
-    /// Set the `key` bit with the new state.
-    pub fn set(&mut self, key:&Key, state:bool) {
-        self.bits.set_bit(key.legacy_keycode() as usize,state);
-    }
-    // FIXME FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME
-    // The above code is very bad. It uses `legacy_keycode` which works for a small amount of
-    // buttons only. For example, for `meta` key, it returns just `0`. Its accidental that it works
-    // now.
-
-    /// Clone the mask and set the `key` bit with the new state.
-    pub fn with_set(&self, key:&Key, state:bool) -> Self {
-        let mut mask = self.clone();
-        mask.set(key,state);
-        mask
-    }
-
-    /// Handles new key press event and updates the key mask accordingly.
-    ///
-    /// **WARNING**
-    ///
-    /// Please note that this function is deeply magical. It checks whether the newly pressed key
-    /// was registered as already pressed. This should, of course, never happen, but actually it
-    /// happens on MacOS. Currently, no browser emits `keyup` event when a letter key is released
-    /// WHILE the `meta` key is being pressed. Thus, if the user actions were
-    /// `press meta -> press z -> release z -> press z -> release meta`, JavaScript will emit the
-    /// following events: `press meta -> press z -> press z -> release meta`.
-    ///
-    /// Thus, when we the newly pressed key was registered as already pressed AND the `meta` key was
-    /// also registered as pressed, two masks are emitted, one with the `meta` key only, and one
-    /// with the `meta` key AND the newly pressed key. In case the `mmeta` key was not registered as
-    /// pressed, a warning is emitted because it should never happen. Please note that this does NOT
-    /// solve the issue, it only makes common use cases work properly. There is no general solution
-    /// to this problem available. For example, user actions
-    /// `press meta -> press z -> press x -> release z -> release x -> press x` will be interpreted
-    /// as `press meta -> press z -> press x -> release x -> press x`, which clearly is not valid.
-    /// Fortunately, this is not needed in most cases. To learn more about this behavior, please
-    /// follow the links:
-    /// - https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
-    /// - https://w3c.github.io/uievents/tools/key-event-viewer.html
-    pub fn press(&self, key:&Key) -> Vec<Self> {
-        if self.contains(&Key::Meta) {
-            let meta_mask = Self::default().with_set(&Key::Meta,true);
-            let new_mask  = meta_mask.with_set(key,true);
-            vec![meta_mask,new_mask]
-        } else {
-            let new_mask = self.with_set(key,true);
-            vec![new_mask]
+impl KeyboardSource {
+    /// Constructor.
+    pub fn new(network:&frp::Network) -> Self {
+        frp::extend! { network
+            down <- source();
+            up   <- source();
         }
-    }
-
-    /// Handles new key release event and updates the key mask accordingly.
-    ///
-    /// **WARNING**
-    /// Please note that this function is magical. In case the released key was `meta`, the
-    /// resulting key mask will be empty. In order to know why it is designed this way, please refer
-    /// to the documentation of the `press` function.
-    pub fn release(&self, key:&Key) -> Self {
-        if key != &Key::Meta { self.with_set(key,false) } else {
-            default()
-        }
+        Self {up,down}
     }
 }
-
-impl<'a> FromIterator<&'a Key> for KeyMask {
-    fn from_iter<T: IntoIterator<Item=&'a Key>>(iter:T) -> Self {
-        let mut key_mask = KeyMask::default();
-        for key in iter { key_mask.set(key,true) }
-        key_mask
-    }
-}
-
-impl From<&[Key]>   for KeyMask { fn from(keys:&[Key])   -> Self {KeyMask::from_iter(keys)} }
-impl From<&[Key;0]> for KeyMask { fn from(keys:&[Key;0]) -> Self {KeyMask::from_iter(keys)} }
-impl From<&[Key;1]> for KeyMask { fn from(keys:&[Key;1]) -> Self {KeyMask::from_iter(keys)} }
-impl From<&[Key;2]> for KeyMask { fn from(keys:&[Key;2]) -> Self {KeyMask::from_iter(keys)} }
-impl From<&[Key;3]> for KeyMask { fn from(keys:&[Key;3]) -> Self {KeyMask::from_iter(keys)} }
-impl From<&[Key;4]> for KeyMask { fn from(keys:&[Key;4]) -> Self {KeyMask::from_iter(keys)} }
-impl From<&[Key;5]> for KeyMask { fn from(keys:&[Key;5]) -> Self {KeyMask::from_iter(keys)} }
-impl From<&KeyMask> for KeyMask { fn from(t:&KeyMask)    -> Self {t.clone()} }
 
 
 
@@ -148,128 +259,109 @@ impl From<&KeyMask> for KeyMask { fn from(t:&KeyMask)    -> Self {t.clone()} }
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Keyboard {
-    pub network       : frp::Network,
-    pub on_pressed    : frp::Source<Key>,
-    pub on_released   : frp::Source<Key>,
-    pub on_defocus    : frp::Source,
-    pub key_mask      : frp::Stream<KeyMask>,
-    pub prev_key_mask : frp::Stream<KeyMask>,
+    model       : KeyboardModel,
+    pub network : frp::Network,
+    pub source  : KeyboardSource,
+    pub down    : frp::Stream<Key>,
+    pub up      : frp::Stream<Key>,
+}
+
+impl Keyboard {
+    /// Constructor.
+    pub fn new() -> Self {
+        let network = frp::Network::new();
+        let model   = KeyboardModel::default();
+        let source  = KeyboardSource::new(&network);
+        frp::extend! { network
+            eval source.down ((key) model.press(key));
+            eval source.up   ((key) model.release(key));
+            down         <- source.down.map(|t|t.clone());
+            meta_down    <- source.down.map(f_!(model.is_meta_down()));
+            meta_release <= source.down.gate(&meta_down).map(f_!(model.release_meta_dependent()));
+            up           <- any(&source.up,&meta_release);
+        }
+        Keyboard {network,model,source,down,up}
+    }
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
-        frp::new_network! { keyboard
-            on_pressed    <- source();
-            on_released   <- source();
-            on_defocus    <- source();
-            key_mask      <- any_mut::<KeyMask>();
-            new_mask      <= on_pressed  . map2(&key_mask,|key,mask| mask.press(key));
-            key_mask      <+ new_mask;
-            key_mask      <+ on_released . map2(&key_mask,|key,mask| mask.release(key));
-            key_mask      <+ on_defocus  . map2(&key_mask,|_,_| default());
-            prev_key_mask <- key_mask.previous();
-        }
-        let network  = keyboard;
-        let key_mask = key_mask.into();
-        Keyboard {network,on_pressed,on_released,on_defocus,key_mask,prev_key_mask}
+        Self::new()
     }
 }
 
 
 
-// ===============
-// === Actions ===
-// ===============
+// ================
+// === Listener ===
+// ================
 
-// TODO: Remove Actions and all of its usages. Use the new `app::shortcut` tools.
+/// Callback for keyboard events.
+pub trait ListenerCallback = FnMut(KeyboardEvent) + 'static;
 
-/// An action defined for specific key combinations. For convenience, the key mask is passed as
-/// argument.
-pub trait Action = FnMut() + 'static;
+type ListenerClosure = Closure<dyn ListenerCallback>;
 
-/// A mapping between key combinations and actions.
-pub type ActionMap = HashMap<KeyMask,callback::SharedRegistryMut>;
-
-/// A structure bound to Keyboard FRP graph, which allows to define actions for specific keystrokes.
-#[derive(Clone,CloneRef)]
-pub struct Actions {
-    action_map : Rc<RefCell<ActionMap>>,
-    network    : frp::Network
+/// Keyboard event listener which calls the callback function as long it lives.
+#[derive(Debug)]
+pub struct Listener {
+    logger     : Logger,
+    callback   : ListenerClosure,
+    element    : HtmlElement,
+    event_type : String
 }
 
-impl Actions {
-    /// Create structure without any actions defined yet. It will be listening for events from
-    /// passed `Keyboard` structure.
-    pub fn new(keyboard:&Keyboard) -> Self {
-        let action_map = Rc::new(RefCell::new(HashMap::new()));
-        frp::new_network! { keyboard_actions
-            def _action = keyboard.key_mask.map(Self::perform_action_fn(action_map.clone_ref()));
+impl Listener {
+    /// Constructor.
+    pub fn new<F:ListenerCallback>(logger:impl AnyLogger,event_type:impl Str, f:F) -> Self {
+        let closure     = Box::new(f);
+        let callback    = ListenerClosure::wrap(closure);
+        let element     = web::body();
+        let js_function = callback.as_ref().unchecked_ref();
+        let logger      = Logger::sub(logger,"Listener");
+        let event_type  = event_type.as_ref();
+        if element.add_event_listener_with_callback(event_type,js_function).is_err() {
+            logger.warning(|| format!("Couldn't add {} event listener.",event_type));
         }
-        let network = keyboard_actions;
-        Actions{action_map,network}
+        let event_type = event_type.into();
+        Self {callback,element,event_type,logger}
     }
 
-    fn perform_action_fn(action_map:Rc<RefCell<ActionMap>>) -> impl Fn(&KeyMask) {
-        move |key_mask| {
-            // The action map ref is cloned in order to execute callbacks when not being borrowed.
-            let opt_callbacks = action_map.borrow().get(key_mask).map(|t| t.clone_ref());
-            if let Some(callbacks) = opt_callbacks {
-                callbacks.run_all();
-                if callbacks.is_empty() {
-                    action_map.borrow_mut().remove(key_mask);
-                }
-            }
-        }
+    /// Creates a new key down event listener.
+    pub fn new_key_down<F:ListenerCallback>(logger:impl AnyLogger, f:F) -> Self {
+        Self::new(logger,"keydown",f)
     }
 
-    /// Set action binding for given key mask.
-    pub fn add_action_for_key_mask<F:Action>(&self, key_mask:KeyMask, action:F) -> callback::Handle {
-        self.action_map.borrow_mut().entry(key_mask).or_insert_with(default).add(action)
-    }
-
-    /// Set action binding for given set of keys.
-    pub fn add_action<F:Action>(&self, keys:&[Key], action:F) -> callback::Handle {
-        self.add_action_for_key_mask(keys.into(),action)
+    /// Creates a new key up event listener.
+    pub fn new_key_up<F:ListenerCallback>(logger:impl AnyLogger, f:F) -> Self {
+        Self::new(logger,"keyup",f)
     }
 }
 
-impl Debug for Actions {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<CallbackRegistry>")
+impl Drop for Listener {
+    fn drop(&mut self) {
+        let callback = self.callback.as_ref().unchecked_ref();
+        if self.element.remove_event_listener_with_callback(&self.event_type, callback).is_err() {
+            self.logger.warning("Couldn't remove event listener.");
+        }
     }
 }
 
+/// A handle of listener emitting events on bound FRP graph.
+#[derive(Debug)]
+pub struct DomBindings {
+    key_down : Listener,
+    key_up   : Listener
+}
 
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn key_mask() {
-        let keyboard                  = Keyboard::default();
-        let expected_key_mask:KeyMask = default();
-        frp::new_network! { sampler_network
-            def sampler = keyboard.key_mask.sampler();
-        }
-        assert_eq!(expected_key_mask, sampler.value());
-        let key1 = Key::Character("x".to_string());
-        let key2 = Key::Control;
-
-        keyboard.on_pressed.emit(key1.clone());
-        let expected_key_mask:KeyMask = std::iter::once(&key1).collect();
-        assert_eq!(expected_key_mask, sampler.value());
-
-        keyboard.on_pressed.emit(key2.clone());
-        let expected_key_mask:KeyMask = [&key1,&key2].iter().cloned().collect();
-        assert_eq!(expected_key_mask, sampler.value());
-
-        keyboard.on_released.emit(key1);
-        let expected_key_mask:KeyMask = std::iter::once(&key2).collect();
-        assert_eq!(expected_key_mask, sampler.value());
+impl DomBindings {
+    /// Create new Keyboard and Frp bindings.
+    pub fn new(logger:impl AnyLogger, keyboard:&Keyboard) -> Self {
+        let key_down = Listener::new_key_down(&logger,f!((event:KeyboardEvent)
+            keyboard.source.down.emit(Key::new(event.key(),event.code()))
+        ));
+        let key_up = Listener::new_key_up(&logger,f!((event:KeyboardEvent)
+            keyboard.source.up.emit(Key::new(event.key(),event.code()))
+        ));
+        Self {key_down,key_up}
     }
 }

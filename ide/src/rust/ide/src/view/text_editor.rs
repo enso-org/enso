@@ -6,8 +6,8 @@ use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 
 use data::text::TextChange;
-use enso_frp::io::keyboard::KeyMask;
-use enso_frp::io::keyboard;
+use enso_frp::io::keyboard_old::KeyMask;
+use enso_frp::io::keyboard_old;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::Scene;
@@ -15,7 +15,7 @@ use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::shape::text::glyph::font;
 use ensogl::display::shape::text::text_field::{TextField, FocusManager};
 use ensogl::display::shape::text::text_field::TextFieldProperties;
-use ensogl::system::web::platform::Platform;
+use ensogl::system::web::platform;
 use ensogl_theme;
 use nalgebra::Vector2;
 use nalgebra::zero;
@@ -70,7 +70,7 @@ impl TextEditor {
     ( logger           : impl AnyLogger
     , scene            : S
     , controller       : controller::Text
-    , keyboard_actions : &mut keyboard::Actions
+    , keyboard_actions : &mut keyboard_old::Actions
     , fonts            : &mut font::Registry
     , focus_manager    : &FocusManager
     ) -> Self {
@@ -96,14 +96,14 @@ impl TextEditor {
     }
 
     fn get_save_keys_mask() -> KeyMask {
-        if let Platform::MacOS = Platform::query() {
+        if let platform::MacOS = platform::current() {
             KeyMask::meta_plus('s')
         } else {
             KeyMask::control_plus('s')
         }
     }
 
-    fn initialize(self, keyboard_actions:&mut keyboard::Actions) -> Self {
+    fn initialize(self, keyboard_actions:&mut keyboard_old::Actions) -> Self {
         let save_keys   = Self::get_save_keys_mask();
         let text_editor = Rc::downgrade(&self.rc);
         keyboard_actions.add_action_for_key_mask(save_keys,enclose!((text_editor) move || {

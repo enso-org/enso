@@ -257,12 +257,11 @@ impl application::View for View {
 
 impl application::shortcut::DefaultShortcutProvider for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
-        use frp::io::keyboard::Key;
-        vec!
-        [ Self::self_shortcut(shortcut::Action::press  (&[Key::Shift,Key::Tab],&[])                               , "add_new_node")
-        , Self::self_shortcut(shortcut::Action::press  (&[Key::Escape],&[])                                       , "abort_node_editing")
-        , Self::self_shortcut(shortcut::Action::press  (&[Key::Control,Key::Shift,Key::Character("s".into())],&[]), "toggle_style")
-        , Self::self_shortcut(shortcut::Action::release(&[Key::Control,Key::Shift,Key::Character("s".into())],&[]), "toggle_style")
-        ]
+        use shortcut::ActionType::*;
+        (&[ (Press   , "shift tab"    , "add_new_node")
+          , (Press   , "escape"       , "abort_node_editing")
+          , (Press   , "ctrl shift s" , "toggle_style")
+          , (Release , "ctrl shift s" , "toggle_style")
+          ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
     }
 }

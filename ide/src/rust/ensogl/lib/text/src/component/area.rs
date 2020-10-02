@@ -349,6 +349,8 @@ ensogl_core::def_command_api! { Commands
     decrease_indentation,
     /// Removes the character on the left of every cursor.
     delete_left,
+    /// Removes the character on the right of every cursor.
+    delete_right,
     /// Removes the word on the left of every cursor.
     delete_word_left,
     /// Set the text cursor at the mouse cursor position.
@@ -371,6 +373,10 @@ ensogl_core::def_command_api! { Commands
     cursor_move_left_word,
     /// Move the cursor to the right by one word.
     cursor_move_right_word,
+    /// Move the cursor to the beginning of the line.
+    cursor_move_left_of_line,
+    /// Move the cursor to the end of the line.
+    cursor_move_right_of_line,
     /// Move the cursor down one line.
     cursor_move_down,
     /// Move the cursor up one line.
@@ -604,6 +610,9 @@ impl Area {
             eval_ cmd.cursor_move_left_word  (m.buffer.frp.cursors_move(Transform::LeftWord));
             eval_ cmd.cursor_move_right_word (m.buffer.frp.cursors_move(Transform::RightWord));
 
+            eval_ cmd.cursor_move_left_of_line  (m.buffer.frp.cursors_move(Transform::LeftOfLine));
+            eval_ cmd.cursor_move_right_of_line (m.buffer.frp.cursors_move(Transform::RightOfLine));
+
             eval_ cmd.cursor_select_left  (m.buffer.frp.cursors_select(Transform::Left));
             eval_ cmd.cursor_select_right (m.buffer.frp.cursors_select(Transform::Right));
             eval_ cmd.cursor_select_up    (m.buffer.frp.cursors_select(Transform::Up));
@@ -616,6 +625,7 @@ impl Area {
             eval_ cmd.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
 
             eval_ cmd.delete_left      (m.buffer.frp.delete_left());
+            eval_ cmd.delete_right     (m.buffer.frp.delete_right());
             eval_ cmd.delete_word_left (m.buffer.frp.delete_word_left());
 
             eval_ cmd.undo (m.buffer.frp.undo());
@@ -624,8 +634,7 @@ impl Area {
 
             // === Insert ===
 
-            key_to_insert <- keyboard.frp.on_pressed.sample(&cmd.insert_char_of_last_pressed_key);
-            key_to_insert <= key_to_insert.map(f!((key) m.key_to_string(key)));
+            key_to_insert <= keyboard.frp.down.map(f!((key) m.key_to_string(key)));
             str_to_insert <- any(&input.insert,&key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
             eval input.set_content ([input,cmd](s) {
@@ -949,45 +958,43 @@ impl application::View for Area {
 //            Should be resolved as part of https://github.com/enso-org/ide/issues/713
 impl application::shortcut::DefaultShortcutProvider for Area {
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
-        use enso_frp::io::mouse;
-//        vec! [ Self::self_shortcut(shortcut::Action::press (&[],&[mouse::PrimaryButton]), "set_cursor_at_mouse_position")
-//        ]
-        vec! [ Self::self_shortcut(shortcut::Action::press   (&[Key::ArrowLeft]                       , shortcut::Pattern::Any) , "cursor_move_left"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::ArrowRight]                      , shortcut::Pattern::Any) , "cursor_move_right"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::ArrowUp]                         , shortcut::Pattern::Any) , "cursor_move_up"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::ArrowDown]                       , shortcut::Pattern::Any) , "cursor_move_down"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::ArrowLeft]             , shortcut::Pattern::Any) , "cursor_move_left_word"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::ArrowRight]            , shortcut::Pattern::Any) , "cursor_move_right_word"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Shift,Key::ArrowLeft]            , shortcut::Pattern::Any) , "cursor_select_left"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Shift,Key::ArrowRight]           , shortcut::Pattern::Any) , "cursor_select_right"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::Shift,Key::ArrowLeft]  , shortcut::Pattern::Any) , "cursor_select_left_word"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::Shift,Key::ArrowRight] , shortcut::Pattern::Any) , "cursor_select_right_word"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Shift,Key::ArrowUp]              , shortcut::Pattern::Any) , "cursor_select_up"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Shift,Key::ArrowDown]            , shortcut::Pattern::Any) , "cursor_select_down"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Backspace]                       , shortcut::Pattern::Any) , "delete_left"),
-//               Self::self_shortcut(shortcut::Action::press   (&[Key::Tab]                             , shortcut::Pattern::Any) , "increase_indentation"),
-//               Self::self_shortcut(shortcut::Action::press   (&[Key::Shift,Key::Tab]                  , shortcut::Pattern::Any) , "decrease_indentation"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::Backspace]             , shortcut::Pattern::Any) , "delete_word_left"),
-//               Self::self_shortcut(shortcut::Action::press   (&[Key::Escape]                          , shortcut::Pattern::Any) , "keep_oldest_cursor_only"),
-               Self::self_shortcut(shortcut::Action::press   (shortcut::Pattern::Any,&[])                                       , "insert_char_of_last_pressed_key"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Shift],&[mouse::PrimaryButton])                            , "set_newest_selection_end_to_mouse_position"),
-               Self::self_shortcut(shortcut::Action::double_press (&[],&[mouse::PrimaryButton])                                 , "select_word_at_cursor"),
-               Self::self_shortcut(shortcut::Action::press   (&[],&[mouse::PrimaryButton])                                      , "set_cursor_at_mouse_position"),
-               Self::self_shortcut(shortcut::Action::press   (&[],&[mouse::PrimaryButton])                                      , "start_newest_selection_end_follow_mouse"),
-               Self::self_shortcut(shortcut::Action::release (&[],&[mouse::PrimaryButton])                                      , "stop_newest_selection_end_follow_mouse"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta],&[mouse::PrimaryButton])                             , "add_cursor_at_mouse_position"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta],&[mouse::PrimaryButton])                             , "start_newest_selection_end_follow_mouse"),
-               Self::self_shortcut(shortcut::Action::release (&[Key::Meta],&[mouse::PrimaryButton])                             , "stop_newest_selection_end_follow_mouse"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::Character("a".into())],&[])                      , "select_all"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::Character("c".into())],&[])                      , "copy"),
-               Self::self_shortcut(shortcut::Action::press   (&[Key::Meta,Key::Character("v".into())],&[])                      , "paste"),
-//               Self::self_shortcut(shortcut::Action::release (&[Key::Meta,Key::Character("z".into())],&[])                      , "undo"),
-//               Self::self_shortcut(shortcut::Action::release (&[Key::Meta,Key::Character("y".into())],&[])                      , "redo"),
-//               Self::self_shortcut(shortcut::Action::release (&[Key::Meta,Key::Shift,Key::Character("z".into())],&[])           , "redo"),
-//                Self::self_shortcut(shortcut::Action::press   (&[Key::Escape]                          , shortcut::Pattern::Any) , "undo"),
-        ]
+        use shortcut::ActionType::*;
+        (&[ (Press       , "left"                    , "cursor_move_left")
+          , (Press       , "right"                   , "cursor_move_right")
+          , (Press       , "up"                      , "cursor_move_up")
+          , (Press       , "down"                    , "cursor_move_down")
+          , (Press       , "meta left"               , "cursor_move_left_word")
+          , (Press       , "meta right"              , "cursor_move_right_word")
+          , (Press       , "meta alt left"           , "cursor_move_left_of_line")
+          , (Press       , "meta alt right"          , "cursor_move_right_of_line")
+          , (Press       , "home"                    , "cursor_move_left_of_line")
+          , (Press       , "end"                     , "cursor_move_right_of_line")
+          , (Press       , "shift left"              , "cursor_select_left")
+          , (Press       , "shift right"             , "cursor_select_right")
+          , (Press       , "meta shift left"         , "cursor_select_left_word")
+          , (Press       , "meta shift right"        , "cursor_select_right_word")
+          , (Press       , "shift up"                , "cursor_select_up")
+          , (Press       , "shift down"              , "cursor_select_down")
+          , (Press       , "backspace"               , "delete_left")
+          , (Press       , "delete"                  , "delete_right")
+          , (Press       , "meta backspace"          , "delete_word_left")
+          , (Press       , "shift left-mouse-button" , "set_newest_selection_end_to_mouse_position")
+          , (DoublePress , "left-mouse-button"       , "select_word_at_cursor")
+          , (Press       , "left-mouse-button"       , "set_cursor_at_mouse_position")
+          , (Press       , "left-mouse-button"       , "start_newest_selection_end_follow_mouse")
+          , (Release     , "left-mouse-button"       , "stop_newest_selection_end_follow_mouse")
+          , (Press       , "meta left-mouse-button"  , "add_cursor_at_mouse_position")
+          , (Press       , "meta left-mouse-button"  , "start_newest_selection_end_follow_mouse")
+          , (Release     , "meta left-mouse-button"  , "stop_newest_selection_end_follow_mouse")
+          , (Press       , "meta a"                  , "select_all")
+          , (Press       , "meta c"                  , "copy")
+          , (Press       , "meta v"                  , "paste")
+//        , Self::self_shortcut(Press   (&[Key::Escape]                          , shortcut::Pattern::Any) , "keep_oldest_cursor_only"),
+//        , Self::self_shortcut(Press   (shortcut::Pattern::Any,&[])                                       , "insert_char_of_last_pressed_key"),
+//        , Self::self_shortcut(Release (&[Key::Meta,Key::Character("z".into())],&[])                      , "undo"),
+//        , Self::self_shortcut(Release (&[Key::Meta,Key::Character("y".into())],&[])                      , "redo"),
+//        , Self::self_shortcut(Release (&[Key::Meta,Key::Shift,Key::Character("z".into())],&[])           , "redo"),
+//        , Self::self_shortcut(Press   (&[Key::Escape]                          , shortcut::Pattern::Any) , "undo"),
+          ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
     }
 }
-
-// TODO[WD]: The following shortcuts are missing and its worth adding them in the future:
-// undo, redo, multicursor up/down, check with different views, scrolling, parens, lines indent

@@ -1670,7 +1670,7 @@ impl<T,F,Out> OwnedMap<T,F>
 where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Out {
     /// Constructor.
     pub fn new(label:Label, src:&T, function:F) -> Self {
-        let _src    = src.clone_ref();
+        let _src       = src.clone_ref();
         let definition = MapData {_src,function};
         Self::construct_and_connect(label,src,definition)
     }

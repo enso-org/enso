@@ -463,6 +463,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-automata"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude 0.1.0",
+]
+
+[[package]]
 name = "enso-callback"
 version = "0.1.0"
 dependencies = [
@@ -473,6 +480,7 @@ dependencies = [
 name = "enso-frp"
 version = "0.1.0"
 dependencies = [
+ "Inflector 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-callback 0.1.0",
  "enso-generics 0.1.0",
  "enso-prelude 0.1.0",
@@ -481,6 +489,7 @@ dependencies = [
  "logger 0.1.0",
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "percent-encoding 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-segmentation 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)",
  "web-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -585,6 +594,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-shortcuts"
+version = "0.1.0"
+dependencies = [
+ "enso-automata 0.1.0",
+ "enso-frp 0.1.0",
+ "enso-prelude 0.1.0",
+ "ensogl-system-web 0.1.0",
+ "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "logger 0.1.0",
+ "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.56 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "enso-shortcuts-examples"
+version = "0.1.0"
+dependencies = [
+ "enso-automata 0.1.0",
+ "enso-frp 0.1.0",
+ "enso-prelude 0.1.0",
+ "enso-shortcuts 0.1.0",
+ "ensogl-system-web 0.1.0",
+ "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "logger 0.1.0",
+ "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.56 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "enso-types"
 version = "0.1.0"
 dependencies = [
@@ -624,6 +668,7 @@ dependencies = [
  "enso-generics 0.1.0",
  "enso-prelude 0.1.0",
  "enso-shapely 0.1.0",
+ "enso-shortcuts 0.1.0",
  "enso-types 0.1.0",
  "ensogl-system-web 0.1.0",
  "ensogl-text-embedded-fonts 0.1.0",

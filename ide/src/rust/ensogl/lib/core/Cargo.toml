@@ -18,6 +18,7 @@ ensogl-text-embedded-fonts = { version = "0.1.0" , path = "../text/embedded-font
 ensogl-text-msdf-sys       = { version = "0.1.0" , path = "../text/msdf-sys"               }
 enso-generics              = { version = "0.1.0" , path = "../../../lib/generics"          }
 enso-prelude               = { version = "0.1.0" , path = "../../../lib/enso-prelude"      }
+enso-shortcuts             = { version = "0.1.0" , path = "../../../lib/shortcuts"    }
 ensogl-system-web          = { version = "0.1.0" , path = "../../../lib/system/web"        }
 code-builder               = { version = "0.1.0" , path = "../../../lib/code-builder"      }
 data                       = { version = "0.1.0" , path = "../../../lib/data"              }

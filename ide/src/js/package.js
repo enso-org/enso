@@ -9,12 +9,12 @@ let config = {
         "webpack-dev-server": "^3.1.5",
     },
     scripts: {
-        "build": "lerna run build --stream",
-        "clean": "rm -Rf node_modules && lerna clean -y",
-        "dist": "lerna run build --stream && lerna run dist --stream",
-        "install": "npm install lerna && lerna bootstrap",
-        "start": "npm run build && lerna run start --stream -- -- ",
-        "watch": "lerna run watch --stream"
+        "build": "npx lerna run build --stream",
+        "clean": "npx lerna clean -y && rm -Rf node_modules",
+        "dist": "npx lerna run build --stream && npx lerna run dist --stream",
+        "install": "npm install lerna && npx lerna bootstrap",
+        "start": "npm run build && npx lerna run start --stream -- -- ",
+        "watch": "npx lerna run watch --stream"
     }
 }
 
