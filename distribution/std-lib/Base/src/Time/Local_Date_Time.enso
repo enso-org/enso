@@ -109,6 +109,6 @@ of_instant instant offset =
    > Example
      Get the local date of 5th August 1986 at 23:00.
          Local_Date_Time.new 1986 8 5 23
-new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Local_Date_Time
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Local_Date_Time
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     Local_Date_Time (LocalDateTime.of [year, month, day, hour, minute, second, nanosecond])

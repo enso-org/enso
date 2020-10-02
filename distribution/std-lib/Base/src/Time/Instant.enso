@@ -65,7 +65,7 @@ of_epoch_second epoch_seconds = Instant (Java_Instant.ofEpochSecond [epoch_secon
    > Example
      Create a new instant of 3rd December 2011 at midnight UTC.
          Instant.new 2011 12 03
-new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Offset -> Instant
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone_Offset -> Instant
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
     offset_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_offset]
     instant = Instant (offset_time.toInstant [])

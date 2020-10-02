@@ -92,6 +92,6 @@ of_instant instant offset =
    > Example
      Get the local time at 9:30.
          Local_Time.new 9 30
-new : Number -> Number -> Number -> Number -> Local_Time
+new : Integer -> Integer -> Integer -> Integer -> Local_Time
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
     Local_Time (LocalTime.of [hour, minute, second, nanosecond])

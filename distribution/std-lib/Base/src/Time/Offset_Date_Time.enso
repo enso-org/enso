@@ -128,6 +128,6 @@ of_instant instant offset = instant.at_offset offset
    > Example
      Get the offset date time of 21th December 1992 at 16:30 UTC time.
          Offset_Date_Time.new 1992 12 21 16 30
-new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Offset -> Offset_Date_Time
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone_Offset -> Offset_Date_Time
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
     Offset_Date_Time (OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_offset])

@@ -89,6 +89,6 @@ of_instant instant offset =
    > Example
      Get the local date of 5th August 1986.
          Local_Date.new 1986 8 5
-new : Number -> Number -> Number -> Local_Date
+new : Integer -> Integer -> Integer -> Local_Date
 new (year = 1970) (month = 1) (day = 1) =
     Local_Date (LocalDate.of [year, month, day])

@@ -117,6 +117,6 @@ of_instant instant zone_id = instant.at_zone zone_id
    > Example
      Get the 5 August 1986 at midnight UTC.
          Zoned_Date_Time.new 1986 8 5
-new : Number -> Number -> Number -> Number -> Number -> Number -> Number -> Zone_Id -> Zoned_Date_Time
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone_Id -> Zoned_Date_Time
 new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Id.utc) =
     Zoned_Date_Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_id])

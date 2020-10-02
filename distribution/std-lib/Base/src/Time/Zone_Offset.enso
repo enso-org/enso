@@ -60,7 +60,7 @@ parse text = Zone_Offset (ZoneOffset.of [text])
    > Example
      Get time zone 1 hour 1 minute and 50 seconds of Greenwich/UTC.
          Zone_Offset.new 1 1 50
-new : Number -> Number -> Number -> Zone_Offset
+new : Integer -> Integer -> Integer -> Zone_Offset
 new (hours = 0) (minutes = 0) (seconds = 0) =
     Zone_Offset (ZoneOffset.ofHoursMinutesSeconds [hours, minutes, seconds])
 
