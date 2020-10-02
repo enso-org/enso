@@ -22,7 +22,7 @@ import scala.jdk.StreamConverters._
   */
 trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
-  override val timeLimit: Span               = 30 seconds
+  override val timeLimit: Span               = 60.seconds
   override val defaultTestSignaler: Signaler = _.interrupt()
 
   /**
@@ -242,7 +242,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       */
     def waitForMessageOnErrorStream(
       message: String,
-      timeoutSeconds: Long = 10
+      timeoutSeconds: Long
     ): Unit = {
       val semaphore = new Semaphore(0)
       def handler(line: String, streamType: StreamType): Unit = {

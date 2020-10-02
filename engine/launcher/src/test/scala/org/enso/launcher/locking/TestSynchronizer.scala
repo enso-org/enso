@@ -78,7 +78,7 @@ class TestSynchronizer {
   /**
     * Timeout used by [[waitFor]].
     */
-  val timeOutSeconds: Long = 10
+  val timeOutSeconds: Long = 20
 
   /**
     * Reports that the event has happened now.
