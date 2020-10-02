@@ -262,6 +262,8 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
         ioHandlers ++= Seq(handler _)
       }
 
+      errQueue.asScala.toSeq.foreach(handler(_, StdErr))
+
       val acquired = semaphore.tryAcquire(timeoutSeconds, TimeUnit.SECONDS)
       if (!acquired) {
         throw new TimeoutException(s"Waiting for `$message` timed out.")

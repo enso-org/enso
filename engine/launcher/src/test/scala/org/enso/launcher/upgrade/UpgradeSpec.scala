@@ -7,7 +7,6 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher._
 import org.enso.launcher.locking.{FileLockManager, LockType}
-import org.enso.testkit.RetrySpec
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 
@@ -17,8 +16,7 @@ class UpgradeSpec
     extends NativeTest
     with WithTemporaryDirectory
     with BeforeAndAfterAll
-    with OptionValues
-    with RetrySpec {
+    with OptionValues {
 
   /**
     * Location of the fake releases root.
@@ -313,8 +311,7 @@ class UpgradeSpec
       result.stdout should include(message)
     }
 
-    "fail if another upgrade is running in parallel" taggedAs Retry in
-    allowForRetry {
+    "fail if another upgrade is running in parallel" in {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 1))
