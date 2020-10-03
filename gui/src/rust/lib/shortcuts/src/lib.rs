@@ -457,6 +457,7 @@ pub trait HashSetRegistryItem = Clone+Debug+Eq+Hash;
 /// Internal model for `HashSetRegistry`.
 #[derive(Debug)]
 pub struct HashSetRegistryModel<T> {
+    current_expr  : String,
     actions       : HashMap<ActionType,HashMap<String,Vec<T>>>,
     pressed       : HashSet<String>,
     press_times   : HashMap<String,f32>,
@@ -468,13 +469,14 @@ pub struct HashSetRegistryModel<T> {
 impl<T> HashSetRegistryModel<T> {
     /// Constructor.
     pub fn new() -> Self {
+        let current_expr  = default();
         let actions       = default();
         let pressed       = default();
         let press_times   = default();
         let release_times = default();
         let side_keys     = default();
         let key_aliases   = key_aliases();
-        Self {actions,pressed,press_times,release_times,side_keys,key_aliases} . init()
+        Self {current_expr,actions,pressed,press_times,release_times,side_keys,key_aliases} . init()
     }
 
     fn init(mut self) -> Self {
@@ -504,30 +506,30 @@ impl<T:HashSetRegistryItem> HashSetRegistryModel<T> {
 
     fn on_event(&mut self, input:impl AsRef<str>, press:bool) -> Vec<T> {
         let input = input.as_ref().to_lowercase();
-        let expr = if press {
-            self.pressed.insert(input);
-            self.current_expr()
-        } else {
-            let out = self.current_expr();
-            self.pressed.remove(&input);
-            out
-        };
+        let out   = self.process_event(false);
+        if press { self.pressed.insert(input); }
+        else     { self.pressed.remove(&input); }
+        self.current_expr = self.current_expr();
+        out.extended(self.process_event(true))
+    }
+
+    fn process_event(&mut self, press:bool) -> Vec<T> {
+        let expr          = &self.current_expr;
         let action        = if press { Press }       else { Release };
         let double_action = if press { DoublePress } else { DoubleClick };
         let last_time_map = if press { &mut self.press_times } else { &mut self.release_times };
         let mut out       = Vec::<T>::new();
         let time          = web::time_from_start() as f32;
-        let last_time     = last_time_map.get(&expr);
+        let last_time     = last_time_map.get(expr);
         let time_diff     = last_time.map(|t| time-t);
         let is_double     = time_diff.map(|t| t < DOUBLE_EVENT_TIME_MS) == Some(true);
-        out.extend(self.actions.get(&action).and_then(|t|t.get(&expr)).into_iter().flatten().cloned());
+        out.extend(self.actions.get(&action).and_then(|t|t.get(expr)).into_iter().flatten().cloned());
         if is_double {
-            out.extend(self.actions.get(&double_action).and_then(|t|t.get(&expr)).into_iter().flatten().cloned());
-            last_time_map.remove(&expr);
+            out.extend(self.actions.get(&double_action).and_then(|t|t.get(expr)).into_iter().flatten().cloned());
+            last_time_map.remove(expr);
         } else {
-            *last_time_map.entry(expr).or_default() = time;
+            *last_time_map.entry(expr.clone()).or_default() = time;
         }
-
         out
     }
 
@@ -609,7 +611,6 @@ fn key_aliases() -> HashMap<String,String> {
     insert          (&mut map, "right-mouse-button"  , "mouse-button-2");
     map
 }
-
 
 
 
@@ -759,6 +760,25 @@ mod tests {
                 assert_eq!(registry.on_release(meta),nothing);
             }
         }
+        registry
+    }
+
+
+    // === Press / Release Sequence ===
+
+    // #[test] fn automata_registry_sequence() { sequence::<AutomataRegistry<&'static str>>(); }
+    #[test] fn hash_set_registry_sequence() { sequence::<HashSetRegistry<&'static str>>(); }
+    fn sequence<T:Registry<&'static str>>() -> T {
+        let nothing = Vec::<&'static str>::new();
+        let registry : T = default();
+        registry.add(Press   , "ctrl a" , "press ctrl a");
+        registry.add(Release , "ctrl a" , "release ctrl a");
+        registry.add(Press   , "a"      , "press a");
+        registry.add(Release , "a"      , "release a");
+        assert_eq!(registry.on_press("ctrl-left"),nothing);
+        assert_eq!(registry.on_press("a"),vec!["press ctrl a"]);
+        assert_eq!(registry.on_release("ctrl-left"),vec!["release ctrl a", "press a"]);
+        assert_eq!(registry.on_release("a"),vec!["release a"]);
         registry
     }
 
