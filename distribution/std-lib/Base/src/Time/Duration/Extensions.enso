@@ -13,11 +13,27 @@ Integer.nanos = this.nano
 
 ## Duration in nanoseconds.
 Integer.nanosecond : Duration
-Integer.nanosecond = Duration.duration (Java_Duration.ofNanos [this])
+Integer.nanosecond = this.nano
 
 ## Duration in nanoseconds.
 Integer.nanoseconds : Duration
-Integer.nanoseconds = this.nanosecond
+Integer.nanoseconds = this.nano
+
+## Duration in milliseconds.
+Integer.milli : Duration
+Integer.milli = Duration.duration (Java_Duration.ofMillis [this])
+
+## Duration in milliseconds.
+Integer.millis : Duration
+Integer.millis = this.milli
+
+## Duration in milliseconds.
+Integer.millisecond : Duration
+Integer.millisecond = this.milli
+
+## Duration in milliseconds.
+Integer.milliseconds : Duration
+Integer.milliseconds = thils.milli
 
 ## Duration in seconds.
 Integer.second : Duration

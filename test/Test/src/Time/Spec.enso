@@ -4,6 +4,7 @@ import Base.Time
 
 import Test.Time.Duration.Spec as Duration_Spec
 import Test.Time.Instant.Spec as Instant_Spec
+import Test.Time.Interval.Spec as Interval_Spec
 import Test.Time.Local_Time.Spec as Local_Time_Spec
 import Test.Time.Local_Date.Spec as Local_Date_Spec
 import Test.Time.Local_Date_Time.Spec as Local_Date_Time_Spec
@@ -37,3 +38,4 @@ spec =
     Duration_Spec.spec
     Period_Spec.spec
     Temporal_Spec.spec
+    Interval_Spec.spec

@@ -1,0 +1,117 @@
+from Base import all
+
+polyglot java import java.time.Duration
+polyglot java import java.time.Period
+
+type Interval
+
+    type Interval interval_period interval_duration
+
+    plus : Interval -> Interval
+    plus other = Interval (this.interval_period . plus [other.interval_period]) (this.interval_duration . plus [other.interval_duration])
+
+    minus : Interval -> Interval
+    minus other = Interval (this.interval_period . minus [other.interval_period]) (this.interval_duration . minus [other.interval_duration])
+
+    get_nanos : Integer
+    get_nanos = this.interval_duration . toNanosPart []
+
+    get_millis : Integer
+    get_millis = this.interval_duration . toMillisPart []
+
+    get_seconds : Integer
+    get_seconds = this.interval_duration . toSecondsPart []
+
+    get_minutes : Integer
+    get_minutes = this.interval_duration . toMinutesPart []
+
+    get_hours : Integer
+    get_hours = this.interval_duration . toHours []
+
+    get_days : Integer
+    get_days = this.interval_period . getDays []
+
+    get_months : Integer
+    get_months = this.interval_period . getMonths []
+
+    get_years : Integer
+    get_years = this.interval_period . getYears []
+
+    to_vector = [this.get_years, this.get_months, this.get_days, this.get_hours, this.get_minutes, this.get_seconds, this.get_nanos]
+
+## Interval in nanoseconds.
+Integer.nano : Interval
+Integer.nano = Interval (Period.ofDays [0]) (Duration.ofNanos [this])
+
+## Interval in nanoseconds.
+Integer.nanos : Interval
+Integer.nanos = this.nano
+
+## Interval in nanoseconds.
+Integer.nanosecond : Interval
+Integer.nanosecond = this.nano
+
+## Interval in nanoseconds.
+Integer.nanoseconds : Interval
+Integer.nanoseconds = this.nano
+
+## Interval in milliseconds.
+Integer.milli : Interval
+Integer.milli = Interval (Period.ofDays [0]) (Duration.ofMillis [this])
+
+## Interval in milliseconds.
+Integer.millis : Interval
+Integer.millis = this.milli
+
+## Interval in milliseconds.
+Integer.millisecond : Interval
+Integer.millisecond = this.milli
+
+## Interval in milliseconds.
+Integer.milliseconds : Interval
+Integer.milliseconds = thils.milli
+
+Integer.second : Interval
+Integer.second = Interval (Period.ofDays [0]) (Duration.ofSeconds [this])
+
+Integer.seconds : Interval
+Integer.seconds = this.second
+
+Integer.minute : Interval
+Integer.minute = Interval (Period.ofDays [0]) (Duration.ofMinutes [this])
+
+Integer.minutes : Interval
+Integer.minutes = this.minute
+
+Integer.hour : Interval
+Integer.hour = Interval (Period.ofDays [0]) (Duration.ofHours [this])
+
+Integer.hours : Interval
+Integer.hours = this.hour
+
+Integer.day : Interval
+Integer.day = Interval (Period.ofDays [this]) (Duration.ofSeconds [0])
+
+Integer.days : Interval
+Integer.days = this.day
+
+Integer.month : Interval
+Integer.month = Interval (Period.ofMonths [this]) (Duration.ofSeconds [0])
+
+Integer.months : Interval
+Integer.months = this.month
+
+Integer.year : Interval
+Integer.year = Interval (Period.ofYears [this]) (Duration.ofSeconds [0])
+
+Integer.years : Interval
+Integer.years = this.year
+
+## Obtains an interval representing the duration between two temporal objects.
+
+   > Example
+     An hour interval between two local times.
+         Interval.between (Local_Time.new 0) (Local_Time.new 1)
+between : Temporal -> Temporal -> Interval
+between start_inclusive end_exclusive =
+   Interval (Period.ofDays [0]) (Duration.between [start_inclusive.internal_temporal, end_exclusive.internal_temporal])
