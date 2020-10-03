@@ -49,18 +49,17 @@ pub fn main() {
 
 
     let shortcut_registry = shortcuts::HashSetRegistry::<String>::new();
-    shortcut_registry.add(shortcuts::DoublePress, "ctrl + a", "hello");
-    println!("-> {:?}", shortcut_registry.on_press("ctrl"));
+    shortcut_registry.add(shortcuts::Press, "ctrl a", "press ctrl a");
+    shortcut_registry.add(shortcuts::Release, "ctrl a", "release ctrl a");
+    shortcut_registry.add(shortcuts::Press, "a", "press a");
+    shortcut_registry.add(shortcuts::Release, "a", "release a");
+    println!("\n---------------");
+    println!("-> {:?}", shortcut_registry.on_press("ctrl-left"));
     println!("---");
     println!("-> {:?}", shortcut_registry.on_press("a"));
     println!("---");
-    web::simulate_sleep(100.0);
+    web::simulate_sleep(1000.0);
+    println!("-> {:?}", shortcut_registry.on_release("ctrl-left"));
+    println!("---");
     println!("-> {:?}", shortcut_registry.on_release("a"));
-    println!("---");
-    println!("-> {:?}", shortcut_registry.on_press("a"));
-    println!("---");
-    println!("-> {:?}", shortcut_registry.on_release("a"));
-    println!("---");
-    println!("-> {:?}", shortcut_registry.on_press("a"));
-    println!("---");
 }

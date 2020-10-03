@@ -65,7 +65,6 @@ impl Frp {
             def activate           = source();
             def deactivate         = source();
             is_active              <- bool(&deactivate,&activate);
-            trace is_active;
         };
         let on_change             = change.clone_ref().into();
         let on_preprocess_change  = preprocess_change.clone_ref().into();

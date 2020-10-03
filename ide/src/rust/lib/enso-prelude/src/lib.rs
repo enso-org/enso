@@ -21,6 +21,7 @@ mod result;
 mod std_reexports;
 mod string;
 mod tp;
+mod vec;
 mod wrapper;
 
 pub use clone::*;
@@ -35,6 +36,7 @@ pub use result::*;
 pub use std_reexports::*;
 pub use string::*;
 pub use tp::*;
+pub use vec::*;
 pub use wrapper::*;
 
 pub use boolinator::Boolinator;
