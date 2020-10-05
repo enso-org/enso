@@ -1,24 +1,16 @@
 from Base import all
 import Base.Time
 import Base.Time.Interval
-import Base.Time.Zone_Offset
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
-polyglot java import java.time.ZoneOffset
 
 type Local_Time
 
     ## `Local_Time` is an immutable date-time object that represents a time, often
        viewed as hour-minute-second. Time is represented to nanosecond
        precision. For example, the value "13:45.30.123456789" can be stored in a
-       `LocalTime`.
-
-       This class does not store or represent a date or time-zone. Instead, it is a
-       description of the local time as seen on a wall clock. It cannot represent an
-       instant on the time-line without additional information such as an offset or
-       time-zone
-
+       `Local_Time`.
     type Local_Time internal_local_time
 
     ## Get the hour of day field.

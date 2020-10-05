@@ -1,6 +1,5 @@
 from Base import all
 import Base.Time
-import Base.Time.Zone_Offset
 import Base.Time.Interval
 
 polyglot java import java.time.Instant
@@ -30,11 +29,6 @@ type Local_Date
     ## Get the day of month field.
     get_day : Integer
     get_day = this . internal_local_date . getDayOfMonth []
-
-    ## Return the number of seconds since Unix epoch.
-    to_epoch_second : Local_Time -> Zone_Offset -> Integer
-    to_epoch_second local_time zone_offset =
-        this . internal_local_date . toEpochSecond [local_time.internal_local_time, zone_offset.internal_zone_offset]
 
     ## Add specified amount of time to this instant.
 

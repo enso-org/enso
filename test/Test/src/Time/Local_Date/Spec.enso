@@ -18,7 +18,9 @@ spec =
         it "should create local date from instant" <|
             instant = Instant.new 1970 1 1 0 0 1
             date = Local_Date.of_instant instant
-            date . to_epoch_second Local_Time.new Zone_Offset.utc . should_equal 0
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 1
+            date . get_day . should_equal 1
         it "should parse local date" <|
             date = Local_Date.parse "1999-01-01"
             date . get_year . should_equal 1999

@@ -117,7 +117,7 @@ Integer.year = Interval (Period.ofYears [this]) (Duration.ofSeconds [0])
 Integer.years : Interval
 Integer.years = this.year
 
-## Obtains an interval representing the duration between two temporal objects.
+## Obtain an interval representing the duration between two temporal objects.
 
    > Example
      An hour interval between two points in time.

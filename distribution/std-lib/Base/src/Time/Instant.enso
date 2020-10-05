@@ -4,8 +4,6 @@ import Base.Time.Zone_Id
 
 polyglot java import java.time.Instant as Java_Instant
 polyglot java import java.time.ZonedDateTime
-polyglot java import java.time.ZoneId
-polyglot java import java.time.temporal.Temporal
 
 type Instant
 
@@ -72,7 +70,7 @@ type Instant
        > Example
          Subtract 1 year and 9 months from a zoned date time.
              Instant.new.minus 1.year . minus 9.months
-    minus : Temporal_Amount -> Instant
+    minus : Interval -> Instant
     minus amount = Instant (this . internal_instant . minus [amount.interval_period] . minus [amount.interval_duration])
 
 ## Obtains an instance of `Instant` from a text string such as
@@ -83,7 +81,7 @@ type Instant
    brackets is not part of the ISO-8601 standard. The format consists of:
 
    - The ISO offset date time.
-   - If the zone ID is not available or is a `Zone_Offset` then the format is
+   - If the zone ID is not available or is a zone offset then the format is
      complete.
    - An open square bracket '['.
    - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
@@ -95,15 +93,15 @@ type Instant
          Instant.parse "2020-10-01T04:11:12Z"
 
    > Example
-     Parse New York time.
+     Parse UTC-04:00 time.
          Instant.parse "2020-10-01T04:11:12-04:00"
 
    > Example
-     Parse New York time with optional time zone in square brackets.
+     Parse UTC-04:00 time specifying New York time zone.
          Instant.parse "2020-10-01T04:11:12-04:00[America/New_York]"
 
    > Example
-     Parse New York time with nanoseconds.
+     Parse UTC-04:00 time with nanoseconds.
          Instant.parse "2020-10-01T04:11:12.177528-04:00"
 parse : Text -> Instant
 parse text = Instant (ZonedDateTime.parse [text])
