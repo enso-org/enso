@@ -54,13 +54,14 @@ public class ResourceManager {
 
   private void tryFinalize(Item it) {
     if (it.isFlaggedForFinalization().get()) {
-      // We already know that isFlaggedForFinalization was true at some
-      // point and there are no other threads still parking the underlying
-      // value. Note that it is impossible for parked count to increase after
-      // the value is flagged for finalization (as parking the value requires
-      // a live reference). Attempt finalization.
       if (it.getParkedCount().get() == 0) {
-        // Check if another thread didn't get to this branch first.
+        // We already know that isFlaggedForFinalization was true at some
+        // point and there are no other threads still parking the underlying
+        // value. Note that it is impossible for parked count to increase after
+        // the value is flagged for finalization, as parking the value requires
+        // a live reference. We need to check if another thread didn't reach
+        // here earlier to perform the finalization and reset the flag, so that
+        // no further attempts are made.
         boolean continueFinalizing = it.isFlaggedForFinalization().compareAndSet(true, false);
         if (continueFinalizing) {
           it.doFinalize(context);
@@ -102,7 +103,7 @@ public class ResourceManager {
     for (PhantomReference<Resource> key : items.keySet()) {
       Item it = items.remove(key);
       if (it != null) {
-        // Remove unconditionally – all other threads are supposed to be dead
+        // Finalize unconditionally – all other threads are supposed to be dead
         // by now.
         it.doFinalize(context);
       }

@@ -1,19 +1,20 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.runtime.Context
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.polyglot.{LanguageInfo, MethodNames}
 
+import scala.ref.WeakReference
 import scala.util.Try
 
-class ThreadInterruptionTest extends InterpreterTest {
+class RuntimeManagementTest extends InterpreterTest {
   override def subject: String = "Enso Code Execution"
 
   override def specify(
     implicit interpreterContext: InterpreterContext
   ): Unit = {
 
-    "be interruptible through Thread#interrupt()" in {
+    "Interrupt threads through Thread#interrupt()" in {
       val langCtx = interpreterContext.ctx
         .getBindings(LanguageInfo.ID)
         .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
@@ -59,6 +60,53 @@ class ThreadInterruptionTest extends InterpreterTest {
 
       runTest()
       runTest()
+    }
+
+    "Automatically free managed resources" in {
+      val code =
+        """
+          |from Builtins import all
+          |
+          |type Mock_File i
+          |
+          |free_resource r = IO.println ("Freeing: " + r.to_text)
+          |
+          |create_resource i =
+          |    c = Mock_File i
+          |    r = Resource.register c here.free_resource
+          |    Resource.with r f-> IO.println ("Accessing: " + f.to_text)
+          |
+          |main =
+          |    here.create_resource 0
+          |    here.create_resource 1
+          |    here.create_resource 2
+          |    here.create_resource 3
+          |    here.create_resource 4
+          |""".stripMargin
+      eval(code)
+      var totalOut: List[String] = Nil
+
+      def forceGC(): Unit = {
+        var obj = new Object
+        val ref = new WeakReference[Object](obj)
+        obj = null
+        while (ref.get.isDefined) {
+          System.gc()
+        }
+      }
+
+      forceGC()
+
+      totalOut = consumeOut
+      while (totalOut.length < 10) {
+        Thread.sleep(100)
+        totalOut ++= consumeOut
+      }
+
+      def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
+      def mkFreeStr(i: Int): String = s"Freeing: (Mock_File $i)"
+      def all = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
+      totalOut should contain theSameElementsAs all
     }
   }
 }
