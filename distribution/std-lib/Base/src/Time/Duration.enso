@@ -81,43 +81,55 @@ Integer.millisecond = this.milli
 Integer.milliseconds : Duration
 Integer.milliseconds = thils.milli
 
+## Duration in seconds.
 Integer.second : Duration
 Integer.second = Duration (Java_Period.ofDays [0]) (Java_Duration.ofSeconds [this])
 
+## Duration in seconds.
 Integer.seconds : Duration
 Integer.seconds = this.second
 
+## Duration in minutes.
 Integer.minute : Duration
 Integer.minute = Duration (Java_Period.ofDays [0]) (Java_Duration.ofMinutes [this])
 
+## Duration in minutes.
 Integer.minutes : Duration
 Integer.minutes = this.minute
 
+## Duration in hours.
 Integer.hour : Duration
 Integer.hour = Duration (Java_Period.ofDays [0]) (Java_Duration.ofHours [this])
 
+## Duration in hours.
 Integer.hours : Duration
 Integer.hours = this.hour
 
+## Duration in days.
 Integer.day : Duration
 Integer.day = Duration (Java_Period.ofDays [this]) (Java_Duration.ofSeconds [0])
 
+## Duration in days.
 Integer.days : Duration
 Integer.days = this.day
 
+## Duration in months.
 Integer.month : Duration
 Integer.month = Duration (Java_Period.ofMonths [this]) (Java_Duration.ofSeconds [0])
 
+## Duration in months.
 Integer.months : Duration
 Integer.months = this.month
 
+## Duration in years.
 Integer.year : Duration
 Integer.year = Duration (Java_Period.ofYears [this]) (Java_Duration.ofSeconds [0])
 
+## Duration in years.
 Integer.years : Duration
 Integer.years = this.year
 
-## Obtain an interval representing the duration between two temporal objects.
+## Create an interval representing the duration between two points in time.
 
    > Example
      An hour interval between two points in time.

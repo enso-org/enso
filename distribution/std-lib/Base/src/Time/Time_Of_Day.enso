@@ -21,9 +21,17 @@ type Time_Of_Day
     get_minute : Integer
     get_minute = this . internal_local_time . getMinute []
 
-    ## Get the second of minute field
+    ## Get the second of minute field.
     get_second : Integer
     get_second = this . internal_local_time . getSecond []
+
+    ## Get the nanosecond of second field.
+    get_nano : Integer
+    get_nano = this . internal_local_time . getNano []
+
+    ## Get the nanosecond of second field.
+    get_nanosecond : Integer
+    get_nanosecond = this.get_nano
 
     ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
     to_seconds : Integer

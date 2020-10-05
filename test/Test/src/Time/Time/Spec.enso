@@ -7,7 +7,7 @@ import Base.Time.Zone
 
 spec =
     describe "Time" <|
-        it "should create instant" <|
+        it "should create time" <|
             time = Time.new 1970
             time . get_year . should_equal 1970
             time . get_month . should_equal 1
@@ -17,9 +17,14 @@ spec =
             time . get_second . should_equal 0
             time . get_nanosecond . should_equal 0
             time . get_zone . get_id . should_equal Zone.utc.get_id
-        it "should parse time UTC" <|
+        it "should parse time Z" <|
             time = Time.parse "1970-01-01T00:00:01Z"
             time . to_epoch_second . should_equal 1
+            time . get_zone . get_id . should_equal "Z"
+        it "should parse time UTC" <|
+            time = Time.parse "1970-01-01T00:00:01Z[UTC]"
+            time . to_epoch_second . should_equal 1
+            time . get_zone . get_id . should_equal "UTC"
         it "should parse time with nanoseconds" <|
             time = Time.parse "1970-01-01T00:00:01.123456789Z"
             time . get_year . should_equal 1970
@@ -78,6 +83,28 @@ spec =
             time . get_second . should_equal 0
             time . get_nanosecond . should_equal 0
             time . get_zone . get_id . should_equal zone.get_id
+        it "should get time of day from offsed-based time" <|
+            time = Time.parse "1970-01-01T00:00:01+01:00" . to_time_of_day
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 1
+            time . get_nanosecond . should_equal 0
+        it "should get time of day from id-based time" <|
+            time = Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]" . to_time_of_day
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 1
+            time . get_nanosecond . should_equal 0
+        it "should get date from offsed-based time" <|
+            time = Time.parse "1970-01-01T00:00:01+01:00" . to_date
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+        it "should get date from id-based time" <|
+            time = Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]" . to_date
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
         it "should add time interval" <|
             time = Time.new 1970 . plus 1.nanosecond
             time . get_year . should_equal 1970

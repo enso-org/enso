@@ -3,7 +3,7 @@ import Base.Time.Time
 
 polyglot java import java.lang.System
 
-from Base.Time.Time export all hiding Instant, ZonedDataTime
+from Base.Time.Time export all hiding ZonedDataTime
 
 ## Error while working with time
 type Error error_message

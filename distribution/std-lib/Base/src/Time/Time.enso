@@ -1,8 +1,9 @@
 from Base import all
+import Base.Time.Date
 import Base.Time.Duration
+import Base.Time.Time_Of_Day
 import Base.Time.Zone
 
-polyglot java import java.time.Instant
 polyglot java import java.time.ZonedDateTime
 
 type Time
@@ -52,6 +53,14 @@ type Time
     ## Return the number of milliseconds from the Unix epoch.
     to_epoch_milli : Integer
     to_epoch_milli = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
+
+    ## Convert this point in time to time of day.
+    to_time_of_day : Time_Of_Day
+    to_time_of_day = Time_Of_Day.time_of_day (this . internal_zoned_date_time . toLocalTime [])
+
+    ## Convert this point in time to date.
+    to_date : Date
+    to_date = Date.date (this . internal_zoned_date_time . toLocalDate [])
 
     ## Convert the time instant to a provided timezone.
     at_zone : Zone -> Time
@@ -116,7 +125,7 @@ parse text = Time (ZonedDateTime.parse [text])
 
 ## Obtains the current date-time from the system clock in the default time-zone.
 now : Time
-now = Time (Instant.now [] . atZone [Zone.utc . internal_zone_id])
+now = Time (ZonedDateTime.now [])
 
 ## Obtains an instance of `Time` from a year, month, day, hour, minute,
    second, nanosecond and time-zone.
