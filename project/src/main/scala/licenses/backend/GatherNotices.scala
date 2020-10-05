@@ -6,7 +6,6 @@ import src.main.scala.licenses.{Attachment, Notice}
 
 object GatherNotices extends AttachmentGatherer {
   def run(root: Path): Seq[Attachment] = {
-    println(s"Noti $root")
     AttachmentGatherer.walk(root) { path =>
       if (Files.isRegularFile(path) && mayBeNotice(path)) {
         Seq(Notice.read(path, Some(root)))

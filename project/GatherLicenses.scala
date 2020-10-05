@@ -1,10 +1,14 @@
-import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.updateLicenses
 import sbt.Keys._
 import sbt._
-import src.main.scala.licenses.DistributionDescription
-import src.main.scala.licenses.backend.{CombinedBackend, GatherNotices}
-import src.main.scala.licenses.frontend.{DependencyFilter, SbtLicenses}
-// import sbt.internal.util.ManagedLogger
+import src.main.scala.licenses.backend.{
+  CombinedBackend,
+  GatherCopyrights,
+  GatherNotices
+}
+import src.main.scala.licenses.frontend.SbtLicenses
+import src.main.scala.licenses.report.Report
+import src.main.scala.licenses.review.Review
+import src.main.scala.licenses.{DependencySummary, DistributionDescription}
 
 object GatherLicenses {
   val distributions = taskKey[Seq[DistributionDescription]](
@@ -12,7 +16,8 @@ object GatherLicenses {
   )
 
   lazy val run = Def.task {
-    val log = state.value.log
+    val log  = state.value.log
+    val root = target.value
     log.info(
       "Gathering license files and copyright notices. " +
       "This task may take a long time."
@@ -32,16 +37,33 @@ object GatherLicenses {
       val allInfo = sbtInfo // TODO [RW] add Rust frontend result here (#1187)
 
       log.info(s"${allInfo.size} unique dependencies discovered")
-      val backend = CombinedBackend(GatherNotices)
+      val backend = CombinedBackend(GatherNotices, GatherCopyrights)
 
-      allInfo.foreach { dependency =>
+      val processed = allInfo.map { dependency =>
         println(
           s"${dependency.moduleInfo} -> ${dependency.license} / ${dependency.url}"
         )
         val attachments = backend.run(dependency.sources)
-        println(s"Found: $attachments")
+        //println(s"Found: $attachments")
+        (dependency, attachments)
       }
 
+      val summary           = DependencySummary(processed)
+      val allWarnings       = sbtWarnings
+      val reportDestination = root / s"${distribution.artifactName}-report.html"
+
+      val processedSummary = Review(file("todo").toPath, summary).run()
+
+      Report.writeHTML(
+        distribution,
+        processedSummary,
+        allWarnings,
+        reportDestination
+      )
+      log.info(
+        s"Written the report for ${distribution.artifactName} to " +
+        s"`${reportDestination}`."
+      )
     }
 
     log.warn(

@@ -1148,22 +1148,22 @@ lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
 gatherLicenses := GatherLicenses.run.value
 GatherLicenses.distributions := Seq(
-//    Distribution(
-//      "launcher",
-//      Distribution.sbtProjects(launcher)
-//    ),
-//    Distribution(
-//      "engine",
-//      /*
-///build.sbt:1166: error: reference to runner is ambiguous;
-//it is imported twice in the same scope by
-//import _root_.sbt.Keys._
-//and import $bcfdaf578d3643e549ad._
-//      Distribution.sbtProjects(runtime, runner, `project-manager`)
-//
-//The runner had to be renamed due to this issue
-//       */
-//      Distribution.sbtProjects(runtime, `engine-runner`, `project-manager`)
-//    )
-    Distribution("test", Distribution.sbtProjects(cli))
+    Distribution(
+      "launcher",
+      Distribution.sbtProjects(launcher)
+    ),
+    Distribution(
+      "engine",
+      /*
+/build.sbt:1166: error: reference to runner is ambiguous;
+it is imported twice in the same scope by
+import _root_.sbt.Keys._
+and import $bcfdaf578d3643e549ad._
+      Distribution.sbtProjects(runtime, runner, `project-manager`)
+
+The runner had to be renamed due to this issue
+       */
+      Distribution.sbtProjects(runtime, `engine-runner`, `project-manager`)
+    )
+//    Distribution("test", Distribution.sbtProjects(cli))
   )

@@ -14,4 +14,6 @@ case class SBTDistributionComponent(
 case class DistributionDescription(
   artifactName: String,
   sbtComponents: Seq[SBTDistributionComponent]
-)
+) {
+  def componentsNames: Seq[String] = sbtComponents.map(_.name)
+}

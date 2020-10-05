@@ -103,7 +103,6 @@ object SbtLicenses {
       override def access[R](withSources: Path => R): R =
         IO.withTemporaryDirectory { root =>
           IO.unzip(jarPath.toFile, root)
-          println(root)
           withSources(root.toPath)
         }
     }
