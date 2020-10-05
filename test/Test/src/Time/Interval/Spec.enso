@@ -1,8 +1,8 @@
 from Base import all
 
 import Base.Test
+import Base.Time.Instant
 import Base.Time.Interval
-import Base.Time.Point
 
 spec =
     describe "Interval" <|
@@ -25,7 +25,22 @@ spec =
             interval = 2.hours . minus 11.years
             interval.to_vector . should_equal [-11, 0, 0, 2, 0, 0, 0]
         it "should create interval between two points in time" <|
-            time1 = Point.new 2001 1 2
-            time2 = Point.new 2001 2 1
+            time1 = Instant.new 2001 1 2
+            time2 = Instant.new 2001 2 1
             interval = Interval.between time1 time2
             interval.to_vector . should_equal [0, 0, 0, 720, 0, 0, 0]
+        it "should check if time based" <|
+            interval = 10.hours
+            interval.is_date . should_be_false
+            interval.is_time . should_be_true
+        it "should check if date based" <|
+            interval = 10.years
+            interval.is_date . should_be_true
+            interval.is_time . should_be_false
+        it "should check if mixed based" <|
+            interval = 10.years . plus 3.hours
+            interval.is_date . should_be_true
+            interval.is_time . should_be_true
+        it "should check if empty" <|
+            interval = 0.seconds
+            interval.is_empty . should_be_true

@@ -1,5 +1,0 @@
-from Base import all
-
-## An interface defining access to a temporal object, such as
-   `Local_Date`, `Local_Time`, `Offset_Date_Time`, `Zoned_Date_Time`
-type Temporal internal_temporal

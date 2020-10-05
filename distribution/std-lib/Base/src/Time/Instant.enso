@@ -1,92 +1,138 @@
 from Base import all
-import Base.Time.Offset_Date_Time
-import Base.Time.Duration
-import Base.Time.Zoned_Date_Time
-import Base.Time.Zone_Offset
+import Base.Time.Interval
 import Base.Time.Zone_Id
 
-polyglot java import java.time.temporal.Temporal
 polyglot java import java.time.Instant as Java_Instant
-polyglot java import java.time.OffsetDateTime
-polyglot java import java.time.ZoneOffset
+polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.ZoneId
+polyglot java import java.time.temporal.Temporal
 
-## An instantaneous point on the time-line. This class models a single
-   instantaneous point on the time-line. This might be used to record event
-   time-stamps in the application.
-type Instant internal_instant
+type Instant
 
-## Return the internal temporal object.
-Instant.internal_temporal : Temporal
-Instant.internal_temporal = this.internal_instant
+    type Instant internal_instant
 
-## Return the number of seconds from the Unix epoch.
-Instant.to_epoch_second : Integer
-Instant.to_epoch_second = this . internal_instant . getEpochSecond []
+    ## Get the year field.
+    get_year : Integer
+    get_year = this . internal_instant . getYear []
 
-## Return the number of milliseconds from the Unix epoch.
-Instant.to_epoch_milli : Integer
-Instant.to_epoch_milli = this . internal_instant . toEpochMilli []
+    ## Get the month of year field from 1 to 12.
+    get_month : Integer
+    get_month = this . internal_instant . getMonthValue []
 
-## Add specified amount of time to this instant.
+    ## Get the day of month field.
+    get_day : Integer
+    get_day = this . internal_instant . getDayOfMonth []
+
+    ## Get the hour of day field.
+    get_hour : Integer
+    get_hour = this . internal_instant . getHour []
+
+    ## Get the minute of hour field.
+    get_minute : Integer
+    get_minute = this . internal_instant . getMinute []
+
+    ## Get the second of minute field
+    get_second : Integer
+    get_second = this . internal_instant . getSecond []
+
+    ## Gets the nano-of-second field.
+    get_nano : Integer
+    get_nano = this . internal_instant . getNano []
+
+    ## Gets the nano-of-second field.
+    get_nanosecond : Integer
+    get_nanosecond = this . get_nano
+
+    ## Return the number of seconds from the Unix epoch.
+    to_epoch_second : Integer
+    to_epoch_second = this . internal_instant . toEpochSecond []
+
+    ## Return the number of milliseconds from the Unix epoch.
+    to_epoch_milli : Integer
+    to_epoch_milli = this . internal_instant . toInstant [] . toEpochMilli []
+
+    ## Add specified amount of time to this instant.
+
+       > Example
+         Add 1 hour to a zoned date time.
+             Instant.new.plus 1.hour
+
+       > Example
+         Add 15 years and 3 hours to a zoned date time.
+             Instant.new . plus 15.years . plus 3.hours
+    plus : Interval -> Instant
+    plus amount = Instant (this . internal_instant . plus [amount.interval_period] . plus [amount.interval_duration])
+
+    ## Subtract specified amount of time to this instant.
+
+       > Example
+         Subtract 10 days from a zoned date time.
+             Instant.new.minus 10.days
+
+       > Example
+         Subtract 1 year and 9 months from a zoned date time.
+             Instant.new.minus 1.year . minus 9.months
+    minus : Temporal_Amount -> Instant
+    minus amount = Instant (this . internal_instant . minus [amount.interval_period] . minus [amount.interval_duration])
+
+## Obtains an instance of `Instant` from a text string such as
+   2007-12-03T10:15:30Z.
+
+   The string must represent a valid date-time and is parsed using the ISO-8601
+   extended offset date-time format to add the time-zone. The section in square
+   brackets is not part of the ISO-8601 standard. The format consists of:
+
+   - The ISO offset date time.
+   - If the zone ID is not available or is a `Zone_Offset` then the format is
+     complete.
+   - An open square bracket '['.
+   - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+     sensitive.
+   - A close square bracket ']'.
 
    > Example
-     Add 1 hour to an instant.
-         Instant.new.plus 1.hour
-Instant.plus : Duration -> Instant
-Instant.plus amount = Instant (this . internal_instant . plus [amount.internal_duration])
-
-## Subtract specified amount of time to this instant.
+     Parse UTC time.
+         Instant.parse "2020-10-01T04:11:12Z"
 
    > Example
-     Subtract 1 second from an instant.
-         Instant.new.minus 1.second
-Instant.minus : Duration -> Instant
-Instant.minus amount = Instant (this . internal_instant . minus [amount.internal_duration])
-
-## Combines this instant with an offset to create an `Offset_Date_Time`.
+     Parse New York time.
+         Instant.parse "2020-10-01T04:11:12-04:00"
 
    > Example
-     Convert the instant to UTC+3 `Offset_Date_Time`
-         Instant.at_offset (Zone_Offset.new 3)
-Instant.at_offset : Zone_Offset -> Offset_Date_Time
-Instant.at_offset offset = Offset_Date_Time.offset_date_time (this . internal_instant . atOffset [offset.internal_zone_offset])
-
-## Combines this instant with a time-zone to create a `Zoned_Date_Time`.
-Instant.at_zone : Zone_Id -> Zoned_Date_Time
-Instant.at_zone zone = Zoned_Date_Time.zoned_date_time (this . internal_instant . atZone [zone.internal_zone_id])
-
-## Obtains an instance of `Instant` from a text string in ISO-8601 format.
+     Parse New York time with optional time zone in square brackets.
+         Instant.parse "2020-10-01T04:11:12-04:00[America/New_York]"
 
    > Example
-     Create an Instant from an ISO formatted string.
-         parse "2011-12-03T10:15:30Z"
+     Parse New York time with nanoseconds.
+         Instant.parse "2020-10-01T04:11:12.177528-04:00"
 parse : Text -> Instant
-parse text = Instant (Java_Instant.parse [text])
+parse text = Instant (ZonedDateTime.parse [text])
 
-## Obtains the current instant from the system clock.
+## Obtains the current date-time from the system clock in the default time-zone.
 now : Instant
-now = Instant (Java_Instant.now [])
-
-## Obtains an instance of `Instant` using milliseconds from the Unix epoch.
-of_epoch_milli : Integer -> Instant
-of_epoch_milli epoch_millis = Instant (Java_Instant.ofEpochMilli [epoch_millis])
-
-## Obtains an instance of `Instant` using seconds from the Unix epoch.
-of_epoch_second : Integer -> Instant
-of_epoch_second epoch_seconds = Instant (Java_Instant.ofEpochSecond [epoch_seconds])
+now = Instant (Java_Instant.now [] . atZone [Zone_Id.utc . internal_zone_id])
 
 ## Obtains an instance of `Instant` from a year, month, day, hour, minute,
-   second, nanosecond and offset.
+   second, nanosecond and time-zone.
+
+   The day must be valid for the year and month, otherwise an exception will be
+   thrown.
+
+   - month - the month-of-year to represent, from 1 (January) to 12 (December)
+   - day - the day-of-month to represent, from 1 to 31
+   - hour - the hour-of-day to represent, from 0 to 23
+   - minute - the minute-of-hour to represent, from 0 to 59
+   - second - the second-of-minute to represent, from 0 to 59
+   - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
+   - zone - the time-zone
 
    > Example
-     Create a new instant at Unix epoch.
+     Create a new zoned date time at Unix epoch.
          Instant.new
 
    > Example
-     Create a new instant of 3rd December 2011 at midnight UTC.
-         Instant.new 2011 12 03
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone_Offset -> Instant
-new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Offset.utc) =
-    offset_time = OffsetDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_offset]
-    instant = Instant (offset_time.toInstant [])
-    instant
+     Get the 5 August 1986 at midnight UTC.
+         Instant.new 1986 8 5
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone_Id -> Instant
+new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Id.utc) =
+    Instant (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_id])

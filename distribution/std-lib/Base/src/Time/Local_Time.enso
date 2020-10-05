@@ -1,58 +1,57 @@
 from Base import all
+import Base.Time
+import Base.Time.Interval
 import Base.Time.Zone_Offset
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import java.time.ZoneOffset
-polyglot java import java.time.temporal.Temporal
 
-## `Local_Time` is an immutable date-time object that represents a time, often
-   viewed as hour-minute-second. Time is represented to nanosecond
-   precision. For example, the value "13:45.30.123456789" can be stored in a
-   `LocalTime`.
+type Local_Time
 
-   This class does not store or represent a date or time-zone. Instead, it is a
-   description of the local time as seen on a wall clock. It cannot represent an
-   instant on the time-line without additional information such as an offset or
-   time-zone
+    ## `Local_Time` is an immutable date-time object that represents a time, often
+       viewed as hour-minute-second. Time is represented to nanosecond
+       precision. For example, the value "13:45.30.123456789" can be stored in a
+       `LocalTime`.
 
-type Local_Time internal_local_time
+       This class does not store or represent a date or time-zone. Instead, it is a
+       description of the local time as seen on a wall clock. It cannot represent an
+       instant on the time-line without additional information such as an offset or
+       time-zone
 
-## Return the internal temporal object.
-Local_Time.internal_temporal : Temporal
-Local_Time.internal_temporal = this.internal_local_time
+    type Local_Time internal_local_time
 
-## Get the hour of day field.
-Local_Time.get_hour : Integer
-Local_Time.get_hour = this . internal_local_time . getHour []
+    ## Get the hour of day field.
+    get_hour : Integer
+    get_hour = this . internal_local_time . getHour []
 
-## Get the minute of hour field.
-Local_Time.get_minute : Integer
-Local_Time.get_minute = this . internal_local_time . getMinute []
+    ## Get the minute of hour field.
+    get_minute : Integer
+    get_minute = this . internal_local_time . getMinute []
 
-## Get the second of minute field
-Local_Time.get_second : Integer
-Local_Time.get_second = this . internal_local_time . getSecond []
+    ## Get the second of minute field
+    get_second : Integer
+    get_second = this . internal_local_time . getSecond []
 
-## Extracts the time as seconds of day, from 0 to 24 * 60 * 60 - 1.
-Local_Time.to_second_of_day : Integer
-Local_Time.to_second_of_day = this . internal_local_time . toSecondOfDay []
+    ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
+    to_seconds : Integer
+    to_seconds = this . internal_local_time . toSecondOfDay []
 
-## Add specified amount of time to this instant.
+    ## Add specified amount of time to this instant.
 
-   > Example
-     Add 15 minutes to a local time.
-         Local_Time.new.plus 15.minutes
-Local_Time.plus : Duration -> Local_Time
-Local_Time.plus amount = Local_Time (this . internal_local_time . plus [amount.internal_duration])
+       > Example
+         Add 15 minutes to a local time.
+             Local_Time.new.plus 15.minutes
+    plus : Interval -> Local_Time
+    plus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Local_Time (this . internal_local_time . plus [amount.interval_duration])
 
-## Subtract specified amount of time to this instant.
+    ## Subtract specified amount of time to this instant.
 
-   > Example
-     Subtract 3 hours from a local time.
-         Local_Time.new.minus 3.hours
-Local_Time.minus : Duration -> Local_Time
-Local_Time.minus amount = Local_Time (this . internal_local_time . minus [amount.internal_duration])
+       > Example
+         Subtract 3 hours from a local time.
+             Local_Time.new.minus 3.hours
+    minus : Interval -> Local_Time
+    minus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Local_Time (this . internal_local_time . minus [amount.interval_duration])
 
 ## Obtains an instance of `LocalTime` from a text string such as 10:15.
 
@@ -87,12 +86,9 @@ now = Local_Time (LocalTime.now [])
 
   > Example
     Get local time now in the UTC time zone.
-       Local_Time.of_instant Instant.now Zone_Offset.utc
-of_instant : Instant -> Zone_Offset -> Local_Time
-of_instant instant offset =
-    offset_time = instant.at_offset offset
-    local_time = offset_time.to_local_time
-    local_time
+       Local_Time.of_instant Instant.now
+of_instant : Instant -> Local_Time
+of_instant instant = Local_Time (instant.internal_instant . toLocalTime [])
 
 ## Obtains an instance of `Local_Time` from an hour, minute, second and nanosecond.
 

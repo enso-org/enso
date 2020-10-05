@@ -1,5 +1,5 @@
 from Base import all
-import Base.Time.Point
+import Base.Time.Instant
 
 polyglot java import java.time.Duration
 polyglot java import java.time.Period
@@ -39,6 +39,15 @@ type Interval
     get_years = this.interval_period . getYears []
 
     to_vector = [this.get_years, this.get_months, this.get_days, this.get_hours, this.get_minutes, this.get_seconds, this.get_nanos]
+
+    is_date : Boolean
+    is_date = (not this.get_years==0) || (not this.get_months==0) || (not this.get_days==0)
+
+    is_time : Boolean
+    is_time = (not this.get_hours==0) || (not this.get_minutes==0) || (not this.get_seconds==0) || (not this.get_nanos==0)
+
+    is_empty : Boolean
+    is_empty = (not this.is_date) && (not this.is_time)
 
 ## Interval in nanoseconds.
 Integer.nano : Interval
@@ -112,7 +121,7 @@ Integer.years = this.year
 
    > Example
      An hour interval between two points in time.
-         Interval.between Point.now Point.now
-between : Point -> Point -> Interval
+         Interval.between Instant.now Instant.now
+between : Instant -> Instant -> Interval
 between start_inclusive end_exclusive =
-   Interval (Period.ofDays [0]) (Duration.between [start_inclusive.internal_point, end_exclusive.internal_point])
+   Interval (Period.ofDays [0]) (Duration.between [start_inclusive.internal_instant, end_exclusive.internal_instant])

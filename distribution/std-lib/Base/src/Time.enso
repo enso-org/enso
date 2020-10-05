@@ -3,8 +3,11 @@ import Base.Time.Instant
 
 polyglot java import java.lang.System
 
-from Base.Time.Point export all hiding Instant, Temporal, ZonedDataTime, ZoneId
+from Base.Time.Instant export all hiding Java_Instant, ZonedDataTime, ZoneId
 from Base.Time.Interval export all hiding Duration, Period
+
+## Error while working with time
+type Error error_message
 
 ## The number of seconds that have elapsed since the Unix epoch.
 epoch_time : Integer
@@ -12,7 +15,7 @@ epoch_time = Instant.now . to_epoch_second
 
 ## The number of milliseconds that have elapsed since the Unix epoch.
 epoch_time_millis : Integer
-epoch_time_millis = Instant.now . to_epoch_milli
+epoch_time_millis = System.currentTimeMillis []
 
 ## The current value of the running program's high-resolution time source, in
    nanoseconds. This method can only be used to measure elapsed time and is not

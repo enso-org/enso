@@ -2,17 +2,10 @@ from Base import all
 import Base.Test
 import Base.Time
 
-import Test.Time.Duration.Spec as Duration_Spec
 import Test.Time.Instant.Spec as Instant_Spec
 import Test.Time.Interval.Spec as Interval_Spec
 import Test.Time.Local_Time.Spec as Local_Time_Spec
 import Test.Time.Local_Date.Spec as Local_Date_Spec
-import Test.Time.Local_Date_Time.Spec as Local_Date_Time_Spec
-import Test.Time.Offset_Date_Time.Spec as Offset_Date_Time_Spec
-import Test.Time.Zoned_Date_Time.Spec as Zoned_Date_Time_Spec
-import Test.Time.Period.Spec as Period_Spec
-import Test.Time.Point.Spec as Point_Spec
-import Test.Time.Temporal.Spec as Temporal_Spec
 import Test.Time.Zone_Id.Spec as Zone_Id_Spec
 import Test.Time.Zone_Offset.Spec as Zone_Offset_Spec
 
@@ -33,11 +26,4 @@ spec =
     Instant_Spec.spec
     Local_Time_Spec.spec
     Local_Date_Spec.spec
-    Local_Date_Time_Spec.spec
-    Offset_Date_Time_Spec.spec
-    Zoned_Date_Time_Spec.spec
-    Point_Spec.spec
-    Duration_Spec.spec
-    Period_Spec.spec
-    Temporal_Spec.spec
     Interval_Spec.spec

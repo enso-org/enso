@@ -1,57 +1,58 @@
 from Base import all
+import Base.Time
 import Base.Time.Zone_Offset
+import Base.Time.Interval
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
-polyglot java import java.time.temporal.Temporal
 
-## `Local_Date` is an immutable date-time object that represents a date, often
-   viewed as year-month-day. Other date fields, such as day-of-year, day-of-week
-   and week-of-year, can also be accessed. For example, the value
-   "2nd October 2007" can be stored in a `Local_Date`.
+type Local_Date
 
-   This class does not store or represent a time or time-zone. Instead, it is a
-   description of the date, as used for birthdays. It cannot represent an
-   instant on the time-line without additional information such as an offset or
-   time-zone.
-type Local_Date internal_local_date
+    ## `Local_Date` is an immutable date-time object that represents a date, often
+       viewed as year-month-day. Other date fields, such as day-of-year, day-of-week
+       and week-of-year, can also be accessed. For example, the value
+       "2nd October 2007" can be stored in a `Local_Date`.
 
-## Return the internal temporal object.
-Local_Date.internal_temporal : Temporal
-Local_Date.internal_temporal = this.internal_local_date
+       This class does not store or represent a time or time-zone. Instead, it is a
+       description of the date, as used for birthdays. It cannot represent an
+       instant on the time-line without additional information such as an offset or
+       time-zone.
+    type Local_Date internal_local_date
 
-## Get the year field.
-Local_Date.get_year : Integer
-Local_Date.get_year = this . internal_local_date . getYear []
+    ## Get the year field.
+    get_year : Integer
+    get_year = this . internal_local_date . getYear []
 
-## Get the month of year field from 1 to 12.
-Local_Date.get_month : Integer
-Local_Date.get_month = this . internal_local_date . getMonthValue []
+    ## Get the month of year field from 1 to 12.
+    get_month : Integer
+    get_month = this . internal_local_date . getMonthValue []
 
-## Get the day of month field.
-Local_Date.get_day : Integer
-Local_Date.get_day = this . internal_local_date . getDayOfMonth []
+    ## Get the day of month field.
+    get_day : Integer
+    get_day = this . internal_local_date . getDayOfMonth []
 
-## Return the number of seconds since Unix epoch.
-Local_Date.to_epoch_second : Local_Time -> Zone_Offset -> Integer
-Local_Date.to_epoch_second local_time zone_offset =
-    this . internal_local_date . toEpochSecond [local_time.internal_local_time, zone_offset.internal_zone_offset]
+    ## Return the number of seconds since Unix epoch.
+    to_epoch_second : Local_Time -> Zone_Offset -> Integer
+    to_epoch_second local_time zone_offset =
+        this . internal_local_date . toEpochSecond [local_time.internal_local_time, zone_offset.internal_zone_offset]
 
-## Add specified amount of time to this instant.
+    ## Add specified amount of time to this instant.
 
-   > Example
-     Add 100 years to a local date.
-         Local_Date.new.plus 100.years
-Local_Date.plus : Period -> Local_Date
-Local_Date.plus amount = Local_Date (this . internal_local_date . plus [amount.internal_period])
+       > Example
+         Add 100 years to a local date.
+             Local_Date.new.plus 100.years
+    plus : Interval -> Local_Date
+    plus amount =
+        if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Local_Date (this . internal_local_date . plus [amount.interval_period])
 
-## Subtract specified amount of time to this instant.
+    ## Subtract specified amount of time to this instant.
 
-   > Example
-     Subtract 1 month from a local date.
-         Local_Date.new.minus 1.month
-Local_Date.minus : Period -> Local_Date
-Local_Date.minus amount = Local_Date (this . internal_local_date . minus [amount.internal_period])
+       > Example
+         Subtract 1 month from a local date.
+             Local_Date.new.minus 1.month
+    minus : Period -> Local_Date
+    minus amount =
+        if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Local_Date (this . internal_local_date . minus [amount.interval_period])
 
 ## Obtains an instance of `Local_Date` from a text string such as 2007-12-03.
 
@@ -84,11 +85,8 @@ now = Local_Date (LocalDate.now [])
    > Example
      Get local date now in the UTC time zone.
          Local_Date.of_instant Instant.now Zone_Offset.utc
-of_instant : Instant -> Zone_Offset -> Local_Date
-of_instant instant offset =
-    offset_time = instant.at_offset offset
-    date = offset_time.to_local_date
-    date
+of_instant : Instant -> Local_Date
+of_instant instant = Local_Date (instant.internal_instant . toLocalDate [])
 
 ## Obtains an instance of `Local_Date` from a year, month and day.
 
