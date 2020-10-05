@@ -92,33 +92,40 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.executionService.getContext.getTopScope.getModules.asScala
     ctx.executionService.getLogger
       .finest(s"Modules in scope: ${modulesInScope.map(_.getName)}")
-    val updates = modulesInScope.flatMap { module =>
+    modulesInScope.foreach { module =>
       compile(module)
       analyzeModuleInScope(module)
     }
-    sendIndexUpdateNotification(
-      Api.SuggestionsDatabaseIndexUpdateNotification(updates)
-    )
   }
 
   private def analyzeImport(
     module: Module
   )(implicit ctx: RuntimeContext): Unit = {
-    if (!module.isIndexed && module.getLiteralSource != null) {
+    if (
+      !module.isIndexed &&
+      module.getLiteralSource != null &&
+      module.getPath != null
+    ) {
       ctx.executionService.getLogger
         .finest(s"Analyzing imported ${module.getName}")
       val moduleName = module.getName.toString
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(module.getName.toString, module.getIr)
         .filter(isSuggestionGlobal)
-      sendReIndexNotification(moduleName, addedSuggestions)
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
+        new File(module.getPath),
+        module.getLiteralSource.toString,
+        Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
+        addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
+      )
+      sendModuleUpdate(update)
       module.setIndexed(true)
     }
   }
 
   private def analyzeModuleInScope(module: Module)(implicit
     ctx: RuntimeContext
-  ): Option[Api.IndexedModule] = {
+  ): Unit = {
     try module.getSource
     catch {
       case e: IOException =>
@@ -139,16 +146,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
-      module.setIndexed(true)
-      Some(
-        Api.IndexedModule(
-          new File(module.getPath),
-          module.getSource.getCharacters.toString,
-          addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
-        )
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
+        new File(module.getPath),
+        module.getLiteralSource.toString,
+        Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
+        addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
       )
-    } else {
-      None
+      sendModuleUpdate(update)
+      module.setIndexed(true)
     }
   }
 
@@ -165,17 +170,30 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions =
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
-      sendSuggestionsUpdateNotification(
-        removedSuggestions diff addedSuggestions,
-        addedSuggestions diff removedSuggestions
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
+        new File(module.getPath),
+        module.getLiteralSource.toString,
+        removedSuggestions
+          .diff(addedSuggestions)
+          .map(Api.SuggestionsDatabaseUpdate.Remove) :++
+        addedSuggestions
+          .diff(removedSuggestions)
+          .map(Api.SuggestionsDatabaseUpdate.Add)
       )
+      sendModuleUpdate(update)
     } else {
       ctx.executionService.getLogger
         .finest(s"Analyzing not-indexed module ${module.getName}")
       val addedSuggestions =
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
-      sendReIndexNotification(moduleName, addedSuggestions)
+      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
+        new File(module.getPath),
+        module.getLiteralSource.toString,
+        Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
+        addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
+      )
+      sendModuleUpdate(update)
       module.setIndexed(true)
     }
   }
@@ -209,7 +227,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     val prevStage = module.getCompilationStage
     module.compileScope(ctx.executionService.getContext).getModule
     if (prevStage != module.getCompilationStage) {
-      ctx.executionService.getLogger.finer(
+      ctx.executionService.getLogger.finest(
         s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
       )
     }
@@ -289,57 +307,17 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   }
 
   /**
-    * Send notification about the suggestions database updates.
+    * Send notification about module updates.
     *
-    * @param removed the list of suggestions to remove
-    * @param added the list of suggestions to add
+    * @param payload the module update
     * @param ctx the runtime context
     */
-  private def sendSuggestionsUpdateNotification(
-    removed: Seq[Suggestion],
-    added: Seq[Suggestion]
+  private def sendModuleUpdate(
+    payload: Api.SuggestionsDatabaseModuleUpdateNotification
   )(implicit ctx: RuntimeContext): Unit =
-    if (added.nonEmpty || removed.nonEmpty) {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.SuggestionsDatabaseUpdateNotification(
-            removed.map(Api.SuggestionsDatabaseUpdate.Remove) :++
-            added.map(Api.SuggestionsDatabaseUpdate.Add)
-          )
-        )
-      )
+    if (payload.updates.nonEmpty) {
+      ctx.endpoint.sendToClient(Api.Response(payload))
     }
-
-  /**
-    * Send notification about the re-indexed module updates.
-    *
-    * @param moduleName the name of re-indexed module
-    * @param added the list of suggestions to add
-    * @param ctx the runtime context
-    */
-  private def sendReIndexNotification(
-    moduleName: String,
-    added: Seq[Suggestion]
-  )(implicit ctx: RuntimeContext): Unit = {
-    ctx.endpoint.sendToClient(
-      Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
-          added.map(Api.SuggestionsDatabaseUpdate.Add)
-        )
-      )
-    )
-  }
-
-  private def sendIndexUpdateNotification(
-    msg: Api.SuggestionsDatabaseIndexUpdateNotification
-  )(implicit
-    ctx: RuntimeContext
-  ): Unit = {
-    if (msg.updates.nonEmpty) {
-      ctx.endpoint.sendToClient(Api.Response(msg))
-    }
-  }
 
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
     suggestion match {

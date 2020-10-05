@@ -454,9 +454,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
@@ -557,9 +559,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
@@ -660,9 +664,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
@@ -761,9 +767,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
@@ -862,9 +870,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
@@ -946,9 +956,11 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       idMainUpdate,
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
@@ -1136,9 +1148,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
@@ -1270,9 +1284,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
@@ -1621,9 +1637,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
@@ -1877,6 +1895,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    val moduleName = "Test.Main"
     val code =
       """from Builtins import all
         |
@@ -1899,7 +1918,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer("Test.Main", "Main", "main"),
+              Api.MethodPointer(moduleName, "Main", "main"),
               None,
               Vector()
             )
@@ -1909,9 +1928,11 @@ class RuntimeServerTest
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          "Test.Main",
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          code,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
@@ -1953,11 +1974,12 @@ class RuntimeServerTest
   }
 
   it should "support file modification operations with attached ids" in {
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
-    val metadata  = new Metadata
-    val idMain    = metadata.addItem(7, 2)
-    val code      = metadata.appendToCode("main = 84")
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val idMain     = metadata.addItem(7, 2)
+    val code       = metadata.appendToCode("main = 84")
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -1987,7 +2009,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer("Test.Main", "Main", "main"),
+              Api.MethodPointer(moduleName, "Main", "main"),
               None,
               Vector()
             )
@@ -2005,9 +2027,11 @@ class RuntimeServerTest
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          "Test.Main",
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          code,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
@@ -2043,9 +2067,10 @@ class RuntimeServerTest
   }
 
   it should "send suggestion notifications when file is executed" in {
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
-    val idMain    = context.Main.metadata.addItem(33, 47)
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val idMain     = context.Main.metadata.addItem(33, 47)
     val idMainUpdate =
       Api.Response(
         Api.ExpressionValuesComputed(
@@ -2076,7 +2101,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer(moduleName, "Main", "main"),
       None,
       Vector()
     )
@@ -2090,13 +2115,15 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       idMainUpdate,
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          "Test.Main",
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          context.Main.code,
           List(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 Some(idMain),
-                "Test.Main",
+                moduleName,
                 "main",
                 List(Suggestion.Argument("this", "Any", false, false, None)),
                 "Main",
@@ -2107,7 +2134,7 @@ class RuntimeServerTest
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
-                "Test.Main",
+                moduleName,
                 "foo",
                 List(
                   Suggestion.Argument("this", "Any", false, false, None),
@@ -2121,7 +2148,7 @@ class RuntimeServerTest
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Local(
                 Some(context.Main.idMainX),
-                "Test.Main",
+                moduleName,
                 "x",
                 "Any",
                 Suggestion
@@ -2131,7 +2158,7 @@ class RuntimeServerTest
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Local(
                 Some(context.Main.idMainY),
-                "Test.Main",
+                moduleName,
                 "y",
                 "Any",
                 Suggestion
@@ -2141,7 +2168,7 @@ class RuntimeServerTest
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Local(
                 Some(context.Main.idMainZ),
-                "Test.Main",
+                moduleName,
                 "z",
                 "Any",
                 Suggestion
@@ -2151,7 +2178,7 @@ class RuntimeServerTest
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Local(
                 Some(context.Main.idFooY),
-                "Test.Main",
+                moduleName,
                 "y",
                 "Any",
                 Suggestion
@@ -2161,7 +2188,7 @@ class RuntimeServerTest
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Local(
                 Some(context.Main.idFooZ),
-                "Test.Main",
+                moduleName,
                 "z",
                 "Any",
                 Suggestion
@@ -2219,8 +2246,10 @@ class RuntimeServerTest
   }
 
   it should "send suggestion notifications when file is modified" in {
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val newline    = System.lineSeparator()
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -2237,15 +2266,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Open the new file
-    context.send(
-      Api.Request(
-        Api.OpenFileNotification(
-          mainFile,
-          code,
-          false
-        )
-      )
-    )
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, false)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2257,7 +2278,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer("Test.Main", "Main", "main"),
+              Api.MethodPointer(moduleName, "Main", "main"),
               None,
               Vector()
             )
@@ -2267,13 +2288,15 @@ class RuntimeServerTest
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          "Test.Main",
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          code,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
-                "Test.Main",
+                moduleName,
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
                 "Main",
@@ -2300,20 +2323,29 @@ class RuntimeServerTest
             ),
             TextEdit(
               model.Range(model.Position(2, 0), model.Position(2, 0)),
-              "Number.lucky = 42\n\n"
+              s"Number.lucky = 42$newline$newline"
             )
           )
         )
       )
     )
+    val codeModified =
+      """from Builtins import all
+        |
+        |Number.lucky = 42
+        |
+        |main = IO.println "I'm a modified!"
+        |""".stripMargin
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
-        Api.SuggestionsDatabaseUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          codeModified,
           Seq(
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,
-                "Test.Main",
+                moduleName,
                 "lucky",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
                 "Number",
@@ -2335,10 +2367,11 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions without invalidation" in {
-    val contents  = context.Main.code
-    val mainFile  = context.writeMain(contents)
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2354,7 +2387,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer(moduleName, "Main", "main"),
       None,
       Vector()
     )
@@ -2380,10 +2413,11 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions invalidating all" in {
-    val contents  = context.Main.code
-    val mainFile  = context.writeMain(contents)
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2399,7 +2433,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer(moduleName, "Main", "main"),
       None,
       Vector()
     )
@@ -2431,10 +2465,11 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions invalidating some" in {
-    val contents  = context.Main.code
-    val mainFile  = context.writeMain(contents)
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(contents)
+    val moduleName = "Test.Main"
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2450,7 +2485,7 @@ class RuntimeServerTest
     context.receiveNone shouldEqual None
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer(moduleName, "Main", "main"),
       None,
       Vector()
     )
@@ -2849,8 +2884,9 @@ class RuntimeServerTest
   }
 
   it should "emit visualisation update when expression is evaluated" in {
-    val contents = context.Main.code
-    val mainFile = context.writeMain(context.Main.code)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Test.Main"
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
@@ -2882,7 +2918,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer(moduleName, "Main", "main"),
       None,
       Vector()
     )
@@ -2895,40 +2931,37 @@ class RuntimeServerTest
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       Api.Response(
-        Api.SuggestionsDatabaseIndexUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          visualisationFile,
+          context.Visualisation.code,
           Seq(
-            Api.IndexedModule(
-              visualisationFile,
-              context.Visualisation.code,
-              Seq(
-                Api.SuggestionsDatabaseUpdate.Add(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "encode",
-                    List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
-                    ),
-                    "Visualisation",
-                    "Any",
-                    None
-                  )
+            Api.SuggestionsDatabaseUpdate.Clean("Test.Visualisation"),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                "Test.Visualisation",
+                "encode",
+                List(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("x", "Any", false, false, None)
                 ),
-                Api.SuggestionsDatabaseUpdate.Add(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "incAndEncode",
-                    List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
-                    ),
-                    "Visualisation",
-                    "Any",
-                    None
-                  )
-                )
+                "Visualisation",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                "Test.Visualisation",
+                "incAndEncode",
+                List(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("x", "Any", false, false, None)
+                ),
+                "Visualisation",
+                "Any",
+                None
               )
             )
           )
@@ -3066,49 +3099,48 @@ class RuntimeServerTest
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       Api.Response(
-        Api.SuggestionsDatabaseIndexUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          visualisationFile,
+          context.Visualisation.code,
           Seq(
-            Api.IndexedModule(
-              visualisationFile,
-              context.Visualisation.code,
-              Seq(
-                Api.SuggestionsDatabaseUpdate.Add(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "encode",
-                    List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
-                    ),
-                    "Visualisation",
-                    "Any",
-                    None
-                  )
+            Api.SuggestionsDatabaseUpdate.Clean("Test.Visualisation"),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                "Test.Visualisation",
+                "encode",
+                List(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("x", "Any", false, false, None)
                 ),
-                Api.SuggestionsDatabaseUpdate.Add(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "incAndEncode",
-                    List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
-                    ),
-                    "Visualisation",
-                    "Any",
-                    None
-                  )
-                )
+                "Visualisation",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                "Test.Visualisation",
+                "incAndEncode",
+                List(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("x", "Any", false, false, None)
+                ),
+                "Visualisation",
+                "Any",
+                None
               )
             )
           )
         )
       ),
       Api.Response(
-        Api.SuggestionsDatabaseReIndexNotification(
-          moduleName,
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          mainFile,
+          contents,
           Seq(
+            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
                 None,

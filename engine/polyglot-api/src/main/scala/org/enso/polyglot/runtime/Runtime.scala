@@ -165,12 +165,8 @@ object Runtime {
         name  = "runtimeServerShutDown"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseUpdateNotification],
-        name  = "suggestionsDatabaseUpdateNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseReIndexNotification],
-        name  = "suggestionsDatabaseReindexNotification"
+        value = classOf[Api.SuggestionsDatabaseModuleUpdateNotification],
+        name  = "suggestionsDatabaseModuleUpdateNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexRequest],
@@ -179,10 +175,6 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexResponse],
         name  = "invalidateModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseIndexUpdateNotification],
-        name  = "suggestionsDatabaseIndexUpdateNotification"
       )
     )
   )
@@ -343,24 +335,37 @@ object Runtime {
         new JsonSubTypes.Type(
           value = classOf[SuggestionsDatabaseUpdate.Remove],
           name  = "suggestionsDatabaseUpdateRemove"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Clean],
+          name  = "suggestionsDatabaseUpdateClean"
         )
       )
     )
     sealed trait SuggestionsDatabaseUpdate
     object SuggestionsDatabaseUpdate {
 
-      /** Create or replace the database entry.
+      /**
+        * Create or replace the database entry.
         *
         * @param suggestion the new suggestion
         */
       case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
 
-      /** Remove the database entry.
+      /**
+        * Remove the database entry.
         *
         * @param suggestion the suggestion to remove
         */
       case class Remove(suggestion: Suggestion)
           extends SuggestionsDatabaseUpdate
+
+      /**
+        * Remove all module entries from the database.
+        *
+        * @param module the module name
+        */
+      case class Clean(module: String) extends SuggestionsDatabaseUpdate
     }
 
     /**
@@ -711,23 +716,16 @@ object Runtime {
     case class ProjectRenamed(newName: String) extends ApiResponse
 
     /**
-      * A notification about the change in the suggestions database.
+      * A notification about the changes in the suggestions database.
       *
-      * @param updates the list of database updates
+      * @param file the module file path
+      * @param contents the module source
+      * @param updates the list of suggestions extracted from module
       */
-    case class SuggestionsDatabaseUpdateNotification(
+    case class SuggestionsDatabaseModuleUpdateNotification(
+      file: File,
+      contents: String,
       updates: Seq[SuggestionsDatabaseUpdate]
-    ) extends ApiNotification
-
-    /**
-      * A notification about the re-indexed module updates.
-      *
-      * @param moduleName the name of re-indexed module
-      * @param updates the list of database updates
-      */
-    case class SuggestionsDatabaseReIndexNotification(
-      moduleName: String,
-      updates: Seq[SuggestionsDatabaseUpdate.Add]
     ) extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
@@ -735,28 +733,6 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     case class InvalidateModulesIndexResponse() extends ApiResponse
-
-    /**
-      * An indexed module.
-      *
-      * @param file the module file path
-      * @param contents the module source
-      * @param updates the list of suggestions extracted from module
-      */
-    case class IndexedModule(
-      file: File,
-      contents: String,
-      updates: Seq[SuggestionsDatabaseUpdate.Add]
-    ) extends ApiNotification
-
-    /**
-      * A notification about new indexed modules.
-      *
-      * @param updates the list of suggestions database updates
-      */
-    case class SuggestionsDatabaseIndexUpdateNotification(
-      updates: Iterable[IndexedModule]
-    ) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()
