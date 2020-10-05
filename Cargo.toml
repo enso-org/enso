@@ -2,14 +2,7 @@
 
 members = [
     "lib/rust/ast",
-    "lib/rust/enso-data",
-    "lib/rust/enso-generics",
-    "lib/rust/enso-logger",
-    "lib/rust/enso-macro-utils",
-    "lib/rust/enso-optics",
     "lib/rust/enso-prelude",
-    "lib/rust/enso-shapely/impl",
-    "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
     "lib/rust/flexer-testing/definition",
     "lib/rust/flexer-testing/generation",
