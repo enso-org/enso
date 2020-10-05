@@ -42,7 +42,6 @@ thread_local! {
 ///
 /// Caller should also ensure that the spawner will remain functional the whole
 /// time, so e.g. it must not drop the executor connected with this spawner.
-#[allow(unsafe_code)]
 pub fn set_spawner(spawner_to_set:impl LocalSpawn + 'static) {
     // Note [Global Executor Safety]
     SPAWNER.with(|s| *s.borrow_mut() = Some(Box::new(spawner_to_set)));
@@ -51,7 +50,6 @@ pub fn set_spawner(spawner_to_set:impl LocalSpawn + 'static) {
 /// Spawns a task using the global spawner.
 /// Panics, if called when there is no global spawner set or if it fails to
 /// spawn task (e.g. because the connected executor was prematurely dropped).
-#[allow(unsafe_code)]
 pub fn spawn(f:impl Future<Output=()> + 'static) {
     SPAWNER.with(|spawner| {
         let error_msg = "No global executor has been provided.";

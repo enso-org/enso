@@ -3,11 +3,10 @@
 use ensogl_core::prelude::*;
 
 use ensogl_core::data::color;
-use ensogl_core::display::shape::text::glyph::font;
-use ensogl_core::display::shape::text::glyph::system::GlyphSystem;
 use ensogl_core::display::world::*;
 use ensogl_core::system::web;
 use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text::typeface::*;
 use wasm_bindgen::prelude::*;
 
 
@@ -22,20 +21,18 @@ pub fn entry_point_glyph_system() {
 }
 
 fn init(world:&World) {
-    let mut fonts    = font::Registry::new();
-    let font         = fonts.get_or_load_embedded_font("DejaVuSans").unwrap();
-    let glyph_system = GlyphSystem::new(world,font);
+    let fonts        = world.scene().extension::<font::Registry>();
+    let font         = fonts.load("DejaVuSans");
+    let glyph_system = glyph::System::new(world.scene(),font);
     let height       = 32.0;
-    let color        = color::Rgba::new(0.0, 0.8, 0.0, 1.0);
-    let line         = glyph_system.new_line();
-    line.set_font_size(height);
-    line.set_font_color(color);
-    line.set_text("Follow the white rabbit ...");
-    line.set_position(Vector3::new(100.0,100.0,0.0));
+    let color        = color::Rgba::new(0.5, 0.0, 0.0, 1.0);
+    let glyph         = glyph_system.new_glyph();
+    glyph.set_char('Q');
+    glyph.set_color(color);
+    glyph.set_position_xy(Vector2::new(100.0,100.0));
+    glyph.size.set(Vector2(height,height));
 
-    world.add_child(glyph_system.sprite_system());
+    world.add_child(&glyph);
     world.keep_alive_forever();
-    world.on_frame(move |_| {
-        let &_ = &line;
-    }).forget();
+    std::mem::forget(glyph);
 }
