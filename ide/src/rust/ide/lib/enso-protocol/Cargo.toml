@@ -8,12 +8,12 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-data         = { version = "0.1.0"  , path = "../../../lib/data"              }
-json-rpc     = { version = "0.1.0"  , path = "../json-rpc"                    }
-enso-prelude = { version = "0.1.0"  , path = "../../../lib/enso-prelude"      }
-enso-shapely = { version = "0.1.0"  , path = "../../../lib/enso-shapely/impl" }
-logger       = { version = "0.1.0"  , path = "../../../lib/logger"            }
-utils        = { version = "0.1.0"  , path = "../utils"                       }
+enso-data    = { version = "0.1.1"                       }
+enso-logger  = { version = "0.1.1"                       }
+enso-prelude = { version = "0.1.2"                       }
+enso-shapely = { version = "0.1.1"                       }
+json-rpc     = { version = "0.1.0", path = "../json-rpc" }
+utils        = { version = "0.1.0", path = "../utils"    }
 
 chrono      = { version = "0.4"  , features = ["serde"]                       }
 failure     = { version = "0.1.8"                                             }

@@ -9,14 +9,14 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-frp             = { version = "0.1.0", path = "../../lib/frp"                  }
-enso-prelude         = { version = "0.1.0", path = "../../lib/enso-prelude"         }
+enso-logger          = { version = "0.1.1"                                          }
+enso-prelude         = { version = "0.1.2"                                          }
+enso-shapely         = { version = "0.1.1"                                          }
 ensogl-core          = { version = "0.1.0", path = "../../ensogl/lib/core"          }
 ensogl-gui-list-view = { version = "0.1.0", path = "../lib/list-view"               }
 ensogl-text          = { version = "0.1.0", path = "../../ensogl/lib/text"          }
 ensogl-text-msdf-sys = { version = "0.1.0", path = "../../ensogl/lib/text/msdf-sys" }
 ensogl-theme         = { version = "0.1.0", path = "../../ensogl/lib/theme"         }
-enso-shapely         = { version = "0.1.0", path = "../../lib/enso-shapely/impl"    }
-logger               = { version = "0.1.0", path = "../../lib/logger"               }
 
 wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
 nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }

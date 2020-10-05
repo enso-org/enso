@@ -18,7 +18,7 @@ use ast::assoc::Assoc;
 use ast::crumbs::Located;
 use ast::HasLength;
 use ast::opr::GeneralizedInfix;
-use data::text::Size;
+use enso_data::text::Size;
 
 pub use context::Context;
 

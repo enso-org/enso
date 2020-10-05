@@ -43,9 +43,9 @@ pub use crumbs::Crumb;
 pub use crumbs::Crumbs;
 
 use ast_macros::*;
-use data::text::Index;
-use data::text::Size;
-use data::text::Span;
+use enso_data::text::Index;
+use enso_data::text::Size;
+use enso_data::text::Span;
 
 use serde::de::Deserializer;
 use serde::de::Visitor;
@@ -1097,7 +1097,7 @@ pub fn traverse_with_index(ast:&impl HasTokens, f:impl FnMut(Index, &Ast)) {
 /// Visits each Ast node, while keeping track of its span.
 pub fn traverse_with_span(ast:&impl HasTokens, mut f:impl FnMut(Span, &Ast)) {
     traverse_with_index(ast, move |index, ast| {
-        f(Span::new(index, data::text::Size::new(ast.len())),ast)
+        f(Span::new(index, enso_data::text::Size::new(ast.len())),ast)
     })
 }
 
@@ -1458,7 +1458,7 @@ impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
 mod tests {
     use super::*;
 
-    use data::text::Size;
+    use enso_data::text::Size;
     use serde::de::DeserializeOwned;
 
     use utils::test::ExpectTuple;

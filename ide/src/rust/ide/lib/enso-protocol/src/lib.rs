@@ -29,8 +29,8 @@ pub mod prelude {
     pub use uuid::Uuid;
 
     pub use crate::traits::*;
-    pub use logger::*;
-    pub use logger::enabled::Logger;
+    pub use enso_logger::*;
+    pub use enso_logger::enabled::Logger;
 
     pub use std::future::Future;
     /// We always use local futures in our single-threaded environment

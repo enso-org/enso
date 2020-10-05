@@ -5,8 +5,8 @@ use crate::prelude::*;
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
 
-use data::text::Index;
-use data::text::Size;
+use enso_data::text::Index;
+use enso_data::text::Size;
 
 
 
@@ -168,8 +168,8 @@ pub struct NodeFoundByAstCrumbs<'a,'b> {
 
 impl<'a> Ref<'a> {
     /// Get span of current node.
-    pub fn span(&self) -> data::text::Span {
-        data::text::Span::new(self.span_begin,self.node.size)
+    pub fn span(&self) -> enso_data::text::Span {
+        enso_data::text::Span::new(self.span_begin,self.node.size)
     }
 
     /// Get the reference to child with given index. Returns None if index if out of bounds.
@@ -249,7 +249,7 @@ impl<'a> Ref<'a> {
 
     /// Get the node which exactly matches the given Span. If there many such node's, it pick first
     /// found by DFS.
-    pub fn find_by_span(self, span:&data::text::Span) -> Option<Ref<'a>> {
+    pub fn find_by_span(self, span:&enso_data::text::Span) -> Option<Ref<'a>> {
         if self.span() == *span {
             Some(self)
         } else {

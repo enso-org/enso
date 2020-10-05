@@ -7,11 +7,11 @@ pub mod function;
 pub mod seq;
 pub mod theme;
 
-pub use data::hash_map_tree;
+pub use enso_data::hash_map_tree;
 
-pub use data::hash_map_tree::HashMapTree;
-pub use data::index::Index;
-pub use data::opt_vec::OptVec;
+pub use enso_data::hash_map_tree::HashMapTree;
+pub use enso_data::index::Index;
+pub use enso_data::opt_vec::OptVec;
 
 /// A type alias for color representation used in the GUI. It is implemented as the perceptual
 /// uniform LCH color space because it provides the best visual properties of all available color

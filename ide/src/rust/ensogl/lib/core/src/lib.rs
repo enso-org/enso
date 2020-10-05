@@ -64,15 +64,16 @@ pub use enso_types as types;
 /// Prelude - commonly used utilities.
 pub mod prelude {
     pub use enso_prelude::*;
-    pub use logger;
-    pub use logger::*;
-    pub use logger::AnyLogger;
-    pub use logger::disabled::Logger;
+    pub use enso_logger as logger;
+    pub use enso_logger::*;
+    pub use enso_logger::AnyLogger;
+    pub use enso_logger::disabled::Logger;
     pub use enso_shapely::CloneRef;
     pub use enso_shapely::newtype_copy;
     pub use enso_shapely::shared;
     pub use super::display::traits::*;
-    pub use super::data::container::AddMut;
+    pub use crate::data::container::AddMut;
+    pub use enso_data as data;
     pub use super::types::*;
 }
 

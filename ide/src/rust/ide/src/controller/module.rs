@@ -214,7 +214,8 @@ mod test {
     use ast;
     use ast::BlockLine;
     use ast::Ast;
-    use data::text::Span;
+    use enso_data::text::Index;
+    use enso_data::text::Span;
     use parser::Parser;
     use uuid::Uuid;
     use wasm_bindgen_test::wasm_bindgen_test;

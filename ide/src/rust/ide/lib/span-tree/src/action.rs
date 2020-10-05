@@ -208,8 +208,8 @@ mod test {
     use crate::node::InsertType::ExpectedArgument;
 
     use ast::HasRepr;
-    use data::text::Index;
-    use data::text::Span;
+    use enso_data::text::Index;
+    use enso_data::text::Span;
     use std::ops::Range;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;

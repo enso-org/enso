@@ -9,15 +9,15 @@ crate-type = ["rlib", "cdylib"]
 
 
 [dependencies]
-enso-frp              = { version = "0.1.0"  , path = "../../../lib/frp"               }
-enso-prelude          = { version = "0.1.0"  , path = "../../../lib/enso-prelude"      }
-enso-shapely          = { version = "0.1.0"  , path = "../../../lib/enso-shapely/impl" }
-enso-types            = { version = "0.1.0"  , path = "../../../lib/types"             }
-ensogl-core           = { version = "0.1.0"  , path = "../core"                        }
-ensogl-text           = { version = "0.1.0"  , path = "../text"                        }
-ensogl-gui-list-view  = { version = "0.1.0"  , path = "../list-view"                   }
-ensogl-theme          = { version = "0.1.0"  , path = "../theme"                       }
-logger                = { version = "0.1.0"  , path = "../../../lib/logger"            }
+enso-frp             = { version = "0.1.0" , path = "../../../lib/frp"   }
+enso-logger          = { version = "0.1.1"                               }
+enso-prelude         = { version = "0.1.2"                               }
+enso-shapely         = { version = "0.1.1"                               }
+enso-types           = { version = "0.1.0" , path = "../../../lib/types" }
+ensogl-core          = { version = "0.1.0" , path = "../core"            }
+ensogl-gui-list-view = { version = "0.1.0" , path = "../list-view"       }
+ensogl-text          = { version = "0.1.0" , path = "../text"            }
+ensogl-theme         = { version = "0.1.0" , path = "../theme"           }
 
 
 [dev-dependencies]

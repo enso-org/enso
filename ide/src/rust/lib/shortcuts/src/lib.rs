@@ -18,10 +18,10 @@ use enso_automata::*;
 use enso_prelude::*;
 use ensogl_system_web as web;
 
-pub use logger::*;
-pub use logger::AnyLogger;
-pub use logger::disabled::Logger;
-pub use logger;
+pub use enso_logger::*;
+pub use enso_logger::AnyLogger;
+pub use enso_logger::disabled::Logger;
+pub use enso_logger as logger;
 
 
 

@@ -6,7 +6,7 @@ use crate::display::shape::text::text_field::cursor::Cursor;
 use crate::display::symbol::geometry::compound::sprite::Sprite;
 use crate::display::object::traits::*;
 
-use data::text::TextLocation;
+use enso_data::text::TextLocation;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use std::ops::Range;
