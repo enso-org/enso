@@ -160,7 +160,10 @@ object AstToIr {
           Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
         }
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
-        val nameStr = name match { case AST.Ident.Var.any(name) => name }
+        val nameId: AST.Ident = name match {
+          case AST.Ident.Var.any(name) => name
+          case AST.Ident.Opr.any(opr)  => opr
+        }
 
         val methodRef = if (targetPath.nonEmpty) {
           val pathSegments = targetPath.collect {
@@ -168,7 +171,7 @@ object AstToIr {
           }
           val pathNames = pathSegments.map(buildName)
 
-          val methodSegments = pathNames :+ buildName(nameStr)
+          val methodSegments = pathNames :+ buildName(nameId)
 
           val typeSegments = methodSegments.init
 
@@ -182,7 +185,7 @@ object AstToIr {
           )
         } else {
           val typeName   = Name.Here(None)
-          val methodName = buildName(nameStr)
+          val methodName = buildName(nameId)
           Name.MethodReference(
             typeName,
             methodName,
@@ -277,6 +280,13 @@ object AstToIr {
       case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
+      case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>
+        Function.Binding(
+          buildName(opr),
+          List(translateArgumentDefinition(arg)),
+          translateExpression(body),
+          getIdentifiedLocation(inputAst)
+        )
       case AstView.TypeAscription(typed, sig) =>
         IR.Type.Ascription(
           translateExpression(typed),

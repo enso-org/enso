@@ -550,6 +550,8 @@ object AstView {
               Some((targetPath, name, List(), rhs))
             case MethodBindingLHS(path, methodName, args) =>
               Some((path, methodName, args, rhs))
+            case AST.App.Section.Right(opr, arg) =>
+              Some((List(), opr, List(arg), rhs))
             case AST.Ident.Var.any(name) => Some((List(), name, List(), rhs))
             case _ =>
               None

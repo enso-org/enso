@@ -41,7 +41,7 @@ type Vector
                   builder = Vector.new_builder
                   do_read =
                       item = IO.readln
-                      if item.equals "end" then Unit else
+                      if item == "end" then Unit else
                           builder.append item
                           do_read
                   do_read
@@ -141,13 +141,25 @@ type Vector
 
     ## Checks whether this vector is equal to `that`. Two vectors are considered
        equal, when they have the same length and their items are pairwise equal.
-    equals : Vector -> Boolean
-    equals that =
+    == : Vector -> Boolean
+    == that =
         arr1 = this.to_array
         arr2 = that.to_array
-        eq_at i = (arr1.at i) . equals (arr2.at i)
+        eq_at i = arr1.at i == arr2.at i
         r = if arr1.length == arr2.length then 0.upto arr1.length . every eq_at else False
         r
+
+    ## Concatenates two vectors, resulting in a new vector, containing all the
+       elements of `this`, followed by all the elements of `that`.
+    + : Vector -> Vector
+    + that =
+        this_len = this.length
+        arr = Array.new (this_len + that.length)
+        0.upto this_len . each i->
+            arr.set_at i (this.at i)
+        this.length.upto arr.length . each i->
+            arr.set_at i (that.at i-this_len)
+        Vector arr
 
 ## A builder type for Enso vectors.
 
@@ -165,7 +177,7 @@ type Vector
               builder = Vector.new_builder
               do_read =
                   item = IO.readln
-                  if item.equals "end" then Unit else
+                  if item == "end" then Unit else
                       builder.append item
                       do_read
               do_read

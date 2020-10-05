@@ -70,7 +70,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
     def ?=(out: AST) = testBase in { assertExpr(input, out) }
     def ??=(out: Module) = testBase in { assertModule(input, out) }
-    def testIdentity()   = testBase in { assertIdentity(input)    }
+    def testIdentity()   = testBase in { assertIdentity(input) }
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -95,22 +95,26 @@ class ParserTest extends AnyFlatSpec with Matchers {
   import App.Section._
   import App.{Section => Sect}
 
-  "++"   ?= Sides("++")
-  "=="   ?= Sides("==")
-  ":"    ?= Sides(":")
-  ","    ?= Sides(",")
-  "."    ?= Sides(".")
-  ".."   ?= Sides("..")
-  "..."  ?= Sides("...")
-  ">="   ?= Sides(">=")
-  "<="   ?= Sides("<=")
-  "/="   ?= Sides("/=")
-  "+="   ?= Mod("+")
-  "-="   ?= Mod("-")
-  "==="  ?= Ident.InvalidSuffix("==", "=")
-  "...." ?= Ident.InvalidSuffix("...", ".")
-  ">=="  ?= Ident.InvalidSuffix(">=", "=")
-  "+=="  ?= Ident.InvalidSuffix("+", "==")
+  "++"    ?= Sides("++")
+  "=="    ?= Sides("==")
+  ":"     ?= Sides(":")
+  ","     ?= Sides(",")
+  "."     ?= Sides(".")
+  ".."    ?= Sides("..")
+  "..."   ?= Sides("...")
+  ">="    ?= Sides(">=")
+  "<="    ?= Sides("<=")
+  "/="    ?= Sides("/=")
+  ".+"    ?= Sect.Right(".", 0, Var("+"))
+  ".<*>"  ?= Sect.Right(".", 0, Var("<*>"))
+  ".=="   ?= Sect.Right(".", 0, Var("=="))
+  "Foo.+" ?= App.Infix(Cons("Foo"), 0, Opr("."), 0, Var("+"))
+  "+="    ?= Mod("+")
+  "-="    ?= Mod("-")
+  "==="   ?= Ident.InvalidSuffix("==", "=")
+  "...."  ?= Ident.InvalidSuffix("...", ".")
+  ">=="   ?= Ident.InvalidSuffix(">=", "=")
+  "+=="   ?= Ident.InvalidSuffix("+", "==")
 
   //////////////////////////////////////////////////////////////////////////////
   //// Precedence + Associativity //////////////////////////////////////////////
@@ -215,11 +219,11 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
   "\"\"\" \n\n X\n\n Y" ?= Text.Raw(1, 0, line(" X", 0), line(" Y", 0))
   "a \"\"\"\n\n\n X\n\n Y" ?= "a" $_ Text.Raw(
-    0,
-    1,
-    line("X", 0, 0),
-    line("Y", 0)
-  )
+      0,
+      1,
+      line("X", 0, 0),
+      line("Y", 0)
+    )
 
   //// Escapes ////
 
@@ -228,7 +232,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   def escape(code: Text.Segment.RawEscape) = Shape.SegmentRawEscape[AST](code)
 
   Text.Segment.Escape.Character.codes.foreach(i => s"'\\$i'" ?= Text(escape(i)))
-  Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'"   ?= Text(escape(i)))
+  Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'" ?= Text(escape(i)))
 
   "'\\\\'"   ?= Text(escape(Esc.Slash))
   "'\\''"    ?= Text(escape(Esc.Quote))
@@ -253,14 +257,16 @@ class ParserTest extends AnyFlatSpec with Matchers {
   }
 
   "say \n  '''\n  Hello\n  `World`\npal" ??= Module(
-    OptLine("say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))),
-    OptLine("pal")
-  )
+      OptLine(
+        "say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))
+      ),
+      OptLine("pal")
+    )
 
   "say '''\n  Hello\n  `World`\npal" ??= Module(
-    OptLine("say" $_ Text(0, 2, line("Hello"), line(expr("World")))),
-    OptLine("pal")
-  )
+      OptLine("say" $_ Text(0, 2, line("Hello"), line(expr("World")))),
+      OptLine("pal")
+    )
 
 ////  //  // Comments
 //////    expr("#"              , Comment)
@@ -309,13 +315,13 @@ class ParserTest extends AnyFlatSpec with Matchers {
   def amb(head: AST, lst: List[List[AST]]): Macro.Ambiguous =
     Macro.Ambiguous(
       Shifted.List1(Macro.Ambiguous.Segment(head)),
-      Tree(lst.map(_ -> (())): _*)
+      Tree(lst.map(_ -> ()): _*)
     )
 
   def amb(head: AST, lst: List[List[AST]], body: SAST): Macro.Ambiguous =
     Macro.Ambiguous(
       Shifted.List1(Macro.Ambiguous.Segment(head, Some(body))),
-      Tree(lst.map(_ -> (())): _*)
+      Tree(lst.map(_ -> ()): _*)
     )
 
   def _amb_group_(i: Int)(t: AST): Macro.Ambiguous =
@@ -368,13 +374,13 @@ class ParserTest extends AnyFlatSpec with Matchers {
 //  )
 //
   "if a then b" ?= Mixfix(
-    List1[AST.Ident]("if", "then"),
-    List1[AST]("a", "b")
-  )
+      List1[AST.Ident]("if", "then"),
+      List1[AST]("a", "b")
+    )
   "if a then b else c" ?= Mixfix(
-    List1[AST.Ident]("if", "then", "else"),
-    List1[AST]("a", "b", "c")
-  )
+      List1[AST.Ident]("if", "then", "else"),
+      List1[AST]("a", "b", "c")
+    )
 
   "if a"          ?= amb_if_("a": AST)
   "(if a) b"      ?= Group(amb_if_("a": AST)) $_ "b"
