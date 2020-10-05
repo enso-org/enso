@@ -1,6 +1,6 @@
 from Base import all
 import Base.Time
-import Base.Time.Interval
+import Base.Time.Duration
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
@@ -34,7 +34,7 @@ type Time_Of_Day
        > Example
          Add 15 minutes to a local time.
              Time_Of_Day.new.plus 15.minutes
-    plus : Interval -> Time_Of_Day
+    plus : Duration -> Time_Of_Day
     plus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.interval_duration])
 
     ## Subtract specified amount of time to this instant.
@@ -42,7 +42,7 @@ type Time_Of_Day
        > Example
          Subtract 3 hours from a local time.
              Time_Of_Day.new.minus 3.hours
-    minus : Interval -> Time_Of_Day
+    minus : Duration -> Time_Of_Day
     minus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.interval_duration])
 
 ## Obtains an instance of `LocalTime` from a text string such as 10:15.

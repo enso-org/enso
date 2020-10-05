@@ -1,5 +1,5 @@
 from Base import all
-import Base.Time.Interval
+import Base.Time.Duration
 import Base.Time.Zone
 
 polyglot java import java.time.Instant
@@ -7,35 +7,35 @@ polyglot java import java.time.ZonedDateTime
 
 type Time
 
-    type Time internal_time
+    type Time internal_zoned_date_time
 
     ## Get the year field.
     get_year : Integer
-    get_year = this . internal_time . getYear []
+    get_year = this . internal_zoned_date_time . getYear []
 
     ## Get the month of year field from 1 to 12.
     get_month : Integer
-    get_month = this . internal_time . getMonthValue []
+    get_month = this . internal_zoned_date_time . getMonthValue []
 
     ## Get the day of month field.
     get_day : Integer
-    get_day = this . internal_time . getDayOfMonth []
+    get_day = this . internal_zoned_date_time . getDayOfMonth []
 
     ## Get the hour of day field.
     get_hour : Integer
-    get_hour = this . internal_time . getHour []
+    get_hour = this . internal_zoned_date_time . getHour []
 
     ## Get the minute of hour field.
     get_minute : Integer
-    get_minute = this . internal_time . getMinute []
+    get_minute = this . internal_zoned_date_time . getMinute []
 
     ## Get the second of minute field
     get_second : Integer
-    get_second = this . internal_time . getSecond []
+    get_second = this . internal_zoned_date_time . getSecond []
 
     ## Get the nano-of-second field.
     get_nano : Integer
-    get_nano = this . internal_time . getNano []
+    get_nano = this . internal_zoned_date_time . getNano []
 
     ## Get the nano-of-second field.
     get_nanosecond : Integer
@@ -43,19 +43,19 @@ type Time
 
     ## Get the timezone.
     get_zone : Zone
-    get_zone = Zone.zone (this . internal_time . getZone [])
+    get_zone = Zone.zone (this . internal_zoned_date_time . getZone [])
 
     ## Return the number of seconds from the Unix epoch.
     to_epoch_second : Integer
-    to_epoch_second = this . internal_time . toEpochSecond []
+    to_epoch_second = this . internal_zoned_date_time . toEpochSecond []
 
     ## Return the number of milliseconds from the Unix epoch.
     to_epoch_milli : Integer
-    to_epoch_milli = this . internal_time . toInstant [] . toEpochMilli []
+    to_epoch_milli = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
 
     ## Convert the time instant to a provided timezone.
     at_zone : Zone -> Time
-    at_zone zone = Time (this.internal_time . withZoneSameInstant [zone.internal_zone])
+    at_zone zone = Time (this.internal_zoned_date_time . withZoneSameInstant [zone.internal_zone_id])
 
     ## Add specified amount of time to this instant.
 
@@ -66,8 +66,8 @@ type Time
        > Example
          Add 15 years and 3 hours to a zoned date time.
              Time.new . plus 15.years . plus 3.hours
-    plus : Interval -> Time
-    plus amount = Time (this . internal_time . plus [amount.interval_period] . plus [amount.interval_duration])
+    plus : Duration -> Time
+    plus amount = Time (this . internal_zoned_date_time . plus [amount.interval_period] . plus [amount.interval_duration])
 
     ## Subtract specified amount of time to this instant.
 
@@ -78,8 +78,8 @@ type Time
        > Example
          Subtract 1 year and 9 months from a zoned date time.
              Time.new.minus 1.year . minus 9.months
-    minus : Interval -> Time
-    minus amount = Time (this . internal_time . minus [amount.interval_period] . minus [amount.interval_duration])
+    minus : Duration -> Time
+    minus amount = Time (this . internal_zoned_date_time . minus [amount.interval_period] . minus [amount.interval_duration])
 
 ## Obtains an instance of `Time` from a text string such as
    2007-12-03T10:15:30Z.
@@ -116,7 +116,7 @@ parse text = Time (ZonedDateTime.parse [text])
 
 ## Obtains the current date-time from the system clock in the default time-zone.
 now : Time
-now = Time (Instant.now [] . atZone [Zone.utc . internal_zone])
+now = Time (Instant.now [] . atZone [Zone.utc . internal_zone_id])
 
 ## Obtains an instance of `Time` from a year, month, day, hour, minute,
    second, nanosecond and time-zone.
@@ -141,4 +141,4 @@ now = Time (Instant.now [] . atZone [Zone.utc . internal_zone])
          Time.new 1986 8 5
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone.utc) =
-    Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone])
+    Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_id])

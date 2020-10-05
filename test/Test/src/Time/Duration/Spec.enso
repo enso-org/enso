@@ -2,10 +2,10 @@ from Base import all
 
 import Base.Test
 import Base.Time
-import Base.Time.Interval
+import Base.Time.Duration
 
 spec =
-    describe "Interval" <|
+    describe "Duration" <|
         it "should create interval seconds" <|
             interval = 5.seconds
             interval.to_vector . should_equal [0, 0, 0, 0, 0, 5, 0]
@@ -27,7 +27,7 @@ spec =
         it "should create interval between two points in time" <|
             time1 = Time.new 2001 1 2
             time2 = Time.new 2001 2 1
-            interval = Interval.between time1 time2
+            interval = Duration.between time1 time2
             interval.to_vector . should_equal [0, 0, 0, 720, 0, 0, 0]
         it "should check if time based" <|
             interval = 10.hours
