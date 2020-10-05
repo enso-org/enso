@@ -2,6 +2,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.updateLicenses
 import sbt.Keys._
 import sbt._
 import src.main.scala.licenses.DistributionDescription
+import src.main.scala.licenses.backend.{CombinedBackend, GatherNotices}
 import src.main.scala.licenses.frontend.{DependencyFilter, SbtLicenses}
 // import sbt.internal.util.ManagedLogger
 
@@ -31,12 +32,16 @@ object GatherLicenses {
       val allInfo = sbtInfo // TODO [RW] add Rust frontend result here (#1187)
 
       log.info(s"${allInfo.size} unique dependencies discovered")
+      val backend = CombinedBackend(GatherNotices)
+
       allInfo.foreach { dependency =>
         println(
           s"${dependency.moduleInfo} -> ${dependency.license} / ${dependency.url}"
         )
-        dependency.sources.foreach(_.access(println))
+        val attachments = backend.run(dependency.sources)
+        println(s"Found: $attachments")
       }
+
     }
 
     log.warn(

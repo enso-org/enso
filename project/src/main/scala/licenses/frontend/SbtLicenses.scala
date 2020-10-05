@@ -13,6 +13,7 @@ import org.apache.ivy.core.report.ResolveReport
 import org.apache.ivy.core.resolve.IvyNode
 import sbt.Compile
 import sbt.internal.util.ManagedLogger
+import sbt.io.IO
 import sbt.librarymanagement.ConfigRef
 import src.main.scala.licenses.{
   DependencyInformation,
@@ -99,10 +100,12 @@ object SbtLicenses {
 
   private def createSourceAccessFromJAR(jarPath: Path): SourceAccess =
     new SourceAccess {
-      override def access[R](withSources: Path => R): R = {
-        // TODO FIXME actually extract it!
-        withSources(jarPath)
-      }
+      override def access[R](withSources: Path => R): R =
+        IO.withTemporaryDirectory { root =>
+          IO.unzip(jarPath.toFile, root)
+          println(root)
+          withSources(root.toPath)
+        }
     }
 
   private def findSources(dependency: Dependency): Seq[SourceAccess] =
