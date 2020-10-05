@@ -3,8 +3,8 @@ import Base.Test
 import Base.Time
 
 import Test.Time.Interval.Spec as Interval_Spec
-import Test.Time.Local_Time.Spec as Local_Time_Spec
-import Test.Time.Local_Date.Spec as Local_Date_Spec
+import Test.Time.Time_Of_Day.Spec as Time_Of_Day_Spec
+import Test.Time.Date.Spec as Date_Spec
 import Test.Time.Time.Spec as Time_Spec
 import Test.Time.Zone.Spec as Zone_Spec
 
@@ -21,7 +21,7 @@ spec =
            time2 = Time.nano_time
            (time1 <= time2) . should_be_true
     Zone_Spec.spec
-    Local_Time_Spec.spec
-    Local_Date_Spec.spec
+    Time_Of_Day_Spec.spec
+    Date_Spec.spec
     Time_Spec.spec
     Interval_Spec.spec

@@ -5,18 +5,16 @@ import Base.Time.Interval
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
 
-type Local_Date
+type Date
 
-    ## `Local_Date` is an immutable date-time object that represents a date, often
-       viewed as year-month-day. Other date fields, such as day-of-year, day-of-week
-       and week-of-year, can also be accessed. For example, the value
-       "2nd October 2007" can be stored in a `Local_Date`.
+    ## `Date` represents a date, often viewed as year-month-day. For
+       example, the value "2nd October 2007" can be stored in a `Date`.
 
        This class does not store or represent a time or time-zone. Instead, it is a
        description of the date, as used for birthdays. It cannot represent an
        instant on the time-line without additional information such as an offset or
        time-zone.
-    type Local_Date internal_local_date
+    type Date internal_local_date
 
     ## Get the year field.
     get_year : Integer
@@ -34,21 +32,21 @@ type Local_Date
 
        > Example
          Add 100 years to a local date.
-             Local_Date.new.plus 100.years
-    plus : Interval -> Local_Date
+             Date.new.plus 100.years
+    plus : Interval -> Date
     plus amount =
-        if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Local_Date (this . internal_local_date . plus [amount.interval_period])
+        if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Date (this . internal_local_date . plus [amount.interval_period])
 
     ## Subtract specified amount of time to this instant.
 
        > Example
          Subtract 1 month from a local date.
-             Local_Date.new.minus 1.month
-    minus : Period -> Local_Date
+             Date.new.minus 1.month
+    minus : Period -> Date
     minus amount =
-        if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Local_Date (this . internal_local_date . minus [amount.interval_period])
+        if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Date (this . internal_local_date . minus [amount.interval_period])
 
-## Obtains an instance of `Local_Date` from a text string such as 2007-12-03.
+## Obtains an instance of `Date` from a text string such as 2007-12-03.
 
    The string must represent a valid date and is parsed using the ISO-8601
    extended local date format. The format consists of:
@@ -66,15 +64,15 @@ type Local_Date
 
    > Example
      Parse the date of 23rd December 2020.
-         Local_Date.parse "2020-12-23"
-parse : Text -> Local_Date
-parse fmt = Local_Date (LocalDate.parse [fmt])
+         Date.parse "2020-12-23"
+parse : Text -> Date
+parse fmt = Date (LocalDate.parse [fmt])
 
 ## Obtains the current date from the system clock in the default time-zone.
-now : Local_Date
-now = Local_Date (LocalDate.now [])
+now : Date
+now = Date (LocalDate.now [])
 
-## Obtains an instance of `Local_Date` from a year, month and day.
+## Obtains an instance of `Date` from a year, month and day.
 
    The day must be valid for the year and month, otherwise an exception will be
    thrown.
@@ -84,11 +82,11 @@ now = Local_Date (LocalDate.now [])
 
    > Example
      Create a new local date at Unix epoch.
-         Local_Date.new
+         Date.new 1970
 
    > Example
      Get the local date of 5th August 1986.
-         Local_Date.new 1986 8 5
-new : Integer -> Integer -> Integer -> Local_Date
-new (year = 1970) (month = 1) (day = 1) =
-    Local_Date (LocalDate.of [year, month, day])
+         Date.new 1986 8 5
+new : Integer -> Integer -> Integer -> Date
+new year (month = 1) (day = 1) =
+    Date (LocalDate.of [year, month, day])

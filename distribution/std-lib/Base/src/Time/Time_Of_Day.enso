@@ -5,13 +5,13 @@ import Base.Time.Interval
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 
-type Local_Time
+type Time_Of_Day
 
-    ## `Local_Time` is an immutable date-time object that represents a time, often
-       viewed as hour-minute-second. Time is represented to nanosecond
+    ## `Time_Of_Day` is an immutable date-time object that represents a time,
+       often viewed as hour-minute-second. Time is represented to nanosecond
        precision. For example, the value "13:45.30.123456789" can be stored in a
-       `Local_Time`.
-    type Local_Time internal_local_time
+       `Time_Of_Day`.
+    type Time_Of_Day internal_local_time
 
     ## Get the hour of day field.
     get_hour : Integer
@@ -33,17 +33,17 @@ type Local_Time
 
        > Example
          Add 15 minutes to a local time.
-             Local_Time.new.plus 15.minutes
-    plus : Interval -> Local_Time
-    plus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Local_Time (this . internal_local_time . plus [amount.interval_duration])
+             Time_Of_Day.new.plus 15.minutes
+    plus : Interval -> Time_Of_Day
+    plus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.interval_duration])
 
     ## Subtract specified amount of time to this instant.
 
        > Example
          Subtract 3 hours from a local time.
-             Local_Time.new.minus 3.hours
-    minus : Interval -> Local_Time
-    minus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Local_Time (this . internal_local_time . minus [amount.interval_duration])
+             Time_Of_Day.new.minus 3.hours
+    minus : Interval -> Time_Of_Day
+    minus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.interval_duration])
 
 ## Obtains an instance of `LocalTime` from a text string such as 10:15.
 
@@ -66,15 +66,15 @@ type Local_Time
 
    > Example
      Get the time 15:05:30.
-         Local_Time.parse "15:05:30"
-parse : Text -> Local_Time
-parse text = Local_Time (LocalTime.parse [text])
+         Time_Of_Day.parse "15:05:30"
+parse : Text -> Time_Of_Day
+parse text = Time_Of_Day (LocalTime.parse [text])
 
 ## Obtains the current time from the system clock in the default time-zone.
-now : Local_Time
-now = Local_Time (LocalTime.now [])
+now : Time_Of_Day
+now = Time_Of_Day (LocalTime.now [])
 
-## Obtains an instance of `Local_Time` from an hour, minute, second and nanosecond.
+## Obtains an instance of `Time_Of_Day` from an hour, minute, second and nanosecond.
 
    - hour - the hour-of-day to represent, from 0 to 23
    - minute - the minute-of-hour to represent, from 0 to 59
@@ -83,11 +83,11 @@ now = Local_Time (LocalTime.now [])
 
    > Example
      Create a new local time at Unix epoch.
-         Local_Time.new
+         Time_Of_Day.new
 
    > Example
      Get the local time at 9:30.
-         Local_Time.new 9 30
-new : Integer -> Integer -> Integer -> Integer -> Local_Time
+         Time_Of_Day.new 9 30
+new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Local_Time (LocalTime.of [hour, minute, second, nanosecond])
+    Time_Of_Day (LocalTime.of [hour, minute, second, nanosecond])
