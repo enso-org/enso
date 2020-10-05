@@ -3,7 +3,7 @@ import Base.Time.Instant
 
 polyglot java import java.lang.System
 
-from Base.Time.Instant export all hiding Java_Instant, ZonedDataTime
+from Base.Time.Time export all hiding Instant, ZonedDataTime
 from Base.Time.Interval export all hiding Duration, Period
 
 ## Error while working with time

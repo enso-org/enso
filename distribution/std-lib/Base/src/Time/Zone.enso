@@ -9,11 +9,11 @@ polyglot java import java.time.ZoneOffset
    "Europe/Paris".
 type Zone
 
-    type Zone internal_zone_id
+    type Zone internal_zone
 
     ## Get the unique timezone ID.
     get_id : Text
-    get_id = this.internal_zone_id . getId []
+    get_id = this.internal_zone . getId []
 
 ## This method parses the ID producing a `Zone_Id`.
 

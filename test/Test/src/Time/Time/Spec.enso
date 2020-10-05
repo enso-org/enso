@@ -1,0 +1,58 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Time
+import Base.Time.Interval
+
+spec =
+    describe "Time" <|
+        it "should create instant" <|
+            time = Time.new 1970
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . to_epoch_second . should_equal 0
+            time . to_epoch_second . should_equal 0
+        it "should parse instant" <|
+            time = Time.parse "1970-01-01T00:00:01.00Z"
+            time . to_epoch_second . should_equal 1
+        it "should add time interval" <|
+            date = Time.new 1970 . plus 1.nanosecond
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 1
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 1
+        it "should add date interval" <|
+            date = Time.new 1970 . plus 1.month
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 2
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
+        it "should subtract time interval" <|
+            date = Time.new 1970 . minus 1.hour
+            date . get_year . should_equal 1969
+            date . get_month . should_equal 12
+            date . get_day . should_equal 31
+            date . get_hour . should_equal 23
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
+        it "should subtract date interval" <|
+            date = Time.new 1970 . minus 1.month
+            date . get_year . should_equal 1969
+            date . get_month . should_equal 12
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
