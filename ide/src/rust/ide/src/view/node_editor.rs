@@ -652,7 +652,7 @@ impl GraphEditorIntegratedWithControllerModel {
                     match searcher.suggestions() {
                         Suggestions::Loading       => self.view.searcher().clear_suggestions(),
                         Suggestions::Loaded {list:suggestions} => {
-                            let list_is_empty     = suggestions.is_empty();
+                            let list_is_empty     = suggestions.matching_count() == 0;
                             let user_action       = searcher.current_user_action();
                             let intended_function = searcher.intended_function_suggestion();
                             let provider          = DataProviderForView
