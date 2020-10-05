@@ -116,7 +116,7 @@ parse text = Zoned_Date_Time (ZonedDateTime.parse [text])
 now : Zoned_Date_Time
 now = Zoned_Date_Time (ZonedDateTime.now [])
 
-## Obtains an instance of `ZonedDateTime` from an instant and zone ID.
+## Obtains an instance of `Zoned_Date_Time` from an instant and zone ID.
 of_instant : Instant -> Zone_Id -> Zoned_Date_Time
 of_instant instant zone_id = instant.at_zone zone_id
 

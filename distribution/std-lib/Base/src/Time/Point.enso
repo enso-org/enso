@@ -1,0 +1,156 @@
+from Base import all
+import Base.Time.Duration
+import Base.Time.Interval
+import Base.Time.Period
+import Base.Time.Zone_Id
+
+polyglot java import java.time.Instant
+polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.ZoneId
+polyglot java import java.time.temporal.Temporal
+
+type Point
+
+    type Point internal_point
+
+    ## Get the year field.
+    get_year : Integer
+    get_year = this . internal_point . getYear []
+
+    ## Get the month of year field from 1 to 12.
+    get_month : Integer
+    get_month = this . internal_point . getMonthValue []
+
+    ## Get the day of month field.
+    get_day : Integer
+    get_day = this . internal_point . getDayOfMonth []
+
+    ## Get the hour of day field.
+    get_hour : Integer
+    get_hour = this . internal_point . getHour []
+
+    ## Get the minute of hour field.
+    get_minute : Integer
+    get_minute = this . internal_point . getMinute []
+
+    ## Get the second of minute field
+    get_second : Integer
+    get_second = this . internal_point . getSecond []
+
+    ## Gets the nano-of-second field.
+    get_nano : Integer
+    get_nano = this . internal_point . getNano []
+
+    ## Gets the nano-of-second field.
+    get_nanosecond : Integer
+    get_nanosecond = this . get_nano
+
+    ## Return the internal temporal object.
+    internal_temporal : Temporal
+    internal_temporal = this.internal_point
+
+    ## Return the number of seconds from the Unix epoch.
+    to_epoch_second : Integer
+    to_epoch_second = this . internal_point . toEpochSecond []
+
+    ## Add specified amount of time to this instant.
+
+       > Example
+         Add 1 hour to a zoned date time.
+             Point.new.plus 1.hour
+
+       > Example
+         Add 15 years and 3 hours to a zoned date time.
+             Point.new . plus 15.years . plus 3.hours
+    plus : Temporal_Amount -> Point
+    plus amount = case amount of
+        Interval.Interval period_amount duration_amount ->
+            Point (this . internal_point . plus [period_amount] . plus [duration_amount])
+        Duration.Duration duration_amount ->
+            Point (this . internal_point . plus [duration_amount])
+        Period.Period period_amount ->
+            Point (this . internal_point . plus [period_amount])
+
+    ## Subtract specified amount of time to this instant.
+
+       > Example
+         Subtract 10 days from a zoned date time.
+             Point.new.minus 10.days
+
+       > Example
+         Subtract 1 year and 9 months from a zoned date time.
+             Point.new.minus 1.year . minus 9.months
+    minus : Temporal_Amount -> Point
+    minus amount = case amount of
+        Interval.Interval period_amount duration_amount ->
+            Point (this . internal_point . minus [period_amount] . minus [duration_amount])
+        Duration.Duration duration_amount ->
+            Point (this . internal_point . minus [duration_amount])
+        Period.Period period_amount ->
+            Point (this . internal_point . minus [period_amount])
+
+## Obtains an instance of `Point` from a text string such as
+   2007-12-03T10:15:30Z.
+
+   The string must represent a valid date-time and is parsed using the ISO-8601
+   extended offset date-time format to add the time-zone. The section in square
+   brackets is not part of the ISO-8601 standard. The format consists of:
+
+   - The ISO offset date time.
+   - If the zone ID is not available or is a `Zone_Offset` then the format is
+     complete.
+   - An open square bracket '['.
+   - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+     sensitive.
+   - A close square bracket ']'.
+
+   > Example
+     Parse UTC time.
+         Point.parse "2020-10-01T04:11:12Z"
+
+   > Example
+     Parse New York time.
+         Point.parse "2020-10-01T04:11:12-04:00"
+
+   > Example
+     Parse New York time with optional time zone in square brackets.
+         Point.parse "2020-10-01T04:11:12-04:00[America/New_York]"
+
+   > Example
+     Parse New York time with nanoseconds.
+         Point.parse "2020-10-01T04:11:12.177528-04:00"
+parse : Text -> Point
+parse text = Point (ZonedDateTime.parse [text])
+
+## Obtains the current date-time from the system clock in the default time-zone.
+now : Point
+now = Point (Instant.now [] . atZone [Zone_Id.utc . internal_zone_id])
+
+## Obtains an instance of `Point` from an instant and zone ID.
+of_instant : Instant -> Point
+of_instant instant = Point (instant.internal_instant . atZone [Zone_Id.utc . internal_zone_id])
+
+## Obtains an instance of `Point` from a year, month, day, hour, minute,
+   second, nanosecond and time-zone.
+
+   The day must be valid for the year and month, otherwise an exception will be
+   thrown.
+
+   - month - the month-of-year to represent, from 1 (January) to 12 (December)
+   - day - the day-of-month to represent, from 1 to 31
+   - hour - the hour-of-day to represent, from 0 to 23
+   - minute - the minute-of-hour to represent, from 0 to 59
+   - second - the second-of-minute to represent, from 0 to 59
+   - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
+   - zone - the time-zone
+
+   > Example
+     Create a new zoned date time at Unix epoch.
+         Point.new
+
+   > Example
+     Get the 5 August 1986 at midnight UTC.
+         Point.new 1986 8 5
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone_Id -> Point
+new (year = 1970) (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (offset = Zone_Id.utc) =
+    Point (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, offset.internal_zone_id])

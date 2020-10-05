@@ -1,4 +1,5 @@
 from Base import all
+import Base.Time.Point
 
 polyglot java import java.time.Duration
 polyglot java import java.time.Period
@@ -110,8 +111,8 @@ Integer.years = this.year
 ## Obtains an interval representing the duration between two temporal objects.
 
    > Example
-     An hour interval between two local times.
-         Interval.between (Local_Time.new 0) (Local_Time.new 1)
-between : Temporal -> Temporal -> Interval
+     An hour interval between two points in time.
+         Interval.between Point.now Point.now
+between : Point -> Point -> Interval
 between start_inclusive end_exclusive =
-   Interval (Period.ofDays [0]) (Duration.between [start_inclusive.internal_temporal, end_exclusive.internal_temporal])
+   Interval (Period.ofDays [0]) (Duration.between [start_inclusive.internal_point, end_exclusive.internal_point])

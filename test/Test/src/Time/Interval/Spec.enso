@@ -2,8 +2,7 @@ from Base import all
 
 import Base.Test
 import Base.Time.Interval
-import Base.Time.Local_Time
-import Base.Time.Local_Date_Time
+import Base.Time.Point
 
 spec =
     describe "Interval" <|
@@ -25,13 +24,8 @@ spec =
         it "should subtract years from hours" <|
             interval = 2.hours . minus 11.years
             interval.to_vector . should_equal [-11, 0, 0, 2, 0, 0, 0]
-        it "should create interval between two times" <|
-            time1 = Local_Time.new 0 0 1
-            time2 = Local_Time.new 0 0 10
-            interval = Interval.between time1 time2
-            interval.to_vector . should_equal [0, 0, 0, 0, 0, 9, 0]
-        it "should create interval between two dates" <|
-            time1 = Local_Date_Time.new 2001 1 2
-            time2 = Local_Date_Time.new 2001 2 1
+        it "should create interval between two points in time" <|
+            time1 = Point.new 2001 1 2
+            time2 = Point.new 2001 2 1
             interval = Interval.between time1 time2
             interval.to_vector . should_equal [0, 0, 0, 720, 0, 0, 0]

@@ -3,6 +3,9 @@ import Base.Time.Instant
 
 polyglot java import java.lang.System
 
+from Base.Time.Point export all hiding Instant, Temporal, ZonedDataTime, ZoneId
+from Base.Time.Interval export all hiding Duration, Period
+
 ## The number of seconds that have elapsed since the Unix epoch.
 epoch_time : Integer
 epoch_time = Instant.now . to_epoch_second

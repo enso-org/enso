@@ -1,0 +1,64 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Duration
+import Base.Time.Period
+import Base.Time.Instant
+import Base.Time.Point
+
+spec =
+    describe "Point" <|
+        it "should create point in time" <|
+            time = Point.new
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . to_epoch_second . should_equal 0
+            time . to_epoch_second . should_equal 0
+        it "should create point in time from instant" <|
+            instant = Instant.new 1970 1 1 0 0 1
+            time = Point.of_instant instant
+            time . to_epoch_second . should_equal 1
+        it "should parse point in time" <|
+            time = Point.parse "1970-01-01T00:00:01.00Z"
+            time . to_epoch_second . should_equal 1
+        it "should add duration" <|
+            date = Point.new.plus (Duration.parse "PT0.000000001S")
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 1
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 1
+        it "should add period" <|
+            date = Point.new.plus (Period.parse "P1M")
+            date . get_year . should_equal 1970
+            date . get_month . should_equal 2
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
+        it "should subtract duration" <|
+            date = Point.new.minus (Duration.parse "PT1H")
+            date . get_year . should_equal 1969
+            date . get_month . should_equal 12
+            date . get_day . should_equal 31
+            date . get_hour . should_equal 23
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
+        it "should subtract period" <|
+            date = Point.new.minus (Period.parse "P1M")
+            date . get_year . should_equal 1969
+            date . get_month . should_equal 12
+            date . get_day . should_equal 1
+            date . get_hour . should_equal 0
+            date . get_minute . should_equal 0
+            date . get_second . should_equal 0
+            date . get_nanosecond . should_equal 0
