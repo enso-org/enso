@@ -2,6 +2,7 @@ from Base import all
 import Base.Test
 import Base.Time
 
+import Test.Time.Timer.Spec as Timer_Spec
 import Test.Time.Interval.Spec as Interval_Spec
 import Test.Time.Time_Of_Day.Spec as Time_Of_Day_Spec
 import Test.Time.Date.Spec as Date_Spec
@@ -9,17 +10,7 @@ import Test.Time.Time.Spec as Time_Spec
 import Test.Time.Zone.Spec as Zone_Spec
 
 spec =
-    describe "Time" <|
-       it "should get epoch time seconds" <|
-           time = Time.epoch_time
-           (time > 0) . should_be_true
-       it "should get epoch time millis" <|
-           time = Time.epoch_time_millis
-           (time > 0) . should_be_true
-       it "should get nano time" <|
-           time1 = Time.nano_time
-           time2 = Time.nano_time
-           (time1 <= time2) . should_be_true
+    Timer_Spec.spec
     Zone_Spec.spec
     Time_Of_Day_Spec.spec
     Date_Spec.spec
