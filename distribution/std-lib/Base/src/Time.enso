@@ -1,17 +1,16 @@
 from Base import all
-import Base.Time.Instant
+import Base.Time.Time
 
 polyglot java import java.lang.System
 
 from Base.Time.Time export all hiding Instant, ZonedDataTime
-from Base.Time.Interval export all hiding Duration, Period
 
 ## Error while working with time
 type Error error_message
 
 ## The number of seconds that have elapsed since the Unix epoch.
 epoch_time : Integer
-epoch_time = Instant.now . to_epoch_second
+epoch_time = Time.now . to_epoch_second
 
 ## The number of milliseconds that have elapsed since the Unix epoch.
 epoch_time_millis : Integer

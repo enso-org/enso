@@ -74,14 +74,6 @@ parse text = Local_Time (LocalTime.parse [text])
 now : Local_Time
 now = Local_Time (LocalTime.now [])
 
-## Obtains an instance of LocalTime from an Instant and zone offset.
-
-  > Example
-    Get local time now in the UTC time zone.
-       Local_Time.of_instant Instant.now
-of_instant : Instant -> Local_Time
-of_instant instant = Local_Time (instant.internal_instant . toLocalTime [])
-
 ## Obtains an instance of `Local_Time` from an hour, minute, second and nanosecond.
 
    - hour - the hour-of-day to represent, from 0 to 23

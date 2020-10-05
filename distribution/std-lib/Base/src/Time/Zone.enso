@@ -15,19 +15,19 @@ type Zone
     get_id : Text
     get_id = this.internal_zone . getId []
 
-## This method parses the ID producing a `Zone_Id`.
+## This method parses the ID producing a `Zone`.
 
    > Example
      Get Central European Time.
-         Zone_Id.parse "CET"
+         Zone.parse "CET"
 
    > Example
      Get Moscow time.
-         Zone_Id.parse "Europe/Moscow"
+         Zone.parse "Europe/Moscow"
 
    > Example
      Get time zone -06:00.
-         Zone_Id.parse "-06:00"
+         Zone.parse "-06:00"
 parse : Text -> Zone
 parse text = Zone (ZoneId.of [text])
 
@@ -49,7 +49,7 @@ utc = here.parse "UTC"
 
    > Example
      Get time zone 1 hour 1 minute and 50 seconds of Greenwich/UTC.
-         Zone_Offset.new 1 1 50
+         Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
     Zone (ZoneOffset.ofHoursMinutesSeconds [hours, minutes, seconds] . normalized [])

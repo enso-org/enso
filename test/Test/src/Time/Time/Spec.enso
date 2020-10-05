@@ -3,6 +3,7 @@ from Base import all
 import Base.Test
 import Base.Time.Time
 import Base.Time.Interval
+import Base.Time.Zone
 
 spec =
     describe "Time" <|
@@ -15,44 +16,125 @@ spec =
             time . get_minute . should_equal 0
             time . get_second . should_equal 0
             time . get_nanosecond . should_equal 0
-            time . to_epoch_second . should_equal 0
-            time . to_epoch_second . should_equal 0
-        it "should parse instant" <|
-            time = Time.parse "1970-01-01T00:00:01.00Z"
+            time . get_zone . get_id . should_equal Zone.utc.get_id
+        it "should parse time UTC" <|
+            time = Time.parse "1970-01-01T00:00:01Z"
             time . to_epoch_second . should_equal 1
+        it "should parse time with nanoseconds" <|
+            time = Time.parse "1970-01-01T00:00:01.123456789Z"
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 1
+            time . get_nanosecond . should_equal 123456789
+            time . get_zone . get_id . should_equal "Z"
+        it "should parse time with offset-based timezone" <|
+            time = Time.parse "1970-01-01T00:00:01+01:00"
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 1
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal (Zone.new 1 . get_id)
+        it "should parse time with id-based timezone" <|
+            time = Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]"
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 1
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal "Europe/Paris"
+        it "should get epoch seconds" <|
+            time = Time.new 1970 1 1 0 0 8
+            time . to_epoch_second . should_equal 8
+        it "should get epoch millis" <|
+            time = Time.new 1970 1 1 0 0 8
+            time . to_epoch_milli . should_equal 8000
+        it "should set offset-based timezone" <|
+            zone = Zone.new 1 1 1
+            time = Time.new 1970 . at_zone zone
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 1
+            time . get_minute . should_equal 1
+            time . get_second . should_equal 1
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal zone.get_id
+        it "should set id-based timezone" <|
+            zone = Zone.parse "Europe/Moscow"
+            time = Time.new 1970 . at_zone zone
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 3
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal zone.get_id
         it "should add time interval" <|
-            date = Time.new 1970 . plus 1.nanosecond
-            date . get_year . should_equal 1970
-            date . get_month . should_equal 1
-            date . get_day . should_equal 1
-            date . get_hour . should_equal 0
-            date . get_minute . should_equal 0
-            date . get_second . should_equal 0
-            date . get_nanosecond . should_equal 1
+            time = Time.new 1970 . plus 1.nanosecond
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 1
+            time . get_zone . get_id . should_equal Zone.utc.get_id
         it "should add date interval" <|
-            date = Time.new 1970 . plus 1.month
-            date . get_year . should_equal 1970
-            date . get_month . should_equal 2
-            date . get_day . should_equal 1
-            date . get_hour . should_equal 0
-            date . get_minute . should_equal 0
-            date . get_second . should_equal 0
-            date . get_nanosecond . should_equal 0
+            time = Time.new 1970 . plus 1.month
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 2
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal Zone.utc.get_id
+        it "should add mixed date time interval" <|
+            time = Time.new 1970 . plus (1.month . plus 3.hours)
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 2
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 3
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal Zone.utc.get_id
         it "should subtract time interval" <|
-            date = Time.new 1970 . minus 1.hour
-            date . get_year . should_equal 1969
-            date . get_month . should_equal 12
-            date . get_day . should_equal 31
-            date . get_hour . should_equal 23
-            date . get_minute . should_equal 0
-            date . get_second . should_equal 0
-            date . get_nanosecond . should_equal 0
+            time = Time.new 1970 . minus 1.hour
+            time . get_year . should_equal 1969
+            time . get_month . should_equal 12
+            time . get_day . should_equal 31
+            time . get_hour . should_equal 23
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal Zone.utc.get_id
         it "should subtract date interval" <|
-            date = Time.new 1970 . minus 1.month
-            date . get_year . should_equal 1969
-            date . get_month . should_equal 12
-            date . get_day . should_equal 1
-            date . get_hour . should_equal 0
-            date . get_minute . should_equal 0
-            date . get_second . should_equal 0
-            date . get_nanosecond . should_equal 0
+            time = Time.new 1970 . minus 1.month
+            time . get_year . should_equal 1969
+            time . get_month . should_equal 12
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal Zone.utc.get_id
+        it "should subtract mixed date time interval" <|
+            time = Time.new 1970 . minus (1.month . minus 3.hours)
+            time . get_year . should_equal 1969
+            time . get_month . should_equal 12
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 3
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal Zone.utc.get_id

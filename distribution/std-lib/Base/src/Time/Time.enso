@@ -33,13 +33,17 @@ type Time
     get_second : Integer
     get_second = this . internal_time . getSecond []
 
-    ## Gets the nano-of-second field.
+    ## Get the nano-of-second field.
     get_nano : Integer
     get_nano = this . internal_time . getNano []
 
-    ## Gets the nano-of-second field.
+    ## Get the nano-of-second field.
     get_nanosecond : Integer
     get_nanosecond = this . get_nano
+
+    ## Get the timezone.
+    get_zone : Zone
+    get_zone = Zone.zone (this . internal_time . getZone [])
 
     ## Return the number of seconds from the Unix epoch.
     to_epoch_second : Integer
@@ -48,6 +52,10 @@ type Time
     ## Return the number of milliseconds from the Unix epoch.
     to_epoch_milli : Integer
     to_epoch_milli = this . internal_time . toInstant [] . toEpochMilli []
+
+    ## Convert the time instant to a provided timezone.
+    at_zone : Zone -> Time
+    at_zone zone = Time (this.internal_time . withZoneSameInstant [zone.internal_zone])
 
     ## Add specified amount of time to this instant.
 

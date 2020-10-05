@@ -2,23 +2,15 @@ from Base import all
 
 import Base.Test
 import Base.Time
-import Base.Time.Instant
 import Base.Time.Interval
 import Base.Time.Local_Date
 import Base.Time.Local_Time
-import Base.Time.Zone_Offset
 
 spec =
     describe "Local_Date" <|
         it "should create local date" <|
             date = Local_Date.new 2020 1 1
             date . get_year . should_equal 2020
-            date . get_month . should_equal 1
-            date . get_day . should_equal 1
-        it "should create local date from instant" <|
-            instant = Instant.new 1970 1 1 0 0 1
-            date = Local_Date.of_instant instant
-            date . get_year . should_equal 1970
             date . get_month . should_equal 1
             date . get_day . should_equal 1
         it "should parse local date" <|

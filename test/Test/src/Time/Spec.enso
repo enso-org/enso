@@ -2,14 +2,11 @@ from Base import all
 import Base.Test
 import Base.Time
 
-import Test.Time.Instant.Spec as Instant_Spec
 import Test.Time.Interval.Spec as Interval_Spec
 import Test.Time.Local_Time.Spec as Local_Time_Spec
 import Test.Time.Local_Date.Spec as Local_Date_Spec
 import Test.Time.Time.Spec as Time_Spec
 import Test.Time.Zone.Spec as Zone_Spec
-import Test.Time.Zone_Id.Spec as Zone_Id_Spec
-import Test.Time.Zone_Offset.Spec as Zone_Offset_Spec
 
 spec =
     describe "Time" <|
@@ -23,10 +20,7 @@ spec =
            time1 = Time.nano_time
            time2 = Time.nano_time
            (time1 <= time2) . should_be_true
-    Zone_Offset_Spec.spec
-    Zone_Id_Spec.spec
     Zone_Spec.spec
-    Instant_Spec.spec
     Local_Time_Spec.spec
     Local_Date_Spec.spec
     Time_Spec.spec

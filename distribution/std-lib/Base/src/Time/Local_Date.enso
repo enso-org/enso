@@ -74,14 +74,6 @@ parse fmt = Local_Date (LocalDate.parse [fmt])
 now : Local_Date
 now = Local_Date (LocalDate.now [])
 
-## Obtains an instance of `Local_Date` from an instant and zone offset.
-
-   > Example
-     Get local date now in the UTC time zone.
-         Local_Date.of_instant Instant.now Zone_Offset.utc
-of_instant : Instant -> Local_Date
-of_instant instant = Local_Date (instant.internal_instant . toLocalDate [])
-
 ## Obtains an instance of `Local_Date` from a year, month and day.
 
    The day must be valid for the year and month, otherwise an exception will be
