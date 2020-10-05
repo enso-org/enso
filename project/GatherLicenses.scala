@@ -1,6 +1,8 @@
 import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.updateLicenses
 import sbt.Keys._
 import sbt._
+import src.main.scala.licenses.DistributionDescription
+import src.main.scala.licenses.frontend.{DependencyFilter, SbtLicenses}
 // import sbt.internal.util.ManagedLogger
 
 object GatherLicenses {
@@ -22,16 +24,18 @@ object GatherLicenses {
         s"It consists of the following sbt project roots:" +
         s" ${projectNames.mkString(", ")}"
       )
+      val (sbtInfo, sbtWarnings) =
+        SbtLicenses.analyze(distribution.sbtComponents, log)
+      sbtWarnings.foreach(log.warn(_))
 
-      val combinedDependencies = (for {
-        component <- distribution.sbtComponents
-        dep       <- component.report.licenses
-      } yield dep).distinct
+      val allInfo = sbtInfo // TODO [RW] add Rust frontend result here (#1187)
 
-      log.info(s"${combinedDependencies.length} unique dependencies found")
-
-      for (dependency <- combinedDependencies) {
-        println(s"${dependency.module} -> ${dependency.license}")
+      log.info(s"${allInfo.size} unique dependencies discovered")
+      allInfo.foreach { dependency =>
+        println(
+          s"${dependency.moduleInfo} -> ${dependency.license} / ${dependency.url}"
+        )
+        dependency.sources.foreach(_.access(println))
       }
     }
 

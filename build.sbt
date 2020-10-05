@@ -142,7 +142,7 @@ lazy val enso = (project in file("."))
     `logging-service`,
     `akka-native`,
     `version-output`,
-    runner,
+    `engine-runner`,
     runtime,
     searcher,
     launcher,
@@ -974,7 +974,7 @@ lazy val runtime = (project in file("engine/runtime"))
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
-lazy val runner = project
+lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
     javaOptions ++= {
@@ -1148,30 +1148,21 @@ lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
 gatherLicenses := GatherLicenses.run.value
 GatherLicenses.distributions := Seq(
-    DistributionDescription(
-      artifactName = "launcher",
-      sbtComponents = Seq(
-        DistributionComponent("launcher", (launcher / updateLicenses).value)
-      )
+    Distribution(
+      "launcher",
+      Distribution.sbtProjects(launcher)
     ),
-    DistributionDescription(
-      artifactName = "engine",
+    Distribution(
+      "engine",
       /*
-/build.sbt:1170: error: reference to runner is ambiguous;
+/build.sbt:1166: error: reference to runner is ambiguous;
 it is imported twice in the same scope by
 import _root_.sbt.Keys._
-and import $6e3fa6960dfdf20211fd._
-        DistributionComponent("runner", (runner / updateLicenses).value),
+and import $bcfdaf578d3643e549ad._
+      Distribution.sbtProjects(runtime, runner, `project-manager`)
 
-The runner may need to be renamed due to this weird issue?
+The runner had to be renamed due to this issue
        */
-      sbtComponents = Seq(
-        DistributionComponent("runtime", (runtime / updateLicenses).value),
-//        DistributionComponent("runner", (runner / updateLicenses).value),
-        DistributionComponent(
-          "project-manager",
-          (`project-manager` / updateLicenses).value
-        )
-      )
+      Distribution.sbtProjects(runtime, `engine-runner`, `project-manager`)
     )
   )
