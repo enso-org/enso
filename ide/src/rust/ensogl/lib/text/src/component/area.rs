@@ -540,7 +540,6 @@ impl Area {
             loc_on_set_cursor        <- any(input.set_cursor,loc_on_set_cursor_mouse,loc_on_set_cursor_at_end);
             loc_on_add_cursor        <- any(&input.add_cursor,&loc_on_add_cursor_mouse);
 
-
             eval loc_on_set_cursor ((loc) m.buffer.frp.set_cursor(loc));
             eval loc_on_add_cursor ((loc) m.buffer.frp.add_cursor(loc));
 
@@ -702,7 +701,6 @@ impl AreaData {
         let font           = fonts.load("DejaVuSansMono");
         let glyph_system   = typeface::glyph::System::new(&scene,font);
         let display_object = display::object::Instance::new(&logger);
-        let glyph_system   = glyph_system.clone_ref();
         let buffer         = default();
         let lines          = default();
         let frp_inputs     = FrpInputs::new(network);
@@ -758,7 +756,10 @@ impl AreaData {
                     selection.position.set_target_value(pos);
                     selection.position.skip();
                     let selection_network = &selection.network;
-                    let model = self.clone_ref(); // FIXME: memory leak. To be fixed with the below note.
+                    // FIXME[wd]: memory leak. To be fixed with the below note as a part of
+                    //            https://github.com/enso-org/ide/issues/670 . Once fixed, delete
+                    //            code removing all cursors on Area drop.
+                    let model = self.clone_ref();
                     frp::extend! { selection_network
                         // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
                         //            animation frame. Multiple times, once per cursor.
@@ -998,3 +999,12 @@ impl application::shortcut::DefaultShortcutProvider for Area {
           ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
     }
 }
+
+impl Drop for Area {
+    fn drop(&mut self) {
+        // TODO[ao]: This is workaround for memory leak causing text to stay even when component
+        //           is deleted. See "FIXME: memory leak." comment above.
+        self.remove_all_cursors();
+    }
+}
+
