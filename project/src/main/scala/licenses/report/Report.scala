@@ -19,41 +19,46 @@ object Report {
     destination: File
   ): Unit = {
     val writer = new PrintWriter(Files.newBufferedWriter(destination.toPath))
-    try { // <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-      val heading =
-        s"""<head>
-           |<meta charset="utf-8">
-           
-           |  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-           |  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-           |<title>Dependency summary for ${description.artifactName}</title>
-           |<style>
-           |table, th, td {
-           | border: solid 1px;
-           |}
-           |h4 {
-           |  font-weight: normal;
-           |  display: inline;
-           |}
-           |</style>
-           | <script>
-           |  $$( function() {
-           |    $$( ".accordion" ).accordion({
-           |      active: false,
-           |      collapsible: true
-           |    });
-           |  } );
-           |  </script>
-           |</head>
-           |<body>""".stripMargin
-      writer.println(heading)
+    try {
+      writeHeading(writer, description.artifactName)
       writeDescription(writer, description)
       writeWarnings(writer, warnings)
+      writeLicenseSummary(writer, summary)
       writeDependencySummary(writer, summary)
       writer.println("""</body>""")
     } finally {
       writer.close()
     }
+  }
+
+  private def writeHeading(writer: PrintWriter, name: String): Unit = {
+    val heading =
+      s"""<head>
+         |<meta charset="utf-8">
+
+         |  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+         |  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+         |<title>Dependency summary for $name</title>
+         |<style>
+         |table, th, td {
+         | border: solid 1px;
+         |}
+         |h4 {
+         |  font-weight: normal;
+         |  display: inline;
+         |}
+         |</style>
+         | <script>
+         |  $$( function() {
+         |    $$( ".accordion" ).accordion({
+         |      active: false,
+         |      collapsible: true
+         |    });
+         |  } );
+         |  </script>
+         |</head>
+         |<body>""".stripMargin
+    writer.println(heading)
   }
 
   private def openTable(writer: PrintWriter): Unit = {
@@ -62,8 +67,8 @@ object Report {
          |<tr>
          |<th>Organization</th>
          |<th>Name</th>
-         |<th>URL</th>
          |<th>Version</th>
+         |<th>URL</th>
          |<th>License</th>
          |<th>License file</th>
          |<th>Attached files</th>
@@ -91,6 +96,22 @@ object Report {
     )
   }
 
+  private def writeLicenseSummary(
+    writer: PrintWriter,
+    summary: DependencySummary
+  ): Unit = {
+    writer.println("<h2>Licenses present within dependencies</h2>")
+    writer.println("<ul>")
+    val licenses = summary.dependencies.map(_._1.license).distinct
+    for (license <- licenses) {
+      val status = "TODO license review status"
+      writer.println(
+        s"""<li><a href="${license.url}">${license.name}</a> - $status</li>"""
+      )
+    }
+    writer.println("</ul>")
+  }
+
   private def writeWarnings(
     writer: PrintWriter,
     warnings: Seq[String]
@@ -115,6 +136,7 @@ object Report {
       (dep._1.moduleInfo.organization, dep._1.moduleInfo.name)
     )
 
+    writer.println("<h2>Summary of all compile dependencies</h2>")
     openTable(writer)
     for ((dependencyInformation, attachments) <- sorted) {
       writer.println("<tr>")

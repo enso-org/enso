@@ -17,6 +17,7 @@ object GatherCopyrights extends AttachmentGatherer {
           val relativePath = root.relativize(path)
           lines
             .filter(mayBeCopyright)
+            .map(cleanup)
             .map(CopyrightMention(_, None, Seq(relativePath)))
         } catch {
           case NonFatal(e) =>
@@ -33,4 +34,9 @@ object GatherCopyrights extends AttachmentGatherer {
 
   private def mayBeCopyright(line: String): Boolean =
     line.toLowerCase.contains("copyright")
+
+  private def cleanup(string: String): String = {
+    val charsToIgnore = Seq('*', '-', '#', '/')
+    string.dropWhile(char => char.isWhitespace || charsToIgnore.contains(char))
+  }
 }
