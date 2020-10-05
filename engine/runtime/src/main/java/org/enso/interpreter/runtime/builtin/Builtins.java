@@ -19,6 +19,8 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatc
 import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
+import org.enso.interpreter.node.expression.builtin.resource.RegisterMethodGen;
+import org.enso.interpreter.node.expression.builtin.resource.WithMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -152,6 +154,11 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
+
+    AtomConstructor resource = new AtomConstructor("Resource", scope).initializeFields();
+    scope.registerConstructor(resource);
+    scope.registerMethod(resource, "register", RegisterMethodGen.makeFunction(language));
+    scope.registerMethod(resource, "with", WithMethodGen.makeFunction(language));
 
     module.unsafeBuildIrStub();
   }
