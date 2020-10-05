@@ -1,7 +1,7 @@
 //! Module with content regarding location in text (e.g. location of cursors or changes etc.)
 use crate::display::shape::text::text_field::content::Change;
 
-use data::text::TextLocation;
+use enso_data::text::TextLocation;
 use std::ops::Range;
 
 

@@ -8,13 +8,13 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude      = { version = "0.1.0" , path = "../../../lib/enso-prelude"      }
-ensogl-system-web = { version = "0.1.0" , path = "../../../lib/system/web"        }
-enso-shapely      = { version = "0.1.0" , path = "../../../lib/enso-shapely/impl" }
+enso-prelude      = { version = "0.1.2"                                    }
+enso-shapely      = { version = "0.1.1"                                    }
+ensogl-system-web = { version = "0.1.0" , path = "../../../lib/system/web" }
 
-futures           = { version = "0.3.1"                                           }
-failure           = { version = "0.1.6"                                           }
-serde             = { version = "1.0.0" , features = ["derive"]                   }
-serde_json        = { version = "1.0.0"                                           }
-shrinkwraprs      = { version = "0.3.0"                                           }
-utils             = { version = "0.1.0" , path = "../utils"                       }
+futures           = { version = "0.3.1"                         }
+failure           = { version = "0.1.6"                         }
+serde             = { version = "1.0.0" , features = ["derive"] }
+serde_json        = { version = "1.0.0"                         }
+shrinkwraprs      = { version = "0.3.0"                         }
+utils             = { version = "0.1.0" , path = "../utils"     }

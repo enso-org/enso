@@ -8,20 +8,20 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-callback            = { version = "0.1.0"  , path = "../lib/callback"             }
-ensogl                   = { version = "0.1.0"  , path = "../ensogl"                   }
-ensogl-theme             = { version = "0.1.0"  , path = "../ensogl/lib/theme"         }
-ensogl-examples          = { version = "0.1.0"  , path = "../ensogl/example"           }
-ensogl-gui-list-view     = { version = "0.1.0"  , path = "../ensogl/lib/list-view"     }
-ensogl-text              = { version = "0.1.0"  , path = "../ensogl/lib/text"          }
-ensogl-text-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/lib/text/msdf-sys" }
-ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"           }
-fuzzly                   = { version = "0.1.0"  , path = "../lib/fuzzly"               }
-data                     = { version = "0.1.0"  , path = "../lib/data"                 }
-enso-frp                 = { version = "0.1.0"  , path = "../lib/frp"                  }
-enso-prelude             = { version = "0.1.0"  , path = "../lib/enso-prelude"         }
-logger                   = { version = "0.1.0"  , path = "../lib/logger"               }
-enso-shapely             = { version = "0.1.0"  , path = "../lib/enso-shapely/impl"    }
+enso-callback        = { version = "0.1.0" , path = "../lib/callback"             }
+enso-data            = { version = "0.1.1"                                        }
+enso-frp             = { version = "0.1.0" , path = "../lib/frp"                  }
+enso-logger          = { version = "0.1.1"                                        }
+enso-prelude         = { version = "0.1.2"                                        }
+enso-shapely         = { version = "0.1.1"                                        }
+ensogl               = { version = "0.1.0" , path = "../ensogl"                   }
+ensogl-examples      = { version = "0.1.0" , path = "../ensogl/example"           }
+ensogl-gui-list-view = { version = "0.1.0" , path = "../ensogl/lib/list-view"     }
+ensogl-system-web    = { version = "0.1.0" , path = "../lib/system/web"           }
+ensogl-text          = { version = "0.1.0" , path = "../ensogl/lib/text"          }
+ensogl-text-msdf-sys = { version = "0.1.0" , path = "../ensogl/lib/text/msdf-sys" }
+ensogl-theme         = { version = "0.1.0" , path = "../ensogl/lib/theme"         }
+fuzzly               = { version = "0.1.0" , path = "../lib/fuzzly"               }
 
 ast                      = { version = "0.1.0"  , path = "lib/ast/impl"      }
 ide-view                 = { version = "0.1.0"  , path = "view" }

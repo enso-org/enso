@@ -8,9 +8,9 @@ use crate::common::event::Event;
 use futures::channel::mpsc::UnboundedSender;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
-use logger::*;
-use logger::AnyLogger;
-use logger::enabled::Logger;
+use enso_logger::*;
+use enso_logger::AnyLogger;
+use enso_logger::enabled::Logger;
 use std::future::Future;
 use utils::fail::FallibleResult;
 

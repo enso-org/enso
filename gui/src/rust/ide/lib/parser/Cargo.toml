@@ -9,10 +9,10 @@ build   = "build.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ast          = { version = "0.1.0", path = "../ast/impl"               }
-data         = { version = "0.1.0", path = "../../../lib/data"         }
-enso-prelude = { version = "0.1.0", path = "../../../lib/enso-prelude" }
-utils        = { version = "0.1.0", path = "../utils"                  }
+ast          = { version = "0.1.0", path = "../ast/impl" }
+enso-data    = { version = "0.1.1"                       }
+enso-prelude = { version = "0.1.2"                       }
+utils        = { version = "0.1.0", path = "../utils"    }
 
 console_error_panic_hook = { version = "0.1.6"                                            }
 failure                  = { version = "0.1"                                              }

@@ -21,25 +21,30 @@ members = [
     "ide/view",
     "ide/view/graph-editor",
 
-    "lib/automata",
     "lib/callback",
     "lib/code-builder",
-    "lib/data",
-    "lib/enso-macro-utils",
-    "lib/enso-prelude",
-    "lib/enso-shapely/impl",
-    "lib/enso-shapely/macros",
     "lib/eval-tt",
     "lib/frp",
     "lib/fuzzly",
-    "lib/generics",
-    "lib/logger",
-    "lib/optics",
     "lib/shortcuts",
     "lib/shortcuts/example",
     "lib/system/web",
     "lib/types",
 ]
+
+# These patch versions exist to allow local development of these libraries alongside the IDE. It
+# assumes you have `rust-lib` in the same directory as `ide`. See:
+# https://github.com/enso-org/rust-lib/blob/main/docs/CONTRIBUTING.md#developing-in-conjunction-with-enso--ide
+[patch.crates-io]
+# enso-automata       = { path = '../../../rust-lib/src/automata'       }
+# enso-data           = { path = '../../../rust-lib/src/data'           }
+# enso-generics       = { path = '../../../rust-lib/src/generics'       }
+# enso-logger         = { path = '../../../rust-lib/src/logger'         }
+# enso-macro-utils    = { path = '../../../rust-lib/src/macro-utils'    }
+# enso-optics         = { path = '../../../rust-lib/src/optics'         }
+# enso-prelude        = { path = '../../../rust-lib/src/prelude'        }
+# enso-shapely        = { path = '../../../rust-lib/src/shapely/impl'   }
+# enso-shapely-macros = { path = '../../../rust-lib/src/shapely/macros' }
 
 [profile.dev]
 opt-level = 0

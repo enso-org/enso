@@ -286,15 +286,15 @@ pub struct Position {
     pub character : usize
 }
 
-impls!{ From + &From <data::text::TextLocation> for Position { |location|
+impls!{ From + &From <enso_data::text::TextLocation> for Position { |location|
     Position {
         line      : location.line,
         character : location.column,
     }
 }}
 
-impls!{ Into + &Into <data::text::TextLocation> for Position { |this|
-    data::text::TextLocation {
+impls!{ Into + &Into <enso_data::text::TextLocation> for Position { |this|
+    enso_data::text::TextLocation {
         line   : this.line,
         column : this.character,
     }
@@ -314,14 +314,14 @@ pub struct TextRange {
     pub end: Position
 }
 
-impls!{ From + &From <Range<data::text::TextLocation>> for TextRange { |range|
+impls!{ From + &From <Range<enso_data::text::TextLocation>> for TextRange { |range|
     TextRange {
         start : range.start.into(),
         end   : range.end.into(),
     }
 }}
 
-impls!{ Into + &Into <Range<data::text::TextLocation>> for TextRange { |this|
+impls!{ Into + &Into <Range<enso_data::text::TextLocation>> for TextRange { |this|
     this.start.into()..this.end.into()
 }}
 
@@ -528,14 +528,14 @@ pub struct SuggestionEntryScope {
     pub end   : Position,
 }
 
-impls!{ From + &From <RangeInclusive<data::text::TextLocation>> for SuggestionEntryScope { |range|
+impls!{ From + &From <RangeInclusive<enso_data::text::TextLocation>> for SuggestionEntryScope { |range|
     SuggestionEntryScope {
         start : range.start().into(),
         end   : range.end().into(),
     }
 }}
 
-impls!{ Into + &Into <RangeInclusive<data::text::TextLocation>> for SuggestionEntryScope { |this|
+impls!{ Into + &Into <RangeInclusive<enso_data::text::TextLocation>> for SuggestionEntryScope { |this|
     this.start.into()..=this.end.into()
 }}
 

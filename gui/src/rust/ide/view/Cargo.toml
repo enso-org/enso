@@ -10,18 +10,18 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ast                   = { version = "0.1.0", path = "../lib/ast/impl"                }
 enso-frp              = { version = "0.1.0", path = "../../lib/frp"                  }
-enso-prelude          = { version = "0.1.0", path = "../../lib/enso-prelude"         }
+enso-logger           = { version = "0.1.1"                                          }
+enso-prelude          = { version = "0.1.2"                                          }
+enso-protocol         = { version = "0.1.0", path = "../lib/enso-protocol"           }
+enso-shapely          = { version = "0.1.1"                                          }
 ensogl                = { version = "0.1.0", path = "../../ensogl"                   }
 ensogl-gui-list-view  = { version = "0.1.0", path = "../../ensogl/lib/list-view"     }
 ensogl-text           = { version = "0.1.0", path = "../../ensogl/lib/text"          }
 ensogl-text-msdf-sys  = { version = "0.1.0", path = "../../ensogl/lib/text/msdf-sys" }
 ensogl-theme          = { version = "0.1.0", path = "../../ensogl/lib/theme"         }
-enso-shapely          = { version = "0.1.0", path = "../../lib/enso-shapely/impl"    }
 ide-view-graph-editor = { version = "0.1.0", path = "graph-editor"                   }
 parser                = { version = "0.1.0", path = "../lib/parser"                  }
 span-tree             = { version = "0.1.0", path = "../lib/span-tree"               }
-logger                = { version = "0.1.0", path = "../../lib/logger"               }
-enso-protocol         = { version = "0.1.0", path = "../lib/enso-protocol"           }
 
 js-sys       = { version = "0.3.28"                                             }
 nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }

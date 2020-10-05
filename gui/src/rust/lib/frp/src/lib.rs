@@ -180,8 +180,8 @@ pub use stream::Stream;
 /// Set of often used types and functions.
 pub mod prelude {
     pub use enso_prelude::*;
-    pub use logger::*;
-    pub use logger::disabled::*;
+    pub use enso_logger::*;
+    pub use enso_logger::disabled::*;
 }
 
 

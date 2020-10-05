@@ -3,7 +3,7 @@ use crate::node;
 use crate::Node;
 use crate::SpanTree;
 
-use data::text::Size;
+use enso_data::text::Size;
 use ast::crumbs::IntoCrumbs;
 
 

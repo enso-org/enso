@@ -11,9 +11,9 @@ use crate::HasTokens;
 use crate::Shape;
 use crate::TokenConsumer;
 
-use data::text::Index;
-use data::text::Size;
-use data::text::Span;
+use enso_data::text::Index;
+use enso_data::text::Size;
+use enso_data::text::Span;
 use utils::fail::FallibleResult;
 
 

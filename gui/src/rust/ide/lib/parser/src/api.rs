@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use ast::HasRepr;
 use ast::HasIdMap;
-use data::text::ByteIndex;
+use enso_data::text::ByteIndex;
 
 pub use ast::Ast;
 
