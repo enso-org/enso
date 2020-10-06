@@ -1,7 +1,5 @@
 package org.enso.interpreter.runtime.builtin;
 
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
@@ -11,16 +9,11 @@ import org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.generic.*;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
-import org.enso.interpreter.node.expression.builtin.resource.RegisterMethodGen;
-import org.enso.interpreter.node.expression.builtin.resource.WithMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -32,12 +25,8 @@ import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerM
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
@@ -65,6 +54,7 @@ public class Builtins {
   private final System system;
   private final Array array;
   private final Polyglot polyglot;
+  private final ManagedResource managedResource;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -87,6 +77,7 @@ public class Builtins {
     system = new System(language, scope);
     number = new Number(language, scope);
     polyglot = new Polyglot(language, scope);
+    managedResource = new ManagedResource(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -154,11 +145,6 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
-
-    AtomConstructor resource = new AtomConstructor("Resource", scope).initializeFields();
-    scope.registerConstructor(resource);
-    scope.registerMethod(resource, "register", RegisterMethodGen.makeFunction(language));
-    scope.registerMethod(resource, "with", WithMethodGen.makeFunction(language));
 
     module.unsafeBuildIrStub();
   }

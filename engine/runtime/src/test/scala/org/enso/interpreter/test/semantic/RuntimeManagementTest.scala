@@ -62,6 +62,15 @@ class RuntimeManagementTest extends InterpreterTest {
       runTest()
     }
 
+    def forceGC(): Unit = {
+      var obj = new Object
+      val ref = new WeakReference[Object](obj)
+      obj = null
+      while (ref.get.isDefined) {
+        System.gc()
+      }
+    }
+
     "Automatically free managed resources" in {
       val code =
         """
@@ -73,8 +82,8 @@ class RuntimeManagementTest extends InterpreterTest {
           |
           |create_resource i =
           |    c = Mock_File i
-          |    r = Resource.register c here.free_resource
-          |    Resource.with r f-> IO.println ("Accessing: " + f.to_text)
+          |    r = Managed_Resource.register c here.free_resource
+          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
           |
           |main =
           |    here.create_resource 0
@@ -85,15 +94,6 @@ class RuntimeManagementTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       var totalOut: List[String] = Nil
-
-      def forceGC(): Unit = {
-        var obj = new Object
-        val ref = new WeakReference[Object](obj)
-        obj = null
-        while (ref.get.isDefined) {
-          System.gc()
-        }
-      }
 
       forceGC()
 
@@ -106,6 +106,84 @@ class RuntimeManagementTest extends InterpreterTest {
       def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
       def mkFreeStr(i: Int): String = s"Freeing: (Mock_File $i)"
       def all = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
+      totalOut should contain theSameElementsAs all
+    }
+
+    "Automatically free managed resources in the presence of manual closure" in {
+      val code =
+        """
+          |from Builtins import all
+          |
+          |type Mock_File i
+          |
+          |free_resource r = IO.println ("Freeing: " + r.to_text)
+          |
+          |create_resource i =
+          |    c = Mock_File i
+          |    r = Managed_Resource.register c here.free_resource
+          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
+          |    if i % 2 == 0 then Managed_Resource.close r else Unit
+          |
+          |main =
+          |    here.create_resource 0
+          |    here.create_resource 1
+          |    here.create_resource 2
+          |    here.create_resource 3
+          |    here.create_resource 4
+          |""".stripMargin
+      eval(code)
+      var totalOut: List[String] = Nil
+
+      forceGC()
+
+      totalOut = consumeOut
+      while (totalOut.length < 10) {
+        Thread.sleep(100)
+        totalOut ++= consumeOut
+      }
+
+      def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
+      def mkFreeStr(i: Int): String = s"Freeing: (Mock_File $i)"
+      def all = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
+      totalOut should contain theSameElementsAs all
+    }
+
+    "Automatically free managed resources in the presence of manual takeover" in {
+      val code =
+        """
+          |from Builtins import all
+          |
+          |type Mock_File i
+          |
+          |free_resource r = IO.println ("Freeing: " + r.to_text)
+          |
+          |create_resource i =
+          |    c = Mock_File i
+          |    r = Managed_Resource.register c here.free_resource
+          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
+          |    if i % 2 == 0 then Managed_Resource.unsafe_take r else Unit
+          |
+          |main =
+          |    here.create_resource 0
+          |    here.create_resource 1
+          |    here.create_resource 2
+          |    here.create_resource 3
+          |    here.create_resource 4
+          |""".stripMargin
+      eval(code)
+      var totalOut: List[String] = Nil
+
+      forceGC()
+
+      totalOut = consumeOut
+      while (totalOut.length < 7) {
+        Thread.sleep(100)
+        totalOut ++= consumeOut
+      }
+
+      def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
+      def mkFreeStr(i: Int): String = s"Freeing: (Mock_File $i)"
+      def all = 0.to(4).map(mkAccessStr) ++ List(1, 3).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
     }
   }

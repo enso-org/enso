@@ -88,7 +88,7 @@ public final class Language extends TruffleLanguage<Context> {
 
   @Override
   protected void finalizeContext(Context context) {
-    context.getResourceManager().close();
+    context.getResourceManager().shutdown();
   }
 
   /**

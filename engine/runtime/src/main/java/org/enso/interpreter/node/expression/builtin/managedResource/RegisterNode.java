@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.resource;
+package org.enso.interpreter.node.expression.builtin.managedResource;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.CachedContext;
@@ -10,13 +10,17 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Resource;
 
-@BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
+@BuiltinMethod(
+    type = "Managed_Resource",
+    name = "register",
+    description =
+        "Makes an object into a managed resource, automatically finalized when the returned object is garbage collected.")
 public abstract class RegisterNode extends Node {
   static RegisterNode build() {
     return RegisterNodeGen.create();
   }
 
-  abstract Resource execute(Object _this, Object resource, Function function);
+  abstract Resource execute(Object _this, Object resource, Function finalizer);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
