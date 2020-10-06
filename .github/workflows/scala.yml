@@ -28,9 +28,8 @@ env:
     README.md
 
 jobs:
-  # This job is responsible for testing the codebase
-  test:
-    name: Test Engine
+  test_and_publish:
+    name: Build and Test
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -107,7 +106,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      # Build
+      # Compile
       - name: Bootstrap Enso project
         run: |
           sleep 1
@@ -123,7 +122,7 @@ jobs:
         run: |
           echo '::set-env name=CI_TEST_TIMEFACTOR::2'
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
-      - name: Prebuild Base Java Extensions
+      - name: Build Base Java Extensions
         shell: bash
         run: |
           cd std-bits
@@ -132,6 +131,9 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors launcher/buildNativeImage
+          # Prevents launcher/test from re-building the Native Image during
+          # test run. It is built before starting the tests to conserve system
+          # memory
           echo '::set-env name=LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD::true'
       - name: Test Enso
         run: |
@@ -149,115 +151,9 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors searcher/Benchmark/compile
-      - name: Build the Uberjar
-        run: |
-          sleep 1
-          sbt --no-colors runner/assembly
-      - name: Test the Uberjar
-        run: ./runner.jar --run tools/ci/Test.enso
-      - name: Test the Repl in the Uberjar
-        shell: bash
-        run:
-          cat tools/ci/artifact-test/repl/ReplTest.in | ./runner.jar --repl |
-          diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test
-          successful"
 
-  # This job is responsible for building the artifacts
-  build:
-    name: Build Engine
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    strategy:
-      matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
-      fail-fast: false
-    steps:
-      - name: Checkout (PR)
-        uses: actions/checkout@v2
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Checkout (Branch)
-        uses: actions/checkout@v2
-        if: github.event_name != 'pull_request'
-      - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.3.0
-      - name: Disable TCP/UDP Offloading (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
-          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
-      - name: Disable TCP/UDP Offloading (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: sudo ethtool -K eth0 tx off rx off
-      - name: Disable TCP/UDP Offloading (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: >
-          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
-          -UdpIPv6
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.rustToolchain }}
-          override: true
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1
-        with:
-          update-conda: true
-          conda-channels: anaconda, conda-forge
-      - name: Setup Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: |
-          conda create --name enso
-          conda init powershell
-      - name: Activate Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: conda activate enso
-      - name: Install FlatBuffers Compiler
-        run: conda install flatbuffers=1.12.0
-      - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
-        with:
-          graalvm-version: ${{ env.graalVersion }}
-          java-version: ${{ env.javaVersion }}
-          native-image: true
-      - name: Set Up SBT
-        run: |
-          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
-          tar -xzf sbt.tgz
-          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
-
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
-      - name: Cache Local Maven Repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      # Build Artifacts
-      - name: Bootstrap the Project
-        run: |
-          sleep 1
-          sbt --no-colors bootstrap
-      - name: Build the Runtime Uberjar
-        run: |
-          sleep 1
-          sbt --no-colors runtime/assembly
-      - name: Build the Runner Uberjar
+      # Build Distribution
+      - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
           sbt --no-colors runner/assembly
@@ -265,10 +161,6 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors project-manager/assembly
-      - name: Build the Launcher Native Image
-        run: |
-          sleep 1
-          sbt --no-colors launcher/buildNativeImage
       - name: Build the Manifest
         run: |
           cp distribution/manifest.template.yaml manifest.yaml
@@ -339,12 +231,6 @@ jobs:
         run: |
           cp enso.exe ${{ env.LAUNCHER_DIST_DIR }}/bin/
 
-      - name: Build Base Java Extensions
-        shell: bash
-        run: |
-          cd std-bits
-          mvn --no-transfer-progress package
-
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
       # create a twice nested ZIP file. For now, users downloading artifacts
@@ -364,6 +250,19 @@ jobs:
           cp -r distribution/std-lib $ENGINE_DIST_DIR/std-lib
           cp -r distribution/bin $ENGINE_DIST_DIR/bin
           cp manifest.yaml $ENGINE_DIST_DIR
+
+      # Test Distribution
+      - name: Test Engine Distribution (Unix)
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --run test/Test
+
+      - name: Test Engine Distribution (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --run test/Test
 
       # Publish
       - name: Publish the Engine Distribution Artifact
