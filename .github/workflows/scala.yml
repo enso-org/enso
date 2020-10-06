@@ -28,7 +28,7 @@ env:
     README.md
 
 jobs:
-  test & publish:
+  test_and_publish:
     name: Test Engine
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
