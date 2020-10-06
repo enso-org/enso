@@ -5,6 +5,7 @@ import Base.Time.Time_Of_Day
 import Base.Time.Zone
 
 polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.Time_Utils
 
 type Time
@@ -90,6 +91,14 @@ type Time
              Time.new.minus 1.year . minus 9.months
     minus : Duration -> Time
     minus amount = Time (this . internal_zoned_date_time . minus [amount.interval_period] . minus [amount.interval_duration])
+
+    ## Format this time using the default formatter.
+    to_text : Text
+    to_text = Time_Utils.default_time_formatter [] . format [this.internal_zoned_date_time]
+
+    ## Format this time using formatter string.
+    format : Text -> Text
+    format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_zoned_date_time]
 
 ## Obtains an instance of `Time` from a text string such as
    2007-12-03T10:15:30Z.

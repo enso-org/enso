@@ -36,6 +36,11 @@ public class Time_Utils {
             .toFormatter();
   }
 
+  /** @return default date time formatter. */
+  public static DateTimeFormatter default_time_formatter() {
+    return DateTimeFormatter.ISO_ZONED_DATE_TIME;
+  }
+
   /**
    * Obtains an instance of ZonedDateTime from a text string.
    *
@@ -47,6 +52,9 @@ public class Time_Utils {
    *   <li>Zoned date time, such as '2011-12-03T10:15:30+01:00[Europe/Paris]' with optional region
    *       id in square brackets.
    * </ul>
+   *
+   * @param text the string to parse.
+   * @return parsed ZonedDateTime instance.
    */
   public static ZonedDateTime parse(String text) {
     TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);

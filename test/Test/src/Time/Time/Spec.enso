@@ -17,6 +17,23 @@ spec =
             time . get_second . should_equal 0
             time . get_nanosecond . should_equal 0
             time . get_zone . get_id . should_equal Zone.utc.get_id
+        it "should format using provided pattern" <|
+            text = Time.new 1970 (zone = Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
+            text . should_equal "1970-01-01T00:00:00"
+        it "should format using default pattern" <|
+            text = Time.new 1970 (zone = Zone.utc) . to_text
+            text . should_equal "1970-01-01T00:00:00Z[UTC]"
+        it "should parse default time format" <|
+            text = Time.new 1970 (zone = Zone.utc) . to_text
+            time = Time.parse text
+            time . get_year . should_equal 1970
+            time . get_month . should_equal 1
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 0
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal Zone.utc.get_id
         it "should parse local time adding system timezone" <|
             time = Time.parse "1970-01-01T00:00:01"
             time . get_year . should_equal 1970
