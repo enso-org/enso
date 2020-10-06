@@ -2,12 +2,10 @@
 
 members = [
     "lib/rust/ast",
-    "lib/rust/enso-prelude",
     "lib/rust/flexer",
     "lib/rust/flexer-testing/definition",
     "lib/rust/flexer-testing/generation",
     "lib/rust/launcher-shims",
-    "lib/rust/lazy-reader",
     "lib/rust/lexer/definition",
     "lib/rust/lexer/generation",
     "lib/rust/parser",
@@ -20,6 +18,7 @@ members = [
 # enso-automata       = { path = '../rust-lib/src/automata'       }
 # enso-data           = { path = '../rust-lib/src/data'           }
 # enso-generics       = { path = '../rust-lib/src/generics'       }
+# enso-lazy-reader    = { path = '../rust-lib/src/lazy-reader'    }
 # enso-logger         = { path = '../rust-lib/src/logger'         }
 # enso-macro-utils    = { path = '../rust-lib/src/macro-utils'    }
 # enso-optics         = { path = '../rust-lib/src/optics'         }
