@@ -2,13 +2,13 @@ package src.main.scala.licenses.backend
 
 import java.nio.file.{Files, Path}
 
-import src.main.scala.licenses.{Attachment, Notice}
+import src.main.scala.licenses.{AttachedFile, Attachment}
 
 object GatherNotices extends AttachmentGatherer {
   def run(root: Path): Seq[Attachment] = {
     AttachmentGatherer.walk(root) { path =>
       if (Files.isRegularFile(path) && mayBeNotice(path)) {
-        Seq(Notice.read(path, Some(root)))
+        Seq(AttachedFile.read(path, Some(root)))
       } else Seq()
     }
   }
@@ -30,5 +30,13 @@ object GatherNotices extends AttachmentGatherer {
 
   private val ignoredExtensions = Seq("scala", "java")
   private val possibleNames =
-    Seq("notice", "copyright", "thirdparty", "license", "credit")
+    Seq(
+      "notice",
+      "copyright",
+      "thirdparty",
+      "license",
+      "credit",
+      "copying",
+      "authors"
+    )
 }

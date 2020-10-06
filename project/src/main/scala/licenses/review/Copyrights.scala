@@ -1,18 +1,17 @@
 package src.main.scala.licenses.review
 
-import src.main.scala.licenses.{CopyrightMention, Notice}
+import src.main.scala.licenses.{AttachedFile, CopyrightMention}
 
 object Copyrights {
-  def processCopyrights(
+  def removeCopyrightsIncludedInNotices(
     copyrights: Seq[CopyrightMention],
-    notices: Seq[Notice]
+    notices: Seq[AttachedFile]
   ): Seq[CopyrightMention] = {
-    // TODO add metadata
     copyrights.filter(shouldKeepCopyright(notices))
   }
 
   def shouldKeepCopyright(
-    notices: Seq[Notice]
+    notices: Seq[AttachedFile]
   )(copyright: CopyrightMention): Boolean = {
     copyright.origins.exists { path =>
       val isAlreadyInSomeNotice = notices.exists(_.path == path)

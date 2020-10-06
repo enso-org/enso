@@ -1,20 +1,19 @@
 package src.main.scala.licenses.report
 
-import java.io.PrintWriter
-import java.nio.file.Files
-
 import sbt.File
 import src.main.scala.licenses.{
+  AttachedFile,
+  AttachmentStatus,
   CopyrightMention,
-  DependencySummary,
   DistributionDescription,
-  Notice
+  ReviewedDependency,
+  ReviewedSummary
 }
 
 object Report {
   def writeHTML(
     description: DistributionDescription,
-    summary: DependencySummary,
+    summary: ReviewedSummary,
     warnings: Seq[String],
     destination: File
   ): Unit = {
@@ -22,29 +21,15 @@ object Report {
     try {
       writer.writeHeader(s"Dependency summary for ${description.artifactName}")
       writeDescription(writer, description)
-      writeWarnings(writer, warnings)
-      writeLicenseSummary(writer, summary)
+      writeWarningsSummary(writer, warnings)
       writeDependencySummary(writer, summary)
+
+      writer.writeList(warnings.map { warning => () =>
+        writer.writeText(warning)
+      })
     } finally {
       writer.close()
     }
-  }
-
-  private def openTable(writer: PrintWriter): Unit = {
-    val headers =
-      s"""<table>
-         |<tr>
-         |<th>Organization</th>
-         |<th>Name</th>
-         |<th>Version</th>
-         |<th>URL</th>
-         |<th>License</th>
-         |<th>License file</th>
-         |<th>Attached files</th>
-         |<th>Possible copyrights</th>
-         |</tr>
-         |""".stripMargin
-    writer.println(headers)
   }
 
   private def writeDescription(
@@ -60,19 +45,7 @@ object Report {
     )
   }
 
-  private def writeLicenseSummary(
-    writer: HTMLWriter,
-    summary: DependencySummary
-  ): Unit = {
-    writer.writeSubHeading("Licenses present within dependencies")
-    val licenses = summary.dependencies.map(_._1.license).distinct
-    writer.writeList(licenses.map { license => () =>
-      val status = "TODO license review status"
-      writer.writeLink(s"${license.name}</a> - $status", license.url)
-    })
-  }
-
-  private def writeWarnings(
+  private def writeWarningsSummary(
     writer: HTMLWriter,
     warnings: Seq[String]
   ): Unit = {
@@ -81,17 +54,25 @@ object Report {
     } else {
       writer.writeParagraph(s"There are ${warnings.size} warnings!", Style.Bold)
     }
-    writer.writeList(warnings.map { warning => () =>
-      writer.writeText(warning)
-    })
+  }
+
+  private def renderStatus(attachmentStatus: AttachmentStatus): String = {
+    val style = attachmentStatus match {
+      case AttachmentStatus.Keep            => Style.Black
+      case AttachmentStatus.KeepWithContext => Style.Black
+      case AttachmentStatus.Ignore          => Style.Gray
+      case AttachmentStatus.Added           => Style.Green
+      case AttachmentStatus.NotReviewed     => Style.Red
+    }
+    s"""<span style="$style">$attachmentStatus</span>"""
   }
 
   private def writeDependencySummary(
     writer: HTMLWriter,
-    summary: DependencySummary
+    summary: ReviewedSummary
   ): Unit = {
     val sorted = summary.dependencies.sortBy(dep =>
-      (dep._1.moduleInfo.organization, dep._1.moduleInfo.name)
+      (dep.information.moduleInfo.organization, dep.information.moduleInfo.name)
     )
 
     writer.writeSubHeading("Summary of all compile dependencies")
@@ -102,79 +83,84 @@ object Report {
         "Version",
         "URL",
         "License",
-        "License file",
         "Attached files",
         "Possible copyrights"
       ),
       rows = sorted.map {
-        case (dependencyInformation, attachments) =>
+        case ReviewedDependency(
+              information,
+              licenseReviewed,
+              files,
+              copyrights
+            ) =>
           (rowWriter: writer.RowWriter) =>
-            val moduleInfo = dependencyInformation.moduleInfo
+            val moduleInfo = information.moduleInfo
             rowWriter.addColumn(moduleInfo.organization)
             rowWriter.addColumn(moduleInfo.name)
             rowWriter.addColumn(moduleInfo.version)
             rowWriter.addColumn {
-              dependencyInformation.url match {
+              information.url match {
                 case Some(value) =>
                   writer.writeLink(value, value)
                 case None => writer.writeText("No URL")
               }
             }
-            val license = dependencyInformation.license
+            val license = information.license
             rowWriter.addColumn {
               writer.writeLink(license.name, license.url)
-              writer.writeText(s"(${license.category.name})")
+              writer.writeText(s"(${license.category.name}) <br>")
+              licenseReviewed match {
+                case Some(path) =>
+                  writer.writeText(path.getFileName.toString, Style.Green)
+                case None =>
+                  writer.writeText("Not reviewed", Style.Red)
+              }
             }
-
-            val notices = attachments.collect { case n: Notice => n }
-            val copyrights = attachments.collect {
-              case c: CopyrightMention => c
-            }
-
-//            val attachedLicense = notices.find(
-//              _.path.getFileName.toString.toLowerCase.contains("license")
-//            )
-//            attachedLicense match {
-//              case Some(attachedLicenseFile) =>
-//                writeCollapsible(
-//                  writer,
-//                  attachedLicenseFile.fileName,
-//                  attachedLicenseFile.content
-//                )
-//              case None =>
-//                writeCollapsible(
-//                  writer,
-//                  s"Not attached - Default ${license.name} text",
-//                  "TODO content"
-//                )
-//            }
-            rowWriter.addColumn("Attached license TODO")
             rowWriter.addColumn {
-              if (notices.isEmpty) writer.writeText("No attached files.")
+              if (files.isEmpty) writer.writeText("No attached files.")
               else
-                writer.writeList(notices.map { file => () =>
-                  writer.writeCollapsible(file.fileName, file.content)
+                writer.writeList(files.map {
+                  case (file, status) =>
+                    () =>
+                      writer.writeCollapsible(
+                        s"${file.fileName} (${renderStatus(status)})",
+                        file.content
+                      )
                 })
             }
             rowWriter.addColumn {
-              if (copyrights.isEmpty)
-                writer.writeText("No copyright information found.")
-              else
+              if (copyrights.isEmpty) {
+                val bothEmpty = files.isEmpty && copyrights.isEmpty
+                if (bothEmpty) {
+                  writer.writeText(
+                    "No notices or copyright information found, " +
+                    "this may be a problem.",
+                    Style.Red
+                  )
+                } else {
+                  writer.writeText("No copyright information found.")
+                }
+              } else
                 writer.writeList(copyrights.map {
-                  mention => () =>
-                    val foundAt =
-                      if (mention.origins.size == 1)
-                        s"Found at ${mention.origins.head}"
-                      else
-                        s"Found at ${mention.origins.head} and " +
-                        s"${mention.origins.size - 1} other files."
-                    val contexts = if (mention.contexts.nonEmpty) {
-                      mention.contexts
-                        .map("<pre>\n" + _ + "\n</pre>")
-                        .mkString("<hr>")
-                    } else ""
-                    val moreInfo = foundAt + contexts
-                    writer.writeCollapsible(mention.content, moreInfo)
+                  case (mention, status) =>
+                    () =>
+                      val foundAt = mention.origins match {
+                        case Seq()    => ""
+                        case Seq(one) => s"Found at $one"
+                        case Seq(first, rest @ _*) =>
+                          s"Found at $first and ${rest.size} other files."
+                      }
+
+                      val contexts = if (mention.contexts.nonEmpty) {
+                        mention.contexts
+                          .map("<pre>\n" + _ + "\n</pre>")
+                          .mkString("<hr>")
+                      } else ""
+                      val moreInfo = foundAt + contexts
+                      writer.writeCollapsible(
+                        s"${mention.content} (${renderStatus(status)})",
+                        moreInfo
+                      )
                 })
             }
       }

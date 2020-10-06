@@ -99,7 +99,10 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
   def writeParagraph(text: String, styles: Style*): Unit =
     writer.println(s"""<p style="${styles.mkString(";")}">$text</p>""")
 
-  def writeText(text: String): Unit = writer.println(text)
+  def writeText(text: String, styles: Style*): Unit =
+    if (styles.nonEmpty)
+      writer.println(s"""<span style="${styles.mkString(";")}">$text</span>""")
+    else writer.println(text)
 
   def writeCollapsible(
     title: String,
@@ -107,7 +110,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
   ): Unit = {
     writer.println(s"""<div class="accordion">
                       |<h4>$title</h4>
-                      |<div>
+                      |<div style="display:none">
                       |<pre>
                       |$content
                       |</pre>
@@ -129,5 +132,17 @@ sealed trait Style
 object Style {
   case object Bold extends Style {
     override def toString: String = "font-weight:bold"
+  }
+  case object Red extends Style {
+    override def toString: String = "color:red"
+  }
+  case object Gray extends Style {
+    override def toString: String = "color:gray"
+  }
+  case object Green extends Style {
+    override def toString: String = "color:green"
+  }
+  case object Black extends Style {
+    override def toString: String = "color:black"
   }
 }

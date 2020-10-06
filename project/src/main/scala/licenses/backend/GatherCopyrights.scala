@@ -37,7 +37,9 @@ object GatherCopyrights extends AttachmentGatherer {
         Seq()
       }
     }
-    CopyrightMention.merge(allCopyrights)
+    CopyrightMention.mergeByContext(
+      CopyrightMention.mergeByContent(allCopyrights)
+    )
   }
 
   private def mayBeCopyright(line: String): Boolean =
@@ -61,11 +63,30 @@ object GatherCopyrights extends AttachmentGatherer {
         .headOption
         .getOrElse(pos + 2)
       allLines.slice(start, end + 1).map(_._1)
+    } else if (
+      possiblePrefixes.exists(s => line.stripLeading().headOption.contains(s))
+    ) {
+      val maxLinesOnSide = 20
+      val prefix =
+        line.takeWhile(c => c.isWhitespace || possiblePrefixes.contains(c))
+      val before = allLines
+        .take(pos)
+        .reverse
+        .takeWhile(_._1.startsWith(prefix))
+        .take(maxLinesOnSide)
+        .reverse
+      val after = allLines
+        .drop(pos)
+        .takeWhile(_._1.startsWith(prefix))
+        .take(maxLinesOnSide)
+      (before ++ after).map(_._1)
     } else {
       allLines.slice(pos - 2, pos + 3).map(_._1)
     }
     nearbyLines.mkString("\n")
   }
+
+  private val possiblePrefixes = Seq('-', '#', ';', '/')
 
   private def cleanup(string: String): String = {
     val charsToIgnore = Seq('*', '-', '#', '/')

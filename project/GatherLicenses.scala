@@ -48,11 +48,13 @@ object GatherLicenses {
         (dependency, attachments)
       }
 
-      val summary           = DependencySummary(processed)
-      val allWarnings       = sbtWarnings
+      val summary = DependencySummary(processed)
+      val processedSummary =
+        Review(file("legal-review") / distribution.artifactName, summary).run()
+      val allWarnings       = sbtWarnings ++ processedSummary.warnings
       val reportDestination = root / s"${distribution.artifactName}-report.html"
 
-      val processedSummary = Review(file("todo").toPath, summary).run()
+      allWarnings.foreach(log.warn(_))
 
       Report.writeHTML(
         distribution,

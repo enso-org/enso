@@ -1,16 +1,13 @@
 package src.main.scala.licenses.review
 
-import src.main.scala.licenses.{Attachment, CopyrightMention, Notice}
+import src.main.scala.licenses.{AttachedFile, Attachment, CopyrightMention}
 
 object Attachments {
-  def processAttachments(attachments: Seq[Attachment]): Seq[Attachment] = {
-    // TODO add metadata
-
-    val notices    = attachments.collect { case n: Notice => n }
+  def split(
+    attachments: Seq[Attachment]
+  ): (Seq[AttachedFile], Seq[CopyrightMention]) = {
+    val notices    = attachments.collect { case n: AttachedFile => n }
     val copyrights = attachments.collect { case c: CopyrightMention => c }
-
-    val processedCopyrights = Copyrights.processCopyrights(copyrights, notices)
-    val processedNotices    = notices // TODO
-    processedCopyrights ++ processedNotices
+    (notices, copyrights)
   }
 }

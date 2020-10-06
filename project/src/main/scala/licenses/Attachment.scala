@@ -5,7 +5,7 @@ import java.nio.file.Path
 import sbt.IO
 
 sealed trait Attachment
-case class Notice(path: Path, content: String) extends Attachment {
+case class AttachedFile(path: Path, content: String) extends Attachment {
   override def toString: String = s"File: $path"
 
   def fileName: String = path.getFileName.toString
@@ -19,11 +19,31 @@ case class CopyrightMention(
 }
 
 object CopyrightMention {
-  def merge(copyrights: Seq[CopyrightMention]): Seq[CopyrightMention] =
+  def mergeByContent(copyrights: Seq[CopyrightMention]): Seq[CopyrightMention] =
     copyrights
       .groupBy(c => c.content)
       .map({ case (_, equal) => mergeEqual(equal) })
       .toSeq
+
+  def mergeByContext(
+    copyrights: Seq[CopyrightMention]
+  ): Seq[CopyrightMention] = {
+    val (eligible, rest) = copyrights.partition(_.contexts.size == 1)
+    val merged = eligible.groupBy(c => c.contexts.head).map {
+      case (_, equal) =>
+        val ref = findBestRepresentative(equal)
+        ref.copy(origins = equal.flatMap(_.origins).distinct)
+    }
+    (merged ++ rest).toSeq
+  }
+
+  private def findBestRepresentative(
+    copyrights: Seq[CopyrightMention]
+  ): CopyrightMention = {
+    copyrights
+      .find(_.content.stripLeading.toLowerCase.startsWith("copyright"))
+      .getOrElse(copyrights.head)
+  }
 
   def mergeEqual(copyrights: Seq[CopyrightMention]): CopyrightMention = {
     val ref = copyrights.headOption.getOrElse(
@@ -41,13 +61,13 @@ object CopyrightMention {
   }
 }
 
-object Notice {
-  def read(path: Path, relativizeTo: Option[Path]): Notice = {
+object AttachedFile {
+  def read(path: Path, relativizeTo: Option[Path]): AttachedFile = {
     val content = IO.read(path.toFile)
     val actualPath = relativizeTo match {
       case Some(root) => root.relativize(path)
       case None       => path
     }
-    Notice(actualPath, content)
+    AttachedFile(actualPath, content)
   }
 }
