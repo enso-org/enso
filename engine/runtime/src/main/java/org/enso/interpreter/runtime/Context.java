@@ -286,6 +286,7 @@ public class Context {
     return threadManager;
   }
 
+  /** @return the resource manager for this context */
   public ResourceManager getResourceManager() {
     return resourceManager;
   }

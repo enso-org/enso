@@ -10,7 +10,7 @@ import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.data.Resource;
+import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
@@ -34,7 +34,7 @@ public abstract class WithNode extends Node {
       @MonadicState Object state,
       VirtualFrame frame,
       Object _this,
-      Resource resource,
+      ManagedResource resource,
       Object action);
 
   @Specialization
@@ -42,7 +42,7 @@ public abstract class WithNode extends Node {
       Object state,
       VirtualFrame frame,
       Object _this,
-      Resource resource,
+      ManagedResource resource,
       Object action,
       @CachedContext(Language.class) Context context) {
     context.getResourceManager().park(resource);

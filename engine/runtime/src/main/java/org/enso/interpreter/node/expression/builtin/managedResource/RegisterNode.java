@@ -8,7 +8,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Resource;
+import org.enso.interpreter.runtime.data.ManagedResource;
 
 @BuiltinMethod(
     type = "Managed_Resource",
@@ -20,11 +20,11 @@ public abstract class RegisterNode extends Node {
     return RegisterNodeGen.create();
   }
 
-  abstract Resource execute(Object _this, Object resource, Function finalizer);
+  abstract ManagedResource execute(Object _this, Object resource, Function finalizer);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  Resource doRegister(
+  ManagedResource doRegister(
       Object _this,
       Object resource,
       Function function,

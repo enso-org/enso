@@ -6,7 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.Resource;
+import org.enso.interpreter.runtime.data.ManagedResource;
 
 @BuiltinMethod(
     type = "Managed_Resource",
@@ -18,10 +18,10 @@ public abstract class CloseNode extends Node {
     return CloseNodeGen.create();
   }
 
-  abstract Object execute(Object _this, Resource resource);
+  abstract Object execute(Object _this, ManagedResource resource);
 
   @Specialization
-  Object doClose(Object _this, Resource resource, @CachedContext(Language.class) Context context) {
+  Object doClose(Object _this, ManagedResource resource, @CachedContext(Language.class) Context context) {
     context.getResourceManager().close(resource);
     return context.getBuiltins().unit().newInstance();
   }

@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.Resource;
+import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -39,7 +39,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
   UnresolvedSymbol.class,
   Array.class,
   EnsoBigInteger.class,
-  Resource.class
+  ManagedResource.class
 })
 public class Types {
 

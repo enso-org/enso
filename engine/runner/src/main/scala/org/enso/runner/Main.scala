@@ -313,8 +313,6 @@ object Main {
     } else {
       runSingleFile(context, file)
     }
-    println("close")
-    context.context.close()
     exitSuccess()
   }
 
@@ -430,8 +428,6 @@ object Main {
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
     runMain(mainModule, None, mainMethodName = mainMethodName)
-    println("close")
-    context.context.close()
     exitSuccess()
   }
 

@@ -1,20 +1,12 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Resource;
-import org.enso.syntax.text.Phantom;
+import org.enso.interpreter.runtime.data.ManagedResource;
 
-import java.lang.ref.Cleaner;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,8 +18,8 @@ public class ResourceManager {
   private volatile boolean isClosed = false;
   private volatile Thread workerThread;
   private final Runner worker = new Runner();
-  private final ReferenceQueue<Resource> referenceQueue = new ReferenceQueue<>();
-  private final ConcurrentMap<PhantomReference<Resource>, Item> items = new ConcurrentHashMap<>();
+  private final ReferenceQueue<ManagedResource> referenceQueue = new ReferenceQueue<>();
+  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items = new ConcurrentHashMap<>();
 
   /**
    * Creates a new instance of Resource Manager.
@@ -39,13 +31,13 @@ public class ResourceManager {
   }
 
   /**
-   * Puts the finalization of the resource on hold, until {@link #unpark(Resource)} is called. The
+   * Puts the finalization of the resource on hold, until {@link #unpark(ManagedResource)} is called. The
    * resource won't be finalized, even if it becomes unreachable between the calls.
    *
    * @param resource the resource to park.
    */
   @CompilerDirectives.TruffleBoundary
-  public void park(Resource resource) {
+  public void park(ManagedResource resource) {
     Item it = items.get(resource.getPhantomReference());
     if (it == null) {
       return;
@@ -60,7 +52,7 @@ public class ResourceManager {
    * @param resource the resource to unpark.
    */
   @CompilerDirectives.TruffleBoundary
-  public void unpark(Resource resource) {
+  public void unpark(ManagedResource resource) {
     Item it = items.get(resource.getPhantomReference());
     if (it == null) {
       return;
@@ -76,7 +68,7 @@ public class ResourceManager {
    * @param resource the resource to finalize.
    */
   @CompilerDirectives.TruffleBoundary
-  public void close(Resource resource) {
+  public void close(ManagedResource resource) {
     Item it = items.remove(resource.getPhantomReference());
     if (it == null) {
       return;
@@ -92,7 +84,7 @@ public class ResourceManager {
    * @param resource the resource to take away from this system.
    */
   @CompilerDirectives.TruffleBoundary
-  public void take(Resource resource) {
+  public void take(ManagedResource resource) {
     items.remove(resource.getPhantomReference());
   }
 
@@ -123,7 +115,7 @@ public class ResourceManager {
    * @param function the finalizer action to call on the underlying resource
    * @return a wrapper object, containing the resource and serving as a reachability probe
    */
-  public Resource register(Object object, Object function) {
+  public ManagedResource register(Object object, Object function) {
     if (isClosed) {
       throw new IllegalStateException("Can't register new resources after context is closed.");
     }
@@ -132,8 +124,8 @@ public class ResourceManager {
       workerThread = context.createThread(worker);
       workerThread.start();
     }
-    Resource resource = new Resource(object);
-    PhantomReference<Resource> ref = new PhantomReference<>(resource, referenceQueue);
+    ManagedResource resource = new ManagedResource(object);
+    PhantomReference<ManagedResource> ref = new PhantomReference<>(resource, referenceQueue);
     resource.setPhantomReference(ref);
     items.put(ref, new Item(object, function, ref));
     return resource;
@@ -159,7 +151,7 @@ public class ResourceManager {
         }
       }
     }
-    for (PhantomReference<Resource> key : items.keySet()) {
+    for (PhantomReference<ManagedResource> key : items.keySet()) {
       Item it = items.remove(key);
       if (it != null) {
         // Finalize unconditionally – all other threads are supposed to be dead
@@ -180,7 +172,7 @@ public class ResourceManager {
     public void run() {
       while (true) {
         try {
-          Reference<? extends Resource> ref = referenceQueue.remove();
+          Reference<? extends ManagedResource> ref = referenceQueue.remove();
           if (!killed) {
             Item it = items.get(ref);
             if (it == null) {
@@ -216,7 +208,7 @@ public class ResourceManager {
   private static class Item {
     private final Object underlying;
     private final Object finalizer;
-    private final PhantomReference<Resource> reference;
+    private final PhantomReference<ManagedResource> reference;
     private final AtomicInteger parkedCount = new AtomicInteger();
     private final AtomicBoolean flaggedForFinalization = new AtomicBoolean();
 
@@ -228,7 +220,7 @@ public class ResourceManager {
      * @param reference a phantom reference used for tracking the reachability status of the
      *     resource.
      */
-    public Item(Object underlying, Object finalizer, PhantomReference<Resource> reference) {
+    public Item(Object underlying, Object finalizer, PhantomReference<ManagedResource> reference) {
       this.underlying = underlying;
       this.finalizer = finalizer;
       this.reference = reference;
