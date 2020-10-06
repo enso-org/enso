@@ -5,6 +5,7 @@ import Base.Time.Time_Of_Day
 import Base.Time.Zone
 
 polyglot java import java.time.ZonedDateTime
+polyglot java import org.enso.base.Time_Utils
 
 type Time
 
@@ -121,14 +122,14 @@ type Time
      Parse UTC-04:00 time with nanoseconds.
          Time.parse "2020-10-01T04:11:12.177528-04:00"
 parse : Text -> Time
-parse text = Time (ZonedDateTime.parse [text])
+parse text = Time (Time_Utils.parse [text])
 
 ## Obtains the current date-time from the system clock in the default time-zone.
 now : Time
 now = Time (ZonedDateTime.now [])
 
 ## Obtains an instance of `Time` from a year, month, day, hour, minute,
-   second, nanosecond and time-zone.
+   second, nanosecond and timezone.
 
    The day must be valid for the year and month, otherwise an exception will be
    thrown.
@@ -139,14 +140,14 @@ now = Time (ZonedDateTime.now [])
    - minute - the minute-of-hour to represent, from 0 to 59
    - second - the second-of-minute to represent, from 0 to 59
    - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
-   - zone - the time-zone
+   - zone - the timezone
 
    > Example
      Create a new zoned date time at Unix epoch.
-         Time.new 1970
+         Time.new 1970 (zone = Zone.utc)
 
    > Example
-     Get the 5 August 1986 at midnight UTC.
+     Get the 5 August 1986 at midnight.
          Time.new 1986 8 5
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
