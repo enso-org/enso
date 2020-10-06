@@ -353,6 +353,8 @@ ensogl_core::def_command_api! { Commands
     delete_right,
     /// Removes the word on the left of every cursor.
     delete_word_left,
+    /// Removes the word on the right of every cursor.
+    delete_word_right,
     /// Set the text cursor at the mouse cursor position.
     set_cursor_at_mouse_position,
     /// Set the text cursor at the end of text.
@@ -623,9 +625,10 @@ impl Area {
             eval_ cmd.select_all            (m.buffer.frp.cursors_select(Transform::All));
             eval_ cmd.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
 
-            eval_ cmd.delete_left      (m.buffer.frp.delete_left());
-            eval_ cmd.delete_right     (m.buffer.frp.delete_right());
-            eval_ cmd.delete_word_left (m.buffer.frp.delete_word_left());
+            eval_ cmd.delete_left       (m.buffer.frp.delete_left());
+            eval_ cmd.delete_right      (m.buffer.frp.delete_right());
+            eval_ cmd.delete_word_left  (m.buffer.frp.delete_word_left());
+            eval_ cmd.delete_word_right (m.buffer.frp.delete_word_right());
 
             eval_ cmd.undo (m.buffer.frp.undo());
             eval_ cmd.redo (m.buffer.frp.redo());
@@ -918,6 +921,7 @@ impl AreaData {
         match key {
             Key::Character(s) => Some(s.clone()),
             Key::Enter        => Some("\n".into()),
+            Key::Space        => Some(" ".into()),
             _                 => None
         }
     }
@@ -964,32 +968,33 @@ impl application::shortcut::DefaultShortcutProvider for Area {
           , (Press       , "right"                   , "cursor_move_right")
           , (Press       , "up"                      , "cursor_move_up")
           , (Press       , "down"                    , "cursor_move_down")
-          , (Press       , "meta left"               , "cursor_move_left_word")
-          , (Press       , "meta right"              , "cursor_move_right_word")
-          , (Press       , "meta alt left"           , "cursor_move_left_of_line")
-          , (Press       , "meta alt right"          , "cursor_move_right_of_line")
+          , (Press       , "cmd left"                , "cursor_move_left_word")
+          , (Press       , "cmd right"               , "cursor_move_right_word")
+          , (Press       , "cmd alt left"            , "cursor_move_left_of_line")
+          , (Press       , "cmd alt right"           , "cursor_move_right_of_line")
           , (Press       , "home"                    , "cursor_move_left_of_line")
           , (Press       , "end"                     , "cursor_move_right_of_line")
           , (Press       , "shift left"              , "cursor_select_left")
           , (Press       , "shift right"             , "cursor_select_right")
-          , (Press       , "meta shift left"         , "cursor_select_left_word")
-          , (Press       , "meta shift right"        , "cursor_select_right_word")
+          , (Press       , "cmd shift left"          , "cursor_select_left_word")
+          , (Press       , "cmd shift right"         , "cursor_select_right_word")
           , (Press       , "shift up"                , "cursor_select_up")
           , (Press       , "shift down"              , "cursor_select_down")
           , (Press       , "backspace"               , "delete_left")
           , (Press       , "delete"                  , "delete_right")
-          , (Press       , "meta backspace"          , "delete_word_left")
+          , (Press       , "cmd backspace"           , "delete_word_left")
+          , (Press       , "cmd delete"              , "delete_word_right")
           , (Press       , "shift left-mouse-button" , "set_newest_selection_end_to_mouse_position")
           , (DoublePress , "left-mouse-button"       , "select_word_at_cursor")
           , (Press       , "left-mouse-button"       , "set_cursor_at_mouse_position")
           , (Press       , "left-mouse-button"       , "start_newest_selection_end_follow_mouse")
           , (Release     , "left-mouse-button"       , "stop_newest_selection_end_follow_mouse")
-          , (Press       , "meta left-mouse-button"  , "add_cursor_at_mouse_position")
-          , (Press       , "meta left-mouse-button"  , "start_newest_selection_end_follow_mouse")
-          , (Release     , "meta left-mouse-button"  , "stop_newest_selection_end_follow_mouse")
-          , (Press       , "meta a"                  , "select_all")
-          , (Press       , "meta c"                  , "copy")
-          , (Press       , "meta v"                  , "paste")
+          , (Press       , "cmd left-mouse-button"   , "add_cursor_at_mouse_position")
+          , (Press       , "cmd left-mouse-button"   , "start_newest_selection_end_follow_mouse")
+          , (Release     , "cmd left-mouse-button"   , "stop_newest_selection_end_follow_mouse")
+          , (Press       , "cmd a"                   , "select_all")
+          , (Press       , "cmd c"                   , "copy")
+          , (Press       , "cmd v"                   , "paste")
 //        , Self::self_shortcut(Press   (&[Key::Escape]                          , shortcut::Pattern::Any) , "keep_oldest_cursor_only"),
 //        , Self::self_shortcut(Press   (shortcut::Pattern::Any,&[])                                       , "insert_char_of_last_pressed_key"),
 //        , Self::self_shortcut(Release (&[Key::Meta,Key::Character("z".into())],&[])                      , "undo"),

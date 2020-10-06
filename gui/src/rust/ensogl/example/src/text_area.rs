@@ -31,10 +31,8 @@ fn init(app:&Application) {
     area.set_cursor_at_end();
 
     app.display.scene().add_child(&area);
-    let mut keep = Some(area);
-    app.display.on_frame(move |frame| {
-        if frame.local > 3000.0 {
-            keep = None;
-        }
+    let keep = Some(area);
+    app.display.on_frame(move |_frame| {
+        let _ = &keep;
     }).forget();
 }
