@@ -12,7 +12,7 @@ case class Notice(path: Path, content: String) extends Attachment {
 }
 case class CopyrightMention(
   content: String,
-  context: Option[String],
+  contexts: Seq[String],
   origins: Seq[Path]
 ) extends Attachment {
   override def toString: String = s"Copyright: '$content'"
@@ -21,7 +21,7 @@ case class CopyrightMention(
 object CopyrightMention {
   def merge(copyrights: Seq[CopyrightMention]): Seq[CopyrightMention] =
     copyrights
-      .groupBy(c => (c.content, c.context))
+      .groupBy(c => c.content)
       .map({ case (_, equal) => mergeEqual(equal) })
       .toSeq
 
@@ -29,13 +29,15 @@ object CopyrightMention {
     val ref = copyrights.headOption.getOrElse(
       throw new IllegalArgumentException("Copyrights must not be empty")
     )
-    val ok = copyrights.forall(c =>
-      c.content == ref.content && c.context == ref.context
-    )
+    val ok = copyrights.forall(_.content == ref.content)
     if (!ok) {
       throw new IllegalArgumentException("Copyrights must be equal to merge")
     }
-    CopyrightMention(ref.content, ref.context, copyrights.flatMap(_.origins))
+    CopyrightMention(
+      ref.content,
+      copyrights.flatMap(_.contexts).distinct,
+      copyrights.flatMap(_.origins)
+    )
   }
 }
 
