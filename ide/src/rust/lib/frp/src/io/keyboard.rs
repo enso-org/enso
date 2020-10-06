@@ -101,7 +101,11 @@ impl Key {
     pub fn new(key:String, code:String) -> Self {
         let label_ref : &str = &key;
         let code_ref  : &str = &code;
-        if key.graphemes(true).count() == 1 { Self::Character(key) } else {
+        // Space is very special case. It has key value being a character, but we don't want to
+        // interpret is as a Key::Character.
+        if      key == " "                       { Self::Space          }
+        else if key.graphemes(true).count() == 1 { Self::Character(key) }
+        else {
             let key = KEY_NAME_MAP.get(label_ref).cloned().unwrap_or(Self::Other(key));
             match (key,code_ref) {
                 (Self::Alt      (_), "AltRight")     => Self::Alt      (Side::Right),

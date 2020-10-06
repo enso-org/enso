@@ -15,7 +15,6 @@ use crate::buffer::Setter;
 use crate::buffer::data::Text;
 use crate::buffer::data::text::BoundsError;
 use crate::buffer::data::unit::*;
-use crate::buffer::data;
 use crate::buffer::style::Style;
 use crate::buffer::style;
 use crate::buffer;
@@ -528,7 +527,7 @@ impl ViewBuffer {
 
     /// Insert new text in the place of current selections / cursors.
     fn insert(&self, text:impl Into<Text>) -> selection::Group {
-        self.modify(Transform::LeftSelectionBorder,text)
+        self.modify(text,None)
     }
 
     /// Paste new text in the place of current selections / cursors. In case of pasting multiple
@@ -537,7 +536,7 @@ impl ViewBuffer {
     /// case there is more selections than chunks, end selections will be replaced with empty
     /// strings.
     fn paste(&self, text:&[String]) -> selection::Group {
-        self.modify_iter(Transform::LeftSelectionBorder,text.iter())
+        self.modify_iter(text.iter(),None)
     }
 
     // TODO
@@ -545,62 +544,85 @@ impl ViewBuffer {
     // backspace second time, the consonant should be removed. Please read this topic to learn
     // more: https://phabricator.wikimedia.org/T53472
     fn delete_left(&self) -> selection::Group {
-        self.modify(Transform::Left,"")
+        self.modify("", Some(Transform::Left))
     }
 
     fn delete_right(&self) -> selection::Group {
-        self.modify(Transform::Right,"")
+        self.modify("", Some(Transform::Right))
     }
 
-    /// Generic buffer modify utility. For each selection, it transforms it with the provided
-    /// `transform`, and then it replaces the resulting selection diff with the provided `text`.
-    /// See its usages across the file to learn more.
+    fn delete_word_left(&self) -> selection::Group {
+        self.modify("", Some(Transform::LeftWord))
+    }
+
+    fn delete_word_right(&self) -> selection::Group {
+        self.modify("", Some(Transform::RightWord))
+    }
+
+    /// Generic buffer modify utility. It replaces each selection range with the provided `text`.
+    ///
+    /// If `transform` is provided, it will modify the selections being a simple cursor before
+    /// applying modification, what is useful when handling delete operations.
     ///
     /// ## Implementation details.
     /// This function converts all selections to byte-based ones first, and then applies all
     /// modification rules. This way, it can work in an 1D byte-based space (as opposed to 2D
     /// location-based space), which makes handling multiple cursors much easier.
-    fn modify(&self, transform:Transform, text:impl Into<Text>) -> selection::Group {
+    fn modify(&self, text:impl Into<Text>, transform:Option<Transform>) -> selection::Group {
         self.commit_history();
         let text                    = text.into();
-        let text_byte_size          = text.byte_size();
         let mut new_selection_group = selection::Group::new();
         let mut byte_offset         = 0.bytes();
         for rel_byte_selection in self.byte_selections() {
-            let byte_selection     = rel_byte_selection.map(|t|t+byte_offset);
-            let selection          = self.to_location_selection(byte_selection);
-            let new_selection      = self.moved_selection_region(transform,selection,false);
-            let new_byte_selection = self.to_bytes_selection(new_selection);
-            let byte_range         = range_between(byte_selection,new_byte_selection);
-            byte_offset           += text_byte_size - byte_range.size();
-            self.buffer.replace(byte_range,&text);
-            let new_byte_selection = new_byte_selection.map(|t|t+text_byte_size);
-            let new_selection      = self.to_location_selection(new_byte_selection);
+            let byte_selection         = rel_byte_selection.map(|t|t+byte_offset);
+            let selection              = self.to_location_selection(byte_selection);
+            let (new_selection,offset) = self.modify_selection(selection,&text,transform);
+            byte_offset                += offset;
             new_selection_group.merge(new_selection);
         }
         new_selection_group
     }
 
-    fn modify_iter<I,S>(&self, transform:Transform, mut iter:I) -> selection::Group
+    /// Generic buffer modify utility. It replaces each selection range with next iterator item.
+    ///
+    /// If `transform` is provided, it will modify the selections being a simple cursor before
+    /// applying modification, what is useful when handling delete operations.
+    fn modify_iter<I,S>(&self, mut iter:I, transform:Option<Transform>) -> selection::Group
     where I:Iterator<Item=S>, S:Into<Text> {
         self.commit_history();
         let mut new_selection_group = selection::Group::new();
         let mut byte_offset         = 0.bytes();
         for rel_byte_selection in self.byte_selections() {
-            let text               = iter.next().map(|t|t.into()).unwrap_or_default();
-            let text_byte_size     = text.byte_size();
-            let byte_selection     = rel_byte_selection.map(|t|t+byte_offset);
-            let selection          = self.to_location_selection(byte_selection);
-            let new_selection      = self.moved_selection_region(transform,selection,false);
-            let new_byte_selection = self.to_bytes_selection(new_selection);
-            let byte_range         = range_between(byte_selection,new_byte_selection);
-            byte_offset           += text_byte_size - byte_range.size();
-            self.buffer.replace(byte_range,&text);
-            let new_byte_selection = new_byte_selection.map(|t|t+text_byte_size);
-            let new_selection      = self.to_location_selection(new_byte_selection);
+            let text                   = iter.next().map(|t|t.into()).unwrap_or_default();
+            let byte_selection         = rel_byte_selection.map(|t|t+byte_offset);
+            let selection              = self.to_location_selection(byte_selection);
+            let (new_selection,offset) = self.modify_selection(selection,&text,transform);
+            byte_offset               += offset;
             new_selection_group.merge(new_selection);
         }
         new_selection_group
+    }
+
+    /// Generic selection modify utility. It replaces selection range with given text.
+    ///
+    /// If `transform` is provided and selection is a simple cursor, it will modify it before
+    /// applying modification, what is useful when handling delete operations.
+    ///
+    /// It returns selection after modification and byte offset of the next selection ranges.
+    fn modify_selection
+    (&self, selection:Selection, text:&Text, transform:Option<Transform>) -> (Selection,Bytes) {
+        let text_byte_size = text.byte_size();
+        let transformed    = match transform {
+            Some(t) if selection.is_cursor() => self.moved_selection_region(t,selection,true),
+            _                                => selection
+        };
+        let byte_selection = self.to_bytes_selection(transformed);
+        let byte_range     = byte_selection.range();
+        let byte_offset    = text_byte_size - byte_range.size();
+        self.buffer.replace(byte_range,text);
+        let new_byte_cursor_pos = byte_range.start + text_byte_size;
+        let new_byte_selection  = Selection::new_cursor(new_byte_cursor_pos,selection.id);
+        (self.to_location_selection(new_byte_selection),byte_offset)
     }
 
     fn byte_selections(&self) -> Vec<Selection<Bytes>> {
@@ -629,13 +651,6 @@ impl ViewBuffer {
     }
 }
 
-fn range_between(a:Selection<Bytes>, b:Selection<Bytes>) -> data::range::Range<Bytes> {
-    let min = std::cmp::min(a.min(),b.min());
-    let max = std::cmp::max(a.max(),b.max());
-    (min .. max).into()
-}
-
-
 
 
 // ===========
@@ -656,6 +671,7 @@ define_endpoints! {
         delete_left                (),
         delete_right               (),
         delete_word_left           (),
+        delete_word_right          (),
         clear_selection            (),
         keep_first_selection_only  (),
         keep_last_selection_only   (),
@@ -712,11 +728,15 @@ impl View {
         let m       = &model;
 
         frp::extend! { network
-            sel_on_insert              <- input.insert.map(f!((s) m.insert(s)));
-            sel_on_paste               <- input.paste.map(f!((s) m.paste(s)));
-            sel_on_delete_left         <- input.delete_left.map(f_!(m.delete_left()));
-            sel_on_delete_right        <- input.delete_right.map(f_!(m.delete_right()));
-            sel_on_change              <- any(sel_on_insert,sel_on_paste,sel_on_delete_left,sel_on_delete_right);
+            sel_on_insert            <- input.insert.map(f!((s) m.insert(s)));
+            sel_on_paste             <- input.paste.map(f!((s) m.paste(s)));
+            sel_on_delete_left       <- input.delete_left.map(f_!(m.delete_left()));
+            sel_on_delete_right      <- input.delete_right.map(f_!(m.delete_right()));
+            sel_on_delete_word_left  <- input.delete_word_left.map(f_!(m.delete_word_left()));
+            sel_on_delete_word_right <- input.delete_word_right.map(f_!(m.delete_word_right()));
+            sel_on_delete            <- any(sel_on_delete_left,sel_on_delete_right
+                ,sel_on_delete_word_left,sel_on_delete_word_right);
+            sel_on_change              <- any(sel_on_insert,sel_on_paste,sel_on_delete);
             has_cursor                 <- sel_on_change.map(|sel| !sel.is_empty());
             output.source.text_changed <+ sel_on_change.gate(&has_cursor).constant(());
 
@@ -764,8 +784,7 @@ impl View {
             output.source.selection_non_edit_mode <+ sel_on_set_oldest_end;
             output.source.selection_edit_mode     <+ sel_on_insert;
             output.source.selection_edit_mode     <+ sel_on_paste;
-            output.source.selection_edit_mode     <+ sel_on_delete_left;
-            output.source.selection_edit_mode     <+ sel_on_delete_right;
+            output.source.selection_edit_mode     <+ sel_on_delete;
             output.source.selection_non_edit_mode <+ sel_on_remove_all;
 
             eval output.source.selection_edit_mode     ((t) m.set_selection(t));

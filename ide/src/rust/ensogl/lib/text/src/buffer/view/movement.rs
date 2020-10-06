@@ -79,8 +79,8 @@ impl ViewBuffer {
 
     /// Apply the movement to each region in the selection, and returns the union of the results.
     ///
-    /// If `modify` is `true`, the selections are modified, otherwise the results of individual region
-    /// movements become cursors. Modify is often mapped to the `shift` button in text editors.
+    /// If `modify` is `true`, the selections are modified, otherwise the results of individual
+    /// region movements become cursors. Modify is often mapped to the `shift` button in text editors.
     pub fn moved_selection(&self, transform:Transform, modify: bool) -> selection::Group {
         let mut result = selection::Group::new();
         for &selection in self.selection.borrow().iter() {
@@ -105,6 +105,10 @@ impl ViewBuffer {
     }
 
     /// Compute the result of movement on one selection region.
+    ///
+    /// If `modify` is `true`, the selections are modified, otherwise the results of individual
+    /// region movements become cursors. Modify is often mapped to the `shift` button in text
+    /// editors.
     pub fn moved_selection_region
     (&self, transform:Transform, selection:Selection, modify:bool) -> Selection {
         let text  = &self.text();
