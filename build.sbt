@@ -1167,3 +1167,5 @@ The runner had to be renamed due to this issue
     )
 //    Distribution("test", Distribution.sbtProjects(cli))
   )
+GatherLicenses.configurationRoot := file("legal-review")
+GatherLicenses.distributionRoot := file("distribution")

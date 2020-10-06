@@ -2,18 +2,10 @@ package src.main.scala.licenses.review
 
 import java.io.FileNotFoundException
 import java.nio.file.{Files, Path}
+import java.time.LocalDate
 
 import sbt._
-import src.main.scala.licenses.{
-  AttachedFile,
-  Attachment,
-  AttachmentStatus,
-  CopyrightMention,
-  DependencyInformation,
-  DependencySummary,
-  ReviewedDependency,
-  ReviewedSummary
-}
+import src.main.scala.licenses._
 
 import scala.util.control.NonFatal
 
@@ -23,23 +15,37 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       case (information, attachments) =>
         reviewDependency(information, attachments)
     }
-    ReviewedSummary(reviews)
+
+    val header = prepareHeader()
+    val files  = findAdditionalFiles()
+    ReviewedSummary(reviews, header, files)
+  }
+
+  private def prepareHeader(): String =
+    readFile(root / "notice-header").getOrElse(Review.defaultHeader)
+
+  private def findAdditionalFiles(): Seq[AttachedFile] = {
+    val additionalFilesRoot = root / "files-add"
+    def loadFile(file: File): AttachedFile = {
+      val path = file
+        .relativeTo(additionalFilesRoot)
+        .map(_.toPath)
+        .getOrElse(Path.of(file.getName))
+      val content = IO.read(file)
+      AttachedFile(path, content)
+    }
+    listFiles(additionalFilesRoot).map(loadFile)
   }
 
   private def reviewDependency(
     info: DependencyInformation,
     attachments: Seq[Attachment]
   ): ReviewedDependency = {
-    val license             = reviewLicense(info)
-    val (files, copyrights) = Attachments.split(attachments)
+    val (licenseReviewed, licensePath) = reviewLicense(info)
+    val (files, copyrights)            = Attachments.split(attachments)
     val copyrightsDeduplicated =
       Copyrights.removeCopyrightsIncludedInNotices(copyrights, files)
-    val name = Review.normalizeName(
-      info.moduleInfo.organization + "." + info.moduleInfo.name + "-" +
-      info.moduleInfo.version
-    )
-    val packageRoot = root / name
-    Files.createDirectories(packageRoot.toPath)
+    val packageRoot = root / info.packageName
 
     val processedFiles =
       reviewFiles(packageRoot, files) ++ addFiles(packageRoot)
@@ -49,7 +55,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
 
     ReviewedDependency(
       information     = info,
-      licenseReviewed = license,
+      licenseReviewed = licenseReviewed,
+      licensePath     = licensePath,
       files           = processedFiles,
       copyrights      = processedCopyrights
     )
@@ -113,27 +120,27 @@ case class Review(root: File, dependencySummary: DependencySummary) {
 
   private def reviewLicense(
     info: DependencyInformation
-  ): Option[Path] = {
+  ): (Boolean, Option[Path]) = {
     val file =
       root.getParentFile / "reviewed-licenses" /
       Review.normalizeName(info.license.name)
-    readFile(file).map(Path.of(_))
+
+    if (Files.exists((root / "custom-license").toPath)) (true, None)
+    else
+      readFile(file)
+        .map(p => (true, Some(Path.of(p.strip()))))
+        .getOrElse((false, None))
   }
 
   private def readLines(file: File): Seq[String] =
     try { IO.readLines(file).map(_.strip) }
-    catch {
-      case _: FileNotFoundException =>
-        IO.write(file, "")
-        Seq()
-    }
+    catch { case _: FileNotFoundException => Seq() }
 
   private def readFile(file: File): Option[String] =
     try { Some(IO.read(file)) }
     catch { case NonFatal(_) => None }
 
   private def listFiles(dir: File): Seq[File] = {
-    Files.createDirectories(dir.toPath)
     try { IO.listFiles(dir) }
     catch { case NonFatal(_) => Seq() }
   }
@@ -143,5 +150,15 @@ object Review {
   def normalizeName(string: String): String = {
     val charsToReplace = " /:;,"
     charsToReplace.foldLeft(string)((str, char) => str.replace(char, '_'))
+  }
+
+  val defaultHeader: String = {
+    val yearStart   = 2020
+    val yearCurrent = LocalDate.now().getYear
+    val year =
+      if (yearCurrent > yearStart) s"$yearStart - $yearCurrent"
+      else s"$yearStart"
+    s"""Enso
+       |Copyright $year New Byte Order sp. z o. o.""".stripMargin
   }
 }

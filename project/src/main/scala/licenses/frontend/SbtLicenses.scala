@@ -2,13 +2,8 @@ package src.main.scala.licenses.frontend
 
 import java.nio.file.Path
 
+import com.typesafe.sbt.license.SbtCompat.IvySbt
 import com.typesafe.sbt.license.{DepLicense, DepModuleInfo, LicenseReport}
-import com.typesafe.sbt.license.SbtCompat.{
-  IvyRetrieve,
-  IvySbt,
-  ResolveException
-}
-import jdk.jfr.internal.TypeLibrary
 import org.apache.ivy.core.report.ResolveReport
 import org.apache.ivy.core.resolve.IvyNode
 import sbt.Compile

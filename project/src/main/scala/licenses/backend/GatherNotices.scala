@@ -35,6 +35,7 @@ object GatherNotices extends AttachmentGatherer {
       "copyright",
       "thirdparty",
       "license",
+      "licence",
       "credit",
       "copying",
       "authors"

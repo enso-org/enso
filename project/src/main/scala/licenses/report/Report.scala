@@ -1,11 +1,12 @@
 package src.main.scala.licenses.report
 
-import sbt.File
+import java.nio.file.Path
+
+import sbt.{File, IO}
 import src.main.scala.licenses.review.Review
 import src.main.scala.licenses.{
   AttachedFile,
   AttachmentStatus,
-  CopyrightMention,
   DistributionDescription,
   ReviewedDependency,
   ReviewedSummary
@@ -28,6 +29,15 @@ object Report {
       writer.writeList(warnings.map { warning => () =>
         writer.writeText(warning)
       })
+
+      writer.writeCollapsible("NOTICE header", summary.noticeHeader)
+      if (summary.additionalFiles.nonEmpty) {
+        writer.writeSubHeading("Additional files that will be added:")
+        writer.writeList(summary.additionalFiles.map { file => () =>
+          writer.writeText(file.path.toString)
+        })
+      }
+
     } finally {
       writer.close()
     }
@@ -68,6 +78,26 @@ object Report {
     s"""<span style="$style">$attachmentStatus</span>"""
   }
 
+  private def renderSimilarity(
+    licensePath: Option[Path],
+    file: AttachedFile,
+    status: AttachmentStatus
+  ): String = {
+    val name = file.path.getFileName.toString.toLowerCase
+    if (name.contains("license") || name.contains("licence")) {
+      licensePath match {
+        case Some(value) =>
+          val defaultText = IO.read(value.toFile)
+          if (defaultText.strip() == file.content.strip()) {
+            val color = if (status.included) Style.Red else Style.Green
+            s"""<span style="$color">100% identical to default license</span>"""
+          } else
+            s"""<span style="${Style.Red}">Differs from used license!</span>"""
+        case None => ""
+      }
+    } else ""
+  }
+
   private def writeDependencySummary(
     writer: HTMLWriter,
     summary: ReviewedSummary
@@ -88,9 +118,10 @@ object Report {
         "Possible copyrights"
       ),
       rows = sorted.map {
-        case ReviewedDependency(
+        case dep @ ReviewedDependency(
               information,
               licenseReviewed,
+              licensePath,
               files,
               copyrights
             ) =>
@@ -110,10 +141,27 @@ object Report {
             rowWriter.addColumn {
               writer.writeLink(license.name, license.url)
               writer.writeText(s"(${license.category.name}) <br>")
-              licenseReviewed match {
+              licensePath match {
                 case Some(path) =>
-                  writer.writeText(path.getFileName.toString, Style.Green)
-                case None =>
+                  writer.writeText(
+                    path.getFileName.toString,
+                    if (licenseReviewed) Style.Green else Style.Red
+                  )
+                case None if licenseReviewed =>
+                  val licenseFile = summary.keptLicense(dep)
+                  licenseFile match {
+                    case Some(file) =>
+                      writer.writeText(
+                        s"Custom license ${file.path.getFileName}",
+                        Style.Green
+                      )
+                    case None =>
+                      writer.writeText(
+                        "Custom license defined but not provided!",
+                        Style.Red
+                      )
+                  }
+                case None if !licenseReviewed =>
                   val name = Review.normalizeName(license.name)
                   writer.writeText(s"<pre>$name</pre>Not reviewed", Style.Red)
               }
@@ -125,7 +173,8 @@ object Report {
                   case (file, status) =>
                     () =>
                       writer.writeCollapsible(
-                        s"${file.fileName} (${renderStatus(status)})",
+                        s"${file.fileName} (${renderStatus(status)}) " +
+                        s"${renderSimilarity(licensePath, file, status)}",
                         file.content
                       )
                 })

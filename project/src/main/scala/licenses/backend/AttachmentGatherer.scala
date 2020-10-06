@@ -3,8 +3,9 @@ package src.main.scala.licenses.backend
 import java.nio.file.{Files, Path}
 import java.util.stream.Collectors
 
-import scala.collection.JavaConverters._
 import src.main.scala.licenses.{Attachment, SourceAccess}
+
+import scala.collection.JavaConverters._
 
 trait AttachmentGatherer {
   def run(root: Path): Seq[Attachment]
