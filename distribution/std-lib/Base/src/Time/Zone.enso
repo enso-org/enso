@@ -3,12 +3,12 @@ from Base import all
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 
-## A type to reprezent a time zone.
-
-   A time zone can be eiter offset-based like "-06:00" or id-based like
-   "Europe/Paris".
 type Zone
 
+    ## A type representing a time zone.
+
+       A time zone can be eiter offset-based like "-06:00" or id-based like
+       "Europe/Paris".
     type Zone internal_zone_id
 
     ## Get the unique timezone ID.
