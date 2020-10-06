@@ -131,7 +131,7 @@ type Time
      Parse UTC-04:00 time with nanoseconds.
          Time.parse "2020-10-01T04:11:12.177528-04:00"
 parse : Text -> Time
-parse text = Time (Time_Utils.parse [text])
+parse text = Time (Time_Utils.parse_time [text])
 
 ## Obtains the current date-time from the system clock in the default time-zone.
 now : Time

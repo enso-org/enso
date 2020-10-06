@@ -56,7 +56,7 @@ public class Time_Utils {
    * @param text the string to parse.
    * @return parsed ZonedDateTime instance.
    */
-  public static ZonedDateTime parse(String text) {
+  public static ZonedDateTime parse_time(String text) {
     TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
     if (time instanceof ZonedDateTime) {
       return (ZonedDateTime) time;
