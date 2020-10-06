@@ -19,7 +19,8 @@ public class ResourceManager {
   private volatile Thread workerThread;
   private final Runner worker = new Runner();
   private final ReferenceQueue<ManagedResource> referenceQueue = new ReferenceQueue<>();
-  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items = new ConcurrentHashMap<>();
+  private final ConcurrentMap<PhantomReference<ManagedResource>, Item> items =
+      new ConcurrentHashMap<>();
 
   /**
    * Creates a new instance of Resource Manager.
@@ -31,8 +32,8 @@ public class ResourceManager {
   }
 
   /**
-   * Puts the finalization of the resource on hold, until {@link #unpark(ManagedResource)} is called. The
-   * resource won't be finalized, even if it becomes unreachable between the calls.
+   * Puts the finalization of the resource on hold, until {@link #unpark(ManagedResource)} is
+   * called. The resource won't be finalized, even if it becomes unreachable between the calls.
    *
    * @param resource the resource to park.
    */

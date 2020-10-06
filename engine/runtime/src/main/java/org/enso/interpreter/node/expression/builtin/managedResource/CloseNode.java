@@ -21,7 +21,8 @@ public abstract class CloseNode extends Node {
   abstract Object execute(Object _this, ManagedResource resource);
 
   @Specialization
-  Object doClose(Object _this, ManagedResource resource, @CachedContext(Language.class) Context context) {
+  Object doClose(
+      Object _this, ManagedResource resource, @CachedContext(Language.class) Context context) {
     context.getResourceManager().close(resource);
     return context.getBuiltins().unit().newInstance();
   }
