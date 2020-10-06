@@ -214,9 +214,9 @@ branches:
         # Require branches to be up to date before merging.
         strict: true
         contexts:
-          - "Test and Build Engine (macOS-latest)"
-          - "Test and Build Engine (ubuntu-latest)"
-          - "Test and Build Engine (windows-latest)"
+          - "Build and Test (macOS-latest)"
+          - "Build and Test (ubuntu-latest)"
+          - "Build and Test (windows-latest)"
           - "Docs Check"
           - "Rust Check"
           - "Rust Lint"

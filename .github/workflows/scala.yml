@@ -29,7 +29,7 @@ env:
 
 jobs:
   test_and_publish:
-    name: Test and Build Engine
+    name: Build and Test
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -131,6 +131,10 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors launcher/buildNativeImage
+          # Prevents launcher/test from re-building the Native Image during
+          # test run. It is built before starting the tests to conserve system
+          # memory
+          echo '::set-env name=LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD::true'
       - name: Test Enso
         run: |
           sleep 1
