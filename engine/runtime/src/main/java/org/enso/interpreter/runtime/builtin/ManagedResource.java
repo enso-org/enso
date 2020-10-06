@@ -1,14 +1,11 @@
 package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.managedResource.CloseMethodGen;
+import org.enso.interpreter.node.expression.builtin.managedResource.FinalizeMethodGen;
 import org.enso.interpreter.node.expression.builtin.managedResource.RegisterMethodGen;
 import org.enso.interpreter.node.expression.builtin.managedResource.TakeMethodGen;
 import org.enso.interpreter.node.expression.builtin.managedResource.WithMethodGen;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Container for builtin Managed_Resource types */
@@ -25,7 +22,7 @@ public class ManagedResource {
     scope.registerConstructor(resource);
     scope.registerMethod(resource, "register", RegisterMethodGen.makeFunction(language));
     scope.registerMethod(resource, "with", WithMethodGen.makeFunction(language));
-    scope.registerMethod(resource, "unsafe_take", TakeMethodGen.makeFunction(language));
-    scope.registerMethod(resource, "close", CloseMethodGen.makeFunction(language));
+    scope.registerMethod(resource, "take", TakeMethodGen.makeFunction(language));
+    scope.registerMethod(resource, "finalize", FinalizeMethodGen.makeFunction(language));
   }
 }

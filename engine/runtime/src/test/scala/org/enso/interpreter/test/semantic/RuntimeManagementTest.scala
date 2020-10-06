@@ -10,8 +10,8 @@ import scala.util.Try
 class RuntimeManagementTest extends InterpreterTest {
   override def subject: String = "Enso Code Execution"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "Interrupt threads through Thread#interrupt()" in {
@@ -62,6 +62,9 @@ class RuntimeManagementTest extends InterpreterTest {
       runTest()
     }
 
+    /**
+      * Don't use this in production code, ever.
+      */
     def forceGC(): Unit = {
       var obj = new Object
       val ref = new WeakReference[Object](obj)
@@ -104,12 +107,12 @@ class RuntimeManagementTest extends InterpreterTest {
       }
 
       def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
-      def mkFreeStr(i: Int): String = s"Freeing: (Mock_File $i)"
-      def all = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
+      def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File $i)"
+      def all                         = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
     }
 
-    "Automatically free managed resources in the presence of manual closure" in {
+    "Automatically free managed resources amongst manual closure of other managed resources" in {
       val code =
         """
           |from Builtins import all
@@ -143,12 +146,12 @@ class RuntimeManagementTest extends InterpreterTest {
       }
 
       def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
-      def mkFreeStr(i: Int): String = s"Freeing: (Mock_File $i)"
-      def all = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
+      def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File $i)"
+      def all                         = 0.to(4).map(mkAccessStr) ++ 0.to(4).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
     }
 
-    "Automatically free managed resources in the presence of manual takeover" in {
+    "Automatically free managed resources amongst manual takeover of other managed resources" in {
       val code =
         """
           |from Builtins import all
@@ -161,7 +164,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
           |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.unsafe_take r else Unit
+          |    if i % 2 == 0 then Managed_Resource.take r else Unit
           |
           |main =
           |    here.create_resource 0
@@ -182,8 +185,8 @@ class RuntimeManagementTest extends InterpreterTest {
       }
 
       def mkAccessStr(i: Int): String = s"Accessing: (Mock_File $i)"
-      def mkFreeStr(i: Int): String = s"Freeing: (Mock_File $i)"
-      def all = 0.to(4).map(mkAccessStr) ++ List(1, 3).map(mkFreeStr)
+      def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File $i)"
+      def all                         = 0.to(4).map(mkAccessStr) ++ List(1, 3).map(mkFreeStr)
       totalOut should contain theSameElementsAs all
     }
   }

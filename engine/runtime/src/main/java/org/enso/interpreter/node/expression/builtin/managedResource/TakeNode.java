@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.data.ManagedResource;
 
 @BuiltinMethod(
     type = "Managed_Resource",
-    name = "unsafe_take",
+    name = "take",
     description =
         "Takes the value held by the managed resource and removes the finalization callbacks,"
             + " effectively making the underlying resource unmanaged again.")

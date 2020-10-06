@@ -10,12 +10,12 @@ import org.enso.interpreter.runtime.data.ManagedResource;
 
 @BuiltinMethod(
     type = "Managed_Resource",
-    name = "close",
-    description = "Closes a managed resource, even if it is still reachable.")
-public abstract class CloseNode extends Node {
+    name = "finalize",
+    description = "Finalizes a managed resource, even if it is still reachable.")
+public abstract class FinalizeNode extends Node {
 
-  static CloseNode build() {
-    return CloseNodeGen.create();
+  static FinalizeNode build() {
+    return FinalizeNodeGen.create();
   }
 
   abstract Object execute(Object _this, ManagedResource resource);

@@ -118,7 +118,8 @@ public class ResourceManager {
    */
   public ManagedResource register(Object object, Object function) {
     if (isClosed) {
-      throw new IllegalStateException("Can't register new resources after resource manager is closed.");
+      throw new IllegalStateException(
+          "Can't register new resources after resource manager is closed.");
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
@@ -155,8 +156,7 @@ public class ResourceManager {
     for (PhantomReference<ManagedResource> key : items.keySet()) {
       Item it = items.remove(key);
       if (it != null) {
-        // Finalize unconditionally – all other threads are supposed to be dead
-        // by now.
+        // Finalize unconditionally – all other threads are dead by now.
         it.doFinalize(context);
       }
     }

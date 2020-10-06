@@ -65,10 +65,10 @@ A managed resource can be closed manually, using
 immediately.
 
 The finalization of a resource can be aborted using
-`Managed_Resource.unsafe_take resource`. This call will abort any automatic
+`Managed_Resource.take resource`. This call will abort any automatic
 finalization actions and return the original underlying object. The return value
 is no longer managed by the runtime and must either be finalized manually or
-wrapped in a new managed resource using a call to `Managed_Resource.register`
+wrapped in a new managed resource using a call to `Managed_Resource.register`.
 
 ## Semantics and Guarantees
 
@@ -80,12 +80,12 @@ managed resources system.
 The finalizer attached to a managed resource is guaranteed to be executed
 at-most-once.
 
-There are no guarantees that the finalizer will ever _be_ executed. It is executed as
-soon as the runtime garbage-collects the managed resource, but this is not to
-say "as soon as the managed resource becomes unreachable". The runtime is free
-to run garbage collection at any point, including to not run it at all over the
-course of program execution. A call to `Runtime.gc` serves as hint to the
-runtime system to perform garbage collection, but does not guarantee that
+There are no guarantees that the finalizer will ever _be_ executed. It is
+executed as soon as the runtime garbage-collects the managed resource, but this
+is not to say "as soon as the managed resource becomes unreachable". The runtime
+is free to run garbage collection at any point, including to not run it at all
+over the course of program execution. A call to `Runtime.gc` serves as hint to
+the runtime system to perform garbage collection, but does not guarantee that
 garbage collection will actually run.
 
 The finalizer may be run from any application thread, with no guarantees as to
@@ -97,8 +97,8 @@ In case the same underlying resource is used in multiple managed resources, it
 will be finalized as soon as the first managed resource is garbage collected.
 Moreover, the finalizer will be called for each garbage collected managed
 resource, possibly leading to multiple-finalization of the underlying object.
-Therefore, using the same underlying resource with multiple managed resource instances
-should be considered an error.
+Therefore, using the same underlying resource with multiple managed resource
+instances should be considered an error.
 
 ### Thread Safety
 

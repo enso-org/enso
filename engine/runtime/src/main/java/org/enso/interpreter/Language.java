@@ -86,16 +86,7 @@ public final class Language extends TruffleLanguage<Context> {
     return Truffle.getRuntime().createCallTarget(root);
   }
 
-  @Override
-  protected void finalizeContext(Context context) {
-    context.getResourceManager().shutdown();
-  }
-
-  /**
-   * Returns the supported options descriptors, for use by Graal's engine.
-   *
-   * @return The supported options descriptors
-   */
+  /** {@inheritDoc} */
   @Override
   protected OptionDescriptors getOptionDescriptors() {
     return RuntimeOptions.OPTION_DESCRIPTORS;
