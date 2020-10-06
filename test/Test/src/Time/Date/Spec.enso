@@ -14,9 +14,23 @@ spec =
             date . get_year . should_equal 2020
             date . get_month . should_equal 1
             date . get_day . should_equal 1
+        it "should format local date using provided pattern" <|
+            text = Date.new 2020 12 21 . format "yyyyMMdd"
+            text . should_equal "20201221"
+        it "should format local date using default pattern" <|
+            text = Date.new 2020 12 21 . to_text
+            text . should_equal "2020-12-21"
+        it "should parse default time format" <|
+            text = Date.new 2020 12 21 . to_text
+            date = Date.parse text
+            date . get_year . should_equal 2020
+            date . get_month . should_equal 12
+            date . get_day . should_equal 21
         it "should parse local date" <|
             date = Date.parse "1999-01-01"
             date . get_year . should_equal 1999
+            date . get_month . should_equal 1
+            date . get_day . should_equal 1
         it "should add date-based interval" <|
             date = Date.new 1970 . plus 1.day
             date . get_year . should_equal 1970

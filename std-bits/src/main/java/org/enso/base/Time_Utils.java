@@ -36,9 +36,19 @@ public class Time_Utils {
             .toFormatter();
   }
 
-  /** @return default date time formatter. */
+  /** @return default Time formatter. */
   public static DateTimeFormatter default_time_formatter() {
     return DateTimeFormatter.ISO_ZONED_DATE_TIME;
+  }
+
+  /** @return default Date formatter. */
+  public static DateTimeFormatter default_date_formatter() {
+    return DateTimeFormatter.ISO_LOCAL_DATE;
+  }
+
+  /** @return default Time_Of_Day formatter. */
+  public static DateTimeFormatter default_time_of_day_formatter() {
+    return DateTimeFormatter.ISO_LOCAL_TIME;
   }
 
   /**

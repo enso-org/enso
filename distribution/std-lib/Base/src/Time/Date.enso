@@ -6,6 +6,8 @@ import Base.Time.Zone
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import org.enso.base.Time_Utils
 
 type Date
 
@@ -51,6 +53,14 @@ type Date
     minus : Duration -> Date
     minus amount =
         if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Date (this . internal_local_date . minus [amount.interval_period])
+
+    ## Format this date using the default formatter.
+    to_text : Text
+    to_text = Time_Utils.default_date_formatter [] . format [this.internal_local_date]
+
+    ## Format this date using formatter string.
+    format : Text -> Text
+    format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_date]
 
 ## Obtains an instance of `Date` from a text string such as 2007-12-03.
 

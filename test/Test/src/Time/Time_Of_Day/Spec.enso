@@ -15,6 +15,16 @@ spec =
             time . get_minute . should_equal 0
             time . get_second . should_equal 0
             time . to_seconds . should_equal 3600
+        it "should format local time using provided pattern" <|
+            text = Time_Of_Day.new 12 20 44 . format "HHmmss"
+            text . should_equal "122044"
+        it "should format local time using default pattern" <|
+            text = Time_Of_Day.new 12 20 44 . to_text
+            text . should_equal "12:20:44"
+        it "should parse default time format" <|
+            text = Time_Of_Day.new 12 20 44 . to_text
+            time = Time_Of_Day.parse text
+            time.to_seconds . should_equal 44444
         it "should parse local time" <|
             time = Time_Of_Day.parse "10:00:00"
             time.to_seconds . should_equal 36000

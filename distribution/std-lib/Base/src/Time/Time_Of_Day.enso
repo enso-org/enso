@@ -6,6 +6,8 @@ import Base.Time.Zone
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import org.enso.base.Time_Utils
 
 type Time_Of_Day
 
@@ -57,6 +59,14 @@ type Time_Of_Day
              Time_Of_Day.new.minus 3.hours
     minus : Duration -> Time_Of_Day
     minus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.interval_duration])
+
+    ## Format this time of day using the default formatter.
+    to_text : Text
+    to_text = Time_Utils.default_time_of_day_formatter [] . format [this.internal_local_time]
+
+    # Format this time of day using formatter string.
+    format : Text -> Text
+    format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_time]
 
 ## Obtains an instance of `LocalTime` from a text string such as 10:15.
 
