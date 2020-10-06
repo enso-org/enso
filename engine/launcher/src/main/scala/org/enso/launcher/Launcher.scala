@@ -2,9 +2,10 @@ package org.enso.launcher
 
 import java.nio.file.Path
 
+import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.cli.GlobalCLIOptions
+import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
 import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.components.runner.{
   JVMSettings,
@@ -21,6 +22,7 @@ import org.enso.launcher.installation.{
 }
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
+import org.enso.loggingservice.LogLevel
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /**
@@ -30,6 +32,8 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
   * @param cliOptions the global CLI options to use for the commands
   */
 case class Launcher(cliOptions: GlobalCLIOptions) {
+  private val logger = Logger[Launcher]
+
   private lazy val componentsManager = ComponentsManager.default(cliOptions)
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, DistributionManager)
@@ -39,7 +43,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       projectManager,
       configurationManager,
       componentsManager,
-      Environment
+      Environment,
+      LauncherLogging.loggingServiceEndpoint()
     )
   private lazy val upgrader = LauncherUpgrader.default(cliOptions)
   upgrader.runCleanup(isStartup = true)
@@ -85,9 +90,11 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       }
 
     if (exitCode == 0) {
-      Logger.info(s"Project created in `$actualPath` using version $version.")
+      InfoLogger.info(
+        s"Project created in `$actualPath` using version $version."
+      )
     } else {
-      Logger.error("Project creation failed.")
+      logger.error("Project creation failed.")
     }
 
     exitCode
@@ -144,7 +151,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def installEngine(version: SemVer): Int = {
     val existing = componentsManager.findEngine(version)
     if (existing.isDefined) {
-      Logger.info(s"Engine $version is already installed.")
+      InfoLogger.info(s"Engine $version is already installed.")
     } else {
       componentsManager.findOrInstallEngine(version, complain = false)
     }
@@ -158,7 +165,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def installLatestEngine(): Int = {
     val latest = componentsManager.fetchLatestEngineVersion()
-    Logger.info(s"Installing Enso engine $latest.")
+    InfoLogger.info(s"Installing Enso engine $latest.")
     installEngine(latest)
   }
 
@@ -183,6 +190,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param projectPath if provided, the REPL is run in context of that project
     * @param versionOverride if provided, overrides the default engine version
     *                        that would have been used
+    * @param logLevel log level for the engine
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
@@ -192,13 +200,16 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRepl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
     val exitCode = runner
       .withCommand(
-        runner.repl(projectPath, versionOverride, additionalArguments).get,
+        runner
+          .repl(projectPath, versionOverride, logLevel, additionalArguments)
+          .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
         command.run().get
@@ -218,6 +229,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param path specifies what to run
     * @param versionOverride if provided, overrides the default engine version
     *                        that would have been used
+    * @param logLevel log level for the engine
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
@@ -227,13 +239,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRun(
     path: Option[Path],
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Int = {
     val exitCode = runner
       .withCommand(
-        runner.run(path, versionOverride, additionalArguments).get,
+        runner.run(path, versionOverride, logLevel, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
         command.run().get
@@ -250,6 +263,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param options configuration required by the language server
     * @param versionOverride if provided, overrides the default engine version
     *                        that would have been used
+    * @param logLevel log level for the language server
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
@@ -259,6 +273,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runLanguageServer(
     options: LanguageServerOptions,
     versionOverride: Option[SemVer],
+    logLevel: LogLevel,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -266,7 +281,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val exitCode = runner
       .withCommand(
         runner
-          .languageServer(options, versionOverride, additionalArguments)
+          .languageServer(
+            options,
+            versionOverride,
+            logLevel,
+            additionalArguments
+          )
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
@@ -286,13 +306,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def updateConfig(key: String, value: String): Int = {
     if (value.isEmpty) {
       configurationManager.removeFromConfig(key)
-      Logger.info(
+      InfoLogger.info(
         s"""Key `$key` removed from the global configuration file """ +
         s"(${configurationManager.configLocation.toAbsolutePath})."
       )
     } else {
       configurationManager.updateConfigRaw(key, Json.fromString(value))
-      Logger.info(
+      InfoLogger.info(
         s"""Key `$key` set to "$value" in the global configuration file """ +
         s"(${configurationManager.configLocation.toAbsolutePath})."
       )
@@ -312,7 +332,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         println(value)
         0
       case None =>
-        Logger.warn(s"Key $key is not set in the global config.")
+        logger.warn(s"Key $key is not set in the global config.")
         1
     }
   }
@@ -327,12 +347,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
 
     defaultVersion match {
       case DefaultVersion.LatestInstalled =>
-        Logger.info(
+        InfoLogger.info(
           s"Default Enso version set to the latest installed version, " +
           s"currently ${configurationManager.defaultVersion}."
         )
       case DefaultVersion.Exact(version) =>
-        Logger.info(s"Default Enso version set to $version.")
+        InfoLogger.info(s"Default Enso version set to $version.")
     }
 
     0
@@ -441,14 +461,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val targetVersion       = version.getOrElse(upgrader.latestVersion().get)
     val isManuallyRequested = version.isDefined
     if (targetVersion == CurrentVersion.version) {
-      Logger.info("Already up-to-date.")
+      InfoLogger.info("Already up-to-date.")
       0
     } else if (targetVersion < CurrentVersion.version && !isManuallyRequested) {
-      Logger.warn(
+      logger.warn(
         s"The latest available version is $targetVersion, but you are " +
         s"running ${CurrentVersion.version} which is more recent."
       )
-      Logger.info(
+      InfoLogger.info(
         s"If you really want to downgrade, please run " +
         s"`enso upgrade $targetVersion`."
       )
@@ -471,11 +491,11 @@ object Launcher {
     */
   def ensurePortable(): Unit = {
     if (!DistributionManager.isRunningPortable) {
-      Logger.error(
+      Logger[Launcher].error(
         "`--ensure-portable` is set, but the launcher is not running in " +
         "portable mode. Terminating."
       )
-      sys.exit(1)
+      Main.exit(1)
     }
   }
 }

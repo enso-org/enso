@@ -1,11 +1,12 @@
 package org.enso.interpreter.runtime.number;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.TruffleObject;
 
 import java.math.BigInteger;
 
 /** Internal wrapper for a {@link BigInteger}. */
-public class EnsoBigInteger {
+public class EnsoBigInteger implements TruffleObject {
   private final BigInteger value;
 
   /**

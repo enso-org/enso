@@ -360,6 +360,28 @@ class AstToIrTest extends CompilerTest with Inside {
       ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Binding]
     }
 
+    "work for method definitions with operator names" in {
+      val bindings = """
+                       |My.== : My -> Boolean
+                       |My.== that = this.a == that.a
+                       |""".stripMargin.toIrModule.bindings
+
+      val tpIr = bindings(0)
+      tpIr shouldBe a[IR.Type.Ascription]
+      val tp = tpIr.asInstanceOf[IR.Type.Ascription]
+      tp.typed shouldBe a[IR.Name.MethodReference]
+      val methodRef = tp.typed.asInstanceOf[IR.Name.MethodReference]
+      methodRef.typePointer.name shouldEqual "My"
+      methodRef.methodName.name shouldEqual "=="
+
+      val methodIr = bindings(1)
+      methodIr shouldBe a[IR.Module.Scope.Definition.Method.Binding]
+      val method =
+        methodIr.asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+      method.methodReference.methodName.name shouldEqual "=="
+      method.methodReference.typePointer.name shouldEqual "My"
+    }
+
     "not recognise pattern match bindings" in {
       val ir =
         """
@@ -514,6 +536,24 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Error.Syntax]
       ir.asInstanceOf[IR.Error.Syntax]
         .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
+    }
+
+    "allow defining methods with operator names" in {
+      val body =
+        """
+          |type My
+          |    type My a
+          |    
+          |    + : My -> My
+          |    + that = My this.a+that.a
+          |""".stripMargin.toIrModule.bindings.head
+          .asInstanceOf[IR.Module.Scope.Definition.Type]
+          .body
+
+      body(1) shouldBe an[IR.Type.Ascription]
+      body(2) shouldBe an[IR.Function.Binding]
+      val fun = body(2).asInstanceOf[IR.Function.Binding]
+      fun.name.name shouldEqual "+"
     }
   }
 

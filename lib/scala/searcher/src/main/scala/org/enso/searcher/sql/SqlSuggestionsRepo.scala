@@ -269,6 +269,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def removeQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
     val (raw, _) = toSuggestionRow(suggestion)
     val selectQuery = Suggestions
+      .filter(_.module === raw.module)
       .filter(_.kind === raw.kind)
       .filter(_.name === raw.name)
       .filter(_.scopeStartLine === raw.scopeStartLine)
@@ -306,13 +307,18 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def removeAllByModuleQuery(
     modules: Seq[String]
   ): DBIO[(Long, Seq[Long])] = {
-    val selectQuery = Suggestions.filter(_.module inSet modules)
-    val deleteQuery = for {
-      rows    <- selectQuery.result
-      n       <- selectQuery.delete
-      version <- if (n > 0) incrementVersionQuery else currentVersionQuery
-    } yield version -> rows.flatMap(_.id)
-    deleteQuery
+    if (modules.nonEmpty) {
+      val selectQuery = Suggestions.filter(_.module inSet modules)
+      for {
+        rows    <- selectQuery.result
+        n       <- selectQuery.delete
+        version <- if (n > 0) incrementVersionQuery else currentVersionQuery
+      } yield version -> rows.flatMap(_.id)
+    } else {
+      for {
+        version <- currentVersionQuery
+      } yield (version, Seq())
+    }
   }
 
   /** The query to remove a list of suggestions.
@@ -419,6 +425,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** Create a search query by the provided parameters.
     *
+    * Even if the module is specified, the response includes all available
+    * global symbols (atoms and method).
+    *
     * @param module the module name search parameter
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
@@ -435,7 +444,8 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
       .filterOpt(module) {
-        case (row, value) => row.module === value
+        case (row, value) =>
+          row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
       .filterOpt(selfType) {
         case (row, value) => row.selfType === value

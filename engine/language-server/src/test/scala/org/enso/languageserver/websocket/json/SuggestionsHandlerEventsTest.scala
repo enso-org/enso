@@ -1,5 +1,7 @@
 package org.enso.languageserver.websocket.json
 
+import java.io.File
+
 import io.circe.literal._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.Suggestions
@@ -20,7 +22,9 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // add atom
       system.eventStream.publish(
-        Api.SuggestionsDatabaseUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          "",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.atom))
         )
       )
@@ -56,7 +60,9 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // add method
       system.eventStream.publish(
-        Api.SuggestionsDatabaseUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          "",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.method))
         )
       )
@@ -102,7 +108,9 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // add function
       system.eventStream.publish(
-        Api.SuggestionsDatabaseUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          "",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.function))
         )
       )
@@ -142,7 +150,9 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // add local
       system.eventStream.publish(
-        Api.SuggestionsDatabaseUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          "",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.local))
         )
       )
@@ -281,7 +291,9 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // remove items
       system.eventStream.publish(
-        Api.SuggestionsDatabaseUpdateNotification(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          "",
           Seq(
             Api.SuggestionsDatabaseUpdate.Remove(Suggestions.method),
             Api.SuggestionsDatabaseUpdate.Remove(Suggestions.function)

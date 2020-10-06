@@ -17,7 +17,7 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
     */
   override def beforeEach(): Unit = {
     super.beforeEach()
-    testDirectory = Files.createTempDirectory("enso-test")
+    prepareTemporaryDirectory()
   }
 
   /**
@@ -41,7 +41,7 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
     * because if the test runs other executables, they may take a moment to
     * terminate even after the test completed).
     */
-  private def robustDeleteDirectory(dir: File): Unit = {
+  def robustDeleteDirectory(dir: File): Unit = {
     def tryRemoving(retry: Int): Unit = {
       try {
         FileUtils.deleteDirectory(dir)
@@ -57,5 +57,21 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
     }
 
     tryRemoving(30)
+  }
+
+  private def prepareTemporaryDirectory(): Unit = {
+    testDirectory = Files.createTempDirectory("enso-test")
+  }
+
+  /**
+    * Overrides the temporary directory with a fresh one so that the test can be
+    * safely retried.
+    *
+    * Without this, retried tests re-use the directory which may cause problems.
+    */
+  def allowForRetry(action: => Unit): Unit = {
+    robustDeleteDirectory(testDirectory.toFile)
+    prepareTemporaryDirectory()
+    action
   }
 }

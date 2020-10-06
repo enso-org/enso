@@ -1,20 +1,33 @@
 package org.enso.launcher.http
 
-import java.io.FileOutputStream
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 
-import org.apache.commons.io.IOUtils
-import org.apache.http.client.config.{CookieSpecs, RequestConfig}
-import org.apache.http.client.methods.HttpUriRequest
-import org.apache.http.impl.client.HttpClients
-import org.apache.http.{Header, HttpResponse}
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.headers.Location
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.stream.scaladsl.{FileIO, Sink}
+import akka.util.ByteString
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import com.typesafe.scalalogging.Logger
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
-import org.enso.launcher.Logger
-import org.enso.launcher.internal.{ProgressInputStream, ReadProgress}
 
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Using}
+import scala.concurrent.Future
+
+/**
+  * Represents a HTTP header.
+  */
+case class Header(name: String, value: String) {
+
+  /**
+    * Checks if this header instance corresponds to a `headerName`.
+    *
+    * The check is case-insensitive.
+    */
+  def is(headerName: String): Boolean =
+    name.toLowerCase == headerName.toLowerCase
+}
 
 /**
   * Contains the response contents as a string alongside with the headers
@@ -29,6 +42,12 @@ case class APIResponse(content: String, headers: Seq[Header])
   * Contains utility functions for fetching data using the HTTP(S) protocol.
   */
 object HTTPDownload {
+  private val logger = Logger[HTTPDownload.type]
+
+  /**
+    * Determines how many redirects are taken until an error is thrown.
+    */
+  val maximumRedirects: Int = 20
 
   /**
     * Fetches the `request` and tries to decode is as a [[String]].
@@ -36,6 +55,9 @@ object HTTPDownload {
     * The request is executed in a separate thread. A [[TaskProgress]] instance
     * is returned immediately which can be used to track progress of the
     * download. The result contains the decoded response and included headers.
+    *
+    * Handles redirects, but will return an error if the amount of redirects
+    * exceeds [[maximumRedirects]].
     *
     * @param request the request to send
     * @param sizeHint an optional hint indicating the expected size of the
@@ -47,12 +69,23 @@ object HTTPDownload {
     *         be used to get the final result
     */
   def fetchString(
-    request: HttpUriRequest,
+    request: HTTPRequest,
     sizeHint: Option[Long] = None,
     encoding: Charset      = StandardCharsets.UTF_8
   ): TaskProgress[APIResponse] = {
-    Logger.debug(s"Fetching ${request.getURI.toASCIIString}")
-    runRequest(request, asStringResponseHandler(sizeHint, encoding))
+    logger.debug(s"Fetching ${request.requestImpl.getUri}")
+    def combineChunks(chunks: Seq[ByteString]): String =
+      chunks.reduceOption(_ ++ _).map(_.decodeString(encoding)).getOrElse("")
+    runRequest(
+      request.requestImpl,
+      sizeHint,
+      Sink.seq,
+      (response, chunks: Seq[ByteString]) =>
+        APIResponse(
+          combineChunks(chunks),
+          response.headers.map(header => Header(header.name, header.value))
+        )
+    )
   }
 
   /**
@@ -64,6 +97,9 @@ object HTTPDownload {
     * download. The result is the same path as `destination`. It is available
     * only when the download has been completed successfully.
     *
+    * Handles redirects, but will return an error if the amount of redirects
+    * exceeds [[maximumRedirects]].
+    *
     * @param request the request to send
     * @param sizeHint an optional hint indicating the expected size of the
     *                 response. It is used if the response does not include
@@ -72,104 +108,120 @@ object HTTPDownload {
     *         be used to wait for the completion of the download.
     */
   def download(
-    request: HttpUriRequest,
+    request: HTTPRequest,
     destination: Path,
     sizeHint: Option[Long] = None
   ): TaskProgress[Path] = {
-    Logger.debug(s"Downloading ${request.getURI.toASCIIString} to $destination")
-    runRequest(request, asFileHandler(destination, sizeHint))
+    logger.debug(
+      s"Downloading ${request.requestImpl.getUri} to $destination"
+    )
+    runRequest(
+      request.requestImpl,
+      sizeHint,
+      FileIO.toPath(destination),
+      (_, _: Any) => destination
+    )
+  }
+
+  implicit private lazy val actorSystem: ActorSystem = {
+    val config = ConfigFactory
+      .load()
+      .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
+    ActorSystem(
+      "http-requests-actor-system",
+      config
+    )
   }
 
   /**
-    * Creates a new thread that will send the provided request and returns a
-    * [[TaskProgress]] monitoring progress of that request.
+    * Starts the request and returns a [[TaskProgress]] that can be used to
+    * track download progress and get the result.
     *
-    * @param request the request to send
-    * @param handler a handler that processes the the received response to
-    *                produce some result. The second argument of the handler is
-    *                a callback that should be used by the handler to report
-    *                progress.
-    * @tparam A type of the result generated on success
-    * @return [[TaskProgress]] that monitors request progress and will return
-    *        the response returned by the `handler`
+    * @tparam A type of the result returned by `sink`
+    * @tparam B type of the final result that will be contained in the returned
+    *           [[TaskProgress]]
+    * @param request  the request to start
+    * @param sizeHint an optional hint indicating the expected size of the
+    *                  response. It is used if the response does not include
+    *                  explicit Content-Length header.
+    * @param sink specifies how the response content should be handled, it
+    *             receives chunks of [[ByteString]] and should produce a
+    *             [[Future]] with some result
+    * @param resultMapping maps the `sink` result and the response into a final
+    *                      result type, it can use the response instance to for
+    *                      example, access the headers, but the entity cannot be
+    *                      used as it will already be drained
+    * @return a [[TaskProgress]] that will contain the final result or any
+    *         errors
     */
-  private def runRequest[A](
-    request: HttpUriRequest,
-    handler: (HttpResponse, ReadProgress => Unit) => A
-  ): TaskProgress[A] = {
-    val task = new TaskProgressImplementation[A]
-    def update(progress: ReadProgress): Unit = {
-      task.reportProgress(progress.alreadyRead(), progress.total())
-    }
-
-    def run(): Unit = {
-      try {
-        val client = buildClient()
-        Using(client.execute(request)) { response =>
-          val result = handler(response, update)
-          task.setComplete(Success(result))
-        }.get
-      } catch {
-        case NonFatal(e) => task.setComplete(Failure(e))
-      }
-    }
-
-    val thread = new Thread(() => run(), "HTTP-Runner")
-    thread.start()
-    task
-  }
-
-  private def buildClient() =
-    HttpClients
-      .custom()
-      .setDefaultRequestConfig(
-        RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build()
-      )
-      .build()
-
-  /**
-    * Creates a handler that tries to decode the result content as a [[String]].
-    */
-  private def asStringResponseHandler(
+  private def runRequest[A, B](
+    request: HttpRequest,
     sizeHint: Option[Long],
-    charset: Charset
-  )(response: HttpResponse, update: ReadProgress => Unit): APIResponse =
-    Using(streamOfResponse(response, update, sizeHint)) { in =>
-      val bytes   = in.readAllBytes()
-      val content = new String(bytes, charset)
-      APIResponse(content, response.getAllHeaders.toIndexedSeq)
-    }.get
+    sink: Sink[ByteString, Future[A]],
+    resultMapping: (HttpResponse, A) => B
+  ): TaskProgress[B] = {
+    val taskProgress = new TaskProgressImplementation[B]
+    val total        = new java.util.concurrent.atomic.AtomicLong(0)
+    import actorSystem.dispatcher
 
-  /**
-    * Creates a handler that tries to save the result content into a file.
-    */
-  private def asFileHandler(
-    path: Path,
-    sizeHint: Option[Long]
-  )(response: HttpResponse, update: ReadProgress => Unit): Path =
-    Using(streamOfResponse(response, update, sizeHint)) { in =>
-      Using(new FileOutputStream(path.toFile)) { out =>
-        IOUtils.copy(in, out)
-        path
-      }.get
-    }.get
+    val http = Http()
 
-  /**
-    * Returns a progress-monitored stream that can be used to read the response
-    * content.
-    */
-  private def streamOfResponse(
-    response: HttpResponse,
-    update: ReadProgress => Unit,
-    sizeHint: Option[Long]
-  ): ProgressInputStream = {
-    val entity = response.getEntity
-    val size = {
-      val len = entity.getContentLength
-      if (len < 0) None
-      else Some(len)
+    def handleRedirects(retriesLeft: Int)(
+      response: HttpResponse
+    ): Future[HttpResponse] =
+      if (response.status.isRedirection) {
+        response.discardEntityBytes()
+        if (retriesLeft > 0) {
+          val newURI = response
+            .header[Location]
+            .getOrElse(
+              throw HTTPException(
+                s"HTTP response was ${response.status} which indicates a " +
+                s"redirection, but the Location header was missing or invalid."
+              )
+            )
+            .uri
+          if (newURI.scheme != "https") {
+            throw HTTPException(
+              s"The HTTP redirection would result in a non-HTTPS connection " +
+              s"(the requested scheme was `${newURI.scheme}`). " +
+              "This is not safe, the request has been terminated."
+            )
+          }
+
+          logger.trace(
+            s"HTTP response was ${response.status}, redirecting to `$newURI`."
+          )
+          val newRequest = request.withUri(newURI)
+          http
+            .singleRequest(newRequest)
+            .flatMap(handleRedirects(retriesLeft - 1))
+        } else {
+          throw HTTPException("Too many redirects.")
+        }
+      } else Future.successful(response)
+
+    def handleFinalResponse(
+      response: HttpResponse
+    ): Future[(HttpResponse, A)] = {
+      val sizeEstimate =
+        response.entity.contentLengthOption.orElse(sizeHint)
+      response.entity.dataBytes
+        .map { chunk =>
+          val currentTotal = total.addAndGet(chunk.size.toLong)
+          taskProgress.reportProgress(currentTotal, sizeEstimate)
+          chunk
+        }
+        .runWith(sink)
+        .map((response, _))
     }
 
-    new ProgressInputStream(entity.getContent, size.orElse(sizeHint), update)
+    http
+      .singleRequest(request)
+      .flatMap(handleRedirects(maximumRedirects))
+      .flatMap(handleFinalResponse)
+      .map(resultMapping.tupled)
+      .onComplete(taskProgress.setComplete)
+    taskProgress
   }
 }

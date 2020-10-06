@@ -2,6 +2,7 @@ package org.enso.launcher
 
 import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
+import com.typesafe.scalalogging.Logger
 
 /**
   * Helper object that allows to get the current launcher version.
@@ -33,7 +34,7 @@ object CurrentVersion {
         "release build."
       )
     else {
-      Logger.debug(s"[TEST] Overriding version to $newVersion.")
+      Logger("TEST").debug(s"Overriding version to $newVersion.")
       currentVersion = newVersion
     }
 

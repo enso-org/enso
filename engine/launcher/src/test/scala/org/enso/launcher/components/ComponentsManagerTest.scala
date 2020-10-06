@@ -3,13 +3,18 @@ package org.enso.launcher.components
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.cli.GlobalCLIOptions
+import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.locking.TestLocalResourceManager
 import org.enso.launcher.releases.engine.EngineReleaseProvider
 import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.releases.testing.FakeReleaseProvider
-import org.enso.launcher.{Environment, FakeEnvironment, WithTemporaryDirectory}
+import org.enso.launcher.{
+  DropLogs,
+  Environment,
+  FakeEnvironment,
+  WithTemporaryDirectory
+}
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
@@ -20,7 +25,8 @@ class ComponentsManagerTest
     with Matchers
     with OptionValues
     with WithTemporaryDirectory
-    with FakeEnvironment {
+    with FakeEnvironment
+    with DropLogs {
 
   /**
     * Creates the [[DistributionManager]], [[ComponentsManager]] and an
@@ -57,7 +63,8 @@ class ComponentsManagerTest
       GlobalCLIOptions(
         autoConfirm  = true,
         hideProgress = true,
-        useJSON      = false
+        useJSON      = false,
+        colorMode    = ColorMode.Never
       ),
       distributionManager,
       TestLocalResourceManager.create(),

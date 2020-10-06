@@ -31,6 +31,12 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(updateVersionQuery(file, digest))
 
   /** @inheritdoc */
+  override def updateVersions(
+    versions: Seq[(File, Array[Byte])]
+  ): Future[Unit] =
+    db.run(updateVersionsQuery(versions))
+
+  /** @inheritdoc */
   override def remove(file: File): Future[Unit] =
     db.run(removeQuery(file))
 
@@ -77,11 +83,10 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): DBIO[Option[Array[Byte]]] = {
     val upsertQuery = FileVersions
       .insertOrUpdate(FileVersionRow(file.toString, version))
-    val query = for {
+    for {
       version <- getVersionQuery(file)
       _       <- upsertQuery
     } yield version
-    query.transactionally
   }
 
   /** The query to update the version if it differs from the recorded version.
@@ -101,6 +106,23 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         if (!versionsEquals) setVersionQuery(file, version)
         else DBIO.successful(None)
     } yield !versionsEquals
+
+
+  /** The query to update the versions in batch.
+    *
+    * @param versions files with corresponding digests
+    */
+  private def updateVersionsQuery(
+    versions: Seq[(File, Array[Byte])]
+  ): DBIO[Unit] =
+    if (versions.nonEmpty) {
+      def upsertQuery(file: File, version: Array[Byte]) = FileVersions
+        .insertOrUpdate(FileVersionRow(file.toString, version))
+      DBIO.sequence(versions.map(Function.tupled(upsertQuery))) >>
+      DBIO.successful(())
+    } else {
+      DBIO.successful(())
+    }
 
   /** The query to remove the version record.
     *

@@ -125,14 +125,19 @@ case class FakeAsset(
     */
   private def maybeWaitForAsset(): Unit =
     if (shouldWaitForAssets) {
-      val name = "testasset-" + fileName
-      val lock = DefaultFileLockManager.acquireLockWithWaitingAction(
-        name,
-        LockType.Shared,
-        waitingAction = () => {
-          System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
+      val name     = "testasset-" + fileName
+      val lockType = LockType.Shared
+      val lock =
+        DefaultFileLockManager.tryAcquireLock(name, lockType) match {
+          case Some(immediateLock) =>
+            System.err.println(
+              "[TEST] Error: Lock was unexpectedly acquired immediately."
+            )
+            immediateLock
+          case None =>
+            System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
+            DefaultFileLockManager.acquireLock(name, lockType)
         }
-      )
       lock.release()
     }
 

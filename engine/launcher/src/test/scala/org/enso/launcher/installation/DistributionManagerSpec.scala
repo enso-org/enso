@@ -4,7 +4,12 @@ import java.nio.file.Path
 
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.locking.TestLocalResourceManager
-import org.enso.launcher.{Environment, FakeEnvironment, WithTemporaryDirectory}
+import org.enso.launcher.{
+  DropLogs,
+  Environment,
+  FakeEnvironment,
+  WithTemporaryDirectory
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -12,7 +17,8 @@ class DistributionManagerSpec
     extends AnyWordSpec
     with Matchers
     with WithTemporaryDirectory
-    with FakeEnvironment {
+    with FakeEnvironment
+    with DropLogs {
 
   "DistributionManager" should {
     "detect portable distribution" in {

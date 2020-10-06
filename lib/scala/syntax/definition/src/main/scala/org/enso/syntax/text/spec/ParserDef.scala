@@ -88,6 +88,14 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         }
       current.map(go)
     }
+
+    def takeLast(): Option[AST] = {
+      current.map(c => {
+        val app = c.asInstanceOf[AST.App.Prefix]
+        current = Some(app.func)
+        app.arg
+      })
+    }
   }
 
   ////////////////
@@ -227,27 +235,39 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         ident.current = Some(opr)
       }
 
-    val char: Pattern     = anyOf(";!$%&*+-/<>?^~|:\\")
-    val errChar: Pattern  = char | "=" | "," | "."
-    val errSfx: Pattern   = errChar.many1
-    val body: Pattern     = char.many1
-    val opsEq: Pattern    = "=" | "==" | ">=" | "<=" | "/=" | "#="
-    val opsDot: Pattern   = "." | ".." | "..." | ","
-    val opsGrp: Pattern   = anyOf("()[]{}")
-    val opsCmm: Pattern   = "#" | "##"
-    val opsNoMod: Pattern = opsEq | opsDot | opsCmm
+    def onDottedOpr(): Unit = {
+      logger.trace {
+        ident.current = Some(AST.Ident.Opr("."))
+        ident.submit()
+        ident.current = Some(AST.Ident.Var(currentMatch.substring(1)))
+        ident.submit()
+      }
+    }
+
+    val char: Pattern      = anyOf(";!$%&*+-/<>?^~|:\\")
+    val errChar: Pattern   = char | "=" | "," | "."
+    val errSfx: Pattern    = errChar.many1
+    val body: Pattern      = char.many1
+    val opsEq: Pattern     = "=" | "==" | ">=" | "<=" | "/=" | "#=" | "!="
+    val dot: Pattern       = "."
+    val dottedOps: Pattern = dot >> (body | opsEq)
+    val opsDot: Pattern    = dot | ".." | "..." | ","
+    val opsGrp: Pattern    = anyOf("()[]{}")
+    val opsCmm: Pattern    = "#" | "##"
+    val opsNoMod: Pattern  = opsEq | opsDot | opsCmm
 
     val SFX_CHECK = state.define("Operator Suffix Check")
     val MOD_CHECK = state.define("Operator Modifier Check")
     MOD_CHECK.parent = SFX_CHECK
   }
 
-  ROOT          || opr.body     || opr.on(AST.Opr(_))
-  ROOT          || opr.opsNoMod || opr.onNoMod(AST.Opr(_))
-  ROOT          || opr.opsGrp   || opr.onGrp(AST.Opr(_))
-  opr.MOD_CHECK || "="          || opr.onMod()
-  opr.SFX_CHECK || opr.errSfx   || ident.onErrSfx()
-  opr.SFX_CHECK || always       || ident.onNoErrSfx()
+  ROOT          || opr.body      || opr.on(AST.Opr(_))
+  ROOT          || opr.dottedOps || opr.onDottedOpr()
+  ROOT          || opr.opsNoMod  || opr.onNoMod(AST.Opr(_))
+  ROOT          || opr.opsGrp    || opr.onGrp(AST.Opr(_))
+  opr.MOD_CHECK || "="           || opr.onMod()
+  opr.SFX_CHECK || opr.errSfx    || ident.onErrSfx()
+  opr.SFX_CHECK || always        || ident.onNoErrSfx()
 
   ////////////////
   //// NUMBER ////

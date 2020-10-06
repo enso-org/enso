@@ -10,6 +10,8 @@ import org.enso.launcher.locking.{FileLockManager, LockType}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 
+import scala.concurrent.TimeoutException
+
 class UpgradeSpec
     extends NativeTest
     with WithTemporaryDirectory
@@ -90,7 +92,11 @@ class UpgradeSpec
     val sourceLauncherLocation =
       launcherVersion.map(builtLauncherBinary).getOrElse(baseLauncherLocation)
     Files.createDirectories(launcherPath.getParent)
-    Files.copy(sourceLauncherLocation, launcherPath)
+    Files.copy(
+      sourceLauncherLocation,
+      launcherPath,
+      StandardCopyOption.REPLACE_EXISTING
+    )
     if (portable) {
       val root = launcherPath.getParent.getParent
       FileSystem.writeTextFile(root / ".enso.portable", "mark")
@@ -233,10 +239,7 @@ class UpgradeSpec
       )
 
       checkVersion() shouldEqual SemVer(0, 0, 0)
-      // run(Seq("upgrade", "0.0.3")) should returnSuccess
-      val proc = startLauncher(Seq("upgrade", "0.0.3"))
-      proc.printIO()
-      proc.join(timeoutSeconds = 20) should returnSuccess
+      run(Seq("upgrade", "0.0.3")) should returnSuccess
 
       checkVersion() shouldEqual SemVer(0, 0, 3)
 
@@ -327,7 +330,12 @@ class UpgradeSpec
       )
 
       val firstSuspended = startLauncher(
-        Seq("upgrade", "0.0.2", "--internal-emulate-repository-wait")
+        Seq(
+          "upgrade",
+          "0.0.2",
+          "--internal-emulate-repository-wait",
+          "--launcher-log-level=trace"
+        )
       )
       try {
         firstSuspended.waitForMessageOnErrorStream(
@@ -339,6 +347,15 @@ class UpgradeSpec
 
         secondFailed.stderr should include("Another upgrade is in progress")
         secondFailed.exitCode shouldEqual 1
+      } catch {
+        case e: TimeoutException =>
+          System.err.println(
+            "Waiting for the lock timed out, " +
+            "the process had the following output:"
+          )
+          firstSuspended.printIO()
+          firstSuspended.kill()
+          throw e
       } finally {
         lock.release()
       }

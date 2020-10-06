@@ -33,7 +33,7 @@ type Assertion
 fail message = Panic.throw (Failure message)
 
 ## Asserts that `this` value is equal to the expected value.
-Any.should_equal that = case this.equals that of
+Any.should_equal that = case this == that of
     True -> Success
     False ->
         msg = this.to_text + " did not equal " + that.to_text + "."

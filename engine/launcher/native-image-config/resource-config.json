@@ -1,8 +1,11 @@
 {
   "resources": [
-    { "pattern": "\\QMain.enso\\E" },
-    { "pattern": "\\Qmozilla/public-suffix-list.txt\\E" },
-    { "pattern": "\\Qorg/apache/http/client/version.properties\\E" }
+    { "pattern": "\\QMETA-INF/MANIFEST.MF\\E" },
+    { "pattern": "\\Qakka-http-version.conf\\E" },
+    { "pattern": "\\Qapplication.conf\\E" },
+    { "pattern": "\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E" },
+    { "pattern": "\\Qreference.conf\\E" },
+    { "pattern": "\\Qversion.conf\\E" }
   ],
   "bundles": []
 }
