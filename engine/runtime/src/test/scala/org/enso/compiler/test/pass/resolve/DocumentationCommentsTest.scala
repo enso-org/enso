@@ -190,8 +190,10 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
       val module =
         """## The foo
+          |foo : Integer
           |foo = 42""".stripMargin.preprocessModule
-      module.bindings.head.getMetadata(DocumentationComments) shouldBe defined
+      val foo = module.bindings.head
+      getDoc(foo) shouldEqual " The foo"
     }
 
     "be preserved after rewriting for all entities" in {
@@ -209,6 +211,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    type Bar
           |
           |    ## a method
+          |    foo : Any -> Any
           |    foo x =
           |        ## a statement
           |        IO.println "foo"
