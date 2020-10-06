@@ -209,6 +209,41 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
+    "build method with function type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type MyAtom
+          |
+          |MyAtom.apply : (Number -> Number) -> Number
+          |MyAtom.apply f = f this
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Atom(
+          externalId    = None,
+          module        = "Unnamed.Test",
+          name          = "MyAtom",
+          arguments     = Seq(),
+          returnType    = "MyAtom",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "apply",
+          arguments = Seq(
+            Suggestion.Argument("this", "MyAtom", false, false, None),
+            Suggestion.Argument("f", "Number -> Number", false, false, None),
+          ),
+          selfType      = "MyAtom",
+          returnType    = "Number",
+          documentation = None
+        )
+      )
+    }
+
     "build method with lazy arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
@@ -412,6 +447,62 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           returnType    = "Just",
           documentation = Some(" Something there")
+        )
+      )
+    }
+
+    "build type with methods, type signatures and docs" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type List
+          |    ## And more
+          |    type Cons
+          |    ## End
+          |    type Nil
+          |
+          |    ## a method
+          |    empty : List
+          |    empty = Nil
+          |""".stripMargin
+      val module = code.preprocessModule
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Atom(
+          externalId    = None,
+          module        = "Unnamed.Test",
+          name          = "Cons",
+          arguments     = Seq(),
+          returnType    = "Cons",
+          documentation = Some(" And more")
+        ),
+        Suggestion.Atom(
+          externalId    = None,
+          module        = "Unnamed.Test",
+          name          = "Nil",
+          arguments     = Seq(),
+          returnType    = "Nil",
+          documentation = Some(" End")
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "empty",
+          arguments = Seq(
+            Suggestion.Argument("this", "Cons", false, false, None)
+          ),
+          selfType      = "Cons",
+          returnType    = "List",
+          documentation = Some(" a method")
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "empty",
+          arguments = Seq(
+            Suggestion.Argument("this", "Nil", false, false, None)
+          ),
+          selfType      = "Nil",
+          returnType    = "List",
+          documentation = Some(" a method")
         )
       )
     }
