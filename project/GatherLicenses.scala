@@ -40,21 +40,28 @@ object GatherLicenses {
       val backend = CombinedBackend(GatherNotices, GatherCopyrights)
 
       val processed = allInfo.map { dependency =>
-        println(
-          s"${dependency.moduleInfo} -> ${dependency.license} / ${dependency.url}"
+        log.debug(
+          s"Processing ${dependency.moduleInfo} -> " +
+          s"${dependency.license} / ${dependency.url}"
         )
         val attachments = backend.run(dependency.sources)
-        //println(s"Found: $attachments")
         (dependency, attachments)
       }
 
       val summary = DependencySummary(processed)
       val processedSummary =
         Review(file("legal-review") / distribution.artifactName, summary).run()
-      val allWarnings       = sbtWarnings ++ processedSummary.warnings
+      val summaryWarnings   = processedSummary.warnings
+      val allWarnings       = sbtWarnings ++ summaryWarnings
       val reportDestination = root / s"${distribution.artifactName}-report.html"
 
-      allWarnings.foreach(log.warn(_))
+      sbtWarnings.foreach(log.warn(_))
+      if (summaryWarnings.size > 10)
+        log.warn(
+          s"There are too many warnings (${summaryWarnings.size}) to " +
+          s"display. Please inspect the generated report."
+        )
+      else allWarnings.foreach(log.warn(_))
 
       Report.writeHTML(
         distribution,

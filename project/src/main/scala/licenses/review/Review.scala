@@ -34,7 +34,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     val (files, copyrights) = Attachments.split(attachments)
     val copyrightsDeduplicated =
       Copyrights.removeCopyrightsIncludedInNotices(copyrights, files)
-    val name = normalizeName(
+    val name = Review.normalizeName(
       info.moduleInfo.organization + "." + info.moduleInfo.name + "-" +
       info.moduleInfo.version
     )
@@ -86,9 +86,9 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     val keep        = readLines(packageRoot / "copyright-keep")
     val keepContext = readLines(packageRoot / "copyright-keep-context")
     def review(copyright: CopyrightMention): AttachmentStatus = {
-      val key = copyright.content
+      val key = copyright.content.strip
       if (keepContext.contains(key)) AttachmentStatus.KeepWithContext
-      if (keep.contains(key)) AttachmentStatus.Keep
+      else if (keep.contains(key)) AttachmentStatus.Keep
       else if (ignore.contains(key)) AttachmentStatus.Ignore
       else AttachmentStatus.NotReviewed
     }
@@ -111,15 +111,13 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       )
       .toSeq
 
-  private def normalizeName(string: String): String = {
-    val charsToReplace = " /:;,"
-    charsToReplace.foldLeft(string)((str, char) => str.replace(char, '_'))
-  }
-
   private def reviewLicense(
     info: DependencyInformation
   ): Option[Path] = {
-    readFile(root / normalizeName(info.license.name)).map(Path.of(_))
+    val file =
+      root.getParentFile / "reviewed-licenses" /
+      Review.normalizeName(info.license.name)
+    readFile(file).map(Path.of(_))
   }
 
   private def readLines(file: File): Seq[String] =
@@ -138,5 +136,12 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     Files.createDirectories(dir.toPath)
     try { IO.listFiles(dir) }
     catch { case NonFatal(_) => Seq() }
+  }
+}
+
+object Review {
+  def normalizeName(string: String): String = {
+    val charsToReplace = " /:;,"
+    charsToReplace.foldLeft(string)((str, char) => str.replace(char, '_'))
   }
 }

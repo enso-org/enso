@@ -1,6 +1,7 @@
 package src.main.scala.licenses.report
 
 import sbt.File
+import src.main.scala.licenses.review.Review
 import src.main.scala.licenses.{
   AttachedFile,
   AttachmentStatus,
@@ -113,7 +114,8 @@ object Report {
                 case Some(path) =>
                   writer.writeText(path.getFileName.toString, Style.Green)
                 case None =>
-                  writer.writeText("Not reviewed", Style.Red)
+                  val name = Review.normalizeName(license.name)
+                  writer.writeText(s"<pre>$name</pre>Not reviewed", Style.Red)
               }
             }
             rowWriter.addColumn {
