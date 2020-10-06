@@ -125,7 +125,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
           |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.close r else Unit
+          |    if i % 2 == 0 then Managed_Resource.finalize r else Unit
           |
           |main =
           |    here.create_resource 0
