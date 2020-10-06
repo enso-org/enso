@@ -41,13 +41,13 @@ call.
 > #### Important
 >
 > Due to the limitations of current implementation of Enso, the `finalizer`
-> passed to `Managed_Resource.register` should not be a lambda. This is because
+> passed to `Managed_Resource.register` must not be a lambda. This is because
 > lambdas implicitly capture the whole lexical scope they are defined in, so in
 > `res = Managed_Resource.register object (o -> o.close)`, the `finalizer`
 > closes over the value of `res`, preventing it from being garbage collected.
 > The same limitation concerns the underscore-lambda syntax, as `_.close` is
 > equivalent to `o -> o.close`. The finalizer should be a (possibly curried)
-> call to a function defined outside the lexical scope of the
+> call to a function defined outside of the lexical scope of the
 > `Managed_Resource.register` call.
 
 To perform operations on the underlying resource, use the
@@ -80,8 +80,8 @@ managed resources system.
 The finalizer attached to a managed resource is guaranteed to be executed
 at-most-once.
 
-There are no guarantees on the finalizer ever being executed. It is executed as
-soon as the runtime garbage collects the managed resource, but this is not to
+There are no guarantees that the finalizer will ever _be_ executed. It is executed as
+soon as the runtime garbage-collects the managed resource, but this is not to
 say "as soon as the managed resource becomes unreachable". The runtime is free
 to run garbage collection at any point, including to not run it at all over the
 course of program execution. A call to `Runtime.gc` serves as hint to the
@@ -97,7 +97,7 @@ In case the same underlying resource is used in multiple managed resources, it
 will be finalized as soon as the first managed resource is garbage collected.
 Moreover, the finalizer will be called for each garbage collected managed
 resource, possibly leading to multiple-finalization of the underlying object.
-Therefore, using the same underlying resource with multiple managed resource
+Therefore, using the same underlying resource with multiple managed resource instances
 should be considered an error.
 
 ### Thread Safety

@@ -118,7 +118,7 @@ public class ResourceManager {
    */
   public ManagedResource register(Object object, Object function) {
     if (isClosed) {
-      throw new IllegalStateException("Can't register new resources after context is closed.");
+      throw new IllegalStateException("Can't register new resources after resource manager is closed.");
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
