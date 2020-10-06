@@ -112,6 +112,17 @@ class StdlibRuntimeServerTest
       Iterator.continually(receive(timeout)).take(n).flatten.toList
     }
 
+    def receiveAllUntil(
+      msg: Api.Response,
+      timeout: Long
+    ): List[Api.Response] = {
+      Iterator
+        .continually(receive(timeout))
+        .takeWhile(received => received.isDefined && received != Some(msg))
+        .flatten
+        .toList
+    }
+
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
@@ -169,22 +180,22 @@ class StdlibRuntimeServerTest
         )
       )
     )
-    val response = context.receiveN(3, timeout = 30)
-    response.length shouldEqual 3
-    response should contain allOf (
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+    val response  =
+      context.receiveAllUntil(
+        context.executionSuccessful(contextId),
+        timeout = 30
+      )
+    response should contain (
+      Api.Response(requestId, Api.PushContextResponse(contextId))
     )
-    response.collect {
+    val collected = response.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseIndexUpdateNotification(xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, xs)
           ) =>
         xs.nonEmpty shouldBe true
-        xs.flatMap(
-          _.updates.headOption.map(_.suggestion.module)
-        ) should not contain "Test.Main"
-    } should have length 1
+    }
+    collected.nonEmpty shouldBe true
 
     context.consumeOut shouldEqual List("Hello World!")
   }

@@ -108,6 +108,28 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       b4 shouldBe false
     }
 
+    "batch update digest" taggedAs Retry in withRepo { repo =>
+      val file1   = new File("/foo/1")
+      val file2   = new File("/foo/2")
+      val digest0 = nextDigest()
+      val digest1 = nextDigest()
+      val digest2 = nextDigest()
+      val input   = Seq(file1 -> digest1, file2 -> digest2)
+      val action =
+        for {
+          _ <- repo.setVersion(file1, digest0)
+          _ <- repo.updateVersions(input)
+          v1 <- repo.getVersion(file1)
+          v2 <- repo.getVersion(file2)
+        } yield (v1, v2)
+
+      val (v1, v2) = Await.result(action, Timeout)
+      v1 shouldBe a[Some[_]]
+      v2 shouldBe a[Some[_]]
+      util.Arrays.equals(v1.get, digest1) shouldBe true
+      util.Arrays.equals(v2.get, digest2) shouldBe true
+    }
+
     "delete digest" taggedAs Retry in withRepo { repo =>
       val file   = new File("/foo/bar")
       val digest = nextDigest()

@@ -28,8 +28,10 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 )
 sealed trait Suggestion {
 
-  def name:   String
+  def externalId: Option[Suggestion.ExternalId]
   def module: String
+  def name: String
+  def returnType: String
 }
 
 object Suggestion {
