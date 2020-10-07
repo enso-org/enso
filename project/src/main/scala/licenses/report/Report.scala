@@ -1,6 +1,8 @@
 package src.main.scala.licenses.report
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
+import java.util.Base64
 
 import sbt.{File, IO}
 import src.main.scala.licenses.review.Review
@@ -172,9 +174,16 @@ object Report {
                 writer.writeList(files.map {
                   case (file, status) =>
                     () =>
+                      val injection = writer.makeInjectionHandler(
+                        "file-ui",
+                        "package"  -> dep.information.packageName,
+                        "filename" -> file.fileName,
+                        "status"   -> status.toString
+                      )
                       writer.writeCollapsible(
                         s"${file.fileName} (${renderStatus(status)}) " +
                         s"${renderSimilarity(licensePath, file, status)}",
+                        injection +
                         file.content
                       )
                 })
@@ -207,7 +216,18 @@ object Report {
                           .map("<pre>\n" + _ + "\n</pre>")
                           .mkString("<hr>")
                       } else ""
-                      val moreInfo = foundAt + contexts
+
+                      val injection = writer.makeInjectionHandler(
+                        "copyright-ui",
+                        "package" -> dep.information.packageName,
+                        "content" -> Base64.getEncoder.encodeToString(
+                          mention.content.getBytes(StandardCharsets.UTF_8)
+                        ),
+                        "contexts" -> mention.contexts.length.toString,
+                        "status"   -> status.toString
+                      )
+
+                      val moreInfo = injection + foundAt + contexts
                       writer.writeCollapsible(
                         s"${mention.content} (${renderStatus(status)})",
                         moreInfo

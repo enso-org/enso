@@ -9,7 +9,8 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
   val writer = new PrintWriter(bufferedWriter)
   def writeHeader(title: String): Unit = {
     val heading =
-      s"""<head>
+      s"""<html>
+         |<head>
          |<meta charset="utf-8">
 
          |  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
@@ -30,7 +31,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
          |      active: false,
          |      collapsible: true
          |    });
-         |  } );
+         |  });
          |  </script>
          |</head>
          |<body>""".stripMargin
@@ -117,8 +118,26 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
                       |</div></div>""".stripMargin)
   }
 
+  /**
+    * Writes an empty element that can be overridden by an injected script.
+    *
+    * Parameters names and values need to be properly escaped to fit for HTML.
+    */
+  def makeInjectionHandler(
+    className: String,
+    params: (String, String)*
+  ): String = {
+    val mappedParams = params
+      .map {
+        case (name, value) => s"""$name="$value" """
+      }
+      .mkString(" ")
+    s"""<span class="$className" $mappedParams></span>
+       |""".stripMargin
+  }
+
   def close(): Unit = {
-    writer.println("</body>")
+    writer.println("</body></html>")
     writer.close()
   }
 }
