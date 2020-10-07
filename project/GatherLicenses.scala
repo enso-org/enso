@@ -101,6 +101,11 @@ object GatherLicenses {
       )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
       if (summaryWarnings.nonEmpty) {
+        // TODO [RW] This is only an error for the final distribution and is
+        //  normal when running for the first time, so maybe it should be turned
+        //  into a warning, but possibly only if a separate task is added to
+        //  verify that the package built without warnings that would report
+        //  these warnings as errors for the final distribution
         log.error(
           "The distribution notices were regenerated, but there are " +
           "not-reviewed issues within the report. The notices are probably " +

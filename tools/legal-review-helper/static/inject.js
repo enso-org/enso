@@ -92,7 +92,7 @@ $(function () {
         .children("button")
         .on("click", makeHandler(this, data, copyrightMap[status], "remove"));
     } else {
-      $(this).html("Added manually.");
+      $(this).html("<button disabled>This notice was added manually</button>");
     }
   });
 
@@ -126,7 +126,7 @@ $(function () {
         .children("button")
         .on("click", makeHandler(this, data, filesMap[status], "remove"));
     } else {
-      $(this).html("Added manually.");
+      $(this).html("<button disabled>This file was added manually</button>");
     }
   });
 
