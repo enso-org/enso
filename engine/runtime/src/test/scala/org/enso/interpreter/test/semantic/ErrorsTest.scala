@@ -140,18 +140,20 @@ class ErrorsTest extends InterpreterTest {
           |polyglot java import java.lang.Long
           |
           |main =
-          |    args = Array.new_1 "oops"
-          |    caught = Panic.recover (Long.parseLong args)
+          |    caught = Panic.recover (Long.parseLong (Array.new_1 "oops"))
           |    IO.println caught
-          |    unwrap = caught.catch <| case _ of
+          |    cause = caught.catch <| case _ of
           |        Polyglot_Error err -> err
           |        _ -> "fail"
-          |    IO.println unwrap
+          |    IO.println cause
+          |    message = cause.getMessage (Array.new 0)
+          |    IO.println message
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
         """(Error: (Polyglot_Error java.lang.NumberFormatException: For input string: "oops"))""",
-        """java.lang.NumberFormatException: For input string: "oops""""
+        """java.lang.NumberFormatException: For input string: "oops"""",
+        """For input string: "oops""""
       )
     }
   }
