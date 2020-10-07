@@ -22,6 +22,18 @@ type Duration
     plus : Duration -> Duration
     plus other = Duration (this.interval_period . plus [other.interval_period]) (this.interval_duration . plus [other.interval_duration])
 
+    ## Add specified amount of time to this duration.
+
+       > Example
+         Add 6 seconds to a duration of 3 minutes
+             3.minutes + 6.seconds
+
+       > Example
+         Add 12 hours to a duration of a month.
+             1.month + 12.hours
+    + : Duration -> Duration
+    + other = this.plus other
+
     ## Subtract specified amount of time from this duration.
        > Example
          Subtract 1 nanosecond from a duration of 120 nanoseconds.
@@ -32,6 +44,17 @@ type Duration
              12.years . minus 3.hours
     minus : Duration -> Duration
     minus other = Duration (this.interval_period . minus [other.interval_period]) (this.interval_duration . minus [other.interval_duration])
+
+    ## Subtract specified amount of time from this duration.
+       > Example
+         Subtract 11 months from a duration of 3 years
+             3.years - 11.months
+
+       > Example
+         Substract 30 minutes from a duration of 7 months.
+             7.months - 30.minutes
+    - : Duration -> Duration
+    - other = this.minus other
 
     ## Get the amount of nanoseconds of this duration.
     get_nanos : Integer

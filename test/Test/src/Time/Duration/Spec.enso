@@ -24,6 +24,9 @@ spec =
         it "should subtract years from hours" <|
             interval = 2.hours . minus 11.years
             interval.to_vector . should_equal [-11, 0, 0, 2, 0, 0, 0]
+        it "should support ± operators" <|
+            interval = 2.hours + 12.seconds - 11.years
+            interval.to_vector . should_equal [-11, 0, 0, 2, 0, 12, 0]
         it "should create interval between two points in time" <|
             time1 = Time.new 2001 1 2
             time2 = Time.new 2001 2 1

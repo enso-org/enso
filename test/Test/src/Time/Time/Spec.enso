@@ -192,3 +192,13 @@ spec =
             time . get_second . should_equal 0
             time . get_nanosecond . should_equal 0
             time . get_zone . get_id . should_equal Zone.utc.get_id
+        it "should support ± interval operators" <|
+            time = Time.new 1970 (zone = Zone.utc) - 1.month + 12.hours
+            time . get_year . should_equal 1969
+            time . get_month . should_equal 12
+            time . get_day . should_equal 1
+            time . get_hour . should_equal 12
+            time . get_minute . should_equal 0
+            time . get_second . should_equal 0
+            time . get_nanosecond . should_equal 0
+            time . get_zone . get_id . should_equal Zone.utc.get_id
