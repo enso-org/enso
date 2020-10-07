@@ -133,5 +133,20 @@ class ErrorsTest extends InterpreterTest {
       val code = "main = 10.catch (x -> x + 1)"
       eval(code) shouldEqual 10
     }
+
+    "catch polyglot errors" in {
+      val code =
+        """from Builtins import all
+          |polyglot java import java.lang.Long
+          |
+          |main =
+          |    args = Array.new 1
+          |    args.set_at 0 "oops"
+          |    caught = Panic.recover (Long.parseLong args)
+          |    IO.println caught
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List("""(Error: (Polyglot_Error java.lang.NumberFormatException: For input string: "oops"))""")
+    }
   }
 }

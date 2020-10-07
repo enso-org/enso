@@ -88,7 +88,13 @@ public class Error {
     return noSuchMethodError.newInstance(target, Text.create(name));
   }
 
-  public Atom makePolyglotError(Throwable cause) {
+  /**
+   * Creates an instance of the runtime representation of a {@code Polyglot_Error}.
+   *
+   * @param cause the cause of the error.
+   * @return a runtime representation of the polyglot error.
+   */
+  public Atom makePolyglotError(Object cause) {
     return polyglotError.newInstance(cause);
   }
 }
