@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
@@ -120,6 +121,7 @@ public class Atom implements TruffleObject {
 
   @ExportMessage
   static class InvokeMember {
+
     static UnresolvedSymbol buildSym(AtomConstructor cons, String name) {
       return UnresolvedSymbol.build(name, cons.getDefinitionScope());
     }
@@ -130,17 +132,27 @@ public class Atom implements TruffleObject {
         Atom receiver,
         String member,
         Object[] arguments,
-        @Cached(value = "receiver.getConstructor()", allowUncached = true)
-            AtomConstructor cachedConstructor,
-        @Cached(value = "member", allowUncached = true) String cachedMember,
-        @Cached(value = "buildSym(cachedConstructor, cachedMember)", allowUncached = true)
-            UnresolvedSymbol cachedSym,
+        @Cached(value = "receiver.getConstructor()") AtomConstructor cachedConstructor,
+        @Cached(value = "member") String cachedMember,
+        @Cached(value = "buildSym(cachedConstructor, cachedMember)") UnresolvedSymbol cachedSym,
         @CachedLibrary("cachedSym") InteropLibrary symbols)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
       Object[] args = new Object[arguments.length + 1];
       args[0] = receiver;
       System.arraycopy(arguments, 0, args, 1, arguments.length);
       return symbols.execute(cachedSym, args);
+    }
+
+    @Specialization(replaces = "doCached")
+    static Object doUncached(
+        Atom receiver,
+        String member,
+        Object[] arguments,
+        @CachedLibrary(limit = "1") InteropLibrary symbols)
+        throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+      UnresolvedSymbol symbol = buildSym(receiver.getConstructor(), member);
+      return doCached(
+          receiver, member, arguments, receiver.getConstructor(), member, symbol, symbols);
     }
   }
 
