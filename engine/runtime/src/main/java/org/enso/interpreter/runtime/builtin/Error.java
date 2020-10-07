@@ -14,6 +14,7 @@ public class Error {
   private final AtomConstructor inexhaustivePatternMatchError;
   private final AtomConstructor uninitializedState;
   private final AtomConstructor noSuchMethodError;
+  private final AtomConstructor polyglotError;
 
   /**
    * Creates and registers the relevant constructors.
@@ -43,12 +44,17 @@ public class Error {
             .initializeFields(
                 new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "method_name", ArgumentDefinition.ExecutionMode.EXECUTE));
+    polyglotError =
+        new AtomConstructor("Polyglot_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "cause", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(compileError);
     scope.registerConstructor(inexhaustivePatternMatchError);
     scope.registerConstructor(uninitializedState);
     scope.registerConstructor(noSuchMethodError);
+    scope.registerConstructor(polyglotError);
   }
 
   /** @return the builtin {@code Syntax_Error} atom constructor. */
@@ -80,5 +86,9 @@ public class Error {
    */
   public Atom makeNoSuchMethodError(Object target, String name) {
     return noSuchMethodError.newInstance(target, Text.create(name));
+  }
+
+  public Atom makePolyglotError(Throwable cause) {
+    return polyglotError.newInstance(cause);
   }
 }
