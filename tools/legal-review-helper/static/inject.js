@@ -1,3 +1,4 @@
+/** Sets a status text in bottom left part of the screen. */
 function setStatus(text, color) {
   var status = $("#status");
   status.html(text);
@@ -7,6 +8,7 @@ function setStatus(text, color) {
   status.css("background-color", color);
 }
 
+/** Creates a handler that will request to add or remove a line from a file. */
 function makeHandler(elem, data, file, action) {
   return function (ev) {
     data["file"] = file;

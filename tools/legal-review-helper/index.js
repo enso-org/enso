@@ -7,6 +7,7 @@ const open = require("open");
 const fs = require("fs");
 const path = require("path");
 
+// The home page that lists available reports.
 app.get("/", function (req, res) {
   let html = "<h1>Report review</h1>";
   const files = fs.readdirSync(reviewRoot);
@@ -29,8 +30,10 @@ app.get("/", function (req, res) {
   res.send(html);
 });
 
+// Serves the injection script.
 app.use("/static", express.static("static"));
 
+// Serves contents of the given report, injecting the review-mode script.
 app.get("/report/:report", function (req, res) {
   const report = req.params["report"];
   console.log("Opening report for ", report);
@@ -53,6 +56,7 @@ app.get("/report/:report", function (req, res) {
   );
 });
 
+// Appends a line to the setting file.
 function addLine(report, package, file, line) {
   const dir = path.join(settingsRoot, report, package);
   const location = path.join(dir, file);
@@ -63,6 +67,7 @@ function addLine(report, package, file, line) {
   fs.appendFileSync(location, line + "\n");
 }
 
+// Removes a line from the setting file.
 function removeLine(report, package, file, line) {
   const location = path.join(settingsRoot, report, package, file);
   console.log("Removing " + line + " from " + location);
@@ -88,6 +93,7 @@ function removeLine(report, package, file, line) {
   }
 }
 
+// Handles the requests to add or remove lines.
 app.use(express.urlencoded());
 app.post("/modify/:report", function (req, res) {
   const report = req.params["report"];
@@ -111,6 +117,10 @@ app.post("/modify/:report", function (req, res) {
   }
 });
 
+/*
+ * Listens on a random free port, opens a browser with the home page and waits
+ * for a newline to terminate.
+ */
 const server = app.listen(0, () => {
   const port = server.address().port;
   console.log("Listening on at ", "http://localhost:" + port + "/");

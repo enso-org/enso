@@ -18,9 +18,34 @@ import src.main.scala.licenses.{
 
 import scala.collection.JavaConverters._
 
+/**
+  * Defines the algorithm for discovering dependency metadata.
+  */
 object SbtLicenses {
+
+  /**
+    * Defines configurations that are deemed relevant for dependency discovery.
+    *
+    * Currently we only analyse Compile dependencies as these are the ones that
+    * get packaged.
+    *
+    * Provided dependencies are assumed to be already present in the used
+    * runtime, so we do not distribute them. One exception is the launcher which
+    * does distribute the provided SubstrateVM dependencies as part of it being
+    * compiled with the SVM. But that has to be handled independently anyway.
+    */
   val relevantConfigurations = Seq(Compile)
 
+  /**
+    * Analyzes the provided [[SBTDistributionComponent]]s collecting their
+    * unique dependencies and issuing any warnings.
+    *
+    * @param components description of SBT components included in the
+    *                   distribution
+    * @param log logger to use when resolving dependencies
+    * @return a sequence of collected dependency information and a sequence of
+    *         encountered warnings
+    */
   def analyze(
     components: Seq[SBTDistributionComponent],
     log: ManagedLogger
@@ -73,12 +98,20 @@ object SbtLicenses {
     } yield s"Could not find sources for ${dep.moduleInfo}"
     val unexpectedWarnings = for {
       source <- distinctSources
-      if !distinctDependencies.exists(_.sourcesJARPath.contains(source))
-    } yield s"Found a source $source that does not belong to any known dependencies, perhaps the algorithm needs updating?"
+      if !distinctDependencies.exists(_.sourcesJARPaths.contains(source))
+    } yield s"Found a source $source that does not belong to any known " +
+    s"dependencies, perhaps the algorithm needs updating?"
 
     (relevantDeps, missingWarnings ++ unexpectedWarnings)
   }
 
+  /**
+    * Uses the [[LicenseReport]] plugin to resolve the dependencies of the Ivy
+    * module of an SBT component.
+    *
+    * Returns the resolved report or throws an exception if any errors were
+    * encountered.
+    */
   private def resolveIvy(
     ivyModule: IvySbt#Module,
     log: ManagedLogger
@@ -88,11 +121,20 @@ object SbtLicenses {
     report
   }
 
+  /**
+    * Returns a project URL if it is defined for the dependency or None.
+    */
   private def tryFindingUrl(dependency: Dependency): Option[String] =
     Option(dependency.ivyNode.getDescriptor).flatMap(descriptor =>
       Option(descriptor.getHomePage)
     )
 
+  /**
+    * Creates a [[SourceAccess]] instance that unpacks the source files from a
+    * JAR archive into a temporary directory.
+    *
+    * It removes the temporary directory after the analysis is finished.
+    */
   private def createSourceAccessFromJAR(jarPath: Path): SourceAccess =
     new SourceAccess {
       override def access[R](withSources: Path => R): R =
@@ -102,15 +144,29 @@ object SbtLicenses {
         }
     }
 
+  /**
+    * Returns a sequence of [[SourceAccess]] instances that give access to any
+    * sources JARs that are available with the dependency.
+    */
   private def findSources(dependency: Dependency): Seq[SourceAccess] =
-    dependency.sourcesJARPath.map(createSourceAccessFromJAR)
+    dependency.sourcesJARPaths.map(createSourceAccessFromJAR)
 
+  /**
+    * Wraps information related to a dependency.
+    *
+    * @param depLicense information on the license
+    * @param ivyNode Ivy node that can be used to find metadata
+    * @param sourcesJARPaths paths to JARs containing dependency's sources
+    */
   case class Dependency(
     depLicense: DepLicense,
     ivyNode: IvyNode,
-    sourcesJARPath: Seq[Path]
+    sourcesJARPaths: Seq[Path]
   )
 
+  /**
+    * Returns [[DepModuleInfo]] for an [[IvyNode]] if it is defined, or None.
+    */
   private def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
     for {
       moduleId       <- Option(dep.getModuleId)

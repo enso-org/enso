@@ -5,7 +5,6 @@ import java.nio.file.Path
 import java.util.Base64
 
 import sbt.{File, IO}
-import src.main.scala.licenses.review.Review
 import src.main.scala.licenses.{
   AttachedFile,
   AttachmentStatus,
@@ -14,7 +13,24 @@ import src.main.scala.licenses.{
   ReviewedSummary
 }
 
+/**
+  * Allows to write a report summarizing current status of the review.
+  *
+  * The report lists all dependencies and status of found attachments.
+  *
+  * With the legal-review-helper script, the generated report can be used to
+  * interactively perform substantial parts of the review.
+  */
 object Report {
+
+  /**
+    * Writes the report in HTML format.
+    *
+    * @param description description of the distribution
+    * @param summary reviewed summary of findings
+    * @param warnings sequence of warnings
+    * @param destination location of the generated HTML file
+    */
   def writeHTML(
     description: DistributionDescription,
     summary: ReviewedSummary,
@@ -24,8 +40,24 @@ object Report {
     val writer = HTMLWriter.toFile(destination)
     try {
       writer.writeHeader(s"Dependency summary for ${description.artifactName}")
-      writeDescription(writer, description)
-      writeWarningsSummary(writer, warnings)
+      writer.writeHeader(
+        s"Gathered Information on ${description.artifactName} Distribution"
+      )
+      writer.writeParagraph(
+        s"Root components analyzed for the distribution: " +
+        s"${description.rootComponentsNames.mkString(", ")}."
+      )
+
+      if (warnings.isEmpty) {
+        writer.writeParagraph("There are no warnings.", Style.Green)
+      } else {
+        writer.writeParagraph(
+          s"There are ${warnings.size} warnings!",
+          Style.Bold,
+          Style.Red
+        )
+      }
+
       writeDependencySummary(writer, summary)
 
       writer.writeList(warnings.map { warning => () =>
@@ -45,30 +77,10 @@ object Report {
     }
   }
 
-  private def writeDescription(
-    writer: HTMLWriter,
-    description: DistributionDescription
-  ): Unit = {
-    writer.writeHeader(
-      s"Gathered Information on ${description.artifactName} Distribution"
-    )
-    writer.writeParagraph(
-      s"Root components analyzed for the distribution: " +
-      s"${description.componentsNames.mkString(", ")}."
-    )
-  }
-
-  private def writeWarningsSummary(
-    writer: HTMLWriter,
-    warnings: Seq[String]
-  ): Unit = {
-    if (warnings.isEmpty) {
-      writer.writeParagraph("There are no warnings.")
-    } else {
-      writer.writeParagraph(s"There are ${warnings.size} warnings!", Style.Bold)
-    }
-  }
-
+  /**
+    * Renders [[AttachmentStatus]] as HTML that will show the status name and a
+    * color associated with it.
+    */
   private def renderStatus(attachmentStatus: AttachmentStatus): String = {
     val style = attachmentStatus match {
       case AttachmentStatus.Keep            => Style.Black
@@ -80,6 +92,14 @@ object Report {
     s"""<span style="$style">$attachmentStatus</span>"""
   }
 
+  /**
+    * Renders a message about similarity of the file to a selected license file.
+    *
+    * If the filename is license-like, the file is compared with the selected
+    * license (if any). If the file differs from the selected license and is
+    * ignored, a warning is displayed. If the file is kept but is identical (so
+    * it is redundant) the message is also displayed as a minor warning.
+    */
   private def renderSimilarity(
     licensePath: Option[Path],
     file: AttachedFile,
@@ -100,6 +120,10 @@ object Report {
     } else ""
   }
 
+  /**
+    * Writes a table containing summary of dependencies and their gathered
+    * copyright information.
+    */
   private def writeDependencySummary(
     writer: HTMLWriter,
     summary: ReviewedSummary
@@ -150,7 +174,7 @@ object Report {
                     if (licenseReviewed) Style.Green else Style.Red
                   )
                 case None if licenseReviewed =>
-                  val licenseFile = summary.keptLicense(dep)
+                  val licenseFile = summary.includedLicense(dep)
                   licenseFile match {
                     case Some(file) =>
                       writer.writeText(

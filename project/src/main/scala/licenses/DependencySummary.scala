@@ -4,31 +4,99 @@ import java.nio.file.Path
 
 import sbt.IO
 
+/**
+  * Contains a sequence of dependencies and any attachments found.
+  */
 case class DependencySummary(
   dependencies: Seq[(DependencyInformation, Seq[Attachment])]
 )
 
+/**
+  * Review status of the [[Attachment]].
+  */
 sealed trait AttachmentStatus {
+
+  /**
+    * Determines if the attachment with this status should be included in the
+    * final package.
+    */
   def included: Boolean
 }
 object AttachmentStatus {
+
+  /**
+    * Indicates that the attachment should be kept.
+    */
   case object Keep extends AttachmentStatus {
+
+    /**
+      * @inheritdoc
+      */
     override def included: Boolean = true
   }
+
+  /**
+    * Indicates that the copyright mention should be kept, but its whole context
+    * should be used instead of its content.
+    *
+    * Only valid for [[CopyrightMention]].
+    */
   case object KeepWithContext extends AttachmentStatus {
+
+    /**
+      * @inheritdoc
+      */
     override def included: Boolean = true
   }
+
+  /**
+    * Indicates that the attachment should be ignored.
+    */
   case object Ignore extends AttachmentStatus {
+
+    /**
+      * @inheritdoc
+      */
     override def included: Boolean = false
   }
+
+  /**
+    * Indicates that the attachment has been added manually.
+    */
   case object Added extends AttachmentStatus {
+
+    /**
+      * @inheritdoc
+      */
     override def included: Boolean = true
   }
+
+  /**
+    * Indicates that the attachment was not yet reviewed.
+    */
   case object NotReviewed extends AttachmentStatus {
+
+    /**
+      * @inheritdoc
+      */
     override def included: Boolean = false
   }
 }
 
+/**
+  * Gathers information related to a dependency after the review.
+  *
+  * @param information original [[DependencyInformation]]
+  * @param licenseReviewed indicates if the license associated with the
+  *                        dependency is marked as reviewed
+  * @param licensePath may contain a path to the default license file that will
+  *                    be used; if empty, `files` should contain an alternative
+  *                    license
+  * @param files list of files attached to the dependency, with their review
+  *              statuses
+  * @param copyrights list of copyright mentions attached to the dependency,
+  *                   with their review statuses
+  */
 case class ReviewedDependency(
   information: DependencyInformation,
   licenseReviewed: Boolean,
@@ -37,22 +105,39 @@ case class ReviewedDependency(
   copyrights: Seq[(CopyrightMention, AttachmentStatus)]
 )
 
+/**
+  * Summarizes the dependency review.
+  *
+  *  The reviewed version of [[DependencySummary]].
+  *
+  * @param dependencies sequence of reviewed dependencies
+  * @param noticeHeader header to include in the generated NOTICE
+  * @param additionalFiles additional files that should be added to the root of
+  *                        the notice package
+  */
 case class ReviewedSummary(
   dependencies: Seq[ReviewedDependency],
   noticeHeader: String,
   additionalFiles: Seq[AttachedFile]
 ) {
 
-  def keptLicense(dependency: ReviewedDependency): Option[AttachedFile] =
+  /**
+    * Returns a license-like file that is among attached files that are included
+    * (if such file exists).
+    */
+  def includedLicense(dependency: ReviewedDependency): Option[AttachedFile] =
     dependency.files
       .find { f =>
-        val isKept    = f._2 == AttachmentStatus.Keep
-        val name      = f._1.path.getFileName.toString.toLowerCase
-        val isLicense = name.contains("license") || name.contains("licence")
-        isKept && isLicense
+        val isIncluded = f._2.included
+        val name       = f._1.path.getFileName.toString.toLowerCase
+        val isLicense  = name.contains("license") || name.contains("licence")
+        isIncluded && isLicense
       }
       .map(_._1)
 
+  /**
+    * Returns a list of warnings that indicate missing reviews or other issues.
+    */
   def warnings: Seq[String] =
     dependencies.flatMap { dep =>
       val warnings = collection.mutable.Buffer[String]()
@@ -86,7 +171,7 @@ case class ReviewedSummary(
         )
       }
 
-      (keptLicense(dep), dep.licensePath) match {
+      (includedLicense(dep), dep.licensePath) match {
         case (Some(kept), Some(reviewedLicense)) =>
           val licenseContent = IO.read(reviewedLicense.toFile)
           if (licenseContent.strip != kept.content) {

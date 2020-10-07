@@ -12,7 +12,19 @@ import src.main.scala.licenses.{
 
 import scala.annotation.tailrec
 
+/**
+  * Defines writing the notices package for distribution.
+  */
 object PackageNotices {
+
+  /**
+    * Creates the notices package based on the `summary` in `destination`.
+    *
+    * The `destination` directory is cleaned before creating the new notices.
+    *
+    * It copies licences, files and gathers copyright notices that were set to
+    * be included in the review and generates a summary `NOTICE` file.
+    */
   def create(
     description: DistributionDescription,
     summary: ReviewedSummary,

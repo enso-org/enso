@@ -6,15 +6,28 @@ import src.main.scala.licenses.{Attachment, CopyrightMention}
 
 import scala.util.control.NonFatal
 
+/**
+  * The algorithm for gathering any copyright notices inside of source files.
+  *
+  * It reads all text files and gathers any lines that contain the word
+  * copyright - it may introduce some false positives but these can be manually
+  * reviewed and ignored.
+  *
+  * It tries to include context in which the line has appeared, first by trying
+  * to detect if the line is a part of a longer comment; if the first method
+  * fails, it just shows 2 lines before and after the selected one.
+  */
 object GatherCopyrights extends AttachmentGatherer {
+
+  /**
+    * @inheritdoc
+    */
   override def run(root: Path): Seq[Attachment] = {
     val allCopyrights = AttachmentGatherer.walk(root) { path =>
       if (Files.isRegularFile(path)) {
         val relativePath = root.relativize(path)
         try {
           val lines = IO.readLines(path.toFile).zipWithIndex.toIndexedSeq
-          // TODO [RW] it would be good to add the contexts as they help judge
-          //  if the copyright notice is complete
           lines
             .filter(l => mayBeCopyright(l._1))
             .map { case (str, idx) => (str, findContext(lines)(idx)) }
@@ -42,26 +55,41 @@ object GatherCopyrights extends AttachmentGatherer {
     )
   }
 
+  /**
+    * Decides if the line may contain a copyright.
+    */
   private def mayBeCopyright(line: String): Boolean =
     line.toLowerCase.contains("copyright")
 
+  /**
+    * Finds context of the given line.
+    *
+    * If the selected line seems to be a part of a block comment, the context
+    * becomes the whole comment, otherwise it just includes 2 lines before and
+    * after the selected line.
+    *
+    * @param allLines list of all lines available (that will be searched for
+    *                 context)
+    * @param idx index of the selected line in `allLines`
+    * @return a string representing the found context
+    */
   private def findContext(
     allLines: IndexedSeq[(String, Int)]
-  )(pos: Int): String = {
-    val (line, _) = allLines(pos)
+  )(idx: Int): String = {
+    val (line, _) = allLines(idx)
     val nearbyLines: Seq[String] = if (line.stripLeading().startsWith("*")) {
       val start = allLines
-        .take(pos + 1)
+        .take(idx + 1)
         .filter(_._1.contains("/*"))
         .map(_._2)
         .lastOption
-        .getOrElse(pos - 2)
+        .getOrElse(idx - 2)
       val end = allLines
-        .drop(pos)
+        .drop(idx)
         .filter(_._1.contains("*/"))
         .map(_._2)
         .headOption
-        .getOrElse(pos + 2)
+        .getOrElse(idx + 2)
       allLines.slice(start, end + 1).map(_._1)
     } else if (
       possiblePrefixes.exists(s => line.stripLeading().headOption.contains(s))
@@ -70,24 +98,27 @@ object GatherCopyrights extends AttachmentGatherer {
       val prefix =
         line.takeWhile(c => c.isWhitespace || possiblePrefixes.contains(c))
       val before = allLines
-        .take(pos)
+        .take(idx)
         .reverse
         .takeWhile(_._1.startsWith(prefix))
         .take(maxLinesOnSide)
         .reverse
       val after = allLines
-        .drop(pos)
+        .drop(idx)
         .takeWhile(_._1.startsWith(prefix))
         .take(maxLinesOnSide)
       (before ++ after).map(_._1)
     } else {
-      allLines.slice(pos - 2, pos + 3).map(_._1)
+      allLines.slice(idx - 2, idx + 3).map(_._1)
     }
     nearbyLines.mkString("\n")
   }
 
   private val possiblePrefixes = Seq('-', '#', ';', '/')
 
+  /**
+    * Strips comment-related characters from the prefix.
+    */
   private def cleanup(string: String): String = {
     val charsToIgnore = Seq('*', '-', '#', '/')
     string.dropWhile(char => char.isWhitespace || charsToIgnore.contains(char))

@@ -7,12 +7,14 @@ import src.main.scala.licenses.backend.{
   GithubHeuristic
 }
 import src.main.scala.licenses.frontend.SbtLicenses
-import src.main.scala.licenses.report.{PackageNotices, Report}
-import src.main.scala.licenses.review.Review
+import src.main.scala.licenses.report.{PackageNotices, Report, Review}
 import src.main.scala.licenses.{DependencySummary, DistributionDescription}
 
 import scala.sys.process.Process
 
+/**
+  * The task and configuration for automatically gathering license information.
+  */
 object GatherLicenses {
   val distributions = taskKey[Seq[DistributionDescription]](
     "Defines descriptions of distributions."
@@ -118,6 +120,11 @@ object GatherLicenses {
     reports
   }
 
+  /**
+    * Launches a server that allows to easily review the generated report.
+    *
+    * Requires `npm` to be on the system PATH.
+    */
   def runReportServer(): Unit = {
     Process(Seq("npm", "start"), file("tools/legal-review-helper"))
       .run(connectInput = true)

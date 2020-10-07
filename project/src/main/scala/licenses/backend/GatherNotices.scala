@@ -4,17 +4,30 @@ import java.nio.file.{Files, Path}
 
 import src.main.scala.licenses.{AttachedFile, Attachment}
 
+/**
+  * The algorithm for gathering any copyright-related files found in the
+  * sources.
+  *
+  * It gathers any files whose name contains one of the keywords from
+  * `possibleNames`, but filters out ordinary source files.
+  */
 object GatherNotices extends AttachmentGatherer {
-  def run(root: Path): Seq[Attachment] = {
+
+  /**
+    * @inheritdoc
+    */
+  override def run(root: Path): Seq[Attachment] = {
     AttachmentGatherer.walk(root) { path =>
-      if (Files.isRegularFile(path) && mayBeNotice(path)) {
+      if (Files.isRegularFile(path) && mayBeRelevant(path)) {
         Seq(AttachedFile.read(path, Some(root)))
       } else Seq()
     }
   }
 
-  private def mayBeNotice(path: Path): Boolean = {
-    val fileName = path.getFileName.toString.toLowerCase
+  /**
+    * Decides if the path may be relevant and should be included in the result.
+    */
+  def mayBeRelevant(fileName: String): Boolean = {
     val extension = {
       val lastDot = fileName.lastIndexOf(".")
       if (lastDot < 0) None
@@ -28,7 +41,24 @@ object GatherNotices extends AttachmentGatherer {
     }
   }
 
+  /**
+    * Decides if the filename is relevant and should be included in the result.
+    */
+  def mayBeRelevant(path: Path): Boolean =
+    mayBeRelevant(path.getFileName.toString.toLowerCase)
+
+  /**
+    * File extensions that are ignored.
+    *
+    * Source files are ignored because they are scanned for copyright notices by
+    * [[GatherCopyrights]], they are not likely to constitute separate copyright
+    * files.
+    */
   private val ignoredExtensions = Seq("scala", "java")
+
+  /**
+    * File name keywords that indicate that a file should be included.
+    */
   val possibleNames =
     Seq(
       "notice",
