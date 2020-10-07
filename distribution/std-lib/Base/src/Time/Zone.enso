@@ -35,6 +35,10 @@ parse text = Zone (ZoneId.of [text])
 system : Zone
 system = Zone (ZoneId.systemDefault [])
 
+## Alias to `system`.
+local : Zone
+local = here.system
+
 ## UTC time zone.
 utc : Zone
 utc = here.parse "UTC"

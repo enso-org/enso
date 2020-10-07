@@ -205,7 +205,7 @@ Integer.years = this.year
 
    > Example
      An hour interval between two points in time.
-         Duration.between Time.now Time.now
+         Duration.between Time.now (Time.new 2010 10 20)
 between : Time -> Time -> Duration
 between start_inclusive end_exclusive =
    Duration (Java_Period.ofDays [0]) (Java_Duration.between [start_inclusive.internal_zoned_date_time, end_exclusive.internal_zoned_date_time])

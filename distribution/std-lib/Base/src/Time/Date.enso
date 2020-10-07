@@ -106,6 +106,10 @@ parse fmt = Date (LocalDate.parse [fmt])
 now : Date
 now = Date (LocalDate.now [])
 
+## Alias for `now`.
+today : Date
+today = here.now
+
 ## Obtains an instance of `Date` from a year, month and day.
 
    The day must be valid for the year and month, otherwise an exception will be
