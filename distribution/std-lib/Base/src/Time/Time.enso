@@ -70,8 +70,8 @@ type Time
     to_epoch_milli = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
 
     ## Convert this point in time to time of day.
-    to_time_of_day : Time_Of_Day
-    to_time_of_day = Time_Of_Day.time_of_day (this . internal_zoned_date_time . toLocalTime [])
+    time_of_day : Time_Of_Day
+    time_of_day = Time_Of_Day.time_of_day (this . internal_zoned_date_time . toLocalTime [])
 
     ## Convert this point in time to date.
     to_date : Date
