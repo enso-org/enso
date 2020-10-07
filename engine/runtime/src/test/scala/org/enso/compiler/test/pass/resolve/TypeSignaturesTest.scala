@@ -148,6 +148,10 @@ class TypeSignaturesTest extends CompilerTest {
           |    f : A -> A
           |    f a = a
           |
+          |    ## Local
+          |    h : A
+          |    h = 1
+          |
           |    f 1
           |""".stripMargin.preprocessModule.resolve.bindings.head
           .asInstanceOf[IR.Module.Scope.Definition.Method]
@@ -157,9 +161,12 @@ class TypeSignaturesTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      block.expressions.length shouldEqual 1
+      block.expressions.length shouldEqual 2
       block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
       block.expressions.head.getMetadata(DocumentationComments) shouldBe defined
+
+      block.expressions(1).getMetadata(TypeSignatures) shouldBe defined
+      block.expressions(1).getMetadata(DocumentationComments) shouldBe defined
     }
   }
 
