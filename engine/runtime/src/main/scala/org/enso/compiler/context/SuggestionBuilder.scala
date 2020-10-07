@@ -260,7 +260,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             .map(arg => go(arg.value, Vector()))
             .map {
               case Vector(targ) => targ
-              case targs        => TypeArg.Lambda(targs)
+              case targs        => TypeArg.Function(targs)
             }
         case IR.Function.Lambda(List(targ), body, _, _, _, _) =>
           val tdef = TypeArg.Value(targ.name.name, targ.suspended)
@@ -385,7 +385,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     def go(targ: TypeArg, level: Int): String =
       targ match {
         case TypeArg.Value(name, _) => name
-        case TypeArg.Lambda(types) =>
+        case TypeArg.Function(types) =>
           val typeList = types.map(go(_, level + 1))
           if (level > 0) typeList.mkString("(", " -> ", ")")
           else typeList.mkString(" -> ")
@@ -401,7 +401,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def buildTypeArgumentSuspendedFlag(targ: TypeArg): Boolean =
     targ match {
       case TypeArg.Value(_, isSuspended) => isSuspended
-      case TypeArg.Lambda(_)             => false
+      case TypeArg.Function(_)           => false
     }
 
   /** Build suggestion argument from an untyped definition.
@@ -481,18 +481,18 @@ object SuggestionBuilder {
   sealed private trait TypeArg
   private object TypeArg {
 
-    /** Simple type with the name.
+    /** Type with the name, like `A`.
       *
       * @param name the name of the type
       * @param isSuspended is the argument lazy
       */
     case class Value(name: String, isSuspended: Boolean) extends TypeArg
 
-    /** Type lambda.
+    /** Function type, like `A -> A`.
       *
-      * @param signature the list of types defining the lambda
+      * @param signature the list of types defining the function
       */
-    case class Lambda(signature: Vector[TypeArg]) extends TypeArg
+    case class Function(signature: Vector[TypeArg]) extends TypeArg
 
   }
   private val Any: String = "Any"
