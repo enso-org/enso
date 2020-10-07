@@ -1,7 +1,7 @@
 from Base import all
-import Base.Time
 import Base.Time.Date
 import Base.Time.Duration
+import Base.Time.Time
 import Base.Time.Zone
 
 polyglot java import java.time.Instant

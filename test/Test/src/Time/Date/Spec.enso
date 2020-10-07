@@ -1,9 +1,9 @@
 from Base import all
 
 import Base.Test
-import Base.Time
 import Base.Time.Date
 import Base.Time.Duration
+import Base.Time.Time
 import Base.Time.Time_Of_Day
 import Base.Time.Zone
 

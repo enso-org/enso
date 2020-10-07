@@ -8,6 +8,9 @@ polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.Time_Utils
 
+## Error produced while working with time.
+type Error error_message
+
 type Time
 
     ## A date-time with a time-zone in the ISO-8601 calendar system, such as
