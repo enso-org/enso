@@ -145,6 +145,30 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       getDoc(body.expressions(0)) shouldEqual " Do thing"
       getDoc(body.returnValue) shouldEqual " Do another thing"
     }
+
+    "be associated with the type ascriptions" in {
+      implicit val moduleContext: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |method x =
+          |    ## Id
+          |    f : Any -> Any
+          |    f x = x
+          |
+          |    ## Return thing
+          |    f 1
+          |""".stripMargin.preprocessModule.resolve
+      val body = ir
+        .bindings(0)
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+
+      body.expressions.length shouldEqual 2
+      body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
+      getDoc(body.expressions(0)) shouldEqual " Id"
+      getDoc(body.returnValue) shouldEqual " Return thing"
+    }
   }
 
   "Documentation in complex type definitions" should {

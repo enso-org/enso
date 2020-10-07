@@ -64,6 +64,30 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
+    "build method with type and documentation" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """## The foo
+          |foo : Number
+          |foo = 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "foo",
+          arguments = Seq(
+            Suggestion.Argument("this", "Test", false, false, None)
+          ),
+          selfType      = "Test",
+          returnType    = "Number",
+          documentation = Some(" The foo")
+        )
+      )
+    }
+
     "build method with arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
@@ -179,6 +203,7 @@ class SuggestionBuilderTest extends CompilerTest {
       val code =
         """type MyAtom
           |
+          |## My bar
           |MyAtom.bar : Number -> Number -> Number
           |MyAtom.bar a b = a + b
           |""".stripMargin
@@ -204,7 +229,7 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           selfType      = "MyAtom",
           returnType    = "Number",
-          documentation = None
+          documentation = Some(" My bar")
         )
       )
     }
@@ -235,7 +260,7 @@ class SuggestionBuilderTest extends CompilerTest {
           name       = "apply",
           arguments = Seq(
             Suggestion.Argument("this", "MyAtom", false, false, None),
-            Suggestion.Argument("f", "Number -> Number", false, false, None),
+            Suggestion.Argument("f", "Number -> Number", false, false, None)
           ),
           selfType      = "MyAtom",
           returnType    = "Number",

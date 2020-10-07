@@ -84,8 +84,6 @@ case object DocumentationComments extends IRPass {
       case doc: IR.Comment.Documentation =>
         lastDoc = Some(doc)
         None
-      case typeAscription: IR.Type.Ascription =>
-        Some(typeAscription.asInstanceOf[T])
       case other =>
         val res = lastDoc match {
           case Some(doc) => other.updateMetadata(this -->> Doc(doc.doc))
