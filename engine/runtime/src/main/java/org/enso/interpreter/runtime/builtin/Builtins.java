@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMeth
 import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.GetFileMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -86,6 +87,7 @@ public class Builtins {
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
+    AtomConstructor primIo = new AtomConstructor("Prim_Io", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
@@ -116,6 +118,7 @@ public class Builtins {
     scope.registerMethod(io, "println", PrintlnMethodGen.makeFunction(language));
     scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_file", GetFileMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
