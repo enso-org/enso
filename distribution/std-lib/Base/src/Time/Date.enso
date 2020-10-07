@@ -14,23 +14,23 @@ type Date
     ## `Date` represents a date, often viewed as year-month-day. For example,
        the value "2nd October 2007" can be stored in a `Date`.
 
-       This class does not store or represent a time or time-zone. Instead, it
+       This class does not store or represent a time or timezone. Instead, it
        is a description of the date, as used for birthdays. It cannot represent
        an instant on the time-line without additional information such as an
-       offset or time-zone.
+       offset or timezone.
     type Date internal_local_date
 
     ## Get the year field.
-    get_year : Integer
-    get_year = this . internal_local_date . getYear []
+    year : Integer
+    year = this . internal_local_date . getYear []
 
     ## Get the month of year field from 1 to 12.
-    get_month : Integer
-    get_month = this . internal_local_date . getMonthValue []
+    month : Integer
+    month = this . internal_local_date . getMonthValue []
 
     ## Get the day of month field.
-    get_day : Integer
-    get_day = this . internal_local_date . getDayOfMonth []
+    day : Integer
+    day = this . internal_local_date . getDayOfMonth []
 
     ## Combine this date with time of day to create a point in time.
 
@@ -102,7 +102,7 @@ type Date
 parse : Text -> Date
 parse fmt = Date (LocalDate.parse [fmt])
 
-## Obtains the current date from the system clock in the default time-zone.
+## Obtains the current date from the system clock in the system timezone.
 now : Date
 now = Date (LocalDate.now [])
 

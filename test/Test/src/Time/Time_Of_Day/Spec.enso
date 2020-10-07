@@ -11,9 +11,9 @@ spec =
     describe "Time_Of_Day" <|
         it "should create local time" <|
             time = Time_Of_Day.new 1 0 0
-            time . get_hour . should_equal 1
-            time . get_minute . should_equal 0
-            time . get_second . should_equal 0
+            time . hour . should_equal 1
+            time . minute . should_equal 0
+            time . second . should_equal 0
             time . to_seconds . should_equal 3600
         it "should format local time using provided pattern" <|
             text = Time_Of_Day.new 12 20 44 . format "HHmmss"
@@ -30,14 +30,14 @@ spec =
             time.to_seconds . should_equal 36000
         it "should convert to time" <|
             time = Time_Of_Day.new 1 0 0 . to_time (Date.new 2000 12 21) Zone.utc
-            time . get_year . should_equal 2000
-            time . get_month . should_equal 12
-            time . get_day . should_equal 21
-            time . get_hour . should_equal 1
-            time . get_minute . should_equal 0
-            time . get_second . should_equal 0
-            time . get_nanosecond . should_equal 0
-            time . get_zone . get_id . should_equal Zone.utc.get_id
+            time . year . should_equal 2000
+            time . month . should_equal 12
+            time . day . should_equal 21
+            time . hour . should_equal 1
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . nanosecond . should_equal 0
+            time . timezone . get_id . should_equal Zone.utc.get_id
         it "should add time-based interval" <|
             time = Time_Of_Day.new.plus 1.minute
             time . to_seconds . should_equal 60
