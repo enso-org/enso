@@ -177,7 +177,7 @@ object Report {
                       val injection = writer.makeInjectionHandler(
                         "file-ui",
                         "package"  -> dep.information.packageName,
-                        "filename" -> file.fileName,
+                        "filename" -> file.path.toString,
                         "status"   -> status.toString
                       )
                       writer.writeCollapsible(

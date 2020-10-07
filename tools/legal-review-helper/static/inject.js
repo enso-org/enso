@@ -1,18 +1,19 @@
 function setStatus(text, color) {
- var status = $("#status");
- status.html(text);
- if (color === undefined) {
-   color = "white";
- }
- status.css("background-color", color);
+  var status = $("#status");
+  status.html(text);
+  if (color === undefined) {
+    color = "white";
+  }
+  status.css("background-color", color);
 }
 
 function makeHandler(elem, data, file, action) {
-  return function(ev) {
+  return function (ev) {
     data["file"] = file;
     data["action"] = action;
-    $.post("/modify/" + reportName, data, function(response) {
-      $(elem).html("<span style=\"color:gray\">Modified, if you want to change this value, regenerate the report first</span>");
+    $.post("/modify/" + reportName, data, function (response) {
+      $(elem).html("<span style=\"color:gray\">Modified, if you want to " +
+        "change this value, regenerate the report first</span>");
       var tab = $(elem).closest("div").parent();
       var title = tab.children("h4");
       tab.accordion("option", "active", false);
@@ -20,10 +21,12 @@ function makeHandler(elem, data, file, action) {
       if (action == "remove") {
         info = "undone review";
       }
-      title.html("<span style=\"text-decoration: line-through;\">" + title.html() + "</span><br>" + info);
+      var newTitle = "<span style=\"text-decoration: line-through;\">" +
+        title.html() + "</span><br>" + info;
+      title.html(newTitle);
       title.find("span").css("color", "gray");
       setStatus("Review for " + data["package"] + " sent.");
-    }).fail(function(err) {
+    }).fail(function (err) {
       setStatus("Failed to send review: " + JSON.stringify(err), "red");
     });
     setStatus("Sending review...");
@@ -31,11 +34,11 @@ function makeHandler(elem, data, file, action) {
 }
 
 
-$( function() {
+$(function () {
   $("body").append(
-     "<div id=\"status\" " +
-     "style=\"position: fixed;left:4pt;bottom:4pt\">" +
-     "Loading...</div>"
+    "<div id=\"status\" " +
+    "style=\"position: fixed;left:4pt;bottom:4pt\">" +
+    "Loading...</div>"
   );
   var copys = $(".copyright-ui");
   var files = $(".file-ui");
@@ -46,28 +49,43 @@ $( function() {
     "Keep": "copyright-keep",
   };
 
-  copys.each(function(index) {
+  copys.each(function (index) {
     var package = $(this).attr("package");
     var content = atob($(this).attr("content"));
     var status = $(this).attr("status");
     var contexts = parseInt($(this).attr("contexts"));
-    var data = {"line": content, "package": package};
+    var data = {
+      "line": content,
+      "package": package
+    };
     if (status == "NotReviewed") {
       var buttons =
         "<button class=\"ignore\">Ignore</button>" +
         "<button class=\"keep\">Keep</button>" +
         "<button class=\"keepctx\">Keep as context</button>";
       $(this).html(buttons);
-      $(this).children(".ignore").on("click", makeHandler(this, data, "copyright-ignore", "add"));
-      $(this).children(".keep").on("click", makeHandler(this, data, "copyright-keep", "add"));
+      $(this).children(".ignore").on(
+        "click",
+        makeHandler(this, data, "copyright-ignore", "add")
+      );
+      $(this).children(".keep").on(
+        "click",
+        makeHandler(this, data, "copyright-keep", "add")
+      );
       if (contexts == 1) {
-        $(this).children(".keepctx").on("click", makeHandler(this, data, "copyright-keep-context", "add"));
+        $(this).children(".keepctx").on(
+          "click",
+          makeHandler(this, data, "copyright-keep-context", "add")
+        );
       } else {
         $(this).children(".keepctx").attr("disabled", true);
       }
     } else if (status != "Added") {
       $(this).html("<button>Undo review</button>")
-      $(this).children("button").on("click", makeHandler(this, data, copyrightMap[status], "remove"));
+      $(this).children("button").on(
+        "click",
+        makeHandler(this, data, copyrightMap[status], "remove")
+      );
     } else {
       $(this).html("Added manually.")
     }
@@ -78,21 +96,33 @@ $( function() {
     "Keep": "files-keep",
   };
 
-  files.each(function(index) {
+  files.each(function (index) {
     var package = $(this).attr("package");
     var filename = $(this).attr("filename");
     var status = $(this).attr("status");
-    var data = {"line": filename, "package": package};
+    var data = {
+      "line": filename,
+      "package": package
+    };
     if (status == "NotReviewed") {
       var buttons =
         "<button class=\"ignore\">Ignore</button>" +
         "<button class=\"keep\">Keep</button>";
       $(this).html(buttons);
-      $(this).children(".ignore").on("click", makeHandler(this, data, "files-ignore", "add"));
-      $(this).children(".keep").on("click", makeHandler(this, data, "files-keep", "add"));
+      $(this).children(".ignore").on(
+        "click",
+        makeHandler(this, data, "files-ignore", "add")
+      );
+      $(this).children(".keep").on(
+        "click",
+        makeHandler(this, data, "files-keep", "add")
+      );
     } else if (status != "Added") {
       $(this).html("<button>Undo review</button>")
-      $(this).children("button").on("click", makeHandler(this, data, filesMap[status], "remove"));
+      $(this).children("button").on(
+        "click",
+        makeHandler(this, data, filesMap[status], "remove")
+      );
     } else {
       $(this).html("Added manually.")
     }

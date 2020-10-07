@@ -10,6 +10,8 @@ import src.main.scala.licenses.report.{PackageNotices, Report}
 import src.main.scala.licenses.review.Review
 import src.main.scala.licenses.{DependencySummary, DistributionDescription}
 
+import scala.sys.process.Process
+
 object GatherLicenses {
   val distributions = taskKey[Seq[DistributionDescription]](
     "Defines descriptions of distributions."
@@ -19,6 +21,9 @@ object GatherLicenses {
     "Path that will contain generated notices for each artefact."
   )
 
+  /**
+    * The task that performs the whole license gathering process.
+    */
   lazy val run = Def.task {
     val log        = state.value.log
     val targetRoot = target.value
@@ -103,6 +108,12 @@ object GatherLicenses {
       "This is an automated process, make sure that its output is reviewed " +
       "by a human to ensure that all licensing requirements are met."
     )
+  }
+
+  def runReportServer(): Unit = {
+    Process(Seq("npm", "start"), file("tools/legal-review-helper"))
+      .run(connectInput = true)
+      .exitValue()
   }
 
 }

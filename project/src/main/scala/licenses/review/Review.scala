@@ -41,11 +41,11 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     info: DependencyInformation,
     attachments: Seq[Attachment]
   ): ReviewedDependency = {
-    val (licenseReviewed, licensePath) = reviewLicense(info)
+    val packageRoot                    = root / info.packageName
+    val (licenseReviewed, licensePath) = reviewLicense(packageRoot, info)
     val (files, copyrights)            = Attachments.split(attachments)
     val copyrightsDeduplicated =
       Copyrights.removeCopyrightsIncludedInNotices(copyrights, files)
-    val packageRoot = root / info.packageName
 
     val processedFiles =
       reviewFiles(packageRoot, files) ++ addFiles(packageRoot)
@@ -119,15 +119,14 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       .toSeq
 
   private def reviewLicense(
+    packageRoot: File,
     info: DependencyInformation
   ): (Boolean, Option[Path]) = {
-    val file =
-      root.getParentFile / "reviewed-licenses" /
-      Review.normalizeName(info.license.name)
-
-    if (Files.exists((root / "custom-license").toPath)) (true, None)
+    if (Files.exists((packageRoot / "custom-license").toPath)) (true, None)
     else
-      readFile(file)
+      readFile(
+        root / "reviewed-licenses" / Review.normalizeName(info.license.name)
+      )
         .map(p => (true, Some(Path.of(p.strip()))))
         .getOrElse((false, None))
   }

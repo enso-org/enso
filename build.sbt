@@ -1169,3 +1169,12 @@ The runner had to be renamed due to this issue
   )
 GatherLicenses.configurationRoot := file("legal-review")
 GatherLicenses.distributionRoot := file("distribution")
+
+lazy val openLegalReviewReport =
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies and opens the report in review mode in the browser."
+  )
+openLegalReviewReport := {
+  gatherLicenses.value
+  GatherLicenses.runReportServer()
+}
