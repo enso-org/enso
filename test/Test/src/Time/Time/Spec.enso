@@ -8,7 +8,7 @@ import Base.Time.Zone
 spec =
     describe "Time" <|
         it "should create time" <|
-            time = Time.new 1970 (timezone = Zone.utc)
+            time = Time.new 1970 (zone = Zone.utc)
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -16,15 +16,15 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should format using provided pattern" <|
-            text = Time.new 1970 (timezone = Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
+            text = Time.new 1970 (zone = Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
             text . should_equal "1970-01-01T00:00:00"
         it "should format using default pattern" <|
-            text = Time.new 1970 (timezone = Zone.utc) . to_text
+            text = Time.new 1970 (zone = Zone.utc) . to_text
             text . should_equal "1970-01-01T00:00:00Z[UTC]"
         it "should parse default time format" <|
-            text = Time.new 1970 (timezone = Zone.utc) . to_text
+            text = Time.new 1970 (zone = Zone.utc) . to_text
             time = Time.parse text
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -33,8 +33,8 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
-        it "should parse local time adding system timezone" <|
+            time . zone . zone_id . should_equal Zone.utc.zone_id
+        it "should parse local time adding system zone" <|
             time = Time.parse "1970-01-01T00:00:01"
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -43,15 +43,15 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 1
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.system.get_id
+            time . zone . zone_id . should_equal Zone.system.zone_id
         it "should parse time Z" <|
             time = Time.parse "1970-01-01T00:00:01Z"
             time . to_epoch_second . should_equal 1
-            time . timezone . get_id . should_equal "Z"
+            time . zone . zone_id . should_equal "Z"
         it "should parse time UTC" <|
             time = Time.parse "1970-01-01T00:00:01Z[UTC]"
             time . to_epoch_second . should_equal 1
-            time . timezone . get_id . should_equal "UTC"
+            time . zone . zone_id . should_equal "UTC"
         it "should parse time with nanoseconds" <|
             time = Time.parse "1970-01-01T00:00:01.123456789Z"
             time . year . should_equal 1970
@@ -61,8 +61,8 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 1
             time . nanosecond . should_equal 123456789
-            time . timezone . get_id . should_equal "Z"
-        it "should parse time with offset-based timezone" <|
+            time . zone . zone_id . should_equal "Z"
+        it "should parse time with offset-based zone" <|
             time = Time.parse "1970-01-01T00:00:01+01:00"
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -71,8 +71,8 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 1
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal (Zone.new 1 . get_id)
-        it "should parse time with id-based timezone" <|
+            time . zone . zone_id . should_equal (Zone.new 1 . zone_id)
+        it "should parse time with id-based zone" <|
             time = Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]"
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -81,16 +81,16 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 1
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal "Europe/Paris"
+            time . zone . zone_id . should_equal "Europe/Paris"
         it "should get epoch seconds" <|
-            time = Time.new 1970 1 1 0 0 8 (timezone = Zone.utc)
+            time = Time.new 1970 1 1 0 0 8 (zone = Zone.utc)
             time . to_epoch_second . should_equal 8
         it "should get epoch millis" <|
-            time = Time.new 1970 1 1 0 0 8 (timezone = Zone.utc)
+            time = Time.new 1970 1 1 0 0 8 (zone = Zone.utc)
             time . to_epoch_milli . should_equal 8000
         it "should set offset-based timezone" <|
-            zone = Zone.new 1 1 1
-            time = Time.new 1970 (timezone = Zone.utc) . at_timezone zone
+            tz = Zone.new 1 1 1
+            time = Time.new 1970 (zone = Zone.utc) . at_zone tz
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -98,10 +98,10 @@ spec =
             time . minute . should_equal 1
             time . second . should_equal 1
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal zone.get_id
+            time . zone . zone_id . should_equal tz.zone_id
         it "should set id-based timezone" <|
-            zone = Zone.parse "Europe/Moscow"
-            time = Time.new 1970 (timezone = Zone.utc) . at_timezone zone
+            tz = Zone.parse "Europe/Moscow"
+            time = Time.new 1970 (zone = Zone.utc) . at_zone tz
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -109,7 +109,7 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal zone.get_id
+            time . zone . zone_id . should_equal tz.zone_id
         it "should get time of day from offsed-based time" <|
             time = Time.parse "1970-01-01T00:00:01+01:00" . time_of_day
             time . hour . should_equal 0
@@ -123,17 +123,17 @@ spec =
             time . second . should_equal 1
             time . nanosecond . should_equal 0
         it "should get date from offsed-based time" <|
-            time = Time.parse "1970-01-01T00:00:01+01:00" . to_date
+            time = Time.parse "1970-01-01T00:00:01+01:00" . date
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
         it "should get date from id-based time" <|
-            time = Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]" . to_date
+            time = Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]" . date
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
         it "should add time interval" <|
-            time = Time.new 1970 (timezone = Zone.utc) . plus 1.nanosecond
+            time = Time.new 1970 (zone = Zone.utc) . plus 1.nanosecond
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -141,9 +141,9 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 1
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should add date interval" <|
-            time = Time.new 1970 (timezone = Zone.utc) . plus 1.month
+            time = Time.new 1970 (zone = Zone.utc) . plus 1.month
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -151,9 +151,9 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should add mixed date time interval" <|
-            time = Time.new 1970 (timezone = Zone.utc) . plus (1.month . plus 3.hours)
+            time = Time.new 1970 (zone = Zone.utc) . plus (1.month . plus 3.hours)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -161,9 +161,9 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract time interval" <|
-            time = Time.new 1970 (timezone = Zone.utc) . minus 1.hour
+            time = Time.new 1970 (zone = Zone.utc) . minus 1.hour
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 31
@@ -171,9 +171,9 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract date interval" <|
-            time = Time.new 1970 (timezone = Zone.utc) . minus 1.month
+            time = Time.new 1970 (zone = Zone.utc) . minus 1.month
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -181,9 +181,9 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract mixed date time interval" <|
-            time = Time.new 1970 (timezone = Zone.utc) . minus (1.month . minus 3.hours)
+            time = Time.new 1970 (zone = Zone.utc) . minus (1.month . minus 3.hours)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -191,9 +191,9 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should support ± interval operators" <|
-            time = Time.new 1970 (timezone = Zone.utc) - 1.month + 12.hours
+            time = Time.new 1970 (zone = Zone.utc) - 1.month + 12.hours
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -201,4 +201,6 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
+
+foo = 1

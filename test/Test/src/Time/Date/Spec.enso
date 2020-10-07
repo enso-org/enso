@@ -45,7 +45,7 @@ spec =
             time . minute . should_equal 30
             time . second . should_equal 45
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract date-based interval" <|
             date = Date.new 1970 . minus 1.year
             date . year . should_equal 1969

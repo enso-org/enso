@@ -12,8 +12,8 @@ type Zone
     type Zone internal_zone_id
 
     ## Get the unique timezone ID.
-    get_id : Text
-    get_id = this.internal_zone_id . getId []
+    zone_id : Text
+    zone_id = this.internal_zone_id . getId []
 
 ## This method parses the ID producing a `Zone`.
 

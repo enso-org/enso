@@ -10,15 +10,15 @@ spec =
         it "should parse UTC zone" <|
             zone = "UTC"
             id = Zone.parse zone
-            id . get_id . should_equal zone
+            id . zone_id . should_equal zone
         it "should parse id-based zone" <|
             zone = "Europe/Warsaw"
             id = Zone.parse zone
-            id . get_id . should_equal zone
+            id . zone_id . should_equal zone
         it "should parse offset-based zone" <|
             zone = "+01:02:03"
             id = Zone.parse zone
-            id . get_id . should_equal zone
+            id . zone_id . should_equal zone
         it "should get utc zone id" <|
             id = Zone.utc
-            id . get_id . should_equal "UTC"
+            id . zone_id . should_equal "UTC"

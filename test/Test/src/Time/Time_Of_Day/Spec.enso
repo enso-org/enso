@@ -37,7 +37,7 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . nanosecond . should_equal 0
-            time . timezone . get_id . should_equal Zone.utc.get_id
+            time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should add time-based interval" <|
             time = Time_Of_Day.new.plus 1.minute
             time . to_seconds . should_equal 60
