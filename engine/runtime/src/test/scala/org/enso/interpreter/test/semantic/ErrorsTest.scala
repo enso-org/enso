@@ -144,9 +144,16 @@ class ErrorsTest extends InterpreterTest {
           |    args.set_at 0 "oops"
           |    caught = Panic.recover (Long.parseLong args)
           |    IO.println caught
+          |    unwrap = caught.catch <| case _ of
+          |        Polyglot_Error err -> err
+          |        _ -> "fail"
+          |    IO.println unwrap
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("""(Error: (Polyglot_Error java.lang.NumberFormatException: For input string: "oops"))""")
+      consumeOut shouldEqual List(
+        """(Error: (Polyglot_Error java.lang.NumberFormatException: For input string: "oops"))""",
+        """java.lang.NumberFormatException: For input string: "oops""""
+      )
     }
   }
 }
