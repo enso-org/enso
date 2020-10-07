@@ -1,27 +1,28 @@
 const reviewRoot = "../../target";
 const settingsRoot = "../../legal-review";
 
-const express = require('express');
+const express = require("express");
 const app = express();
-const open = require('open');
-const fs = require('fs');
-const path = require('path');
+const open = require("open");
+const fs = require("fs");
+const path = require("path");
 
-app.get('/', function (req, res) {
+app.get("/", function (req, res) {
   let html = "<h1>Report review</h1>";
   const files = fs.readdirSync(reviewRoot);
   const reports = files
-    .map(f => f.match(/^(.*)-report.html$/))
-    .filter(m => m != null)
-    .map(m => m[1]);
+    .map((f) => f.match(/^(.*)-report.html$/))
+    .filter((m) => m != null)
+    .map((m) => m[1]);
   if (reports.length == 0) {
-    html += "No reports found. " +
-      "Run <pre style=\"display:inline\">enso / gatherLicenses</pre> first.";
+    html +=
+      "No reports found. " +
+      'Run <pre style="display:inline">enso / gatherLicenses</pre> first.';
   } else {
     html += "Select report:";
     html += "<ul>";
-    reports.forEach(report => {
-      html += "<li><a href=\"/report/" + report + "\">" + report + "</a></li>";
+    reports.forEach((report) => {
+      html += '<li><a href="/report/' + report + '">' + report + "</a></li>";
     });
     html += "</ul>";
   }
@@ -30,15 +31,18 @@ app.get('/', function (req, res) {
 
 app.use("/static", express.static("static"));
 
-app.get('/report/:report', function (req, res) {
+app.get("/report/:report", function (req, res) {
   const report = req.params["report"];
   console.log("Opening report for ", report);
   fs.readFile(
     path.join(reviewRoot, report + "-report.html"),
     "utf-8",
     (err, data) => {
-      const injection = "<script src=\"/static/inject.js\"></script>" +
-        "<script>var reportName = \"" + report + "\";</script>";
+      const injection =
+        '<script src="/static/inject.js"></script>' +
+        '<script>var reportName = "' +
+        report +
+        '";</script>';
       if (err) {
         res.status(400).send(err);
       } else {
@@ -54,7 +58,7 @@ function addLine(report, package, file, line) {
   const location = path.join(dir, file);
   console.log("Adding " + line + " to " + location);
   fs.mkdirSync(dir, {
-    "recursive": true
+    recursive: true,
   });
   fs.appendFileSync(location, line + "\n");
 }
@@ -65,12 +69,16 @@ function removeLine(report, package, file, line) {
   const lines = fs
     .readFileSync(location, "utf-8")
     .split(/\r?\n/)
-    .filter(x => x.length > 0);
-  const toRemove = lines.filter(x => x == line);
-  const others = lines.filter(x => x != line);
+    .filter((x) => x.length > 0);
+  const toRemove = lines.filter((x) => x == line);
+  const others = lines.filter((x) => x != line);
   if (toRemove.length == 0) {
-    throw "Line " + line + " was not present in the file. " +
-      "Are you sure the report is up to date?";
+    throw (
+      "Line " +
+      line +
+      " was not present in the file. " +
+      "Are you sure the report is up to date?"
+    );
   } else {
     var newContent = others.join("\n") + "\n";
     if (others.length == 0) {
@@ -81,7 +89,7 @@ function removeLine(report, package, file, line) {
 }
 
 app.use(express.urlencoded());
-app.post('/modify/:report', function (req, res) {
+app.post("/modify/:report", function (req, res) {
   const report = req.params["report"];
   const package = req.body["package"];
   const action = req.body["action"];
@@ -105,11 +113,11 @@ app.post('/modify/:report', function (req, res) {
 
 const server = app.listen(0, () => {
   const port = server.address().port;
-  console.log('Listening on at ', "http://localhost:" + port + "/");
-  open("http://localhost:" + port + "/")
+  console.log("Listening on at ", "http://localhost:" + port + "/");
+  open("http://localhost:" + port + "/");
 
   console.log("Press ENTER to stop the server.");
-  process.stdin.on('data', function (chunk) {
+  process.stdin.on("data", function (chunk) {
     if (chunk.indexOf("\n") >= 0) {
       console.log("Good bye");
       process.exit(0);
