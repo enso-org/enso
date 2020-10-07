@@ -32,7 +32,7 @@ import scala.util.control.NonFatal
   *    - `files-ignore` - a file containing names of files found in the package
   *      sources that should not be included
   *    - `custom-license` - a file that indicates that the dependency should not
-  *      point to the default license but it should contain a custom one within
+  *      point to the default license, but it should contain a custom one within
   *      its files
   *    - `copyright-keep` - copyright lines that should be included in the
   *      notice summary for the package
