@@ -285,7 +285,7 @@ In order to build a fat jar with the CLI component, run the `assembly` task
 inside the `runner` subproject:
 
 ```bash
-sbt "runner/assembly"
+sbt "engine-runner/assembly"
 ```
 
 This will produce an executable `runner.jar` fat jar and a `runtime.jar` fat jar

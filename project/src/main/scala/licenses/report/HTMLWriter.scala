@@ -136,6 +136,9 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
        |""".stripMargin
   }
 
+  def escape(string: String): String =
+    string.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
   def close(): Unit = {
     writer.println("</body></html>")
     writer.close()

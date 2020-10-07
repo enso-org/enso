@@ -156,7 +156,7 @@ jobs:
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
-          sbt --no-colors runner/assembly
+          sbt --no-colors engine-runner/assembly
       - name: Build the Project Manager Uberjar
         run: |
           sleep 1

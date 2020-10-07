@@ -13,9 +13,9 @@ object Copyrights {
   def shouldKeepCopyright(
     notices: Seq[AttachedFile]
   )(copyright: CopyrightMention): Boolean = {
-    copyright.origins.exists { path =>
-      val isAlreadyInSomeNotice = notices.exists(_.path == path)
-      !isAlreadyInSomeNotice
+    val allOriginsAreFresh = copyright.origins.forall { path =>
+      !notices.exists(_.path == path)
     }
+    allOriginsAreFresh
   }
 }

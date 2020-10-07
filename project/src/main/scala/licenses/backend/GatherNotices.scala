@@ -29,7 +29,7 @@ object GatherNotices extends AttachmentGatherer {
   }
 
   private val ignoredExtensions = Seq("scala", "java")
-  private val possibleNames =
+  val possibleNames =
     Seq(
       "notice",
       "copyright",

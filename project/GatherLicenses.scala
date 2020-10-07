@@ -3,7 +3,8 @@ import sbt._
 import src.main.scala.licenses.backend.{
   CombinedBackend,
   GatherCopyrights,
-  GatherNotices
+  GatherNotices,
+  GithubHeuristic
 }
 import src.main.scala.licenses.frontend.SbtLicenses
 import src.main.scala.licenses.report.{PackageNotices, Report}
@@ -35,7 +36,7 @@ object GatherLicenses {
     val configRoot    = configurationRoot.value
     val generatedRoot = distributionRoot.value
 
-    for (distribution <- distributions.value) {
+    val reports = distributions.value.map { distribution =>
       log.info(s"Processing ${distribution.artifactName} distribution")
       val projectNames = distribution.sbtComponents.map(_.name)
       log.info(
@@ -49,14 +50,17 @@ object GatherLicenses {
       val allInfo = sbtInfo // TODO [RW] add Rust frontend result here (#1187)
 
       log.info(s"${allInfo.size} unique dependencies discovered")
-      val backend = CombinedBackend(GatherNotices, GatherCopyrights)
+      val defaultBackend = CombinedBackend(GatherNotices, GatherCopyrights)
 
       val processed = allInfo.map { dependency =>
         log.debug(
           s"Processing ${dependency.moduleInfo} -> " +
           s"${dependency.license} / ${dependency.url}"
         )
-        val attachments = backend.run(dependency.sources)
+        val defaultAttachments = defaultBackend.run(dependency.sources)
+        val attachments =
+          if (defaultAttachments.nonEmpty) defaultAttachments
+          else GithubHeuristic(dependency, log).run()
         (dependency, attachments)
       }
 
@@ -101,6 +105,8 @@ object GatherLicenses {
           "incomplete."
         )
       }
+
+      (distribution, processedSummary)
     }
 
     log.warn(
@@ -108,6 +114,8 @@ object GatherLicenses {
       "This is an automated process, make sure that its output is reviewed " +
       "by a human to ensure that all licensing requirements are met."
     )
+
+    reports
   }
 
   def runReportServer(): Unit = {

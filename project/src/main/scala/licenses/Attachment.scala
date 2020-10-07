@@ -5,7 +5,11 @@ import java.nio.file.Path
 import sbt.IO
 
 sealed trait Attachment
-case class AttachedFile(path: Path, content: String) extends Attachment {
+case class AttachedFile(
+  path: Path,
+  content: String,
+  origin: Option[String] = None
+) extends Attachment {
   override def toString: String = s"File: $path"
 
   def fileName: String = path.getFileName.toString

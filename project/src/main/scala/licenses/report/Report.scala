@@ -180,8 +180,11 @@ object Report {
                         "filename" -> file.path.toString,
                         "status"   -> status.toString
                       )
+                      val origin = file.origin
+                        .map(origin => s" (Found at $origin)")
+                        .getOrElse("")
                       writer.writeCollapsible(
-                        s"${file.fileName} (${renderStatus(status)}) " +
+                        s"${file.fileName} (${renderStatus(status)})$origin " +
                         s"${renderSimilarity(licensePath, file, status)}",
                         injection +
                         file.content
@@ -227,9 +230,10 @@ object Report {
                         "status"   -> status.toString
                       )
 
+                      val content  = writer.escape(mention.content)
                       val moreInfo = injection + foundAt + contexts
                       writer.writeCollapsible(
-                        s"${mention.content} (${renderStatus(status)})",
+                        s"$content (${renderStatus(status)})",
                         moreInfo
                       )
                 })

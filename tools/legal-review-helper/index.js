@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 app.get('/', function (req, res) {
-  let html = "<h1>Choose report</h1>";
+  let html = "<h1>Report review</h1>";
   const files = fs.readdirSync(reviewRoot);
   const reports = files
     .map(f => f.match(/^(.*)-report.html$/))
@@ -32,7 +32,7 @@ app.use("/static", express.static("static"));
 
 app.get('/report/:report', function (req, res) {
   const report = req.params["report"];
-  console.log("Opening ", report);
+  console.log("Opening report for ", report);
   fs.readFile(
     path.join(reviewRoot, report + "-report.html"),
     "utf-8",
