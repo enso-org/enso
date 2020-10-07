@@ -140,8 +140,7 @@ class ErrorsTest extends InterpreterTest {
           |polyglot java import java.lang.Long
           |
           |main =
-          |    args = Array.new 1
-          |    args.set_at 0 "oops"
+          |    args = Array.new_1 "oops"
           |    caught = Panic.recover (Long.parseLong args)
           |    IO.println caught
           |    unwrap = caught.catch <| case _ of
