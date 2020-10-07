@@ -13,6 +13,6 @@ bench      = true
 
 [dependencies]
 flexer       = { path = "../../flexer", version = "0.1.0" }
-enso-prelude = { path = "../../enso-prelude", version = "0.1.0" }
+enso-prelude = { version = "0.1.3" }
 
 uuid = { version = "0.8.1" , features = ["serde","v4","wasm-bindgen"] }

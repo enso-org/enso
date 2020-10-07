@@ -40,6 +40,7 @@ public class Context {
   private final List<Package<TruffleFile>> packages;
   private final TopLevelScope topScope;
   private final ThreadManager threadManager;
+  private final ResourceManager resourceManager;
   private final boolean isCachingDisabled;
 
   /**
@@ -56,6 +57,7 @@ public class Context {
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager();
+    this.resourceManager = new ResourceManager(this);
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     TruffleFileSystem fs = new TruffleFileSystem();
 
@@ -282,6 +284,11 @@ public class Context {
   /** @return the thread manager for this context. */
   public ThreadManager getThreadManager() {
     return threadManager;
+  }
+
+  /** @return the resource manager for this context */
+  public ResourceManager getResourceManager() {
+    return resourceManager;
   }
 
   /** @return whether inline caches should be disabled for this context. */
