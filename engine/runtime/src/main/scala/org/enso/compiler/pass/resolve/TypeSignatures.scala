@@ -87,16 +87,27 @@ case object TypeSignatures extends IRPass {
           val res = lastSignature match {
             case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
               val methodRef = meth.methodReference
+              val newMethodWithDoc = asc
+                .getMetadata(DocumentationComments)
+                .map(doc =>
+                  newMethod.updateMetadata(DocumentationComments -->> doc)
+                )
+                .getOrElse(newMethod)
 
               typed match {
                 case ref: IR.Name.MethodReference =>
                   if (ref isSameReferenceAs methodRef) {
-                    Some(newMethod.updateMetadata(this -->> Signature(sig)))
+                    Some(
+                      newMethodWithDoc.updateMetadata(this -->> Signature(sig))
+                    )
                   } else {
-                    List(IR.Error.Unexpected.TypeSignature(asc), newMethod)
+                    List(
+                      IR.Error.Unexpected.TypeSignature(asc),
+                      newMethodWithDoc
+                    )
                   }
                 case _ =>
-                  List(IR.Error.Unexpected.TypeSignature(asc), newMethod)
+                  List(IR.Error.Unexpected.TypeSignature(asc), newMethodWithDoc)
               }
             case None => Some(newMethod)
           }
@@ -172,16 +183,30 @@ case object TypeSignatures extends IRPass {
           val res = lastSignature match {
             case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
               val name = binding.name
+              val newBindingWithDoc = asc
+                .getMetadata(DocumentationComments)
+                .map(doc =>
+                  newBinding.updateMetadata(DocumentationComments -->> doc)
+                )
+                .getOrElse(newBinding)
 
               typed match {
                 case typedName: IR.Name =>
                   if (typedName.name == name.name) {
-                    Some(newBinding.updateMetadata(this -->> Signature(sig)))
+                    Some(
+                      newBindingWithDoc.updateMetadata(this -->> Signature(sig))
+                    )
                   } else {
-                    List(IR.Error.Unexpected.TypeSignature(asc), newBinding)
+                    List(
+                      IR.Error.Unexpected.TypeSignature(asc),
+                      newBindingWithDoc
+                    )
                   }
                 case _ =>
-                  List(IR.Error.Unexpected.TypeSignature(asc), newBinding)
+                  List(
+                    IR.Error.Unexpected.TypeSignature(asc),
+                    newBindingWithDoc
+                  )
               }
             case None => Some(newBinding)
           }
