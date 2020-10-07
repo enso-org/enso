@@ -1,0 +1,48 @@
+from Base import all
+
+polyglot java import java.nio.file.StandardOpenOption
+
+type Open_Option
+    type Append
+    type Create
+    type Create_New
+    type Delete_On_Close
+    type Dsync
+    type Read
+    type Sparse
+    type Sync
+    type Truncate_Existing
+    type Write
+
+    to_java = case this of
+        Append            -> Polyglot.get_member StandardOpenOption "APPEND"
+        Create            -> Polyglot.get_member StandardOpenOption "CREATE"
+        Create_New        -> Polyglot.get_member StandardOpenOption "CREATE_NEW"
+        Delete_On_Close   -> Polyglot.get_member StandardOpenOption "DELETE_ON_CLOSE"
+        Dsync             -> Polyglot.get_member StandardOpenOption "DSYNC"
+        Read              -> Polyglot.get_member StandardOpenOption "READ"
+        Sparse            -> Polyglot.get_member StandardOpenOption "SPARSE"
+        Sync              -> Polyglot.get_member StandardOpenOption "SYNC"
+        Truncate_Existing -> Polyglot.get_member StandardOpenOption "TRUNCATE_EXISTING"
+        Write             -> Polyglot.get_member StandardOpenOption "WRITE"
+
+#APPEND
+#If the file is opened for WRITE access then bytes will be written to the end of the file rather than the beginning.
+#CREATE
+#Create a new file if it does not exist.
+#CREATE_NEW
+#Create a new file, failing if the file already exists.
+#DELETE_ON_CLOSE
+#Delete on close.
+#DSYNC
+#Requires that every update to the file's content be written synchronously to the underlying storage device.
+#READ
+#Open for read access.
+#SPARSE
+#Sparse file.
+#SYNC
+#Requires that every update to the file's content or metadata be written synchronously to the underlying storage device.
+#TRUNCATE_EXISTING
+#If the file already exists and it is opened for WRITE access, then its length is truncated to 0.
+#WRITE
+#Open for write access.

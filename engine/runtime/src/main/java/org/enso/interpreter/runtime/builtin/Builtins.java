@@ -55,7 +55,7 @@ public class Builtins {
   private final System system;
   private final Array array;
   private final Polyglot polyglot;
-  private final ManagedResource managedResource;
+  private final Resource resource;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -78,7 +78,7 @@ public class Builtins {
     system = new System(language, scope);
     number = new Number(language, scope);
     polyglot = new Polyglot(language, scope);
-    managedResource = new ManagedResource(language, scope);
+    resource = new Resource(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =

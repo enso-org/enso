@@ -184,7 +184,12 @@ case class BindingsMap(
         val restriction = if (exp.isAll) {
           if (exp.onlyNames.isDefined) {
             SymbolRestriction.Only(
-              exp.onlyNames.get.map(_.name.toLowerCase).toSet
+              exp.onlyNames.get
+                .map(name =>
+                  SymbolRestriction
+                    .AllowedResolution(name.name.toLowerCase, None)
+                )
+                .toSet
             )
           } else if (exp.hiddenNames.isDefined) {
             SymbolRestriction.Hiding(
@@ -194,7 +199,14 @@ case class BindingsMap(
             SymbolRestriction.All
           }
         } else {
-          SymbolRestriction.Only(Set(exp.getSimpleName.name.toLowerCase))
+          SymbolRestriction.Only(
+            Set(
+              SymbolRestriction.AllowedResolution(
+                exp.getSimpleName.name.toLowerCase,
+                Some(ResolvedModule(mod))
+              )
+            )
+          )
         }
         val rename = if (!exp.isAll) {
           Some(exp.getSimpleName.name)
@@ -216,7 +228,7 @@ object BindingsMap {
       * @param symbol the name to check
       * @return whether access to the symbol is permitted by this restriction.
       */
-    def canAccess(symbol: String): Boolean
+    def canAccess(symbol: String, resolution: ResolvedName): Boolean
 
     /**
       * Performs static optimizations on the restriction, simplifying
@@ -229,15 +241,29 @@ object BindingsMap {
   }
 
   case object SymbolRestriction {
+    case class AllowedResolution(
+      symbol: String,
+      resolution: Option[ResolvedName]
+    ) {
+      def allows(symbol: String, resolution: ResolvedName): Boolean = {
+        val symbolMatch = this.symbol == symbol.toLowerCase
+        val resolutionMatch =
+          this.resolution.isEmpty || this.resolution.get == resolution
+        symbolMatch && resolutionMatch
+      }
+    }
 
     /**
       * A restriction representing a set of allowed symbols.
       *
       * @param symbols the allowed symbols.
       */
-    case class Only(symbols: Set[String]) extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean =
-        symbols.contains(symbol.toLowerCase)
+    case class Only(symbols: Set[AllowedResolution]) extends SymbolRestriction {
+      override def canAccess(
+        symbol: String,
+        resolution: ResolvedName
+      ): Boolean =
+        symbols.exists(_.allows(symbol, resolution))
       override def optimize: SymbolRestriction = this
     }
 
@@ -247,7 +273,10 @@ object BindingsMap {
       * @param symbols the excluded symbols.
       */
     case class Hiding(symbols: Set[String]) extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean = {
+      override def canAccess(
+        symbol: String,
+        resolution: ResolvedName
+      ): Boolean = {
         !symbols.contains(symbol.toLowerCase)
       }
       override def optimize: SymbolRestriction = this
@@ -257,16 +286,22 @@ object BindingsMap {
       * A restriction meaning there's no restriction at all.
       */
     case object All extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean = true
-      override def optimize: SymbolRestriction        = this
+      override def canAccess(
+        symbol: String,
+        resolution: ResolvedName
+      ): Boolean                               = true
+      override def optimize: SymbolRestriction = this
     }
 
     /**
       * A complete restriction – no symbols are permitted
       */
     case object Empty extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean = false
-      override def optimize: SymbolRestriction        = this
+      override def canAccess(
+        symbol: String,
+        resolution: ResolvedName
+      ): Boolean                               = false
+      override def optimize: SymbolRestriction = this
     }
 
     /**
@@ -277,8 +312,11 @@ object BindingsMap {
       */
     case class Intersect(restrictions: List[SymbolRestriction])
         extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean = {
-        restrictions.forall(_.canAccess(symbol))
+      override def canAccess(
+        symbol: String,
+        resolution: ResolvedName
+      ): Boolean = {
+        restrictions.forall(_.canAccess(symbol, resolution))
       }
 
       override def optimize: SymbolRestriction = {
@@ -321,8 +359,11 @@ object BindingsMap {
       */
     case class Union(restrictions: List[SymbolRestriction])
         extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean =
-        restrictions.exists(_.canAccess(symbol))
+      override def canAccess(
+        symbol: String,
+        resolution: ResolvedName
+      ): Boolean =
+        restrictions.exists(_.canAccess(symbol, resolution))
 
       override def optimize: SymbolRestriction = {
         val optimizedTerms = restrictions.map(_.optimize)

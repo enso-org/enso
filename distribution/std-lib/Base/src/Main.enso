@@ -2,6 +2,7 @@ import Base.List
 import Base.Vector
 import Base.Number.Extensions
 import Base.Text.Extensions
+import Base.System.File.File
 from Builtins import Unit, Number, Integer, Any, True, False
 
 from Builtins export all
@@ -10,6 +11,7 @@ from Base.List export Nil, Cons
 from Base.Vector export Vector
 from Base.Number.Extensions export all hiding Math
 from Base.Text.Extensions export Text
+export Base.System.File.File
 
 ## Represents a right-exclusive range of integer values.
 type Range

@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.managedResource;
+package org.enso.interpreter.node.expression.builtin.resource;
 
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;

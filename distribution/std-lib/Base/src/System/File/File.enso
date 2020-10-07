@@ -1,0 +1,79 @@
+from Base import all
+import Base.System.File.Open_Option
+
+export Base.System.File.Open_Option
+
+close_stream : Any -> Unit
+close_stream stream =
+    stream.close []
+    Unit
+
+type Unmanaged_Input_Stream
+    type Unmanaged_Input_Stream java_stream
+
+    read_all_bytes : Vector
+    read_all_bytes = Vector.from_polyglot_array (this.java_stream.readAllBytes [])
+
+    read_n_bytes : Integer -> Vector
+    read_n_bytes n =
+        buffer = Array.new n
+        actual = this.java_stream.readNBytes [buffer, 0, n]
+        IO.println actual
+        vec_array = Array.new actual
+        0.upto actual . each (i -> vec_array.set_at i (buffer.at_i))
+        Vector vec_array
+
+    close : Unit
+    close = this.java_stream.close []
+
+type File
+    type File prim_file
+
+    new_unmanaged_input_stream open_options =
+        opts = open_options . map (_.to_java) . to_array
+        Unmanaged_Input_Stream (this.prim_file.newInputStream [opts])
+
+    with_output_stream open_options action =
+        opts = open_options . map (_.to_java) . to_array
+        Resource.bracket (this.prim_file.newOutputStream [opts]) (_.close []) action
+
+    with_input_stream open_options action =
+        opts = open_options . map (_.to_java) . to_array
+        Resource.bracket (this.prim_file.newInputStream [opts]) (_.close []) action
+
+    read_bytes : Vector
+    read_bytes =
+        opts = [Open_Option.Read]
+        bytes = this.with_input_stream opts stream->
+            Vector.from_polyglot_array (stream.readAllBytes [])
+        bytes
+
+    read : Text
+    read =
+        bytes = this.read_bytes
+        Text.from_utf_8 bytes
+
+    append_bytes : Vector -> Unit
+    append_bytes contents =
+        opts = [Open_Option.Append, Open_Option.Create]
+        this.with_output_stream opts stream->
+            stream.write [contents.to_array]
+            stream.flush []
+        Unit
+
+    append : Text -> Unit
+    append contents = this.append_bytes contents.utf_8
+
+    write_bytes : Vector -> Unit
+    write_bytes contents =
+        opts = [Open_Option.Write, Open_Option.Create, Open_Option.Truncate_Existing]
+        this.with_output_stream opts stream->
+            stream.write [contents.to_array]
+            stream.flush []
+        Unit
+
+    write : Text -> Unit
+    write contents = this.write_bytes contents.utf_8
+
+new : Text -> File
+new path = File (Prim_Io.get_file path)

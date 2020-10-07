@@ -12,6 +12,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.text.Text;
 
 import java.io.IOException;
@@ -29,32 +30,15 @@ public abstract class GetFileNode extends Node {
 
   abstract Object execute(Object _this, Text path);
 
-  public static class MyFile {
-    public void doThing() {
-      System.out.println("foobar");
-    }
-  }
-
   @Specialization
   Object doGetFile(
       Object _this,
       Text path,
       @CachedContext(Language.class) Context ctx,
       @Cached("build()") ToJavaStringNode toJavaStringNode) {
-    TruffleFile f = ctx.getEnvironment().getPublicTruffleFile(toJavaStringNode.execute(path));
-    try {
-      System.out.println(f.newBufferedReader().lines().collect(Collectors.joining()));
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    Object r = ctx.getEnvironment().asGuestValue(f);
-    InteropLibrary lib = InteropLibrary.getUncached();
-    try {
-      System.out.println(lib.getArraySize(lib.getMembers(r)));
-    } catch (UnsupportedMessageException e) {
-      e.printStackTrace();
-    }
-    System.out.println(r.getClass());
-    return r;
+    String pathStr = toJavaStringNode.execute(path);
+    TruffleFile file = ctx.getEnvironment().getPublicTruffleFile(pathStr);
+    EnsoFile ensoFile = new EnsoFile(file);
+    return ctx.getEnvironment().asGuestValue(ensoFile);
   }
 }
