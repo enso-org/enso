@@ -68,7 +68,7 @@ type Date
     to_text : Text
     to_text = Time_Utils.default_date_formatter [] . format [this.internal_local_date]
 
-    ## Format this date using formatter string.
+    ## Format this date using formatter text.
 
        Patterns are based on a simple sequence of letters and symbols. For
        example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
@@ -98,9 +98,9 @@ type Date
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_date]
 
-## Obtains an instance of `Date` from a text, such as 2007-12-03.
+## Obtains an instance of `Date` from a text, such as "2007-12-03".
 
-   The string must represent a valid date and is parsed using the ISO-8601
+   The text must represent a valid date and is parsed using the ISO-8601
    extended local date format. The format consists of:
 
    - Four digits or more for the year. Years in the range 0000 to 9999

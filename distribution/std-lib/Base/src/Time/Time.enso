@@ -111,7 +111,7 @@ type Time
     to_text : Text
     to_text = Time_Utils.default_time_formatter [] . format [this.internal_zoned_date_time]
 
-    ## Format this time using formatter string.
+    ## Format this time using formatter text.
 
        Patterns are based on a simple sequence of letters and symbols. For
        example, "d MMM uuuu" will format "2011-12-03" as "3 Dec 2011".
@@ -172,10 +172,10 @@ type Time
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_zoned_date_time]
 
-## Obtains an instance of `Time` from a text string such as
+## Obtains an instance of `Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
 
-   The string must represent a valid date-time and is parsed using the ISO-8601
+   The text must represent a valid date-time and is parsed using the ISO-8601
    extended offset date-time format to add the timezone. The section in square
    brackets is not part of the ISO-8601 standard. The format consists of:
 
@@ -213,7 +213,7 @@ parse text =
         Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
         x -> x
 
-## Obtains an instance of Time from a text string using custom format string.
+## Obtains an instance of Time from a text using custom format.
 
    For the list of accepted symbols in pattern refer to `Time.format` doc.
 

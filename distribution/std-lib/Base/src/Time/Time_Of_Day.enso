@@ -64,7 +64,7 @@ type Time_Of_Day
     to_text : Text
     to_text = Time_Utils.default_time_of_day_formatter [] . format [this.internal_local_time]
 
-    ## Format this time of day using formatter string.
+    ## Format this time of day using formatter text.
 
        Patterns are based on a simple sequence of letters and symbols. For
        example, "HH-mm-ss.SSS" will format "16:21:10" as "16-21-10.323".
@@ -94,9 +94,9 @@ type Time_Of_Day
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_time]
 
-## Obtains an instance of `Time_Of_Day` from a text string such as 10:15.
+## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
-   The string must represent a valid time and is parsed using the ISO-8601
+   The text must represent a valid time and is parsed using the ISO-8601
    extended local time format. The format consists of:
 
    - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
@@ -127,8 +127,7 @@ parse text =
         Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
         x -> x
 
-## Obtains an instance of Time_Of_Day from a text string using custom format
-   string.
+## Obtains an instance of Time_Of_Day from a text using custom format.
 
    For the list of accepted symbols in pattern refer to
    `Base.Time.Time.format` doc.
