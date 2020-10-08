@@ -31,6 +31,7 @@ object Report {
     warnings: Seq[String],
     destination: File
   ): Unit = {
+    IO.createDirectory(destination.getParentFile)
     val writer = HTMLWriter.toFile(destination)
     try {
       writer.writeHeader(s"Dependency summary for ${description.artifactName}")

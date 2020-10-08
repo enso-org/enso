@@ -21,7 +21,7 @@ dependencies, and Enso projects for use by our users.
   tool for launching various components and managing Enso versions.
 - [**Launcher CLI:**](./launcher-cli.md) Explanation of the command-line
   interface of the launcher.
-- [**Licences:**](licences.md) Information on gathering license information of
+- [**Licenses:**](licenses.md) Information on gathering license information of
   dependencies included in the distribution.
 - [**Fallback Launcher Release Infrastructure:**](fallback-launcher-release-infrastructure.md)
   Explanation of the fallback infrastructure that can be enabled to keep

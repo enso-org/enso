@@ -32,22 +32,17 @@ lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
 gatherLicenses := GatherLicenses.run.value
 GatherLicenses.distributions := Seq(
-    Distribution(
-      "launcher",
-      Distribution.sbtProjects(launcher)
-    ),
+    Distribution("launcher", Distribution.sbtProjects(launcher)),
     Distribution(
       "engine",
       Distribution.sbtProjects(
         runtime,
         `engine-runner`,
-        `project-manager`
+        `project-manager`,
+        `language-server`
       )
     ),
-    Distribution(
-      "std-lib",
-      Distribution.sbtProjects(`std-bits`)
-    )
+    Distribution("std-lib", Distribution.sbtProjects(`std-bits`))
   )
 GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")

@@ -51,8 +51,8 @@ it is set to only consider `compile` dependencies, as dependencies for
 the files specifying review state and `GatherLicenses.distributionRoot`
 specifies where the final notice packages should be generated.
 
-To gather the information, execute `enso/gatherLicenses` in SBT. This will
-create a report and packages which are described in the
+To run the automated license gathering task, run `enso/gatherLicenses` in SBT.
+This will create a report and packages which are described in the
 [next section](#preparing-the-distribution).
 
 ### Rust
@@ -106,13 +106,43 @@ for each artifact.
 
 > TODO [RW] currently the auto-generated notice packages are not included in the
 > built artifacts. That is because the legal review settings have not yet been
-> prepared. Once that is done, the CI should be modified accordingly.
+> prepared. Once that is done, the CI should be modified accordingly. This will
+> be updated in the next PR.
 
 ### Review
 
 The review can be performed manually by modifying the settings inside of the
-`tools/legal-review` directory. This directory contains separate subdirectories for
-each artifact.
+`tools/legal-review` directory or it can be partially automated.
+
+#### Review Process
+
+> TODO [RW] write details
+
+1. Open the review in edit mode using the helper script.
+   - You can type `enso / openLegalReviewReport` if you have `npm` in your PATH
+     as visible from SBT.
+   - Or you can just run `npm start` (and `npm install` if needed) in the
+     `tools/legal-review-helper` directory.
+1. Review licenses
+   - ...
+1. Review which files to include
+   - ...
+1. Review copyright notices
+   - ...
+1. Ensure that there are no more warnings.
+1. Re-run `enso/gatherLicenses`.
+
+The updates performed using the web script are remembered locally, so they will
+not show up after the refresh. If you ever need to open the edit mode after
+closing its window, you should re-generate the report using
+`enso/gatherLicenses` or just open it using `enso/openLegalReviewReport` which
+will refresh it automatically.
+
+#### Review Configuration
+
+The review state is driven by configuration files located in
+`tools/legal-review`. This directory contains separate subdirectories for each
+artifact.
 
 The subdirectory for each artifact may contain the following entries:
 
