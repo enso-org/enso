@@ -8,44 +8,58 @@ close_stream stream =
     stream.close []
     Unit
 
-type Unmanaged_Input_Stream
-    type Unmanaged_Input_Stream java_stream
+type Output_Stream
+    type Output_Stream stream_resource
 
-    read_all_bytes : Vector
-    read_all_bytes = Vector.from_polyglot_array (this.java_stream.readAllBytes [])
-
-    read_n_bytes : Integer -> Vector
-    read_n_bytes n =
-        buffer = Array.new n
-        actual = this.java_stream.readNBytes [buffer, 0, n]
-        IO.println actual
-        vec_array = Array.new actual
-        0.upto actual . each (i -> vec_array.set_at i (buffer.at_i))
-        Vector vec_array
+    write_bytes : Vector -> Unit
+    write_bytes contents = Managed_Resource.with this.stream_resource java_stream->
+        java_stream.write [contents.to_array]
+        java_stream.flush []
+        Unit
 
     close : Unit
-    close = this.java_stream.close []
+    close = Managed_Resource.finalize this.stream_resource
+
+type Input_Stream
+    type Input_Stream stream_resource
+
+    read_all_bytes : Vector
+    read_all_bytes = Managed_Resource.with this.stream_resource java_stream->
+        Vector.from_polyglot_array (java_stream.readAllBytes [])
+
+    read_n_bytes : Integer -> Vector
+    read_n_bytes n = Managed_Resource.with this.stream_resource java_stream->
+        bytes = java_stream.readNBytes [n]
+        Vector.from_polyglot_array bytes
+
+    close : Unit
+    close = Managed_Resource.finalize this.stream_resource
 
 type File
     type File prim_file
 
-    new_unmanaged_input_stream open_options =
+    new_input_stream open_options =
         opts = open_options . map (_.to_java) . to_array
-        Unmanaged_Input_Stream (this.prim_file.newInputStream [opts])
+        stream = this.prim_file.newInputStream [opts]
+        resource = Managed_Resource.register stream here.close_stream
+        Input_Stream resource
+
+    new_output_stream open_options =
+        opts = open_options . map (_.to_java) . to_array
+        stream = this.prim_file.newOutputStream [opts]
+        resource = Managed_Resource.register stream here.close_stream
+        Output_Stream resource
 
     with_output_stream open_options action =
-        opts = open_options . map (_.to_java) . to_array
-        Resource.bracket (this.prim_file.newOutputStream [opts]) (_.close []) action
+        Resource.bracket (this.new_output_stream open_options) (_.close) action
 
     with_input_stream open_options action =
-        opts = open_options . map (_.to_java) . to_array
-        Resource.bracket (this.prim_file.newInputStream [opts]) (_.close []) action
+        Resource.bracket (this.new_input_stream open_options) (_.close) action
 
     read_bytes : Vector
     read_bytes =
         opts = [Open_Option.Read]
-        bytes = this.with_input_stream opts stream->
-            Vector.from_polyglot_array (stream.readAllBytes [])
+        bytes = this.with_input_stream opts (_.read_all_bytes)
         bytes
 
     read : Text
@@ -56,10 +70,7 @@ type File
     append_bytes : Vector -> Unit
     append_bytes contents =
         opts = [Open_Option.Append, Open_Option.Create]
-        this.with_output_stream opts stream->
-            stream.write [contents.to_array]
-            stream.flush []
-        Unit
+        this.with_output_stream opts (_.write_bytes contents)
 
     append : Text -> Unit
     append contents = this.append_bytes contents.utf_8
@@ -67,9 +78,7 @@ type File
     write_bytes : Vector -> Unit
     write_bytes contents =
         opts = [Open_Option.Write, Open_Option.Create, Open_Option.Truncate_Existing]
-        this.with_output_stream opts stream->
-            stream.write [contents.to_array]
-            stream.flush []
+        this.with_output_stream opts (_.write_bytes contents)
         Unit
 
     write : Text -> Unit
