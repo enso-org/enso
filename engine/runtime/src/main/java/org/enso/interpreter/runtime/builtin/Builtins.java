@@ -49,6 +49,7 @@ public class Builtins {
   private final Number number;
   private final AtomConstructor function;
   private final AtomConstructor debug;
+  private final AtomConstructor ensoProject;
   private final Text text;
   private final Error error;
   private final Bool bool;
@@ -75,6 +76,11 @@ public class Builtins {
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new Text(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
+    ensoProject =
+        new AtomConstructor("Enso_Project", scope)
+            .initializeFields(
+                new ArgumentDefinition(
+                    0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE));
     system = new System(language, scope);
     number = new Number(language, scope);
     polyglot = new Polyglot(language, scope);
@@ -104,10 +110,12 @@ public class Builtins {
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
     scope.registerConstructor(io);
+    scope.registerConstructor(primIo);
     scope.registerConstructor(panic);
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
+    scope.registerConstructor(ensoProject);
     scope.registerConstructor(runtime);
 
     scope.registerConstructor(java);
@@ -214,6 +222,11 @@ public class Builtins {
    */
   public AtomConstructor debug() {
     return debug;
+  }
+
+  /** @return the {@code Enso_Project} atom constructor */
+  public AtomConstructor getEnsoProject() {
+    return ensoProject;
   }
 
   /** @return the {@code System} atom constructor. */

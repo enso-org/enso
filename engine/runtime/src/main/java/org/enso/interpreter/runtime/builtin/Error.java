@@ -15,6 +15,7 @@ public class Error {
   private final AtomConstructor uninitializedState;
   private final AtomConstructor noSuchMethodError;
   private final AtomConstructor polyglotError;
+  private final AtomConstructor moduleDoesNotBelongToAProjectError;
 
   /**
    * Creates and registers the relevant constructors.
@@ -48,6 +49,8 @@ public class Error {
         new AtomConstructor("Polyglot_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "cause", ArgumentDefinition.ExecutionMode.EXECUTE));
+    moduleDoesNotBelongToAProjectError =
+        new AtomConstructor("Module_Does_Not_Belong_To_A_Package_Error", scope).initializeFields();
 
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(compileError);
@@ -55,6 +58,7 @@ public class Error {
     scope.registerConstructor(uninitializedState);
     scope.registerConstructor(noSuchMethodError);
     scope.registerConstructor(polyglotError);
+    scope.registerConstructor(moduleDoesNotBelongToAProjectError);
   }
 
   /** @return the builtin {@code Syntax_Error} atom constructor. */
@@ -75,6 +79,10 @@ public class Error {
   /** @return the builtin {@code Uninitialized_State} atom constructor. */
   public AtomConstructor uninitializedState() {
     return uninitializedState;
+  }
+
+  public AtomConstructor moduleDoesNotBelongToAProjectError() {
+    return moduleDoesNotBelongToAProjectError;
   }
 
   /**

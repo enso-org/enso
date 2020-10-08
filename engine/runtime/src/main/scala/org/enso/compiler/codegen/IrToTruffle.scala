@@ -40,6 +40,7 @@ import org.enso.interpreter.node.expression.constant.{
   ConstantObjectNode,
   ConstructorNode,
   DynamicSymbolNode,
+  EnsoProjectNode,
   ErrorNode
 }
 import org.enso.interpreter.node.expression.literal.{
@@ -139,6 +140,7 @@ class IrToTruffle(
     * @param module the module for which code should be generated
     */
   private def processModule(module: IR.Module): Unit = {
+    generateMethods()
     generateReExportBindings(module)
     module
       .unsafeGetMetadata(
@@ -318,6 +320,28 @@ class IrToTruffle(
       loc.id.foreach { id => expr.setId(id) }
     }
     expr
+  }
+
+  private def generateMethods(): Unit = {
+    generateEnsoProjectMethod()
+  }
+
+  private def generateEnsoProjectMethod(): Unit = {
+    val name = BindingsMap.Generated.ensoProjectMethodName
+    val pkg  = context.getPackageOf(moduleScope.getModule)
+    val body = Truffle.getRuntime.createCallTarget(
+      new EnsoProjectNode(language, context, pkg)
+    )
+    val schema = new FunctionSchema(
+      FunctionSchema.CallStrategy.ALWAYS_DIRECT,
+      new ArgumentDefinition(
+        0,
+        "this",
+        ArgumentDefinition.ExecutionMode.EXECUTE
+      )
+    )
+    val fun = new RuntimeFunction(body, null, schema)
+    moduleScope.registerMethod(moduleScope.getAssociatedType, name, fun)
   }
 
   private def generateReExportBindings(module: IR.Module): Unit = {

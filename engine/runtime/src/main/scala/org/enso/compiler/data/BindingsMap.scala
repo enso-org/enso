@@ -181,8 +181,10 @@ case class BindingsMap(
   def getDirectlyExportedModules: List[ExportedModule] =
     resolvedImports.collect {
       case ResolvedImport(_, Some(exp), mod) =>
+        val hidingEnsoProject =
+          SymbolRestriction.Hiding(Set(Generated.ensoProjectMethodName))
         val restriction = if (exp.isAll) {
-          if (exp.onlyNames.isDefined) {
+          val definedRestriction = if (exp.onlyNames.isDefined) {
             SymbolRestriction.Only(
               exp.onlyNames.get
                 .map(name =>
@@ -198,6 +200,9 @@ case class BindingsMap(
           } else {
             SymbolRestriction.All
           }
+          SymbolRestriction.Intersect(
+            List(hidingEnsoProject, definedRestriction)
+          )
         } else {
           SymbolRestriction.Only(
             Set(
@@ -218,6 +223,10 @@ case class BindingsMap(
 }
 
 object BindingsMap {
+
+  object Generated {
+    val ensoProjectMethodName: String = "enso_project"
+  }
 
   /** Represents a symbol restriction on symbols exported from a module. */
   sealed trait SymbolRestriction {

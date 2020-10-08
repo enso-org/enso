@@ -1,0 +1,5 @@
+import Builtins
+from Base import all
+
+Builtins.Enso_Project.root = File.File this.prim_root_file
+Builtins.Enso_Project.data = this.root / "data"

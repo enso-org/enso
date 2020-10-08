@@ -3,10 +3,12 @@ import Base.Vector
 import Base.Number.Extensions
 import Base.Text.Extensions
 import Base.System.File.File
+import Base.Meta.Enso_Project_Extensions
 from Builtins import Unit, Number, Integer, Any, True, False
 
 from Builtins export all
 
+from Base.Meta.Enso_Project_Extensions export all
 from Base.List export Nil, Cons
 from Base.Vector export Vector
 from Base.Number.Extensions export all hiding Math
@@ -62,3 +64,4 @@ type Math
     to its diameter.
 Math.pi : Decimal
 Math.pi = 3.141592653589793
+

@@ -81,6 +81,12 @@ type File
         this.with_output_stream opts (_.write_bytes contents)
         Unit
 
+    / subpath = case subpath of
+        File prim -> File (this.prim_file.resolve [prim])
+        _ -> File (this.prim_file.resolve [subpath])
+
+    to_text = this.prim_file.to_text
+
     write : Text -> Unit
     write contents = this.write_bytes contents.utf_8
 

@@ -26,4 +26,17 @@ public class EnsoFile {
   public InputStream newInputStream(OpenOption[] opts) throws IOException {
     return truffleFile.newInputStream(opts);
   }
+
+  public EnsoFile resolve(String subPath) {
+    return new EnsoFile(this.truffleFile.resolve(subPath));
+  }
+
+  public EnsoFile resolve(EnsoFile subPath) {
+    return new EnsoFile(this.truffleFile.resolve(subPath.truffleFile.getPath()));
+  }
+
+  @Override
+  public String toString() {
+    return "(File " + truffleFile.getPath() + ")";
+  }
 }
