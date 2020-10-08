@@ -71,6 +71,10 @@ type Time
     to_epoch_millis : Integer
     to_epoch_millis = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
 
+    ## Alias to `to_epoch_millis`.
+    to_epoch_milliseconds : Integer
+    to_epoch_milliseconds = this . to_epoch_millis
+
     ## Convert this point in time to time of day.
     time_of_day : Time_Of_Day
     time_of_day = Time_Of_Day.time_of_day (this . internal_zoned_date_time . toLocalTime [])
