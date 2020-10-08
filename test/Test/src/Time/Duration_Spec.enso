@@ -16,7 +16,7 @@ spec =
             interval = 7.nanoseconds + 3.days
             interval.to_vector . should_equal [0, 0, 3, 0, 0, 0, 7]
         it "should add milliseconds to years" <|
-            interval = 4.years + 8.millis
+            interval = 4.years + 8.milliseconds
             interval.to_vector . should_equal [4, 0, 0, 0, 0, 0, 8000000]
         it "should substract seconds from months" <|
             interval = 8.months - 8.seconds

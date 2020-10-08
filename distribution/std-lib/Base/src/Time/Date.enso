@@ -24,7 +24,7 @@ type Date
     year : Integer
     year = this . internal_local_date . getYear []
 
-    ## Get the month of year field from 1 to 12.
+    ## Get the month of year field, as a number from 1 to 12.
     month : Integer
     month = this . internal_local_date . getMonthValue []
 
@@ -71,7 +71,7 @@ type Date
     ## Format this date using formatter string.
 
        Patterns are based on a simple sequence of letters and symbols. For
-       example, "d MMM uuuu" will format "2011-12-03" as "3 Dec 2011".
+       example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
 
        For the list of accepted symbols in pattern refer to
        `Base.Time.Time.format` doc.
@@ -98,7 +98,7 @@ type Date
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_date]
 
-## Obtains an instance of `Date` from a text string such as 2007-12-03.
+## Obtains an instance of `Date` from a text, such as 2007-12-03.
 
    The string must represent a valid date and is parsed using the ISO-8601
    extended local date format. The format consists of:
@@ -127,7 +127,7 @@ parse text =
         Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
         x -> x
 
-## Obtains an instance of `Date` from a text string using custom format string.
+## Obtains an instance of `Date` from a text using custom format.
 
    For the list of accepted symbols in pattern refer to
    `Base.Time.Time.format` doc.

@@ -116,7 +116,7 @@ spec =
             time . to_epoch_seconds . should_equal 8
         it "should get epoch millis" <|
             time = Time.new 1970 1 1 0 0 8 (zone = Zone.utc)
-            time . to_epoch_millis . should_equal 8000
+            time . to_epoch_milliseconds . should_equal 8000
         it "should set offset-based timezone" <|
             tz = Zone.new 1 1 1
             time = Time.new 1970 (zone = Zone.utc) . at_zone tz
@@ -212,7 +212,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract mixed date time interval" <|
-            time = Time.new 1970 (zone = Zone.utc) - (1.month . minus 3.hours)
+            time = Time.new 1970 (zone = Zone.utc) - (1.month - 3.hours)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1

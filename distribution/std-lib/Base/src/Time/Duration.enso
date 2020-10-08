@@ -24,17 +24,6 @@ type Duration
 
     ## Subtract specified amount of time from this duration.
        > Example
-         Subtract 1 nanosecond from a duration of 120 nanoseconds.
-             120.nano . minus 1.nano
-
-       > Example
-         Substract 3 hours from a duration of 12 years.
-             12.years . minus 3.hours
-    minus : Duration -> Duration
-    minus other = Duration (this.interval_period . minus [other.interval_period]) (this.interval_duration . minus [other.interval_duration])
-
-    ## Subtract specified amount of time from this duration.
-       > Example
          Subtract 11 months from a duration of 3 years
              3.years - 11.months
 
@@ -42,31 +31,23 @@ type Duration
          Substract 30 minutes from a duration of 7 months.
              7.months - 30.minutes
     - : Duration -> Duration
-    - other = this.minus other
-
-    ## Get the amount of nanoseconds of this duration.
-    nanos : Integer
-    nanos = this.interval_duration . toNanosPart []
+    - other = Duration (this.interval_period . minus [other.interval_period]) (this.interval_duration . minus [other.interval_duration])
 
     ## Get the amount of nanoseconds of this duration.
     nanoseconds : Integer
-    nanoseconds = this.nanos
-
-    ## Get the amount of milliseconds of this duration.
-    millis : Integer
-    millis = this.interval_duration . toMillisPart []
+    nanoseconds = this.interval_duration . toNanosPart []
 
     ## Get the amount of milliseconds of this duration.
     milliseconds : Integer
-    milliseconds = this.millis
+    milliseconds = this.interval_duration . toMillisPart []
 
     ## Get the amount of minutes of this duration.
     seconds : Integer
     seconds = this.interval_duration . toSecondsPart []
 
     ## Get the amount of minutes of this duration.
-    get_minutes : Integer
-    get_minutes = this.interval_duration . toMinutesPart []
+    minutes : Integer
+    minutes = this.interval_duration . toMinutesPart []
 
     ## Get the amount of hours of this duration.
     hours : Integer
@@ -95,7 +76,7 @@ type Duration
          Convert duration of 800 nanoseconds to a vector returning `[0, 0, 0, 0, 0, 0, 800]`
              800.nanoseconds . to_vector
     to_vector : Vector
-    to_vector = [this.years, this.months, this.days, this.hours, this.get_minutes, this.seconds, this.nanos]
+    to_vector = [this.years, this.months, this.days, this.hours, this.minutes, this.seconds, this.nanoseconds]
 
     ## Check if this duration is date-based.
     is_date : Boolean
@@ -103,43 +84,27 @@ type Duration
 
     ## Check if this duration is time-based.
     is_time : Boolean
-    is_time = (not this.hours==0) || (not this.get_minutes==0) || (not this.seconds==0) || (not this.nanos==0)
+    is_time = (not this.hours==0) || (not this.minutes==0) || (not this.seconds==0) || (not this.nanoseconds==0)
 
     ## Check if this duration represents an empty time-span.
     is_empty : Boolean
     is_empty = (not this.is_date) && (not this.is_time)
 
 ## Duration in nanoseconds.
-Integer.nano : Duration
-Integer.nano = Duration (Java_Period.ofDays [0]) (Java_Duration.ofNanos [this])
-
-## Duration in nanoseconds.
-Integer.nanos : Duration
-Integer.nanos = this.nano
-
-## Duration in nanoseconds.
 Integer.nanosecond : Duration
-Integer.nanosecond = this.nano
+Integer.nanosecond = Duration (Java_Period.ofDays [0]) (Java_Duration.ofNanos [this])
 
 ## Duration in nanoseconds.
 Integer.nanoseconds : Duration
-Integer.nanoseconds = this.nano
-
-## Duration in milliseconds.
-Integer.milli : Duration
-Integer.milli = Duration (Java_Period.ofDays [0]) (Java_Duration.ofMillis [this])
-
-## Duration in milliseconds.
-Integer.millis : Duration
-Integer.millis = this.milli
+Integer.nanoseconds = this.nanosecond
 
 ## Duration in milliseconds.
 Integer.millisecond : Duration
-Integer.millisecond = this.milli
+Integer.millisecond = Duration (Java_Period.ofDays [0]) (Java_Duration.ofMillis [this])
 
 ## Duration in milliseconds.
 Integer.milliseconds : Duration
-Integer.milliseconds = thils.milli
+Integer.milliseconds = this.millisecond
 
 ## Duration in seconds.
 Integer.second : Duration
