@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.constant;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -13,6 +14,7 @@ import org.enso.pkg.Package;
 
 import java.util.Optional;
 
+@NodeInfo(description = "Returns a language-level representation of the given Enso project.")
 public class EnsoProjectNode extends RootNode {
   private final Object result;
 

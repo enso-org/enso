@@ -304,6 +304,7 @@ public class Module implements TruffleObject {
     isIndexed = indexed;
   }
 
+  /** @return the source file of this module. */
   public TruffleFile getSourceFile() {
     return sourceFile;
   }

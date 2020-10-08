@@ -85,6 +85,13 @@ public class Text_Utils {
     return new String(bytes, StandardCharsets.UTF_8);
   }
 
+  /**
+   * Checks whether {@code prefix} is a prefix of {@code str}.
+   *
+   * @param str the string to check
+   * @param prefix the potential prefix
+   * @return whether {@code prefix} is a prefix of {@code str}
+   */
   public static boolean starts_with(String str, String prefix) {
     return str.startsWith(prefix);
   }

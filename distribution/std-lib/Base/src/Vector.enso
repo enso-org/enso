@@ -161,16 +161,25 @@ type Vector
             arr.set_at i (that.at i-this_len)
         Vector arr
 
-    join : String -> Vector
+    ## When `this` is a vector of text values, concatenates all the values by
+       interspersing them with `separator`.
+
+       > Example
+         The following code returns "foo, bar, baz"
+             ["foo", "bar", "baz"].join ", "
+    join : String -> Text
     join separator =
         if this.length == 0 then "" else
             if this.length == 1 then this.at 0 else
                 this.at 0 + (1.upto this.length . fold "" acc-> i-> acc + separator + this.at i)
 
+    ## Returns a new vector, consisting of all but the first `count` elements
+       of `this`.
     drop : Integer -> Vector
     drop count = if count >= this.length then Vector.new 0 (x -> x) else
         Vector.new (this.length - count) (i -> this.at i+count)
 
+    ## Returns a new vector, consisting of the first `count` elements of `this`.
     take : Integer -> Vector
     take count = if count >= this.length then this else
         Vector.new count this.at

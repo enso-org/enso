@@ -71,7 +71,7 @@ public class UnresolvedSymbol implements TruffleObject {
   }
 
   @ExportMessage
-  public String toDisplayString(boolean allowSideEffects) {
+  String toDisplayString(boolean allowSideEffects) {
     return this.toString();
   }
 

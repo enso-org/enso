@@ -2,12 +2,15 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.TruffleFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.OpenOption;
 
+/**
+ * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
+ * please refer to {@link TruffleFile}.
+ */
 public class EnsoFile {
   private final TruffleFile truffleFile;
 
