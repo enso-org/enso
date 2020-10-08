@@ -13,18 +13,6 @@ type Duration
     ## Add specified amount of time to this duration.
 
        > Example
-         Add 1 minute to a duration of 12 hours
-             12.hours . plus 1.minute
-
-       > Example
-         Add 1 hour to a duration of month.
-             1.month . plus 1.hour
-    plus : Duration -> Duration
-    plus other = Duration (this.interval_period . plus [other.interval_period]) (this.interval_duration . plus [other.interval_duration])
-
-    ## Add specified amount of time to this duration.
-
-       > Example
          Add 6 seconds to a duration of 3 minutes
              3.minutes + 6.seconds
 
@@ -32,7 +20,7 @@ type Duration
          Add 12 hours to a duration of a month.
              1.month + 12.hours
     + : Duration -> Duration
-    + other = this.plus other
+    + other = Duration (this.interval_period . plus [other.interval_period]) (this.interval_duration . plus [other.interval_duration])
 
     ## Subtract specified amount of time from this duration.
        > Example

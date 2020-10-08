@@ -13,18 +13,18 @@ spec =
             interval = 9.months
             interval.to_vector . should_equal [0, 9, 0, 0, 0, 0, 0]
         it "should add days to nanoseconds" <|
-            interval = 7.nanoseconds . plus 3.days
+            interval = 7.nanoseconds + 3.days
             interval.to_vector . should_equal [0, 0, 3, 0, 0, 0, 7]
         it "should add milliseconds to years" <|
-            interval = 4.years . plus 8.millis
+            interval = 4.years + 8.millis
             interval.to_vector . should_equal [4, 0, 0, 0, 0, 0, 8000000]
         it "should substract seconds from months" <|
-            interval = 8.months . minus 8.seconds
+            interval = 8.months - 8.seconds
             interval.to_vector . should_equal [0, 8, 0, 0, 0, -8, 0]
         it "should subtract years from hours" <|
-            interval = 2.hours . minus 11.years
+            interval = 2.hours - 11.years
             interval.to_vector . should_equal [-11, 0, 0, 2, 0, 0, 0]
-        it "should support ± operators" <|
+        it "should support mixed operators" <|
             interval = 2.hours + 12.seconds - 11.years
             interval.to_vector . should_equal [-11, 0, 0, 2, 0, 12, 0]
         it "should create interval between two points in time" <|
@@ -41,7 +41,7 @@ spec =
             interval.is_date . should_be_true
             interval.is_time . should_be_false
         it "should check if mixed based" <|
-            interval = 10.years . plus 3.hours
+            interval = 10.years + 3.hours
             interval.is_date . should_be_true
             interval.is_time . should_be_true
         it "should check if empty" <|

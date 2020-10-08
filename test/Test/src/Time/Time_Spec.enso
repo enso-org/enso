@@ -162,7 +162,7 @@ spec =
             time . month . should_equal 1
             time . day . should_equal 1
         it "should add time interval" <|
-            time = Time.new 1970 (zone = Zone.utc) . plus 1.nanosecond
+            time = Time.new 1970 (zone = Zone.utc) + 1.nanosecond
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -172,7 +172,7 @@ spec =
             time . nanosecond . should_equal 1
             time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should add date interval" <|
-            time = Time.new 1970 (zone = Zone.utc) . plus 1.month
+            time = Time.new 1970 (zone = Zone.utc) + 1.month
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -182,7 +182,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should add mixed date time interval" <|
-            time = Time.new 1970 (zone = Zone.utc) . plus (1.month . plus 3.hours)
+            time = Time.new 1970 (zone = Zone.utc) + (1.month + 3.hours)
             time . year . should_equal 1970
             time . month . should_equal 2
             time . day . should_equal 1
@@ -192,7 +192,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract time interval" <|
-            time = Time.new 1970 (zone = Zone.utc) . minus 1.hour
+            time = Time.new 1970 (zone = Zone.utc) - 1.hour
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 31
@@ -202,7 +202,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract date interval" <|
-            time = Time.new 1970 (zone = Zone.utc) . minus 1.month
+            time = Time.new 1970 (zone = Zone.utc) - 1.month
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -212,7 +212,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
         it "should subtract mixed date time interval" <|
-            time = Time.new 1970 (zone = Zone.utc) . minus (1.month . minus 3.hours)
+            time = Time.new 1970 (zone = Zone.utc) - (1.month . minus 3.hours)
             time . year . should_equal 1969
             time . month . should_equal 12
             time . day . should_equal 1
@@ -221,7 +221,7 @@ spec =
             time . second . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
-        it "should support ± interval operators" <|
+        it "should support mixed interval operators" <|
             time = Time.new 1970 (zone = Zone.utc) - 1.month + 12.hours
             time . year . should_equal 1969
             time . month . should_equal 12

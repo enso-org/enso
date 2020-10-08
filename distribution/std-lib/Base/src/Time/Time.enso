@@ -95,49 +95,25 @@ type Time
 
        > Example
          Add 1 hour to a zoned date time.
-             Time.new 2020 . plus 1.hour
+             Time.new 2020 + 1.hour
 
        > Example
          Add 15 years and 3 hours to a zoned date time.
-             Time.new 2020 . plus 15.years . plus 3.hours
-    plus : Duration -> Time
-    plus amount = Time (this . internal_zoned_date_time . plus [amount.interval_period] . plus [amount.interval_duration])
-
-    ## Add specified amount of time to this instant.
-
-       > Example
-         Add 1 year to a time.
-             Time.new 2020 + 1.year
-
-       > Example
-         Add 2 days and 3 hours to a time.
-             Time.new 2020 + 2.days + 3.hours
+             Time.new 2020 + 15.years + 3.hours
     + : Duration -> Time
-    + amount = this.plus amount
+    + amount = Time (this . internal_zoned_date_time . plus [amount.interval_period] . plus [amount.interval_duration])
 
     ## Subtract specified amount of time to this instant.
 
        > Example
          Subtract 10 days from a zoned date time.
-             Time.new 2020 . minus 10.days
-
-       > Example
-         Subtract 1 year and 9 months from a zoned date time.
-             Time.new 2020 . minus 1.year . minus 9.months
-    minus : Duration -> Time
-    minus amount = Time (this . internal_zoned_date_time . minus [amount.interval_period] . minus [amount.interval_duration])
-
-    ## Subtract specified amount of time to this instant.
-
-       > Example
-         Subtract 10 days from a time.
              Time.new 2020 - 10.days
 
        > Example
-         Subtract 1 year and 9 months from a time.
+         Subtract 1 year and 9 months from a zoned date time.
              Time.new 2020 - 1.year - 9.months
     - : Duration -> Time
-    - amount = this.minus amount
+    - amount = Time (this . internal_zoned_date_time . minus [amount.interval_period] . minus [amount.interval_duration])
 
     ## Format this time using the default formatter.
     to_text : Text
