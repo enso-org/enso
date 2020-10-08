@@ -8,8 +8,10 @@ polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.Time_Utils
 
-## Error produced while working with time.
-type Error error_message
+type Time_Error
+
+    ## Error produced while working with time.
+    type Time_Error error_message
 
 type Time
 
@@ -171,8 +173,16 @@ type Time
    > Example
      Parse UTC-04:00 time with nanoseconds.
          Time.parse "2020-10-01T04:11:12.177528-04:00"
+
+   > Example
+     Recover from the parse error.
+         Time.parse "2020-10-01" . catch <| case _ of
+             Time.Error _ -> Time.now
 parse : Text -> Time
-parse text = Time (Time_Utils.parse_time [text])
+parse text =
+    Panic.recover (Time (Time_Utils.parse_time [text])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+        x -> x
 
 ## Obtains the current date-time from the system clock in the system timezone.
 now : Time

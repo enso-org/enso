@@ -82,6 +82,12 @@ spec =
             time . second . should_equal 1
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal "Europe/Paris"
+        it "should throw error when parsing invalid time" <|
+            case Time.parse "2008-1-1" . catch (x -> x) of
+                Time.Time_Error msg ->
+                    msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
         it "should get epoch seconds" <|
             time = Time.new 1970 1 1 0 0 8 (zone = Zone.utc)
             time . to_epoch_second . should_equal 8

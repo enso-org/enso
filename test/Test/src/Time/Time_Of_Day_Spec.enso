@@ -28,6 +28,12 @@ spec =
         it "should parse local time" <|
             time = Time_Of_Day.parse "10:00:00"
             time.to_seconds . should_equal 36000
+        it "should throw error when parsing invalid time" <|
+            case Time_Of_Day.parse "1200" . catch (x -> x) of
+                Time.Time_Error msg ->
+                    msg . should_equal "Text '1200' could not be parsed at index 2"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
         it "should convert to time" <|
             time = Time_Of_Day.new 1 0 0 . to_time (Date.new 2000 12 21) Zone.utc
             time . year . should_equal 2000
@@ -49,13 +55,13 @@ spec =
             time . to_seconds . should_equal 3599
         it "should throw error when adding date-based interval" <|
             case Time_Of_Day.new.plus 1.day . catch (x -> x) of
-                Time.Error message ->
+                Time.Time_Error message ->
                     message . should_equal "Time_Of_Day does not support date intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
         it "should throw error when subtracting date-based interval" <|
             case Time_Of_Day.new.minus (1.day . minus 1.minute) . catch (x -> x) of
-                Time.Error message ->
+                Time.Time_Error message ->
                     message . should_equal "Time_Of_Day does not support date intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)

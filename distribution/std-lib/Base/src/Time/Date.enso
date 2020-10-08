@@ -46,7 +46,7 @@ type Date
          Add 100 years to a local date.
              Date.new 2020 . plus 100.years
     plus : Duration -> Date
-    plus amount = if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Date (this . internal_local_date . plus [amount.interval_period])
+    plus amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . plus [amount.interval_period])
 
     ## Add specified amount of time to this instant.
 
@@ -62,7 +62,7 @@ type Date
          Subtract 1 month from a local date.
              Date.new 2020 . minus 1.month
     minus : Duration -> Date
-    minus amount = if amount.is_time then Error.throw (Time.Error "Date does not support time intervals") else Date (this . internal_local_date . minus [amount.interval_period])
+    minus amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . minus [amount.interval_period])
 
     ## Subtract specified amount of time to this instant.
 
@@ -99,8 +99,16 @@ type Date
    > Example
      Parse the date of 23rd December 2020.
          Date.parse "2020-12-23"
+
+   > Example
+     Recover from the parse error.
+         Date.parse "my birthday" . catch <| case _ of
+             Time.Error _ -> Date.new 2000 1 1
 parse : Text -> Date
-parse fmt = Date (LocalDate.parse [fmt])
+parse text =
+    Panic.recover (Date (LocalDate.parse [text])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x
 
 ## Obtains the current date from the system clock in the system timezone.
 now : Date

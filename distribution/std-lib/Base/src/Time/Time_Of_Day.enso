@@ -54,7 +54,7 @@ type Time_Of_Day
          Add 15 minutes to a local time.
              Time_Of_Day.new.plus 15.minutes
     plus : Duration -> Time_Of_Day
-    plus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.interval_duration])
+    plus amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.interval_duration])
 
     ## Add specified amount of time to this instant.
 
@@ -70,7 +70,7 @@ type Time_Of_Day
          Subtract 3 hours from a local time.
              Time_Of_Day.new.minus 3.hours
     minus : Duration -> Time_Of_Day
-    minus amount = if amount.is_date then Error.throw (Time.Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.interval_duration])
+    minus amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.interval_duration])
 
     ## Subtract specified amount of time to this instant.
 
@@ -110,8 +110,16 @@ type Time_Of_Day
    > Example
      Get the time 15:05:30.
          Time_Of_Day.parse "15:05:30"
+
+   > Example
+     Recover from the parse error.
+         Time_Of_Day.parse "half past twelve" . catch <| case
+             Time.Error _ -> Time_Of_Day.new
 parse : Text -> Time_Of_Day
-parse text = Time_Of_Day (LocalTime.parse [text])
+parse text =
+    Panic.recover (Time_Of_Day (LocalTime.parse [text])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x
 
 ## Obtains the current time from the system clock in the default time-zone.
 now : Time_Of_Day
