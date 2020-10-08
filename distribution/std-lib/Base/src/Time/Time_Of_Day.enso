@@ -125,7 +125,8 @@ parse text =
 now : Time_Of_Day
 now = Time_Of_Day (LocalTime.now [])
 
-## Obtains an instance of `Time_Of_Day` from an hour, minute, second and nanosecond.
+## Obtains an instance of `Time_Of_Day` from an hour, minute, second
+   and nanosecond.
 
    - hour - the hour-of-day to represent, from 0 to 23
    - minute - the minute-of-hour to represent, from 0 to 59

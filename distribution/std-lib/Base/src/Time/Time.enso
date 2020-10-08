@@ -144,7 +144,7 @@ type Time
     format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_zoned_date_time]
 
 ## Obtains an instance of `Time` from a text string such as
-   2007-12-03T10:15:30Z.
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
 
    The string must represent a valid date-time and is parsed using the ISO-8601
    extended offset date-time format to add the timezone. The section in square
@@ -191,11 +191,9 @@ now = Time (ZonedDateTime.now [])
 ## Obtains an instance of `Time` from a year, month, day, hour, minute,
    second, nanosecond and timezone.
 
-   The day must be valid for the year and month, otherwise an exception will be
-   thrown.
-
    - month - the month-of-year to represent, from 1 (January) to 12 (December)
-   - day - the day-of-month to represent, from 1 to 31
+   - day - the day-of-month to represent, from 1 to 31 and must be valid for the
+     year and month
    - hour - the hour-of-day to represent, from 0 to 23
    - minute - the minute-of-hour to represent, from 0 to 59
    - second - the second-of-minute to represent, from 0 to 59

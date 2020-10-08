@@ -88,7 +88,6 @@ type Date
    - Four digits or more for the year. Years in the range 0000 to 9999
      will be pre-padded by zero to ensure four digits. Years outside
      that range will have a prefixed positive or negative symbol.
-
    - A dash
    - Two digits for the month-of-year. This is pre-padded by zero to ensure two
      digits.
@@ -120,11 +119,9 @@ today = here.now
 
 ## Obtains an instance of `Date` from a year, month and day.
 
-   The date must be valid for the year and month, otherwise a `Time_Error` will
-   be thrown.
-
    - month - the month-of-year to represent, from 1 (January) to 12 (December)
-   - day - the day-of-month to represent, from 1 to 31
+   - day - the day-of-month to represent, from 1 to 31 and must be valid for the
+     year and month
 
    > Example
      Create a new local date at Unix epoch.
