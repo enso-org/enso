@@ -41,16 +41,15 @@ are included as part of its distribution. Currently, we have the `launcher`
 distribution that consists of one `launcher` component and the `engine`
 distribution which includes `runtime`, `engine-runner` and `project-manager`.
 
-The root projects that are included in `GatherLicenses.distributions` should
-have `.settings(licenseSettings)` added to configure their license information
-acquisition settings.
-
-The most relevant setting is `licenseConfigurations` which defines which `ivy`
-configurations are considered to search for dependencies.
-
-Currently it is set to only consider `compile` dependencies, as dependencies for
+Another relevant setting is `GatherLicenses.licenseConfigurations` which defines
+which `ivy` configurations are considered to search for dependencies. Currently
+it is set to only consider `compile` dependencies, as dependencies for
 `provided`, `test` or `benchmark` are not distributed and there are no
 `assembly`-specific dependencies.
+
+`GatherLicenses.configurationRoot` specifies where the review tool will look for
+the files specifying review state and `GatherLicenses.distributionRoot`
+specifies where the final notice packages should be generated.
 
 To gather the information, execute `enso/gatherLicenses` in SBT. This will
 create a report and packages which are described in the

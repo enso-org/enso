@@ -1,5 +1,11 @@
-import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.updateLicenses
-import sbt.Keys.{ivyModule, update, updateClassifiers}
+import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
+  licenseConfigurations,
+  licenseOverrides,
+  licenseSelection,
+  updateLicenses
+}
+import com.typesafe.sbt.license
+import sbt.Keys.{ivyModule, streams, update, updateClassifiers}
 import sbt.Project
 import src.main.scala.licenses.{
   DistributionDescription,
@@ -40,10 +46,21 @@ object Distribution {
     val gathered = {
       projects.map(p =>
         reify {
+          val deliberatelyTriggerAndIgnore = (p.splice / update).value
+
+          val ivyMod    = (p.splice / ivyModule).value
+          val overrides = (p.splice / licenseOverrides).value.lift
+          val report = license.LicenseReport.makeReport(
+            ivyMod,
+            GatherLicenses.licenseConfigurations.value,
+            (p.splice / licenseSelection).value,
+            overrides,
+            (p.splice / streams).value.log
+          )
           SBTDistributionComponent(
             p.splice.id,
-            (p.splice / updateLicenses).value,
-            (p.splice / ivyModule).value,
+            report,
+            ivyMod,
             (p.splice / updateClassifiers).value
           )
         }

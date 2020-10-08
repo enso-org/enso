@@ -50,33 +50,41 @@ object SbtLicenses {
     components: Seq[SBTDistributionComponent],
     log: ManagedLogger
   ): (Seq[DependencyInformation], Seq[String]) = {
-    val results = components.map { component =>
-      val report  = resolveIvy(component.ivyModule, log)
-      val ivyDeps = report.getDependencies.asScala.map(_.asInstanceOf[IvyNode])
-      val sourceArtifacts = component.classifiedArtifactsReport
-        .select((configRef: ConfigRef) =>
-          relevantConfigurations.map(_.name).contains(configRef.name)
-        )
-        .map(_.toPath)
-        .filter(_.getFileName.toString.endsWith("sources.jar"))
-      val deps = for {
-        dep <- component.licenseReport.licenses
-        depNode =
-          ivyDeps
-            .find(ivyDep => safeModuleInfo(ivyDep) == Some(dep.module))
-            .getOrElse(
-              throw new RuntimeException(
-                s"Could not find Ivy node for resolved module ${dep.module}."
+    val results: Seq[(Seq[Dependency], Vector[Path], Seq[String])] =
+      components.map { component =>
+        val report = resolveIvy(component.ivyModule, log)
+        val ivyDeps =
+          report.getDependencies.asScala.map(_.asInstanceOf[IvyNode])
+        val sourceArtifacts = component.classifiedArtifactsReport
+          .select((configRef: ConfigRef) =>
+            relevantConfigurations.map(_.name).contains(configRef.name)
+          )
+          .map(_.toPath)
+          .filter(_.getFileName.toString.endsWith("sources.jar"))
+        val deps = for {
+          dep <- component.licenseReport.licenses
+          depNode =
+            ivyDeps
+              .find(ivyDep => safeModuleInfo(ivyDep) == Some(dep.module))
+              .getOrElse(
+                throw new RuntimeException(
+                  s"Could not find Ivy node for resolved module ${dep.module}."
+                )
               )
-            )
-      } yield {
-        val sources = sourceArtifacts.filter(
-          _.getFileName.toString.startsWith(dep.module.name)
-        )
-        Dependency(dep, depNode, sources)
+        } yield {
+          val sources = sourceArtifacts.filter(
+            _.getFileName.toString.startsWith(dep.module.name)
+          )
+          Dependency(dep, depNode, sources)
+        }
+
+        val warnings =
+          if (component.licenseReport.licenses.isEmpty)
+            Seq(s"License report for component ${component.name} is empty.")
+          else Seq()
+
+        (deps, sourceArtifacts, warnings)
       }
-      (deps, sourceArtifacts)
-    }
 
     val distinctDependencies =
       results.flatMap(_._1).groupBy(_.depLicense.module).map(_._2.head).toSeq
@@ -101,8 +109,9 @@ object SbtLicenses {
       if !distinctDependencies.exists(_.sourcesJARPaths.contains(source))
     } yield s"Found a source $source that does not belong to any known " +
     s"dependencies, perhaps the algorithm needs updating?"
+    val reportsWarnings = results.flatMap(_._3)
 
-    (relevantDeps, missingWarnings ++ unexpectedWarnings)
+    (relevantDeps, missingWarnings ++ unexpectedWarnings ++ reportsWarnings)
   }
 
   /**

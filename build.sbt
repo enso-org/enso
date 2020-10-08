@@ -1,17 +1,11 @@
 import java.io.File
 
-import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
-  licenseReportNotes,
-  licenseReportStyleRules
-}
-
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import com.typesafe.sbt.license.DepModuleInfo
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -33,17 +27,38 @@ val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
 
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
-val licenseSettings = Seq(
-  licenseConfigurations := Set("compile"),
-  licenseReportStyleRules := Some(
-      "table, th, td {border: 1px solid black;}"
+
+lazy val gatherLicenses =
+  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+gatherLicenses := GatherLicenses.run.value
+GatherLicenses.distributions := Seq(
+    Distribution(
+      "launcher",
+      Distribution.sbtProjects(launcher)
     ),
-  licenseReportNotes := {
-    case DepModuleInfo(group, _, _) if group == "org.enso" =>
-      "Internal library"
-  }
-)
-val coursierCache = file("~/.cache/coursier/v1")
+    Distribution(
+      "engine",
+      Distribution.sbtProjects(
+        runtime,
+        `engine-runner`,
+        `project-manager`,
+        `std-bits`
+      )
+    )
+  )
+GatherLicenses.licenseConfigurations := Set("compile")
+GatherLicenses.configurationRoot := file("legal-review")
+GatherLicenses.distributionRoot := file("distribution")
+
+lazy val openLegalReviewReport =
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies and opens the " +
+    "report in review mode in the browser."
+  )
+openLegalReviewReport := {
+  gatherLicenses.value
+  GatherLicenses.runReportServer()
+}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
@@ -430,7 +445,6 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
-  .settings(licenseSettings)
 
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
@@ -536,7 +550,6 @@ lazy val cli = project
       ),
     parallelExecution in Test := false
   )
-  .settings(licenseSettings)
 
 lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
@@ -619,7 +632,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         .dependsOn(runtime / assembly)
         .value
   )
-  .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
@@ -814,7 +826,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         new TestFramework("org.scalameter.ScalaMeterFramework")
       )
   )
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
@@ -919,7 +930,9 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
-    (Test / compile) := (Test / compile).dependsOn(StdBits.preparePackage).value
+    (Test / compile) := (Test / compile)
+        .dependsOn(`std-bits` / Compile / packageBin)
+        .value
   )
   .settings(
     logBuffered := false,
@@ -950,7 +963,6 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(syntax.jvm)
@@ -1040,7 +1052,6 @@ lazy val `engine-runner` = project
         .dependsOn(runtime / assembly)
         .value
   )
-  .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
@@ -1097,11 +1108,34 @@ lazy val launcher = project
         .value,
     parallelExecution in Test := false
   )
-  .settings(licenseSettings)
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
+
+val `std-lib-root`          = file("distribution/std-lib/")
+val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
+
+lazy val `std-bits` = project
+  .in(file("std-bits"))
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath := `std-lib-polyglot-root` / "std-bits.jar",
+    libraryDependencies ++= Seq(
+        "com.ibm.icu" % "icu4j" % "67.1" // TODO [RW] icu version
+      ),
+    Compile / packageBin := Def.task {
+        val result = (Compile / packageBin).value
+        StdBits
+          .copyDependencies(
+            `std-lib-polyglot-root`,
+            "std-bits.jar",
+            ignoreScalaLibrary = true
+          )
+          .value
+        result
+      }.value
+  )
 
 /* Note [HTTPS in the Launcher]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1143,38 +1177,3 @@ lazy val launcher = project
  * initialization was done at build time, the shutdown hook would actually also
  * run at build time and have no effect at runtime.
  */
-
-lazy val gatherLicenses =
-  taskKey[Unit]("Gathers licensing information for relevant dependencies")
-gatherLicenses := GatherLicenses.run.value
-GatherLicenses.distributions := Seq(
-    Distribution(
-      "launcher",
-      Distribution.sbtProjects(launcher)
-    ),
-    Distribution(
-      "engine",
-      /*
-/build.sbt:1166: error: reference to runner is ambiguous;
-it is imported twice in the same scope by
-import _root_.sbt.Keys._
-and import $bcfdaf578d3643e549ad._
-      Distribution.sbtProjects(runtime, runner, `project-manager`)
-
-The runner had to be renamed due to this issue
-       */
-      Distribution.sbtProjects(runtime, `engine-runner`, `project-manager`)
-    )
-//    Distribution("test", Distribution.sbtProjects(cli))
-  )
-GatherLicenses.configurationRoot := file("legal-review")
-GatherLicenses.distributionRoot := file("distribution")
-
-lazy val openLegalReviewReport =
-  taskKey[Unit](
-    "Gathers licensing information for relevant dependencies and opens the report in review mode in the browser."
-  )
-openLegalReviewReport := {
-  gatherLicenses.value
-  GatherLicenses.runReportServer()
-}

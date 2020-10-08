@@ -23,6 +23,8 @@ object GatherLicenses {
   val distributionRoot = settingKey[File](
     "Path that will contain generated notices for each artefact."
   )
+  val licenseConfigurations =
+    settingKey[Set[String]]("The ivy configurations we consider in the review.")
 
   /**
     * The task that performs the whole license gathering process.
