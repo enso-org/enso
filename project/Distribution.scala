@@ -1,8 +1,6 @@
 import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
-  licenseConfigurations,
   licenseOverrides,
-  licenseSelection,
-  updateLicenses
+  licenseSelection
 }
 import com.typesafe.sbt.license
 import sbt.Keys.{ivyModule, streams, update, updateClassifiers}

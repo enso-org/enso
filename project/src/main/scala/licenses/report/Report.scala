@@ -5,13 +5,7 @@ import java.nio.file.Path
 import java.util.Base64
 
 import sbt.{File, IO}
-import src.main.scala.licenses.{
-  AttachedFile,
-  AttachmentStatus,
-  DistributionDescription,
-  ReviewedDependency,
-  ReviewedSummary
-}
+import src.main.scala.licenses._
 
 /**
   * Allows to write a report summarizing current status of the review.
@@ -61,7 +55,7 @@ object Report {
       writeDependencySummary(writer, summary)
 
       writer.writeList(warnings.map { warning => () =>
-        writer.writeText(warning)
+        writer.writeText(writer.escape(warning))
       })
 
       writer.writeCollapsible("NOTICE header", summary.noticeHeader)

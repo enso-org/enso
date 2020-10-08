@@ -7,7 +7,12 @@ import src.main.scala.licenses.backend.{
   GithubHeuristic
 }
 import src.main.scala.licenses.frontend.SbtLicenses
-import src.main.scala.licenses.report.{PackageNotices, Report, Review}
+import src.main.scala.licenses.report.{
+  PackageNotices,
+  Report,
+  Review,
+  WithWarnings
+}
 import src.main.scala.licenses.{DependencySummary, DistributionDescription}
 
 import scala.sys.process.Process
@@ -69,10 +74,9 @@ object GatherLicenses {
       }
 
       val summary = DependencySummary(processed)
-      val processedSummary =
+      val WithWarnings(processedSummary, summaryWarnings) =
         Review(configRoot / distribution.artifactName, summary).run()
-      val summaryWarnings = processedSummary.warnings
-      val allWarnings     = sbtWarnings ++ summaryWarnings
+      val allWarnings = sbtWarnings ++ summaryWarnings
       val reportDestination =
         targetRoot / s"${distribution.artifactName}-report.html"
 

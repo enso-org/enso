@@ -1,5 +1,5 @@
 const reviewRoot = "../../target";
-const settingsRoot = "../../legal-review";
+const settingsRoot = "../../tools/legal-review";
 
 const express = require("express");
 const app = express();

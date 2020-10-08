@@ -41,13 +41,16 @@ GatherLicenses.distributions := Seq(
       Distribution.sbtProjects(
         runtime,
         `engine-runner`,
-        `project-manager`,
-        `std-bits`
+        `project-manager`
       )
+    ),
+    Distribution(
+      "std-lib",
+      Distribution.sbtProjects(`std-bits`)
     )
   )
 GatherLicenses.licenseConfigurations := Set("compile")
-GatherLicenses.configurationRoot := file("legal-review")
+GatherLicenses.configurationRoot := file("tools/legal-review")
 GatherLicenses.distributionRoot := file("distribution")
 
 lazy val openLegalReviewReport =

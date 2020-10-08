@@ -1,6 +1,5 @@
 package src.main.scala.licenses.report
 
-import java.io.FileNotFoundException
 import java.nio.file.{Files, Path}
 import java.time.LocalDate
 
@@ -52,15 +51,41 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     * Runs the review process, returning a [[ReviewedDependency]] which includes
     * information from the [[DependencySummary]] enriched with review statuses.
     */
-  def run(): ReviewedSummary = {
-    val reviews = dependencySummary.dependencies.map {
-      case (information, attachments) =>
-        reviewDependency(information, attachments)
-    }
+  def run(): WithWarnings[ReviewedSummary] =
+    for {
+      reviews <- dependencySummary.dependencies.map {
+        case (information, attachments) =>
+          reviewDependency(information, attachments)
+      }.flip
 
-    val header = findHeader()
-    val files  = findAdditionalFiles(root / "files-add")
-    ReviewedSummary(reviews, header, files)
+      header  = findHeader()
+      files   = findAdditionalFiles(root / "files-add")
+      summary = ReviewedSummary(reviews, header, files)
+      _ <- ReviewedSummary.warnAboutMissingReviews(summary)
+      existingPackages = dependencySummary.dependencies.map(_._1.packageName)
+      _ <- warnAboutMissingDependencies(existingPackages)
+    } yield summary
+
+  /**
+    * Returns a list of warnings for dependencies whose configuration has been
+    * detected but which have not been detected.
+    *
+    * This may be used to detect dependencies that have been removed after an
+    * update.
+    */
+  private def warnAboutMissingDependencies(
+    existingPackageNames: Seq[String]
+  ): WithWarnings[Unit] = {
+    val foundConfigurations = listFiles(root).filter(_.isDirectory)
+    val expectedFileNames =
+      existingPackageNames ++ Seq("files-add", "reviewed-licenses")
+    val unexpectedConfigurations =
+      foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
+    val warnings = unexpectedConfigurations.map(p =>
+      s"Found legal review configuration for package ${p.getName}, " +
+      s"but no such dependency has been found. Perhaps it has been removed?"
+    )
+    WithWarnings.justWarnings(warnings)
   }
 
   /**
@@ -110,20 +135,19 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def reviewDependency(
     info: DependencyInformation,
     attachments: Seq[Attachment]
-  ): ReviewedDependency = {
+  ): WithWarnings[ReviewedDependency] = {
     val packageRoot                    = root / info.packageName
     val (licenseReviewed, licensePath) = reviewLicense(packageRoot, info)
     val (files, copyrights)            = splitAttachments(attachments)
     val copyrightsDeduplicated =
       removeCopyrightsIncludedInNotices(copyrights, files)
 
-    val processedFiles =
-      reviewFiles(packageRoot, files) ++ addFiles(packageRoot)
-    val processedCopyrights =
-      reviewCopyrights(packageRoot, copyrightsDeduplicated) ++
-      addCopyrights(packageRoot)
-
-    ReviewedDependency(
+    for {
+      processedFiles <- reviewFiles(packageRoot, files) ++ addFiles(packageRoot)
+      processedCopyrights <-
+        reviewCopyrights(packageRoot, copyrightsDeduplicated) ++
+        addCopyrights(packageRoot)
+    } yield ReviewedDependency(
       information     = info,
       licenseReviewed = licenseReviewed,
       licensePath     = licensePath,
@@ -138,16 +162,22 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def reviewFiles(
     packageRoot: File,
     files: Seq[AttachedFile]
-  ): Seq[(AttachedFile, AttachmentStatus)] = {
-    val ignore = readLines(packageRoot / "files-ignore")
-    val keep   = readLines(packageRoot / "files-keep")
-    def review(file: AttachedFile): AttachmentStatus = {
-      val key = file.path.toString
-      if (keep.contains(key)) AttachmentStatus.Keep
-      else if (ignore.contains(key)) AttachmentStatus.Ignore
-      else AttachmentStatus.NotReviewed
+  ): WithWarnings[Seq[(AttachedFile, AttachmentStatus)]] = {
+    def keyForFile(file: AttachedFile): String = file.path.toString
+    val keys                                   = files.map(keyForFile)
+    for {
+      ignore <- readExpectedLines("files-ignore", keys, packageRoot)
+      keep   <- readExpectedLines("files-keep", keys, packageRoot)
+    } yield {
+      def review(file: AttachedFile): AttachmentStatus = {
+        val key = keyForFile(file)
+        if (keep.contains(key)) AttachmentStatus.Keep
+        else if (ignore.contains(key)) AttachmentStatus.Ignore
+        else AttachmentStatus.NotReviewed
+      }
+
+      files.map(f => (f, review(f)))
     }
-    files.map(f => (f, review(f)))
   }
 
   /**
@@ -166,18 +196,27 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def reviewCopyrights(
     packageRoot: File,
     copyrights: Seq[CopyrightMention]
-  ): Seq[(CopyrightMention, AttachmentStatus)] = {
-    val ignore      = readLines(packageRoot / "copyright-ignore")
-    val keep        = readLines(packageRoot / "copyright-keep")
-    val keepContext = readLines(packageRoot / "copyright-keep-context")
-    def review(copyright: CopyrightMention): AttachmentStatus = {
-      val key = copyright.content.strip
-      if (keepContext.contains(key)) AttachmentStatus.KeepWithContext
-      else if (keep.contains(key)) AttachmentStatus.Keep
-      else if (ignore.contains(key)) AttachmentStatus.Ignore
-      else AttachmentStatus.NotReviewed
+  ): WithWarnings[Seq[(CopyrightMention, AttachmentStatus)]] = {
+    def keyForMention(copyrightMention: CopyrightMention): String =
+      copyrightMention.content.strip
+    val keys = copyrights.map(keyForMention)
+    for {
+      ignore <- readExpectedLines("copyright-ignore", keys, packageRoot)
+      keep   <- readExpectedLines("copyright-keep", keys, packageRoot)
+      keepContext <-
+        readExpectedLines("copyright-keep-context", keys, packageRoot)
+    } yield {
+
+      def review(copyright: CopyrightMention): AttachmentStatus = {
+        val key = keyForMention(copyright)
+        if (keepContext.contains(key)) AttachmentStatus.KeepWithContext
+        else if (keep.contains(key)) AttachmentStatus.Keep
+        else if (ignore.contains(key)) AttachmentStatus.Ignore
+        else AttachmentStatus.NotReviewed
+      }
+
+      copyrights.map(c => (c, review(c)))
     }
-    copyrights.map(c => (c, review(c)))
   }
 
   /**
@@ -227,6 +266,26 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def readLines(file: File): Seq[String] =
     try { IO.readLines(file).map(_.strip).filter(_.nonEmpty) }
     catch { case NonFatal(_) => Seq() }
+
+  /**
+    * Reads the file as lines and reports any lines that were not expected to be
+    * found.
+    */
+  private def readExpectedLines(
+    fileName: String,
+    expectedLines: Seq[String],
+    packageRoot: File
+  ): WithWarnings[Seq[String]] = {
+    val lines           = readLines(packageRoot / fileName)
+    val unexpectedLines = lines.filter(l => !expectedLines.contains(l))
+    val warnings = unexpectedLines.map(l =>
+      s"File $fileName in ${packageRoot.getName} contains entry `$l`, but no " +
+      s"such entry has been detected. Perhaps it has disappeared after an " +
+      s"update? Please remove it from the file and make sure that the report " +
+      s"contains all necessary elements after this change."
+    )
+    WithWarnings(lines, warnings)
+  }
 
   /**
     * Reads the file as a [[String]].

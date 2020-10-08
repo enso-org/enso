@@ -57,7 +57,11 @@ object PackageNotices {
         case Some(path) =>
           val name = path.getFileName.toString
           if (!processedLicenses.contains(path)) {
-            IO.copyFile(path.toFile, licensesRoot / name)
+            val destination = licensesRoot / name
+            IO.copyFile(path.toFile, destination)
+            if (!destination.exists()) {
+              throw new RuntimeException(s"Failed to copy the license $path")
+            }
             processedLicenses.add(path)
           }
           mainNotice.append(

@@ -111,7 +111,7 @@ for each artifact.
 ### Review
 
 The review can be performed manually by modifying the settings inside of the
-`legal-review` directory. This directory contains separate subdirectories for
+`tools/legal-review` directory. This directory contains separate subdirectories for
 each artifact.
 
 The subdirectory for each artifact may contain the following entries:

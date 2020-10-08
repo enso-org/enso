@@ -3,6 +3,7 @@ package src.main.scala.licenses
 import java.nio.file.Path
 
 import sbt.IO
+import src.main.scala.licenses.report.WithWarnings
 
 /**
   * Contains a sequence of dependencies and any attachments found.
@@ -134,12 +135,15 @@ case class ReviewedSummary(
         isIncluded && isLicense
       }
       .map(_._1)
+}
+
+object ReviewedSummary {
 
   /**
     * Returns a list of warnings that indicate missing reviews or other issues.
     */
-  def warnings: Seq[String] =
-    dependencies.flatMap { dep =>
+  def warnAboutMissingReviews(summary: ReviewedSummary): WithWarnings[Unit] = {
+    val warnings = summary.dependencies.flatMap { dep =>
       val warnings = collection.mutable.Buffer[String]()
       val name     = dep.information.moduleInfo.toString
       if (!dep.licenseReviewed) {
@@ -166,12 +170,11 @@ case class ReviewedSummary(
         (dep.files.map(_._2) ++ dep.copyrights.map(_._2)).filter(_.included)
       if (includedInfos.isEmpty) {
         warnings.append(
-          s"No files or copyright information beside the license file are " +
-          s"included for $name."
+          s"No files or copyright information are included for $name."
         )
       }
 
-      (includedLicense(dep), dep.licensePath) match {
+      (summary.includedLicense(dep), dep.licensePath) match {
         case (Some(kept), Some(reviewedLicense)) =>
           val licenseContent = IO.read(reviewedLicense.toFile)
           if (licenseContent.strip != kept.content) {
@@ -191,4 +194,6 @@ case class ReviewedSummary(
 
       warnings
     }
+    WithWarnings.justWarnings(warnings)
+  }
 }
