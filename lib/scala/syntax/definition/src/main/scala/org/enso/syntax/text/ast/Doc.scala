@@ -169,12 +169,8 @@ object Doc {
       *
       * @param elems - lines of code
       */
-    /*TODO [MM]: Next PR
-         Code showing button - we need other design here.
-         Basically we don't want to display always button
-         we want to be able to display it maybe as a button on website
-         and completely differently in gui, it should be configurable*/
-    final case class CodeBlock(elems: List1[CodeBlock.Line]) extends Elem {
+    final case class CodeBlock(elems: List1[CodeBlock.Line], isInGui: Boolean)
+        extends Elem {
       val newLn: Elem        = Elem.Newline
       val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
       val html: HTML = {
@@ -182,22 +178,28 @@ object Doc {
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
+        val htmlStyle    = HTML.`style` := "inline-block"
         val elemsHTML    = elems.toList.map(elem => elem.html)
         val btnAction = onclick :=
-          s"""var code = document.getElementById("$uniqueIDCode");
-             |var btn = document.getElementById("$uniqueIDBtn").firstChild;
-             |btn.data = btn.data == "Show" ? "Hide" : "Show";
-             |code.style.display = code.style.display ==
-             |"inline-block" ? "none" : "inline-block";""".stripMargin
-            .replaceAll("\n", "")
+            s"""var code = document.getElementById("$uniqueIDCode");
+               |var btn = document.getElementById("$uniqueIDBtn").firstChild;
+               |btn.data = btn.data == "Show" ? "Hide" : "Show";
+               |code.style.display = code.style.display ==
+               |"inline-block" ? "none" : "inline-block";""".stripMargin
+              .replaceAll("\n", "")
         val btn = HTML.button(btnAction)(htmlIdBtn)("Show")
-        Seq(HTML.div(btn, HTML.div(htmlCls())(htmlIdCode)(elemsHTML)))
+        if (isInGui) {
+          Seq(HTML.div(htmlCls())(htmlStyle)(elemsHTML))
+        } else {
+          Seq(HTML.div(btn, HTML.div(htmlCls())(htmlIdCode)(elemsHTML)))
+        }
       }
     }
     object CodeBlock {
-      def apply(elem: CodeBlock.Line): CodeBlock = CodeBlock(List1(elem))
+      def apply(elem: CodeBlock.Line): CodeBlock =
+        CodeBlock(List1(elem), isInGui = true)
       def apply(elems: CodeBlock.Line*): CodeBlock =
-        CodeBlock(List1(elems.head, elems.tail.toList))
+        CodeBlock(List1(elems.head, elems.tail.toList), isInGui = true)
 
       /** Inline - line of code which is in line with other elements
         * Line - elem which is a part of Code Block
