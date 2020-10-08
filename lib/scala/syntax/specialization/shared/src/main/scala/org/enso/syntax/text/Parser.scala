@@ -573,7 +573,6 @@ object Main extends scala.App {
   println("===== DOCUMENTATION =====")
   val droppedMeta = parser.dropMacroMeta(mod)
   val doc         = DocParserRunner.createDocs(droppedMeta)
-  val cssFileName = "style.css"
 
   println(Debug.pretty(doc.toString))
   println("------")

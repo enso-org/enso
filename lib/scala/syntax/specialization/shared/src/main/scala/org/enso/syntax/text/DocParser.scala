@@ -283,22 +283,17 @@ object DocParserHTMLGenerator {
     * reformatted [[AST.Documented]]
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
-    * @param cssFileName - name of file containing stylesheets for the HTML code
     */
-  def generateHTMLForEveryDocumented(
-    ast: AST,
-    cssFileName: String = "style.css"
-  ): String = {
+  def generateHTMLForEveryDocumented(ast: AST): String = {
     ast.map { elem =>
       elem match {
         case AST.Documented.any(documented) =>
-          val file = onHTMLRendering(documented, cssFileName)
+          val file = onHTMLRendering(documented)
           return file.code.toString() + generateHTMLForEveryDocumented(
-            documented,
-            cssFileName
+            documented
           )
         case _ =>
-          generateHTMLForEveryDocumented(elem, cssFileName)
+          generateHTMLForEveryDocumented(elem)
       }
       elem
     }
@@ -309,14 +304,10 @@ object DocParserHTMLGenerator {
     * Function to generate HTML File from pure doc comment w/o connection to AST
     *
     * @param doc - Doc from Doc Parser
-    * @param cssLink - string containing CSS file name
     * @return - HTML Code from Doc
     */
-  def generateHTMLPureDoc(
-    doc: Doc,
-    cssLink: String = "style.css"
-  ): String = {
-    HTML.html(createHTMLHead("", cssLink), HTML.body(doc.html)).toString()
+  def generateHTMLPureDoc(doc: Doc): String = {
+    HTML.html(createHTMLHead(""), HTML.body(doc.html)).toString()
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -328,14 +319,10 @@ object DocParserHTMLGenerator {
     * Runner finished it's job
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
-    * @param cssFileName - name of file containing stylesheets for the HTML code
     * @return - HTML code with file name
     */
-  def onHTMLRendering(
-    documented: AST.Documented,
-    cssFileName: String
-  ): htmlFile = {
-    val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
+  def onHTMLRendering(documented: AST.Documented): htmlFile = {
+    val htmlCode = renderHTML(documented.ast, documented.doc)
     val astLines = documented.ast.show().split("\n")
     val fileName =
       astLines.head
@@ -352,18 +339,13 @@ object DocParserHTMLGenerator {
     *
     * @param ast - AST from Parser
     * @param doc - Doc from Doc Parser
-    * @param cssLink - string containing CSS file name
     * @return - HTML Code from Doc and contents of [[AST.Def]] or
     *           [[AST.App.Infix]], with optional title made from AST
     */
-  def renderHTML(
-    ast: AST,
-    doc: Doc,
-    cssLink: String
-  ): TypedTag[String] = {
+  def renderHTML(ast: AST, doc: Doc): TypedTag[String] = {
     val title         = ast.show().split("\n").head.split("=").head
     val documentation = DocumentedToHtml(ast, doc)
-    HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
+    HTML.html(createHTMLHead(title), HTML.body(documentation))
   }
 
   /**
@@ -376,10 +358,7 @@ object DocParserHTMLGenerator {
     * @return -  HTML Code from Doc and contents of [[AST.Def]] or
     *            [[AST.App.Infix]]
     */
-  def DocumentedToHtml(
-    ast: AST,
-    doc: Doc
-  ): TypedTag[String] = {
+  def DocumentedToHtml(ast: AST, doc: Doc): TypedTag[String] = {
     val docClass       = HTML.`class` := "Documentation"
     val astHeadCls     = HTML.`class` := "ASTHead"
     val astHTML        = createHTMLFromAST(ast)
@@ -576,18 +555,14 @@ object DocParserHTMLGenerator {
     * Function invoked by [[DocumentedToHtml]] to create HTML.Head part of file
     *
     * @param title - HTML page title
-    * @param cssLink - string containing CSS file name
     * @return - HTML Head Code
     */
-  def createHTMLHead(title: String, cssLink: String): TypedTag[String] = {
+  def createHTMLHead(title: String): TypedTag[String] = {
     val metaEquiv = HTML.httpEquiv := "Content-Type"
     val metaCont  = HTML.content := "text/html"
     val metaChar  = HTML.charset := "UTF-8"
     val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
-    val cssRel    = HTML.rel := "stylesheet"
-    val cssHref   = HTML.href := cssLink
-    val css       = HTML.link(cssRel)(cssHref)
     val fileTitle = scalatags.Text.tags2.title(title)
-    HTML.head(meta, css)(fileTitle)
+    HTML.head(meta)(fileTitle)
   }
 }
