@@ -51,14 +51,6 @@ type Date
     ## Subtract specified amount of time to this instant.
 
        > Example
-         Subtract 1 month from a local date.
-             Date.new 2020 . minus 1.month
-    minus : Duration -> Date
-    minus amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . minus [amount.interval_period])
-
-    ## Subtract specified amount of time to this instant.
-
-       > Example
          Subtract 7 days from a local date.
              Date.new 2020 - 7.days
     - : Duration -> Date
