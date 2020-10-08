@@ -84,7 +84,33 @@ type Time_Of_Day
     to_text : Text
     to_text = Time_Utils.default_time_of_day_formatter [] . format [this.internal_local_time]
 
-    # Format this time of day using formatter string.
+    ## Format this time of day using formatter string.
+
+       Patterns are based on a simple sequence of letters and symbols. For
+       example, "HH-mm-ss.SSS" will format "16:21:10" as "16-21-10.323".
+
+       For the list of accepted symbols in pattern refer to
+       `Base.Time.Time.format` doc.
+
+       > Example
+         Format "16:21:10" as "16:21:00.1234"
+             Time_Of_Day.new 16 21 10 . format "HH:mm:ss.SSSS"
+
+       > Example
+         Format "16:21:10" as "16:21:00.123456789"
+             Time_Of_Day.new 16 21 10 . format "HH:mm:ss.n"
+
+       > Example
+         Format "16:21:10" as "4:21pm"
+             Time_Of_Day.new 16 21 10 . format "h:mma"
+
+       > Example
+         Format "16:21:10" as "04:21:10pm"
+             Time_Of_Day.new 16 21 10 . format "hh:mm:ssa"
+
+       > Example
+         Format "16:21:10" as "hour:4"
+             Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_time]
 

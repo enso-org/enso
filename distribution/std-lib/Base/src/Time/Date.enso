@@ -77,6 +77,32 @@ type Date
     to_text = Time_Utils.default_date_formatter [] . format [this.internal_local_date]
 
     ## Format this date using formatter string.
+
+       Patterns are based on a simple sequence of letters and symbols. For
+       example, "d MMM uuuu" will format "2011-12-03" as "3 Dec 2011".
+
+       For the list of accepted symbols in pattern refer to
+       `Base.Time.Time.format` doc.
+
+       > Example
+         Format "2020-06-02" as "2 June 2020"
+             Date.new 2020 6 2 . format "d MMMM yyyy"
+
+       > Example
+         Format "2020-06-02" as "2 June 20"
+             Date.new 2020 6 2 . format "d MMMM yy"
+
+       > Example
+         Format "2020-06-02" as "Tuesday, 02 June 2020"
+             Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
+
+       > Example
+         Format "2020-06-02" as "Tue Jun 2"
+             Date.new 2020 6 2 . format "EEE MMM d"
+
+       > Example
+         Format "2020-06-02" as "2020AD"
+             Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_date]
 
