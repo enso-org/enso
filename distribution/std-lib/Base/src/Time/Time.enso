@@ -64,12 +64,12 @@ type Time
     zone = Zone.zone (this . internal_zoned_date_time . getZone [])
 
     ## Return the number of seconds from the Unix epoch.
-    to_epoch_second : Integer
-    to_epoch_second = this . internal_zoned_date_time . toEpochSecond []
+    to_epoch_seconds : Integer
+    to_epoch_seconds = this . internal_zoned_date_time . toEpochSecond []
 
     ## Return the number of milliseconds from the Unix epoch.
-    to_epoch_milli : Integer
-    to_epoch_milli = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
+    to_epoch_millis : Integer
+    to_epoch_millis = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
 
     ## Convert this point in time to time of day.
     time_of_day : Time_Of_Day

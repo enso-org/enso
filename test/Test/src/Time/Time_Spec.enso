@@ -52,11 +52,11 @@ spec =
             time . zone . zone_id . should_equal Zone.system.zone_id
         it "should parse time Z" <|
             time = Time.parse "1970-01-01T00:00:01Z"
-            time . to_epoch_second . should_equal 1
+            time . to_epoch_seconds . should_equal 1
             time . zone . zone_id . should_equal "Z"
         it "should parse time UTC" <|
             time = Time.parse "1970-01-01T00:00:01Z[UTC]"
-            time . to_epoch_second . should_equal 1
+            time . to_epoch_seconds . should_equal 1
             time . zone . zone_id . should_equal "UTC"
         it "should parse time with nanoseconds" <|
             time = Time.parse "1970-01-01T00:00:01.123456789Z"
@@ -96,10 +96,10 @@ spec =
                     Test.fail ("Unexpected result: " + result.to_text)
         it "should get epoch seconds" <|
             time = Time.new 1970 1 1 0 0 8 (zone = Zone.utc)
-            time . to_epoch_second . should_equal 8
+            time . to_epoch_seconds . should_equal 8
         it "should get epoch millis" <|
             time = Time.new 1970 1 1 0 0 8 (zone = Zone.utc)
-            time . to_epoch_milli . should_equal 8000
+            time . to_epoch_millis . should_equal 8000
         it "should set offset-based timezone" <|
             tz = Zone.new 1 1 1
             time = Time.new 1970 (zone = Zone.utc) . at_zone tz
