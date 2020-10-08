@@ -11,10 +11,7 @@ import org.enso.interpreter.node.expression.builtin.function.ApplicationOperator
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.GetFileMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -57,6 +54,7 @@ public class Builtins {
   private final Array array;
   private final Polyglot polyglot;
   private final Resource resource;
+  private final Meta meta;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -85,6 +83,7 @@ public class Builtins {
     number = new Number(language, scope);
     polyglot = new Polyglot(language, scope);
     resource = new Resource(language, scope);
+    meta = new Meta(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -127,6 +126,7 @@ public class Builtins {
     scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
     scope.registerMethod(primIo, "get_file", GetFileMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_cwd", GetCwdMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));

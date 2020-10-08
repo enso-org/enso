@@ -15,10 +15,6 @@ public class EnsoFile {
     this.truffleFile = truffleFile;
   }
 
-  public BufferedReader newBufferedReader() throws IOException {
-    return truffleFile.newBufferedReader();
-  }
-
   public OutputStream newOutputStream(OpenOption[] opts) throws IOException {
     return truffleFile.newOutputStream(opts);
   }
@@ -33,6 +29,50 @@ public class EnsoFile {
 
   public EnsoFile resolve(EnsoFile subPath) {
     return new EnsoFile(this.truffleFile.resolve(subPath.truffleFile.getPath()));
+  }
+
+  public boolean exists() {
+    return truffleFile.exists();
+  }
+
+  public EnsoFile getParent() {
+    return new EnsoFile(this.truffleFile.getParent());
+  }
+
+  public EnsoFile getAbsoluteFile() {
+    return new EnsoFile(this.truffleFile.getAbsoluteFile());
+  }
+
+  public String getPath() {
+    return this.truffleFile.getPath();
+  }
+
+  public boolean isAbsolute() {
+    return this.truffleFile.isAbsolute();
+  }
+
+  public boolean isDirectory() {
+    return this.truffleFile.isDirectory();
+  }
+
+  public boolean isRegularFile() {
+    return this.truffleFile.isRegularFile();
+  }
+
+  public String getName() {
+    return this.truffleFile.getName();
+  }
+
+  public boolean isEqual(EnsoFile that) {
+    return this.truffleFile.equals(that.truffleFile);
+  }
+
+  public EnsoFile normalize() {
+    return new EnsoFile(truffleFile.normalize());
+  }
+
+  public void delete() throws IOException {
+    truffleFile.delete();
   }
 
   @Override

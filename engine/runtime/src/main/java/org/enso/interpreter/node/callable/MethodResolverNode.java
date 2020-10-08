@@ -352,7 +352,7 @@ public abstract class MethodResolverNode extends Node {
     CompilerDirectives.transferToInterpreter();
     Context context = lookupContextReference(Language.class).get();
     throw new PanicException(
-        context.getBuiltins().error().makeNoSuchMethodError(_this, symbol.getName()), this);
+        context.getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -454,7 +454,7 @@ public abstract class MethodResolverNode extends Node {
     if (function == null) {
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          context.getBuiltins().error().makeNoSuchMethodError(_this, sym.getName()), this);
+          context.getBuiltins().error().makeNoSuchMethodError(_this, sym), this);
     }
     return function;
   }

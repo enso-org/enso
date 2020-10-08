@@ -1,0 +1,4 @@
+from Base import all
+
+No_Such_Method_Error.method_name =
+    Meta.get_unresolved_symbol_name this.symbol

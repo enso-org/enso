@@ -3,6 +3,23 @@ import Base.System.File.Open_Option
 
 export Base.System.File.Open_Option
 
+polyglot java import java.nio.file.NoSuchFileException
+
+type Error
+    type No_Such_File_Error file
+
+is_instance object symbol =
+    class = Polyglot.get_member symbol "class"
+    class.isInstance [object]
+
+rethrow_java file exception = 
+    case exception of
+        Polyglot_Error java ->
+            if here.is_instance java NoSuchFileException then
+                Panic.throw (No_Such_File_Error file)
+            Panic.throw exception
+        _ -> Panic.throw exception
+
 close_stream : Any -> Unit
 close_stream stream =
     stream.close []
@@ -58,9 +75,11 @@ type File
 
     read_bytes : Vector
     read_bytes =
-        opts = [Open_Option.Read]
-        bytes = this.with_input_stream opts (_.read_all_bytes)
-        bytes
+        err = Panic.recover <|
+            opts = [Open_Option.Read]
+            bytes = this.with_input_stream opts (_.read_all_bytes)
+            bytes
+        err.catch (here.rethrow_java this)
 
     read : Text
     read =
@@ -90,5 +109,43 @@ type File
     write : Text -> Unit
     write contents = this.write_bytes contents.utf_8
 
+    exists : Boolean
+    exists = this.prim_file.exists []
+
+    is_directory : Boolean
+    is_directory = this.prim_file.isDirectory []
+
+    is_regular_file : Boolean
+    is_regular_file = this.prim_file.isRegularFile []
+
+    parent : File
+    parent = File (this.prim_file.getParent [])
+
+    path : Text
+    path = this.prim_file.getPath []
+
+    name : Text
+    name = this.prim_file.getName []
+
+    absolute : File
+    absolute = File (this.prim_file.getAbsoluteFile [])
+
+    is_absolute : Boolean
+    is_absolute = this.prim_file.isAbsolute []
+
+    normalize : File
+    normalize = File (this.prim_file.normalize [])
+
+    == : File -> Boolean
+    == that = this.prim_file.isEqual [that.prim_file]
+
+    delete : Unit
+    delete =
+        this.prim_file.delete []
+        Unit
+
 new : Text -> File
 new path = File (Prim_Io.get_file path)
+
+current_directory : File
+current_directory = File (Prim_Io.get_cwd)

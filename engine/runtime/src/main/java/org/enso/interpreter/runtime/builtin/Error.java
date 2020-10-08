@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -44,7 +45,7 @@ public class Error {
         new AtomConstructor("No_Such_Method_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "method_name", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(1, "symbol", ArgumentDefinition.ExecutionMode.EXECUTE));
     polyglotError =
         new AtomConstructor("Polyglot_Error", scope)
             .initializeFields(
@@ -92,8 +93,8 @@ public class Error {
    * @param name the method name
    * @return a runtime representation of the error
    */
-  public Atom makeNoSuchMethodError(Object target, String name) {
-    return noSuchMethodError.newInstance(target, Text.create(name));
+  public Atom makeNoSuchMethodError(Object target, UnresolvedSymbol symbol) {
+    return noSuchMethodError.newInstance(target, symbol);
   }
 
   /**
