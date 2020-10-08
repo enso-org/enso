@@ -75,4 +75,26 @@ public class Time_Utils {
     }
     throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
   }
+
+  /**
+   * Obtains an instance of ZonedDateTime from text using custom format string.
+   *
+   * <p>First tries to parse text as ZonedDateTime, then falls back to parsing LocalDateTime adding
+   * system default timezone.
+   *
+   * @param text the string to parse.
+   * @param pattern the format string.
+   * @return parsed ZonedDateTime instance.
+   */
+  public static ZonedDateTime parse_time_format(String text, String pattern) {
+    TemporalAccessor time =
+        DateTimeFormatter.ofPattern(pattern)
+            .parseBest(text, ZonedDateTime::from, LocalDateTime::from);
+    if (time instanceof ZonedDateTime) {
+      return (ZonedDateTime) time;
+    } else if (time instanceof LocalDateTime) {
+      return ((LocalDateTime) time).atZone(ZoneId.systemDefault());
+    }
+    throw new DateTimeException("Text '" + text + "' could not be parsed as Time.");
+  }
 }

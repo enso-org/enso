@@ -40,6 +40,16 @@ spec =
                     msg . should_equal "Text '1200' could not be parsed at index 2"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
+        it "should parse custom format" <|
+            time = Time_Of_Day.parse_format "12:30AM" "hh:mma"
+            time.to_seconds . should_equal 1800
+        it "should throw error when parsing custom format" <|
+            time = Time_Of_Day.parse_format "12:30" "HH:mm:ss"
+            case time.catch (x -> x) of
+                Time.Time_Error msg ->
+                    msg . should_equal "Text '12:30' could not be parsed at index 5"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
         it "should convert to time" <|
             time = Time_Of_Day.new 1 0 0 . to_time (Date.new 2000 12 21) Zone.utc
             time . year . should_equal 2000

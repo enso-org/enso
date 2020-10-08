@@ -147,6 +147,26 @@ parse text =
         Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
         x -> x
 
+## Obtains an instance of Time_Of_Day from a text string using custom format
+   string.
+
+   For the list of accepted symbols in pattern refer to
+   `Base.Time.Time.format` doc.
+
+   > Example
+     Parse "04:30:20" as Time_Of_Day.
+         Date.parse_format "04:30:20" "HH:mm:ss"
+
+   > Example
+     Parse "4:30AM" as Time_Of_Day
+         Date.parse_format "4:30AM" "h:mma"
+parse_format : Text -> Text -> Time_Of_Day
+parse_format text pattern =
+    format = DateTimeFormatter.ofPattern [pattern]
+    Panic.recover (Time_Of_Day (LocalTime.parse [text, format])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x
+
 ## Obtains the current time from the system clock in the default time-zone.
 now : Time_Of_Day
 now = Time_Of_Day (LocalTime.now [])

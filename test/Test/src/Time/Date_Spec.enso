@@ -43,6 +43,18 @@ spec =
             date . year . should_equal 1999
             date . month . should_equal 1
             date . day . should_equal 1
+        it "should parse custom format" <|
+            date = Date.parse_format "1999 1 1" "yyyy M d"
+            date . year . should_equal 1999
+            date . month . should_equal 1
+            date . day . should_equal 1
+        it "should throw error when parsing custom format" <|
+            date = Date.parse_format "1999-01-01" "yyyy M d"
+            case date.catch (x -> x) of
+                Time.Time_Error msg ->
+                    msg . should_equal "Text '1999-01-01' could not be parsed at index 4"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
         it "should add date-based interval" <|
             date = Date.new 1970 . plus 1.day
             date . year . should_equal 1970

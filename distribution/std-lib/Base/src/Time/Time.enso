@@ -245,6 +245,23 @@ parse text =
         Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
         x -> x
 
+## Obtains an instance of Time from a text string using custom format string.
+
+   For the list of accepted symbols in pattern refer to `Time.format` doc.
+
+   > Example
+     Parse "2020-05-06 04:30:20" as Time
+         Date.parse_format "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
+
+   > Example
+     Parse "4:30AM" as Time
+         Date.parse_format "4:30AM" "h:mma"
+parse_format : Text -> Text -> Time_Of_Day
+parse_format text pattern =
+    Panic.recover (Time (Time_Utils.parse_time_format [text, pattern])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+        x -> x
+
 ## Obtains the current date-time from the system clock in the system timezone.
 now : Time
 now = Time (ZonedDateTime.now [])

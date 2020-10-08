@@ -135,6 +135,27 @@ parse text =
         Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
         x -> x
 
+## Obtains an instance of `Date` from a text string using custom format string.
+
+   For the list of accepted symbols in pattern refer to
+   `Base.Time.Time.format` doc.
+
+   > Example
+     Parse "1999-1-1" as Date.
+         Date.parse_format "1999-1-1" "yyyy-M-d"
+
+   > Example
+     Recover from the parse error.
+         date = Date.parse "1999-1-1" "yyyy-MM-dd"
+         date.catch <| case _ of
+             Time.Error msg -> Date.new 2000 1 1
+parse_format : Text -> Text -> Date
+parse_format text pattern =
+    format = DateTimeFormatter.ofPattern [pattern]
+    Panic.recover (Date (LocalDate.parse [text, format])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x
+
 ## Obtains the current date from the system clock in the system timezone.
 now : Date
 now = Date (LocalDate.now [])
