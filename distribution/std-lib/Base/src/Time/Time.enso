@@ -22,7 +22,7 @@ type Time
        date-times.
 
        For example, the value "2nd October 2007 at 13:45.30.123456789 +02:00 in
-       the Europe/Paris timezone" can be stored as Time.
+       the Europe/Paris timezone" can be stored as `Time`.
     type Time internal_zoned_date_time
 
     ## Get the year field.

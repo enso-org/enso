@@ -202,5 +202,3 @@ spec =
             time . second . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
-
-foo = 1
