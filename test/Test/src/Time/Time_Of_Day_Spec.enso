@@ -15,6 +15,12 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . to_seconds . should_equal 3600
+        it "should handle erros when creating time" <|
+            case Time_Of_Day.new 24 0 0 . catch (x -> x) of
+                Time.Time_Error msg ->
+                    msg . should_equal "Invalid value for HourOfDay (valid values 0 - 23): 24"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
         it "should format local time using provided pattern" <|
             text = Time_Of_Day.new 12 20 44 . format "HHmmss"
             text . should_equal "122044"

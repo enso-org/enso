@@ -120,8 +120,8 @@ today = here.now
 
 ## Obtains an instance of `Date` from a year, month and day.
 
-   The day must be valid for the year and month, otherwise an exception will be
-   thrown.
+   The date must be valid for the year and month, otherwise a `Time_Error` will
+   be thrown.
 
    - month - the month-of-year to represent, from 1 (January) to 12 (December)
    - day - the day-of-month to represent, from 1 to 31
@@ -135,4 +135,6 @@ today = here.now
          Date.new 1986 8 5
 new : Integer -> Integer -> Integer -> Date
 new year (month = 1) (day = 1) =
-    Date (LocalDate.of [year, month, day])
+    Panic.recover (Date (LocalDate.of [year, month, day])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x

@@ -141,4 +141,6 @@ now = Time_Of_Day (LocalTime.now [])
          Time_Of_Day.new 9 30
 new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Time_Of_Day (LocalTime.of [hour, minute, second, nanosecond])
+    Panic.recover (Time_Of_Day (LocalTime.of [hour, minute, second, nanosecond])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x

@@ -14,6 +14,12 @@ spec =
             date . year . should_equal 2020
             date . month . should_equal 1
             date . day . should_equal 1
+        it "should handle errors when creating local date" <|
+            case Date.new 2020 30 30 . catch (x -> x) of
+                Time.Time_Error msg ->
+                    msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 30"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
         it "should format local date using provided pattern" <|
             text = Date.new 2020 12 21 . format "yyyyMMdd"
             text . should_equal "20201221"
