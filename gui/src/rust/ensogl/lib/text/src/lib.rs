@@ -83,7 +83,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-#![recursion_limit="512"]
+#![recursion_limit="1024"]
 
 pub mod buffer;
 pub mod component;

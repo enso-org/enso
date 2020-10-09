@@ -109,11 +109,6 @@ impl System {
         let texture       = Texture::new(&context,(0,0));
         let mesh          = symbol.surface();
 
-        // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
-        // It needs to be more flexible once we have proper depth management.
-        scene.views.main.remove(&symbol);
-        scene.views.label.add(&symbol);
-
         sprite_system.set_material(Self::material());
         sprite_system.set_alignment(Alignment::bottom_left());
         scene.variables.add("msdf_range",GlyphRenderInfo::MSDF_PARAMS.range as f32);

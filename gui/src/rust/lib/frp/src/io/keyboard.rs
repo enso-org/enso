@@ -196,6 +196,16 @@ impl KeyboardModel {
         self.is_down(&Key::Meta(Side::Left)) || self.is_down(&Key::Meta(Side::Right))
     }
 
+    /// Check whether the control key is currently pressed.
+    pub fn is_control_down(&self) -> bool {
+        self.is_down(&Key::Control(Side::Left)) || self.is_down(&Key::Control(Side::Right))
+    }
+
+    /// Check whether the alt key is currently pressed.
+    pub fn is_alt_down(&self) -> bool {
+        self.is_down(&Key::Alt(Side::Left)) || self.is_down(&Key::Alt(Side::Right))
+    }
+
     /// Checks whether the provided key is currently pressed.
     pub fn is_down(&self, key:&Key) -> bool {
         self.set.borrow().contains(key)
@@ -271,11 +281,15 @@ impl KeyboardSource {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Keyboard {
-    model       : KeyboardModel,
-    pub network : frp::Network,
-    pub source  : KeyboardSource,
-    pub down    : frp::Stream<Key>,
-    pub up      : frp::Stream<Key>,
+    model                : KeyboardModel,
+    pub network          : frp::Network,
+    pub source           : KeyboardSource,
+    pub down             : frp::Stream<Key>,
+    pub up               : frp::Stream<Key>,
+    pub is_meta_down     : frp::Stream<bool>,
+    pub is_control_down  : frp::Stream<bool>,
+    pub is_alt_down      : frp::Stream<bool>,
+    pub is_modifier_down : frp::Stream<bool>,
 }
 
 impl Keyboard {
@@ -287,13 +301,22 @@ impl Keyboard {
         frp::extend! { network
             eval source.down ((key) model.press(key));
             eval source.up   ((key) model.release(key));
-            down            <- source.down.map(|t|t.clone());
-            meta_down       <- source.down.map(f_!(model.is_meta_down()));
-            meta_release    <= source.down.gate(&meta_down).map(f_!(model.release_meta_dependent()));
-            defocus_release <= source.window_defocused.map(f_!(model.release_all()));
-            up              <- any3(&source.up,&meta_release,&defocus_release);
+            down             <- source.down.map(|t|t.clone());
+            is_meta_down     <- any(&source.down,&source.up).map(f_!(model.is_meta_down()));
+            meta_release     <= source.down.gate(&is_meta_down).map(
+                f_!(model.release_meta_dependent())
+            );
+            defocus_release  <= source.window_defocused.map(f_!(model.release_all()));
+            up               <- any3(&source.up,&meta_release,&defocus_release);
+            change           <- any(&down,&up).constant(());
+            is_control_down  <- change.map(f_!(model.is_control_down()));
+            is_alt_down      <- change.map(f_!(model.is_alt_down()));
+            is_modifier_down <- all_with3(&is_meta_down,&is_control_down,&is_alt_down,
+                |m,c,a| *m || *c || *a
+            );
         }
-        Keyboard {network,model,source,down,up}
+        Keyboard {network,model,source,down,up,is_meta_down,is_control_down,is_alt_down
+            ,is_modifier_down}
     }
 }
 

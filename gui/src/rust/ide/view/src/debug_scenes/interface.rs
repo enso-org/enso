@@ -8,15 +8,19 @@ use crate::prelude::*;
 
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::Type;
+use crate::project;
 
 use enso_frp as frp;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl::application::Application;
 use ensogl::display::object::ObjectOps;
+use ensogl_text as text;
 use ensogl_theme;
 use wasm_bindgen::prelude::*;
 
+
+const STUB_MODULE:&str = "from Base import all\n\nmain = IO.println \"Hello\"\n";
 
 
 #[wasm_bindgen]
@@ -87,10 +91,15 @@ fn init(app:&Application) {
     let camera    = scene.camera();
     let navigator = Navigator::new(&scene,&camera);
 
+    app.views.register::<project::View>();
+    app.views.register::<text::Area>();
     app.views.register::<GraphEditor>();
-    let graph_editor = app.new_view::<GraphEditor>();
-    world.add_child(&graph_editor);
+    let project_view = app.new_view::<project::View>();
+    let graph_editor = project_view.graph();
+    let code_editor  = project_view.code_editor();
+    world.add_child(&project_view);
 
+    code_editor.text_area().set_content(STUB_MODULE.to_owned());
 
     let node1_id = graph_editor.add_node();
     let node2_id = graph_editor.add_node();
@@ -133,7 +142,7 @@ fn init(app:&Application) {
     let mut loader_hidden = false;
     world.on_frame(move |_| {
         let _keep_alive = &navigator;
-        let _keep_alive = &graph_editor;
+        let _keep_alive = &project_view;
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.
@@ -163,6 +172,7 @@ use ast::crumbs::PatternMatchCrumb::*;
 use enso_protocol::prelude::Uuid;
 use ensogl_text_msdf_sys::run_once_initialized;
 use span_tree::traits::*;
+
 
 
 pub fn expression_mock() -> Expression {

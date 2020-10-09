@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::code_editor;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::GraphEditor;
@@ -28,8 +29,7 @@ struct Model {
     display_object : display::object::Instance,
     graph_editor   : GraphEditor,
     searcher       : searcher::View,
-    //TODO[ao] This view should contain also Text Editor; it should be moved here during refactoring
-    // planned in task https://github.com/enso-org/ide/issues/597
+    code_editor    : code_editor::View,
 }
 
 impl Model {
@@ -38,11 +38,13 @@ impl Model {
         let display_object = display::object::Instance::new(&logger);
         let searcher       = app.new_view::<searcher::View>();
         let graph_editor   = app.new_view::<GraphEditor>();
+        let code_editor    = app.new_view::<code_editor::View>();
         display_object.add_child(&graph_editor);
+        display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
         display_object.remove_child(&searcher);
         let app = app.clone_ref();
-        Self{app,logger,display_object,graph_editor,searcher}
+        Self{app,logger,display_object,graph_editor,searcher,code_editor}
     }
 
     fn set_style(&self, is_light:bool) {
@@ -120,6 +122,7 @@ ensogl_text::define_endpoints! {
         old_expression_of_edited_node (Expression),
         editing_aborted               (NodeId),
         editing_committed             (NodeId),
+        code_editor_shown             (bool),
         style_light                   (bool),
     }
 }
@@ -229,14 +232,13 @@ impl View {
     }
 
     /// Graph Editor View.
-    pub fn graph(&self) -> &GraphEditor {
-        &self.model.graph_editor
-    }
+    pub fn graph(&self) -> &GraphEditor { &self.model.graph_editor }
 
     /// Searcher View.
-    pub fn searcher(&self) -> &searcher::View {
-        &self.model.searcher
-    }
+    pub fn searcher(&self) -> &searcher::View { &self.model.searcher }
+
+    /// Code Editor View.
+    pub fn code_editor(&self) -> &code_editor::View { &self.model.code_editor }
 }
 
 impl display::Object for View {

@@ -297,32 +297,32 @@ impl Group {
         let mut ix = self.selection_index_on_the_left_to(region.min());
         if ix == self.sorted_selections.len() {
             self.sorted_selections.push(region);
-            return;
-        }
-        let mut region = region;
-        let mut end_ix = ix;
-        if self.sorted_selections[ix].min() <= region.min() {
-            if self.sorted_selections[ix].should_merge_sorted(region) {
-                region = region.merge_with(self.sorted_selections[ix]);
-            } else {
-                ix += 1;
-            }
-            end_ix += 1;
-        }
-
-        let max_ix = self.sorted_selections.len();
-        while end_ix < max_ix && region.should_merge_sorted(self.sorted_selections[end_ix]) {
-            region = region.merge_with(self.sorted_selections[end_ix]);
-            end_ix += 1;
-        }
-
-        if ix == end_ix {
-            self.sorted_selections.insert(ix,region);
         } else {
-            let start = ix + 1;
-            let len   = end_ix - ix - 1;
-            self.sorted_selections[ix] = region;
-            self.sorted_selections.drain(start..start+len);
+            let mut region = region;
+            let mut end_ix = ix;
+            if self.sorted_selections[ix].min() <= region.min() {
+                if self.sorted_selections[ix].should_merge_sorted(region) {
+                    region = region.merge_with(self.sorted_selections[ix]);
+                } else {
+                    ix += 1;
+                }
+                end_ix += 1;
+            }
+
+            let max_ix = self.sorted_selections.len();
+            while end_ix < max_ix && region.should_merge_sorted(self.sorted_selections[end_ix]) {
+                region = region.merge_with(self.sorted_selections[end_ix]);
+                end_ix += 1;
+            }
+
+            if ix == end_ix {
+                self.sorted_selections.insert(ix,region);
+            } else {
+                let start = ix + 1;
+                let len   = end_ix - ix - 1;
+                self.sorted_selections[ix] = region;
+                self.sorted_selections.drain(start..start+len);
+            }
         }
     }
 
@@ -362,6 +362,14 @@ impl<'t> IntoIterator for &'t Group {
     type IntoIter = slice::Iter<'t,Selection>;
     fn into_iter(self) -> Self::IntoIter {
         self.sorted_selections.iter()
+    }
+}
+
+impl IntoIterator for Group {
+    type Item     = Selection;
+    type IntoIter = std::vec::IntoIter<Selection>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.sorted_selections.into_iter()
     }
 }
 
