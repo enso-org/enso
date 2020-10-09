@@ -229,6 +229,23 @@ public class Context {
   }
 
   /**
+   * Finds the package the provided module belongs to.
+   *
+   * @param module the module to find the package of
+   * @return {@code module}'s package, if exists
+   */
+  public Optional<Package<TruffleFile>> getPackageOf(Module module) {
+    if (module.getSourceFile() == null) {
+      return Optional.empty();
+    }
+    return packages.stream()
+        .filter(
+            pkg ->
+                module.getSourceFile().getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
+        .findFirst();
+  }
+
+  /**
    * Registers a new module corresponding to a given file.
    *
    * @param path the file to register.

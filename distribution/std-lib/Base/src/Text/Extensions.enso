@@ -103,3 +103,5 @@ Text.codepoints =
 Text.from_codepoints : Vector -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_array]
 
+## Checks whether `this` starts with `prefix`.
+Text.starts_with prefix = Text_Utils.starts_with [this, prefix]

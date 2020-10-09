@@ -74,11 +74,15 @@ case object BindingAnalysis extends IRPass {
       }
       .flatten
       .map(BindingsMap.ModuleMethod)
+    val methodsWithAutogen =
+      BindingsMap.ModuleMethod(
+        BindingsMap.Generated.ensoProjectMethodName
+      ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
         definedConstructors,
         importedPolyglot,
-        moduleMethods,
+        methodsWithAutogen,
         moduleContext.module
       )
     )

@@ -70,6 +70,11 @@ public class UnresolvedSymbol implements TruffleObject {
     return "UnresolvedSymbol<" + this.name + ">";
   }
 
+  @ExportMessage
+  String toDisplayString(boolean allowSideEffects) {
+    return this.toString();
+  }
+
   /**
    * Creates an instance of this node.
    *

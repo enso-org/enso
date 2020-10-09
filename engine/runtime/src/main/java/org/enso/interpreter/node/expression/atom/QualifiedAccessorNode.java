@@ -33,6 +33,10 @@ public class QualifiedAccessorNode extends RootNode {
    */
   public Stateful execute(VirtualFrame frame) {
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    return new Stateful(state, atomConstructor);
+    if (atomConstructor.getArity() == 0) {
+      return new Stateful(state, atomConstructor.newInstance());
+    } else {
+      return new Stateful(state, atomConstructor);
+    }
   }
 }

@@ -2,14 +2,22 @@ import Base.List
 import Base.Vector
 import Base.Number.Extensions
 import Base.Text.Extensions
+import Base.System.File
+import Base.Meta.Enso_Project
+import Base.Error.Extensions
+import Base.Polyglot.Java
 from Builtins import Unit, Number, Integer, Any, True, False
 
 from Builtins export all
 
+from Base.Meta.Enso_Project export all
 from Base.List export Nil, Cons
 from Base.Vector export Vector
 from Base.Number.Extensions export all hiding Math
 from Base.Text.Extensions export Text
+from Base.Error.Extensions export all
+from Base.Polyglot.Java export all
+export Base.System.File
 
 ## Represents a right-exclusive range of integer values.
 type Range

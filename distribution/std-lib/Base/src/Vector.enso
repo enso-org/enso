@@ -161,6 +161,42 @@ type Vector
             arr.set_at i (that.at i-this_len)
         Vector arr
 
+    ## When `this` is a vector of text values, concatenates all the values by
+       interspersing them with `separator`.
+
+       > Example
+         The following code returns "foo, bar, baz"
+             ["foo", "bar", "baz"].join ", "
+    join : String -> Text
+    join separator =
+        if this.length == 0 then "" else
+            if this.length == 1 then this.at 0 else
+                this.at 0 + (1.upto this.length . fold "" acc-> i-> acc + separator + this.at i)
+
+    ## Creates a new vector with the first `count` elements on the left of
+       `this` removed.
+    drop : Integer -> Vector
+    drop count = if count >= this.length then Vector.new 0 (x -> x) else
+        Vector.new (this.length - count) (i -> this.at i+count)
+
+    ## Creates a new vector with the last `count` elements on the right of
+       `this` removed.
+    drop_right : Integer -> Vector
+    drop_right count = if count >= this.length then Vector.new 0 (x -> x) else
+        this.take (this.length - count)
+
+    ## Creates a new vector, consisting of the first `count` elements on the
+       left of `this`.
+    take : Integer -> Vector
+    take count = if count >= this.length then this else
+        Vector.new count this.at
+
+    ## Creates a new vector, consisting of the last `count` elements on the
+       right of `this`.
+    take_right : Integer -> Vector
+    take_right count = if count >= this.length then this else
+        this.drop (this.length - count)
+
 ## A builder type for Enso vectors.
 
    A vector builder is a mutable data structure, that allows to gather a
