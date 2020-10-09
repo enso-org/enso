@@ -44,12 +44,11 @@ class Compiler(val context: Context) {
     * Processes the provided language sources, registering any bindings in the
     * given scope.
     *
-    * @param source the source code to be processed
     * @param module the scope into which new bindings are registered
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, module: Module): Unit = {
+  def run(module: Module): Unit = {
     parseModule(module)
     val importedModules = importResolver.mapImports(module)
     val requiredModules =
@@ -94,7 +93,7 @@ class Compiler(val context: Context) {
           Module.CompilationStage.AFTER_CODEGEN
         )
       ) {
-        truffleCodegen(module.getIr, source, module.getScope)
+        truffleCodegen(module.getIr, module.getSource, module.getScope)
         module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
       }
     }
