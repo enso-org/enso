@@ -1,0 +1,10 @@
+import Builtins
+from Base import all
+
+## Returns the root directory of the project.
+Builtins.Enso_Project.root : File.File
+Builtins.Enso_Project.root = File.File this.prim_root_file
+
+## Returns the root data directory of the project.
+Builtins.Enso_Project.data : File.File
+Builtins.Enso_Project.data = this.root / "data"

@@ -26,4 +26,12 @@ spec = describe "Vectors" <|
     it "should define concatenation" <|
         concat = [1, 2, 3] + [4, 5, 6]
         concat.should_equal [1, 2, 3, 4, 5, 6]
+    it "should define take and drop family of operations" <|
+        vec = [1, 2, 3, 4, 5, 6]
+        first_four = [1, 2, 3, 4]
+        last_four = [3, 4, 5, 6]
+        vec.drop 2 . should_equal last_four
+        vec.drop_right 2 . should_equal first_four
+        vec.take 4 . should_equal first_four
+        vec.take_right 4 . should_equal last_four
 

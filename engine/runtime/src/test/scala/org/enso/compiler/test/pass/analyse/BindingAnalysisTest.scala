@@ -67,7 +67,7 @@ class BindingAnalysisTest extends CompilerTest {
         BindingsMap(
           List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),
           List(PolyglotSymbol("MyClass"), PolyglotSymbol("Renamed_Class")),
-          List(ModuleMethod("foo")),
+          List(ModuleMethod("enso_project"), ModuleMethod("foo")),
           ctx.module
         )
       )
@@ -87,6 +87,7 @@ class BindingAnalysisTest extends CompilerTest {
            |$moduleName.baz = 65
            |""".stripMargin.preprocessModule.analyse
       ir.getMetadata(BindingAnalysis).get.moduleMethods shouldEqual List(
+        ModuleMethod("enso_project"),
         ModuleMethod("bar")
       )
 

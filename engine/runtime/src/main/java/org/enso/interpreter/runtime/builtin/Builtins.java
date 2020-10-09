@@ -11,9 +11,7 @@ import org.enso.interpreter.node.expression.builtin.function.ApplicationOperator
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -48,13 +46,15 @@ public class Builtins {
   private final Number number;
   private final AtomConstructor function;
   private final AtomConstructor debug;
+  private final AtomConstructor ensoProject;
   private final Text text;
   private final Error error;
   private final Bool bool;
   private final System system;
   private final Array array;
   private final Polyglot polyglot;
-  private final ManagedResource managedResource;
+  private final Resource resource;
+  private final Meta meta;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -74,10 +74,16 @@ public class Builtins {
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new Text(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
+    ensoProject =
+        new AtomConstructor("Enso_Project", scope)
+            .initializeFields(
+                new ArgumentDefinition(
+                    0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE));
     system = new System(language, scope);
     number = new Number(language, scope);
     polyglot = new Polyglot(language, scope);
-    managedResource = new ManagedResource(language, scope);
+    resource = new Resource(language, scope);
+    meta = new Meta(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -86,6 +92,7 @@ public class Builtins {
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
+    AtomConstructor primIo = new AtomConstructor("Prim_Io", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
@@ -102,10 +109,12 @@ public class Builtins {
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
     scope.registerConstructor(io);
+    scope.registerConstructor(primIo);
     scope.registerConstructor(panic);
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
+    scope.registerConstructor(ensoProject);
     scope.registerConstructor(runtime);
 
     scope.registerConstructor(java);
@@ -116,6 +125,8 @@ public class Builtins {
     scope.registerMethod(io, "println", PrintlnMethodGen.makeFunction(language));
     scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_file", GetFileMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_cwd", GetCwdMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
@@ -211,6 +222,11 @@ public class Builtins {
    */
   public AtomConstructor debug() {
     return debug;
+  }
+
+  /** @return the {@code Enso_Project} atom constructor */
+  public AtomConstructor getEnsoProject() {
+    return ensoProject;
   }
 
   /** @return the {@code System} atom constructor. */

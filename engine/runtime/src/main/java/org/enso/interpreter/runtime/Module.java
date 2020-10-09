@@ -238,7 +238,7 @@ public class Module implements TruffleObject {
     if (source == null) return;
     scope.reset();
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(source, this);
+    context.getCompiler().run(this);
   }
 
   /** @return IR defined by this module. */
@@ -302,6 +302,11 @@ public class Module implements TruffleObject {
   /** Set the indexed flag. */
   public void setIndexed(boolean indexed) {
     isIndexed = indexed;
+  }
+
+  /** @return the source file of this module. */
+  public TruffleFile getSourceFile() {
+    return sourceFile;
   }
 
   /**

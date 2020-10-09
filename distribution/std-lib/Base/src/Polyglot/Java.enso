@@ -1,0 +1,8 @@
+from Base import all
+import Builtins
+
+## Checks whether an object is an instance of a given class.
+Builtins.Java.is_instance : Any -> Any -> Boolean
+Builtins.Java.is_instance object class =
+    class_object = Polyglot.get_member class "class"
+    class_object.isInstance [object]

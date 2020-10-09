@@ -29,6 +29,22 @@ type Assertion
         Failure _ -> True
         Pending -> False
 
+type Verbs
+    type Verbs
+
+    start_with subject argument =
+        if subject.starts_with argument then Success else
+            here.fail (subject.to_text + " did not start with " + argument.to_text))
+
+    equal subject argument =
+        if subject == argument then Success else
+            msg = this.to_text + " did not equal " + that.to_text + "."
+            here.fail msg
+
+    be subject argument = this.equal subject argument
+
+Any.should verb argument = Verbs.verb this argument
+
 ## Fail a test with the given message.
 fail message = Panic.throw (Failure message)
 

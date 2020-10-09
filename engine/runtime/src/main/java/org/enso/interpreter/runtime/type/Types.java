@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -39,7 +40,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
   UnresolvedSymbol.class,
   Array.class,
   EnsoBigInteger.class,
-  ManagedResource.class
+  ManagedResource.class,
+  ModuleScope.class
 })
 public class Types {
 
