@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
     type = "Prim_Io",
     name = "get_file",
     description =
-        "Takes a text representation of a path and returns a TruffleFile corresponding to it.")
+        "Takes the text representation of a path and returns a TruffleFile corresponding to it.")
 public abstract class GetFileNode extends Node {
   static GetFileNode build() {
     return GetFileNodeGen.create();

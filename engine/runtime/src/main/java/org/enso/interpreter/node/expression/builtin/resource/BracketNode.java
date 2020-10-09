@@ -1,21 +1,23 @@
 package org.enso.interpreter.node.expression.builtin.resource;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.state.Stateful;
 
+/**
+ * The basic bracket construct for resource management.
+ *
+ * <p>Even though it could be implemented in Enso, using lower-level primitives, implementing it in
+ * Java gives us the best correctness guarantees, even in the presence of serious interpreter
+ * failures.
+ */
 @BuiltinMethod(
     type = "Resource",
     name = "bracket",

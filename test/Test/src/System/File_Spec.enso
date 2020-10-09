@@ -33,6 +33,17 @@ spec =
             f_1 = File.new "foo"
             f_2 = File.new "bar/../baz/../foo"
             f_2.normalize.should_equal f_1
+        it "should allow reading a file byte by byte" <|
+            f = Enso_Project.data / "short.txt"
+            f.exists.should_be_false
+            f.write "Cup"
+            f.with_input_stream stream->
+                stream.read_byte.should_equal 67
+                stream.read_byte.should_equal 117
+                stream.read_byte.should_equal 112
+                stream.read_byte.should_equal -1
+            f.delete
+            f.exists.should_be_false
         it "should write and append to files" <|
             f = Enso_Project.data / "work.txt"
             f.exists.should_be_false

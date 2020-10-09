@@ -28,7 +28,7 @@ public class EnsoProjectNode extends RootNode {
     } else {
       result =
           new RuntimeError(
-              context.getBuiltins().error().moduleDoesNotBelongToAProjectError().newInstance());
+              context.getBuiltins().error().moduleNotInPackageError().newInstance());
     }
   }
 
