@@ -1,0 +1,172 @@
+from Base import all
+import Base.Time.Date
+import Base.Time.Duration
+import Base.Time.Time
+import Base.Time.Zone
+
+polyglot java import java.time.Instant
+polyglot java import java.time.LocalTime
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import org.enso.base.Time_Utils
+
+type Time_Of_Day
+
+    ## `Time_Of_Day` is a date-time object that represents a time, often viewed
+       as hour-minute-second. Time is represented to nanosecond precision. For
+       example, the value "13:45.30.123456789" can be stored in a `Time_Of_Day`.
+    type Time_Of_Day internal_local_time
+
+    ## Get the hour of day field.
+    hour : Integer
+    hour = this . internal_local_time . getHour []
+
+    ## Get the minute of hour field.
+    minute : Integer
+    minute = this . internal_local_time . getMinute []
+
+    ## Get the second of minute field.
+    second : Integer
+    second = this . internal_local_time . getSecond []
+
+    ## Get the nanosecond of second field.
+    nanosecond : Integer
+    nanosecond = this . internal_local_time . getNano []
+
+    ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
+    to_seconds : Integer
+    to_seconds = this . internal_local_time . toSecondOfDay []
+
+    ## Combine this time of day with a date to create a point in time.
+
+       > Example
+         Convert local time to 1st January 2020 12:30 at system timezone.
+             Time_Of_Day.new 12 30 . to_time (Date.new 2020)
+    to_time : Date -> Zone -> Time
+    to_time date (zone = Zone.system) = Time.time (this . internal_local_time . atDate [date.internal_local_date] . atZone [zone.internal_zone_id])
+
+    ## Add specified amount of time to this instant.
+
+       > Example
+         Add 3 seconds to a local time.
+             Time_Of_Day.new + 3.seconds
+    + : Duration -> Time_Of_Day
+    + amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.interval_duration])
+
+    ## Subtract specified amount of time to this instant.
+
+       > Example
+         Subtract 12 hours from a local time.
+             Time_Of_Day.new - 12.hours
+    - : Duration -> Time_Of_Day
+    - amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.interval_duration])
+
+    ## Format this time of day using the default formatter.
+    to_text : Text
+    to_text = Time_Utils.default_time_of_day_formatter [] . format [this.internal_local_time]
+
+    ## Format this time of day using formatter text.
+
+       Patterns are based on a simple sequence of letters and symbols. For
+       example, "HH-mm-ss.SSS" will format "16:21:10" as "16-21-10.323".
+
+       For the list of accepted symbols in pattern refer to
+       `Base.Time.Time.format` doc.
+
+       > Example
+         Format "16:21:10" as "16:21:00.1234"
+             Time_Of_Day.new 16 21 10 . format "HH:mm:ss.SSSS"
+
+       > Example
+         Format "16:21:10" as "16:21:00.123456789"
+             Time_Of_Day.new 16 21 10 . format "HH:mm:ss.n"
+
+       > Example
+         Format "16:21:10" as "4:21pm"
+             Time_Of_Day.new 16 21 10 . format "h:mma"
+
+       > Example
+         Format "16:21:10" as "04:21:10pm"
+             Time_Of_Day.new 16 21 10 . format "hh:mm:ssa"
+
+       > Example
+         Format "16:21:10" as "hour:4"
+             Time_Of_Day.new 16 21 10 . format "'hour:'h"
+    format : Text -> Text
+    format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_time]
+
+## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+
+   The text must represent a valid time and is parsed using the ISO-8601
+   extended local time format. The format consists of:
+
+   - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+     digits.
+   - A colon
+   - Two digits for the minute-of-hour. This is pre-padded by zero to ensure two
+     digits.
+   - If the second-of-minute is not available then the format is complete.
+   - A colon
+   - Two digits for the second-of-minute. This is pre-padded by zero to ensure
+     two digits.
+   - If the nano-of-second is zero or not available then the format is complete.
+   - A decimal point
+   - One to nine digits for the nano-of-second. As many digits will be output as
+     required.
+
+   > Example
+     Get the time 15:05:30.
+         Time_Of_Day.parse "15:05:30"
+
+   > Example
+     Recover from the parse error.
+         Time_Of_Day.parse "half past twelve" . catch <| case
+             Time.Error _ -> Time_Of_Day.new
+parse : Text -> Time_Of_Day
+parse text =
+    Panic.recover (Time_Of_Day (LocalTime.parse [text])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x
+
+## Obtains an instance of Time_Of_Day from a text using custom format.
+
+   For the list of accepted symbols in pattern refer to
+   `Base.Time.Time.format` doc.
+
+   > Example
+     Parse "04:30:20" as Time_Of_Day.
+         Date.parse_format "04:30:20" "HH:mm:ss"
+
+   > Example
+     Parse "4:30AM" as Time_Of_Day
+         Date.parse_format "4:30AM" "h:mma"
+parse_format : Text -> Text -> Time_Of_Day
+parse_format text pattern =
+    format = DateTimeFormatter.ofPattern [pattern]
+    Panic.recover (Time_Of_Day (LocalTime.parse [text, format])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x
+
+## Obtains the current time from the system clock in the default time-zone.
+now : Time_Of_Day
+now = Time_Of_Day (LocalTime.now [])
+
+## Obtains an instance of `Time_Of_Day` from an hour, minute, second
+   and nanosecond.
+
+   - hour - the hour-of-day to represent, from 0 to 23
+   - minute - the minute-of-hour to represent, from 0 to 59
+   - second - the second-of-minute to represent, from 0 to 59
+   - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
+
+   > Example
+     Create a new local time at Unix epoch.
+         Time_Of_Day.new
+
+   > Example
+     Get the local time at 9:30.
+         Time_Of_Day.new 9 30
+new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
+new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
+    Panic.recover (Time_Of_Day (LocalTime.of [hour, minute, second, nanosecond])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+        x -> x

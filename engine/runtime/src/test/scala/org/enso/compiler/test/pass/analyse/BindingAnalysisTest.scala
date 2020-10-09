@@ -46,24 +46,23 @@ class BindingAnalysisTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Module binding resolution" should {
-    implicit val ctx: ModuleContext = mkModuleContext
-
-    val ir =
-      """
-        |polyglot java import foo.bar.baz.MyClass
-        |polyglot java import foo.bar.baz.OtherClass as Renamed_Class
-        |
-        |type Foo a b c
-        |type Bar
-        |type Baz x y
-        |
-        |Baz.foo = 123
-        |Bar.baz = Baz 1 2 . foo
-        |
-        |foo = 123
-        |""".stripMargin.preprocessModule.analyse
-
     "discover all atoms, methods, and polyglot symbols in a module" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |polyglot java import foo.bar.baz.MyClass
+          |polyglot java import foo.bar.baz.OtherClass as Renamed_Class
+          |
+          |type Foo a b c
+          |type Bar
+          |type Baz x y
+          |
+          |Baz.foo = 123
+          |Bar.baz = Baz 1 2 . foo
+          |
+          |foo = 123
+          |""".stripMargin.preprocessModule.analyse
+
       ir.getMetadata(BindingAnalysis) shouldEqual Some(
         BindingsMap(
           List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),
@@ -72,6 +71,25 @@ class BindingAnalysisTest extends CompilerTest {
           ctx.module
         )
       )
+    }
+
+    "properly assign module-level methods when a type with the same name as module is defined" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val moduleName                  = ctx.module.getName.item
+      val ir =
+        s"""
+           |type $moduleName
+           |    type $moduleName
+           |    foo x = x + 1
+           |
+           |bar x = x + 1
+           |
+           |$moduleName.baz = 65
+           |""".stripMargin.preprocessModule.analyse
+      ir.getMetadata(BindingAnalysis).get.moduleMethods shouldEqual List(
+        ModuleMethod("bar")
+      )
+
     }
   }
 }

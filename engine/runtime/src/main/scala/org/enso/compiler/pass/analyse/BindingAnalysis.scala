@@ -59,12 +59,14 @@ case object BindingAnalysis extends IRPass {
           ref.typePointer match {
             case IR.Name.Qualified(List(), _, _, _) => Some(ref.methodName.name)
             case IR.Name.Qualified(List(n), _, _, _) =>
-              if (n.name == moduleContext.module.getName.item)
+              val shadowed = definedConstructors.exists(_.name == n.name)
+              if (!shadowed && n.name == moduleContext.module.getName.item)
                 Some(ref.methodName.name)
               else None
             case IR.Name.Here(_, _, _) => Some(ref.methodName.name)
             case IR.Name.Literal(n, _, _, _, _) =>
-              if (n == moduleContext.module.getName.item)
+              val shadowed = definedConstructors.exists(_.name == n)
+              if (!shadowed && n == moduleContext.module.getName.item)
                 Some(ref.methodName.name)
               else None
             case _ => None

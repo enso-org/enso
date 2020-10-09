@@ -1,0 +1,260 @@
+from Base import all
+import Base.Time.Date
+import Base.Time.Duration
+import Base.Time.Time_Of_Day
+import Base.Time.Zone
+
+polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import org.enso.base.Time_Utils
+
+type Time_Error
+
+    ## Error produced while working with time.
+    type Time_Error error_message
+
+type Time
+
+    ## A date-time with a timezone in the ISO-8601 calendar system, such as
+       "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+       Time is a representation of a date-time with a timezone. This class
+       stores all date and time fields, to a precision of nanoseconds, and a
+       timezone, with a zone offset used to handle ambiguous local
+       date-times.
+
+       For example, the value "2nd October 2007 at 13:45.30.123456789 +02:00 in
+       the Europe/Paris timezone" can be stored as `Time`.
+    type Time internal_zoned_date_time
+
+    ## Get the year field.
+    year : Integer
+    year = this . internal_zoned_date_time . getYear []
+
+    ## Get the month of year field from 1 to 12.
+    month : Integer
+    month = this . internal_zoned_date_time . getMonthValue []
+
+    ## Get the day of month field.
+    day : Integer
+    day = this . internal_zoned_date_time . getDayOfMonth []
+
+    ## Get the hour of day field.
+    hour : Integer
+    hour = this . internal_zoned_date_time . getHour []
+
+    ## Get the minute of hour field.
+    minute : Integer
+    minute = this . internal_zoned_date_time . getMinute []
+
+    ## Get the second of minute field
+    second : Integer
+    second = this . internal_zoned_date_time . getSecond []
+
+    ## Get the nano-of-second field.
+    nanosecond : Integer
+    nanosecond = this . internal_zoned_date_time . getNano []
+
+    ## Get the timezone.
+    zone : Zone
+    zone = Zone.zone (this . internal_zoned_date_time . getZone [])
+
+    ## Return the number of seconds from the Unix epoch.
+    to_epoch_seconds : Integer
+    to_epoch_seconds = this . internal_zoned_date_time . toEpochSecond []
+
+    ## Return the number of milliseconds from the Unix epoch.
+    to_epoch_milliseconds : Integer
+    to_epoch_milliseconds = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
+
+    ## Convert this point in time to time of day.
+    time_of_day : Time_Of_Day
+    time_of_day = Time_Of_Day.time_of_day (this . internal_zoned_date_time . toLocalTime [])
+
+    ## Convert this point in time to date.
+    date : Date
+    date = Date.date (this . internal_zoned_date_time . toLocalDate [])
+
+    ## Convert the time instant to a provided timezone.
+
+       > Example
+         Convert time instance to -04:00 timezone.
+             Time.new 2020 . at_zone (Zone.new -4)
+    at_zone : Zone -> Time
+    at_zone zone = Time (this.internal_zoned_date_time . withZoneSameInstant [zone.internal_zone_id])
+
+    ## Add specified amount of time to this instant.
+
+       > Example
+         Add 1 hour to a zoned date time.
+             Time.new 2020 + 1.hour
+
+       > Example
+         Add 15 years and 3 hours to a zoned date time.
+             Time.new 2020 + 15.years + 3.hours
+    + : Duration -> Time
+    + amount = Time (this . internal_zoned_date_time . plus [amount.interval_period] . plus [amount.interval_duration])
+
+    ## Subtract specified amount of time to this instant.
+
+       > Example
+         Subtract 10 days from a zoned date time.
+             Time.new 2020 - 10.days
+
+       > Example
+         Subtract 1 year and 9 months from a zoned date time.
+             Time.new 2020 - 1.year - 9.months
+    - : Duration -> Time
+    - amount = Time (this . internal_zoned_date_time . minus [amount.interval_period] . minus [amount.interval_duration])
+
+    ## Format this time using the default formatter.
+    to_text : Text
+    to_text = Time_Utils.default_time_formatter [] . format [this.internal_zoned_date_time]
+
+    ## Format this time using formatter text.
+
+       Patterns are based on a simple sequence of letters and symbols. For
+       example, "d MMM uuuu" will format "2011-12-03" as "3 Dec 2011".
+
+       The list of accepted symbols with examples:
+
+       - 'G', era, "AD; Anno Domini"
+       - 'u', year, "2004; 04"
+       - 'y', year-of-era, "2004; 04"
+       - 'D', day-of-year, "189"
+       - 'M/L', month-of-year, "7; 07; Jul; July; J"
+       - 'd', day-of-month, "10"
+       - 'g', modified-julian-day, "2451334"
+       - 'Q/q', quarter-of-year, "3; 03; Q3; 3rd quarter"
+       - 'Y', week-based-year, "1996; 96"
+       - 'w', week-of-week-based-year, "27"
+       - 'W', week-of-month, "4"
+       - 'E', day-of-week, "Tue; Tuesday; T"
+       - 'e/c', localized day-of-week, "2; 02; Tue; Tuesday; T"
+       - 'F', day-of-week-in-month, "3"
+       - 'a', am-pm-of-day, "PM"
+       - 'h', clock-hour-of-am-pm (1-12), "12"
+       - 'K', hour-of-am-pm (0-11), "0"
+       - 'k', clock-hour-of-day (1-24), "24"
+       - 'H', hour-of-day (0-23), "0"
+       - 'm', minute-of-hour, "30"
+       - 's', second-of-minute, "55"
+       - 'S', fraction-of-second, "978"
+       - 'A', milli-of-day, "1234"
+       - 'n', nano-of-second, "987654321"
+       - 'N', nano-of-day, "1234000000"
+       - 'V', time-zone ID, "America/Los_Angeles; Z; -08:30"
+       - 'v', generic time-zone name, "Pacific Time; PT"
+       - 'z', time-zone name, "Pacific Standard Time; PST"
+       - 'O', localized zone-offset, "GMT+8; GMT+08:00; UTC-08:00"
+       - 'X', zone-offset 'Z' for zero, "Z; -08; -0830; -08:30; -083015; -08:30:15"
+       - 'x', zone-offset, "+0000; -08; -0830; -08:30; -083015; -08:30:15"
+       - 'Z', zone-offset, "+0000; -0800; -08:00"
+       - 'p', pad next, "1"
+       - ''', (single quote) escape for text, "'Text'"
+       - '''', (double quote) single quote, "'"
+       - '[', optional section start
+       - ']', optional section end
+
+       The count of pattern letters determines the format.
+
+       > Example
+         Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as "2020-10-08T16:41:13+03:00[Europe/Moscow]"
+         Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['VV']'"
+
+       > Example
+         Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as "Thursday October 8 4:41 PM"
+             Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEEE MMMM d h:mm a"
+
+       > Example
+         Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as "Thu Oct 8 (16:41)"
+             Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEE MMM d (HH:mm)"
+    format : Text -> Text
+    format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_zoned_date_time]
+
+## Obtains an instance of `Time` from a text such as
+   "2007-12-03T10:15:30+01:00 Europe/Paris".
+
+   The text must represent a valid date-time and is parsed using the ISO-8601
+   extended offset date-time format to add the timezone. The section in square
+   brackets is not part of the ISO-8601 standard. The format consists of:
+
+   - The ISO offset date time.
+   - If the zone ID is not available or is a zone offset then the format is
+     complete.
+   - An open square bracket '['.
+   - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
+     sensitive.
+   - A close square bracket ']'.
+
+   > Example
+     Parse UTC time.
+         Time.parse "2020-10-01T04:11:12Z"
+
+   > Example
+     Parse UTC-04:00 time.
+         Time.parse "2020-10-01T04:11:12-04:00"
+
+   > Example
+     Parse UTC-04:00 time specifying New York timezone.
+         Time.parse "2020-10-01T04:11:12-04:00[America/New_York]"
+
+   > Example
+     Parse UTC-04:00 time with nanoseconds.
+         Time.parse "2020-10-01T04:11:12.177528-04:00"
+
+   > Example
+     Recover from the parse error.
+         Time.parse "2020-10-01" . catch <| case _ of
+             Time.Error _ -> Time.now
+parse : Text -> Time
+parse text =
+    Panic.recover (Time (Time_Utils.parse_time [text])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+        x -> x
+
+## Obtains an instance of Time from a text using custom format.
+
+   For the list of accepted symbols in pattern refer to `Time.format` doc.
+
+   > Example
+     Parse "2020-05-06 04:30:20" as Time
+         Date.parse_format "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
+
+   > Example
+     Parse "06 of May 2020 at 04:30AM" as Time
+         Date.parse_format "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+parse_format : Text -> Text -> Time_Of_Day
+parse_format text pattern =
+    Panic.recover (Time (Time_Utils.parse_time_format [text, pattern])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+        x -> x
+
+## Obtains the current date-time from the system clock in the system timezone.
+now : Time
+now = Time (ZonedDateTime.now [])
+
+## Obtains an instance of `Time` from a year, month, day, hour, minute,
+   second, nanosecond and timezone.
+
+   - month - the month-of-year to represent, from 1 (January) to 12 (December)
+   - day - the day-of-month to represent, from 1 to 31 and must be valid for the
+     year and month
+   - hour - the hour-of-day to represent, from 0 to 23
+   - minute - the minute-of-hour to represent, from 0 to 59
+   - second - the second-of-minute to represent, from 0 to 59
+   - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
+   - zone - the timezone
+
+   > Example
+     Create a new zoned date time at Unix epoch.
+         Time.new 1970 (zone = Zone.utc)
+
+   > Example
+     Get the 5 August 1986 at midnight.
+         Time.new 1986 8 5
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time
+new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
+    Panic.recover (Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, zone.internal_zone_id])) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+        x -> x
