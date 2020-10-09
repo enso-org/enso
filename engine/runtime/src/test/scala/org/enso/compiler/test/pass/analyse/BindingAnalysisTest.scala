@@ -87,6 +87,7 @@ class BindingAnalysisTest extends CompilerTest {
            |$moduleName.baz = 65
            |""".stripMargin.preprocessModule.analyse
       ir.getMetadata(BindingAnalysis).get.moduleMethods shouldEqual List(
+        ModuleMethod("enso_project"),
         ModuleMethod("bar")
       )
 
