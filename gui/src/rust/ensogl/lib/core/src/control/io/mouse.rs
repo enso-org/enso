@@ -119,8 +119,10 @@ macro_rules! define_bindings {
                     }));
                     let js_closure = $name.as_ref().unchecked_ref();
                     let js_name    = stringify!($js_name);
-                    let result     = target.add_event_listener_with_callback_and_bool
-                        (js_name,js_closure,true);
+                    let options    = event_listener_options();
+                    let result     =
+                        target.add_event_listener_with_callback_and_add_event_listener_options
+                        (js_name,js_closure,&options);
                     if let Err(e)  = result { panic!("Cannot add event listener. {:?}",e) }
                 )*
                 let closures = Rc::new(MouseManagerClosures {target,$($name),*});
@@ -128,6 +130,18 @@ macro_rules! define_bindings {
             }
         }
     };
+}
+
+/// Retrun options for addEventListener function. See also
+/// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+fn event_listener_options() -> web_sys::AddEventListenerOptions {
+    let mut options = web_sys::AddEventListenerOptions::new();
+    // We listen for events in capture phase, so we can decide ourself if it should be passed
+    // further.
+    options.capture(true);
+    // We want to prevent default action on wheel events, thus listener cannot be passive.
+    options.passive(false);
+    options
 }
 
 define_bindings! {
