@@ -154,7 +154,7 @@ case object TailCall extends IRPass {
       case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
         binding
           .copy(
-            expression = analyseExpression(expression, isInTailPosition)
+            expression = analyseExpression(expression, isInTailPosition = false)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case err: IR.Diagnostic =>

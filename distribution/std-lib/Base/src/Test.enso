@@ -104,7 +104,10 @@ Text.it ~behavior pending=False =
     State.put Spec new_spec
 
 run_spec ~behavior =
-    maybeExc = case Panic.recover behavior of
+    recovery = Panic.recover <|
+        behavior
+        Unit
+    maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch ex->
         case ex of
