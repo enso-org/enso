@@ -108,8 +108,7 @@ object SbtLicenses {
       source <- distinctSources
       if !distinctDependencies.exists(_.sourcesJARPaths.contains(source))
     } yield s"Found a source $source that does not belong to any known " +
-    s"dependencies, perhaps the algorithm needs updating or the cache needs " +
-    s"cleaning?"
+    s"dependencies, perhaps the algorithm needs updating?"
     val reportsWarnings = results.flatMap(_._3)
 
     (relevantDeps, missingWarnings ++ unexpectedWarnings ++ reportsWarnings)

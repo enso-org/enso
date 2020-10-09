@@ -192,7 +192,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
   ): String = {
     val mappedParams = params
       .map {
-        case (name, value) => s"""$name="$value" """
+        case (name, value) => s"""data-$name="$value" """
       }
       .mkString(" ")
     s"""<span class="$className" $mappedParams></span>

@@ -209,7 +209,7 @@ object Report {
                         s"${file.fileName} (${renderStatus(status)})$origin " +
                         s"${renderSimilarity(licensePath, file, status)}",
                         injection +
-                        file.content
+                        writer.escape(file.content)
                       )
                 })
             }
@@ -238,7 +238,7 @@ object Report {
 
                       val contexts = if (mention.contexts.nonEmpty) {
                         mention.contexts
-                          .map("<pre>\n" + _ + "\n</pre>")
+                          .map(c => "\n" + writer.escape(c) + "\n")
                           .mkString("<hr>")
                       } else ""
 

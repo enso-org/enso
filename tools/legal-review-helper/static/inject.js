@@ -56,10 +56,10 @@ $(function () {
   };
 
   copys.each(function (index) {
-    var package = $(this).attr("package");
-    var content = atob($(this).attr("content"));
-    var status = $(this).attr("status");
-    var contexts = parseInt($(this).attr("contexts"));
+    var package = $(this).data("package");
+    var content = atob($(this).data("content"));
+    var status = $(this).data("status");
+    var contexts = parseInt($(this).data("contexts"));
     var data = {
       line: content,
       package: package,
@@ -102,9 +102,9 @@ $(function () {
   };
 
   files.each(function (index) {
-    var package = $(this).attr("package");
-    var filename = $(this).attr("filename");
-    var status = $(this).attr("status");
+    var package = $(this).data("package");
+    var filename = $(this).data("filename");
+    var status = $(this).data("status");
     var data = {
       line: filename,
       package: package,

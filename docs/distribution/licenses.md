@@ -149,15 +149,34 @@ The review can be performed manually by modifying the settings inside of the
           - To ignore the default license, create an empty file `custom-license`
             inside the directory belonging to the relevant package.
    2. Review which files to include
+      - You can click on a filename to display its contents.
       - We want to include any NOTICE files that contain copyright notices or
         credits.
       - False-positives (unrelated files) or duplicates may be ignored.
    3. Review copyright notices
+      - You may click on a copyright line to display context (surrounding text)
+        and in which files it was found.
       - We want to include most of the notices, as it is better to include
         duplicates rather than skip something important.
       - But we need to ignore false-positives, for example code that contains
         the word 'copyright' in it and was falsely classified.
-3. After you are done, re-run `enso/gatherLicenses` to generate the updated
+      - You may click 'Keep' to add the displayed copyright line to the
+        copyright notice or if there is exactly one context associated with the
+        line, you can click 'Keep as context' to add this whole context to the
+        notice.
+   4. Add missing information
+      - You can manually add additional copyright notices by adding them to a
+        file `copyright-add` inside the directory belonging to the relevant
+        package.
+      - You can manually add additional files by adding them into a subdirectory
+        called `files-add` located in the directory belonging to the relevant
+        package.
+3. Add any additional information:
+   - You can add additional files by adding them into a subdirectory called
+     `files-add` in the root directory of distribution configuration.
+   - You can create a custom notice header that will replace the default one, by
+     creating a file called `notice-header`.
+4. After you are done, re-run `enso/gatherLicenses` to generate the updated
    packages.
    - Ensure that there are no more warnings, and if there are any go back to fix
      the issues.

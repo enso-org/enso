@@ -94,7 +94,7 @@ function removeLine(report, package, file, line) {
 }
 
 // Handles the requests to add or remove lines.
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended: true }));
 app.post("/modify/:report", function (req, res) {
   const report = req.params["report"];
   const package = req.body["package"];
