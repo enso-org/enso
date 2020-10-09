@@ -238,7 +238,7 @@ public class Module implements TruffleObject {
     if (source == null) return;
     scope.reset();
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(source, this);
+    context.getCompiler().run(this);
   }
 
   /** @return IR defined by this module. */
