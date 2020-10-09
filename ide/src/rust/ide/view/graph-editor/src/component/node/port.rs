@@ -144,6 +144,12 @@ impl Manager {
         let label          = app.new_view::<text::Area>();
         let ports          = default();
 
+        // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
+        // It needs to be more flexible once we have proper depth management.
+        let scene = app.display.scene();
+        label.remove_from_view(&scene.views.main);
+        label.add_to_view(&scene.views.label);
+
         frp::new_network! { network
             cursor_style_source <- any_mut::<cursor::Style>();
             press_source        <- source::<span_tree::Crumbs>();
@@ -164,7 +170,7 @@ impl Manager {
 
             width <- label.width.map(|w|*w);
 
-            expression <- label.changed.map(|t|t.clone_ref());
+            expression <- label.content.map(|t| t.clone_ref());
         }
 
         let cursor_style   = (&cursor_style_source).into();

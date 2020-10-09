@@ -17,9 +17,7 @@ use crate::model::execution_context::VisualizationUpdateData;
 use bimap::BiMap;
 use enso_frp as frp;
 use enso_frp::stream::EventEmitter;
-use ensogl::display;
 use ensogl::display::traits::*;
-use ensogl::application::Application;
 use ensogl_gui_list_view as list_view;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::visualization;
@@ -30,6 +28,7 @@ use utils::channel::process_stream_with_handle;
 use crate::controller::searcher::suggestion::MatchInfo;
 use crate::controller::searcher::Suggestions;
 use crate::model::suggestion_database::EntryKind;
+use enso_data::text::TextChange;
 
 
 // ==============
@@ -141,52 +140,56 @@ const DEFAULT_NODE_Y_POSITION   : f32 =  200.0;
 //TODO[ao] soon we should rearrange modules and crates to avoid such long names.
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
-pub struct GraphEditorIntegratedWithController {
-    model   : Rc<GraphEditorIntegratedWithControllerModel>,
+pub struct Integration {
+    model   : Rc<Model>,
     network : frp::Network,
 }
 
-impl GraphEditorIntegratedWithController {
+impl Integration {
     /// Get GraphEditor.
     pub fn graph_editor(&self) -> GraphEditor {
         self.model.view.graph().clone_ref()
     }
 
     /// Get the controller associated with this graph editor.
-    pub fn controller(&self) -> &controller::ExecutedGraph {
-        &self.model.controller
+    pub fn graph_controller(&self) -> &controller::ExecutedGraph {
+        &self.model.graph
     }
 }
 
 #[derive(Debug)]
-struct GraphEditorIntegratedWithControllerModel {
-    logger              : Logger,
-    //TODO[ao] we display the new "Project view" because it contains documentation panel, but no
-    // text editor. This should be refactored as a part of task
-    // https://github.com/enso-org/ide/issues/597
-    view                : ide_view::project::View,
-    controller          : controller::ExecutedGraph,
-    project             : model::Project,
-    searcher_controller : RefCell<Option<controller::Searcher>>,
-    node_views          : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
-    expression_views    : RefCell<HashMap<graph_editor::NodeId,String>>,
-    connection_views    : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
-    visualizations      : SharedHashMap<graph_editor::NodeId,VisualizationId>,
+struct Model {
+    logger             : Logger,
+    view               : ide_view::project::View,
+    graph              : controller::ExecutedGraph,
+    text               : controller::Text,
+    searcher           : RefCell<Option<controller::Searcher>>,
+    project            : model::Project,
+    visualization      : controller::Visualization,
+    node_views         : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
+    expression_views   : RefCell<HashMap<graph_editor::NodeId,String>>,
+    connection_views   : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
+    code_view          : CloneRefCell<ensogl_text::Text>,
+    visualizations     : SharedHashMap<graph_editor::NodeId,VisualizationId>,
 }
 
 
 // === Construction And Setup ===
 
-impl GraphEditorIntegratedWithController {
+impl Integration {
     /// Constructor. It creates GraphEditor and integrates it with given controller handle.
     pub fn new
-    ( logger     : Logger
-    , app        : &Application
-    , controller : controller::ExecutedGraph
-    , project    : model::Project) -> Self {
-        let model = GraphEditorIntegratedWithControllerModel::new(logger,app,controller,project);
+    ( view          : ide_view::project::View
+    , graph         : controller::ExecutedGraph
+    , text          : controller::Text
+    , visualization : controller::Visualization
+    , project       : model::Project
+    ) -> Self {
+        let logger       = Logger::new("ViewIntegration");
+        let model        = Model::new(logger,view,graph,text,visualization,project);
         let model        = Rc::new(model);
         let editor_outs  = &model.view.graph().frp.outputs;
+        let code_editor  = &model.view.code_editor().text_area();
         let searcher_frp = &model.view.searcher().frp;
         let project_frp  = &model.view.frp;
         frp::new_network! {network
@@ -226,46 +229,43 @@ impl GraphEditorIntegratedWithController {
 
         // === UI Actions ===
 
-        let node_removed = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::node_removed_in_ui,&invalidate.trigger);
-        let nodes_collapsed = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::nodes_collapsed_in_ui,&invalidate.trigger);
-        let node_entered = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::node_entered_in_ui,&invalidate.trigger);
-        let node_exited = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::node_exited_in_ui,&invalidate.trigger);
-        let connection_created = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::connection_created_in_ui,&invalidate.trigger);
-        let connection_removed = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::connection_removed_in_ui,&invalidate.trigger);
-        let node_moved = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::node_moved_in_ui,&invalidate.trigger);
-        let node_editing = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::node_editing_in_ui(Rc::downgrade(&model)),
-            &invalidate.trigger);
-        let node_expression_set = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::node_expression_set_in_ui,&invalidate.trigger);
-        let suggestion_picked = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::suggestion_picked_in_ui, &invalidate.trigger);
-        let node_editing_committed = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::node_editing_committed_in_ui,
-            &invalidate.trigger);
-        let visualization_enabled = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::visualization_enabled_in_ui,
-            &invalidate.trigger);
-        let visualization_disabled = Self::ui_action(&model,
-            GraphEditorIntegratedWithControllerModel::visualization_disabled_in_ui,
-            &invalidate.trigger);
+        let inv                    = &invalidate.trigger;
+        let node_editing_in_ui     = Model::node_editing_in_ui(Rc::downgrade(&model));
+        let code_changed           = Self::ui_action(&model,Model::code_changed_in_ui          ,inv);
+        let node_removed           = Self::ui_action(&model,Model::node_removed_in_ui          ,inv);
+        let nodes_collapsed        = Self::ui_action(&model,Model::nodes_collapsed_in_ui       ,inv);
+        let node_entered           = Self::ui_action(&model,Model::node_entered_in_ui          ,inv);
+        let node_exited            = Self::ui_action(&model,Model::node_exited_in_ui           ,inv);
+        let connection_created     = Self::ui_action(&model,Model::connection_created_in_ui    ,inv);
+        let connection_removed     = Self::ui_action(&model,Model::connection_removed_in_ui    ,inv);
+        let node_moved             = Self::ui_action(&model,Model::node_moved_in_ui            ,inv);
+        let node_editing           = Self::ui_action(&model,node_editing_in_ui                 ,inv);
+        let node_expression_set    = Self::ui_action(&model,Model::node_expression_set_in_ui   ,inv);
+        let suggestion_picked      = Self::ui_action(&model,Model::suggestion_picked_in_ui     ,inv);
+        let node_editing_committed = Self::ui_action(&model,Model::node_editing_committed_in_ui,inv);
+        let visualization_enabled  = Self::ui_action(&model,Model::visualization_enabled_in_ui ,inv);
+        let visualization_disabled = Self::ui_action(&model,Model::visualization_disabled_in_ui,inv);
         frp::extend! {network
-            // Notifications from controller
-            let handle_notification = FencedAction::fence(&network,
+            eval code_editor.content ((content) model.code_view.set(content.clone_ref()));
+
+            // Notifications from graph controller
+            let handle_graph_notification = FencedAction::fence(&network,
                 f!((notification:&Option<controller::graph::executed::Notification>)
-                    model.handle_controller_notification(notification);
+                    model.handle_graph_notification(notification);
+            ));
+
+            // Notifications from graph controller
+            let handle_text_notification = FencedAction::fence(&network,
+                f!((notification:&Option<controller::text::Notification>)
+                    model.handle_text_notification(*notification);
             ));
 
             // Changes in Graph Editor
-            let is_handling_notification = handle_notification.is_running;
+            is_handling_notification <-
+                all_with(&handle_graph_notification.is_running,&handle_text_notification.is_running
+                    ,|l,r| *l || *r);
             is_hold <- is_handling_notification.all_with(&invalidate.is_running, |l,r| *l || *r);
+            _action <- code_editor.changed                  .map2(&is_hold,code_changed);
             _action <- editor_outs.node_removed             .map2(&is_hold,node_removed);
             _action <- editor_outs.nodes_collapsed          .map2(&is_hold,nodes_collapsed);
             _action <- editor_outs.node_entered             .map2(&is_hold,node_entered);
@@ -283,15 +283,31 @@ impl GraphEditorIntegratedWithController {
             eval project_frp.editing_committed ((_) invalidate.trigger.emit(()));
             eval project_frp.editing_aborted   ((_) invalidate.trigger.emit(()));
         }
-        Self::connect_frp_to_controller_notifications(&model,handle_notification.trigger);
+        Self::connect_frp_to_graph_controller_notifications(&model,handle_graph_notification.trigger);
+        Self::connect_frp_text_controller_notifications(&model,handle_text_notification.trigger);
         Self {model,network}
     }
 
-    fn connect_frp_to_controller_notifications
-    ( model        : &Rc<GraphEditorIntegratedWithControllerModel>
+    fn connect_frp_to_graph_controller_notifications
+    ( model        : &Rc<Model>
     , frp_endpoint : frp::Source<Option<controller::graph::executed::Notification>>
     ) {
-        let stream  = model.controller.subscribe();
+        let stream  = model.graph.subscribe();
+        let weak    = Rc::downgrade(model);
+        let logger  = model.logger.clone_ref();
+        let handler = process_stream_with_handle(stream,weak,move |notification,_model| {
+            info!(logger,"Processing notification {notification:?}");
+            frp_endpoint.emit_event(&Some(notification));
+            futures::future::ready(())
+        });
+        executor::global::spawn(handler);
+    }
+
+    fn connect_frp_text_controller_notifications
+    ( model        : &Rc<Model>
+    , frp_endpoint : frp::Source<Option<controller::text::Notification>>
+    ) {
+        let stream  = model.text.subscribe();
         let weak    = Rc::downgrade(model);
         let logger  = model.logger.clone_ref();
         let handler = process_stream_with_handle(stream,weak,move |notification,_model| {
@@ -307,11 +323,11 @@ impl GraphEditorIntegratedWithController {
     /// bool, which indicates if this action is currently on hold (e.g. due to performing
     /// invalidation).
     fn ui_action<Action,Parameter>
-    ( model      : &Rc<GraphEditorIntegratedWithControllerModel>
+    ( model      : &Rc<Model>
     , action     : Action
     , invalidate : &frp::Source<()>
     ) -> impl Fn(&Parameter,&bool)
-    where Action : Fn(&GraphEditorIntegratedWithControllerModel,&Parameter)
+    where Action : Fn(&Model,&Parameter)
             -> FallibleResult<()> + 'static {
         f!([model,invalidate] (parameter,is_hold) {
             if !*is_hold {
@@ -326,34 +342,66 @@ impl GraphEditorIntegratedWithController {
     }
 }
 
-impl GraphEditorIntegratedWithControllerModel {
+impl Model {
     fn new
-    ( logger     : Logger
-    , app        : &Application
-    , controller : controller::ExecutedGraph
-    , project    : model::Project) -> Self {
-        let view                = app.new_view::<ide_view::project::View>();
-        let node_views          = default();
-        let connection_views    = default();
-        let expression_views    = default();
-        let visualizations      = default();
-        let searcher_controller = default();
-        let this = GraphEditorIntegratedWithControllerModel {
-            view,controller,node_views,
-            expression_views,connection_views,logger,visualizations,project,searcher_controller
-        };
+    ( logger        : Logger
+    , view          : ide_view::project::View
+    , graph         : controller::ExecutedGraph
+    , text          : controller::Text
+    , visualization : controller::Visualization
+    , project       : model::Project) -> Self {
+        let node_views       = default();
+        let connection_views = default();
+        let expression_views = default();
+        let code_view        = default();
+        let visualizations   = default();
+        let searcher         = default();
+        let this             = Model
+            {view,graph,text,searcher,node_views,expression_views,connection_views,code_view,logger
+            ,visualization,visualizations,project};
 
+        this.init_project_name();
+        this.init_visualizations();
         if let Err(err) = this.refresh_graph_view() {
             error!(this.logger,"Error while initializing graph editor: {err}.");
         }
+        if let Err(err) = this.refresh_code_editor() {
+            error!(this.logger,"Error while initializing code editor: {err}.");
+        }
         this
+    }
+
+    fn init_visualizations(&self) {
+        let logger       = self.logger.clone_ref();
+        let controller   = self.visualization.clone_ref();
+        let graph_editor = self.view.graph().clone_ref();
+        executor::global::spawn(async move {
+            let identifiers  = controller.list_visualizations().await;
+            let identifiers  = identifiers.unwrap_or_default();
+            for identifier in identifiers {
+                match controller.load_visualization(&identifier).await {
+                    Ok(visualization) => {
+                        graph_editor.frp.register_visualization.emit(Some(visualization));
+                    }
+                    Err(err) => {
+                        error!(logger, "Error while loading visualization {identifier}: {err:?}");
+                    }
+                }
+            }
+            info!(logger, "Visualizations Initialized.");
+        });
     }
 }
 
 
 // === Project renaming ===
 
-impl GraphEditorIntegratedWithControllerModel {
+impl Model {
+    fn init_project_name(&self) {
+        let project_name = self.project.name().to_string();
+        self.view.graph().breadcrumbs.frp.project_name.emit(project_name);
+    }
+
     fn rename_project(&self, name:impl Str) {
         if self.project.name() != name.as_ref() {
             let project     = self.project.clone_ref();
@@ -373,12 +421,25 @@ impl GraphEditorIntegratedWithControllerModel {
 
 // === Updating Graph View ===
 
-impl GraphEditorIntegratedWithControllerModel {
+impl Model {
+    /// Refresh displayed code to be up to date with module state.
+    pub fn refresh_code_editor(&self) -> FallibleResult<()> {
+        let current_code = self.code_view.get().to_string();
+        let new_code     = self.graph.graph().module.ast().repr();
+        iprintln!("\"{current_code}\" - \"{new_code}\"");
+        if new_code != current_code {
+            println!("Resetting...");
+            self.code_view.set(new_code.as_str().into());
+            self.view.code_editor().text_area().set_content(new_code);
+        }
+        Ok(())
+    }
+
     /// Reload whole displayed content to be up to date with module state.
     pub fn refresh_graph_view(&self) -> FallibleResult<()> {
         info!(self.logger, "Refreshing the graph view.");
         use controller::graph::Connections;
-        let Connections{trees,connections} = self.controller.connections()?;
+        let Connections{trees,connections} = self.graph.connections()?;
         self.refresh_node_views(trees)?;
         self.refresh_connection_views(connections)?;
         Ok(())
@@ -386,7 +447,7 @@ impl GraphEditorIntegratedWithControllerModel {
 
     fn refresh_node_views
     (&self, mut trees:HashMap<double_representation::node::Id,NodeTrees>) -> FallibleResult<()> {
-        let nodes = self.controller.graph().nodes()?;
+        let nodes = self.graph.graph().nodes()?;
         let ids   = nodes.iter().map(|node| node.info.id() ).collect();
         self.retain_node_views(&ids);
         for (i,node_info) in nodes.iter().enumerate() {
@@ -572,10 +633,15 @@ impl GraphEditorIntegratedWithControllerModel {
 
 // === Handling Controller Notifications ===
 
-impl GraphEditorIntegratedWithControllerModel {
+impl Model {
     /// Handle notification received from controller about the whole graph being invalidated.
-    pub fn on_invalidated(&self) -> FallibleResult<()> {
+    pub fn on_graph_invalidated(&self) -> FallibleResult<()> {
         self.refresh_graph_view()
+    }
+
+    /// Handle notification received from controller about the whole graph being invalidated.
+    pub fn on_text_invalidated(&self) -> FallibleResult<()> {
+        self.refresh_code_editor()
     }
 
     /// Handle notification received from controller about values having been entered.
@@ -607,7 +673,7 @@ impl GraphEditorIntegratedWithControllerModel {
 
     /// Request controller to detach all attached visualizations.
     pub fn request_detaching_all_visualizations(&self) {
-        let controller = self.controller.clone_ref();
+        let controller = self.graph.clone_ref();
         let logger     = self.logger.clone_ref();
         let action     = async move {
             for result in controller.detach_all_visualizations().await {
@@ -619,15 +685,15 @@ impl GraphEditorIntegratedWithControllerModel {
         executor::global::spawn(action);
     }
 
-    /// Handle notification received from controller.
-    pub fn handle_controller_notification
+    /// Handle notification received from Graph Controller.
+    pub fn handle_graph_notification
     (&self, notification:&Option<controller::graph::executed::Notification>) {
         use controller::graph::executed::Notification;
         use controller::graph::Notification::Invalidate;
 
         debug!(self.logger, "Received notification {notification:?}");
         let result = match notification {
-            Some(Notification::Graph(Invalidate))         => self.on_invalidated(),
+            Some(Notification::Graph(Invalidate))         => self.on_graph_invalidated(),
             Some(Notification::ComputedValueInfo(update)) => self.on_values_computed(update),
             Some(Notification::SteppedOutOfNode(id))      => self.on_node_exited(*id),
             Some(Notification::EnteredNode(local_call))   => self.on_node_entered(local_call),
@@ -643,11 +709,30 @@ impl GraphEditorIntegratedWithControllerModel {
         }
     }
 
+    /// Handle notification received from Text Controller.
+    pub fn handle_text_notification(&self, notification:Option<controller::text::Notification>) {
+        use controller::text::Notification;
+
+        debug!(self.logger, "Received notification {notification:?}");
+        let result = match notification {
+            Some(Notification::Invalidate) => self.on_text_invalidated(),
+            other => {
+                warning!(self.logger,"Handling notification {other:?} is not implemented; \
+                    performing full invalidation");
+                self.refresh_code_editor()
+            }
+        };
+        if let Err(err) = result {
+            error!(self.logger,"Error while updating graph after receiving {notification:?} from \
+                controller: {err}");
+        }
+    }
+
     pub fn handle_searcher_notification(&self, notification:controller::searcher::Notification) {
         use controller::searcher::Notification;
         use controller::searcher::UserAction;
         match notification {
-            Notification::NewSuggestionList => with(self.searcher_controller.borrow(), |searcher| {
+            Notification::NewSuggestionList => with(self.searcher.borrow(), |searcher| {
                 if let Some(searcher) = &*searcher {
                     match searcher.suggestions() {
                         Suggestions::Loading       => self.view.searcher().clear_suggestions(),
@@ -681,21 +766,22 @@ impl GraphEditorIntegratedWithControllerModel {
 // === Passing UI Actions To Controllers ===
 
 // These functions are called with FRP event values as arguments. The FRP values are always provided
-// by reference, even those "trivially-copy" types, To keep code cleaner we take all parameters
-// by reference as well.
+// by reference, including "trivially-copy" types and Vecs, To keep code cleaner we take
+// all parameters by reference.
 #[allow(clippy::trivially_copy_pass_by_ref)]
-impl GraphEditorIntegratedWithControllerModel {
+#[allow(clippy::ptr_arg)]
+impl Model {
     fn node_removed_in_ui(&self, node:&graph_editor::NodeId) -> FallibleResult<()> {
         let id = self.get_controller_node_id(*node)?;
         self.node_views.borrow_mut().remove_by_left(&id);
-        self.controller.graph().remove_node(id)?;
+        self.graph.graph().remove_node(id)?;
         Ok(())
     }
 
     fn node_moved_in_ui
     (&self, (displayed_id,pos):&(graph_editor::NodeId,Vector2)) -> FallibleResult<()> {
         if let Ok(id) = self.get_controller_node_id(*displayed_id) {
-            self.controller.graph().module.with_node_metadata(id, Box::new(|md| {
+            self.graph.graph().module.with_node_metadata(id, Box::new(|md| {
                 md.position = Some(model::module::Position::new(pos.x,pos.y));
             }));
         }
@@ -706,7 +792,7 @@ impl GraphEditorIntegratedWithControllerModel {
     (&self, (collapsed,_new_node_view_id):&(Vec<graph_editor::NodeId>,graph_editor::NodeId))
     -> FallibleResult<()> {
         let ids          = self.get_controller_node_ids(collapsed)?;
-        let _new_node_id = self.controller.graph().collapse(ids,COLLAPSED_FUNCTION_NAME)?;
+        let _new_node_id = self.graph.graph().collapse(ids,COLLAPSED_FUNCTION_NAME)?;
         // TODO [mwu] https://github.com/enso-org/ide/issues/760
         //   As part of this issue, storing relation between new node's controller and view ids will
         //   be necessary.
@@ -715,7 +801,7 @@ impl GraphEditorIntegratedWithControllerModel {
 
     fn node_expression_set_in_ui
     (&self, (displayed_id,expression):&(graph_editor::NodeId,String)) -> FallibleResult<()> {
-        let searcher = self.searcher_controller.borrow();
+        let searcher = self.searcher.borrow();
         self.expression_views.borrow_mut().insert(*displayed_id,expression.clone());
         if let Some(searcher) = searcher.as_ref() {
             searcher.set_input(expression.clone())?;
@@ -741,7 +827,7 @@ impl GraphEditorIntegratedWithControllerModel {
                 let selected_nodes = this.view.graph().selected_nodes().iter().filter_map(|id| {
                     this.get_controller_node_id(*id).ok()
                 }).collect_vec();
-                let controller = this.controller.clone_ref();
+                let controller = this.graph.clone_ref();
                 let searcher = controller::Searcher::new_from_graph_controller
                     (&this.logger,&this.project,controller,mode,selected_nodes)?;
                 executor::global::spawn(searcher.subscribe().for_each(f!([weak_self](notification) {
@@ -750,9 +836,9 @@ impl GraphEditorIntegratedWithControllerModel {
                     }
                     futures::future::ready(())
                 })));
-                *this.searcher_controller.borrow_mut() = Some(searcher);
+                *this.searcher.borrow_mut() = Some(searcher);
             } else {
-                *this.searcher_controller.borrow_mut() = None;
+                *this.searcher.borrow_mut() = None;
             }
             Ok(())
         }
@@ -763,7 +849,7 @@ impl GraphEditorIntegratedWithControllerModel {
         if let Some(entry) = entry {
             let graph_frp      = &self.view.graph().frp;
             let error          = || MissingSearcherController;
-            let searcher       = self.searcher_controller.borrow().clone().ok_or_else(error)?;
+            let searcher       = self.searcher.borrow().clone().ok_or_else(error)?;
             let error          = || GraphEditorInconsistency;
             let edited_node    = graph_frp.outputs.edited_node.value().ok_or_else(error)?;
             let new_code       = searcher.pick_completion_by_index(*entry)?;
@@ -780,8 +866,8 @@ impl GraphEditorIntegratedWithControllerModel {
     fn node_editing_committed_in_ui
     (&self, displayed_id:&graph_editor::NodeId) -> FallibleResult<()> {
         let error = || MissingSearcherController;
-        let searcher = self.searcher_controller.borrow().clone().ok_or_else(error)?;
-        *self.searcher_controller.borrow_mut() = None;
+        let searcher = self.searcher.borrow().clone().ok_or_else(error)?;
+        *self.searcher.borrow_mut() = None;
         match searcher.commit_node() {
             Ok(node_id) => {
                 self.node_views.borrow_mut().insert(node_id,*displayed_id);
@@ -802,14 +888,14 @@ impl GraphEditorIntegratedWithControllerModel {
             internal_warning!(self.logger,"Created connection {edge_id} overwrite some old \
                 mappings in GraphEditorIntegration.")
         }
-        self.controller.connect(&con)?;
+        self.graph.connect(&con)?;
         Ok(())
     }
 
     fn connection_removed_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult<()> {
         let connection = self.get_controller_connection(*edge_id)?;
         self.connection_views.borrow_mut().remove_by_left(&connection);
-        self.controller.disconnect(&connection)?;
+        self.graph.disconnect(&connection)?;
         Ok(())
     }
 
@@ -828,7 +914,7 @@ impl GraphEditorIntegratedWithControllerModel {
         //   fixed defaults. In future this will be changed, then the editor will also get access
         //   to the customised values.
         let project_name:String  = self.project.name().into();
-        let module_name          = crate::view::project::INITIAL_MODULE_NAME;
+        let module_name          = crate::view::INITIAL_MODULE_NAME;
         let visualisation_module = QualifiedName::from_segments(project_name,&[module_name])?;
         let id                   = VisualizationId::new_v4();
         let expression           = crate::constants::SERIALIZE_TO_JSON_EXPRESSION.into();
@@ -845,7 +931,7 @@ impl GraphEditorIntegratedWithControllerModel {
         let visualization  = self.prepare_visualization(node_id)?;
         let id             = visualization.id;
         let node_id        = *node_id;
-        let controller     = self.controller.clone();
+        let controller     = self.graph.clone();
         let endpoint       = self.view.graph().frp.inputs.set_visualization_data.clone_ref();
         let update_handler = self.visualization_update_handler(endpoint,node_id);
         let logger         = self.logger.clone_ref();
@@ -871,7 +957,7 @@ impl GraphEditorIntegratedWithControllerModel {
     fn visualization_disabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
         debug!(self.logger,"Node editor wants to detach visualization on {node_id}.");
         let id             = self.get_controller_visualization_id(*node_id)?;
-        let graph          = self.controller.clone();
+        let graph          = self.graph.clone_ref();
         let logger         = self.logger.clone_ref();
         let visualizations = self.visualizations.clone_ref();
         let node_id        = *node_id;
@@ -903,7 +989,7 @@ impl GraphEditorIntegratedWithControllerModel {
     (&self, local_call:&Option<LocalCall>) -> FallibleResult<()> {
         if let Some(local_call) = local_call {
             let local_call   = local_call.clone();
-            let controller   = self.controller.clone_ref();
+            let controller   = self.graph.clone_ref();
             let logger       = self.logger.clone_ref();
             let enter_action = async move {
                 info!(logger,"Entering node.");
@@ -919,7 +1005,7 @@ impl GraphEditorIntegratedWithControllerModel {
     fn node_entered_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
         debug!(self.logger,"Requesting entering the node {node_id}.");
         let call           = self.get_controller_node_id(*node_id)?;
-        let method_pointer = self.controller.node_method_pointer(call)?;
+        let method_pointer = self.graph.node_method_pointer(call)?;
         let definition     = (*method_pointer).clone();
         let local_call     = LocalCall{call,definition};
         self.expression_entered_in_ui(&Some(local_call))
@@ -927,7 +1013,7 @@ impl GraphEditorIntegratedWithControllerModel {
 
     fn node_exited_in_ui(&self, _:&()) -> FallibleResult<()> {
         debug!(self.logger,"Requesting exiting the current node.");
-        let controller = self.controller.clone_ref();
+        let controller = self.graph.clone_ref();
         let logger     = self.logger.clone_ref();
         let exit_node_action = async move {
             info!(logger,"Exiting node.");
@@ -938,12 +1024,22 @@ impl GraphEditorIntegratedWithControllerModel {
         executor::global::spawn(exit_node_action);
         Ok(())
     }
+
+    fn code_changed_in_ui(&self, changes:&Vec<ensogl_text::Change>) -> FallibleResult<()> {
+        for change in changes {
+            let range_start = data::text::Index::new(change.range.start.value as usize);
+            let range_end   = data::text::Index::new(change.range.end.value   as usize);
+            let converted = TextChange::replace(range_start..range_end,change.text.to_string());
+            self.text.apply_text_change(converted)?;
+        }
+        Ok(())
+    }
 }
 
 
 // === Utilities ===
 
-impl GraphEditorIntegratedWithControllerModel {
+impl Model {
     fn get_controller_node_id
     (&self, displayed_id:graph_editor::NodeId) -> Result<ast::Id, MissingMappingFor> {
         let err = MissingMappingFor::DisplayedNode(displayed_id);
@@ -992,77 +1088,8 @@ impl GraphEditorIntegratedWithControllerModel {
     }
 
     fn lookup_computed_info(&self, id:&ExpressionId) -> Option<Rc<ComputedValueInfo>> {
-        let registry = self.controller.computed_value_info_registry();
+        let registry = self.graph.computed_value_info_registry();
         registry.get(id)
-    }
-}
-
-
-
-// ==================
-// === NodeEditor ===
-// ==================
-
-/// Node Editor Panel integrated with Graph Controller.
-#[derive(Clone,CloneRef,Debug)]
-pub struct NodeEditor {
-    logger         : Logger,
-    display_object : display::object::Instance,
-    #[allow(missing_docs)]
-    pub graph     : Rc<GraphEditorIntegratedWithController>,
-    visualization : controller::Visualization
-}
-
-impl NodeEditor {
-    /// Create Node Editor Panel.
-    pub async fn new
-    ( logger        : impl AnyLogger
-    , app           : &Application
-    , controller    : controller::ExecutedGraph
-    , project       : model::Project
-    , visualization : controller::Visualization) -> FallibleResult<Self> {
-        let logger         = Logger::sub(logger,"NodeEditor");
-        let display_object = display::object::Instance::new(&logger);
-        let graph          = GraphEditorIntegratedWithController::new(logger.clone_ref(),app,
-            controller,project);
-        let graph = Rc::new(graph);
-        display_object.add_child(&graph.model.view);
-        info!(logger, "Created.");
-        Ok(NodeEditor {logger,display_object,graph,visualization}.init().await?)
-    }
-
-    async fn init(self) -> FallibleResult<Self> {
-        let graph_editor = self.graph.graph_editor();
-        let identifiers  = self.visualization.list_visualizations().await;
-        let identifiers  = identifiers.unwrap_or_default();
-        let project_name = self.graph.model.project.name().to_string();
-        graph_editor.breadcrumbs.frp.project_name.emit(project_name);
-        for identifier in identifiers {
-            let visualization = self.visualization.load_visualization(&identifier).await;
-            let visualization = visualization.map(|visualization| {
-                graph_editor.frp.register_visualization.emit(Some(visualization));
-            });
-            visualization?;
-        }
-        info!(self.logger, "Initialized.");
-        Ok(self)
-    }
-
-    /// Get ids of the nodes selected in the editor.
-    ///
-    /// They shall be ordered by the order of the selecting. Node selected as first shall be at
-    /// the beginning.
-    pub fn selected_nodes(&self) -> FallibleResult<Vec<ast::Id>> {
-        let node_view_ids = self.graph.model.view.graph().selected_nodes().into_iter();
-        let node_ids      = node_view_ids.map(|id| self.graph.model.get_controller_node_id(id));
-        let node_ids : Result<Vec<_>,_> = node_ids.collect();
-        node_ids.map_err(Into::into)
-    }
-}
-
-impl display::Object for NodeEditor {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::transport::web::ConnectingError;
 use crate::transport::web::WebSocket;
-use crate::view::project::ProjectView;
 use crate::config;
 
 use enso_protocol::binary;
@@ -13,7 +12,7 @@ use enso_protocol::project_manager;
 use enso_protocol::project_manager::ProjectMetadata;
 use enso_protocol::project_manager::ProjectName;
 use uuid::Uuid;
-
+use crate::view::View;
 
 
 // ==============
@@ -36,7 +35,7 @@ pub struct ProjectNotFound {
 /// The IDE structure containing its configuration and its components instances.
 #[derive(Debug)]
 pub struct Ide {
-    project_view : ProjectView
+    view : View
 }
 
 
@@ -173,14 +172,14 @@ impl IdeInitializer {
     ( &self
     , config          : &config::Startup
     , project_manager : project_manager::Client
-    ) -> FallibleResult<ProjectView> {
+    ) -> FallibleResult<View> {
         let logger           = &self.logger;
         let project_name     = config.project_name.to_string();
         let project_metadata = Self::get_project_or_create_new
             (logger,&project_manager,&project_name).await?;
         let project_manager = Rc::new(project_manager);
         let project         = Self::open_project(logger,project_manager,project_metadata).await?;
-        Ok(ProjectView::new(logger,project).await?)
+        Ok(View::new(logger,project).await?)
     }
 
     /// This function initializes the project manager, creates the project view and forget IDE
@@ -195,10 +194,10 @@ impl IdeInitializer {
             //      in case of setup failure.
             let project_manager = self.initialize_project_manager(&config).await;
             let project_manager = project_manager.expect("Failed to initialize Project Manager.");
-            let project_view    = self.initialize_project_view(&config,project_manager).await;
-            let project_view    = project_view.expect("Failed to setup initial project view.");
+            let view            = self.initialize_project_view(&config,project_manager).await;
+            let view            = view.expect("Failed to setup initial project view.");
             self.logger.info("Setup done.");
-            let ide = Ide{project_view};
+            let ide = Ide{view};
             std::mem::forget(ide);
             std::mem::forget(executor);
         });

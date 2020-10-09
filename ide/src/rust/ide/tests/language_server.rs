@@ -330,10 +330,10 @@ async fn binary_visualization_updates_test_hlp() {
     let expression = "x -> x.json_serialize";
 
     use ensogl::system::web::sleep;
-    use ide::view::project::MAIN_DEFINITION_NAME;
+    use ide::view::MAIN_DEFINITION_NAME;
 
     let logger                = Logger::new("Test");
-    let module_path           = ide::view::project::initial_module_path(&project).unwrap();
+    let module_path           = ide::view::initial_module_path(&project).unwrap();
     let method                = module_path.method_pointer(project.name(),MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module(module_path).await.unwrap();
