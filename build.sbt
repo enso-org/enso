@@ -318,6 +318,10 @@ val splainOptions = Seq(
   "-P:splain:tree:true"
 )
 
+// === std-lib ================================================================
+
+val icuVersion = "67.1"
+
 // === ZIO ====================================================================
 
 val zioVersion            = "1.0.1"
@@ -1126,9 +1130,10 @@ lazy val `std-bits` = project
   .in(file("std-bits"))
   .settings(
     autoScalaLibrary := false,
-    Compile / packageBin / artifactPath := `std-lib-polyglot-root` / "std-bits.jar",
+    Compile / packageBin / artifactPath :=
+      `std-lib-polyglot-root` / "std-bits.jar",
     libraryDependencies ++= Seq(
-        "com.ibm.icu" % "icu4j" % "67.1" // TODO [RW] icu version
+        "com.ibm.icu" % "icu4j" % icuVersion
       ),
     Compile / packageBin := Def.task {
         val result = (Compile / packageBin).value
