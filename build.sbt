@@ -31,6 +31,12 @@ scalaVersion in ThisBuild := scalacVersion
 lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
 gatherLicenses := GatherLicenses.run.value
+lazy val verifyLicensePackages =
+  taskKey[Unit](
+    "Verifies if the license package has been generated, " +
+    "has no warnings and is up-to-date with dependencies."
+  )
+verifyLicensePackages := GatherLicenses.verifyReports.value
 GatherLicenses.distributions := Seq(
     Distribution(
       "launcher",

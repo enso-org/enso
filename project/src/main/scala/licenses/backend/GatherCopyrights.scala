@@ -2,7 +2,7 @@ package src.main.scala.licenses.backend
 import java.nio.file.{Files, Path}
 
 import sbt.IO
-import src.main.scala.licenses.{Attachment, CopyrightMention}
+import src.main.scala.licenses.{Attachment, CopyrightMention, FilesHelper}
 
 import scala.util.control.NonFatal
 
@@ -23,7 +23,7 @@ object GatherCopyrights extends AttachmentGatherer {
     * @inheritdoc
     */
   override def run(root: Path): Seq[Attachment] = {
-    val allCopyrights = AttachmentGatherer.walk(root) { path =>
+    val allCopyrights = FilesHelper.walk(root) { path =>
       if (Files.isRegularFile(path)) {
         val relativePath = root.relativize(path)
         try {

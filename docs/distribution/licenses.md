@@ -203,6 +203,8 @@ The subdirectory for each artifact may contain the following entries:
   the files should be named with the normalized license name and they should
   contain a path to that license's file (the path should be relative to the
   repository root)
+- `.report.state` - an automatically generated file that can be used to check if
+  the report is up-to-date
 - and for each dependency, a subdirectory named as its `packageName` with
   following entries:
   - `files-add` - directory that may contain additional files that should be

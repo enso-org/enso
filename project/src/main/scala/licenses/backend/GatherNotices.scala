@@ -2,7 +2,7 @@ package src.main.scala.licenses.backend
 
 import java.nio.file.{Files, Path}
 
-import src.main.scala.licenses.{AttachedFile, Attachment}
+import src.main.scala.licenses.{AttachedFile, Attachment, FilesHelper}
 
 /**
   * The algorithm for gathering any copyright-related files found in the
@@ -17,7 +17,7 @@ object GatherNotices extends AttachmentGatherer {
     * @inheritdoc
     */
   override def run(root: Path): Seq[Attachment] = {
-    AttachmentGatherer.walk(root) { path =>
+    FilesHelper.walk(root) { path =>
       if (Files.isRegularFile(path) && mayBeRelevant(path)) {
         Seq(AttachedFile.read(path, Some(root)))
       } else Seq()

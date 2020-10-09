@@ -1,29 +1,44 @@
 package src.main.scala.licenses.report
 
+import java.nio.file.Files
 import java.security.MessageDigest
 
 import sbt.{File, IO}
-import src.main.scala.licenses.{DistributionDescription, ReviewedSummary}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  FilesHelper,
+  ReviewedSummary
+}
 
 import scala.util.control.NonFatal
 
-case class ReviewState(hash: String, warningsCount: Int)
+case class ReviewState(
+  inputHash: String,
+  outputHash: String,
+  warningsCount: Int
+)
 
 object ReviewState {
   def read(file: File): Option[ReviewState] = {
     try {
-      val content            = IO.read(file)
-      val Array(hash, count) = content.split(';')
-      Some(ReviewState(hash, count.toInt))
+      val content                             = IO.read(file)
+      val Array(inputHash, outputHash, count) = content.split(';')
+      Some(ReviewState(inputHash, outputHash, count.toInt))
     } catch { case NonFatal(_) => None }
   }
 
   def write(file: File, reviewState: ReviewState): Unit = {
     IO.createDirectory(file.getParentFile)
-    IO.write(file, s"${reviewState.hash};${reviewState.warningsCount}")
+    IO.write(
+      file,
+      s"${reviewState.inputHash};${reviewState.outputHash};" +
+      s"${reviewState.warningsCount}"
+    )
   }
 
-  def computeHash(distributionDescription: DistributionDescription): String =
+  def computeInputHash(
+    distributionDescription: DistributionDescription
+  ): String =
     distributionDescription match {
       case DistributionDescription(
             artifactName,
@@ -32,7 +47,6 @@ object ReviewState {
           ) =>
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(artifactName.getBytes)
-        digest.update(packageDestination.toString.getBytes)
         for (sbtComponent <- sbtComponents) {
           digest.update(sbtComponent.name.getBytes)
           val dependencies =
@@ -42,6 +56,37 @@ object ReviewState {
             digest.update(dep.license.name.getBytes)
           }
         }
-        digest.digest().map("%02X".format(_)).mkString
+        hexString(digest.digest())
     }
+
+  def computeOutputHash(
+    distributionDescription: DistributionDescription
+  ): String = {
+    val digest = MessageDigest.getInstance("SHA-256")
+    val root   = distributionDescription.packageDestination.toPath
+    val allFiles =
+      FilesHelper.walk(root)(Seq(_)).sortBy(p => root.relativize(p).toString)
+    for (path <- allFiles) {
+      if (!Files.isDirectory(path)) {
+        digest.update(IO.readBytes(path.toFile))
+      }
+    }
+    hexString(digest.digest())
+  }
+
+  private def hexString(bytes: Array[Byte]): String =
+    bytes.map("%02X".format(_)).mkString
+
+  def write(
+    file: File,
+    distributionDescription: DistributionDescription,
+    warningsCount: Int
+  ): Unit = {
+    val state = ReviewState(
+      inputHash     = computeInputHash(distributionDescription),
+      outputHash    = computeOutputHash(distributionDescription),
+      warningsCount = warningsCount
+    )
+    write(file, state)
+  }
 }

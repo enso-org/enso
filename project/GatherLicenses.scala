@@ -11,9 +11,14 @@ import src.main.scala.licenses.report.{
   PackageNotices,
   Report,
   Review,
+  ReviewState,
   WithWarnings
 }
-import src.main.scala.licenses.{DependencySummary, DistributionDescription}
+import src.main.scala.licenses.{
+  DependencySummary,
+  DistributionDescription,
+  ReviewedSummary
+}
 
 import scala.sys.process._
 
@@ -27,6 +32,7 @@ object GatherLicenses {
   val configurationRoot = settingKey[File]("Path to review configuration.")
   val licenseConfigurations =
     settingKey[Set[String]]("The ivy configurations we consider in the review.")
+  private val stateFileName = ".report.state"
 
   /**
     * The task that performs the whole license gathering process.
@@ -69,9 +75,10 @@ object GatherLicenses {
         (dependency, attachments)
       }
 
-      val summary = DependencySummary(processed)
+      val summary          = DependencySummary(processed)
+      val distributionRoot = configRoot / distribution.artifactName
       val WithWarnings(processedSummary, summaryWarnings) =
-        Review(configRoot / distribution.artifactName, summary).run()
+        Review(distributionRoot, summary).run()
       val allWarnings = sbtWarnings ++ summaryWarnings
       val reportDestination =
         targetRoot / s"${distribution.artifactName}-report.html"
@@ -96,6 +103,11 @@ object GatherLicenses {
       )
       val packagePath = distribution.packageDestination
       PackageNotices.create(distribution, processedSummary, packagePath)
+      ReviewState.write(
+        distributionRoot / stateFileName,
+        distribution,
+        summaryWarnings.length
+      )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
       if (summaryWarnings.nonEmpty) {
         // TODO [RW] A separate task should be added to verify that the package
@@ -120,6 +132,64 @@ object GatherLicenses {
 
     reports
   }
+
+  lazy val verifyReports = Def.task {
+    val configRoot = configurationRoot.value
+    val log        = streams.value.log
+    def warnAndThrow(exceptionMessage: String): Nothing = {
+      log.error(exceptionMessage)
+      log.warn(
+        "Please make sure to run `enso / gatherLicenses` " +
+        "and review any changed dependencies, " +
+        "ensuring that the review is complete and there are no warnings."
+      )
+      throw LegalReviewException(exceptionMessage)
+    }
+
+    for (distribution <- distributions.value) {
+      val distributionRoot = configRoot / distribution.artifactName
+      val name             = distribution.artifactName
+      ReviewState.read(distributionRoot / stateFileName) match {
+        case Some(reviewState) =>
+          val currentInputHash = ReviewState.computeInputHash(distribution)
+          if (currentInputHash != reviewState.inputHash) {
+            warnAndThrow(
+              s"Report for $name is not up to date - " +
+              s"it seems that some dependencies were added or removed."
+            )
+          }
+
+          if (reviewState.warningsCount > 0) {
+            warnAndThrow(
+              s"Report for $name has ${reviewState.warningsCount} warnings."
+            )
+          }
+
+          val currentOutputHash = ReviewState.computeOutputHash(distribution)
+          if (currentOutputHash != reviewState.outputHash) {
+            log.error(
+              s"Report for $name seems to be up-to-date but the notice " +
+              s"package has been changed."
+            )
+            log.warn(
+              "Re-run `enso / gatherLicenses` and make sure that all files " +
+              "from the notice package are committed and no unexpected files " +
+              "have been added."
+            )
+            throw LegalReviewException(
+              s"Output directory for $name has different content than expected."
+            )
+          }
+
+          log.info(s"Report and package for $name are reviewed and up-to-date.")
+        case None =>
+          warnAndThrow(s"Report for $name has not been generated.")
+      }
+    }
+  }
+
+  case class LegalReviewException(string: String)
+      extends RuntimeException(string)
 
   /**
     * Launches a server that allows to easily review the generated report.
