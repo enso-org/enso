@@ -50,7 +50,7 @@ type Output_Stream
     type Output_Stream file stream_resource
 
     ## Writes a vector of bytes into the file at the current stream position.
-    write_bytes : Vector -> Unit
+    write_bytes : Vector -> Unit ! File_Error
     write_bytes contents = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
             java_stream.write [contents.to_array]
