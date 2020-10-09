@@ -127,6 +127,20 @@ class TailCallTest extends CompilerTest {
 
       ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
     }
+
+    "mark the value of a tail assignment as non-tail" in {
+      implicit val ctx: InlineContext = mkTailContext
+      val binding =
+        """
+          |foo = a b
+          |""".stripMargin.preprocessExpression.get.analyse
+          .asInstanceOf[IR.Expression.Binding]
+      binding.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      binding.expression.getMetadata(TailCall) shouldEqual Some(
+        TailPosition.NotTail
+      )
+
+    }
   }
 
   "Tail call analysis on functions" should {
