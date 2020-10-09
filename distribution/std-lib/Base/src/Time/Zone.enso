@@ -28,6 +28,10 @@ type Zone
    > Example
      Get time zone -06:00.
          Zone.parse "-06:00"
+
+   > Example
+     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+         Zone.parse "+03:02:01"
 parse : Text -> Zone
 parse text = Zone (ZoneId.of [text])
 

@@ -222,8 +222,8 @@ parse text =
          Date.parse_format "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
 
    > Example
-     Parse "4:30AM" as Time
-         Date.parse_format "4:30AM" "h:mma"
+     Parse "06 of May 2020 at 04:30AM" as Time
+         Date.parse_format "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
 parse_format : Text -> Text -> Time_Of_Day
 parse_format text pattern =
     Panic.recover (Time (Time_Utils.parse_time_format [text, pattern])) . catch <| case _ of
