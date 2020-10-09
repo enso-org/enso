@@ -41,8 +41,9 @@ My_Package
 │   └── Sub_Module
 │       ├── Helper.enso
 │       └── Util.enso
-└── visualization (optional)
-    └── ...
+├── visualization (optional)
+│   └── ...
+└── data (optional)
 ```
 
 ### The `src` Directory
@@ -83,6 +84,12 @@ The `polyglot` directory contains per-language subdirectories containing files
 used by the supported polyglot languages. The contents of each subdirectory is
 specified on a per-language basis, in the
 [polyglot documentation](../polyglot/README.md).
+
+### The `data` Directory
+
+The `data` directory contains any data files and resources that the user needs
+quick access to. Allows referring to resource files in a location-independent
+way, by using the `Enso_Project.data` method.
 
 ### The `package.yaml` File
 

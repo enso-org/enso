@@ -13,6 +13,7 @@ import Test.Vector.Spec as Vector_Spec
 import Test.Numbers.Spec as Numbers_Spec
 import Test.Text.Spec as Text_Spec
 import Test.Time.Spec as Time_Spec
+import Test.System.File_Spec
 
 main = Test.Suite.runMain <|
     List_Spec.spec
@@ -27,3 +28,4 @@ main = Test.Suite.runMain <|
     Numbers_Spec.spec
     Text_Spec.spec
     Time_Spec.spec
+    File_Spec.spec

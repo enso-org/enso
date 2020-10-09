@@ -177,8 +177,12 @@ class ExportsResolution {
           (name.toLowerCase, List(ResolvedModule(mod)))
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
-        getBindings(export.module).exportedSymbols.toList.filter {
-          case (sym, _) => export.symbols.canAccess(sym)
+        getBindings(export.module).exportedSymbols.toList.flatMap {
+          case (sym, resolutions) =>
+            val allowedResolutions =
+              resolutions.filter(res => export.symbols.canAccess(sym, res))
+            if (allowedResolutions.isEmpty) None
+            else Some((sym, allowedResolutions))
         }
       }
       bindings.exportedSymbols = List(
