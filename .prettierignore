@@ -5,4 +5,5 @@ target/
 distribution/launcher/THIRD-PARTY
 distribution/engine/THIRD-PARTY
 tools/legal-review
-std-lib/Base/third-party-licenses
+distribution/std-lib/Base/third-party-licenses
+distribution/std-lib/Base/THIRD-PARTY
