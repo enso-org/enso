@@ -2,6 +2,7 @@ package src.main.scala.licenses
 
 import com.typesafe.sbt.license.LicenseReport
 import com.typesafe.sbt.license.SbtCompat.IvySbt
+import sbt.File
 import sbt.librarymanagement.UpdateReport
 
 /**
@@ -24,6 +25,7 @@ case class SBTDistributionComponent(
   * independently.
   *
   * @param artifactName name of the artifact
+  * @param packageDestination location of the generated notice package
   * @param sbtComponents sequence of SBT components that constitute this
   *                      artifact; only root components (components that are
   *                      directly packaged and distributed) are required (i.e.
@@ -33,6 +35,7 @@ case class SBTDistributionComponent(
   */
 case class DistributionDescription(
   artifactName: String,
+  packageDestination: File,
   sbtComponents: Seq[SBTDistributionComponent]
 ) {
 

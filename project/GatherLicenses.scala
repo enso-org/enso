@@ -25,9 +25,6 @@ object GatherLicenses {
     "Defines descriptions of distributions."
   )
   val configurationRoot = settingKey[File]("Path to review configuration.")
-  val distributionRoot = settingKey[File](
-    "Path that will contain generated notices for each artefact."
-  )
   val licenseConfigurations =
     settingKey[Set[String]]("The ivy configurations we consider in the review.")
 
@@ -42,8 +39,7 @@ object GatherLicenses {
       "This task may take a long time."
     )
 
-    val configRoot    = configurationRoot.value
-    val generatedRoot = distributionRoot.value
+    val configRoot = configurationRoot.value
 
     val reports = distributions.value.map { distribution =>
       log.info(s"Processing the ${distribution.artifactName} distribution")
@@ -98,13 +94,8 @@ object GatherLicenses {
         s"Written the report for ${distribution.artifactName} to " +
         s"`${reportDestination}`."
       )
-      val packagePath =
-        generatedRoot / distribution.artifactName / "THIRD-PARTY"
-      PackageNotices.create(
-        distribution,
-        processedSummary,
-        packagePath
-      )
+      val packagePath = distribution.packageDestination
+      PackageNotices.create(distribution, processedSummary, packagePath)
       log.info(s"Re-generated distribution notices at `$packagePath`.")
       if (summaryWarnings.nonEmpty) {
         // TODO [RW] A separate task should be added to verify that the package

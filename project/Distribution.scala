@@ -4,7 +4,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
 }
 import com.typesafe.sbt.license
 import sbt.Keys.{ivyModule, streams, update, updateClassifiers}
-import sbt.Project
+import sbt.{File, Project}
 import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
@@ -20,9 +20,10 @@ object Distribution {
     */
   def apply(
     name: String,
+    packageDestination: File,
     sbtComponents: Seq[SBTDistributionComponent]
   ): DistributionDescription =
-    DistributionDescription(name, sbtComponents)
+    DistributionDescription(name, packageDestination, sbtComponents)
 
   /**
     * A macro that creates [[SBTDistributionComponent]] descriptions from a list

@@ -184,7 +184,10 @@ object Report {
                   }
                 case None if !licenseReviewed =>
                   val name = Review.normalizeName(license.name)
-                  writer.writeText(s"<pre>$name</pre>Not reviewed", Style.Red)
+                  writer.writeText(
+                    s"Not reviewed, filename: <pre>$name</pre>",
+                    Style.Red
+                  )
               }
             }
             rowWriter.addColumn {

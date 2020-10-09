@@ -32,9 +32,14 @@ lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
 gatherLicenses := GatherLicenses.run.value
 GatherLicenses.distributions := Seq(
-    Distribution("launcher", Distribution.sbtProjects(launcher)),
+    Distribution(
+      "launcher",
+      file("distribution/launcher/THIRD-PARTY"),
+      Distribution.sbtProjects(launcher)
+    ),
     Distribution(
       "engine",
+      file("distribution/engine/THIRD-PARTY"),
       Distribution.sbtProjects(
         runtime,
         `engine-runner`,
@@ -42,11 +47,14 @@ GatherLicenses.distributions := Seq(
         `language-server`
       )
     ),
-    Distribution("std-lib", Distribution.sbtProjects(`std-bits`))
+    Distribution(
+      "std-lib-Base",
+      file("distribution/std-lib/Base/THIRD-PARTY"),
+      Distribution.sbtProjects(`std-bits`)
+    )
   )
 GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
-GatherLicenses.distributionRoot := file("distribution")
 
 lazy val openLegalReviewReport =
   taskKey[Unit](

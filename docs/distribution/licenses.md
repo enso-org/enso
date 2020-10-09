@@ -116,21 +116,51 @@ The review can be performed manually by modifying the settings inside of the
 
 #### Review Process
 
-> TODO [RW] write details
-
 1. Open the review in edit mode using the helper script.
    - You can type `enso / openLegalReviewReport` if you have `npm` in your PATH
      as visible from SBT.
    - Or you can just run `npm start` (and `npm install` if needed) in the
      `tools/legal-review-helper` directory.
-1. Review licenses
-   - ...
-1. Review which files to include
-   - ...
-1. Review copyright notices
-   - ...
-1. Ensure that there are no more warnings.
-1. Re-run `enso/gatherLicenses`.
+2. For each package listed in the review for a given distribution:
+   1. Review licenses
+      - Make sure that the component's license is accepted - that we know that
+        its license type is compatible with our distribution scheme.
+      - When a license is accepted, a file should be added in the
+        `reviewed-licenses` directory, with name as indicated in the report. The
+        file should contain a single line that is the path (relative to
+        repository root) to the default license file for that license type which
+        should be included in the distribution.
+        - The license may have been already accepted if it is the same license
+          as earlier dependencies for the same artifact.
+      - Check if any license-like files have been automatically found in the
+        attached files. If an attached file contains (case-insensitive)
+        'license' or 'licence' in its name, the review tool will compare it with
+        the default license file.
+        - To trigger this comparison, the license must have been already
+          reviewed when the report was being generated, so you may consider
+          re-running the report after reviewing the license types to get this
+          information.
+        - If an attached file is exactly the same as the license file, it can be
+          safely ignored.
+        - If an attached file differs from the default license file, it should
+          be carefully checked.
+          - Most of the time, that file should be marked as kept and the default
+            license ignored.
+          - To ignore the default license, create an empty file `custom-license`
+            inside the directory belonging to the relevant package.
+   2. Review which files to include
+      - We want to include any NOTICE files that contain copyright notices or
+        credits.
+      - False-positives (unrelated files) or duplicates may be ignored.
+   3. Review copyright notices
+      - We want to include most of the notices, as it is better to include
+        duplicates rather than skip something important.
+      - But we need to ignore false-positives, for example code that contains
+        the word 'copyright' in it and was falsely classified.
+3. After you are done, re-run `enso/gatherLicenses` to generate the updated
+   packages.
+   - Ensure that there are no more warnings, and if there are any go back to fix
+     the issues.
 
 The updates performed using the web script are remembered locally, so they will
 not show up after the refresh. If you ever need to open the edit mode after
@@ -152,7 +182,8 @@ The subdirectory for each artifact may contain the following entries:
   to the notice package
 - `reviewed-licenses` - directory that may contain files for reviewed licenses;
   the files should be named with the normalized license name and they should
-  contain a path to that license's file
+  contain a path to that license's file (the path should be relative to the
+  repository root)
 - and for each dependency, a subdirectory named as its `packageName` with
   following entries:
   - `files-add` - directory that may contain additional files that should be
