@@ -52,7 +52,7 @@ object SbtLicenses {
   ): (Seq[DependencyInformation], Seq[String]) = {
     val results: Seq[(Seq[Dependency], Vector[Path], Seq[String])] =
       components.map { component =>
-        val report = resolveIvy(component.ivyModule, log)
+        val report = component.licenseReport.orig
         val ivyDeps =
           report.getDependencies.asScala.map(_.asInstanceOf[IvyNode])
         val sourceArtifacts = component.classifiedArtifactsReport

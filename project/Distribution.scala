@@ -59,7 +59,6 @@ object Distribution {
           SBTDistributionComponent(
             p.splice.id,
             report,
-            ivyMod,
             (p.splice / updateClassifiers).value
           )
         }

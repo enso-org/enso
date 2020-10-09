@@ -189,6 +189,7 @@ jobs:
           cp enso.exe ${{ env.LAUNCHER_DIST_DIR }}/bin/
 
       - name: Build Base Java Extensions
+        working-directory: repo
         shell: bash
         run: |
           sleep 1
