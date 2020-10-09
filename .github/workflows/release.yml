@@ -90,13 +90,6 @@ jobs:
             ~/.cache
           key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
-      - name: Cache Local Maven Repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
 
       # Build Artifacts
       - name: Enable Release Mode
@@ -115,7 +108,7 @@ jobs:
         working-directory: repo
         run: |
           sleep 1
-          sbt --no-colors runner/assembly
+          sbt --no-colors engine-runner/assembly
       - name: Build the Project Manager Uberjar
         working-directory: repo
         run: |
@@ -198,8 +191,8 @@ jobs:
       - name: Build Base Java Extensions
         shell: bash
         run: |
-          cd std-bits
-          mvn --no-transfer-progress package
+          sleep 1
+          sbt --no-colors std-bits/package
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would

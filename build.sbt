@@ -1,17 +1,11 @@
 import java.io.File
 
-import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
-  licenseReportNotes,
-  licenseReportStyleRules
-}
-import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import com.typesafe.sbt.license.DepModuleInfo
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -33,17 +27,44 @@ val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
 
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
-val licenseSettings = Seq(
-  licenseConfigurations := Set("compile"),
-  licenseReportStyleRules := Some(
-      "table, th, td {border: 1px solid black;}"
+
+lazy val gatherLicenses =
+  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+gatherLicenses := GatherLicenses.run.value
+GatherLicenses.distributions := Seq(
+    Distribution(
+      "launcher",
+      file("distribution/launcher/THIRD-PARTY"),
+      Distribution.sbtProjects(launcher)
     ),
-  licenseReportNotes := {
-    case DepModuleInfo(group, _, _) if group == "org.enso" =>
-      "Internal library"
-  }
-)
-val coursierCache = file("~/.cache/coursier/v1")
+    Distribution(
+      "engine",
+      file("distribution/engine/THIRD-PARTY"),
+      Distribution.sbtProjects(
+        runtime,
+        `engine-runner`,
+        `project-manager`,
+        `language-server`
+      )
+    ),
+    Distribution(
+      "std-lib-Base",
+      file("distribution/std-lib/Base/THIRD-PARTY"),
+      Distribution.sbtProjects(`std-bits`)
+    )
+  )
+GatherLicenses.licenseConfigurations := Set("compile")
+GatherLicenses.configurationRoot := file("tools/legal-review")
+
+lazy val openLegalReviewReport =
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies and opens the " +
+    "report in review mode in the browser."
+  )
+openLegalReviewReport := {
+  gatherLicenses.value
+  GatherLicenses.runReportServer()
+}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
@@ -142,7 +163,7 @@ lazy val enso = (project in file("."))
     `logging-service`,
     `akka-native`,
     `version-output`,
-    runner,
+    `engine-runner`,
     runtime,
     searcher,
     launcher,
@@ -297,6 +318,10 @@ val splainOptions = Seq(
   "-P:splain:tree:true"
 )
 
+// === std-lib ================================================================
+
+val icuVersion = "67.1"
+
 // === ZIO ====================================================================
 
 val zioVersion            = "1.0.1"
@@ -347,7 +372,6 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= scalaCompiler
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -364,7 +388,6 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
       )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -383,7 +406,6 @@ lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
       )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -433,7 +455,6 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
-  .settings(licenseSettings)
 
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
@@ -441,7 +462,6 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
   )
-  .settings(licenseSettings)
 
 lazy val `text-buffer` = project
   .in(file("lib/scala/text-buffer"))
@@ -453,7 +473,6 @@ lazy val `text-buffer` = project
         "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
       )
   )
-  .settings(licenseSettings)
 
 lazy val graph = (project in file("lib/scala/graph/"))
   .dependsOn(logger.jvm)
@@ -481,7 +500,6 @@ lazy val graph = (project in file("lib/scala/graph/"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
 
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
@@ -494,7 +512,6 @@ lazy val pkg = (project in file("lib/scala/pkg"))
         "commons-io"     % "commons-io" % commonsIoVersion
       )
   )
-  .settings(licenseSettings)
 
 lazy val `akka-native` = project
   .in(file("lib/scala/akka-native"))
@@ -507,7 +524,6 @@ lazy val `akka-native` = project
     // Note [Native Image Workaround for GraalVM 20.2]
     libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
-  .settings(licenseSettings)
 
 lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
@@ -531,7 +547,6 @@ lazy val `logging-service` = project
     else
       (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
   )
-  .settings(licenseSettings)
   .dependsOn(`akka-native`)
 
 lazy val cli = project
@@ -545,7 +560,6 @@ lazy val cli = project
       ),
     parallelExecution in Test := false
   )
-  .settings(licenseSettings)
 
 lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
@@ -564,7 +578,6 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           )
       }.taskValue
   )
-  .settings(licenseSettings)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
@@ -629,7 +642,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         .dependsOn(runtime / assembly)
         .value
   )
-  .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
@@ -670,7 +682,6 @@ lazy val `json-rpc-server` = project
         "org.scalatest" %% "scalatest"     % scalatestVersion % Test
       )
   )
-  .settings(licenseSettings)
 
 lazy val `json-rpc-server-test` = project
   .in(file("lib/scala/json-rpc-server-test"))
@@ -683,7 +694,6 @@ lazy val `json-rpc-server-test` = project
         "org.scalatest" %% "scalatest" % scalatestVersion
       )
   )
-  .settings(licenseSettings)
   .dependsOn(`json-rpc-server`)
 
 lazy val testkit = project
@@ -720,7 +730,6 @@ lazy val `core-definition` = (project in file("lib/scala/core-definition"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
 
@@ -741,7 +750,6 @@ lazy val searcher = project
     fork in Benchmark := true
   )
   .dependsOn(testkit % Test)
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
@@ -749,7 +757,6 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     version := "0.1",
     libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
   )
-  .settings(licenseSettings)
 
 // ============================================================================
 // === Sub-Projects ===========================================================
@@ -794,7 +801,6 @@ lazy val `polyglot-api` = project
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
 
@@ -830,7 +836,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         new TestFramework("org.scalameter.ScalaMeterFramework")
       )
   )
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
@@ -935,7 +940,9 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
-    (Test / compile) := (Test / compile).dependsOn(StdBits.preparePackage).value
+    (Test / compile) := (Test / compile)
+        .dependsOn(`std-bits` / Compile / packageBin)
+        .value
   )
   .settings(
     logBuffered := false,
@@ -966,7 +973,6 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(syntax.jvm)
@@ -990,7 +996,7 @@ lazy val runtime = (project in file("engine/runtime"))
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
-lazy val runner = project
+lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
     javaOptions ++= {
@@ -1056,7 +1062,6 @@ lazy val runner = project
         .dependsOn(runtime / assembly)
         .value
   )
-  .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
@@ -1113,11 +1118,35 @@ lazy val launcher = project
         .value,
     parallelExecution in Test := false
   )
-  .settings(licenseSettings)
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
+
+val `std-lib-root`          = file("distribution/std-lib/")
+val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
+
+lazy val `std-bits` = project
+  .in(file("std-bits"))
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `std-lib-polyglot-root` / "std-bits.jar",
+    libraryDependencies ++= Seq(
+        "com.ibm.icu" % "icu4j" % icuVersion
+      ),
+    Compile / packageBin := Def.task {
+        val result = (Compile / packageBin).value
+        StdBits
+          .copyDependencies(
+            `std-lib-polyglot-root`,
+            "std-bits.jar",
+            ignoreScalaLibrary = true
+          )
+          .value
+        result
+      }.value
+  )
 
 /* Note [HTTPS in the Launcher]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

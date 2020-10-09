@@ -98,13 +98,6 @@ jobs:
             ~/.cache
           key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
-      - name: Cache Local Maven Repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
 
       # Compile
       - name: Bootstrap Enso project
@@ -125,8 +118,8 @@ jobs:
       - name: Build Base Java Extensions
         shell: bash
         run: |
-          cd std-bits
-          mvn --no-transfer-progress package
+          sleep 1
+          sbt --no-colors std-bits/package
       - name: Build the Launcher
         run: |
           sleep 1
@@ -156,7 +149,7 @@ jobs:
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
-          sbt --no-colors runner/assembly
+          sbt --no-colors engine-runner/assembly
       - name: Build the Project Manager Uberjar
         run: |
           sleep 1
