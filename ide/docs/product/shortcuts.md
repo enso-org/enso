@@ -11,7 +11,8 @@ The <kbd>meta</kbd> key was introduced to make the shortcuts consistent across p
 ### Graph Editor
 | Shortcut | Action |
 | -------- | ------ |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>s</kbd> | Toggles light/dark application style. Currently doesn't work properly, as the Theme Switcher is not created yet. (https://github.com/enso-org/ide/issues/795)|
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>s</kbd> | Toggle light/dark application style. Currently doesn't work properly, as the Theme Switcher is not created yet. (https://github.com/enso-org/ide/issues/795)|
+| <kbd>Ctrl</kbd>+<kbd>`</kbd> | Show Code Editor |
 
 #### Node Editing
 | Shortcut | Action |
