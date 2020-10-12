@@ -128,6 +128,17 @@ object CopyrightMention {
       copyrights.flatMap(_.origins).distinct
     )
   }
+
+  /**
+    * Strips comment-related characters from the prefix and whitespace from
+    * suffix of the copyright line.
+    */
+  def cleanup(string: String): String = {
+    val charsToIgnore = Seq('*', '-', '#', '/')
+    string
+      .dropWhile(char => char.isWhitespace || charsToIgnore.contains(char))
+      .strip
+  }
 }
 
 object AttachedFile {

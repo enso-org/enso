@@ -33,9 +33,12 @@ object GatherCopyrights extends AttachmentGatherer {
             .map { case (str, idx) => (str, findContext(lines)(idx)) }
             .map {
               case (line, context) =>
-                CopyrightMention(line, Seq(context), Seq(relativePath))
+                CopyrightMention(
+                  CopyrightMention.cleanup(line),
+                  Seq(context),
+                  Seq(relativePath)
+                )
             }
-            .map(mention => mention.copy(content = cleanup(mention.content)))
         } catch {
           case NonFatal(e) =>
             Seq(
@@ -115,12 +118,4 @@ object GatherCopyrights extends AttachmentGatherer {
   }
 
   private val possiblePrefixes = Seq('-', '#', ';', '/')
-
-  /**
-    * Strips comment-related characters from the prefix.
-    */
-  private def cleanup(string: String): String = {
-    val charsToIgnore = Seq('*', '-', '#', '/')
-    string.dropWhile(char => char.isWhitespace || charsToIgnore.contains(char))
-  }
 }

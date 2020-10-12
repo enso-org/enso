@@ -73,7 +73,7 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
         .filter(_.toLowerCase.contains("copyright"))
         .map(line =>
           CopyrightMention(
-            line,
+            CopyrightMention.cleanup(line),
             Seq(s"Found at $address"),
             Seq(Path.of("github.com"))
           )

@@ -52,12 +52,12 @@ jobs:
         run: >
           Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
           -UdpIPv6
-# TODO [RW] Rust will be needed by #1187
-#      - name: Install Rust
-#        uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: ${{ env.rustToolchain }}
-#          override: true
+      # TODO [RW] Rust will be needed by #1187
+      #      - name: Install Rust
+      #        uses: actions-rs/toolchain@v1
+      #        with:
+      #          toolchain: ${{ env.rustToolchain }}
+      #          override: true
       - name: Setup conda
         uses: s-weigand/setup-conda@v1
         with:
@@ -100,4 +100,4 @@ jobs:
       - name: Verify Packages
         run: |
           sleep 1
-          sbt --no-colors enso / verifyLicensePackages
+          sbt --no-colors enso/verifyLicensePackages

@@ -105,7 +105,7 @@ object PackageNotices {
             if (copyright.contexts.size != 1) {
               throw new IllegalStateException(
                 "`KeepWithContext` can only be used for copyrights that " +
-                "have exactly one context."
+                s"have exactly one context: `${copyright.content}`"
               )
             }
             copyright.contexts.head

@@ -88,8 +88,8 @@ object GatherLicenses {
         reportDestination
       )
       log.info(
-        s"Written the report for ${distribution.artifactName} to " +
-        s"`${reportDestination}`."
+        s"Written the report for the ${distribution.artifactName} to " +
+        s"`$reportDestination`."
       )
       val packagePath = distribution.packageDestination
       PackageNotices.create(distribution, processedSummary, packagePath)
@@ -144,21 +144,21 @@ object GatherLicenses {
           val currentInputHash = ReviewState.computeInputHash(distribution)
           if (currentInputHash != reviewState.inputHash) {
             warnAndThrow(
-              s"Report for $name is not up to date - " +
+              s"Report for the $name is not up to date - " +
               s"it seems that some dependencies were added or removed."
             )
           }
 
           if (reviewState.warningsCount > 0) {
             warnAndThrow(
-              s"Report for $name has ${reviewState.warningsCount} warnings."
+              s"Report for the $name has ${reviewState.warningsCount} warnings."
             )
           }
 
           val currentOutputHash = ReviewState.computeOutputHash(distribution)
           if (currentOutputHash != reviewState.outputHash) {
             log.error(
-              s"Report for $name seems to be up-to-date but the notice " +
+              s"Report for the $name seems to be up-to-date but the notice " +
               s"package has been changed."
             )
             log.warn(
