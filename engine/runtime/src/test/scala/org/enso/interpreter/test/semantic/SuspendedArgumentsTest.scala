@@ -23,7 +23,8 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "not get executed upfront" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    foo = i -> ~x -> ~y -> if i == 0 then x else y
           |    foo 1 (IO.println 1) (IO.println 2)
@@ -57,7 +58,8 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work properly with method dispatch" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type Foo
           |type Bar
           |
@@ -75,7 +77,8 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work properly with oversaturated arguments" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF
           |    foo = c -> ifTest c
@@ -89,7 +92,8 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work properly with defaulted arguments" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main = a -> (~b = Panic.throw 1) -> a
           |""".stripMargin
       eval(code).call(1) shouldEqual 1
@@ -103,20 +107,6 @@ class SuspendedArgumentsTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code) shouldEqual 1
-    }
-
-    "work with vector literals" in {
-      val code =
-        """
-          |main =
-          |    foo = ~x -> [x]
-          |    block =
-          |        IO.println "foo"
-          |        5
-          |    Polyglot.get_array_element (foo block) 0
-          |""".stripMargin
-      eval(code) shouldEqual 5
-      consumeOut shouldEqual List("foo")
     }
   }
 }

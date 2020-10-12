@@ -5,14 +5,17 @@ import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.ManagedResource;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.RuntimeError;
-
-import java.util.Optional;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -27,13 +30,18 @@ import java.util.Optional;
 @TypeSystem({
   long.class,
   boolean.class,
-  String.class,
+  double.class,
+  Text.class,
   Function.class,
   Atom.class,
   AtomConstructor.class,
   Thunk.class,
   RuntimeError.class,
-  Vector.class
+  UnresolvedSymbol.class,
+  Array.class,
+  EnsoBigInteger.class,
+  ManagedResource.class,
+  ModuleScope.class
 })
 public class Types {
 
@@ -101,23 +109,27 @@ public class Types {
    * @param value an object of interest.
    * @return the string representation of object's type.
    */
-  public static Optional<String> getName(Object value) {
-    if (TypesGen.isLong(value)) {
-      return Optional.of("Number");
-    } else if (TypesGen.isString(value)) {
-      return Optional.of("Text");
+  public static String getName(Object value) {
+    if (TypesGen.isLong(value) || TypesGen.isImplicitLong(value)) {
+      return "Number";
+    } else if (TypesGen.isBoolean(value)) {
+      return "Boolean";
+    } else if (TypesGen.isText(value)) {
+      return "Text";
     } else if (TypesGen.isFunction(value)) {
-      return Optional.of("Function");
+      return "Function";
     } else if (TypesGen.isAtom(value)) {
-      return Optional.of(TypesGen.asAtom(value).getConstructor().getName());
+      return TypesGen.asAtom(value).getConstructor().getName();
     } else if (TypesGen.isAtomConstructor(value)) {
-      return Optional.of(TypesGen.asAtomConstructor(value).getName());
+      return TypesGen.asAtomConstructor(value).getName();
     } else if (TypesGen.isThunk(value)) {
-      return Optional.of("Thunk");
+      return "Thunk";
     } else if (TypesGen.isRuntimeError(value)) {
-      return Optional.of("Error " + TypesGen.asRuntimeError(value).getPayload().toString());
+      return "Error " + TypesGen.asRuntimeError(value).getPayload().toString();
+    } else if (TypesGen.isArray(value)) {
+      return "Array";
     } else {
-      return Optional.empty();
+      return null;
     }
   }
 

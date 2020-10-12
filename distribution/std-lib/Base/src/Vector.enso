@@ -1,0 +1,256 @@
+from Builtins import Array
+from Base import all
+
+## The basic, immutable, vector type.
+
+   A vector allows to store an arbitrary number of elements, in linear memory.
+   It is the recommended data structure for most applications.
+
+   > Example
+     A vector containing the elements `1`, `2`, and `3`, in this order is:
+         [1, 2, 3]
+
+   > Example
+     A vector containing 50 elements, each being the number `42`, can be
+     created by:
+         Vector.fill length=50 item=42
+type Vector
+    type Vector to_array
+
+    ## Gets an element from the vector at a specified index (0-based).
+
+       > Example
+         To get the second element of the vector `[1, 2, 3]`, use:
+             [1, 2, 3].at 1
+    at : Number -> Any
+    at index = this.to_array.at index
+
+    ## Creates a new vector builder instance.
+
+       A vector builder is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       > Example
+         In the following example we'll read items from the standard input,
+         until the string "end" is entered by the user and then return a vector
+         containing all items.
+             from Base import all
+
+             main =
+                  builder = Vector.new_builder
+                  do_read =
+                      item = IO.readln
+                      if item == "end" then Unit else
+                          builder.append item
+                          do_read
+                  do_read
+                  vec = builder.to_vector
+                  IO.println vec
+    new_builder : Builder
+    new_builder = Builder.new
+
+    ## Converts a polyglot value representing an array into a vector. This is
+       useful when wrapping polyglot APIs for further use in Enso.
+    from_polyglot_array : Any -> Vector
+    from_polyglot_array arr =
+        a = Array.new arr.length
+        0.upto arr.length . each i->
+            a.set_at i (arr.at i)
+        Vector a
+
+    ## Returns the number of elements stored in this vector.
+    length : Number
+    length = this.to_array.length
+
+    ## Combines all the elements of the vector, by iteratively applying the
+       passed function with next elements of the vector.
+
+       In general, the result of
+           [l0, l1, ..., ln] . fold init f
+       is the same as
+           f (...(f (f init l0) l1)...) ln
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         vector:
+             [0, 1, 2] . fold 0 (+)
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold initial function =
+        arr = this.to_array
+        f = acc -> ix -> function acc (arr.at ix)
+        res = 0.upto this.length . fold initial f
+        res
+
+    ## Creates a new vector of the given length, initializing elements using
+       the provided constructor function.
+
+       The constructor function is called with the consecutive indices
+       (0-based) of the vector elements.
+
+       > Example
+         To create a vector containing the numbers 1 through 50:
+             Vector.new 50 (ix -> ix + 1)
+
+       > Example
+         To create a copy of the given vector (`my_vec`):
+             Vector.new my_vec.length (ix -> my_vec.at ix)
+    new : Number -> (Number -> Any) -> Vector
+    new length constructor =
+        arr = Array.new length
+        0.upto length . each ix-> arr.set_at ix (constructor ix)
+        Vector arr
+
+    ## Creates a new vector of the given length, filling the elements with
+       the provided constant.
+
+       > Example
+         A vector containing 50 elements, each being the number `42`, can be
+         created by:
+             Vector.fill length=50 item=42
+    fill : Number -> Any -> Vector
+    fill length item =
+        arr = Array.new length
+        0.upto length . each ix-> arr.set_at ix item
+        Vector arr
+
+    ## Applies a function to each element of the vector, returning the vector of
+       results.
+
+       > Example
+         In the following example, we add `1` to each element of the vector:
+             [1, 2, 3] . map +1
+         The result of running the code above is:
+             [2, 3, 4]
+    map : (Any -> Any) -> Vector
+    map function =
+        arr = this.to_array
+        new_arr = Array.new arr.length
+        0.upto arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
+        Vector new_arr
+
+    ## Generates a human-readable text representation of the vector.
+    to_text : Text
+    to_text =
+        arr = this.to_array
+        if arr.length == 0 then "[]" else
+            if arr.length == 1 then "[" + (arr.at 0 . to_text) + "]" else
+                folder = str -> ix -> str + ", " + (arr.at ix).to_text
+                tail_elems = 1.upto arr.length . fold "" folder
+                "[" + (arr.at 0 . to_text) + tail_elems + "]"
+
+    ## Checks whether this vector is equal to `that`. Two vectors are considered
+       equal, when they have the same length and their items are pairwise equal.
+    == : Vector -> Boolean
+    == that =
+        arr1 = this.to_array
+        arr2 = that.to_array
+        eq_at i = arr1.at i == arr2.at i
+        r = if arr1.length == arr2.length then 0.upto arr1.length . every eq_at else False
+        r
+
+    ## Concatenates two vectors, resulting in a new vector, containing all the
+       elements of `this`, followed by all the elements of `that`.
+    + : Vector -> Vector
+    + that =
+        this_len = this.length
+        arr = Array.new (this_len + that.length)
+        0.upto this_len . each i->
+            arr.set_at i (this.at i)
+        this.length.upto arr.length . each i->
+            arr.set_at i (that.at i-this_len)
+        Vector arr
+
+    ## When `this` is a vector of text values, concatenates all the values by
+       interspersing them with `separator`.
+
+       > Example
+         The following code returns "foo, bar, baz"
+             ["foo", "bar", "baz"].join ", "
+    join : String -> Text
+    join separator =
+        if this.length == 0 then "" else
+            if this.length == 1 then this.at 0 else
+                this.at 0 + (1.upto this.length . fold "" acc-> i-> acc + separator + this.at i)
+
+    ## Creates a new vector with the first `count` elements on the left of
+       `this` removed.
+    drop : Integer -> Vector
+    drop count = if count >= this.length then Vector.new 0 (x -> x) else
+        Vector.new (this.length - count) (i -> this.at i+count)
+
+    ## Creates a new vector with the last `count` elements on the right of
+       `this` removed.
+    drop_right : Integer -> Vector
+    drop_right count = if count >= this.length then Vector.new 0 (x -> x) else
+        this.take (this.length - count)
+
+    ## Creates a new vector, consisting of the first `count` elements on the
+       left of `this`.
+    take : Integer -> Vector
+    take count = if count >= this.length then this else
+        Vector.new count this.at
+
+    ## Creates a new vector, consisting of the last `count` elements on the
+       right of `this`.
+    take_right : Integer -> Vector
+    take_right count = if count >= this.length then this else
+        this.drop (this.length - count)
+
+## A builder type for Enso vectors.
+
+   A vector builder is a mutable data structure, that allows to gather a
+   number of elements and then convert them to a vector. This is
+   particularly useful when the number of elements is not known upfront.
+
+   > Example
+     In the following example we'll read items from the standard input,
+     until the string "end" is entered by the user and then return a vector
+     containing all items.
+         from Base import all
+
+         main =
+              builder = Vector.new_builder
+              do_read =
+                  item = IO.readln
+                  if item == "end" then Unit else
+                      builder.append item
+                      do_read
+              do_read
+              vec = builder.to_vector
+              IO.println vec
+type Builder
+    type Builder to_array length
+
+    ## Creates a new builder.
+    new = Builder (Array.new 1) 0
+
+    ## Returns the current capacity (i.e. the size of the underlying storage)
+       of this builder.
+    capacity = this.to_array.length
+
+    ## Appends a new element into this builder.
+    append : Any -> Unit
+    append item = case this.capacity > this.length of
+        True ->
+            this.to_array.set_at this.length item
+            Unsafe.set_atom_field this 1 (this.length + 1)
+        False ->
+            old_array = this.to_array
+            new_array = Array.new old_array.length*2
+            0.upto this.length . each i->
+                new_array.set_at i (old_array.at i)
+                Unit
+            Unsafe.set_atom_field this 0 new_array
+            this.append item
+            Unit
+
+    ## Converts this builder to a vector containing all the appended elements.
+    to_vector : Vector
+    to_vector =
+        old_array = this.to_array
+        new_array = Array.new this.length
+        0.upto this.length . each i->
+            new_array.set_at i (old_array.at i)
+            Unit
+        Vector new_array

@@ -1,6 +1,7 @@
 package org.enso.searcher.sql
 
 import java.io.File
+import java.util
 
 import org.enso.searcher.FileVersionsRepo
 import slick.jdbc.SQLiteProfile.api._
@@ -26,11 +27,21 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(setVersionQuery(file, digest))
 
   /** @inheritdoc */
+  override def updateVersion(file: File, digest: Array[Byte]): Future[Boolean] =
+    db.run(updateVersionQuery(file, digest))
+
+  /** @inheritdoc */
+  override def updateVersions(
+    versions: Seq[(File, Array[Byte])]
+  ): Future[Unit] =
+    db.run(updateVersionsQuery(versions))
+
+  /** @inheritdoc */
   override def remove(file: File): Future[Unit] =
     db.run(removeQuery(file))
 
-  /** Clean the database. */
-  def clean: Future[Unit] =
+  /** @inheritdoc */
+  override def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** Close the database. */
@@ -38,8 +49,10 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.close()
 
   /** The query to initialize the repo. */
-  private def initQuery: DBIO[Unit] =
-    FileVersions.schema.createIfNotExists
+  private def initQuery: DBIO[Unit] = {
+    // Initialize schema suppressing errors. Workaround for slick/slick#1999.
+    FileVersions.schema.createIfNotExists.asTry >> DBIO.successful(())
+  }
 
   /** The query to clean the repo. */
   private def cleanQuery: DBIO[Unit] =
@@ -70,12 +83,46 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): DBIO[Option[Array[Byte]]] = {
     val upsertQuery = FileVersions
       .insertOrUpdate(FileVersionRow(file.toString, version))
-    val query = for {
+    for {
       version <- getVersionQuery(file)
       _       <- upsertQuery
     } yield version
-    query.transactionally
   }
+
+  /** The query to update the version if it differs from the recorded version.
+    *
+    * @param file the file path
+    * @param version the version digest
+    * @return `true` if the version has been updated
+    */
+  private def updateVersionQuery(
+    file: File,
+    version: Array[Byte]
+  ): DBIO[Boolean] =
+    for {
+      repoVersion <- getVersionQuery(file)
+      versionsEquals = repoVersion.fold(false)(compareVersions(_, version))
+      _ <-
+        if (!versionsEquals) setVersionQuery(file, version)
+        else DBIO.successful(None)
+    } yield !versionsEquals
+
+
+  /** The query to update the versions in batch.
+    *
+    * @param versions files with corresponding digests
+    */
+  private def updateVersionsQuery(
+    versions: Seq[(File, Array[Byte])]
+  ): DBIO[Unit] =
+    if (versions.nonEmpty) {
+      def upsertQuery(file: File, version: Array[Byte]) = FileVersions
+        .insertOrUpdate(FileVersionRow(file.toString, version))
+      DBIO.sequence(versions.map(Function.tupled(upsertQuery))) >>
+      DBIO.successful(())
+    } else {
+      DBIO.successful(())
+    }
 
   /** The query to remove the version record.
     *
@@ -88,6 +135,9 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield row
     query.delete >> DBIO.successful(())
   }
+
+  private def compareVersions(v1: Array[Byte], v2: Array[Byte]): Boolean =
+    util.Arrays.equals(v1, v2)
 
 }
 

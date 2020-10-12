@@ -320,7 +320,11 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Application.Prefix]
 
       val fn = ir.asInstanceOf[IR.Application.Prefix]
-      fn.function shouldEqual IR.Name.Literal("negate", None)
+      fn.function shouldEqual IR.Name.Literal(
+        "negate",
+        isReferent = false,
+        None
+      )
 
       val fooArg = fn.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       fooArg.value shouldBe an[IR.Name.Literal]
@@ -354,6 +358,28 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
 
       ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Binding]
+    }
+
+    "work for method definitions with operator names" in {
+      val bindings = """
+                       |My.== : My -> Boolean
+                       |My.== that = this.a == that.a
+                       |""".stripMargin.toIrModule.bindings
+
+      val tpIr = bindings(0)
+      tpIr shouldBe a[IR.Type.Ascription]
+      val tp = tpIr.asInstanceOf[IR.Type.Ascription]
+      tp.typed shouldBe a[IR.Name.MethodReference]
+      val methodRef = tp.typed.asInstanceOf[IR.Name.MethodReference]
+      methodRef.typePointer.name shouldEqual "My"
+      methodRef.methodName.name shouldEqual "=="
+
+      val methodIr = bindings(1)
+      methodIr shouldBe a[IR.Module.Scope.Definition.Method.Binding]
+      val method =
+        methodIr.asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+      method.methodReference.methodName.name shouldEqual "=="
+      method.methodReference.typePointer.name shouldEqual "My"
     }
 
     "not recognise pattern match bindings" in {
@@ -510,6 +536,24 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Error.Syntax]
       ir.asInstanceOf[IR.Error.Syntax]
         .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
+    }
+
+    "allow defining methods with operator names" in {
+      val body =
+        """
+          |type My
+          |    type My a
+          |    
+          |    + : My -> My
+          |    + that = My this.a+that.a
+          |""".stripMargin.toIrModule.bindings.head
+          .asInstanceOf[IR.Module.Scope.Definition.Type]
+          .body
+
+      body(1) shouldBe an[IR.Type.Ascription]
+      body(2) shouldBe an[IR.Function.Binding]
+      val fun = body(2).asInstanceOf[IR.Function.Binding]
+      fun.name.name shouldEqual "+"
     }
   }
 
@@ -780,6 +824,40 @@ class AstToIrTest extends CompilerTest with Inside {
         .operator
         .name shouldEqual "!"
     }
+  }
+
+  "properly support different kinds of imports" in {
+    val imports = List(
+      "import Foo.Bar as Baz",
+      "import Foo.Bar",
+      "from Foo.Bar import Baz",
+      "from Foo.Bar import Baz, Spam",
+      "from Foo.Bar import all",
+      "from Foo.Bar as Eggs import all hiding Spam",
+      "from Foo.Bar import all hiding Spam, Eggs"
+    )
+    imports
+      .mkString("\n")
+      .toIrModule
+      .imports
+      .map(_.showCode()) shouldEqual imports
+  }
+
+  "properly support different kinds of exports" in {
+    val exports = List(
+      "export Foo.Bar as Baz",
+      "export Foo.Bar",
+      "from Foo.Bar export Baz",
+      "from Foo.Bar export baz, Spam",
+      "from Foo.Bar export all",
+      "from Foo.Bar as Eggs export all hiding Spam",
+      "from Foo.Bar export all hiding Spam, eggs"
+    )
+    exports
+      .mkString("\n")
+      .toIrModule
+      .exports
+      .map(_.showCode()) shouldEqual exports
   }
 
   "AST translation of erroneous constructs" should {

@@ -15,7 +15,7 @@ import scala.util.Random
 
 class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
-  val Timeout: FiniteDuration = 5.seconds
+  val Timeout: FiniteDuration = 20.seconds
 
   val tmpdir: Path = {
     val tmp = Files.createTempDirectory("versions-repo-test")
@@ -44,6 +44,10 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
   "FileVersionsRepo" should {
 
+    "init idempotent" in withRepo { repo =>
+      Await.result(repo.init, Timeout)
+    }
+
     "insert digest" taggedAs Retry in withRepo { repo =>
       val file   = new File("/foo/bar")
       val digest = nextDigest()
@@ -59,7 +63,7 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       util.Arrays.equals(v2.get, digest) shouldBe true
     }
 
-    "update digest" taggedAs Retry in withRepo { repo =>
+    "set digest" taggedAs Retry in withRepo { repo =>
       val file    = new File("/foo/bar")
       val digest1 = nextDigest()
       val digest2 = nextDigest()
@@ -76,6 +80,54 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       v3 shouldBe a[Some[_]]
       util.Arrays.equals(v2.get, digest1) shouldBe true
       util.Arrays.equals(v3.get, digest2) shouldBe true
+    }
+
+    "update digest" taggedAs Retry in withRepo { repo =>
+      val file    = new File("/foo/bazz")
+      val digest1 = nextDigest()
+      val digest2 = nextDigest()
+      val digest3 = nextDigest()
+      val action =
+        for {
+          b1 <- repo.updateVersion(file, digest1)
+          v2 <- repo.setVersion(file, digest2)
+          b2 <- repo.updateVersion(file, digest2)
+          b3 <- repo.updateVersion(file, digest3)
+          b4 <- repo.updateVersion(file, digest3)
+          v3 <- repo.getVersion(file)
+        } yield (v2, v3, b1, b2, b3, b4)
+
+      val (v2, v3, b1, b2, b3, b4) = Await.result(action, Timeout)
+      v2 shouldBe a[Some[_]]
+      v3 shouldBe a[Some[_]]
+      util.Arrays.equals(v2.get, digest1) shouldBe true
+      util.Arrays.equals(v3.get, digest3) shouldBe true
+      b1 shouldBe true
+      b2 shouldBe false
+      b3 shouldBe true
+      b4 shouldBe false
+    }
+
+    "batch update digest" taggedAs Retry in withRepo { repo =>
+      val file1   = new File("/foo/1")
+      val file2   = new File("/foo/2")
+      val digest0 = nextDigest()
+      val digest1 = nextDigest()
+      val digest2 = nextDigest()
+      val input   = Seq(file1 -> digest1, file2 -> digest2)
+      val action =
+        for {
+          _ <- repo.setVersion(file1, digest0)
+          _ <- repo.updateVersions(input)
+          v1 <- repo.getVersion(file1)
+          v2 <- repo.getVersion(file2)
+        } yield (v1, v2)
+
+      val (v1, v2) = Await.result(action, Timeout)
+      v1 shouldBe a[Some[_]]
+      v2 shouldBe a[Some[_]]
+      util.Arrays.equals(v1.get, digest1) shouldBe true
+      util.Arrays.equals(v2.get, digest2) shouldBe true
     }
 
     "delete digest" taggedAs Retry in withRepo { repo =>

@@ -14,6 +14,13 @@ trait SuggestionsRepo[F[_]] {
     */
   def getAll: F[(Long, Seq[SuggestionEntry])]
 
+  /** Get suggestions by the method call info.
+    *
+    * @param calls the list of triples: module, self type and method name
+    * @return the list of found suggestion ids
+    */
+  def getAllMethods(calls: Seq[(String, String, String)]): F[Seq[Option[Long]]]
+
   /** Search suggestion by various parameters.
     *
     * @param module the module name search parameter
@@ -66,6 +73,13 @@ trait SuggestionsRepo[F[_]] {
     */
   def removeByModule(name: String): F[(Long, Seq[Long])]
 
+  /** Remove all suggestions by module names.
+    *
+    * @param modules the list of modules to remove
+    * @return the current database version and a list of removed suggestion ids
+    */
+  def removeAllByModule(modules: Seq[String]): F[(Long, Seq[Long])]
+
   /** Remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
@@ -81,4 +95,14 @@ trait SuggestionsRepo[F[_]] {
   def updateAll(
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): F[(Long, Seq[Option[Long]])]
+
+  /** Cleans the repo resetting the version. */
+  def clean: F[Unit]
+
+  /** Update the suggestions with the new project name.
+    *
+    * @param oldName the old name of the project
+    * @param newName the new project name
+    */
+  def renameProject(oldName: String, newName: String): F[Unit]
 }

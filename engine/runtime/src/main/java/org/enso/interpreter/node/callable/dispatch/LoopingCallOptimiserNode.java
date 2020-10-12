@@ -54,9 +54,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    * @param loopNode a cached instance of the loop node used by this node
    * @return the result of executing {@code function} using {@code arguments}
    */
-  // TODO[MK]: Remove the guard when https://github.com/oracle/graal/pull/2567 is released.
-  //           Probably 20.2.
-  @Specialization(guards = "true")
+  @Specialization
   public Stateful dispatch(
       Object function,
       CallerInfo callerInfo,

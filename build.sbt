@@ -1,38 +1,70 @@
 import java.io.File
 
-import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
-  licenseReportNotes,
-  licenseReportStyleRules
-}
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
-import sbt.Keys.scalacOptions
+import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import com.typesafe.sbt.license.{DepModuleInfo, LicenseInfo}
 
 // ============================================================================
 // === Global Configuration ===================================================
 // ============================================================================
 
 val scalacVersion = "2.13.3"
-val graalVersion  = "20.1.0"
+val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
+val graalVersion  = "20.2.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.0.1"
+val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
+
+/* Note [Engine And Launcher Version]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Currently both Engine and Launcher versions are tied to each other - each new
+ * releases contains the Engine and the Launcher and thus the version number is
+ * shared. If the version numbers ever diverge, make sure tu update the build
+ * scripts at .github/workflows accordingly.
+ */
+
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
-val licenseSettings = Seq(
-  licenseConfigurations := Set("compile"),
-  licenseReportStyleRules := Some(
-      "table, th, td {border: 1px solid black;}"
+
+lazy val gatherLicenses =
+  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+gatherLicenses := GatherLicenses.run.value
+GatherLicenses.distributions := Seq(
+    Distribution(
+      "launcher",
+      file("distribution/launcher/THIRD-PARTY"),
+      Distribution.sbtProjects(launcher)
     ),
-  licenseReportNotes := {
-    case DepModuleInfo(group, _, _) if group == "org.enso" =>
-      "Internal library"
-  }
-)
-val coursierCache = file("~/.cache/coursier/v1")
+    Distribution(
+      "engine",
+      file("distribution/engine/THIRD-PARTY"),
+      Distribution.sbtProjects(
+        runtime,
+        `engine-runner`,
+        `project-manager`,
+        `language-server`
+      )
+    ),
+    Distribution(
+      "std-lib-Base",
+      file("distribution/std-lib/Base/THIRD-PARTY"),
+      Distribution.sbtProjects(`std-bits`)
+    )
+  )
+GatherLicenses.licenseConfigurations := Set("compile")
+GatherLicenses.configurationRoot := file("tools/legal-review")
+
+lazy val openLegalReviewReport =
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies and opens the " +
+    "report in review mode in the browser."
+  )
+openLegalReviewReport := {
+  gatherLicenses.value
+  GatherLicenses.runReportServer()
+}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
@@ -127,8 +159,11 @@ lazy val enso = (project in file("."))
     graph,
     logger.jvm,
     pkg,
+    cli,
+    `logging-service`,
+    `akka-native`,
     `version-output`,
-    runner,
+    `engine-runner`,
     runtime,
     searcher,
     launcher,
@@ -283,10 +318,14 @@ val splainOptions = Seq(
   "-P:splain:tree:true"
 )
 
+// === std-lib ================================================================
+
+val icuVersion = "67.1"
+
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.0-RC18-2"
-val zioInteropCatsVersion = "2.0.0.0-RC13"
+val zioVersion            = "1.0.1"
+val zioInteropCatsVersion = "2.1.4.0"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
@@ -294,30 +333,31 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version          = "1.65"
-val declineVersion              = "1.2.0"
-val directoryWatcherVersion     = "0.9.10"
-val flatbuffersVersion          = "1.12.0"
-val guavaVersion                = "29.0-jre"
-val jlineVersion                = "3.15.0"
-val jupyterJvmBasekernelVersion = "2.3.0"
-val kindProjectorVersion        = "0.11.0"
-val mockitoScalaVersion         = "1.14.8"
-val newtypeVersion              = "0.4.4"
-val pprintVersion               = "0.5.9"
-val pureconfigVersion           = "0.13.0"
-val refinedVersion              = "0.9.14"
-val scalacheckVersion           = "1.14.3"
-val scalacticVersion            = "3.3.0-SNAP2"
-val scalaLoggingVersion         = "3.9.2"
-val scalameterVersion           = "0.19"
-val scalatagsVersion            = "0.9.1"
-val scalatestVersion            = "3.3.0-SNAP2"
-val shapelessVersion            = "2.4.0-M1"
-val slickVersion                = "3.3.2"
-val sqliteVersion               = "3.31.1"
-val tikaVersion                 = "1.24.1"
-val typesafeConfigVersion       = "1.4.0"
+val bcpkixJdk15Version      = "1.65"
+val bumpVersion             = "0.1.3"
+val declineVersion          = "1.2.0"
+val directoryWatcherVersion = "0.9.10"
+val flatbuffersVersion      = "1.12.0"
+val guavaVersion            = "29.0-jre"
+val jlineVersion            = "3.15.0"
+val kindProjectorVersion    = "0.11.0"
+val mockitoScalaVersion     = "1.14.8"
+val newtypeVersion          = "0.4.4"
+val pprintVersion           = "0.5.9"
+val pureconfigVersion       = "0.13.0"
+val refinedVersion          = "0.9.14"
+val scalacheckVersion       = "1.14.3"
+val scalacticVersion        = "3.3.0-SNAP2"
+val scalaLoggingVersion     = "3.9.2"
+val scalameterVersion       = "0.19"
+val scalatagsVersion        = "0.9.1"
+val scalatestVersion        = "3.3.0-SNAP2"
+val shapelessVersion        = "2.4.0-M1"
+val slf4jVersion            = "1.7.30"
+val slickVersion            = "3.3.2"
+val sqliteVersion           = "3.31.1"
+val tikaVersion             = "1.24.1"
+val typesafeConfigVersion   = "1.4.0"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -332,7 +372,6 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= scalaCompiler
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -349,7 +388,6 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
       )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -368,7 +406,6 @@ lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
       )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -418,7 +455,6 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
-  .settings(licenseSettings)
 
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
@@ -426,7 +462,6 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
   )
-  .settings(licenseSettings)
 
 lazy val `text-buffer` = project
   .in(file("lib/scala/text-buffer"))
@@ -438,7 +473,6 @@ lazy val `text-buffer` = project
         "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
       )
   )
-  .settings(licenseSettings)
 
 lazy val graph = (project in file("lib/scala/graph/"))
   .dependsOn(logger.jvm)
@@ -466,18 +500,66 @@ lazy val graph = (project in file("lib/scala/graph/"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
 
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-        "io.circe"  %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
-        "commons-io" % "commons-io" % commonsIoVersion
+        "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
+        "nl.gn0s1s"     %% "bump"       % bumpVersion,
+        "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
+        "commons-io"     % "commons-io" % commonsIoVersion
       )
   )
-  .settings(licenseSettings)
+
+lazy val `akka-native` = project
+  .in(file("lib/scala/akka-native"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        akkaActor
+      ),
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
+  )
+
+lazy val `logging-service` = project
+  .in(file("lib/scala/logging-service"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+        "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+        akkaStream,
+        akkaHttp,
+        "io.circe"              %%% "circe-core"   % circeVersion,
+        "io.circe"              %%% "circe-parser" % circeVersion,
+        "org.scalatest"          %% "scalatest"    % scalatestVersion % Test,
+        "org.graalvm.nativeimage" % "svm"          % graalVersion     % "provided"
+      )
+  )
+  .settings(
+    if (Platform.isWindows)
+      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-windows"
+    else
+      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
+  )
+  .dependsOn(`akka-native`)
+
+lazy val cli = project
+  .in(file("lib/scala/cli"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+        "org.typelevel" %% "cats-core" % catsVersion
+      ),
+    parallelExecution in Test := false
+  )
 
 lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
@@ -496,7 +578,6 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           )
       }.taskValue
   )
-  .settings(licenseSettings)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
@@ -523,9 +604,9 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "com.typesafe.scala-logging" %% "scala-logging"       % scalaLoggingVersion,
         "dev.zio"                    %% "zio"                 % zioVersion,
         "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
+        "commons-cli"                 % "commons-cli"         % commonsCliVersion,
         "commons-io"                  % "commons-io"          % commonsIoVersion,
         "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
-        "com.typesafe.slick"         %% "slick-hikaricp"      % slickVersion             % Runtime,
         "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
         "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
       ),
@@ -561,7 +642,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         .dependsOn(runtime / assembly)
         .value
   )
-  .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
@@ -602,7 +682,6 @@ lazy val `json-rpc-server` = project
         "org.scalatest" %% "scalatest"     % scalatestVersion % Test
       )
   )
-  .settings(licenseSettings)
 
 lazy val `json-rpc-server-test` = project
   .in(file("lib/scala/json-rpc-server-test"))
@@ -615,14 +694,14 @@ lazy val `json-rpc-server-test` = project
         "org.scalatest" %% "scalatest" % scalatestVersion
       )
   )
-  .settings(licenseSettings)
   .dependsOn(`json-rpc-server`)
 
 lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalatestVersion
+        "org.apache.commons" % "commons-lang3" % commonsLangVersion,
+        "org.scalatest"     %% "scalatest"     % scalatestVersion
       )
   )
 
@@ -651,7 +730,6 @@ lazy val `core-definition` = (project in file("lib/scala/core-definition"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
 
@@ -662,7 +740,6 @@ lazy val searcher = project
     libraryDependencies ++= jmh ++ Seq(
         "com.typesafe.slick" %% "slick"           % slickVersion,
         "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
-        "com.typesafe.slick" %% "slick-hikaricp"  % slickVersion          % Runtime,
         "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
         "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
       )
@@ -673,7 +750,6 @@ lazy val searcher = project
     fork in Benchmark := true
   )
   .dependsOn(testkit % Test)
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
@@ -681,7 +757,6 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     version := "0.1",
     libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
   )
-  .settings(licenseSettings)
 
 // ============================================================================
 // === Sub-Projects ===========================================================
@@ -726,7 +801,6 @@ lazy val `polyglot-api` = project
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
 
@@ -744,7 +818,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
         "commons-io"                  % "commons-io"           % commonsIoVersion,
         akkaTestkit                   % Test,
-        "com.typesafe.slick"         %% "slick-hikaricp"       % slickVersion      % Runtime,
         "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
         "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
         "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
@@ -763,13 +836,41 @@ lazy val `language-server` = (project in file("engine/language-server"))
         new TestFramework("org.scalameter.ScalaMeterFramework")
       )
   )
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
   .dependsOn(testkit % Test)
+
+lazy val ast = (project in file("lib/scala/ast"))
+  .settings(
+    version := ensoVersion,
+    Cargo.rustVersion := rustVersion,
+    Compile / sourceGenerators += GenerateAST.task
+  )
+
+lazy val parser = (project in file("lib/scala/parser"))
+  .settings(
+    fork := true,
+    Cargo.rustVersion := rustVersion,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+        .dependsOn(Cargo("build --project parser"))
+        .value,
+    javaOptions += {
+      val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
+      s"-Djava.library.path=$root/target/rust/debug"
+    },
+    libraryDependencies ++= Seq(
+        "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+        "org.scalatest"    %%% "scalatest"  % scalatestVersion  % Test
+      ),
+    testFrameworks := List(
+        new TestFramework("org.scalatest.tools.Framework"),
+        new TestFramework("org.scalameter.ScalaMeterFramework")
+      )
+  )
+  .dependsOn(ast)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -839,6 +940,11 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
+    (Test / compile) := (Test / compile)
+        .dependsOn(`std-bits` / Compile / packageBin)
+        .value
+  )
+  .settings(
     logBuffered := false,
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
@@ -867,14 +973,14 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(syntax.jvm)
   .dependsOn(graph)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
-  .dependsOn(`searcher`)
+  .dependsOn(searcher)
+  .dependsOn(testkit)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -890,7 +996,7 @@ lazy val runtime = (project in file("engine/runtime"))
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
-lazy val runner = project
+lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
     javaOptions ++= {
@@ -933,20 +1039,22 @@ lazy val runner = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-        "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
-        "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
-        "commons-cli"           % "commons-cli"            % commonsCliVersion,
-        "com.monovore"         %% "decline"                % declineVersion,
-        "io.github.spencerpark" % "jupyter-jvm-basekernel" % jupyterJvmBasekernelVersion,
-        "org.jline"             % "jline"                  % jlineVersion,
-        "org.typelevel"        %% "cats-core"              % catsVersion,
-        "com.typesafe.slick"   %% "slick-hikaricp"         % slickVersion % Runtime
+        "org.graalvm.sdk"     % "polyglot-tck" % graalVersion % "provided",
+        "org.graalvm.truffle" % "truffle-api"  % graalVersion % "provided",
+        "commons-cli"         % "commons-cli"  % commonsCliVersion,
+        "com.monovore"       %% "decline"      % declineVersion,
+        "org.jline"           % "jline"        % jlineVersion,
+        "org.typelevel"      %% "cats-core"    % catsVersion
       ),
     connectInput in run := true
   )
   .settings(
     buildNativeImage := NativeImage
-        .buildNativeImage(staticOnLinux = false)
+        .buildNativeImage(
+          "enso",
+          staticOnLinux = false,
+          Seq("-H:IncludeResources=.*Main.enso$")
+        )
         .value
   )
   .settings(
@@ -954,25 +1062,129 @@ lazy val runner = project
         .dependsOn(runtime / assembly)
         .value
   )
-  .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`logging-service`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-        "com.monovore"  %% "decline"   % declineVersion,
-        "org.typelevel" %% "cats-core" % catsVersion
+        "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+        "org.typelevel"              %% "cats-core"        % catsVersion,
+        "nl.gn0s1s"                  %% "bump"             % bumpVersion,
+        "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+        "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+        akkaHttp,
+        akkaSLF4J
       )
   )
   .settings(
-    buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
+    buildNativeImage := NativeImage
+        .buildNativeImage(
+          "enso",
+          staticOnLinux = true,
+          Seq(
+            "-J-Xmx4G",
+            "--enable-all-security-services", // Note [HTTPS in the Launcher]
+            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+            "-H:IncludeResources=.*Main.enso$",
+            "--initialize-at-run-time=" +
+            "akka.protobuf.DescriptorProtos," +
+            "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
+            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder," +
+            "org.enso.loggingservice.WSLoggerManager$" // Note [WSLoggerManager Shutdown Hook]
+          )
+        )
+        .value,
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("launcher.jar")
   )
-  .settings(licenseSettings)
+  .settings(
+    (Test / test) := (Test / test)
+        .dependsOn(
+          NativeImage.incrementalNativeImageBuild(
+            buildNativeImage,
+            "enso"
+          )
+        )
+        .dependsOn(
+          LauncherShimsForTest.prepare(rustcVersion = rustVersion)
+        )
+        .value,
+    parallelExecution in Test := false
+  )
+  .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`logging-service`)
+
+val `std-lib-root`          = file("distribution/std-lib/")
+val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
+
+lazy val `std-bits` = project
+  .in(file("std-bits"))
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `std-lib-polyglot-root` / "std-bits.jar",
+    libraryDependencies ++= Seq(
+        "com.ibm.icu" % "icu4j" % icuVersion
+      ),
+    Compile / packageBin := Def.task {
+        val result = (Compile / packageBin).value
+        StdBits
+          .copyDependencies(
+            `std-lib-polyglot-root`,
+            "std-bits.jar",
+            ignoreScalaLibrary = true
+          )
+          .value
+        result
+      }.value
+  )
+
+/* Note [HTTPS in the Launcher]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The launcher uses Apache HttpClient for making web requests. It does not use
+ * Java's stdlib implementation, because there is a bug (not fixed in JDK 11)
+ * (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS handling that
+ * causes long running requests to freeze forever. However, Apache HttpClient
+ * still needs the stdlib's SSL implementation and it is not included in the
+ * Native Images by default (because of its size). The
+ * `--enable-all-security-services` flag is used to ensure it is available in
+ * the built executable.
+ */
+
+/* Note [Native Image Workaround for GraalVM 20.2]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * In GraalVM 20.2 the Native Image build of even simple Scala programs has
+ * started to fail on a call to `Statics.releaseFence`. It has been reported as
+ * a bug in the GraalVM repository: https://github.com/oracle/graal/issues/2770
+ *
+ * A proposed workaround for this bug is to substitute the original function
+ * with a different implementation that does not use the problematic
+ * MethodHandle. This is implemented in class
+ * `org.enso.launcher.workarounds.ReplacementStatics` using
+ * `org.enso.launcher.workarounds.Unsafe` which gives access to
+ * `sun.misc.Unsafe` which contains a low-level function corresponding to the
+ * required "release fence".
+ *
+ * To allow for that substitution, the launcher code requires annotations from
+ * the `svm` module and that is why this additional dependency is needed as long
+ * as that workaround is in-place. The dependency is marked as "provided"
+ * because it is included within the native-image build.
+ */
+
+/* Note [WSLoggerManager Shutdown Hook]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As the WSLoggerManager registers a shutdown hook when its initialized to
+ * ensure that logs are not lost in case of logging service initialization
+ * failure, it has to be initialized at runtime, as otherwise if the
+ * initialization was done at build time, the shutdown hook would actually also
+ * run at build time and have no effect at runtime.
+ */

@@ -1,6 +1,5 @@
 package org.enso.compiler.test.pass.desugar
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.IdentifiedLocation
 import org.enso.compiler.pass.desugar.OperatorToFunction
@@ -11,8 +10,8 @@ class OperatorToFunctionTest extends CompilerTest {
 
   // === Utilities ============================================================
 
-  val ctx    = InlineContext()
-  val modCtx = ModuleContext()
+  val ctx    = buildInlineContext()
+  val modCtx = buildModuleContext()
 
   /** Generates an operator and its corresponding function.
     *
@@ -46,14 +45,14 @@ class OperatorToFunctionTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Operators" should {
-    val opName   = IR.Name.Literal("=:=", None)
+    val opName   = IR.Name.Literal("=:=", isReferent = false, None)
     val left     = IR.Empty(None)
     val right    = IR.Empty(None)
     val rightArg = IR.CallArgument.Specified(None, IR.Empty(None), None)
 
     val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
-    val oprArg = IR.CallArgument.Specified(None, operator, None)
+    val oprArg   = IR.CallArgument.Specified(None, operator, None)
     val oprFnArg = IR.CallArgument.Specified(None, operatorFn, None)
 
     "be translated to functions" in {
@@ -77,7 +76,10 @@ class OperatorToFunctionTest extends CompilerTest {
         None
       )
 
-      OperatorToFunction.runExpression(recursiveIR, ctx) shouldEqual recursiveIRResult
+      OperatorToFunction.runExpression(
+        recursiveIR,
+        ctx
+      ) shouldEqual recursiveIRResult
     }
   }
 }

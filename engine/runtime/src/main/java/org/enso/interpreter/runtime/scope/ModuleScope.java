@@ -7,19 +7,22 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+
+import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 
 /** A representation of Enso's per-file top-level scope. */
-public class ModuleScope {
+public class ModuleScope implements TruffleObject {
   private final AtomConstructor associatedType;
   private final Module module;
   private Map<String, Object> polyglotSymbols = new HashMap<>();
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
+  private Set<ModuleScope> exports = new HashSet<>();
 
   /**
    * Creates a new object of this class.
@@ -28,7 +31,7 @@ public class ModuleScope {
    */
   public ModuleScope(Module module) {
     this.module = module;
-    this.associatedType = new AtomConstructor(module.getName().module(), this).initializeFields();
+    this.associatedType = new AtomConstructor(module.getName().item(), this).initializeFields();
   }
 
   /**
@@ -105,6 +108,7 @@ public class ModuleScope {
    * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(AtomConstructor atom, String method, Function function) {
+    method = method.toLowerCase();
     Map<String, Function> methodMap = ensureMethodMapFor(atom);
 
     if (methodMap.containsKey(method)) {
@@ -147,15 +151,28 @@ public class ModuleScope {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(AtomConstructor atom, String name) {
-    Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
+    String lowerName = name.toLowerCase();
+    Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(lowerName);
     if (definedWithAtom != null) {
       return definedWithAtom;
     }
-    Function definedHere = getMethodMapFor(atom).get(name);
+    Function definedHere = getMethodMapFor(atom).get(lowerName);
     if (definedHere != null) {
       return definedHere;
     }
     return imports.stream()
+        .map(scope -> scope.getExportedMethod(atom, name))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
+  }
+
+  private Function getExportedMethod(AtomConstructor atom, String name) {
+    Function here = getMethodMapFor(atom).get(name);
+    if (here != null) {
+      return here;
+    }
+    return exports.stream()
         .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)
         .findFirst()
@@ -171,16 +188,32 @@ public class ModuleScope {
     imports.add(scope);
   }
 
+  /**
+   * Adds an information about the module exporting another module.
+   *
+   * @param scope the exported scope
+   */
+  public void addExport(ModuleScope scope) {
+    exports.add(scope);
+  }
+
   public Map<String, AtomConstructor> getConstructors() {
     return constructors;
   }
 
+  /** @return the raw method map held by this module */
   public Map<AtomConstructor, Map<String, Function>> getMethods() {
     return methods;
   }
 
+  /** @return the polyglot symbols imported into this scope. */
+  public Map<String, Object> getPolyglotSymbols() {
+    return polyglotSymbols;
+  }
+
   public void reset() {
     imports = new HashSet<>();
+    exports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
   }

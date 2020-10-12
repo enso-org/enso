@@ -5,7 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Pattern}
 import org.enso.compiler.pass.desugar.NestedPatternMatch
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class NestedPatternMatchTest extends CompilerTest {
@@ -14,12 +14,12 @@ class NestedPatternMatchTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] =
+  val precursorPasses: PassGroup =
     passes.getPrecursors(NestedPatternMatch).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run nested pattern desugaring on an
     * [[IR.Module]].
@@ -62,7 +62,7 @@ class NestedPatternMatchTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   /** Creates a defaulted inline context.
@@ -70,7 +70,7 @@ class NestedPatternMatchTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

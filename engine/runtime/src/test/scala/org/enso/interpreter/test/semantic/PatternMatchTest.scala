@@ -16,13 +16,14 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for simple patterns" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    f = case _ of
-          |        Cons a _ -> a
-          |        Nil -> -10
+          |        Builtins.Cons a _ -> a
+          |        Builtins.Nil -> -10
           |
-          |    (10.Cons Nil . f) - Nil.f
+          |    (Builtins.Cons 10 Builtins.Nil . f) - Nil.f
           |""".stripMargin
 
       eval(code) shouldEqual 20
@@ -30,7 +31,8 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for anonymous catch-all patterns" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyAtom a
           |
           |main =
@@ -38,7 +40,7 @@ class PatternMatchTest extends InterpreterTest {
           |        MyAtom a -> a
           |        _ -> -100
           |
-          |    (50.MyAtom . f) + Nil.f
+          |    (MyAtom 50 . f) + Nil.f
           |""".stripMargin
 
       eval(code) shouldEqual -50
@@ -54,7 +56,7 @@ class PatternMatchTest extends InterpreterTest {
           |        MyAtom a -> a
           |        a -> a + 5
           |
-          |    (50.MyAtom . f) + 30.f
+          |    (MyAtom 50 . f) + 30.f
           |""".stripMargin
 
       eval(code) shouldEqual 85
@@ -75,7 +77,8 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for level one nested patterns" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyAtom
           |
           |main =
@@ -91,7 +94,8 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for deeply nested patterns" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyAtom
           |
           |main =
@@ -114,7 +118,8 @@ class PatternMatchTest extends InterpreterTest {
 
     "correctly result in errors for incomplete matches" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyAtom
           |
           |main =
@@ -130,7 +135,8 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for pattern matches in pattern matches" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyAtom a
           |type One a
           |type Two a

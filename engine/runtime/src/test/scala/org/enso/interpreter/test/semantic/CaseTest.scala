@@ -15,6 +15,8 @@ class CaseTest extends InterpreterTest {
     "result in an error if the matched constructor isn't visible" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = Cons a Nil
           |    case x of
@@ -30,6 +32,8 @@ class CaseTest extends InterpreterTest {
     "result in an error if the wrong number of fields are provided" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = Cons a Nil
           |    case x of

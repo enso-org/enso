@@ -28,6 +28,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
+  - [`SuggestionId`](#suggestionid)
+  - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -105,6 +107,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Search Operations](#search-operations)
   - [Suggestions Database Example](#suggestionsdatabaseexample)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
+  - [`search/invalidateSuggestionsDatabase`](#invalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
@@ -166,10 +169,6 @@ An identifier used for execution contexts.
 type ContextId = UUID;
 ```
 
-```typescript
-type SuggestionEntryId = number;
-```
-
 ### `StackItem`
 
 A representation of an executable position in code, used by the execution APIs.
@@ -202,8 +201,13 @@ Points to a method definition.
 
 ```typescript
 interface MethodPointer {
-  file: Path;
+  /** The fully qualified module name. */
+  module: String;
+
+  /** The type on which the method is defined. */
   definedOnType: String;
+
+  /** The method name. */
   name: String;
 }
 ```
@@ -212,10 +216,14 @@ interface MethodPointer {
 
 ```typescript
 interface ExpressionValueUpdate {
-  id: ExpressionId;
+  /** The id of updated expression */
+  expressionId: ExpressionId;
+
+  /** The updated type of the expression */
   type?: String;
-  shortValue?: String;
-  methodCall?: MethodPointer;
+
+  /** The updated pointer to the method call */
+  methodPointer?: SuggestionId;
 }
 ```
 
@@ -272,7 +280,6 @@ The language construct that can be returned as a suggestion.
 ```typescript
 // The definition scope
 interface SuggestionEntryScope {
-
   // The start position of the definition scope
   start: Position;
   // The end position of the definition scope
@@ -280,16 +287,15 @@ interface SuggestionEntryScope {
 }
 
 // A type of suggestion entries.
-type SuggestionEntry
+type SuggestionEntry =
   // A value constructor
-  = SuggestionEntryAtom
+  | SuggestionEntryAtom
   // A method defined on a type
   | SuggestionEntryMethod
   // A function
   | SuggestionEntryFunction
   // A local value
   | SuggestionEntryLocal;
-}
 
 interface SuggestionEntryAtom {
   name: string;
@@ -335,6 +341,16 @@ The suggestion entry type that is used as a filter in search requests.
 type SuggestionEntryType = Atom | Method | Function | Local;
 ```
 
+### `SuggestionId`
+
+The suggestion entry id of the suggestions database.
+
+#### Format
+
+```typescript
+type SuggestionId = number;
+```
+
 ### `SuggestionsDatabaseEntry`
 
 #### Format
@@ -344,7 +360,7 @@ The entry in the suggestions database.
 ```typescript
 interface SuggestionsDatabaseEntry {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
   // suggestion entry
   suggestion: SuggestionEntry;
 }
@@ -362,19 +378,19 @@ type SuggestionsDatabaseUpdate = Add | Remove | Modify;
 
 interface Add {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
   // suggestion entry
   suggestion: SuggestionEntry;
 }
 
 interface Remove {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
 }
 
 interface Modify {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
   // new return type
   returnType: String;
 }
@@ -2598,7 +2614,7 @@ Sent from client to the server to receive the full suggestions database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2625,6 +2641,33 @@ null;
 - [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
   root directory
 
+### `search/invalidateSuggestionsDatabase`
+
+Sent from client to the server to clean the suggestions database resetting the
+version.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+
 ### `search/getSuggestionsDatabaseVersion`
 
 Sent from client to the server to receive the current version of the suggestions
@@ -2632,7 +2675,7 @@ database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2664,7 +2707,7 @@ database.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2686,7 +2729,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2710,7 +2753,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 ```typescript
 {
-  results: [SuggestionEntryId];
+  results: [SuggestionId];
   currentVersion: number;
 }
 ```

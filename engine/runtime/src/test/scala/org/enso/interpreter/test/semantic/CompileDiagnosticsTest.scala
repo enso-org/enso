@@ -10,7 +10,8 @@ class CompileDiagnosticsTest extends InterpreterTest {
   ): Unit = {
     "surface ast-processing errors in the language" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    x = Panic.recover ()
           |    x.catch err->
@@ -22,24 +23,26 @@ class CompileDiagnosticsTest extends InterpreterTest {
 
     "surface parsing errors in the language" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    x = Panic.recover @
           |    x.catch to_text
           |""".stripMargin
-      eval(code) shouldEqual "Syntax_Error Unrecognized token."
+      eval(code) shouldEqual "(Syntax_Error 'Unrecognized token.')"
     }
 
     "surface redefinition errors in the language" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |foo =
           |    x = 1
           |    x = 2
           |
           |main = Panic.recover here.foo . catch to_text
           |""".stripMargin
-      eval(code) shouldEqual "Compile_Error Variable x is being redefined."
+      eval(code) shouldEqual "(Compile_Error 'Variable x is being redefined.')"
     }
   }
 }

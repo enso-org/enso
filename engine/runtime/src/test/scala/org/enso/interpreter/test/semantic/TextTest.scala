@@ -1,17 +1,18 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class TextTest extends InterpreterTest {
   override def subject = "Text Library"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "support text creation with single-line literals" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main = IO.println "hello world!"
           |""".stripMargin
 
@@ -21,7 +22,8 @@ class TextTest extends InterpreterTest {
 
     "support text concatenation" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    h = "Hello, "
           |    w = "World!"
@@ -33,21 +35,23 @@ class TextTest extends InterpreterTest {
 
     "support converting arbitrary structures to text" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type My_Type a
           |
           |main =
-          |    IO.println 5.to_text
-          |    IO.println (My_Type (My_Type 10)).to_text
-          |    IO.println "123".to_text
+          |    IO.println 5
+          |    IO.println (My_Type (My_Type 10))
+          |    IO.println "123"
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("5", "My_Type (My_Type 10)", "123")
+      consumeOut shouldEqual List("5", "(My_Type (My_Type 10))", "123")
     }
 
     "support text creation with raw block literals" in {
       val code =
-        s"""
+        s"""from Builtins import all
+           |
            |main =
            |    x = $rawTQ
            |        Foo
@@ -63,7 +67,8 @@ class TextTest extends InterpreterTest {
 
     "support escape sequences in literals" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main = IO.println "\"Grzegorz Brzeczyszczykiewicz\""
           |""".stripMargin
 
@@ -72,23 +77,22 @@ class TextTest extends InterpreterTest {
     }
 
     "support printing to standard error" in {
-      val errString = "\"My error string\""
-      val resultStr = errString.drop(1).dropRight(1)
-
       val code =
-        s"""
-           |main = IO.print_err $errString
+        s"""from Builtins import all
+           |
+           |main = IO.print_err "My error string"
            |""".stripMargin
 
       eval(code)
-      consumeErr shouldEqual List(resultStr)
+      consumeErr shouldEqual List("My error string")
     }
 
     "support reading from standard input" in {
       val inputString = "foobarbaz"
 
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    IO.readln + " yay!"
           |""".stripMargin

@@ -26,6 +26,8 @@ compilation. The build configuration is defined in
   - [Flatbuffers Generation](#flatbuffers-generation)
   - [Ensuring JARs Were Loaded](#ensuring-jars-were-loaded)
   - [Debugging Command](#debugging-command)
+  - [Recompile Parser](#recompile-parser)
+- [Native Image](#native-image)
 
 <!-- /MarkdownTOC -->
 
@@ -189,16 +191,5 @@ This task ensures that the `syntax` project is recompiled whenever
 
 ## Native Image
 
-[`NativeImage`](../../project/NativeImage.scala) defines a task that can compile
-a project into a native binary using Graal's Native Image. It compiles the
-project and runs the Native Image tool which builds the image. To be able to use
-it, the Native Image component has to be installed within the used GraalVM
-distribution. It can be installed by running `gu install native-image`.
-
-The task is parametrized with `staticOnLinux` parameter which if set to `true`,
-will statically link the built binary, to ensure portability between Linux
-distributions. For Windows and MacOS, the binaries should generally be portable,
-as described in [Launcher Portability](../distribution/launcher.md#portability).
-
-As Native Image does not support cross-compilation, the native binaries can only
-be built for the platform and architecture that the build is running on.
+[`NativeImage`](../../project/NativeImage.scala) task is described at
+[Native Image](native-image.md).

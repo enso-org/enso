@@ -340,8 +340,24 @@ object Shape extends ShapeImplicit {
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends SpacelessAST[T]
-  final case class Import[T](path: AST)                  extends SpacelessAST[T]
-  final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
+  final case class Import[T](
+    path: List1[AST.Ident.Cons],
+    rename: Option[AST.Ident.Cons],
+    isAll: Boolean,
+    onlyNames: Option[List1[AST.Ident.Cons]],
+    hidingNames: Option[List1[AST.Ident.Cons]]
+  ) extends SpacelessAST[T]
+  final case class Export[T](
+    path: List1[AST.Ident.Cons],
+    rename: Option[AST.Ident.Cons],
+    isAll: Boolean,
+    onlyNames: Option[List1[AST.Ident]],
+    hidingNames: Option[List1[AST.Ident]]
+  ) extends SpacelessAST[T]
+  final case class JavaImport[T](
+    path: List1[AST.Ident],
+    rename: Option[AST.Ident.Cons]
+  ) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
   final case class Group[T](body: Option[T])          extends SpacelessAST[T]
@@ -721,9 +737,10 @@ object Shape extends ShapeImplicit {
       t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
     implicit def ozip[T: HasSpan]: OffsetZip[Infix, T] =
       t => {
-        val larg = Index.Start                                       -> t.larg
-        val opr  = Index(t.larg.span() + t.loff)                       -> t.opr
-        val rarg = Index(t.larg.span() + t.loff + t.opr.span() + t.roff) -> t.rarg
+        val larg = Index.Start                   -> t.larg
+        val opr  = Index(t.larg.span() + t.loff) -> t.opr
+        val rarg =
+          Index(t.larg.span() + t.loff + t.opr.span() + t.roff) -> t.rarg
         t.copy(larg = larg, opr = opr, rarg = rarg)
       }
     implicit def span[T: HasSpan]: HasSpan[Infix[T]] =
@@ -974,6 +991,17 @@ object Shape extends ShapeImplicit {
     implicit def span[T]: HasSpan[Import[T]]   = _ => 0
   }
 
+  object Export {
+    implicit def ftor: Functor[Export]  = semi.functor
+    implicit def fold: Foldable[Export] = semi.foldable
+    implicit def repr[T]: Repr[Export[T]] =
+      t => R + "export" + t.path.repr.build()
+
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Export, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Export[T]]   = _ => 0
+  }
+
   object JavaImport {
     implicit def ftor: Functor[JavaImport]  = semi.functor
     implicit def fold: Foldable[JavaImport] = semi.foldable
@@ -1133,9 +1161,11 @@ sealed trait ShapeImplicit {
     case s: Ambiguous[T]     => s.repr
     case s: Match[T]         => s.repr
     // spaceless
-    case s: Comment[T]         => s.repr
-    case s: Documented[T]      => s.repr
-    case s: Import[T]          => s.repr
+    case s: Comment[T]    => s.repr
+    case s: Documented[T] => s.repr
+    case s: Import[T]     => s.repr
+    case s: Export[T]     => s.repr
+
     case s: JavaImport[T]      => s.repr
     case s: Mixfix[T]          => s.repr
     case s: Group[T]           => s.repr
@@ -1173,9 +1203,11 @@ sealed trait ShapeImplicit {
     case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
     case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
     // spaceless
-    case s: Comment[T]         => OffsetZip[Comment, T].zipWithOffset(s)
-    case s: Documented[T]      => OffsetZip[Documented, T].zipWithOffset(s)
-    case s: Import[T]          => OffsetZip[Import, T].zipWithOffset(s)
+    case s: Comment[T]    => OffsetZip[Comment, T].zipWithOffset(s)
+    case s: Documented[T] => OffsetZip[Documented, T].zipWithOffset(s)
+    case s: Import[T]     => OffsetZip[Import, T].zipWithOffset(s)
+    case s: Export[T]     => OffsetZip[Export, T].zipWithOffset(s)
+
     case s: JavaImport[T]      => OffsetZip[JavaImport, T].zipWithOffset(s)
     case s: Mixfix[T]          => OffsetZip[Mixfix, T].zipWithOffset(s)
     case s: Group[T]           => OffsetZip[Group, T].zipWithOffset(s)
@@ -1217,6 +1249,7 @@ sealed trait ShapeImplicit {
     case s: Comment[T]         => s.span()
     case s: Documented[T]      => s.span()
     case s: Import[T]          => s.span()
+    case s: Export[T]          => s.span()
     case s: JavaImport[T]      => s.span()
     case s: Mixfix[T]          => s.span()
     case s: Group[T]           => s.span()
@@ -2332,11 +2365,57 @@ object AST {
   type Import = ASTOf[Shape.Import]
 
   object Import {
-    def apply(path: AST): Import =
-      Shape.Import[AST](path)
-    def unapply(t: AST): Option[AST] =
-      Unapply[Import].run(t => t.path)(t)
+    def apply(
+      path: List1[AST.Ident.Cons],
+      rename: Option[AST.Ident.Cons],
+      isAll: Boolean,
+      onlyNames: Option[List1[AST.Ident.Cons]],
+      hidingNames: Option[List1[AST.Ident.Cons]]
+    ): Import =
+      Shape.Import[AST](path, rename, isAll, onlyNames, hidingNames)
+    def unapply(t: AST): Option[
+      (
+        List1[AST.Ident.Cons],
+        Option[AST.Ident.Cons],
+        Boolean,
+        Option[List1[AST.Ident.Cons]],
+        Option[List1[AST.Ident.Cons]]
+      )
+    ] =
+      Unapply[Import].run(t =>
+        (t.path, t.rename, t.isAll, t.onlyNames, t.hidingNames)
+      )(t)
     val any = UnapplyByType[Import]
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Export //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Export = ASTOf[Shape.Export]
+
+  object Export {
+    def apply(
+      path: List1[AST.Ident.Cons],
+      rename: Option[AST.Ident.Cons],
+      isAll: Boolean,
+      onlyNames: Option[List1[AST.Ident]],
+      hidingNames: Option[List1[AST.Ident]]
+    ): Export =
+      Shape.Export[AST](path, rename, isAll, onlyNames, hidingNames)
+    def unapply(t: AST): Option[
+      (
+        List1[AST.Ident.Cons],
+        Option[AST.Ident.Cons],
+        Boolean,
+        Option[List1[AST.Ident]],
+        Option[List1[AST.Ident]]
+      )
+    ] =
+      Unapply[Export].run(t =>
+        (t.path, t.rename, t.isAll, t.onlyNames, t.hidingNames)
+      )(t)
+    val any = UnapplyByType[Export]
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -2346,7 +2425,8 @@ object AST {
   type JavaImport = ASTOf[Shape.JavaImport]
 
   object JavaImport {
-    def apply(path: List1[Ident]): JavaImport = Shape.JavaImport[AST](path)
+    def apply(path: List1[Ident], rename: Option[Ident.Cons]): JavaImport =
+      Shape.JavaImport[AST](path, rename)
     def unapply(t: AST): Option[List1[Ident]] =
       Unapply[JavaImport].run(t => t.path)(t)
     val any = UnapplyByType[JavaImport]

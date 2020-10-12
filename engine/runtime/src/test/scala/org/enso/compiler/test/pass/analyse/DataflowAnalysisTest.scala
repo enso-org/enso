@@ -9,7 +9,7 @@ import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.test.Metadata
@@ -22,7 +22,7 @@ class DataflowAnalysisTest extends CompilerTest {
   val passes = new Passes
 
   /** The passes that must be run before the dataflow analysis pass. */
-  val precursorPasses: List[IRPass] =
+  val precursorPasses: PassGroup =
     passes.getPrecursors(DataflowAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
@@ -31,7 +31,7 @@ class DataflowAnalysisTest extends CompilerTest {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Generates an identifier dependency.
     *
@@ -98,7 +98,7 @@ class DataflowAnalysisTest extends CompilerTest {
     def analyse: IR.Module = {
       DataflowAnalysis.runModule(
         ir,
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
       )
     }
   }
@@ -141,7 +141,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(
+    buildInlineContext(
       localScope       = Some(LocalScope.root),
       isInTailPosition = Some(false),
       freshNameSupply  = Some(new FreshNameSupply)
@@ -153,7 +153,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a new module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(
+    buildModuleContext(
       freshNameSupply = Some(new FreshNameSupply)
     )
   }
@@ -303,7 +303,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val printlnFn = printlnExpr.function.asInstanceOf[IR.Name.Literal]
     val printlnArgIO =
       printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
-    val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[IR.Name.Literal]
+    val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[IR.Error.Resolution]
     val printlnArgB =
       printlnExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
     val printlnArgBExpr = printlnArgB.value.asInstanceOf[IR.Name.Literal]
@@ -856,21 +856,28 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val vector = ir.body
+      val callArg = ir.body
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments(0)
+      val vector = callArg.value
         .asInstanceOf[IR.Application.Literal.Sequence]
 
-      val xDefId = mkStaticDep(ir.arguments(0).getId)
-      val xUseId = mkStaticDep(vector.items(0).getId)
-      val yId    = mkStaticDep(vector.items(1).getId)
-      val litId  = mkStaticDep(vector.items(2).getId)
-      val vecId  = mkStaticDep(vector.getId)
-      val lamId  = mkStaticDep(ir.getId)
+      val xDefId    = mkStaticDep(ir.arguments(0).getId)
+      val xUseId    = mkStaticDep(vector.items(0).getId)
+      val yId       = mkStaticDep(vector.items(1).getId)
+      val litId     = mkStaticDep(vector.items(2).getId)
+      val vecId     = mkStaticDep(vector.getId)
+      val callArgId = mkStaticDep(callArg.getId)
+      val appId     = mkStaticDep(ir.body.getId)
+      val lamId     = mkStaticDep(ir.getId)
 
       depInfo.getDirect(xDefId) shouldEqual Some(Set(xUseId))
       depInfo.getDirect(xUseId) shouldEqual Some(Set(vecId))
       depInfo.getDirect(yId) shouldEqual Some(Set(vecId))
       depInfo.getDirect(litId) shouldEqual Some(Set(vecId))
-      depInfo.getDirect(vecId) shouldEqual Some(Set(lamId))
+      depInfo.getDirect(vecId) shouldEqual Some(Set(callArgId))
+      depInfo.getDirect(callArgId) shouldEqual Some(Set(appId))
+      depInfo.getDirect(appId) shouldEqual Some(Set(lamId))
     }
 
     "work properly for typeset literals" in {

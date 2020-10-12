@@ -26,7 +26,14 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
     )
   )
 )
-sealed trait Suggestion
+sealed trait Suggestion {
+
+  def externalId: Option[Suggestion.ExternalId]
+  def module: String
+  def name: String
+  def returnType: String
+}
+
 object Suggestion {
 
   type ExternalId = UUID

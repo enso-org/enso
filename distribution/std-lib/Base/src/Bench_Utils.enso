@@ -1,3 +1,5 @@
+from Base import all
+
 reverse_list = list ->
     go = list -> acc -> case list of
         Cons h t -> go t (Cons h acc)
@@ -34,5 +36,6 @@ measure = ~act -> label -> iter_size -> num_iters ->
         act_it_num = num_iters - it_num
         res = iter_size.times single_call
         avg = here.avg_list res
-        IO.println (label + "/iteration:" + act_it_num.to_text + ": " + (avg/1000000).to_text + "ms")
+        fmt = (avg / 1000000).format "%.2f"
+        IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
     num_iters.times iteration

@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.DocumentationComments
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
@@ -12,11 +12,10 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
   // === Test Setup ===========================================================
 
-  val precursorPasses: List[IRPass] = List()
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(), passConfig)
 
   /** Resolves documentation comments in a module.
     *
@@ -55,7 +54,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   /** Creates a defaulted inline context.
@@ -63,7 +62,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext()
+    buildInlineContext()
   }
 
   /**
@@ -146,6 +145,30 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       getDoc(body.expressions(0)) shouldEqual " Do thing"
       getDoc(body.returnValue) shouldEqual " Do another thing"
     }
+
+    "be associated with the type ascriptions" in {
+      implicit val moduleContext: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |method x =
+          |    ## Id
+          |    f : Any -> Any
+          |    f x = x
+          |
+          |    ## Return thing
+          |    f 1
+          |""".stripMargin.preprocessModule.resolve
+      val body = ir
+        .bindings(0)
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+
+      body.expressions.length shouldEqual 2
+      body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
+      getDoc(body.expressions(0)) shouldEqual " Id"
+      getDoc(body.returnValue) shouldEqual " Return thing"
+    }
   }
 
   "Documentation in complex type definitions" should {
@@ -187,12 +210,14 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       implicit val passManager: PassManager =
         new Passes().passManager
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val module =
         """## The foo
+          |foo : Integer
           |foo = 42""".stripMargin.preprocessModule
-      module.bindings.head.getMetadata(DocumentationComments) shouldBe defined
+      val foo = module.bindings.head
+      getDoc(foo) shouldEqual " The foo"
     }
 
     "be preserved after rewriting for all entities" in {
@@ -200,7 +225,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         new Passes().passManager
 
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val ir =
         """
@@ -210,6 +235,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    type Bar
           |
           |    ## a method
+          |    foo : Any -> Any
           |    foo x =
           |        ## a statement
           |        IO.println "foo"

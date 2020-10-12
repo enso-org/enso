@@ -35,22 +35,20 @@ import org.enso.languageserver.requesthandler.visualisation.{
   DetachVisualisationHandler,
   ModifyVisualisationHandler
 }
-import org.enso.languageserver.runtime.{
-  ContextRegistryProtocol,
-  SearchApi,
-  SearchProtocol
-}
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.SearchApi.{
+import org.enso.languageserver.search.SearchApi.{
   Completion,
   GetSuggestionsDatabase,
-  GetSuggestionsDatabaseVersion
+  GetSuggestionsDatabaseVersion,
+  InvalidateSuggestionsDatabase
 }
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
   ModifyVisualisation
 }
+import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,
@@ -269,6 +267,8 @@ class JsonConnectionController(
       GetSuggestionsDatabaseVersion -> search.GetSuggestionsDatabaseVersionHandler
         .props(requestTimeout, suggestionsHandler),
       GetSuggestionsDatabase -> search.GetSuggestionsDatabaseHandler
+        .props(requestTimeout, suggestionsHandler),
+      InvalidateSuggestionsDatabase -> search.InvalidateSuggestionsDatabaseHandler
         .props(requestTimeout, suggestionsHandler),
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),

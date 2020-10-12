@@ -44,7 +44,9 @@ case object DemandAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     ir.copy(bindings =
-      ir.bindings.map(t => t.mapExpressions(runExpression(_, InlineContext())))
+      ir.bindings.map(t =>
+        t.mapExpressions(runExpression(_, InlineContext(moduleContext.module)))
+      )
     )
   }
 
@@ -88,8 +90,9 @@ case object DemandAnalysis extends IRPass {
         analyseCase(cse, isInsideCallArgument)
       case block @ IR.Expression.Block(expressions, retVal, _, _, _, _) =>
         block.copy(
-          expressions =
-            expressions.map(x => analyseExpression(x, isInsideCallArgument = false)),
+          expressions = expressions.map(x =>
+            analyseExpression(x, isInsideCallArgument = false)
+          ),
           returnValue = analyseExpression(retVal, isInsideCallArgument = false)
         )
       case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
@@ -119,20 +122,21 @@ case object DemandAnalysis extends IRPass {
     */
   def analyseFunction(
     function: IR.Function
-  ): IR.Function = function match {
-    case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
-      lam.copy(
-        arguments = args.map(analyseDefinitionArgument),
-        body = analyseExpression(
-          body,
-          isInsideCallArgument = false
+  ): IR.Function =
+    function match {
+      case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+        lam.copy(
+          arguments = args.map(analyseDefinitionArgument),
+          body = analyseExpression(
+            body,
+            isInsideCallArgument = false
+          )
         )
-      )
-    case _: IR.Function.Binding =>
-      throw new CompilerError(
-        "Function sugar should not be present during demand analysis."
-      )
-  }
+      case _: IR.Function.Binding =>
+        throw new CompilerError(
+          "Function sugar should not be present during demand analysis."
+        )
+    }
 
   /** Performs demand analysis for a name.
     *
@@ -159,14 +163,20 @@ case object DemandAnalysis extends IRPass {
         val newNameLocation = name.location.map(l => l.copy(id = None))
 
         val newName = name match {
-          case lit: IR.Name.Literal => lit.copy(location  = newNameLocation)
-          case ths: IR.Name.This    => ths.copy(location  = newNameLocation)
+          case lit: IR.Name.Literal => lit.copy(location = newNameLocation)
+          case ths: IR.Name.This    => ths.copy(location = newNameLocation)
           case here: IR.Name.Here   => here.copy(location = newNameLocation)
           case _: IR.Name.MethodReference =>
             throw new CompilerError(
               "Method references should not be present by the time demand " +
               "analysis runs."
             )
+          case _: IR.Name.Qualified =>
+            throw new CompilerError(
+              "Qualified names should not be present by the time demand " +
+              "analysis runs."
+            )
+          case err: IR.Error.Resolution => err
           case _: IR.Name.Blank =>
             throw new CompilerError(
               "Blanks should not be present by the time demand analysis runs."
@@ -190,41 +200,42 @@ case object DemandAnalysis extends IRPass {
   def analyseApplication(
     application: IR.Application,
     isInsideCallArgument: Boolean
-  ): IR.Application = application match {
-    case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
-      pref.copy(
-        function = analyseExpression(
-          fn,
-          isInsideCallArgument = false
-        ),
-        arguments = args.map(analyseCallArgument)
-      )
-    case force @ IR.Application.Force(target, _, _, _) =>
-      force.copy(target =
-        analyseExpression(
-          target,
-          isInsideCallArgument
-        )
-      )
-    case vec @ IR.Application.Literal.Sequence(items, _, _, _) =>
-      vec.copy(items =
-        items.map(
-          analyseExpression(
-            _,
+  ): IR.Application =
+    application match {
+      case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+        pref.copy(
+          function = analyseExpression(
+            fn,
             isInsideCallArgument = false
+          ),
+          arguments = args.map(analyseCallArgument)
+        )
+      case force @ IR.Application.Force(target, _, _, _) =>
+        force.copy(target =
+          analyseExpression(
+            target,
+            isInsideCallArgument
           )
         )
-      )
-    case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
-      tSet.copy(
-        expression =
-          expr.map(analyseExpression(_, isInsideCallArgument = false))
-      )
-    case _: IR.Application.Operator =>
-      throw new CompilerError(
-        "Operators should not be present during demand analysis."
-      )
-  }
+      case vec @ IR.Application.Literal.Sequence(items, _, _, _) =>
+        vec.copy(items =
+          items.map(
+            analyseExpression(
+              _,
+              isInsideCallArgument = false
+            )
+          )
+        )
+      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+        tSet.copy(
+          expression =
+            expr.map(analyseExpression(_, isInsideCallArgument = false))
+        )
+      case _: IR.Application.Operator =>
+        throw new CompilerError(
+          "Operators should not be present during demand analysis."
+        )
+    }
 
   /** Determines whether a particular piece of IR represents the usage of a
     * suspended term (and hence requires forcing).
@@ -329,17 +340,18 @@ case object DemandAnalysis extends IRPass {
   def analyseCase(
     cse: IR.Case,
     isInsideCallArgument: Boolean
-  ): IR.Case = cse match {
-    case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
-      expr.copy(
-        scrutinee = analyseExpression(
-          scrutinee,
-          isInsideCallArgument
-        ),
-        branches = branches.map(b => analyseCaseBranch(b))
-      )
-    case _ => throw new CompilerError("Unexpected case construct.")
-  }
+  ): IR.Case =
+    cse match {
+      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+        expr.copy(
+          scrutinee = analyseExpression(
+            scrutinee,
+            isInsideCallArgument
+          ),
+          branches = branches.map(b => analyseCaseBranch(b))
+        )
+      case _ => throw new CompilerError("Unexpected case construct.")
+    }
 
   /** Performs demand analysis on a case branch.
     *

@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.resolve.IgnoredBindings.State
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class IgnoredBindingsTest extends CompilerTest {
@@ -15,12 +15,12 @@ class IgnoredBindingsTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] = passes.getPrecursors(IgnoredBindings).get
+  val precursorPasses: PassGroup = passes.getPrecursors(IgnoredBindings).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfiguration)
+    new PassManager(List(precursorPasses), passConfiguration)
 
   /** Adds an extension method for running desugaring on the input IR.
     *
@@ -44,7 +44,7 @@ class IgnoredBindingsTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

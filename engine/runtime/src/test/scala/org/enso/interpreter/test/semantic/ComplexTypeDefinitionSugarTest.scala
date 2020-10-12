@@ -68,7 +68,8 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
 
     "work with methods appearing to be suspended blocks" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type Foo
           |    type Bar
           |    x =

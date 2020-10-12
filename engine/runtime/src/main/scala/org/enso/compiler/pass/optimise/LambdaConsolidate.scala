@@ -79,7 +79,10 @@ case object LambdaConsolidate extends IRPass {
     ir.mapExpressions(
       runExpression(
         _,
-        new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+        new InlineContext(
+          moduleContext.module,
+          freshNameSupply = moduleContext.freshNameSupply
+        )
       )
     )
 
@@ -309,6 +312,8 @@ case object LambdaConsolidate extends IRPass {
         case here: IR.Name.Here           => here
         case blank: IR.Name.Blank         => blank
         case ref: IR.Name.MethodReference => ref
+        case qual: IR.Name.Qualified      => qual
+        case err: IR.Error.Resolution     => err
       }
     } else {
       name

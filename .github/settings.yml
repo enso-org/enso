@@ -63,6 +63,9 @@ labels:
   - name: "Category: Semantics"
     color: "#d1f0fd"
     description: Language semantics
+  - name: "Category: Stdlib"
+    color: "#d1f0fd"
+    description: The Enso standard library
   - name: "Category: Syntax"
     color: "#d1f0fd"
     description: Language syntax
@@ -211,10 +214,10 @@ branches:
         # Require branches to be up to date before merging.
         strict: true
         contexts:
-          - "Test Engine (macOS-latest)"
-          - "Test Engine (ubuntu-latest)"
-          - "Test Engine (windows-latest)"
-          - "Build Engine"
+          - "Build and Test (macOS-latest)"
+          - "Build and Test (ubuntu-latest)"
+          - "Build and Test (windows-latest)"
+          - "Docs Check"
           - "Rust Check"
           - "Rust Lint"
           - "Rust Test Native (macOS-latest)"
@@ -236,9 +239,10 @@ branches:
         # Require branches to be up to date before merging.
         strict: true
         contexts:
-          - "Test Engine (macOS-latest)"
-          - "Test Engine (ubuntu-latest)"
-          - "Test Engine (windows-latest)"
+          - "Build and Test (macOS-latest)"
+          - "Build and Test (ubuntu-latest)"
+          - "Build and Test (windows-latest)"
+          - "Docs Check"
           - "Build Engine"
           - "Rust Check"
           - "Rust Lint"

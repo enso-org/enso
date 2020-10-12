@@ -17,11 +17,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.polyglot.debugger.DebugServerInfo;
@@ -47,28 +49,28 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class)
-            .build();
+        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
     this.env = env;
 
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
-      MessageEndpoint client =
-          env.startServer(URI.create(DebugServerInfo.URI), handler);
+      MessageEndpoint client = env.startServer(URI.create(DebugServerInfo.URI), handler);
       if (client != null) {
         handler.setClient(client);
         Instrumenter instrumenter = env.getInstrumenter();
-        instrumenter.attachExecutionEventFactory(filter, ctx ->
-            new ReplExecutionEventNode(ctx, handler, env.getLogger(ReplExecutionEventNode.class)));
+        instrumenter.attachExecutionEventFactory(
+            filter,
+            ctx ->
+                new ReplExecutionEventNode(
+                    ctx, handler, env.getLogger(ReplExecutionEventNode.class)));
       } else {
         env.getLogger(ReplDebuggerInstrument.class)
-            .warning("ReplDebuggerInstrument was initialized, " +
-                "but no client connected");
+            .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
       }
     } catch (MessageTransport.VetoException e) {
       env.getLogger(ReplDebuggerInstrument.class)
-          .warning("ReplDebuggerInstrument was initialized, " +
-              "but client connection has been vetoed");
+          .warning(
+              "ReplDebuggerInstrument was initialized, " + "but client connection has been vetoed");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -85,6 +87,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   /** The actual node that's installed as a probe on any node the instrument was launched for. */
   public static class ReplExecutionEventNode extends ExecutionEventNode {
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
+    private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
     private ReplExecutionEventNodeState nodeState;
 
@@ -92,7 +95,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private DebuggerMessageHandler handler;
     private TruffleLogger logger;
 
-    private ReplExecutionEventNode(EventContext eventContext, DebuggerMessageHandler handler, TruffleLogger logger) {
+    private ReplExecutionEventNode(
+        EventContext eventContext, DebuggerMessageHandler handler, TruffleLogger logger) {
       this.eventContext = eventContext;
       this.handler = handler;
       this.logger = logger;
@@ -116,7 +120,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * @return a map, where keys are variable names and values are current values of variables.
      */
     public Map<String, Object> listBindings() {
-      Map<String, FramePointer> flatScope = nodeState.getLastScope().getLocalScope().flattenBindings();
+      Map<String, FramePointer> flatScope =
+          nodeState.getLastScope().getLocalScope().flattenBindings();
       Map<String, Object> result = new HashMap<>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
         result.put(entry.getKey(), getValue(nodeState.getLastScope().getFrame(), entry.getValue()));
@@ -128,24 +133,33 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * Evaluates an arbitrary expression in the current execution context.
      *
      * @param expression the expression to evaluate
-     * @return the result of evaluating the expression or an exception that
-     *          caused failure
+     * @return the result of evaluating the expression or an exception that caused failure
      */
     public Either<Exception, Object> evaluate(String expression) {
       ReplExecutionEventNodeState savedState = nodeState;
       try {
-        Stateful result = evalNode.execute(nodeState.getLastScope(), nodeState.getLastState(), expression);
+        Stateful result =
+            evalNode.execute(
+                nodeState.getLastScope(), nodeState.getLastState(), Text.create(expression));
         Object lastState = result.getState();
         CaptureResultScopeNode.WithCallerInfo payload =
             (CaptureResultScopeNode.WithCallerInfo) result.getValue();
         CallerInfo lastScope = payload.getCallerInfo();
         Object lastReturn = payload.getResult();
         nodeState = new ReplExecutionEventNodeState(lastReturn, lastState, lastScope);
-        return new Right<>(lastReturn);
+        return new Right<>(formatObject(lastReturn));
       } catch (Exception e) {
         nodeState = savedState;
         TruffleStackTrace.fillIn(e);
         return new Left<>(e);
+      }
+    }
+
+    private Object formatObject(Object o) {
+      if (o instanceof Text) {
+        return toJavaStringNode.execute((Text) o);
+      } else {
+        return o;
       }
     }
 
@@ -202,8 +216,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       if (handler.hasClient()) {
         handler.startSession(this);
       } else {
-        logger.warning("Debugger session starting, " +
-            "but no client connected, will terminate the session immediately");
+        logger.warning(
+            "Debugger session starting, "
+                + "but no client connected, will terminate the session immediately");
         exit();
       }
     }
@@ -211,9 +226,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     /**
      * State of the execution node.
      *
-     * As the execution nodes are reused by Truffle, the nested nodes share
-     * state. If execution of a nested node fails, to ensure consistent state of
-     * the parent node, its state has to be restored.
+     * <p>As the execution nodes are reused by Truffle, the nested nodes share state. If execution
+     * of a nested node fails, to ensure consistent state of the parent node, its state has to be
+     * restored.
      */
     private static class ReplExecutionEventNodeState {
       private final Object lastReturn;
@@ -239,5 +254,4 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       }
     }
   }
-
 }

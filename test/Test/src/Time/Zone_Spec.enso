@@ -1,0 +1,24 @@
+from Base import all
+
+import Base.Test
+import Base.Time.Zone
+
+spec =
+    describe "Zone" <|
+        it "should get system zone id" <|
+            Zone.system
+        it "should parse UTC zone" <|
+            zone = "UTC"
+            id = Zone.parse zone
+            id . zone_id . should_equal zone
+        it "should parse id-based zone" <|
+            zone = "Europe/Warsaw"
+            id = Zone.parse zone
+            id . zone_id . should_equal zone
+        it "should parse offset-based zone" <|
+            zone = "+01:02:03"
+            id = Zone.parse zone
+            id . zone_id . should_equal zone
+        it "should get utc zone id" <|
+            id = Zone.utc
+            id . zone_id . should_equal "UTC"

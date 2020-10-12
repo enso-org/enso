@@ -1,11 +1,5 @@
 package org.enso.interpreter.bench;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.xml.bind.JAXBException;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.BenchmarkList;
 import org.openjdk.jmh.runner.BenchmarkListEntry;
@@ -13,6 +7,12 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+
+import javax.xml.bind.JAXBException;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {

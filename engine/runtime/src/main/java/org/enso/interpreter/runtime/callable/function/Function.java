@@ -26,7 +26,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.MethodNames;
 
@@ -272,7 +272,7 @@ public final class Function implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Vector(MethodNames.Function.EQUALS);
+    return new Array(MethodNames.Function.EQUALS);
   }
 
   /**

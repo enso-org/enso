@@ -72,7 +72,6 @@ final class Handler {
   ): Unit = {
     executionService = service
     truffleContext   = context
-    endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
     val interpreterCtx =
       InterpreterContext(
         executionService,
@@ -81,6 +80,7 @@ final class Handler {
         truffleContext
       )
     commandProcessor = new CommandExecutionEngine(interpreterCtx)
+    endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
   }
 
   /**
