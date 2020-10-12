@@ -3,9 +3,10 @@ package org.enso.languageserver.runtime
 import java.util.UUID
 
 import org.enso.languageserver.data.ClientId
-import org.enso.languageserver.filemanager.FileSystemFailure
+import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
+import org.enso.text.editing.model
 
 object ContextRegistryProtocol {
 
@@ -147,12 +148,34 @@ object ContextRegistryProtocol {
   case class InvalidStackItemError(contextId: ContextId) extends Failure
 
   /**
+    * The location in the source file.
+    *
+    * @param path the file path
+    * @param span the range in the source text
+    */
+  case class SourceFileLocation(path: Path, span: model.Range)
+
+  /**
+    * The error during a program execution.
+    *
+    * @param message the error message
+    * @param location the location of the error
+    */
+  case class ExecutionError(
+    message: String,
+    location: Option[SourceFileLocation]
+  )
+
+  /**
     * Signals execution of a context failed.
     *
     * @param contextId execution context identifier
-    * @param message the error message
+    * @param error the execution error
     */
-  case class ExecutionFailedNotification(contextId: ContextId, message: String)
+  case class ExecutionFailedNotification(
+    contextId: ContextId,
+    error: ExecutionError
+  )
 
   /**
     * Requests the language server to attach a visualisation to the expression

@@ -2,7 +2,10 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  ExecutionError,
+  SourceFileLocation,
   VisualisationContext,
   VisualisationUpdate
 }
@@ -26,6 +29,7 @@ import scala.concurrent.duration._
   *
   * Expression updates are collected and sent to the user in a batch.
   *
+  * @param config the language server configuration
   * @param repo the suggestions repo
   * @param rpcSession reference to the client
   * @param contextId exectuion context identifier
@@ -33,6 +37,7 @@ import scala.concurrent.duration._
   * @param updatesSendRate how often send the updates to the user
   */
 final class ContextEventsListener(
+  config: Config,
   repo: SuggestionsRepo[Future],
   rpcSession: JsonSession,
   contextId: ContextId,
@@ -76,10 +81,12 @@ final class ContextEventsListener(
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       context.become(withState(expressionUpdates :++ apiUpdates))
 
-    case Api.ExecutionFailed(`contextId`, msg) =>
+    case Api.ExecutionFailed(`contextId`, error) =>
       val payload =
-        ContextRegistryProtocol.ExecutionFailedNotification(contextId, msg)
-
+        ContextRegistryProtocol.ExecutionFailedNotification(
+          contextId,
+          toProtocolError(error)
+        )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
     case Api.VisualisationEvaluationFailed(`contextId`, msg) =>
@@ -137,6 +144,23 @@ final class ContextEventsListener(
 
     case RunExpressionUpdates if expressionUpdates.isEmpty =>
   }
+
+  /**
+    * Convert the runtime execution error to the context registry protocol
+    * representation.
+    *
+    * @param error the execution error
+    * @return the execution error representation of the context registry
+    * protocol
+    */
+  private def toProtocolError(error: Api.ExecutionError): ExecutionError = {
+    val locationOpt = for {
+      location <- error.location
+      path     <- config.findRelativePath(location.file)
+    } yield SourceFileLocation(path, location.span)
+    ExecutionError(error.message, locationOpt)
+  }
+
 }
 
 object ContextEventsListener {
@@ -147,6 +171,7 @@ object ContextEventsListener {
   /**
     * Creates a configuration object used to create a [[ContextEventsListener]].
     *
+    * @param config the language server configuration
     * @param repo the suggestions repo
     * @param rpcSession reference to the client
     * @param contextId exectuion context identifier
@@ -154,6 +179,7 @@ object ContextEventsListener {
     * @param updatesSendRate how often send the updates to the user
     */
   def props(
+    config: Config,
     repo: SuggestionsRepo[Future],
     rpcSession: JsonSession,
     contextId: ContextId,
@@ -162,6 +188,7 @@ object ContextEventsListener {
   ): Props =
     Props(
       new ContextEventsListener(
+        config,
         repo,
         rpcSession,
         contextId,

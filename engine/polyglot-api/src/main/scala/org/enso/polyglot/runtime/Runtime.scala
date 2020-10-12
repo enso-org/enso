@@ -368,13 +368,42 @@ object Runtime {
       case class Clean(module: String) extends SuggestionsDatabaseUpdate
     }
 
-    case class ErrorLocation(module: String, file: File, location: Range)
+    /**
+      * The location of the error in the source file.
+      *
+      * @param module the name of the module
+      * @param file the file path
+      * @param span the range in the source text containing an error
+      */
+    case class ErrorLocation(module: String, file: File, span: Range)
 
+    /**
+      * The error during a program execution.
+      *
+      * @param message the error message
+      * @param location the location of the error
+      */
     case class ExecutionError(message: String, location: Option[ErrorLocation])
     object ExecutionError {
 
+      /**
+        * Create an [[ExecutionError]] with an error message.
+        *
+        * @param message the error message
+        * @return an instance of [[ExecutionError]]
+        */
       def apply(message: String): ExecutionError =
         new ExecutionError(message, None)
+
+      /**
+        * Create an [[ExecutionError]] with an error message and location.
+        *
+        * @param message the error message
+        * @param location the location of the error
+        * @return an instance of [[ExecutionError]]
+        */
+      def apply(message: String, location: ErrorLocation): ExecutionError =
+        new ExecutionError(message, Some(location))
     }
 
     /**

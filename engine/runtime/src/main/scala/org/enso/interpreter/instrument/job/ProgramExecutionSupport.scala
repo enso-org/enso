@@ -7,7 +7,6 @@ import java.util.logging.Level
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleException
-import com.oracle.truffle.api.interop.InteropException
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -254,11 +253,7 @@ trait ProgramExecutionSupport {
           )
           Api.ErrorLocation(loc.getSource.getName, new File(path), position)
         }
-        val err = Api.ExecutionError(ex.getMessage, locationOpt)
-        println(err)
-        Some(err)
-      case ex: InteropException =>
-        Some(Api.ExecutionError(ex.getMessage, None))
+        Some(Api.ExecutionError(ex.getMessage, locationOpt))
       case ex: ServiceException =>
         Some(Api.ExecutionError(ex.getMessage, None))
       case _ =>

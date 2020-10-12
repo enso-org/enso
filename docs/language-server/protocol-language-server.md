@@ -39,6 +39,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`Position`](#position)
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
+  - [`SourceSection`](#sourcesection)
+  - [`ExecutionError`](#executionerror)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
   - [`FileContents`](#filecontents)
@@ -542,6 +544,46 @@ A representation of a change to a text file at a given position.
 interface TextEdit {
   range: Range;
   text: String;
+}
+```
+
+### `SourceSection`
+
+Representation of a section in a source file defined by a character range.
+
+#### Format
+
+```typescript
+interface SourceSection {
+  /**
+   * A path to the source file.
+   */
+  file: Path;
+
+  /**
+   * Continuous interval of characters in the source text.
+   */
+  span: Range;
+}
+```
+
+### `ExecutionError`
+
+An error during the program execution.
+
+#### Format
+
+```typescript
+interface ExecutionError {
+  /**
+   * The error message.
+   */
+  message: String;
+
+  /**
+   * The location of the error.
+   */
+  location?: SourceSection;
 }
 ```
 
@@ -2303,7 +2345,7 @@ an execution context.
 ```typescript
 {
   contextId: ContextId;
-  message: String;
+  error: ExecutionError;
 }
 ```
 
