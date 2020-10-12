@@ -282,6 +282,8 @@ impl Integration {
 
             eval project_frp.editing_committed ((_) invalidate.trigger.emit(()));
             eval project_frp.editing_aborted   ((_) invalidate.trigger.emit(()));
+
+            eval_ project_frp.save_module      (model.module_saved_in_ui());
         }
         Self::connect_frp_to_graph_controller_notifications(&model,handle_graph_notification.trigger);
         Self::connect_frp_text_controller_notifications(&model,handle_text_notification.trigger);
@@ -426,9 +428,7 @@ impl Model {
     pub fn refresh_code_editor(&self) -> FallibleResult<()> {
         let current_code = self.code_view.get().to_string();
         let new_code     = self.graph.graph().module.ast().repr();
-        iprintln!("\"{current_code}\" - \"{new_code}\"");
         if new_code != current_code {
-            println!("Resetting...");
             self.code_view.set(new_code.as_str().into());
             self.view.code_editor().text_area().set_content(new_code);
         }
@@ -1033,6 +1033,17 @@ impl Model {
             self.text.apply_text_change(converted)?;
         }
         Ok(())
+    }
+
+    fn module_saved_in_ui(&self) {
+        let logger     = self.logger.clone_ref();
+        let controller = self.text.clone_ref();
+        let content    = self.code_view.get().to_string();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.store_content(content).await {
+                error!(logger, "Error while saving file: {err:?}");
+            }
+        });
     }
 }
 
