@@ -4,11 +4,7 @@ import java.nio.file.Files
 import java.security.MessageDigest
 
 import sbt.{File, IO}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  FilesHelper,
-  ReviewedSummary
-}
+import src.main.scala.licenses.{DistributionDescription, FilesHelper}
 
 import scala.util.control.NonFatal
 
@@ -38,26 +34,26 @@ object ReviewState {
 
   def computeInputHash(
     distributionDescription: DistributionDescription
-  ): String =
-    distributionDescription match {
-      case DistributionDescription(
-            artifactName,
-            packageDestination,
-            sbtComponents
-          ) =>
-        val digest = MessageDigest.getInstance("SHA-256")
-        digest.update(artifactName.getBytes)
-        for (sbtComponent <- sbtComponents) {
-          digest.update(sbtComponent.name.getBytes)
-          val dependencies =
-            sbtComponent.licenseReport.licenses.sortBy(_.module.toString)
-          for (dep <- dependencies) {
-            digest.update(dep.module.toString.getBytes)
-            digest.update(dep.license.name.getBytes)
-          }
-        }
-        hexString(digest.digest())
+  ): String = {
+    val DistributionDescription(
+      artifactName,
+      _,
+      sbtComponents
+    ) = distributionDescription
+
+    val digest = MessageDigest.getInstance("SHA-256")
+    digest.update(artifactName.getBytes)
+    for (sbtComponent <- sbtComponents) {
+      digest.update(sbtComponent.name.getBytes)
+      val dependencies =
+        sbtComponent.licenseReport.licenses.sortBy(_.module.toString)
+      for (dep <- dependencies) {
+        digest.update(dep.module.toString.getBytes)
+        digest.update(dep.license.name.getBytes)
+      }
     }
+    hexString(digest.digest())
+  }
 
   def computeOutputHash(
     distributionDescription: DistributionDescription

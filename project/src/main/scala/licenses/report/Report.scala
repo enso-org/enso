@@ -226,7 +226,7 @@ object Report {
                   writer.writeText("No copyright information found.")
                 }
               } else
-                writer.writeList(copyrights.map {
+                writer.writeList(copyrights.sortBy(_._1.content).map {
                   case (mention, status) =>
                     () =>
                       val foundAt = mention.origins match {

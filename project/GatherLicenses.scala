@@ -7,18 +7,8 @@ import src.main.scala.licenses.backend.{
   GithubHeuristic
 }
 import src.main.scala.licenses.frontend.SbtLicenses
-import src.main.scala.licenses.report.{
-  PackageNotices,
-  Report,
-  Review,
-  ReviewState,
-  WithWarnings
-}
-import src.main.scala.licenses.{
-  DependencySummary,
-  DistributionDescription,
-  ReviewedSummary
-}
+import src.main.scala.licenses.report._
+import src.main.scala.licenses.{DependencySummary, DistributionDescription}
 
 import scala.sys.process._
 
@@ -32,7 +22,7 @@ object GatherLicenses {
   val configurationRoot = settingKey[File]("Path to review configuration.")
   val licenseConfigurations =
     settingKey[Set[String]]("The ivy configurations we consider in the review.")
-  private val stateFileName = ".report.state"
+  private val stateFileName = "report-state"
 
   /**
     * The task that performs the whole license gathering process.
