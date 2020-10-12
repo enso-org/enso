@@ -1,6 +1,7 @@
 from Base import all
+import Builtins
 
 ## Returns the method name of the method that could not be found.
 No_Such_Method_Error.method_name : Text
 No_Such_Method_Error.method_name =
-    Meta.get_unresolved_symbol_name this.symbol
+    Builtins.Meta.get_unresolved_symbol_name this.symbol

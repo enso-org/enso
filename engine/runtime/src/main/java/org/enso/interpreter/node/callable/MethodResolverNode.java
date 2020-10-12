@@ -434,6 +434,8 @@ public abstract class MethodResolverNode extends Node {
       return context.getBuiltins().polyglot().getPolyglotToTextFunction();
     } else if (symbol.getName().equals("catch")) {
       return symbol.resolveFor(context.getBuiltins().any());
+    } else if (symbol.getName().equals("==")) {
+      return symbol.resolveFor(context.getBuiltins().any());
     } else {
       return context.getBuiltins().polyglot().buildPolyglotMethodDispatch(symbol);
     }

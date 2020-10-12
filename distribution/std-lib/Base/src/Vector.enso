@@ -197,6 +197,11 @@ type Vector
     take_right count = if count >= this.length then this else
         this.drop (this.length - count)
 
+    zip that function=[_,_] =
+        len = min this.length that.length
+        Vector.new len i-> function (this.at i) (that.at i)
+
+
 ## A builder type for Enso vectors.
 
    A vector builder is a mutable data structure, that allows to gather a

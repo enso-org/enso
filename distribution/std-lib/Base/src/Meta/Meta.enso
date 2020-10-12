@@ -1,0 +1,42 @@
+from Base import all
+import Builtins
+
+type Language
+    type Java
+    type Unknown
+
+type Meta
+    type Atom value
+    type Constructor value
+    type Primitive value
+    type Unresolved_Symbol value
+    type Error value
+    type Polyglot value
+
+Atom.fields = Vector (Builtins.Meta.get_atom_fields this.value)
+Atom.constructor = Builtins.Meta.get_atom_constructor this.value
+
+Unresolved_Symbol.rename new_name =
+    Builtins.Meta.create_unresolved_symbol new_name this.scope
+
+Unresolved_Symbol.name = Builtins.Meta.get_unresolved_symbol_name this.value
+Unresolved_Symbol.scope = Builtins.Meta.get_unresolved_symbol_scope this.value
+
+Error.payload = this.value.catch e->e
+
+Constructor.fields = Builtins.Meta.get_constructor_fields this.value
+Constructor.name = Builtins.Meta.get_constructor_name this.value
+Constructor.new fields = Builtins.Meta.new_atom this.value fields.to_array
+
+Polyglot.get_language =
+    lang_str = Builtins.Meta.get_polyglot_language
+    if lang_str == "java" then Java else Unknown
+
+meta value = if Builtins.Meta.is_atom value then Atom value else
+    if Builtins.Meta.is_constructor value then Constructor value else
+        if Builtins.Meta.is_polyglot value then Polyglot value else
+            if Builtins.Meta.is_unresolved_symbol value then Unresolved_Symbol value else
+                if Builtins.Meta.is_error value then Error value else
+                    Primitive value
+
+is_same_object value_1 value_2 = Builtins.Meta.is_same_object value_1 value_2
