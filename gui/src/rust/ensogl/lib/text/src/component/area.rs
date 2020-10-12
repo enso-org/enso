@@ -741,7 +741,13 @@ impl AreaData {
         // initialization of the shape system, not for every area creation. To be improved during
         // refactoring of the architecture some day.
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::Shape>);
+        let symbol       = &shape_system.shape_system.sprite_system.symbol;
         shape_system.shape_system.set_pointer_events(false);
+
+        // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
+        // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
+        scene.views.main.remove(symbol);
+        scene.views.label.add(symbol);
 
         Self {scene,logger,frp_endpoints,display_object,glyph_system,buffer,lines,selection_map
             ,camera}.init()
