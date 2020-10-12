@@ -124,11 +124,11 @@ object PackageNotices {
           }
           .mkString("\n\n")
         val freeName = findFreeName(packageRoot, "NOTICES")
-        IO.write(freeName, compiledCopyrights)
+        IO.write(freeName, compiledCopyrights + "\n")
       }
     }
 
-    IO.write(destination / "NOTICE", mainNotice.toString())
+    IO.write(destination / "NOTICE", mainNotice.toString() + "\n")
   }
 
   /**

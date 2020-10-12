@@ -18,7 +18,7 @@ object ReviewState {
   def read(file: File): Option[ReviewState] = {
     try {
       val content                             = IO.read(file)
-      val Array(inputHash, outputHash, count) = content.split(';')
+      val Array(inputHash, outputHash, count) = content.strip().split(';')
       Some(ReviewState(inputHash, outputHash, count.toInt))
     } catch { case NonFatal(_) => None }
   }
@@ -28,7 +28,7 @@ object ReviewState {
     IO.write(
       file,
       s"${reviewState.inputHash};${reviewState.outputHash};" +
-      s"${reviewState.warningsCount}"
+      s"${reviewState.warningsCount}\n"
     )
   }
 
