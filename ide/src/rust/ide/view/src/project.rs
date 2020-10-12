@@ -100,6 +100,8 @@ ensogl::def_command_api! { Commands
     abort_node_editing,
     /// Simulates a style toggle press event.
     toggle_style,
+    /// Saves the currently opened module to file.
+    save_module,
 }
 
 impl application::command::CommandApi for View {
@@ -264,6 +266,7 @@ impl application::shortcut::DefaultShortcutProvider for View {
           , (Press   , "escape"       , "abort_node_editing")
           , (Press   , "ctrl shift s" , "toggle_style")
           , (Release , "ctrl shift s" , "toggle_style")
+          , (Press   , "cmd s"        , "save_module")
           ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
     }
 }

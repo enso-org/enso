@@ -67,7 +67,6 @@ impl View {
         let height_fraction = Animation::<f32>::new(network);
 
         model.set_position_x(PADDING_LEFT);
-        model.set_active_on();
         model.remove_from_view(&scene.views.main);
         model.add_to_view(&scene.views.breadcrumbs);
 
@@ -80,8 +79,12 @@ impl View {
             hide              <- any(frp.input.hide,hide_after_toggle);
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
+            eval_ show (model.set_active_on());
             eval_ hide (height_fraction.set_target_value(0.0));
-            eval_ hide (model.remove_all_cursors());
+            eval_ hide ([model] {
+                model.remove_all_cursors();
+                model.set_active_off();
+            });
 
             frp.source.is_shown <+ bool(&frp.input.hide,&frp.input.show);
             frp.source.is_shown <+ frp.toggle.map2(&is_shown, |(),b| !b);
