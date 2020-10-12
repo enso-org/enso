@@ -98,7 +98,12 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     * Reads files from the provided directory as [[AttachedFile]].
     */
   private def findAdditionalFiles(dir: File): Seq[AttachedFile] =
-    listFiles(dir).map(f => AttachedFile.read(f.toPath, Some(dir.toPath)))
+    listFiles(dir).map { f =>
+      if (f.isDirectory)
+        AttachedFile(f.toPath.toAbsolutePath, Review.directoryMark)
+      else
+        AttachedFile.read(f.toPath, Some(dir.toPath))
+    }
 
   /**
     * Splits the sequence of attachments into sequences of files and copyrights.
@@ -346,4 +351,6 @@ object Review {
     s"""Enso
        |Copyright $year New Byte Order sp. z o. o.""".stripMargin
   }
+
+  val directoryMark = "<a directory>"
 }

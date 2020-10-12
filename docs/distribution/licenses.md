@@ -97,17 +97,10 @@ is merged, it should be ensure that there are no warnings in the generation. The
 packages are located in separate subdirectories of the `distribution` directory
 for each artifact.
 
-> This may possibly be automated in the next PR that includes the current legal
-> review. The generating task could write a file indicating if there were any
-> warnings and containing a hash of the dependency list. The build job on CI
-> could then run a task `verifyLegalReview` which would check if there are no
-> warnings and if the review is up to date (by comparing the hash of the
-> dependency list at the time of the review with the current one).
-
-> TODO [RW] currently the auto-generated notice packages are not included in the
-> built artifacts. That is because the legal review settings have not yet been
-> prepared. Once that is done, the CI should be modified accordingly. This will
-> be updated in the next PR.
+The CI can check if the legal review is up-to-date by running
+`sbt enso / verifyLegalReview`. This task will fail if any dependencies have
+changed making parts of the review obsolete or if the review contains any
+warnings.
 
 ### Review
 
@@ -188,6 +181,28 @@ not show up after the refresh. If you ever need to open the edit mode after
 closing its window, you should re-generate the report using
 `enso/gatherLicenses` or just open it using `enso/openLegalReviewReport` which
 will refresh it automatically.
+
+#### Additional Manual Considerations
+
+The Scala Library notice contains the following mention:
+
+```
+This software includes projects with other licenses -- see `doc/LICENSE.md`.
+```
+
+The licenses contained in the `doc` directory in Scala's GitHub are most likely
+relevant for the Scala Compiler and not the Standard Library that is relevant
+for us, but we include them for safety. When switching to a newer Scala version,
+these files should be updated if there were any changes to them.
+
+Moreover `NOTICE` files for `scala-parser-combinators` and `scala-java8-compat`
+have been manually copied from their GitHub repositories. They should also be
+updated as necessary.
+
+Additionally, the Linux version of the launcher is statically linked with the
+`musl` implementation of libc which also uses `zlib`, so these two components
+are also added and described manually. If they are ever updated, the notices
+should be revisited.
 
 #### Review Configuration
 
