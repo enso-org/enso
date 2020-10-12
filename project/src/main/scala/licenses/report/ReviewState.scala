@@ -63,6 +63,7 @@ object ReviewState {
     val allFiles =
       FilesHelper.walk(root)(Seq(_)).sortBy(p => root.relativize(p).toString)
     for (path <- allFiles) {
+      digest.update(root.relativize(path).toString.getBytes)
       if (!Files.isDirectory(path)) {
         digest.update(IO.readBytes(path.toFile))
       }
