@@ -7,6 +7,7 @@ use ensogl_text_msdf_sys::run_once_initialized;
 use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_text::Area;
+use ensogl_core::display::navigation::navigator::Navigator;
 
 
 /// Main example runner.
@@ -26,13 +27,17 @@ pub fn entry_point_text_area() {
 fn init(app:&Application) {
     let area = app.new_view::<Area>();
     area.set_position_x(-100.0);
-    area.set_content("Et Eärello Endorenna utúlien. Sinome maruvan ar Hildinyar tenn' Ambar-metta");
+    area.set_content("Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta");
     area.set_active_on();
     area.set_cursor_at_end();
+
+    let scene     = app.display.scene();
+    let navigator = Navigator::new(scene,scene.camera());
 
     app.display.scene().add_child(&area);
     let keep = Some(area);
     app.display.on_frame(move |_frame| {
         let _ = &keep;
     }).forget();
+    std::mem::forget(navigator);
 }
