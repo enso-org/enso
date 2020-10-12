@@ -2830,7 +2830,7 @@ class RuntimeServerTest
       """from Builtins import all
         |
         |main = Number.pi
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
