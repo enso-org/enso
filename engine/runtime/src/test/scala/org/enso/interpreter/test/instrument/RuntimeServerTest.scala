@@ -2553,7 +2553,9 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(contextId, "Module Unnamed.Main not found.")
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionError("Module Unnamed.Main not found."))
       )
     )
   }
@@ -2595,7 +2597,9 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Constructor Unexpected not found in module Test.Main."
+          Api.ExecutionError(
+            "Constructor Unexpected not found in module Test.Main."
+          )
         )
       )
     )
@@ -2638,7 +2642,9 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Object Main does not define method ooops in module Test.Main."
+          Api.ExecutionError(
+            "Object Main does not define method ooops in module Test.Main."
+          )
         )
       )
     )
@@ -2650,7 +2656,7 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar 40 2 9
+      """main = this.bar 40 2 123
         |
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2686,7 +2692,19 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(contextId, "Object 42 is not invokable.")
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionError(
+            "Object 42 is not invokable.",
+            Some(
+              Api.ErrorLocation(
+                moduleName,
+                mainFile,
+                model.Range(model.Position(0, 7), model.Position(0, 24))
+              )
+            )
+          )
+        )
       )
     )
   }
@@ -2699,7 +2717,7 @@ class RuntimeServerTest
     val code =
       """main = this.bar x y
         |
-        |bar x y = x + y
+        |bar one two = one + two
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2732,7 +2750,21 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(Api.ExecutionFailed(contextId, "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>"))
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionError(
+            "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
+            Some(
+              Api.ErrorLocation(
+                moduleName,
+                mainFile,
+                model.Range(model.Position(2, 14), model.Position(2, 23))
+              )
+            )
+          )
+        )
+      )
     )
   }
 
@@ -2780,7 +2812,9 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Unexpected type provided for argument `that` in Text.+"
+          Api.ExecutionError(
+            "Unexpected type provided for argument `that` in Text.+"
+          )
         )
       )
     )
@@ -2831,7 +2865,16 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "No_Such_Method_Error Number UnresolvedSymbol<pi>"
+          Api.ExecutionError(
+            "No_Such_Method_Error Number UnresolvedSymbol<pi>",
+            Some(
+              Api.ErrorLocation(
+                moduleName,
+                mainFile,
+                model.Range(model.Position(2, 7), model.Position(2, 16))
+              )
+            )
+          )
         )
       )
     )
@@ -3465,7 +3508,12 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
-      Api.Response(Api.ExecutionFailed(contextId, "Stack is empty."))
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionError("Stack is empty.")
+        )
+      )
     )
 
     // push main

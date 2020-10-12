@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.job
 
+import java.io.File
 import java.util.{Objects, UUID}
 import java.util.function.Consumer
 import java.util.logging.Level
@@ -28,6 +29,9 @@ import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.service.error.ServiceException
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.text.editing.model
+
+import scala.jdk.OptionConverters._
 
 /**
   * Provides support for executing Enso code. Adds convenient methods to
@@ -143,7 +147,7 @@ trait ProgramExecutionSupport {
     stack: List[InstrumentFrame],
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
-  )(implicit ctx: RuntimeContext): Either[String, Unit] = {
+  )(implicit ctx: RuntimeContext): Either[Api.ExecutionError, Unit] = {
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -184,7 +188,10 @@ trait ProgramExecutionSupport {
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
     for {
-      stackItem <- Either.fromOption(explicitCallOpt, "Stack is empty.")
+      stackItem <- Either.fromOption(
+        explicitCallOpt,
+        Api.ExecutionError("Stack is empty.")
+      )
       _ <-
         Either
           .catchNonFatal(
@@ -210,37 +217,61 @@ trait ProgramExecutionSupport {
   private def onExecutionError(
     item: ExecutionItem,
     error: Throwable
-  )(implicit ctx: RuntimeContext): String = {
+  )(implicit ctx: RuntimeContext): Api.ExecutionError = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(call)         => call.getFunction.getName
     }
-    val errorMessage = getErrorMessage(error)
-    errorMessage match {
+    val executionError = getError(error)
+    executionError match {
       case Some(_) =>
         ctx.executionService.getLogger
-          .log(Level.FINE, s"Error executing a function $itemName.")
+          .log(Level.FINEST, s"Error executing a function $itemName.")
       case None =>
         ctx.executionService.getLogger
-          .log(Level.FINE, s"Error executing a function $itemName.", error)
+          .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
-    errorMessage.getOrElse(s"Error in function $itemName.")
+    executionError.getOrElse(
+      Api.ExecutionError(s"Error in function $itemName.", None)
+    )
   }
 
-  /** Get error message from throwable. */
-  private def getErrorMessage(t: Throwable): Option[String] =
+  private def getError(
+    t: Throwable
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionError] =
     t match {
-      case ex: InteropException => Some(ex.getMessage)
-      case ex: TruffleException => Some(ex.getMessage)
-      case ex: ServiceException => Some(ex.getMessage)
-      case _                    => None
+      case ex: TruffleException =>
+        val locationOpt = for {
+          loc        <- Option(ex.getSourceLocation)
+          moduleName <- Option(loc.getSource.getName)
+          module <-
+            ctx.executionService.getContext.findModule(moduleName).toScala
+          path <- Option(module.getPath)
+        } yield {
+          val position = model.Range(
+            model.Position(loc.getStartLine - 1, loc.getStartColumn - 1),
+            model.Position(loc.getEndLine - 1, loc.getEndColumn)
+          )
+          Api.ErrorLocation(loc.getSource.getName, new File(path), position)
+        }
+        val err = Api.ExecutionError(ex.getMessage, locationOpt)
+        println(err)
+        Some(err)
+      case ex: InteropException =>
+        Some(Api.ExecutionError(ex.getMessage, None))
+      case ex: ServiceException =>
+        Some(Api.ExecutionError(ex.getMessage, None))
+      case _ =>
+        None
     }
 
   private def sendErrorUpdate(contextId: ContextId, error: Throwable)(implicit
     ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(
-      Api.Response(Api.ExecutionFailed(contextId, error.getMessage))
+      Api.Response(
+        Api.ExecutionFailed(contextId, Api.ExecutionError(error.getMessage))
+      )
     )
   }
 

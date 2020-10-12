@@ -12,7 +12,7 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.polyglot.Suggestion
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{Range, TextEdit}
 
 import scala.util.Try
 
@@ -368,6 +368,15 @@ object Runtime {
       case class Clean(module: String) extends SuggestionsDatabaseUpdate
     }
 
+    case class ErrorLocation(module: String, file: File, location: Range)
+
+    case class ExecutionError(message: String, location: Option[ErrorLocation])
+    object ExecutionError {
+
+      def apply(message: String): ExecutionError =
+        new ExecutionError(message, None)
+    }
+
     /**
       * An event signaling a visualisation update.
       *
@@ -542,9 +551,9 @@ object Runtime {
       * Signals that execution of a context failed.
       *
       * @param contextId the context's id.
-      * @param message the error message.
+      * @param error the execution error.
       */
-    case class ExecutionFailed(contextId: ContextId, message: String)
+    case class ExecutionFailed(contextId: ContextId, error: ExecutionError)
         extends ApiNotification
 
     /**
