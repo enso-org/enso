@@ -9,31 +9,36 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
 
 import java.io.File;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-/** Represents the top scope of Enso execution, containing all the importable modules. */
+/**
+ * Represents the top scope of Enso execution, containing all the importable modules.
+ */
 @ExportLibrary(InteropLibrary.class)
 public class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
   private final Map<String, Module> modules;
   private final Scope scope = Scope.newBuilder("top_scope", this).build();
 
+
   /**
    * Creates a new instance of top scope.
    *
    * @param builtins the automatically-imported builtin module.
-   * @param modules the initial modules this scope contains.
+   * @param modules  the initial modules this scope contains.
    */
   public TopLevelScope(Builtins builtins, Map<String, Module> modules) {
     this.builtins = builtins;
@@ -47,11 +52,6 @@ public class TopLevelScope implements TruffleObject {
    */
   public Scope getScope() {
     return scope;
-  }
-
-  /** @return the list of modules in the scope. */
-  public Collection<Module> getModules() {
-    return modules.values();
   }
 
   /**
@@ -70,7 +70,7 @@ public class TopLevelScope implements TruffleObject {
   /**
    * Creates and registers a new module with given name and source file.
    *
-   * @param name the module name.
+   * @param name       the module name.
    * @param sourceFile the module source file.
    * @return the newly created module.
    */
@@ -89,17 +89,19 @@ public class TopLevelScope implements TruffleObject {
   public void renameProjectInModules(String oldName, String newName) {
     String separator = QualifiedName$.MODULE$.separator();
     List<String> keys =
-        modules.keySet().stream()
+        modules
+            .keySet()
+            .stream()
             .filter(name -> name.startsWith(oldName + separator))
             .collect(Collectors.toList());
 
-    keys.stream()
+    keys
+        .stream()
         .map(modules::remove)
-        .forEach(
-            module -> {
-              module.renameProject(newName);
-              modules.put(module.getName().toString(), module);
-            });
+        .map(module -> module.renameProject(oldName, newName))
+        .forEach(module -> {
+          modules.put(module.getName().toString(), module);
+        });
   }
 
   /**
@@ -130,15 +132,17 @@ public class TopLevelScope implements TruffleObject {
    * @return a collection of all the exported members.
    */
   @ExportMessage
-  Array getMembers(boolean includeInternal) {
-    return new Array(
+  Vector getMembers(boolean includeInternal) {
+    return new Vector(
         MethodNames.TopScope.GET_MODULE,
         MethodNames.TopScope.CREATE_MODULE,
         MethodNames.TopScope.REGISTER_MODULE,
         MethodNames.TopScope.UNREGISTER_MODULE);
   }
 
-  /** Handles member invocation through the polyglot API. */
+  /**
+   * Handles member invocation through the polyglot API.
+   */
   @ExportMessage
   abstract static class InvokeMember {
     private static Module getModule(
@@ -162,7 +166,7 @@ public class TopLevelScope implements TruffleObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return Module.empty(QualifiedName.simpleName(moduleName));
+      return context.createModule(QualifiedName.simpleName(moduleName));
     }
 
     private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)

@@ -13,7 +13,6 @@ graal_dumps/
 target/
 *.class
 *.log
-.java-version
 
 ##########
 ## Rust ##
@@ -22,7 +21,7 @@ target/
 Cargo.lock
 **/*.rs.bk
 wasm-pack.log
-generated/
+/lib/rust/lexer/generation/src/lexer-engine.rs
 
 #############
 ## Haskell ##
@@ -63,7 +62,6 @@ package-lock.json
 *.swp
 .projections.json
 .nvmrc
-*.iml
 
 ############################
 ## Rendered Documentation ##
@@ -83,12 +81,7 @@ bench-report.xml
 ##############
 
 /enso
-*.exe
-/enso.exp
-/enso.lib
-*.pdb
 *.jar
-
 
 #########
 ## IDE ##
@@ -96,9 +89,3 @@ bench-report.xml
 
 .editorconfig
 .bloop/
-
-#################
-## Build Cache ##
-#################
-
-build-cache/

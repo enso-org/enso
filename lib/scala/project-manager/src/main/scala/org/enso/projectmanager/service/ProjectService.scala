@@ -59,11 +59,11 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   ): F[ProjectServiceFailure, UUID] = {
     // format: off
     for {
-      projectId    <- gen.randomUUID()
-      _            <- log.debug(s"Creating project $name $projectId.")
+      _            <- log.debug(s"Creating project $name.")
       _            <- validateName(name)
       _            <- checkIfNameExists(name)
       creationTime <- clock.nowInUtc()
+      projectId    <- gen.randomUUID()
       project       = Project(projectId, name, UserProject, creationTime)
       _            <- repo.create(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
@@ -108,7 +108,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       _          <- checkIfNameExists(name)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
       _          <- repo.rename(projectId, name).mapError(toServiceFailure)
-      _          <- renameProjectDirOrRegisterShutdownHook(projectId, name)
+      _          <- renameProjectDirOrRegisterShutdownHook(projectId)
       newPackage = PackageManager.Default.normalizeName(name)
       _ <- refactorProjectName(projectId, oldPackage, newPackage)
       _ <- log.info(s"Project $projectId renamed.")
@@ -116,10 +116,9 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   }
 
   private def renameProjectDirOrRegisterShutdownHook(
-    projectId: UUID,
-    newName: String
+    projectId: UUID
   ): F[ProjectServiceFailure, Unit] = {
-    val cmd = new MoveProjectDirCmd[F](projectId, newName, repo, log)
+    val cmd = new MoveProjectDirCmd[F](projectId, repo, log)
     CovariantFlatMap[F]
       .ifM(isServerRunning(projectId))(
         ifTrue  = languageServerGateway.registerShutdownHook(projectId, cmd),

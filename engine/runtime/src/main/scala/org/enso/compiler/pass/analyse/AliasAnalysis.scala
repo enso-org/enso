@@ -554,7 +554,7 @@ case object AliasAnalysis extends IRPass {
   ): IR.Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
-        if (name.isReferent) {
+        if (name.isReferant) {
           throw new CompilerError(
             "Nested patterns should be desugared by the point of alias " +
             "analysis."
@@ -586,7 +586,6 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
         )
-      case err: IR.Error.Pattern => err
     }
   }
 
@@ -666,9 +665,8 @@ case object AliasAnalysis extends IRPass {
       */
     def copy: Graph = {
       val graph = new Graph
-      graph.links         = links
-      graph.rootScope     = rootScope.copy
-      graph.nextIdCounter = nextIdCounter
+      graph.links     = links
+      graph.rootScope = rootScope.copy
 
       graph
     }

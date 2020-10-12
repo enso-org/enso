@@ -5,21 +5,27 @@ import java.nio.file.Files
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
-import akka.testkit._
+import io.circe.generic.auto._
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
-import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
+import org.enso.projectmanager.infrastructure.file.{
+  BlockingFileSystem,
+  SynchronizedFileStorage
+}
 import org.enso.projectmanager.infrastructure.languageserver.{
   LanguageServerGatewayImpl,
   LanguageServerRegistry,
   ShutdownHookActivator
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
-import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
+import org.enso.projectmanager.infrastructure.repository.{
+  ProjectFileRepository,
+  ProjectIndex
+}
 import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
@@ -31,7 +37,6 @@ import pureconfig.generic.auto._
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class BaseServerSpec extends JsonRpcServerTestKit {
@@ -48,9 +53,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   val testClock =
     new ProgrammableClock[ZEnv](OffsetDateTime.now(ZoneOffset.UTC))
 
-  def getGeneratedUUID: UUID = {
-    Await.result(Future(gen.takeFirst())(system.dispatcher), 3.seconds.dilated)
-  }
+  def getGeneratedUUID: UUID = gen.takeFirst()
 
   lazy val gen = new ObservableGenerator[ZEnv]()
 
@@ -59,11 +62,12 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
+  val indexFile = new File(testProjectsRoot, "project-index.json")
+
   lazy val testStorageConfig = StorageConfig(
-    projectsRoot             = testProjectsRoot,
-    userProjectsPath         = userProjectDir,
-    projectMetadataDirectory = ".enso",
-    projectMetadataFileName  = "project.json"
+    projectsRoot     = testProjectsRoot,
+    projectIndexPath = indexFile,
+    userProjectsPath = userProjectDir
   )
 
   lazy val bootloaderConfig = config.bootloader
@@ -81,12 +85,17 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val storageSemaphore =
     Runtime.default.unsafeRun(Semaphore.make(1))
 
+  lazy val indexStorage =
+    new SynchronizedFileStorage[ProjectIndex, ZIO[ZEnv, +*, +*]](
+      testStorageConfig.projectIndexPath,
+      fileSystem
+    )
+
   lazy val projectRepository =
     new ProjectFileRepository(
       testStorageConfig,
-      testClock,
       fileSystem,
-      gen
+      indexStorage
     )
 
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()

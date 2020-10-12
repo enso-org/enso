@@ -15,20 +15,26 @@ use crate::automata::pattern::Pattern;
 #[derive(Clone,Debug)]
 pub struct Rule {
     /// The pattern that triggers the callback.
-    pub pattern:Pattern,
-
+    pub pattern: Pattern,
     /// The code to execute when [`Rule::pattern`] matches, containing rust code as a
     /// [`std::string::String`].
-    ///
-    /// This code will be called directly from a method defined on your Lexer (the one that contains
-    /// a [`crate::Flexer`] instance. To this end, the code you provide as a string must be valid in
-    /// that context.
-    pub callback:String,
+    pub callback: String,
 }
 
-impl Rule {
-    /// Creates a new rule.
-    pub fn new(pattern:Pattern, callback:impl Into<String>) -> Self {
-        Rule{pattern,callback:callback.into()}
+/// A builder that allows us to add a [`Rule`] to [`crate::group::Group`] in an elegant way.
+#[derive(Clone,Debug)]
+pub struct Builder<Callback> {
+    /// The pattern that triggers the callback.
+    pub pattern: Pattern,
+
+    /// The callback containing a closure
+    pub callback: Callback,
+}
+
+impl<F:FnMut(Rule)> Builder<F> {
+    /// Feeds the input that triggered the [`Builder::pattern`] to the [`Builder::callback`].
+    pub fn run(&mut self, program:String){
+        let rule = Rule {pattern:self.pattern.clone(),callback:program};
+        (self.callback)(rule);
     }
 }

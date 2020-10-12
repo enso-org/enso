@@ -276,10 +276,6 @@ case object NestedPatternMatch extends IRPass {
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case _: IR.Error.Pattern =>
-          throw new CompilerError(
-            "Error patterns cannot be nested. This should be unreachable."
-          )
       }
     } else {
       branch.copy(
@@ -358,13 +354,11 @@ case object NestedPatternMatch extends IRPass {
         fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false
-          case _: IR.Error.Pattern    => false
           case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should be desugared at an earlier stage."
             )
         }
-      case _: IR.Error.Pattern => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -381,7 +375,6 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => false
       case _: Pattern.Constructor => true
-      case _: IR.Error.Pattern    => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -397,7 +390,6 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => true
       case _: Pattern.Constructor => false
-      case _: IR.Error.Pattern    => true
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

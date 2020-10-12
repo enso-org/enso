@@ -15,17 +15,15 @@ use crate::prelude::*;
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct State {
     /// A set of transitions that can trigger without consuming a symbol (ε-transitions).
-    pub epsilon_links:Vec<Identifier>,
+    pub epsilon_links: Vec<Identifier>,
     /// The set of transitions that trigger while consuming a specific symbol.
     ///
     /// When triggered, the automaton will transition to the [`Transition::target_state`].
-    pub links:Vec<Transition>,
+    pub links: Vec<Transition>,
     /// The name of the state.
     ///
     /// This is used to auto-generate a call to the rust method of the same name.
-    pub name:Option<String>,
-    /// The function to call when evaluating the state.
-    pub callback:String
+    pub name: Option<String>,
 }
 
 impl State {
@@ -61,8 +59,8 @@ impl State {
 impl From<Vec<usize>> for State {
     /// Creates a state with epsilon links.
     fn from(vec:Vec<usize>) -> Self {
-        let epsilon_links = vec.iter().cloned().map(|id| Identifier{id}).collect();
-        State{epsilon_links,..Default::default()}
+        let epsilon_links = vec.iter().cloned().map(|id| Identifier {id}).collect();
+        State {epsilon_links,..Default::default()}
     }
 }
 
@@ -70,12 +68,12 @@ impl From<Vec<(RangeInclusive<u32>, usize)>> for State {
     /// Creates a state with ordinary links.
     fn from(vec:Vec<(RangeInclusive<u32>, usize)>) -> Self {
         let link = |(range, id): (RangeInclusive<u32>, usize)| {
-            let start = Symbol{value:*range.start()};
-            let end   = Symbol{value:*range.end()};
-            Transition{symbols:start..=end,target_state:Identifier{id}}
+            let start = Symbol{val:*range.start()};
+            let end   = Symbol{val:*range.end()};
+            Transition {symbols: start..=end, target_state: Identifier { id }}
         };
         let links = vec.iter().cloned().map(link).collect();
-        State{links,..Default::default()}
+        State {links,..Default::default()}
     }
 }
 
@@ -97,11 +95,6 @@ impl Identifier {
     ///
     /// When in an invalid state, a finite automaton will reject the sequence of input symbols.
     pub const INVALID:Identifier = Identifier{id:usize::max_value()};
-
-    /// Constructs a new state identifier.
-    pub fn new(id:usize) -> Identifier {
-        Identifier{id}
-    }
 }
 
 // === Trait Impls ===
@@ -130,7 +123,7 @@ impl From<usize> for Identifier {
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub struct Transition {
     /// The range of symbols on which this transition will trigger.
-    pub symbols:RangeInclusive<Symbol>,
+    pub symbols: RangeInclusive<Symbol>,
     /// The state that is entered after the transition has triggered.
-    pub target_state:Identifier,
+    pub target_state: Identifier,
 }

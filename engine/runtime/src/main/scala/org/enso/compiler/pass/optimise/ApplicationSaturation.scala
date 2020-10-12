@@ -53,10 +53,7 @@ case object ApplicationSaturation extends IRPass {
   ): IR.Module = {
     val passConfig = moduleContext.passConfiguration
     ir.mapExpressions(
-      runExpression(
-        _,
-        new InlineContext(moduleContext.module, passConfiguration = passConfig)
-      )
+      runExpression(_, new InlineContext(passConfiguration = passConfig))
     )
   }
 

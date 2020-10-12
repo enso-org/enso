@@ -1,7 +1,5 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.bench.fixtures.semantic.RecursionFixtures;
 import org.enso.interpreter.test.DefaultInterpreterRunner;

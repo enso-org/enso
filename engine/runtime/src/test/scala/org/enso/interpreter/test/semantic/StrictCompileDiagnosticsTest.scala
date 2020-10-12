@@ -31,7 +31,6 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
       val errors = consumeOut
       errors
         .filterNot(_.contains("Compiler encountered"))
-        .filterNot(_.contains("In module"))
         .toSet shouldEqual Set(
         "Test[2:9-2:10]: Parentheses can't be empty.",
         "Test[3:5-3:9]: Variable x is being redefined.",

@@ -5,7 +5,6 @@ import java.util.UUID
 
 import org.enso.polyglot.Suggestion
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
-import slick.jdbc.SQLiteProfile
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,19 +30,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   def init: Future[Unit] =
     db.run(initQuery)
 
-  /** @inheritdoc */
-  override def clean: Future[Unit] =
+  /** Clean the repo. */
+  def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** @inheritdoc */
   override def getAll: Future[(Long, Seq[SuggestionEntry])] =
     db.run(getAllQuery)
-
-  /** @inheritdoc */
-  override def getAllMethods(
-    calls: Seq[(String, String, String)]
-  ): Future[Seq[Option[Long]]] =
-    db.run(getAllMethodsQuery(calls))
 
   /** @inheritdoc */
   override def search(
@@ -78,12 +71,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(removeByModuleQuery(name))
 
   /** @inheritdoc */
-  override def removeAllByModule(
-    modules: Seq[String]
-  ): Future[(Long, Seq[Long])] =
-    db.run(removeAllByModuleQuery(modules))
-
-  /** @inheritdoc */
   override def removeAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
@@ -94,10 +81,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): Future[(Long, Seq[Option[Long]])] =
     db.run(updateAllQuery(expressions))
-
-  /** @inheritdoc */
-  override def renameProject(oldName: String, newName: String): Future[Unit] =
-    db.run(renameProjectQuery(oldName, newName))
 
   /** @inheritdoc */
   override def currentVersion: Future[Long] =
@@ -116,23 +99,16 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(insertBatchQuery(suggestions))
 
   /** The query to initialize the repo. */
-  private def initQuery: DBIO[Unit] = {
-    // Initialize schema suppressing errors. Workaround for slick/slick#1999.
-    def initSchema(schema: SQLiteProfile.SchemaDescription) =
-      schema.createIfNotExists.asTry >> DBIO.successful(())
-    val schemas =
-      Seq(Suggestions.schema, Arguments.schema, SuggestionsVersions.schema)
-    DBIO.sequence(schemas.map(initSchema)) >> DBIO.successful(())
-  }
+  private def initQuery: DBIO[Unit] =
+    (Suggestions.schema ++ Arguments.schema ++ SuggestionsVersions.schema).createIfNotExists
 
   /** The query to clean the repo. */
-  private def cleanQuery: DBIO[Unit] = {
+  private def cleanQuery: DBIO[Unit] =
     for {
       _ <- Suggestions.delete
       _ <- Arguments.delete
       _ <- SuggestionsVersions.delete
     } yield ()
-  }
 
   /** Get all suggestions.
     *
@@ -143,37 +119,8 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       suggestions <- joined.result.map(joinedToSuggestionEntries)
       version     <- currentVersionQuery
     } yield (version, suggestions)
-    query
+    query.transactionally
   }
-
-  /** The query to get the suggestions by the method call info.
-    *
-    * @param calls the triples containing module name, self type, method name
-    * @return the list of found suggestion ids
-    */
-  def getAllMethodsQuery(
-    calls: Seq[(String, String, String)]
-  ): DBIO[Seq[Option[Long]]] =
-    if (calls.isEmpty) {
-      DBIO.successful(Seq())
-    } else {
-      val query = Suggestions
-        .filter { row =>
-          calls
-            .map {
-              case (module, selfType, name) =>
-                row.module === module && row.selfType === selfType && row.name === name
-            }
-            .reduce(_ || _)
-        }
-        .map(row => (row.id, row.module, row.selfType, row.name))
-      query.result.map { tuples =>
-        val result = tuples.map {
-          case (id, module, selfType, name) => (module, selfType, name) -> id
-        }.toMap
-        calls.map(result.get)
-      }
-    }
 
   /** The query to search suggestion by various parameters.
     *
@@ -210,7 +157,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       results <- searchAction
       version <- currentVersionQuery
     } yield (version, results)
-    query
+    query.transactionally
   }
 
   /** The query to select the suggestion by id.
@@ -240,7 +187,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         }
       _ <- incrementVersionQuery
     } yield id
-    query.asTry.map {
+    query.transactionally.asTry.map {
       case Failure(_)  => None
       case Success(id) => Some(id)
     }
@@ -258,7 +205,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       ids     <- DBIO.sequence(suggestions.map(insertQuery))
       version <- currentVersionQuery
     } yield (version, ids)
-    query
+    query.transactionally
   }
 
   /** The query to remove the suggestion.
@@ -269,7 +216,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def removeQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
     val (raw, _) = toSuggestionRow(suggestion)
     val selectQuery = Suggestions
-      .filter(_.module === raw.module)
       .filter(_.kind === raw.kind)
       .filter(_.name === raw.name)
       .filter(_.scopeStartLine === raw.scopeStartLine)
@@ -281,7 +227,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       n    <- selectQuery.delete
       _    <- if (n > 0) incrementVersionQuery else DBIO.successful(())
     } yield rows.flatMap(_.id).headOption
-    deleteQuery
+    deleteQuery.transactionally
   }
 
   /** The query to remove the suggestions by module name
@@ -296,29 +242,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       n       <- selectQuery.delete
       version <- if (n > 0) incrementVersionQuery else currentVersionQuery
     } yield version -> rows.flatMap(_.id)
-    deleteQuery
-  }
-
-  /** The query to remove all suggestions by module names.
-    *
-    * @param modules the list of modules to remove
-    * @return the current database version and a list of removed suggestion ids
-    */
-  private def removeAllByModuleQuery(
-    modules: Seq[String]
-  ): DBIO[(Long, Seq[Long])] = {
-    if (modules.nonEmpty) {
-      val selectQuery = Suggestions.filter(_.module inSet modules)
-      for {
-        rows    <- selectQuery.result
-        n       <- selectQuery.delete
-        version <- if (n > 0) incrementVersionQuery else currentVersionQuery
-      } yield version -> rows.flatMap(_.id)
-    } else {
-      for {
-        version <- currentVersionQuery
-      } yield (version, Seq())
-    }
+    deleteQuery.transactionally
   }
 
   /** The query to remove a list of suggestions.
@@ -333,7 +257,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       ids     <- DBIO.sequence(suggestions.map(removeQuery))
       version <- currentVersionQuery
     } yield (version, ids)
-    query
+    query.transactionally
   }
 
   /** The query to update a suggestion.
@@ -371,23 +295,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         if (ids.exists(_.nonEmpty)) incrementVersionQuery
         else currentVersionQuery
     } yield (version, ids)
-    query
-  }
-
-  /** The query to update the project name.
-    *
-    * @param oldName the old name of the project
-    * @param newName the new project name
-    */
-  private def renameProjectQuery(
-    oldName: String,
-    newName: String
-  ): DBIO[Unit] = {
-    val updateQuery =
-      sqlu"""update suggestions
-          set module = replace(module, $oldName, $newName)
-          where module like '#$oldName%'"""
-    updateQuery >> DBIO.successful(())
+    query.transactionally
   }
 
   /** The query to get current version of the repo. */
@@ -425,9 +333,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** Create a search query by the provided parameters.
     *
-    * Even if the module is specified, the response includes all available
-    * global symbols (atoms and method).
-    *
     * @param module the module name search parameter
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
@@ -444,8 +349,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
       .filterOpt(module) {
-        case (row, value) =>
-          row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
+        case (row, value) => row.module === value
       }
       .filterOpt(selfType) {
         case (row, value) => row.selfType === value

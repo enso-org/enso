@@ -1,0 +1,19 @@
+[package]
+name    = "enso-data"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "Useful data-types."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/enso-data"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../../LICENSE"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-prelude = { version = "0.1.0" , path = "../enso-prelude" }
+
+serde        = { version = "1.0"  , features = ["derive"] }

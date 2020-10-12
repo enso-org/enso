@@ -32,16 +32,13 @@ object configuration {
     * A configuration object for properties of project storage.
     *
     * @param projectsRoot a project root
+    * @param projectIndexPath a path to the index
     * @param userProjectsPath a user project root
-    * @param projectMetadataDirectory a directory name containing project
-    *                                 metadata
-    * @param projectMetadataFileName a name of project metadata file
     */
   case class StorageConfig(
     projectsRoot: File,
-    userProjectsPath: File,
-    projectMetadataDirectory: String,
-    projectMetadataFileName: String
+    projectIndexPath: File,
+    userProjectsPath: File
   )
 
   /**

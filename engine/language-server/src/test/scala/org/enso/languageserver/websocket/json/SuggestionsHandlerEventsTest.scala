@@ -1,10 +1,8 @@
 package org.enso.languageserver.websocket.json
 
-import java.io.File
-
 import io.circe.literal._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
-import org.enso.languageserver.search.Suggestions
+import org.enso.languageserver.runtime.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.FlakySpec
@@ -15,16 +13,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
     "send suggestions database notifications" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
+      system.eventStream.publish(ProjectNameChangedEvent("Test"))
 
       client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
       client.expectJson(json.ok(0))
 
       // add atom
       system.eventStream.publish(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
-          "",
+        Api.SuggestionsDatabaseUpdateNotification(
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.atom))
         )
       )
@@ -60,9 +56,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // add method
       system.eventStream.publish(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
-          "",
+        Api.SuggestionsDatabaseUpdateNotification(
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.method))
         )
       )
@@ -108,9 +102,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // add function
       system.eventStream.publish(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
-          "",
+        Api.SuggestionsDatabaseUpdateNotification(
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.function))
         )
       )
@@ -150,9 +142,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
       // add local
       system.eventStream.publish(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
-          "",
+        Api.SuggestionsDatabaseUpdateNotification(
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.local))
         )
       )
@@ -188,112 +178,9 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
         }
         """)
 
-      // get suggestions database
-      client.send(json.getSuggestionsDatabase(0))
-      client.expectJson(json"""
-        { "jsonrpc" : "2.0",
-          "id" : 0,
-          "result" : {
-            "entries" : [
-              {
-                "id" : 3,
-                "suggestion" : {
-                  "type" : "function",
-                  "externalId" : ${Suggestions.function.externalId.get},
-                  "module" : "Test.Main",
-                  "name" : "print",
-                  "arguments" : [
-                  ],
-                  "returnType" : "IO",
-                  "scope" : {
-                    "start" : {
-                      "line" : 1,
-                      "character" : 9
-                    },
-                    "end" : {
-                      "line" : 1,
-                      "character" : 22
-                    }
-                  }
-                }
-              },
-              {
-                "id" : 1,
-                "suggestion" : {
-                  "type" : "atom",
-                  "module" : "Test.Main",
-                  "name" : "MyType",
-                  "arguments" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null
-                    }
-                  ],
-                  "returnType" : "MyAtom"
-                }
-              },
-              {
-                "id" : 2,
-                "suggestion" : {
-                  "type" : "method",
-                  "externalId" : ${Suggestions.method.externalId.get},
-                  "module" : "Test.Main",
-                  "name" : "foo",
-                  "arguments" : [
-                    {
-                      "name" : "this",
-                      "reprType" : "MyType",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null
-                    },
-                    {
-                      "name" : "foo",
-                      "reprType" : "Number",
-                      "isSuspended" : false,
-                      "hasDefault" : true,
-                      "defaultValue" : "42"
-                    }
-                  ],
-                  "selfType" : "MyType",
-                  "returnType" : "Number",
-                  "documentation" : "Lovely"
-                }
-              },
-              {
-                "id" : 4,
-                "suggestion" : {
-                  "type" : "local",
-                  "externalId" : ${Suggestions.local.externalId.get},
-                  "module" : "Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
-                    }
-                  }
-                }
-              }
-            ],
-            "currentVersion" : 4
-          }
-        }
-        """)
-
       // remove items
       system.eventStream.publish(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
-          "",
+        Api.SuggestionsDatabaseUpdateNotification(
           Seq(
             Api.SuggestionsDatabaseUpdate.Remove(Suggestions.method),
             Api.SuggestionsDatabaseUpdate.Remove(Suggestions.function)

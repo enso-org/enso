@@ -13,20 +13,17 @@ class FreshNameSupply {
     * @param numId the numeric identifier to use in the name
     * @return a new name
     */
-  private def mkName(numId: Long, isReferent: Boolean): IR.Name.Literal = {
-    val refMarker = if (isReferent) "ref" else ""
-    IR.Name.Literal(s"<internal-$refMarker-${numId}>", isReferent, None)
-  }
+  private def mkName(numId: Long): IR.Name.Literal =
+    IR.Name.Literal(s"<internal-${numId}>", None)
 
   /** Generates a name guaranteed not to exist in this program.
     *
-    * @param isReferent whether or not the name should be marked as referent.
     * @return a new name
     */
-  def newName(isReferent: Boolean = false): IR.Name.Literal = {
+  def newName(): IR.Name.Literal = {
     val num = counter
     counter += 1
 
-    mkName(num, isReferent)
+    mkName(num)
   }
 }

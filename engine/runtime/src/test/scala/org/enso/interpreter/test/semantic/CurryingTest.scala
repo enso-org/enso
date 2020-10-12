@@ -66,8 +66,7 @@ class CurryingTest extends InterpreterTest {
 
     "allow default arguments to be suspended in method call syntax" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |Unit.fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
           |
           |main =

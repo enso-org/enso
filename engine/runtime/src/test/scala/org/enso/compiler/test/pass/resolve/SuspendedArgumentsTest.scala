@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.SuspendedArguments
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.compiler.pass.PassConfiguration._
@@ -17,7 +17,7 @@ class SuspendedArgumentsTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: PassGroup =
+  val precursorPasses: List[IRPass] =
     passes.getPrecursors(SuspendedArguments).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
@@ -25,7 +25,7 @@ class SuspendedArgumentsTest extends CompilerTest {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(List(precursorPasses), passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method to a module for performing suspended argument
     * resolution.
@@ -66,7 +66,7 @@ class SuspendedArgumentsTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   /** Creates a defaulted inline context.
@@ -74,7 +74,7 @@ class SuspendedArgumentsTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    buildInlineContext(
+    InlineContext(
       freshNameSupply = Some(new FreshNameSupply),
       localScope      = Some(LocalScope.root)
     )

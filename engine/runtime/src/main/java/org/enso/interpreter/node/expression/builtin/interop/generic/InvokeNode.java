@@ -5,9 +5,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -17,12 +15,11 @@ import org.enso.interpreter.runtime.error.PanicException;
 public class InvokeNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
-  private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object target, Text name, Array arguments) {
+  Object execute(Object _this, Object target, String name, Vector arguments) {
     try {
-      return library.invokeMember(target, toJavaStringNode.execute(name), arguments.getItems());
+      return library.invokeMember(target, name, arguments.getItems());
     } catch (UnsupportedMessageException
         | ArityException
         | UnsupportedTypeException

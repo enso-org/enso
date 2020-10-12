@@ -2,14 +2,12 @@ package org.enso.languageserver.boot
 
 import java.io.File
 import java.net.URI
-import java.util.logging.ConsoleHandler
 
 import akka.actor.ActorSystem
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
@@ -26,20 +24,15 @@ import org.enso.languageserver.protocol.json.{
   JsonRpc
 }
 import org.enso.languageserver.runtime._
-import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.languageserver.util.Logging
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
-import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 /**
   * A main module containing all components of the server.
@@ -48,9 +41,6 @@ import scala.util.{Failure, Success}
   */
 class MainModule(serverConfig: LanguageServerConfig) {
 
-  val log = LoggerFactory.getLogger(this.getClass)
-  log.trace("Initializing...")
-
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
@@ -58,17 +48,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
     ExecutionContextConfig(),
     DirectoriesConfig(serverConfig.contentRootPath)
   )
-  log.trace("Created Language Server config")
 
   val zioExec = ZioExec(zio.Runtime.default)
-  log.trace("Created ZioExec")
 
   val fileSystem: FileSystem = new FileSystem
-  log.trace("Created FileSystem")
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
-  log.trace("Created Version Calculator")
 
   implicit val system =
     ActorSystem(
@@ -77,13 +63,23 @@ class MainModule(serverConfig: LanguageServerConfig) {
       None,
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace("Created ActorSystem")
 
-  val sqlDatabase =
-    SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
-  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-  log.trace("Created SQL Repos")
+  val sqlDatabase = SqlDatabase(
+    languageServerConfig.directories.suggestionsDatabaseFile
+  )
+  system.log.debug("Sql database created")
+  val suggestionsRepo = {
+    val repo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+    repo.init
+    repo
+  }
+
+  val versionsRepo = {
+    val repo = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
+    repo.init
+    repo
+  }
+  system.log.debug("Sql repos created")
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -112,13 +108,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val suggestionsHandler =
     system.actorOf(
       SuggestionsHandler
-        .props(
-          languageServerConfig,
-          suggestionsRepo,
-          versionsRepo,
-          sessionRouter,
-          runtimeConnector
-        ),
+        .props(languageServerConfig, suggestionsRepo, sessionRouter),
       "suggestions-handler"
     )
 
@@ -135,12 +125,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val contextRegistry =
     system.actorOf(
       ContextRegistry
-        .props(
-          suggestionsRepo,
-          languageServerConfig,
-          runtimeConnector,
-          sessionRouter
-        ),
+        .props(languageServerConfig, runtimeConnector, sessionRouter),
       "context-registry"
     )
 
@@ -149,22 +134,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  log.trace("Initializing Runtime context...")
-  val logHandler = Logging.getLogHandler(LanguageInfo.ID) match {
-    case Left(t) =>
-      log.warn("Failed to create the Runtime logger", t)
-      new ConsoleHandler()
-    case Right(handler) =>
-      log.trace(s"Setting Runtime logger")
-      handler
-  }
+  system.log.debug("Initializing Runtime context...")
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
-    .option(RuntimeOptions.LOG_LEVEL, logHandler.getLevel.toString)
     .option(
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString
@@ -172,7 +148,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(logHandler)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -185,11 +160,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     })
     .build()
   context.initialize(LanguageInfo.ID)
-  log.trace("Runtime context initialized")
-
-  val logLevel = Logging.LogLevel.fromJava(logHandler.getLevel)
-  system.eventStream.setLogLevel(Logging.LogLevel.toAkka(logLevel))
-  log.trace(s"Set akka log level to $logLevel")
+  system.log.debug("Runtime context initialized")
 
   val runtimeKiller =
     system.actorOf(
@@ -217,7 +188,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "std-in-controller"
     )
 
-  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+  lazy val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
     fileManager,
@@ -228,54 +199,25 @@ class MainModule(serverConfig: LanguageServerConfig) {
     stdInController,
     runtimeConnector
   )
-  log.trace("Created JsonConnectionControllerFactory")
 
-  val jsonRpcServer =
+  lazy val jsonRpcServer =
     new JsonRpcServer(
       JsonRpc.protocol,
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds)
     )
-  log.trace("Created JsonRpcServer")
 
-  val binaryServer =
+  lazy val binaryServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)
     )
-  log.trace("Created BinaryWebSocketServer")
-
-  /** Initialize the module. */
-  def init: Future[Unit] = {
-    import system.dispatcher
-
-    val suggestionsRepoInit = suggestionsRepo.init
-    suggestionsRepoInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize SQL suggestions repo", ex)
-    }
-
-    val versionsRepoInit = versionsRepo.init
-    versionsRepoInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize SQL versions repo", ex)
-    }(system.dispatcher)
-
-    Future
-      .sequence(Seq(suggestionsRepoInit, versionsRepoInit))
-      .map(_ => ())
-  }
 
   /** Close the main module releasing all resources. */
   def close(): Unit = {
     suggestionsRepo.close()
     versionsRepo.close()
-    log.trace("Closed MainModule")
   }
 }

@@ -443,13 +443,6 @@ object AstView {
 
   object MethodCall {
 
-    private def consToVar(ast: AST.Ident): AST.Ident =
-      ast match {
-        case AST.Ident.Cons(c) =>
-          AST.Ident.Var(c).setLocation(ast.location).setID(ast.id)
-        case _ => ast
-      }
-
     /** Matches on a method call.
       *
       * A method call has the form `<obj>.<fn-name> <args...>` where `<obj>` is
@@ -463,14 +456,33 @@ object AstView {
     def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] =
       ast match {
         case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
-          Some((target, consToVar(ident), args))
+          Some((target, ident, args))
         case AST.App.Section.Left(
               MethodCall(target, ident, List()),
               susp @ SuspendDefaultsOperator(_)
             ) =>
           Some((target, ident, List(susp)))
         case OperatorDot(target, ConsOrVar(ident)) =>
-          Some((target, consToVar(ident), List()))
+          Some((target, ident, List()))
+        case _ => None
+      }
+  }
+
+  object ModulePath {
+
+    /** Matches on a module path of the form `A.B.C...`, as seen in an import.
+      *
+      * @param ast the structure to try and match on
+      * @return the list of segments in the module path
+      */
+    def unapply(ast: AST): Option[List[AST.Ident]] =
+      ast match {
+        case AST.Ident.Cons.any(name) => Some(List(name))
+        case OperatorDot(left, AST.Ident.Cons.any(name)) =>
+          left match {
+            case ModulePath(elems) => Some(elems :+ name)
+            case _                 => None
+          }
         case _ => None
       }
   }
@@ -550,8 +562,6 @@ object AstView {
               Some((targetPath, name, List(), rhs))
             case MethodBindingLHS(path, methodName, args) =>
               Some((path, methodName, args, rhs))
-            case AST.App.Section.Right(opr, arg) =>
-              Some((List(), opr, List(arg), rhs))
             case AST.Ident.Var.any(name) => Some((List(), name, List(), rhs))
             case _ =>
               None
@@ -782,17 +792,6 @@ object AstView {
     }
   }
 
-  object QualifiedName {
-    def unapply(ast: AST): Option[List[AST.Ident.Cons]] =
-      ast match {
-        case OperatorDot(l, AST.Ident.Cons.any(name)) =>
-          unapply(l).map(_ :+ name)
-        case AST.Ident.Cons.any(name) =>
-          Some(List(name))
-        case _ => None
-      }
-  }
-
   object ConstructorPattern {
 
     /** Matches on a constructor pattern.
@@ -804,12 +803,12 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the pattern
       */
-    def unapply(ast: AST): Option[(List[AST.Ident.Cons], List[AST])] = {
+    def unapply(ast: AST): Option[(AST.Ident, List[AST])] = {
       MaybeManyParensed.unapply(ast).getOrElse(ast) match {
-        case QualifiedName(cons) => Some((cons, List()))
+        case AST.Ident.Cons.any(cons) => Some((cons, List()))
         case SpacedList(elems) if elems.nonEmpty =>
           elems.head match {
-            case QualifiedName(refName) =>
+            case AST.Ident.Cons.any(refName) =>
               val allFieldsValid = elems.tail.forall {
                 case Pattern(_) => true
                 case _          => false
@@ -842,19 +841,6 @@ object AstView {
         case _                    => None
       }
     }
-  }
-
-  object DecimalLiteral {
-    def unapply(ast: AST): Option[(AST.Literal.Number, AST.Literal.Number)] =
-      ast match {
-        case AST.App.Infix(
-              AST.Literal.Number.any(int),
-              AST.Ident.Opr("."),
-              AST.Literal.Number.any(frac)
-            ) =>
-          Some((int, frac))
-        case _ => None
-      }
   }
 
   object UnaryMinus {

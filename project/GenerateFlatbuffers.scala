@@ -3,6 +3,7 @@ import java.io.IOException
 import sbt.Keys._
 import sbt._
 import sbt.internal.util.ManagedLogger
+import sbt.util.FilesInfo
 
 import scala.sys.process._
 
@@ -50,8 +51,8 @@ object GenerateFlatbuffers {
 
         val projectName = name.value
         log.info(
-          s"Flatbuffers code generation generated ${generatedSources.size} " +
-          s"files in project $projectName."
+          "*** Flatbuffers code generation generated " +
+          s"${generatedSources.size} files in project $projectName"
         )
       }
     }

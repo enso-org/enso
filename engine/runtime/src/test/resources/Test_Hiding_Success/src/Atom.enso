@@ -1,5 +1,0 @@
-type X a
-
-type Y b
-
-X.method = 20

@@ -1,3 +1,0 @@
-import Cycle_Test.Sub.A
-
-export Cycle_Test.Sub.A

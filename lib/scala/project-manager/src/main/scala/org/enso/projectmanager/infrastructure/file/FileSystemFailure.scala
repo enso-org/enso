@@ -18,11 +18,6 @@ object FileSystemFailure {
   case object FileNotFound extends FileSystemFailure
 
   /**
-    * Signals that the file is not a directory.
-    */
-  case object NotDirectory extends FileSystemFailure
-
-  /**
     * Signals that the file already exists.
     */
   case object FileExists extends FileSystemFailure

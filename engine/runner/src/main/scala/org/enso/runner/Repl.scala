@@ -4,7 +4,6 @@ import java.io.{InputStream, OutputStream, PrintStream, PrintWriter, Writer}
 import java.util.Scanner
 
 import org.enso.polyglot.debugger.{ReplExecutor, SessionManager}
-import org.jline.reader.impl.DefaultParser
 import org.jline.reader.{LineReader, LineReaderBuilder}
 import org.jline.terminal.{Terminal, TerminalBuilder}
 
@@ -99,10 +98,8 @@ case class SimpleReplIO(in: InputStream, out: OutputStream) extends ReplIO {
 case class TerminalIO() extends ReplIO {
   private val terminal: Terminal =
     TerminalBuilder.builder().system(true).build()
-  private val parser: DefaultParser = new DefaultParser()
-  parser.setEscapeChars(null)
   private val lineReader: LineReader =
-    LineReaderBuilder.builder().parser(parser).terminal(terminal).build()
+    LineReaderBuilder.builder().terminal(terminal).build()
 
   /**
     * Ask user for a line of input, using given prompt

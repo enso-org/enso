@@ -5,7 +5,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Root node for the builtin Debug.eval function. */
@@ -22,7 +21,7 @@ public class DebugEvalNode extends Node {
   }
 
   Stateful execute(
-      CallerInfo callerInfo, @MonadicState Object state, Object _this, Text expression) {
+      CallerInfo callerInfo, @MonadicState Object state, Object _this, String expression) {
     return evalNode.execute(callerInfo, state, expression);
   }
 }

@@ -30,10 +30,4 @@ class ObservableGenerator[R] extends Generator[ZIO[R, +*, +*]] {
     }
   }
 
-  def reset(): Unit = {
-    this.synchronized {
-      buffer = Vector()
-    }
-  }
-
 }

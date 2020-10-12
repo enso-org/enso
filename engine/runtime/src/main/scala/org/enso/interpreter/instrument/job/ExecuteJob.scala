@@ -12,47 +12,31 @@ import org.enso.polyglot.runtime.Runtime.Api
   * @param contextId an identifier of a context to execute
   * @param stack a call stack to execute
   * @param updatedVisualisations a list of updated visualisations
-  * @param sendMethodCallUpdates a flag to send all the method calls of the
-  * executed frame as a value updates
   */
 class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
-  updatedVisualisations: Seq[UUID],
-  sendMethodCallUpdates: Boolean
+  updatedVisualisations: Seq[UUID]
 ) extends Job[Unit](List(contextId), true, true)
     with ProgramExecutionSupport {
 
   def this(exe: Executable) =
-    this(
-      exe.contextId,
-      exe.stack.toList,
-      exe.updatedVisualisations,
-      exe.sendMethodCallUpdates
-    )
+    this(exe.contextId, exe.stack.toList, exe.updatedVisualisations)
 
-  /** @inheritdoc */
+  /** @inheritdoc **/
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireContextLock(contextId)
     ctx.locking.acquireReadCompilationLock()
     ctx.executionService.getContext.getThreadManager.enter()
     try {
-      val errorOrOk =
-        runProgram(
-          contextId,
-          stack,
-          updatedVisualisations,
-          sendMethodCallUpdates
-        )
+      val errorOrOk = runProgram(contextId, stack, updatedVisualisations)
       errorOrOk match {
         case Left(e) =>
           ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionFailed(contextId, e))
+            Api.Response(None, Api.ExecutionFailed(contextId, e))
           )
-        case Right(()) =>
-          ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionSuccessful(contextId))
-          )
+
+        case Right(()) => //nop
       }
     } finally {
       ctx.executionService.getContext.getThreadManager.leave()

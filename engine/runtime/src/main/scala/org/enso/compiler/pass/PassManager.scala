@@ -1,26 +1,27 @@
 package org.enso.compiler.pass
 
+import java.util.UUID
+
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 
+import scala.collection.mutable
+
 // TODO [AA] In the future, the pass ordering should be _computed_ from the list
 //  of available passes, rather than just verified.
 
-/** A manager for compiler passes.
+/** The pass manager is responsible for executing the provided passes in order.
   *
-  * It is responsible for verifying and executing passes (in groups) on the
-  * compiler IR.
-  *
-  * @param passes the pass groups, must all be unique
-  * @param passConfiguration the configuration for each pass in `passes`
+  * @param passes the specification of the ordering for the passes
+  * @param passConfiguration the configuration for the passes
   */
 //noinspection DuplicatedCode
 class PassManager(
-  passes: List[PassGroup],
+  passes: List[IRPass],
   passConfiguration: PassConfiguration
 ) {
-  val allPasses = verifyPassOrdering(passes.flatMap(_.passes))
+  val passOrdering: List[IRPass] = verifyPassOrdering(passes)
 
   /** Computes a valid pass ordering for the compiler.
     *
@@ -28,6 +29,7 @@ class PassManager(
     * @throws CompilerError if a valid pass ordering cannot be computed
     * @return a valid pass ordering for the compiler, based on `passes`
     */
+  @throws[CompilerError]
   def verifyPassOrdering(passes: List[IRPass]): List[IRPass] = {
     var validPasses: Set[IRPass] = Set()
 
@@ -53,129 +55,96 @@ class PassManager(
     passes
   }
 
-  /** Executes all pass groups on the [[IR.Module]].
+  /** Calculates the number of times each pass occurs in the pass ordering.
     *
-    * @param ir the module to execute the compiler passes on
-    * @param moduleContext the module context in which the passes are executed
-    * @return the result of executing `passGroup` on `ir`
+    * @return the a mapping from the pass identifier to the number of times the
+    *         pass occurs
+    */
+  private def calculatePassCounts: mutable.Map[UUID, PassCount] = {
+    val passCounts: mutable.Map[UUID, PassCount] = mutable.Map()
+
+    for (pass <- passOrdering) {
+      passCounts.get(pass.key) match {
+        case Some(counts) =>
+          passCounts(pass.key) = counts.copy(expected = counts.expected + 1)
+        case None => passCounts(pass.key) = PassCount()
+      }
+    }
+
+    passCounts
+  }
+
+  /** Executes the passes on an [[IR.Module]].
+    *
+    * @param ir the module to execute the compiler phases on
+    * @param moduleContext the module context in which the phases are executed
+    * @return the result of executing [[passOrdering]] on `ir`
     */
   def runPassesOnModule(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    passes.foldLeft(ir)((ir, group) =>
-      runPassesOnModule(ir, moduleContext, group)
-    )
-  }
-
-  /** Executes the provided `passGroup` on the [[IR.Module]].
-    *
-    * @param ir the module to execute the compiler passes on
-    * @param moduleContext the module context in which the passes are executed
-    * @param passGroup the group of passes being executed
-    * @return the result of executing `passGroup` on `ir`
-    */
-  def runPassesOnModule(
-    ir: IR.Module,
-    moduleContext: ModuleContext,
-    passGroup: PassGroup
-  ): IR.Module = {
-    if (!passes.contains(passGroup)) {
-      throw new CompilerError("Cannot run an unvalidated pass group.")
-    }
+    val passCounts = calculatePassCounts
 
     val newContext =
       moduleContext.copy(passConfiguration = Some(passConfiguration))
 
-    val passesWithIndex = passGroup.passes.zipWithIndex
+    passOrdering.foldLeft(ir)((intermediateIR, pass) => {
+      val passCount = passCounts(pass.key)
 
-    passesWithIndex.foldLeft(ir) {
-      case (intermediateIR, (pass, index)) => {
-        // TODO [AA, MK] This is a possible race condition.
-        passConfiguration
-          .get(pass)
-          .foreach(c =>
-            c.shouldWriteToContext = isLastRunOf(index, pass, passGroup)
-          )
+      passConfiguration
+        .get(pass)
+        .foreach(c =>
+          c.shouldWriteToContext =
+            passCount.expected - passCount.completed == 1
+        )
 
-        pass.runModule(intermediateIR, newContext)
-      }
-    }
+      val result = pass.runModule(intermediateIR, newContext)
+
+      passCounts(pass.key) = passCount.copy(completed = passCount.completed + 1)
+
+      result
+    })
   }
 
-  /** Executes all passes on the [[IR.Expression]].
+  /** Executes the passes on an [[IR.Expression]].
     *
-    * @param ir the expression to execute the compiler passes on
-    * @param inlineContext the inline context in which the passes are executed
-    * @return the result of executing `passGroup` on `ir`
+    * @param ir the expression to execute the compiler phases on
+    * @param inlineContext the inline context in which the expression is
+    *                      processed
+    * @return the result of executing [[passOrdering]] on `ir`
     */
   def runPassesInline(
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    passes.foldLeft(ir)((ir, group) =>
-      runPassesInline(ir, inlineContext, group)
-    )
-  }
-
-  /** Executes the provided `passGroup` on the [[IR.Expression]].
-    *
-    * @param ir the expression to execute the compiler passes on
-    * @param inlineContext the inline context in which the passes are executed
-    * @param passGroup the group of passes being executed
-    * @return the result of executing `passGroup` on `ir`
-    */
-  def runPassesInline(
-    ir: IR.Expression,
-    inlineContext: InlineContext,
-    passGroup: PassGroup
-  ): IR.Expression = {
-    if (!passes.contains(passGroup)) {
-      throw new CompilerError("Cannot run an unvalidated pass group.")
-    }
+    val passCounts = calculatePassCounts
 
     val newContext =
       inlineContext.copy(passConfiguration = Some(passConfiguration))
 
-    val passesWithIndex = passGroup.passes.zipWithIndex
+    passOrdering.foldLeft(ir)((intermediateIR, pass) => {
+      val passCount = passCounts(pass.key)
 
-    passesWithIndex.foldLeft(ir) {
-      case (intermediateIR, (pass, index)) => {
-        // TODO [AA, MK] This is a possible race condition.
-        passConfiguration
-          .get(pass)
-          .foreach(c =>
-            c.shouldWriteToContext = isLastRunOf(index, pass, passGroup)
-          )
+      passConfiguration
+        .get(pass)
+        .foreach(c =>
+          c.shouldWriteToContext =
+            passCount.expected - passCount.completed == 1
+        )
 
-        pass.runExpression(intermediateIR, newContext)
-      }
-    }
+      val result = pass.runExpression(intermediateIR, newContext)
+
+      passCounts(pass.key) = passCount.copy(completed = passCount.completed + 1)
+
+      result
+    })
   }
 
-  /** Determines whether the run at index `indexOfPassInGroup` is the last run
-    * of that pass in the overall pass ordering.
+  /** The counts of passes running.
     *
-    * @param indexOfPassInGroup the index of `pass` in `passGroup`
-    * @param pass the pass to check for
-    * @param passGroup the pass group being run
-    * @return `true` if the condition holds, otherwise `false`
+    * @param expected how many runs should occur
+    * @param completed how many runs have been completed
     */
-  def isLastRunOf(
-    indexOfPassInGroup: Int,
-    pass: IRPass,
-    passGroup: PassGroup
-  ): Boolean = {
-    val ix          = allPasses.lastIndexOf(pass)
-    val before      = passes.takeWhile(_ != passGroup)
-    val totalLength = before.map(_.passes.length).sum
-
-    ix - totalLength == indexOfPassInGroup
-  }
+  sealed private case class PassCount(expected: Int = 1, completed: Int = 0)
 }
-
-/** A representation of a group of passes.
-  *
-  * @param passes the passes in the group
-  */
-class PassGroup(val passes: List[IRPass])

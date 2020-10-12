@@ -5,7 +5,6 @@ import java.util.UUID
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
-import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.syntax.text.{AST, Debug, Location}
@@ -282,7 +281,6 @@ object IR {
     * executable code.
     *
     * @param imports the import statements that bring other modules into scope
-    * @param exports the export statements for this module
     * @param bindings the top-level bindings for this module
     * @param location the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
@@ -290,7 +288,6 @@ object IR {
     */
   sealed case class Module(
     imports: List[Module.Scope.Import],
-    exports: List[Module.Scope.Export],
     bindings: List[Module.Scope.Definition],
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = MetadataStorage(),
@@ -302,7 +299,6 @@ object IR {
     /** Creates a copy of `this`.
       *
       * @param imports the import statements that bring other modules into scope
-      * @param exports the export statements for this module
       * @param bindings the top-level bindings for this module
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
@@ -312,15 +308,13 @@ object IR {
       */
     def copy(
       imports: List[Module.Scope.Import]      = imports,
-      exports: List[Module.Scope.Export]      = exports,
       bindings: List[Module.Scope.Definition] = bindings,
       location: Option[IdentifiedLocation]    = location,
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
       id: Identifier                          = id
     ): Module = {
-      val res =
-        Module(imports, exports, bindings, location, passData, diagnostics)
+      val res = Module(imports, bindings, location, passData, diagnostics)
       res.id = id
       res
     }
@@ -350,18 +344,16 @@ object IR {
     override def mapExpressions(fn: Expression => Expression): Module = {
       copy(
         imports  = imports.map(_.mapExpressions(fn)),
-        exports  = exports.map(_.mapExpressions(fn)),
         bindings = bindings.map(_.mapExpressions(fn))
       )
     }
 
-    override def children: List[IR] = imports ++ exports ++ bindings
+    override def children: List[IR] = imports ++ bindings
 
     override def toString: String =
       s"""
       |IR.Module(
       |imports = $imports,
-      |exports = $exports,
       |bindings = $bindings,
       |location = $location,
       |passData = ${this.showPassData},
@@ -373,14 +365,17 @@ object IR {
     override def showCode(indent: Int): String = {
       val importsString = imports.map(_.showCode(indent)).mkString("\n")
 
-      val exportsString = exports.map(_.showCode(indent)).mkString("\n")
-
       val defsString = bindings.map(_.showCode(indent)).mkString("\n\n")
 
-      List(importsString, exportsString, defsString).mkString("\n\n")
+      if (bindings.nonEmpty && imports.nonEmpty) {
+        s"$importsString\n\n$defsString"
+      } else if (bindings.nonEmpty) {
+        s"$defsString"
+      } else {
+        s"$importsString"
+      }
     }
   }
-
   object Module {
 
     /** A representation of constructs that can only occur in the top-level
@@ -397,159 +392,6 @@ object IR {
     }
     object Scope {
 
-      /** An export statement.
-        *
-        * @param name the full path representing the export
-        * @param rename the name this export is visible as
-        * @param isAll is this an unqualified export
-        * @param onlyNames exported names selected from the exported module
-        * @param hiddenNames exported names hidden from the exported module
-        * @param location the source location that the node corresponds to
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        */
-      sealed case class Export(
-        name: IR.Name.Qualified,
-        rename: Option[IR.Name.Literal],
-        isAll: Boolean,
-        onlyNames: Option[List[IR.Name.Literal]],
-        hiddenNames: Option[List[IR.Name.Literal]],
-        override val location: Option[IdentifiedLocation],
-        override val passData: MetadataStorage      = MetadataStorage(),
-        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-      ) extends IR
-          with IRKind.Primitive {
-        override protected var id: Identifier = randomId
-
-        /** Creates a copy of `this`.
-          *
-          * @param name the full path representing the export
-          * @param rename the name this export is visible as
-          * @param isAll is this an unqualified export
-          * @param onlyNames exported names selected from the exported module
-          * @param hiddenNames exported names hidden from the exported module
-          * @param location the source location that the node corresponds to
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          * @param id the identifier for the new node
-          * @return a copy of `this`, updated with the specified values
-          */
-        def copy(
-          name: IR.Name.Qualified                    = name,
-          rename: Option[IR.Name.Literal]            = rename,
-          isAll: Boolean                             = isAll,
-          onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
-          hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
-          location: Option[IdentifiedLocation]       = location,
-          passData: MetadataStorage                  = passData,
-          diagnostics: DiagnosticStorage             = diagnostics,
-          id: Identifier                             = id
-        ): Export = {
-          val res = Export(
-            name,
-            rename,
-            isAll,
-            onlyNames,
-            hiddenNames,
-            location,
-            passData,
-            diagnostics
-          )
-          res.id = id
-          res
-        }
-
-        override def duplicate(
-          keepLocations: Boolean   = true,
-          keepMetadata: Boolean    = true,
-          keepDiagnostics: Boolean = true
-        ): Export =
-          copy(
-            location = if (keepLocations) location else None,
-            passData =
-              if (keepMetadata) passData.duplicate else MetadataStorage(),
-            diagnostics =
-              if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
-          )
-
-        override def setLocation(
-          location: Option[IdentifiedLocation]
-        ): Export =
-          copy(location = location)
-
-        override def mapExpressions(
-          fn: Expression => Expression
-        ): Export = this
-
-        override def toString: String =
-          s"""
-               |IR.Module.Scope.Export(
-               |name = $name,
-               |rename = $rename,
-               |isAll = $isAll,
-               |onlyNames = $onlyNames,
-               |hidingNames = $hiddenNames,
-               |location = $location,
-               |passData = ${this.showPassData},
-               |diagnostics = $diagnostics,
-               |id = $id
-               |)
-               |""".toSingleLine
-
-        override def children: List[IR] =
-          name :: List(
-            rename.toList,
-            onlyNames.getOrElse(List()),
-            hiddenNames.getOrElse(List())
-          ).flatten
-
-        override def showCode(indent: Int): String = {
-          val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
-          if (isAll) {
-            val onlyPart = onlyNames
-              .map(names => " " + names.map(_.name).mkString(", "))
-              .getOrElse("")
-            val hidingPart = hiddenNames
-              .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
-              .getOrElse("")
-            val all = if (onlyNames.isDefined) "" else " all"
-            s"from ${name.name}$renameCode export$onlyPart$all$hidingPart"
-          } else {
-            s"export ${name.name}$renameCode"
-          }
-        }
-
-        /**
-          * Gets the name of the module visible in the importing scope,
-          * either the original name or the rename.
-          *
-          * @return the name of this export visible in code
-          */
-        def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
-
-        /**
-          * Checks whether the export statement allows use of the given
-          * exported name.
-          *
-          * Note that it does not verify if the name is actually exported
-          * by the module, only checks if it is syntactically allowed.
-          *
-          * @param name the name to check
-          * @return whether the name could be accessed or not
-          */
-        def allowsAccess(name: String): Boolean = {
-          if (!isAll) return false;
-          if (onlyNames.isDefined) {
-            onlyNames.get.exists(_.name.toLowerCase == name.toLowerCase)
-          } else if (hiddenNames.isDefined) {
-            !hiddenNames.get.exists(_.name.toLowerCase == name.toLowerCase)
-          } else {
-            true
-          }
-        }
-      }
-
       /** Module-level import statements. */
       sealed trait Import extends Scope {
         override def mapExpressions(fn: Expression => Expression):      Import
@@ -565,21 +407,13 @@ object IR {
 
         /** An import statement.
           *
-          * @param name the full path representing the import
-          * @param rename the name this import is visible as
-          * @param isAll is this importing exported names
-          * @param onlyNames exported names selected from the imported module
-          * @param hiddenNames exported names hidden from the imported module
+          * @param name the full `.`-separated path representing the import
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
         sealed case class Module(
-          name: IR.Name.Qualified,
-          rename: Option[IR.Name.Literal],
-          isAll: Boolean,
-          onlyNames: Option[List[IR.Name.Literal]],
-          hiddenNames: Option[List[IR.Name.Literal]],
+          name: String,
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -590,10 +424,6 @@ object IR {
           /** Creates a copy of `this`.
             *
             * @param name the full `.`-separated path representing the import
-            * @param rename the name this import is visible as
-            * @param isAll is this importing exported names
-            * @param onlyNames exported names selected from the imported module
-            * @param hiddenNames exported names hidden from the imported module
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
@@ -601,26 +431,13 @@ object IR {
             * @return a copy of `this`, updated with the specified values
             */
           def copy(
-            name: IR.Name.Qualified                    = name,
-            rename: Option[IR.Name.Literal]            = rename,
-            isAll: Boolean                             = isAll,
-            onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
-            hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
-            location: Option[IdentifiedLocation]       = location,
-            passData: MetadataStorage                  = passData,
-            diagnostics: DiagnosticStorage             = diagnostics,
-            id: Identifier                             = id
+            name: String                         = name,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
           ): Module = {
-            val res = Module(
-              name,
-              rename,
-              isAll,
-              onlyNames,
-              hiddenNames,
-              location,
-              passData,
-              diagnostics
-            )
+            val res = Module(name, location, passData, diagnostics)
             res.id = id
             res
           }
@@ -659,57 +476,9 @@ object IR {
             |)
             |""".toSingleLine
 
-          override def children: List[IR] =
-            name :: List(
-              rename.toList,
-              onlyNames.getOrElse(List()),
-              hiddenNames.getOrElse(List())
-            ).flatten
+          override def children: List[IR] = List()
 
-          override def showCode(indent: Int): String = {
-            val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
-            if (isAll) {
-              val onlyPart = onlyNames
-                .map(names => " " + names.map(_.name).mkString(", "))
-                .getOrElse("")
-              val hidingPart = hiddenNames
-                .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
-                .getOrElse("")
-              val all = if (onlyNames.isDefined) "" else " all"
-              s"from ${name.name}$renameCode import$onlyPart$all$hidingPart"
-            } else {
-              s"import ${name.name}$renameCode"
-            }
-          }
-
-          /**
-            * Gets the name of the module visible in this scope, either the
-            * original name or the rename.
-            *
-            * @return the name of this import visible in code
-            */
-          def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
-
-          /**
-            * Checks whether the import statement allows use of the given
-            * exported name.
-            *
-            * Note that it does not verify if the name is actually exported
-            * by the module, only checks if it is syntactically allowed.
-            *
-            * @param name the name to check
-            * @return whether the name could be accessed or not
-            */
-          def allowsAccess(name: String): Boolean = {
-            if (!isAll) return false;
-            if (onlyNames.isDefined) {
-              onlyNames.get.exists(_.name == name)
-            } else if (hiddenNames.isDefined) {
-              !hiddenNames.get.exists(_.name == name)
-            } else {
-              true
-            }
-          }
+          override def showCode(indent: Int): String = s"import $name"
         }
 
         object Polyglot {
@@ -717,12 +486,6 @@ object IR {
           /** Represents language-specific polyglot import data. */
           sealed trait Entity {
             val langName: String
-
-            /** Returns the name this object is visible as from Enso code.
-              *
-              * @return the visible name of this object
-              */
-            def getVisibleName: String
 
             def showCode(indent: Int = 0): String
           }
@@ -737,14 +500,6 @@ object IR {
               extends Entity {
             val langName = "java"
 
-            override def getVisibleName: String = className
-
-            /** Returns the fully qualified Java name of this object.
-              *
-              * @return the Java-side name of the imported entity
-              */
-            def getJavaName: String = s"$packageName.$className"
-
             override def showCode(indent: Int): String =
               s"$packageName.$className"
           }
@@ -753,15 +508,12 @@ object IR {
         /** An import of a polyglot class.
           *
           * @param entity language-specific information on the imported entity
-          * @param rename the name this object should be visible under in the
-          *               importing scope
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
         sealed case class Polyglot(
           entity: Polyglot.Entity,
-          rename: Option[String],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -772,8 +524,6 @@ object IR {
           /** Creates a copy of `this`.
             *
             * @param entity language-specific information on the imported entity
-            * @param rename the name this object should be visible under in the
-            *               importing scope
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
@@ -782,14 +532,13 @@ object IR {
             */
           def copy(
             entity: Polyglot.Entity              = entity,
-            rename: Option[String]               = rename,
             location: Option[IdentifiedLocation] = location,
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
           ): Polyglot = {
             val res =
-              Polyglot(entity, rename, location, passData, diagnostics)
+              Polyglot(entity, location, passData, diagnostics)
             res.id = id
             res
           }
@@ -815,17 +564,10 @@ object IR {
           override def mapExpressions(fn: Expression => Expression): Polyglot =
             this
 
-          /** Returns the name this object is visible as from Enso code.
-            *
-            * @return the visible name of this object
-            */
-          def getVisibleName: String = rename.getOrElse(entity.getVisibleName)
-
           override def toString: String =
             s"""
             |IR.Module.Scope.Import.Polyglot(
             |entity = $entity,
-            |rename = $rename,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -836,8 +578,7 @@ object IR {
           override def children: List[IR] = List()
 
           override def showCode(indent: Int): String = {
-            val renamePart = rename.map(name => s"as $name").getOrElse("")
-            s"polyglot ${entity.langName} import ${entity.showCode(indent)} $renamePart"
+            s"polyglot ${entity.langName} import ${entity.showCode(indent)}"
           }
         }
       }
@@ -1069,7 +810,7 @@ object IR {
             keepDiagnostics: Boolean = true
           ): Method
 
-          def typeName: IR.Name   = methodReference.typePointer
+          def typeName: IR.Name   = methodReference.typePointerAsName
           def methodName: IR.Name = methodReference.methodName
         }
         object Method {
@@ -1609,13 +1350,6 @@ object IR {
       override def children: List[IR] = List()
 
       override def showCode(indent: Int): String = value
-
-      /**
-        * Checks whether the literal represents a fractional value.
-        *
-        * @return `true` if the value is fractional, `false` otherwise.
-        */
-      def isFractional: Boolean = value.contains(".")
     }
 
     /** A textual Enso literal.
@@ -1704,21 +1438,25 @@ object IR {
       keepDiagnostics: Boolean = true
     ): Name
 
-    /** Checks whether a name is in referent form.
+    /** Checks whether a name is in referant form.
       *
       * Please see the syntax specification for more details on this form.
       *
-      * @return `true` if `this` is in referent form, otherwise `false`
+      * @return `true` if `this` is in referant form, otherwise `false`
       */
-    def isReferent: Boolean
+    def isReferant: Boolean = {
+      name.split("_").filterNot(_.isEmpty).forall(_.head.isUpper)
+    }
 
     /** Checks whether a name is in variable form.
       *
       * Please see the syntax specification for more details on this form.
       *
-      * @return `true` if `this` is in referent form, otherwise `false`
+      * @return `true` if `this` is in referant form, otherwise `false`
       */
-    def isVariable: Boolean = !isReferent
+    def isVariable: Boolean = !isReferant
+
+    // TODO [AA] toReferant and toVariable for converting forms
   }
   object Name {
 
@@ -1731,7 +1469,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class MethodReference(
-      typePointer: IR.Name,
+      typePointer: List[IR.Name],
       methodName: IR.Name,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -1752,7 +1490,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        typePointer: IR.Name                 = typePointer,
+        typePointer: List[IR.Name]           = typePointer,
         methodName: IR.Name                  = methodName,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -1770,8 +1508,6 @@ object IR {
         res.id = id
         res
       }
-
-      override def isReferent: Boolean = true
 
       override def duplicate(
         keepLocations: Boolean   = true,
@@ -1795,7 +1531,7 @@ object IR {
         fn: Expression => Expression
       ): MethodReference =
         copy(
-          typePointer = typePointer.mapExpressions(fn),
+          typePointer = typePointer.map(_.mapExpressions(fn)),
           methodName  = methodName.mapExpressions(fn)
         )
 
@@ -1817,11 +1553,25 @@ object IR {
         |)
         |""".toSingleLine
 
-      override def children: List[IR] = List(typePointer, methodName)
+      override def children: List[IR] = typePointer :+ methodName
 
       override def showCode(indent: Int): String = {
-        val tPointer = typePointer.showCode(indent)
+        val tPointer = typePointer.map(_.showCode(indent)).mkString(".")
         s"$tPointer.${methodName.showCode(indent)}"
+      }
+
+      /** Constructs a name literal from the type name segments.
+        *
+        * @return a name literal representing [[typePointer]]
+        */
+      def typePointerAsName: IR.Name = {
+        val nameStr = typePointer.map(_.name).mkString(".")
+        val newLoc  = MethodReference.genLocation(typePointer)
+
+        IR.Name.Literal(
+          nameStr,
+          newLoc
+        )
       }
 
       /** Checks whether `this` and `that` reference the same method.
@@ -1831,7 +1581,15 @@ object IR {
         *         otherwise `false`
         */
       def isSameReferenceAs(that: MethodReference): Boolean = {
-        typePointer.name == that.typePointer.name && this.methodName.name == that.methodName.name
+        if (this.typePointer.length == that.typePointer.length) {
+          val pathsAreSame = this.typePointer.zip(that.typePointer).forall {
+            case (l, r) => l.name == r.name
+          }
+
+          pathsAreSame && (this.methodName.name == that.methodName.name)
+        } else {
+          false
+        }
       }
     }
     object MethodReference {
@@ -1859,82 +1617,6 @@ object IR {
           }
         )
       }
-    }
-
-    /** A representation of a qualified (multi-part) name.
-      *
-      * @param parts the segments of the name
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      * @return a copy of `this`, updated with the specified values
-      */
-    sealed case class Qualified(
-      parts: List[IR.Name],
-      override val location: Option[IdentifiedLocation],
-      override val passData: MetadataStorage      = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Name
-        with IRKind.Primitive {
-
-      override val name: String = parts.map(_.name).mkString(".")
-
-      override def mapExpressions(fn: Expression => Expression): Name = this
-
-      override def setLocation(location: Option[IdentifiedLocation]): Name =
-        copy(location = location)
-
-      override def isReferent: Boolean = true
-
-      /** Creates a copy of `this`.
-        *
-        * @param parts the segments of the name
-        * @param location the source location that the node corresponds to
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        * @param id the identifier for the new node
-        * @return a copy of `this`, updated with the specified values
-        */
-      def copy(
-        parts: List[IR.Name]                 = parts,
-        location: Option[IdentifiedLocation] = location,
-        passData: MetadataStorage            = passData,
-        diagnostics: DiagnosticStorage       = diagnostics,
-        id: Identifier                       = id
-      ): Qualified = {
-        val res =
-          Qualified(
-            parts,
-            location,
-            passData,
-            diagnostics
-          )
-        res.id = id
-        res
-      }
-
-      override def duplicate(
-        keepLocations: Boolean   = true,
-        keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
-      ): Qualified =
-        copy(
-          parts = parts.map(
-            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
-          ),
-          location = if (keepLocations) location else None,
-          passData =
-            if (keepMetadata) passData.duplicate else MetadataStorage(),
-          diagnostics =
-            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
-        )
-
-      override def children: List[IR] = parts
-
-      override protected var id: Identifier = randomId
-
-      override def showCode(indent: Int): String = name
     }
 
     /** Represents occurrences of blank (`_`) expressions.
@@ -1970,8 +1652,6 @@ object IR {
         res.id = id
         res
       }
-
-      override def isReferent: Boolean = false
 
       override def duplicate(
         keepLocations: Boolean   = true,
@@ -2011,14 +1691,12 @@ object IR {
     /** The representation of a literal name.
       *
       * @param name the literal text of the name
-      * @param isReferent is this a referent name
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Literal(
       override val name: String,
-      override val isReferent: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -2028,7 +1706,6 @@ object IR {
       /** Creates a copy of `this`.
         *
         * @param name the literal text of the name
-        * @param isReferent is this a referent name
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -2037,13 +1714,12 @@ object IR {
         */
       def copy(
         name: String                         = name,
-        isReferent: Boolean                  = isReferent,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Literal = {
-        val res = Literal(name, isReferent, location, passData, diagnostics)
+        val res = Literal(name, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2071,7 +1747,6 @@ object IR {
         s"""
         |IR.Name.Literal(
         |name = $name,
-        |isReferent = $isReferent,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -2097,8 +1772,6 @@ object IR {
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = "this"
-
-      override def isReferent: Boolean = false
 
       /** Creates a copy of `this`.
         *
@@ -2167,8 +1840,6 @@ object IR {
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
-
-      override def isReferent: Boolean = false
 
       /** Creates a copy of `this`.
         *
@@ -4776,7 +4447,6 @@ object IR {
               "Branch documentation should not be present " +
               "inside a constructor pattern."
             )
-          case _: Error.Pattern => true
         }
       }
 
@@ -5252,260 +4922,6 @@ object IR {
   }
   object Error {
 
-    /** A representation of an error resulting from name resolution.
-      *
-      * @param originalName the original name that could not be resolved
-      * @param reason the cause of this error
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      * @return a copy of `this`, updated with the specified values
-      */
-    sealed case class Resolution(
-      originalName: IR.Name,
-      reason: Resolution.Reason,
-      override val passData: MetadataStorage      = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Error
-        with Diagnostic.Kind.Interactive
-        with IRKind.Primitive
-        with IR.Name {
-      override val name: String = originalName.name
-
-      override def isReferent: Boolean = originalName.isReferent
-
-      override def mapExpressions(fn: Expression => Expression): Resolution =
-        this
-
-      override def setLocation(
-        location: Option[IdentifiedLocation]
-      ): Resolution =
-        copy(originalName = originalName.setLocation(location))
-
-      /** Creates a copy of `this`.
-        *
-        * @param originalName the original name that could not be resolved
-        * @param reason the cause of this error
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        * @param id the identifier for the new node
-        * @return a copy of `this`, updated with the specified values
-        */
-      def copy(
-        originalName: IR.Name          = originalName,
-        reason: Resolution.Reason      = reason,
-        passData: MetadataStorage      = passData,
-        diagnostics: DiagnosticStorage = diagnostics,
-        id: Identifier                 = id
-      ): Resolution = {
-        val res = Resolution(originalName, reason, passData, diagnostics)
-        res.id = id
-        res
-      }
-
-      override def duplicate(
-        keepLocations: Boolean   = true,
-        keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
-      ): Resolution =
-        copy(
-          originalName = originalName
-            .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          passData =
-            if (keepMetadata) passData.duplicate else MetadataStorage(),
-          diagnostics =
-            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
-        )
-
-      override def children: List[IR] = List(originalName)
-
-      override protected var id: Identifier = randomId
-
-      override def showCode(indent: Int): String = originalName.showCode(indent)
-
-      override def message: String = reason.explain(originalName)
-
-      override val location: Option[IdentifiedLocation] = originalName.location
-    }
-
-    object Resolution {
-
-      /**
-        * A representation of a symbol resolution error.
-        */
-      sealed trait Reason {
-        def explain(originalName: IR.Name): String
-      }
-
-      case object UnresolvedSequenceMacro extends Reason {
-        override def explain(originalName: Name): String =
-          "No definition for the sequence macro could be found. Try" +
-          " importing the default definition from the Base.Vector module."
-      }
-
-      /**
-        * An error coming from an unexpected occurence of a polyglot symbol.
-        *
-        * @param context the description of a context in which the error
-        *                happened.
-        */
-      case class UnexpectedPolyglot(context: String) extends Reason {
-        override def explain(originalName: Name): String =
-          s"The name ${originalName.name} resolved to a polyglot symbol, " +
-          s"but polyglot symbols are not allowed in $context."
-      }
-
-      /**
-        * An error coming from an unexpected occurence of a static method.
-        *
-        * @param context the description of a context in which the error
-        *                happened.
-        */
-      case class UnexpectedMethod(context: String) extends Reason {
-        override def explain(originalName: Name): String =
-          s"The name ${originalName.name} resolved to a method, " +
-          s"but methods are not allowed in $context."
-      }
-
-      /**
-        * An error coming from name resolver.
-        *
-        * @param err the original error.
-        */
-      case class ResolverError(err: BindingsMap.ResolutionError)
-          extends Reason {
-
-        /**
-          * Provides a human-readable explanation of the error.
-          * @param originalName the original unresolved name.
-          * @return a human-readable message.
-          */
-        override def explain(originalName: IR.Name): String =
-          err match {
-            case BindingsMap.ResolutionAmbiguous(candidates) =>
-              val firstLine =
-                s"The name ${originalName.name} is ambiguous. Possible candidates are:"
-              val lines = candidates.map {
-                case BindingsMap.ResolvedConstructor(
-                      definitionModule,
-                      cons
-                    ) =>
-                  s"    Type ${cons.name} defined in module ${definitionModule.getName};"
-                case BindingsMap.ResolvedModule(module) =>
-                  s"    The module ${module.getName};"
-                case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
-                  s"    The imported polyglot symbol ${symbol.name};"
-                case BindingsMap.ResolvedMethod(module, symbol) =>
-                  s"    The method ${symbol.name} defined in module ${module.getName}"
-              }
-              (firstLine :: lines).mkString("\n")
-            case BindingsMap.ResolutionNotFound =>
-              s"The name ${originalName.name} could not be found."
-          }
-
-      }
-    }
-
-    /** A representation of an error resulting from wrong pattern matches.
-      *
-      * @param originalPattern pattern that resulted in the error
-      * @param reason the cause of this error
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      * @return a copy of `this`, updated with the specified values
-      */
-    sealed case class Pattern(
-      originalPattern: IR.Pattern,
-      reason: Pattern.Reason,
-      override val passData: MetadataStorage      = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Error
-        with Diagnostic.Kind.Interactive
-        with IR.Pattern {
-      override def mapExpressions(fn: Expression => Expression): Pattern =
-        copy(originalPattern = originalPattern.mapExpressions(fn))
-
-      override def setLocation(location: Option[IdentifiedLocation]): Pattern =
-        copy(originalPattern = originalPattern.setLocation(location))
-
-      /** Creates a copy of `this`.
-        *
-        * @param originalPattern the pattern that resulted in the error
-        * @param reason the cause of this error
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        * @param id the identifier for the new node
-        * @return a copy of `this`, updated with the specified values
-        */
-      def copy(
-        originalPattern: IR.Pattern    = originalPattern,
-        reason: Pattern.Reason         = reason,
-        passData: MetadataStorage      = passData,
-        diagnostics: DiagnosticStorage = diagnostics,
-        id: Identifier                 = id
-      ): Pattern = {
-        val res = Pattern(originalPattern, reason, passData, diagnostics)
-        res.id = id
-        res
-      }
-
-      override def duplicate(
-        keepLocations: Boolean   = true,
-        keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true
-      ): Pattern =
-        copy(
-          originalPattern = originalPattern
-            .duplicate(keepLocations, keepMetadata, keepDiagnostics),
-          passData =
-            if (keepMetadata) passData.duplicate else MetadataStorage(),
-          diagnostics =
-            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = randomId
-        )
-
-      override def message: String = reason.explain
-
-      override val location: Option[IdentifiedLocation] =
-        originalPattern.location
-
-      override def children: List[IR] = List(originalPattern)
-
-      override protected var id: Identifier = randomId
-
-      override def showCode(indent: Int): String =
-        originalPattern.showCode(indent)
-    }
-
-    object Pattern {
-
-      /**
-        * A representation of the reason the pattern is erroneous.
-        */
-      sealed trait Reason {
-
-        /**
-          * Provides a human-readable explanation of the error.
-          * @return
-          */
-        def explain: String
-      }
-
-      /**
-        * A reason for pattern failing due to wrong arity.
-        *
-        * @param consName the constructor name.
-        * @param expected expected field count.
-        * @param actual actual field count.
-        */
-      case class WrongArity(consName: String, expected: Int, actual: Int)
-          extends Reason {
-        override def explain: String =
-          s"Wrong number of fields when matching on $consName." +
-          s" Expected $expected fields, but provided $actual."
-      }
-    }
-
     /** A representation of an Enso syntax error.
       *
       * @param ast the erroneous AST
@@ -5596,15 +5012,6 @@ object IR {
           * @return a human-readable description of the error.
           */
         def explanation: String
-      }
-
-      case class InvalidEscapeSequence(lit: String) extends Reason {
-        override def explanation: String = s"Invalid escape sequence $lit."
-      }
-
-      case object InvalidBaseInDecimalLiteral extends Reason {
-        override def explanation: String =
-          "Cannot change base of the fractional part of a number literal."
       }
 
       case class UnsupportedSyntax(syntaxName: String) extends Reason {

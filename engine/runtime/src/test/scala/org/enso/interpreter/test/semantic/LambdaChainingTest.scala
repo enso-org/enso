@@ -56,8 +56,7 @@ class LambdaChainingTest extends InterpreterTest {
 
     "work properly with lazy parameters" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |main =
           |    fn = a -> ~b -> ~c ->
           |        b

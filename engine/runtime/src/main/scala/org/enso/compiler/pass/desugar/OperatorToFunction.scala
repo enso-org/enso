@@ -43,7 +43,7 @@ case object OperatorToFunction extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module =
-    ir.mapExpressions(runExpression(_, new InlineContext(moduleContext.module)))
+    ir.mapExpressions(runExpression(_, new InlineContext()))
 
   /** Executes the conversion pass in an inline context.
     *

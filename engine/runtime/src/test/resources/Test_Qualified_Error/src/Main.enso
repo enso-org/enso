@@ -1,3 +1,0 @@
-import Test_Qualified_Error.Atom
-
-main = (X 1).method

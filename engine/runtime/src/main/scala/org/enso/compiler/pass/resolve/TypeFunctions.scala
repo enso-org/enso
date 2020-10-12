@@ -3,7 +3,6 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Application
-import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
@@ -95,12 +94,7 @@ case object TypeFunctions extends IRPass {
     */
   def resolveExpression(expr: IR.Expression): IR.Expression = {
     expr.transformExpressions {
-      case app: IR.Application =>
-        val result = resolveApplication(app)
-        app
-          .getMetadata(DocumentationComments)
-          .map(doc => result.updateMetadata(DocumentationComments -->> doc))
-          .getOrElse(result)
+      case app: IR.Application => resolveApplication(app)
     }
   }
 

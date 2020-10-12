@@ -1,6 +1,6 @@
 package org.enso.interpreter.test
 
-import java.io.{ByteArrayOutputStream, File}
+import java.io.File
 
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
@@ -9,7 +9,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
-  val output     = new ByteArrayOutputStream()
 
   def evalTestProject(name: String): Value = {
     val pkgPath =
@@ -23,7 +22,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .allowAllAccess(true)
       .option(RuntimeOptions.PACKAGES_PATH, pkgPath.getAbsolutePath)
       .option(RuntimeOptions.STRICT_ERRORS, "true")
-      .out(output)
+      .out(System.out)
       .in(System.in)
       .build()
     context.initialize(LanguageInfo.ID)
@@ -35,11 +34,5 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       val mainFun         = mainModuleScope.getMethod(assocCons, "main")
       mainFun.execute(assocCons)
     }
-  }
-
-  def consumeOut: List[String] = {
-    val result = output.toString
-    output.reset()
-    result.linesIterator.toList
   }
 }

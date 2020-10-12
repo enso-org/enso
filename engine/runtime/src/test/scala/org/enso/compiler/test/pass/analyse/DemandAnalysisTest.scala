@@ -5,7 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
@@ -16,14 +16,14 @@ class DemandAnalysisTest extends CompilerTest {
   val passes = new Passes
 
   /** The passes that must be run before the demand analysis pass. */
-  val precursorPasses: PassGroup = passes.getPrecursors(DemandAnalysis).get
+  val precursorPasses: List[IRPass] = passes.getPrecursors(DemandAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =
-    new PassManager(List(precursorPasses), passConfig)
+    new PassManager(precursorPasses, passConfig)
 
   /** Adds an extension method to run alias analysis on an [[IR.Module]].
     *
@@ -36,7 +36,7 @@ class DemandAnalysisTest extends CompilerTest {
       * @return [[ir]], transformed by the demand analysis pass
       */
     def analyse: IR.Module = {
-      DemandAnalysis.runModule(ir, buildModuleContext())
+      DemandAnalysis.runModule(ir, ModuleContext())
     }
   }
 
@@ -62,14 +62,14 @@ class DemandAnalysisTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    buildInlineContext(
+    InlineContext(
       localScope      = Some(LocalScope.root),
       freshNameSupply = Some(new FreshNameSupply)
     )
   }
 
   def mkModuleContext: ModuleContext = {
-    buildModuleContext(
+    ModuleContext(
       freshNameSupply = Some(new FreshNameSupply)
     )
   }
@@ -150,9 +150,6 @@ class DemandAnalysisTest extends CompilerTest {
       val vec = ir
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments(0)
-        .value
         .asInstanceOf[IR.Application.Literal.Sequence]
 
       vec.items(0) shouldBe an[IR.Application.Force]

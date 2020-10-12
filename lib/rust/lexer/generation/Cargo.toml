@@ -1,8 +1,17 @@
 [package]
-name    = "lexer"
+name    = "lexer-generation"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
+
+description  = "The generated code for the lexer of the enso language."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/lexer/generation"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../../../LICENSE"
+
+keywords   = ["lexer", "finite-automata"]
+categories = ["parsing"]
 
 publish = false
 
@@ -12,10 +21,9 @@ test       = true
 bench      = true
 
 [dependencies]
-flexer           = { path = "../../flexer", version = "0.1.0" }
-enso-prelude     = { version = "0.1.3" }
+flexer            = { path = "../../flexer" , version = "0.1.0" }
 lexer-definition = { path = "../definition", version = "0.1.0" }
 
 [build-dependencies]
-flexer           = { path = "../../flexer", version = "0.1.0" }
+flexer            = { path = "../../flexer" , version = "0.1.0" }
 lexer-definition = { path = "../definition", version = "0.1.0" }

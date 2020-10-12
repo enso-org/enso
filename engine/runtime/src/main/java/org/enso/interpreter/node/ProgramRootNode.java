@@ -6,11 +6,8 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
-
-import java.io.File;
 
 /**
  * This node handles static transformation of the input AST before execution and represents the root
@@ -51,24 +48,13 @@ public class ProgramRootNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      QualifiedName name = QualifiedName.simpleName(canonicalizeName(sourceCode.getName()));
-      Context ctx = lookupContextReference(Language.class).get();
       module =
-          sourceCode.getPath() != null
-              ? new Module(name, ctx.getTruffleFile(new File(sourceCode.getPath())))
-              : new Module(name, sourceCode.getCharacters().toString());
+          new Module(
+              QualifiedName.simpleName(sourceCode.getName()),
+              sourceCode.getCharacters().toString());
     }
     // Note [Static Passes]
     return module;
-  }
-
-  private String canonicalizeName(String name) {
-    String[] segs = name.split("\\.");
-    if (segs.length == 0) {
-      return "Unnamed";
-    } else {
-      return segs[0];
-    }
   }
 
   /* Note [Static Passes]

@@ -11,8 +11,7 @@ class EvalTest extends InterpreterTest {
 
     "evaluate a string expression" in {
       val code =
-        s"""from Builtins import all
-           |
+        s"""
            |main =
            |    Debug.eval $rawTQ
            |        IO.println "foo"
@@ -23,8 +22,7 @@ class EvalTest extends InterpreterTest {
 
     "have access to the caller scope" in {
       val code =
-        s"""from Builtins import all
-           |
+        s"""
            |main =
            |    x = "Hello World!"
            |    Debug.eval $rawTQ
@@ -36,8 +34,7 @@ class EvalTest extends InterpreterTest {
 
     "have access to the caller module scope" in {
       val code =
-        s"""from Builtins import all
-           |
+        s"""
            |type MyType x
            |
            |main =
@@ -46,13 +43,12 @@ class EvalTest extends InterpreterTest {
            |        IO.println (MyType x)
            |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyType 10)")
+      consumeOut shouldEqual List("MyType 10")
     }
 
     "return a value usable in the caller scope" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |main =
           |    x = 1
           |    y = 2
@@ -65,8 +61,7 @@ class EvalTest extends InterpreterTest {
 
     "work in a recursive setting" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |main =
           |    fn = sumTo ->
           |        summator = acc -> current ->
@@ -79,8 +74,7 @@ class EvalTest extends InterpreterTest {
 
     "work inside a thunk passed to another function" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |main =
           |    fn = sumTo ->
           |        summator = acc -> current ->

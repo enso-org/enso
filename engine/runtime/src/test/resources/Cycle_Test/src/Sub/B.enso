@@ -1,3 +1,0 @@
-import Cycle_Test.Sub.C
-
-from Cycle_Test.Sub.C export all

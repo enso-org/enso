@@ -32,7 +32,6 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 - [Global User Configuration](#global-user-configuration)
 - [Updating the Launcher](#updating-the-launcher)
   - [Minimal Required Launcher Version](#minimal-required-launcher-version)
-  - [Step-by-Step Upgrade](#step-by-step-upgrade)
   - [Downloading Launcher Releases](#downloading-launcher-releases)
 
 <!-- /MarkdownTOC -->
@@ -93,7 +92,7 @@ configuration based on user's config.
 
 ### Per-Project Enso Version
 
-Project configuration must specify the exact Enso version that should be used
+Project configuration can specify the exact Enso version that should be used
 inside that project. The launcher automatically detects if it is in a project
 (by traversing the directory structure). The current project can also be
 specified by the `--path` parameter. All components launched inside a project
@@ -105,6 +104,11 @@ the default version.
 > - Decide how to support inexact project bounds (like `>=3.1, <4` - when should
 >   the launcher check for new versions) and resolvers.
 > - Decide how to support nightly builds.
+
+### Project Configuration
+
+The command-line allows to edit project configuration, for example: change the
+author's name or Enso version.
 
 ## Enso and Graal Version Management
 
@@ -127,6 +131,10 @@ While the launcher manages its own installation of GraalVM to ensure that the
 right JVM version is used to launch each version of Enso, the user can override
 this mechanism to use the installed system JVM instead. This is an advanced
 feature and should rarely be used.
+
+The launcher will check the system JVM and refuse to launch Enso if it is not a
+GraalVM distribution. It will also print a warning if the major or minor version
+is different then required by that particular Enso version.
 
 ### Downloading Enso Releases
 
@@ -188,22 +196,6 @@ description and return with exit code 0, for the plugin to be considered
 supported. That description will be included in the command listing printed by
 `enso help`.
 
-#### Testing plugins
-
-When testing the launcher, we want to test plugin discovery. To do so, we
-override the `PATH` of the tested launcher to a directory containing prepared
-plugins. On Windows, the environment variables are usually treated as
-case-insensitive but not all the time. When launching a process with an added
-environment variable called `PATH`, that process actually has two variables in
-its environment - the original `Path` and the overriden `PATH`. This can be seen
-when querying `System.getenv()` - the returned map contains both `Path` and
-`PATH` with their respective values. However, `System.getenv("PATH")` uses some
-platform specific logic, and even if both variables are present in the
-environment, it actually returns the value corresponding to `Path`. This is
-likely the expected behaviour on Windows. So to successfully override the system
-path on Windows, we need to override `Path`, not `PATH` like on Unix-based
-systems.
-
 ## Global User Configuration
 
 The launcher allows to edit global user configuration, saved in the `config`
@@ -231,40 +223,8 @@ newer version of the launcher. Thus, project configuration can also specify a
 minimal required launcher version.
 
 If the launcher detects that the installed version is older than one of the two
-criteria above, it offers to automatically upgrade to the latest version and
-re-run the current command.
-
-### Step-by-Step Upgrade
-
-It is possible that in the future, new launcher versions will require some
-additional logic when upgrading that has not currently been considered. To
-maintain future-compatibility, each launcher version can define in its manifest
-a minimum launcher version that can be used to upgrade to it. Any new upgrade
-logic can then be introduced gradually (by first releasing a new version which
-knows this new logic but does not require it and later releasing another version
-that can require this new logic). In that case, updates are performed
-step-by-step - first this new version that does not require new logic is
-downloaded and it is used to upgrade to the new version which requires the new
-logic. If necessary, such upgrade steps can be chained.
-
-The step-by-step upgrade logic is implemented by checking the
-`minimum-version-for-upgrade` property in the new launcher's manifest. If the
-current version is greater or equal to that version, the upgrade proceeds
-normally. Otherwise, the launcher tries to upgrade to this minimum version (or
-the closest to it newer non-broken version), recursively - i.e. if this upgrade
-also cannot be performed directly, it is also performed step-by-step in the same
-way.
-
-#### Testing Step-by-Step Upgrade
-
-To test the multi-step upgrade we need multiple launcher executables that report
-different versions. As building the launcher takes a substantial amount of time
-and it reports by default the version from build information, we created a
-simple wrapper in Rust which runs the original launcher executable with
-additional internal options that tell it to override its version. These options
-are only available in a development build. Similarly, internal options are used
-to override the default GitHub repository to a local filesystem based repository
-for launcher releases, as we want to avoid any network connectivity in tests.
+criteria above, it asks the user to upgrade the launcher using the `upgrade`
+command.
 
 ### Downloading Launcher Releases
 

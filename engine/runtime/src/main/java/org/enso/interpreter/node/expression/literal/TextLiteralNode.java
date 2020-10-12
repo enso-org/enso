@@ -3,15 +3,14 @@ package org.enso.interpreter.node.expression.literal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.data.text.Text;
 
 /** Node representing a constant String value. */
 @NodeInfo(shortName = "StringLiteral", description = "Constant string literal expression")
 public class TextLiteralNode extends ExpressionNode {
-  private final Text value;
+  private final String value;
 
   private TextLiteralNode(String value) {
-    this.value = Text.create(value);
+    this.value = value;
   }
 
   /**
@@ -31,7 +30,7 @@ public class TextLiteralNode extends ExpressionNode {
    * @return the string value this node was created with
    */
   @Override
-  public Text executeGeneric(VirtualFrame frame) {
+  public Object executeGeneric(VirtualFrame frame) {
     return value;
   }
 }

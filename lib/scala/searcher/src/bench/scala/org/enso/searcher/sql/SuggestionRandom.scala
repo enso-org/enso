@@ -11,12 +11,6 @@ object SuggestionRandom {
   def nextUpdateAllInput(): Seq[(UUID, String)] =
     Seq(UUID.randomUUID() -> nextString())
 
-  def nextGetAllMethodsInput(): Seq[(String, String, String)] =
-    Seq(
-      (nextString(), nextString(), nextString()),
-      (nextString(), nextString(), nextString())
-    )
-
   def nextKinds(): Seq[Suggestion.Kind] =
     Set.fill(1)(nextKind()).toSeq
 

@@ -20,26 +20,9 @@ trait FileVersionsRepo[F[_]] {
     */
   def setVersion(file: File, digest: Array[Byte]): F[Option[Array[Byte]]]
 
-  /** Update the version if it differs from the recorded version.
-    *
-    * @param file the file path
-    * @param digest the version digest
-    * @return `true` if the version has been updated
-    */
-  def updateVersion(file: File, digest: Array[Byte]): F[Boolean]
-
-  /** Update the versions in batch.
-    *
-    * @param versions files with corresponding digests
-    */
-  def updateVersions(versions: Seq[(File, Array[Byte])]): F[Unit]
-
   /** Remove the version record.
     *
     * @param file the file path
     */
   def remove(file: File): F[Unit]
-
-  /** Clean the repo. */
-  def clean: F[Unit]
 }

@@ -84,12 +84,8 @@ trait ProjectRepository[F[+_, +_]] {
     * Moves project to the target dir.
     *
     * @param projectId the project id
-    * @param newName the new project name
     */
-  def moveProjectToTargetDir(
-    projectId: UUID,
-    newName: String
-  ): F[ProjectRepositoryFailure, File]
+  def moveProjectToTargetDir(projectId: UUID): F[ProjectRepositoryFailure, File]
 
   /**
     * Gets a package name for the specified project.

@@ -50,8 +50,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with mixfix functions" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
           |main =
@@ -66,8 +65,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with case expressions" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |main =
           |    f = case _ of
           |           Cons a b -> 10
@@ -137,6 +135,22 @@ class LambdaShorthandArgsTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code) shouldEqual 15
+    }
+
+    "work properly with vector literals" in {
+      val code =
+        """
+          |main =
+          |    fun = [1, _, (1 + 2), _]
+          |    vec = fun 2 4
+          |    IO.println (Polyglot.get_array_element vec 0)
+          |    IO.println (Polyglot.get_array_element vec 1)
+          |    IO.println (Polyglot.get_array_element vec 2)
+          |    IO.println (Polyglot.get_array_element vec 3)
+          |
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List("1", "2", "3", "4")
     }
 
     "work properly when used with dot notation" in {

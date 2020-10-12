@@ -1,8 +1,8 @@
 //! The structure for defining non-deterministic finite automata.
 
 use crate::automata::alphabet;
-use crate::automata::dfa::DFA;
 use crate::automata::dfa::RuleExecutable;
+use crate::automata::dfa::DFA;
 use crate::automata::pattern::Pattern;
 use crate::automata::state::State;
 use crate::automata::state::Transition;
@@ -45,9 +45,9 @@ type StateSetId = BTreeSet<state::Identifier>;
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct NFA {
     /// A set of disjoint intervals over the input alphabet.
-    pub alphabet_segmentation:alphabet::Segmentation,
+    pub alphabet_segmentation: alphabet::Segmentation,
     /// A set of named NFA states, with (epsilon) transitions.
-    pub states:Vec<State>,
+    pub states: Vec<State>,
 }
 
 impl NFA {
@@ -55,7 +55,7 @@ impl NFA {
     pub fn new_state(&mut self) -> state::Identifier {
         let id = self.states.len();
         self.states.push(State::default());
-        state::Identifier{id}
+        state::Identifier {id}
     }
 
     /// Creates an epsilon transition between two states.
@@ -72,12 +72,11 @@ impl NFA {
     /// state, it will immediately transition to the `target` state.
     pub fn connect_via
     ( &mut self
-    , source       : state::Identifier
-    , target_state : state::Identifier
-    , symbols      : &RangeInclusive<Symbol>
-    ) {
+    , source:state::Identifier
+    , target_state:state::Identifier
+    , symbols:&RangeInclusive<Symbol>) {
         self.alphabet_segmentation.insert(symbols.clone());
-        self.states[source.id].links.push(Transition{symbols:symbols.clone(),target_state});
+        self.states[source.id].links.push(Transition{symbols:symbols.clone(), target_state});
     }
 
     /// Transforms a pattern to an NFA using the algorithm described
@@ -102,7 +101,7 @@ impl NFA {
                 self.connect(s3,s1);
                 s3
             },
-            Pattern::Seq(patterns) => {
+            Pattern::And(patterns) => {
                 patterns.iter().fold(current,|s,pat| self.new_pattern(s,pat))
             },
             Pattern::Or(patterns) => {
@@ -112,8 +111,7 @@ impl NFA {
                     self.connect(state,end);
                 }
                 end
-            },
-            Pattern::Always => current,
+            }
         }
     }
 
@@ -161,9 +159,6 @@ impl NFA {
     }
 }
 
-
-// === Trait Impls ===
-
 impl From<&NFA> for DFA {
 
     /// Transforms an NFA into a DFA, based on the algorithm described
@@ -194,7 +189,7 @@ impl From<&NFA> for DFA {
                     dfa_mat[(i,voc_ix)] = match dfa_eps_map.get(&eps_set) {
                         Some(&id) => id,
                         None => {
-                            let id = state::Identifier::new(dfa_eps_ixs.len());
+                            let id = state::Identifier {id:dfa_eps_ixs.len()};
                             dfa_eps_ixs.push(eps_set.clone());
                             dfa_eps_map.insert(eps_set,id);
                             id
@@ -210,8 +205,8 @@ impl From<&NFA> for DFA {
         for (dfa_ix, epss) in dfa_eps_ixs.into_iter().enumerate() {
             let has_name = |&key:&state::Identifier| nfa.states[key.id].name.is_some();
             if let Some(eps) = epss.into_iter().find(has_name) {
-                let code          = nfa.states[eps.id].name.as_ref().cloned().unwrap();
-                callbacks[dfa_ix] = Some(RuleExecutable {code,priority});
+                let rule = nfa.states[eps.id].name.as_ref().cloned().unwrap();
+                callbacks[dfa_ix] = Some(RuleExecutable{ code:rule,priority});
             }
         }
 
@@ -221,8 +216,6 @@ impl From<&NFA> for DFA {
         DFA{alphabet_segmentation,links,callbacks}
     }
 }
-
-
 
 // ===========
 // == Tests ==
@@ -240,33 +233,33 @@ pub mod tests {
     /// NFA that accepts a newline '\n'.
     pub fn newline() -> NFA {
         NFA {
-            states:vec![
+            states: vec![
                 State::from(vec![1]),
                 State::from(vec![(10..=10,2)]),
-                State::from(vec![3]).named("group_0_rule_0"),
+                State::from(vec![3]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(vec![10, 11].as_slice()),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![10, 11].as_slice()),
         }
     }
 
     /// NFA that accepts any letter in the range a..=z.
     pub fn letter() -> NFA {
         NFA {
-            states:vec![
+            states: vec![
                 State::from(vec![1]),
                 State::from(vec![(97..=122,2)]),
-                State::from(vec![3]).named("group_0_rule_0"),
+                State::from(vec![3]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(vec![97, 123].as_slice()),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![97, 123].as_slice()),
         }
     }
 
     /// NFA that accepts any number of spaces ' '.
     pub fn spaces() -> NFA {
         NFA {
-            states:vec![
+            states: vec![
                 State::from(vec![1]),
                 State::from(vec![2]),
                 State::from(vec![(32..=32,3)]),
@@ -275,20 +268,20 @@ pub mod tests {
                 State::from(vec![6]),
                 State::from(vec![(32..=32,7)]),
                 State::from(vec![8]),
-                State::from(vec![5,9]).named("group_0_rule_0"),
+                State::from(vec![5,9]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(vec![0, 32, 33].as_slice()),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![0, 32, 33].as_slice()),
         }
     }
 
     /// NFA that accepts one letter a..=z or many spaces ' '.
     pub fn letter_and_spaces() -> NFA {
         NFA {
-            states:vec![
+            states: vec![
                 State::from(vec![1,3]),
                 State::from(vec![(97..=122,2)]),
-                State::from(vec![11]).named("group_0_rule_0"),
+                State::from(vec![11]).named("group0_rule0"),
                 State::from(vec![4]),
                 State::from(vec![(32..=32,5)]),
                 State::from(vec![6]),
@@ -296,10 +289,10 @@ pub mod tests {
                 State::from(vec![8]),
                 State::from(vec![(32..=32,9)]),
                 State::from(vec![10]),
-                State::from(vec![7,11]).named("group_0_rule_1"),
+                State::from(vec![7,11]).named("group0_rule1"),
                 State::default(),
             ],
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(vec![32, 33, 97, 123].as_slice()),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![32, 33, 97, 123].as_slice()),
         }
     }
 

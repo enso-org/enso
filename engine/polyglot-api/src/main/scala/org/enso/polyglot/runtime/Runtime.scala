@@ -133,10 +133,6 @@ object Runtime {
         name  = "executionFailed"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionSuccessful],
-        name  = "executionSuccessful"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.VisualisationExpressionFailed],
         name  = "visualisationExpressionFailed"
       ),
@@ -165,16 +161,12 @@ object Runtime {
         name  = "runtimeServerShutDown"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseModuleUpdateNotification],
-        name  = "suggestionsDatabaseModuleUpdateNotification"
+        value = classOf[Api.SuggestionsDatabaseUpdateNotification],
+        name  = "suggestionsDatabaseUpdateNotification"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.InvalidateModulesIndexRequest],
-        name  = "invalidateModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InvalidateModulesIndexResponse],
-        name  = "invalidateModulesIndexResponse"
+        value = classOf[Api.SuggestionsDatabaseReIndexNotification],
+        name  = "suggestionsDatabaseReindexNotification"
       )
     )
   )
@@ -198,11 +190,7 @@ object Runtime {
     /**
       * A representation of a pointer to a method definition.
       */
-    case class MethodPointer(
-      module: String,
-      definedOnType: String,
-      name: String
-    )
+    case class MethodPointer(file: File, definedOnType: String, name: String)
 
     /**
       * A representation of an executable position in code.
@@ -244,11 +232,13 @@ object Runtime {
       *
       * @param expressionId expression id.
       * @param expressionType the type of expression.
+      * @param shortValue the value of expression.
       * @param methodCall the pointer to a method definition.
       */
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
+      shortValue: Option[String],
       methodCall: Option[MethodPointer]
     )
 
@@ -335,37 +325,24 @@ object Runtime {
         new JsonSubTypes.Type(
           value = classOf[SuggestionsDatabaseUpdate.Remove],
           name  = "suggestionsDatabaseUpdateRemove"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Clean],
-          name  = "suggestionsDatabaseUpdateClean"
         )
       )
     )
     sealed trait SuggestionsDatabaseUpdate
     object SuggestionsDatabaseUpdate {
 
-      /**
-        * Create or replace the database entry.
+      /** Create or replace the database entry.
         *
         * @param suggestion the new suggestion
         */
       case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
 
-      /**
-        * Remove the database entry.
+      /** Remove the database entry.
         *
         * @param suggestion the suggestion to remove
         */
       case class Remove(suggestion: Suggestion)
           extends SuggestionsDatabaseUpdate
-
-      /**
-        * Remove all module entries from the database.
-        *
-        * @param module the module name
-        */
-      case class Clean(module: String) extends SuggestionsDatabaseUpdate
     }
 
     /**
@@ -548,13 +525,6 @@ object Runtime {
         extends ApiNotification
 
     /**
-      * Signals that execution of a context was successful.
-      *
-      * @param contextId the context's id
-      */
-    case class ExecutionSuccessful(contextId: ContextId) extends ApiNotification
-
-    /**
       * Signals that an expression specified in a [[AttachVisualisation]] or
       * a [[ModifyVisualisation]] cannot be evaluated.
       *
@@ -716,23 +686,24 @@ object Runtime {
     case class ProjectRenamed(newName: String) extends ApiResponse
 
     /**
-      * A notification about the changes in the suggestions database.
+      * A notification about the change in the suggestions database.
       *
-      * @param file the module file path
-      * @param contents the module source
-      * @param updates the list of suggestions extracted from module
+      * @param updates the list of database updates
       */
-    case class SuggestionsDatabaseModuleUpdateNotification(
-      file: File,
-      contents: String,
+    case class SuggestionsDatabaseUpdateNotification(
       updates: Seq[SuggestionsDatabaseUpdate]
     ) extends ApiNotification
 
-    /** A request to invalidate the indexed flag of the modules. */
-    case class InvalidateModulesIndexRequest() extends ApiRequest
-
-    /** Signals that the module indexes has been invalidated. */
-    case class InvalidateModulesIndexResponse() extends ApiResponse
+    /**
+      * A notification about the re-indexed module updates.
+      *
+      * @param moduleName the name of re-indexed module
+      * @param updates the list of database updates
+      */
+    case class SuggestionsDatabaseReIndexNotification(
+      moduleName: String,
+      updates: Seq[SuggestionsDatabaseUpdate.Add]
+    ) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()

@@ -1,6 +1,5 @@
-from Builtins import all
-from TestNonImportedOverloads.Util import all
+import TestNonImportedOverloads.Util
 
 X.method = 10
 
-main = Unit.util (X 1)
+Main.main = Unit.util (X 1)

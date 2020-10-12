@@ -1,12 +1,12 @@
 package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 class LambdaConsolidateTest extends CompilerTest {
@@ -15,7 +15,7 @@ class LambdaConsolidateTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: PassGroup =
+  val precursorPasses: List[IRPass] =
     passes.getPrecursors(LambdaConsolidate).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
@@ -23,7 +23,7 @@ class LambdaConsolidateTest extends CompilerTest {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(List(precursorPasses), passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method to run lambda consolidation on an [[IR.Module]].
     *
@@ -38,7 +38,7 @@ class LambdaConsolidateTest extends CompilerTest {
     def optimise: IR.Module = {
       LambdaConsolidate.runModule(
         ir,
-        buildModuleContext(passConfiguration = Some(passConfiguration))
+        ModuleContext(passConfiguration = Some(passConfiguration))
       )
     }
   }
@@ -66,7 +66,7 @@ class LambdaConsolidateTest extends CompilerTest {
     * @return a default inline context
     */
   def mkContext: InlineContext = {
-    buildInlineContext(
+    InlineContext(
       localScope        = Some(LocalScope.root),
       freshNameSupply   = Some(new FreshNameSupply),
       passConfiguration = Some(passConfiguration)
@@ -206,13 +206,13 @@ class LambdaConsolidateTest extends CompilerTest {
           List(
             IR.DefinitionArgument
               .Specified(
-                IR.Name.Literal("a", isReferent = false, None),
+                IR.Name.Literal("a", None),
                 None,
                 suspended = false,
                 None
               ),
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal("b", isReferent = false, None),
+              IR.Name.Literal("b", None),
               None,
               suspended = false,
               None
@@ -221,13 +221,13 @@ class LambdaConsolidateTest extends CompilerTest {
           IR.Function.Lambda(
             List(
               IR.DefinitionArgument.Specified(
-                IR.Name.Literal("c", isReferent = false, None),
+                IR.Name.Literal("c", None),
                 None,
                 suspended = false,
                 None
               )
             ),
-            IR.Name.Literal("c", isReferent = false, None),
+            IR.Name.Literal("c", None),
             None
           ),
           None

@@ -31,15 +31,6 @@ object CacheInvalidation {
 
     /** Invalidate value from indexes. */
     case object All extends IndexSelector
-
-    /** Invalidate the types index. */
-    case object Types extends IndexSelector
-
-    /** Invalidate the calls index. */
-    case object Calls extends IndexSelector
-
-    /** Invalidate the weights index. */
-    case object Weights extends IndexSelector
   }
 
   /** Base trait for cache invalidation commands. Commands describe how the
@@ -98,13 +89,10 @@ object CacheInvalidation {
   /** Create an invalidation instruction using a stack selector and an
     * invalidation command.
     *
-    * @param elements the stack elements selector
-    * @param command the invalidation command
+    * @param elements the stack elements selector.
+    * @param command the invalidation command.
     */
-  def apply(
-    elements: StackSelector,
-    command: Command
-  ): CacheInvalidation =
+  def apply(elements: StackSelector, command: Command): CacheInvalidation =
     new CacheInvalidation(elements, command, Set())
 
   /** Run a sequence of invalidation instructions on an execution stack.
@@ -162,38 +150,19 @@ object CacheInvalidation {
     command match {
       case Command.InvalidateAll =>
         cache.clear()
-        indexes.foreach(clearIndex(_, cache))
+        if (indexes.contains(IndexSelector.All)) cache.clearWeights()
       case Command.InvalidateKeys(keys) =>
         keys.foreach { key =>
           cache.remove(key)
-          indexes.foreach(clearIndex(_, cache))
+          if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
         }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
         staleKeys.foreach { key =>
           cache.remove(key)
-          indexes.foreach(clearIndex(_, cache))
+          if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
         }
       case Command.SetMetadata(metadata) =>
         cache.setWeights(metadata.asJavaWeights)
-    }
-
-  /** Clear the selected index.
-    *
-    * @param selector the selected index
-    * @param cache the cache to invalidate
-    */
-  private def clearIndex(selector: IndexSelector, cache: RuntimeCache): Unit =
-    selector match {
-      case IndexSelector.All =>
-        cache.clearTypes()
-        cache.clearWeights()
-        cache.clearCalls()
-      case IndexSelector.Weights =>
-        cache.clearWeights()
-      case IndexSelector.Types =>
-        cache.clearTypes()
-      case IndexSelector.Calls =>
-        cache.clearCalls()
     }
 }

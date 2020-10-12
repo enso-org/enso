@@ -68,10 +68,7 @@ case object LambdaShorthandToLambda extends IRPass {
     ir.mapExpressions(
       runExpression(
         _,
-        InlineContext(
-          moduleContext.module,
-          freshNameSupply = moduleContext.freshNameSupply
-        )
+        InlineContext(freshNameSupply = moduleContext.freshNameSupply)
       )
     )
 
@@ -131,7 +128,7 @@ case object LambdaShorthandToLambda extends IRPass {
         IR.Function.Lambda(
           List(
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal(newName.name, isReferent = false, None),
+              IR.Name.Literal(newName.name, None),
               None,
               suspended = false,
               None
@@ -207,8 +204,7 @@ case object LambdaShorthandToLambda extends IRPass {
           IR.Function.Lambda(
             List(
               IR.DefinitionArgument.Specified(
-                IR.Name
-                  .Literal(updatedName.get, isReferent = false, fn.location),
+                IR.Name.Literal(updatedName.get, fn.location),
                 None,
                 suspended = false,
                 None
@@ -321,11 +317,7 @@ case object LambdaShorthandToLambda extends IRPass {
         case IR.CallArgument.Specified(_, value, _, _, passData, diagnostics) =>
           // Note [Safe Casting to IR.Name.Literal]
           val defArgName =
-            IR.Name.Literal(
-              value.asInstanceOf[IR.Name.Literal].name,
-              isReferent = false,
-              None
-            )
+            IR.Name.Literal(value.asInstanceOf[IR.Name.Literal].name, None)
 
           Some(
             IR.DefinitionArgument.Specified(

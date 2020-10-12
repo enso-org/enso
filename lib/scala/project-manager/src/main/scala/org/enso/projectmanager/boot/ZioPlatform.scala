@@ -1,7 +1,7 @@
 package org.enso.projectmanager.boot
 
 import com.typesafe.scalalogging.LazyLogging
-import zio.{Cause, Supervisor}
+import zio.Cause
 import zio.internal.stacktracer.Tracer
 import zio.internal.stacktracer.impl.AkkaLineNumbersTracer
 import zio.internal.tracing.TracingConfig
@@ -41,6 +41,4 @@ class ZioPlatform(computeExecutionContext: ExecutionContext)
     if (cause.died)
       logger.error(cause.prettyPrint)
 
-  override def supervisor: Supervisor[Any] =
-    Supervisor.none
 }

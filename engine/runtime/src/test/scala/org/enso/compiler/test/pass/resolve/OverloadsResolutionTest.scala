@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.OverloadsResolution
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class OverloadsResolutionTest extends CompilerTest {
@@ -13,13 +13,13 @@ class OverloadsResolutionTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: PassGroup =
+  val precursorPasses: List[IRPass] =
     passes.getPrecursors(OverloadsResolution).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(List(precursorPasses), passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method for resolution on the input IR.
     *
@@ -43,7 +43,7 @@ class OverloadsResolutionTest extends CompilerTest {
     * @return a new module context
     */
   def mkModuleContext: ModuleContext = {
-    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

@@ -4,8 +4,6 @@ use crate::automata::alphabet;
 use crate::automata::state;
 use crate::data::matrix::Matrix;
 
-
-
 // =====================================
 // === Deterministic Finite Automata ===
 // =====================================
@@ -24,7 +22,7 @@ use crate::data::matrix::Matrix;
 #[derive(Clone,Debug,Default,Eq,PartialEq)]
 pub struct DFA {
     /// A set of disjoint intervals over the allowable input alphabet.
-    pub alphabet_segmentation:alphabet::Segmentation,
+    pub alphabet_segmentation: alphabet::Segmentation,
     /// The transition matrix for the DFA.
     ///
     /// It represents a function of type `(state, symbol) -> state`, returning the identifier for
@@ -32,30 +30,17 @@ pub struct DFA {
     ///
     /// For example, the transition matrix for an automaton that accepts the language
     /// `{"A" | "B"}*"` would appear as follows, with `-` denoting
-    /// [the invalid state](state::Identifier::INVALID). The leftmost column encodes the input
-    /// state, while the topmost row encodes the input symbols.
+    /// [the invalid state](state::INVALID). The leftmost column encodes the input state, while the
+    /// topmost row encodes the input symbols.
     ///
     /// |   | A | B |
     /// |:-:|:-:|:-:|
     /// | 0 | 1 | - |
     /// | 1 | - | 0 |
     ///
-    pub links:Matrix<state::Identifier>,
+    pub links: Matrix<state::Identifier>,
     /// A collection of callbacks for each state (indexable in order)
-    pub callbacks:Vec<Option<RuleExecutable>>,
-}
-
-impl DFA {
-    /// Check whether the DFA has a rule for the target state.
-    ///
-    /// This method should only be used in generated code, where its invariants are already checked.
-    ///
-    /// # Panics
-    ///
-    /// If no callback exists for `target_state`.
-    pub fn has_rule_for(&self, target_state:state::Identifier) -> bool {
-        self.callbacks.get(target_state.id).unwrap().is_some()
-    }
+    pub callbacks: Vec<Option<RuleExecutable>>,
 }
 
 
@@ -89,17 +74,9 @@ impl From<Vec<Vec<usize>>> for Matrix<state::Identifier> {
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub struct RuleExecutable {
     /// A description of the priority with which the callback is constructed during codegen.
-    pub priority:usize,
+    pub priority: usize,
     /// The rust code that will be executed when running this callback.
-    pub code:String,
-}
-
-impl RuleExecutable {
-    /// Creates a new rule executable with the provided `priority` and `code`.
-    pub fn new(priority:usize, code_str:impl Into<String>) -> RuleExecutable {
-        let code = code_str.into();
-        RuleExecutable{priority,code}
-    }
+    pub code: String,
 }
 
 
@@ -119,11 +96,11 @@ pub mod tests {
     /// DFA automata that accepts newline '\n'.
     pub fn newline() -> DFA {
         DFA {
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(&[10,11]),
-            links:Matrix::from(vec![vec![INVALID,1,INVALID], vec![INVALID,INVALID,INVALID]]),
-            callbacks:vec![
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[10,11]),
+            links: Matrix::from(vec![vec![INVALID,1,INVALID], vec![INVALID,INVALID,INVALID]]),
+            callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:2, code:"group_0_rule_0".into()}),
+                Some(RuleExecutable {priority:2, code:"group0_rule0".into()}),
             ],
         }
     }
@@ -131,11 +108,11 @@ pub mod tests {
     /// DFA automata that accepts any letter a..=z.
     pub fn letter() -> DFA {
         DFA {
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(&[97,123]),
-            links:Matrix::from(vec![vec![INVALID,1,INVALID], vec![INVALID,INVALID,INVALID]]),
-            callbacks:vec![
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[97,123]),
+            links: Matrix::from(vec![vec![INVALID,1,INVALID], vec![INVALID,INVALID,INVALID]]),
+            callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:2, code:"group_0_rule_0".into()}),
+                Some(RuleExecutable {priority:2, code:"group0_rule0".into()}),
             ],
         }
     }
@@ -143,16 +120,16 @@ pub mod tests {
     /// DFA automata that accepts any number of spaces ' '.
     pub fn spaces() -> DFA {
         DFA {
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(&[0,32,33]),
-            links:Matrix::from(vec![
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[0,32,33]),
+            links: Matrix::from(vec![
                 vec![INVALID,1,INVALID],
                 vec![INVALID,2,INVALID],
                 vec![INVALID,2,INVALID],
             ]),
-            callbacks:vec![
+            callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:3, code:"group_0_rule_0".into()}),
-                Some(RuleExecutable {priority:3, code:"group_0_rule_0".into()}),
+                Some(RuleExecutable {priority:3, code:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:3, code:"group0_rule0".into()}),
             ],
         }
     }
@@ -160,18 +137,18 @@ pub mod tests {
     /// DFA automata that accepts one letter a..=z or any many spaces.
     pub fn letter_and_spaces() -> DFA {
         DFA {
-            alphabet_segmentation:alphabet::Segmentation::from_divisions(&[32,33,97,123]),
-            links:Matrix::from(vec![
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[32,33,97,123]),
+            links: Matrix::from(vec![
                 vec![INVALID,      1,INVALID,      2,INVALID],
                 vec![INVALID,      3,INVALID,INVALID,INVALID],
                 vec![INVALID,INVALID,INVALID,INVALID,INVALID],
                 vec![INVALID,      3,INVALID,INVALID,INVALID],
             ]),
-            callbacks:vec![
+            callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:4, code:"group_0_rule_1".into()}),
-                Some(RuleExecutable {priority:4, code:"group_0_rule_0".into()}),
-                Some(RuleExecutable {priority:4, code:"group_0_rule_1".into()}),
+                Some(RuleExecutable {priority:4, code:"group0_rule1".into()}),
+                Some(RuleExecutable {priority:4, code:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:4, code:"group0_rule1".into()}),
             ],
         }
     }

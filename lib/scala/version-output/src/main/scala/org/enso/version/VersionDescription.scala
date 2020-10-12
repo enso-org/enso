@@ -2,10 +2,6 @@ package org.enso.version
 
 import buildinfo.Info
 
-/**
-  * Represents a description of a version string that can be rendered as a
-  * human-readable string or in JSON format.
-  */
 trait VersionDescription {
   def asHumanReadableString: String
   def asJSONString:          String
@@ -14,52 +10,29 @@ trait VersionDescription {
     if (useJson) asJSONString else asHumanReadableString
 }
 
-/**
-  * Defines an additional parameter for the version description.
-  *
-  * @param humanReadableName the human readable prefix added when printing this
-  *                          parameter in human-readable format
-  * @param jsonName the key when outputting the parameter in JSON format
-  * @param value the value to use for the parameter; depending on if the whole
-  *              version description will be queried as a human-readable version
-  *              or in JSON, this value should be in the right format
-  */
 case class VersionDescriptionParameter(
   humanReadableName: String,
+  humandReadableValue: String,
   jsonName: String,
-  value: String
+  jsonValue: String
 )
 
 object VersionDescription {
+  def formatParameterAsJSONString(
+    parameter: VersionDescriptionParameter
+  ): String =
+    s""""${parameter.jsonName}": ${parameter.jsonValue}"""
+  def formatParameterAsHumanReadableString(
+    parameter: VersionDescriptionParameter
+  ): String =
+    s"${parameter.humanReadableName}: ${parameter.humandReadableValue}"
 
-  /**
-    * Creates a [[VersionDescription]] instance.
-    *
-    * @param header header displayed as the first line of the human-readable
-    *               representation
-    * @param includeRuntimeJVMInfo if set to true, includes information about
-    *                              the JVM that is running the program
-    * @param enableNativeImageOSWorkaround if set to true, changes how the OS
-    *                                      information is displayed; this is a
-    *                                      temporary workaround caused by the
-    *                                      Native Image OS returning the value
-    *                                      known at build-time and not at
-    *                                      runtime
-    * @param additionalParameters a sequence of additional
-    *                             [[VersionDescriptionParameter]] to include in
-    *                             the version string
-    * @param customVersion if provided, overrides the version string from
-    *                      [[buildinfo]]; used for testing purposes
-    * @return
-    */
   def make(
     header: String,
     includeRuntimeJVMInfo: Boolean,
-    enableNativeImageOSWorkaround: Boolean                 = false,
-    additionalParameters: Seq[VersionDescriptionParameter] = Seq.empty,
-    customVersion: Option[String]                          = None
+    additionalParameters: Seq[VersionDescriptionParameter] = Seq.empty
   ): VersionDescription = {
-    val version   = customVersion.getOrElse(Info.ensoVersion)
+    val version   = Info.ensoVersion
     val osArch    = System.getProperty("os.arch")
     val osName    = System.getProperty("os.name")
     val osVersion = System.getProperty("os.version")
@@ -81,18 +54,14 @@ object VersionDescription {
           if (includeRuntimeJVMInfo)
             s"""Running on: $vmName, $vmVendor, JDK $jreVersion
                |            $osName $osVersion ($osArch)""".stripMargin
-          else if (enableNativeImageOSWorkaround) {
-            // TODO [RW] Currently the `os.name` property seems to be set to the
-            //  OS the program has been built on, instead of the OS that is
-            //  currently running. A workaround should be implemented in #1100
-            //  that will use other means to query the OS name and version.
-            s"Built on:   $osName ($osArch)"
-          } else s"Running on: $osName $osVersion ($osArch)"
+          else
+            s"Running on: $osName $osVersion ($osArch)"
 
         val dirtyStr = if (Info.isDirty) "*" else ""
         val parameters =
           formatParameters(formatParameterAsHumanReadableString, "\n")
-        s"""$header
+        s"""
+           |$header
            |Version:    $version
            |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
            |Built from: ${Info.ref}$dirtyStr @ ${Info.commit}
@@ -123,13 +92,4 @@ object VersionDescription {
       }
     }
   }
-
-  private def formatParameterAsJSONString(
-    parameter: VersionDescriptionParameter
-  ): String =
-    s""""${parameter.jsonName}": ${parameter.value}"""
-  private def formatParameterAsHumanReadableString(
-    parameter: VersionDescriptionParameter
-  ): String =
-    s"${parameter.humanReadableName}: ${parameter.value}"
 }
