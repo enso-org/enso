@@ -148,12 +148,12 @@ object ContextRegistryProtocol {
   case class InvalidStackItemError(contextId: ContextId) extends Failure
 
   /**
-    * The location in the source file.
+    * The location of an error in the source file.
     *
     * @param path the file path
-    * @param span the range in the source text
+    * @param span the range in the source text containing an error
     */
-  case class SourceFileLocation(path: Path, span: model.Range)
+  case class ErrorLocation(path: Path, span: model.Range)
 
   /**
     * The error during a program execution.
@@ -163,7 +163,7 @@ object ContextRegistryProtocol {
     */
   case class ExecutionError(
     message: String,
-    location: Option[SourceFileLocation]
+    location: Option[ErrorLocation]
   )
 
   /**

@@ -39,7 +39,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`Position`](#position)
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
-  - [`SourceSection`](#sourcesection)
+  - [`ErrorLocation`](#errorlocation)
   - [`ExecutionError`](#executionerror)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
@@ -547,21 +547,21 @@ interface TextEdit {
 }
 ```
 
-### `SourceSection`
+### `ErrorLocation`
 
-Representation of a section in a source file defined by a character range.
+Location of the error in a source file.
 
 #### Format
 
 ```typescript
-interface SourceSection {
+interface ErrorLocation {
   /**
    * A path to the source file.
    */
   file: Path;
 
   /**
-   * Continuous interval of characters in the source text.
+   * Range of characters in the source text containing an error.
    */
   span: Range;
 }
@@ -583,7 +583,7 @@ interface ExecutionError {
   /**
    * The location of the error.
    */
-  location?: SourceSection;
+  location?: ErrorLocation;
 }
 ```
 

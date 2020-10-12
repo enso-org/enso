@@ -4,8 +4,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  ErrorLocation,
   ExecutionError,
-  SourceFileLocation,
   VisualisationContext,
   VisualisationUpdate
 }
@@ -157,7 +157,7 @@ final class ContextEventsListener(
     val locationOpt = for {
       location <- error.location
       path     <- config.findRelativePath(location.file)
-    } yield SourceFileLocation(path, location.span)
+    } yield ErrorLocation(path, location.span)
     ExecutionError(error.message, locationOpt)
   }
 

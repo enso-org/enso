@@ -2709,7 +2709,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "return error in function main" in {
+  it should "return error unresolved symbol" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
