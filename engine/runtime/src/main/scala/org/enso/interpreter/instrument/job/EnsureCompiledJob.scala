@@ -3,11 +3,13 @@ package org.enso.interpreter.instrument.job
 import java.io.{File, IOException}
 import java.util.logging.Level
 
+import cats.implicits._
 import org.enso.compiler.context.{Changeset, SuggestionBuilder}
 import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
@@ -45,20 +47,24 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     */
   protected def ensureCompiledFiles(
     files: Iterable[File]
-  )(implicit ctx: RuntimeContext): Iterable[Module] = {
+  )(implicit ctx: RuntimeContext): Iterable[Module] =
     for {
       file   <- files
-      module <- compile(file)
+      module <- ctx.executionService.getContext.getModuleForFile(file).toScala
     } yield {
-      val changeset = applyEdits(file)
       compile(module)
-      runInvalidationCommands(
-        buildCacheInvalidationCommands(changeset, module.getLiteralSource)
-      )
-      analyzeModule(module, changeset)
+      val changeset = applyEdits(file)
+      compile(module) match {
+        case Left(err) =>
+          ctx.executionService.getLogger.finest(s"Compilation error: $err")
+        case Right(module) =>
+          runInvalidationCommands(
+            buildCacheInvalidationCommands(changeset, module.getLiteralSource)
+          )
+          analyzeModule(module, changeset)
+      }
       module
     }
-  }
 
   /**
     * Compile the imported modules and send the suggestion updates.
@@ -70,15 +76,16 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     modules: Iterable[Module]
   )(implicit ctx: RuntimeContext): Unit = {
     modules.foreach { module =>
-      compile(module)
-      val importedModules =
-        new ImportResolver(ctx.executionService.getContext.getCompiler)
-          .mapImports(module)
-          .filter(_.getName != module.getName)
-      ctx.executionService.getLogger.finest(
-        s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
-      )
-      importedModules.foreach(analyzeImport)
+      compile(module).foreach { _ =>
+        val importedModules =
+          new ImportResolver(ctx.executionService.getContext.getCompiler)
+            .mapImports(module)
+            .filter(_.getName != module.getName)
+        ctx.executionService.getLogger.finest(
+          s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
+        )
+        importedModules.foreach(analyzeImport)
+      }
     }
   }
 
@@ -93,8 +100,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     ctx.executionService.getLogger
       .finest(s"Modules in scope: ${modulesInScope.map(_.getName)}")
     modulesInScope.foreach { module =>
-      compile(module)
-      analyzeModuleInScope(module)
+      compile(module).foreach { _ =>
+        analyzeModuleInScope(module)
+      }
     }
   }
 
@@ -205,13 +213,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param ctx the runtime context
     * @return the compiled module
     */
-  private def compile(
+  def compile(
     file: File
-  )(implicit ctx: RuntimeContext): Option[Module] = {
+  )(implicit ctx: RuntimeContext): Either[Throwable, Module] = {
     ctx.executionService.getContext
       .getModuleForFile(file)
-      .map(compile(_))
       .toScala
+      .toRight(new ModuleNotFoundForFileException(file))
+      .flatMap(compile(_))
   }
 
   /**
@@ -223,15 +232,17 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def compile(
     module: Module
-  )(implicit ctx: RuntimeContext): Module = {
+  )(implicit ctx: RuntimeContext): Either[Throwable, Module] = {
     val prevStage = module.getCompilationStage
-    module.compileScope(ctx.executionService.getContext).getModule
+    val compilationResult = Either.catchNonFatal {
+      module.compileScope(ctx.executionService.getContext).getModule
+    }
     if (prevStage != module.getCompilationStage) {
       ctx.executionService.getLogger.finest(
         s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
       )
     }
-    module
+    compilationResult
   }
 
   /**
