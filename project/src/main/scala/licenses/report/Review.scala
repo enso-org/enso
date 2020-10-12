@@ -1,6 +1,6 @@
 package src.main.scala.licenses.report
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, InvalidPathException, Path}
 import java.time.LocalDate
 
 import sbt._
@@ -136,23 +136,22 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     info: DependencyInformation,
     attachments: Seq[Attachment]
   ): WithWarnings[ReviewedDependency] = {
-    val packageRoot                    = root / info.packageName
-    val (licenseReviewed, licensePath) = reviewLicense(packageRoot, info)
-    val (files, copyrights)            = splitAttachments(attachments)
+    val packageRoot         = root / info.packageName
+    val (files, copyrights) = splitAttachments(attachments)
     val copyrightsDeduplicated =
       removeCopyrightsIncludedInNotices(copyrights, files)
 
     for {
+      licenseReview  <- reviewLicense(packageRoot, info)
       processedFiles <- reviewFiles(packageRoot, files) ++ addFiles(packageRoot)
       processedCopyrights <-
         reviewCopyrights(packageRoot, copyrightsDeduplicated) ++
         addCopyrights(packageRoot)
     } yield ReviewedDependency(
-      information     = info,
-      licenseReviewed = licenseReviewed,
-      licensePath     = licensePath,
-      files           = processedFiles,
-      copyrights      = processedCopyrights
+      information   = info,
+      licenseReview = licenseReview,
+      files         = processedFiles,
+      copyrights    = processedCopyrights
     )
   }
 
@@ -240,23 +239,40 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       .toSeq
 
   /**
-    * Checks if the license has been reviewed.
-    *
-    * Returns a boolean value indicating if it has been reviewed and a path to
-    * the license file if a default file is used.
+    * Checks review status of the license associated with the given dependency.
     */
   private def reviewLicense(
     packageRoot: File,
     info: DependencyInformation
-  ): (Boolean, Option[Path]) = {
-    if (Files.exists((packageRoot / "custom-license").toPath)) (true, None)
-    else
-      readFile(
-        root / "reviewed-licenses" / Review.normalizeName(info.license.name)
-      )
-        .map(p => (true, Some(Path.of(p.strip()))))
-        .getOrElse((false, None))
-  }
+  ): WithWarnings[LicenseReview] =
+    readFile(packageRoot / "custom-license") match {
+      case Some(content) =>
+        val customFilename = content.strip()
+        WithWarnings(LicenseReview.Custom(customFilename))
+      case None =>
+        val settingPath =
+          root / "reviewed-licenses" / Review.normalizeName(info.license.name)
+        readFile(settingPath)
+          .map { content =>
+            if (content.isBlank) {
+              WithWarnings(
+                LicenseReview.NotReviewed,
+                Seq(s"License review file $settingPath is empty.")
+              )
+            } else
+              try {
+                val path = Path.of(content.strip())
+                WithWarnings(LicenseReview.Default(path))
+              } catch {
+                case e: InvalidPathException =>
+                  WithWarnings(
+                    LicenseReview.NotReviewed,
+                    Seq(s"License review file $settingPath is malformed: $e")
+                  )
+              }
+          }
+          .getOrElse(WithWarnings(LicenseReview.NotReviewed))
+    }
 
   /**
     * Reads the file as lines.

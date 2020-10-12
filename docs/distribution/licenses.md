@@ -146,8 +146,10 @@ The review can be performed manually by modifying the settings inside of the
           be carefully checked.
           - Most of the time, that file should be marked as kept and the default
             license ignored.
-          - To ignore the default license, create an empty file `custom-license`
-            inside the directory belonging to the relevant package.
+          - To ignore the default license, create a file `custom-license` inside
+            the directory belonging to the relevant package containing a single
+            line indicating the filename of the custom license that is included
+            in attached files.
    2. Review which files to include
       - You can click on a filename to display its contents.
       - We want to include any NOTICE files that contain copyright notices or
@@ -215,7 +217,7 @@ The subdirectory for each artifact may contain the following entries:
     sources that should not be included
   - `custom-license` - a file that indicates that the dependency should not
     point to the default license, but it should contain a custom one within its
-    files
+    files; it should contain a single line with this custom license's filename
   - `copyright-keep` - copyright lines that should be included in the notice
     summary for the package
   - `copyright-keep-context` - copyright lines that should be included

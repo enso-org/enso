@@ -53,8 +53,10 @@ object PackageNotices {
         s"\n\n'$name', licensed under the $licenseName, " +
         s"is distributed with the $artifactName.\n"
       )
-      dependency.licensePath match {
-        case Some(path) =>
+
+      dependency.licenseReview match {
+        case LicenseReview.NotReviewed =>
+        case LicenseReview.Default(path) =>
           val name = path.getFileName.toString
           if (!processedLicenses.contains(path)) {
             val destination = licensesRoot / name
@@ -67,7 +69,7 @@ object PackageNotices {
           mainNotice.append(
             s"The license file can be found at `licenses/$name`.\n"
           )
-        case None =>
+        case LicenseReview.Custom(filename) =>
           mainNotice.append(
             s"The license file can be found at along the copyright notices.\n"
           )

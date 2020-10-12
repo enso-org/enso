@@ -3,7 +3,7 @@ package src.main.scala.licenses.report
 /**
   * A simple monad for storing warnings related to a result.
   */
-case class WithWarnings[+A](value: A, warnings: Seq[String]) {
+case class WithWarnings[+A](value: A, warnings: Seq[String] = Seq()) {
 
   /**
     * Returns a result with a mapped value and the same warnings.

@@ -141,8 +141,7 @@ object Report {
       rows = sorted.map {
         case dep @ ReviewedDependency(
               information,
-              licenseReviewed,
-              licensePath,
+              licenseReview,
               files,
               copyrights
             ) =>
@@ -162,33 +161,33 @@ object Report {
             rowWriter.addColumn {
               writer.writeLink(license.name, license.url)
               writer.writeText(s"(${license.category.name}) <br>")
-              licensePath match {
-                case Some(path) =>
-                  writer.writeText(
-                    path.getFileName.toString,
-                    if (licenseReviewed) Style.Green else Style.Red
-                  )
-                case None if licenseReviewed =>
-                  val licenseFile = summary.includedLicense(dep)
-                  licenseFile match {
-                    case Some(file) =>
-                      writer.writeText(
-                        s"Custom license ${file.path.getFileName}",
-                        Style.Green
-                      )
-                    case None =>
-                      writer.writeText(
-                        "Custom license defined but not provided!",
-                        Style.Red
-                      )
-                  }
-                case None if !licenseReviewed =>
+              licenseReview match {
+                case LicenseReview.NotReviewed =>
                   val name = Review.normalizeName(license.name)
                   writer.writeText(
                     s"Not reviewed, filename: <pre>$name</pre>",
                     Style.Red
                   )
+                case LicenseReview.Default(path) =>
+                  writer.writeText(path.getFileName.toString, Style.Green)
+                case LicenseReview.Custom(filename) =>
+                  val customFileIncluded = files.exists(f =>
+                    f._1.fileName == filename && f._2.included
+                  )
+                  if (customFileIncluded) {
+                    writer.writeText(s"Custom license $filename", Style.Green)
+                  } else {
+                    writer.writeText(
+                      s"Custom license `$filename` defined but not included!",
+                      Style.Red
+                    )
+                  }
               }
+            }
+
+            val defaultLicensePath = licenseReview match {
+              case LicenseReview.Default(path) => Some(path)
+              case _                           => None
             }
             rowWriter.addColumn {
               if (files.isEmpty) writer.writeText("No attached files.")
@@ -207,7 +206,7 @@ object Report {
                         .getOrElse("")
                       writer.writeCollapsible(
                         s"${file.fileName} (${renderStatus(status)})$origin " +
-                        s"${renderSimilarity(licensePath, file, status)}",
+                        s"${renderSimilarity(defaultLicensePath, file, status)}",
                         injection +
                         writer.escape(file.content)
                       )
