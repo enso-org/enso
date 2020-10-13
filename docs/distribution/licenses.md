@@ -143,6 +143,11 @@ The review can be performed manually by modifying the settings inside of the
             the directory belonging to the relevant package containing a single
             line indicating the filename of the custom license that is included
             in attached files.
+        - Sometimes the dependency does contain files called `LICENSE` or
+          similar which are additional licenses or which just contain an URL of
+          an actual license. In that case we may want to keep these files but
+          still point to the default license file. To indicate this intention,
+          create an empty file called `default-and-custom-license`.
    2. Review which files to include
       - You can click on a filename to display its contents.
       - We want to include any NOTICE files that contain copyright notices or
@@ -159,7 +164,10 @@ The review can be performed manually by modifying the settings inside of the
         copyright notice or if there is exactly one context associated with the
         line, you can click 'Keep as context' to add this whole context to the
         notice.
-      - If you cannot keep a notice with context because it appears in multiple contexts or need to slightly modify it, the standard approach is to 'Ignore' that notice and add the correct one manually, as described below.
+      - If you cannot keep a notice with context because it appears in multiple
+        contexts or need to slightly modify it, the standard approach is to
+        'Ignore' that notice and add the correct one manually, as described
+        below.
    4. Add missing information
       - You can manually add additional copyright notices by adding them to a
         file `copyright-add` inside the directory belonging to the relevant
@@ -205,7 +213,8 @@ Additionally, the Linux version of the launcher is statically linked with the
 are also added and described manually. If they are ever updated, the notices
 should be revisited.
 
-`CREDITS` for modules `com.fasterxml.jackson` mentioned in their NOTICES were manually scraped from GitHub where possible. 
+`CREDITS` for modules `com.fasterxml.jackson` mentioned in their NOTICES were
+manually scraped from GitHub where possible.
 
 #### Review Configuration
 
@@ -236,6 +245,12 @@ The subdirectory for each artifact may contain the following entries:
   - `custom-license` - a file that indicates that the dependency should not
     point to the default license, but it should contain a custom one within its
     files; it should contain a single line with this custom license's filename
+  - `default-and-custom-license` - a file that indicates that the dependency
+    should point to the default license, but it also contains additional
+    license-like files that should be kept too; it disables checking if the
+    attached license-like files are equal to the default license or not, so it
+    should be used very carefully; at most one of `default-and-custom-license`
+    and `custom-license` should exist for each dependency
   - `copyright-keep` - copyright lines that should be included in the notice
     summary for the package
   - `copyright-keep-context` - copyright lines that should be included

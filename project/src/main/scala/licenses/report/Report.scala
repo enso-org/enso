@@ -96,20 +96,25 @@ object Report {
     * it is redundant) the message is also displayed as a minor warning.
     */
   private def renderSimilarity(
-    licensePath: Option[Path],
+    defaultLicense: Option[LicenseReview.Default],
     file: AttachedFile,
     status: AttachmentStatus
   ): String = {
     val name = file.path.getFileName.toString.toLowerCase
     if (name.contains("license") || name.contains("licence")) {
-      licensePath match {
-        case Some(value) =>
-          val defaultText = IO.read(value.toFile)
+      defaultLicense match {
+        case Some(LicenseReview.Default(path, allowAdditionalCustomLicenses)) =>
+          val defaultText = IO.read(path.toFile)
           if (defaultText.strip() == file.content.strip()) {
             val color = if (status.included) Style.Red else Style.Green
             s"""<span style="$color">100% identical to default license</span>"""
-          } else
-            s"""<span style="${Style.Red}">Differs from used license!</span>"""
+          } else {
+            val shouldWarn = !allowAdditionalCustomLicenses
+            val (color, message) =
+              if (shouldWarn) (Style.Red, "Differs from used license!")
+              else (Style.Gray, "Differs from the default license.")
+            s"""<span style="$color">$message</span>"""
+          }
         case None => ""
       }
     } else ""
@@ -168,8 +173,14 @@ object Report {
                     s"Not reviewed, filename: <pre>$name</pre>",
                     Style.Red
                   )
-                case LicenseReview.Default(path) =>
-                  writer.writeText(path.getFileName.toString, Style.Green)
+                case LicenseReview.Default(path, allowAdditional) =>
+                  val additional =
+                    if (allowAdditional) " and additional included files."
+                    else ""
+                  writer.writeText(
+                    path.getFileName.toString + additional,
+                    Style.Green
+                  )
                 case LicenseReview.Custom(filename) =>
                   val customFileIncluded = files.exists(f =>
                     f._1.fileName == filename && f._2.included
@@ -192,9 +203,8 @@ object Report {
               }
             }
 
-            val defaultLicensePath = licenseReview match {
-              case LicenseReview.Default(path) => Some(path)
-              case _                           => None
+            val defaultLicense = Some(licenseReview).collect {
+              case l: LicenseReview.Default => l
             }
             rowWriter.addColumn {
               if (files.isEmpty) writer.writeText("No attached files.")
@@ -213,7 +223,7 @@ object Report {
                         .getOrElse("")
                       writer.writeCollapsible(
                         s"${file.fileName} (${renderStatus(status)})$origin " +
-                        s"${renderSimilarity(defaultLicensePath, file, status)}",
+                        s"${renderSimilarity(defaultLicense, file, status)}",
                         injection +
                         writer.escape(file.content)
                       )

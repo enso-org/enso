@@ -173,18 +173,23 @@ object ReviewedSummary {
           warnings.append(
             s"License ${dep.information.license.name} for $name is not reviewed."
           )
-        case LicenseReview.Default(defaultPath) =>
-          summary.includedLicense(dep) match {
-            case Some(includedLicense) =>
-              val licenseContent = IO.read(defaultPath.toFile)
-              if (licenseContent.strip != includedLicense.content) {
-                warnings.append(
-                  s"A license file was discovered in $name that is different " +
-                  s"from the default license file that is associated with its " +
-                  s"license ${dep.information.license.name}."
-                )
-              }
-            case None =>
+        case LicenseReview.Default(
+              defaultPath,
+              allowAdditionalCustomLicenses
+            ) =>
+          if (!allowAdditionalCustomLicenses) {
+            summary.includedLicense(dep) match {
+              case Some(includedLicense) =>
+                val licenseContent = IO.read(defaultPath.toFile)
+                if (licenseContent.strip != includedLicense.content) {
+                  warnings.append(
+                    s"A license file was discovered in $name that is different " +
+                    s"from the default license file that is associated with its " +
+                    s"license ${dep.information.license.name}."
+                  )
+                }
+              case None =>
+            }
           }
         case LicenseReview.Custom(filename) =>
           val fileIsIncluded =

@@ -60,7 +60,7 @@ object PackageNotices {
 
       dependency.licenseReview match {
         case LicenseReview.NotReviewed =>
-        case LicenseReview.Default(path) =>
+        case LicenseReview.Default(path, _) =>
           val name = path.getFileName.toString
           if (!processedLicenses.contains(path)) {
             val destination = licensesRoot / name
@@ -73,9 +73,9 @@ object PackageNotices {
           mainNotice.append(
             s"The license file can be found at `licenses/$name`.\n"
           )
-        case LicenseReview.Custom(filename) =>
+        case LicenseReview.Custom(_) =>
           mainNotice.append(
-            s"The license file can be found at along the copyright notices.\n"
+            s"The license information can be found along with the copyright notices.\n"
           )
       }
 
