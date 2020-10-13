@@ -9,7 +9,7 @@ import Base.Error.Extensions
 import Base.Polyglot.Java
 from Builtins import Unit, Number, Integer, Any, True, False, Cons
 
-export Base.Meta.Meta as Meta
+export Base.Meta.Meta
 from Builtins export all hiding Meta
 
 from Base.Meta.Enso_Project export all
@@ -72,6 +72,7 @@ Math.pi : Decimal
 Math.pi = 3.141592653589793
 
 ## Generic equality of arbitrary values.
+Any.== : Any -> Boolean
 Any.== that = if Meta.is_same_object this that then True else
     this_meta = Meta.meta this
     that_meta = Meta.meta that
