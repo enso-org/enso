@@ -40,7 +40,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
   - [`ErrorLocation`](#errorlocation)
-  - [`ExecutionError`](#executionerror)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
   - [`FileContents`](#filecontents)
@@ -564,26 +563,6 @@ interface ErrorLocation {
    * Range of characters in the source text containing an error.
    */
   span: Range;
-}
-```
-
-### `ExecutionError`
-
-An error during the program execution.
-
-#### Format
-
-```typescript
-interface ExecutionError {
-  /**
-   * The error message.
-   */
-  message: String;
-
-  /**
-   * The location of the error.
-   */
-  location?: ErrorLocation;
 }
 ```
 
@@ -2344,8 +2323,20 @@ an execution context.
 
 ```typescript
 {
+  /**
+   * The identifier of the execution context.
+   */
   contextId: ContextId;
-  error: ExecutionError;
+
+  /**
+   * The error message.
+   */
+  message: String;
+
+  /**
+   * The location of the error.
+   */
+  location?: ErrorLocation;
 }
 ```
 

@@ -182,7 +182,11 @@ class JsonConnectionController(
         ) =>
       webActor ! Notification(
         ExecutionContextExecutionFailed,
-        ExecutionContextExecutionFailed.Params(contextId, error)
+        ExecutionContextExecutionFailed.Params(
+          contextId,
+          error.message,
+          error.location
+        )
       )
 
     case SearchProtocol.SuggestionsDatabaseUpdateNotification(
