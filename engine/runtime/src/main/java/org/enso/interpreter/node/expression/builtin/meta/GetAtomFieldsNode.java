@@ -9,8 +9,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_unresolved_symbol_scope",
-    description = "Gets the scope of an unresolved symbol")
+    name = "get_atom_fields",
+    description = "Gets the fields of an unresolved atom.")
 public class GetAtomFieldsNode extends Node {
   Array execute(Object _this, Atom atom) {
     return new Array(atom.getFields());

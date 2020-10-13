@@ -8,8 +8,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_unresolved_symbol_scope",
-    description = "Gets the scope of an unresolved symbol")
+    name = "get_constructor_name",
+    description = "Gets the name of a constructor.")
 public class GetConstructorNameNode extends Node {
   Text execute(Object _this, AtomConstructor atom_constructor) {
     return Text.create(atom_constructor.getName());

@@ -206,6 +206,7 @@ public class AtomConstructor implements TruffleObject {
     return definitionScope.getModule().getName().createChild(getName());
   }
 
+  /** @return the fields defined by this constructor. */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }

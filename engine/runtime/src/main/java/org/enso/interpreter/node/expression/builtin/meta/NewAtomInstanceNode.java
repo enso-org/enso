@@ -9,8 +9,8 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "is_atom",
-    description = "Checks if the argument is an Atom")
+    name = "new_atom",
+    description = "Creates a new atom with given constructor and fields.")
 public class NewAtomInstanceNode extends Node {
   Atom execute(Object _this, AtomConstructor constructor, Array fields) {
     return constructor.newInstance(fields.getItems());

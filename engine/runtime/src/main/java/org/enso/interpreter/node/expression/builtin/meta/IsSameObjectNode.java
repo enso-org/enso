@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @BuiltinMethod(
     type = "Meta",
     name = "is_same_object",
-    description = "Checks if the argument is an Atom")
+    description = "Checks if the two arguments share an underlying reference.")
 public class IsSameObjectNode extends Node {
   boolean execute(Object _this, Object value_1, Object value_2) {
     return value_1 == value_2;

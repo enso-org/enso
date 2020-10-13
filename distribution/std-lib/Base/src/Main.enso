@@ -71,6 +71,7 @@ type Math
 Math.pi : Decimal
 Math.pi = 3.141592653589793
 
+## Generic equality of arbitrary values.
 Any.== that = if Meta.is_same_object this that then True else
     this_meta = Meta.meta this
     that_meta = Meta.meta that

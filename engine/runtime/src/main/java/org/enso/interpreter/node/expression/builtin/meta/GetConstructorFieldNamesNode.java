@@ -10,8 +10,8 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_unresolved_symbol_scope",
-    description = "Gets the scope of an unresolved symbol")
+    name = "get_constructor_fields",
+    description = "Gets the field names of a constructor.")
 public class GetConstructorFieldNamesNode extends Node {
   Array execute(Object _this, AtomConstructor atom_constructor) {
     ArgumentDefinition[] fields = atom_constructor.getFields();
