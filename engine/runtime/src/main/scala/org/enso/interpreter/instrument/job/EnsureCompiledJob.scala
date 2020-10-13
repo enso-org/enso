@@ -9,7 +9,6 @@ import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
-import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
@@ -204,23 +203,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       sendModuleUpdate(update)
       module.setIndexed(true)
     }
-  }
-
-  /**
-    * Compile the file.
-    *
-    * @param file the file path to compile
-    * @param ctx the runtime context
-    * @return the compiled module
-    */
-  def compile(
-    file: File
-  )(implicit ctx: RuntimeContext): Either[Throwable, Module] = {
-    ctx.executionService.getContext
-      .getModuleForFile(file)
-      .toScala
-      .toRight(new ModuleNotFoundForFileException(file))
-      .flatMap(compile(_))
   }
 
   /**

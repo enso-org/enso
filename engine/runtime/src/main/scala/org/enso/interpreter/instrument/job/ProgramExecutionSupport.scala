@@ -258,6 +258,7 @@ trait ProgramExecutionSupport {
           Api.ErrorLocation(new File(path), Some(position))
         }
         Some(Api.ExecutionError(ex.getMessage, locationOpt))
+
       case ex: ConstructorNotFoundException =>
         val locationOpt = for {
           module <-
@@ -265,6 +266,7 @@ trait ProgramExecutionSupport {
           path <- Option(module.getPath)
         } yield Api.ErrorLocation(new File(path), None)
         Some(Api.ExecutionError(ex.getMessage, locationOpt))
+
       case ex: MethodNotFoundException =>
         val locationOpt = for {
           module <-
@@ -272,8 +274,10 @@ trait ProgramExecutionSupport {
           path <- Option(module.getPath)
         } yield Api.ErrorLocation(new File(path), None)
         Some(Api.ExecutionError(ex.getMessage, locationOpt))
+
       case ex: ServiceException =>
         Some(Api.ExecutionError(ex.getMessage, None))
+
       case _ =>
         None
     }
