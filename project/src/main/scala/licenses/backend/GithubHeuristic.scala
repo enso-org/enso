@@ -53,7 +53,7 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
         .map(m => (m.group("name"), m.group("href")))
         .filter(p => mayBeRelevant(p._1))
         .toList
-      val files = matches.flatMap {
+      matches.flatMap {
         case (_, href) =>
           try {
             val content =
@@ -69,16 +69,6 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
               Seq()
           }
       }
-      val copyrights = homePage.linesIterator.toList
-        .filter(_.toLowerCase.contains("copyright"))
-        .map(line =>
-          CopyrightMention(
-            CopyrightMention.cleanup(line),
-            Seq(s"Found at $address"),
-            Seq(Path.of("github.com"))
-          )
-        )
-      files ++ copyrights
     } catch {
       case NonFatal(error) =>
         log.warn(s"GitHub backend for ${info.packageName} failed with $error")

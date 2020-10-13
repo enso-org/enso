@@ -216,6 +216,48 @@ should be revisited.
 `CREDITS` for modules `com.fasterxml.jackson` mentioned in their NOTICES were
 manually scraped from GitHub where possible.
 
+Missing licenses were manually added for some dependencies - these are
+dependencies whose legal-review configurations contains a license file in
+`files-add`. They may need to be manually updated when updating.
+
+#### Warnings
+
+All warnings should be carefully reviewed and most of them will fail the CI.
+However, there are some warnings that may be ignored.
+
+Below we list the warnings that show up currently and their explanations:
+
+- `Could not find sources for com.google.guava # listenablefuture # 9999.0-empty-to-avoid-conflict-with-guava`
+  - This warning is due to the fact that this is a dummy artifact that does not
+    contain any sources. We added a special note in its legal config that refers
+    to the original `guava` module, so the warning can be safely discarded.
+- `Found a source .../.cache/coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/modules/scala-collection-compat_2.13/2.1.1/scala-collection-compat_2.13-2.1.1-sources.jar that does not belong to any known dependencies, perhaps the algorithm needs updating?`
+  - This is a bit unexpected - the engine does in fact depend on this dependency
+    and we describe it, but the launcher also includes this warning but it does
+    not show up within dependencies.
+
+> TODO [RW] The second warning should be further investigated. We may also
+> consider creating a system for suppressing expected warnings.
+
+#### Updating Dependencies
+
+As described above, some information has been gathered manually and as such it
+should be verified if it is up-to-date when a dependency is updated.
+
+Moreover, when a dependency version is changed, its directory name will change,
+making old legal review settings obsolete. But many of these settings may be
+still relevant. So to take advantage of that, the old directory should be
+manually renamed to the new name and any obsolete files or copyrights should be
+removed from the settings (they will be indicated by the tool as warnings).
+
+Some Scala dependencies include the current Scala minor version in their names.
+When upgrading to a newer Scala release, these names will become outdated, but a
+lot of this configuration may still be relevant. The same trick should be used
+as above - the old directories should be renamed accordingly to fit the new
+Scala version. Given that this affects a lot of dependencies, a special tool
+could be written that will automatically rename all the directories (but it can
+also be achieved using shell commands).
+
 #### Review Configuration
 
 The review state is driven by configuration files located in
