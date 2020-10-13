@@ -159,6 +159,7 @@ The review can be performed manually by modifying the settings inside of the
         copyright notice or if there is exactly one context associated with the
         line, you can click 'Keep as context' to add this whole context to the
         notice.
+      - If you cannot keep a notice with context because it appears in multiple contexts or need to slightly modify it, the standard approach is to 'Ignore' that notice and add the correct one manually, as described below.
    4. Add missing information
       - You can manually add additional copyright notices by adding them to a
         file `copyright-add` inside the directory belonging to the relevant
@@ -203,6 +204,8 @@ Additionally, the Linux version of the launcher is statically linked with the
 `musl` implementation of libc which also uses `zlib`, so these two components
 are also added and described manually. If they are ever updated, the notices
 should be revisited.
+
+`CREDITS` for modules `com.fasterxml.jackson` mentioned in their NOTICES were manually scraped from GitHub where possible. 
 
 #### Review Configuration
 

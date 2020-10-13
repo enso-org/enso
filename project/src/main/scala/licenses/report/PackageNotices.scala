@@ -123,13 +123,19 @@ object PackageNotices {
             case (m, s) => renderCopyright(m, s)
           }
           .mkString("\n\n")
-        val freeName = findFreeName(packageRoot, "NOTICES")
+        val freeName = findFreeName(packageRoot, gatheredNoticesFilename)
         IO.write(freeName, compiledCopyrights + "\n")
       }
     }
 
     IO.write(destination / "NOTICE", mainNotice.toString() + "\n")
   }
+
+  /**
+    * Name of the generated file that contains concatenated copyright notices that were found in the
+    * project.
+    */
+  val gatheredNoticesFilename = "NOTICES"
 
   /**
     * Finds a filename that is not taken.

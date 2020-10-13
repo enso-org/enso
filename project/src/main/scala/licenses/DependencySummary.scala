@@ -3,7 +3,11 @@ package src.main.scala.licenses
 import java.nio.file.Path
 
 import sbt.IO
-import src.main.scala.licenses.report.{LicenseReview, WithWarnings}
+import src.main.scala.licenses.report.{
+  LicenseReview,
+  PackageNotices,
+  WithWarnings
+}
 
 /**
   * Contains a sequence of dependencies and any attachments found.
@@ -183,9 +187,11 @@ object ReviewedSummary {
             case None =>
           }
         case LicenseReview.Custom(filename) =>
-          if (
-            !dep.files.exists(f => f._1.fileName == filename && f._2.included)
-          ) {
+          val fileIsIncluded =
+            dep.files.exists(f => f._1.fileName == filename && f._2.included)
+          val fileWillBeIncludedAsCopyrightNotices =
+            filename == PackageNotices.gatheredNoticesFilename
+          if (!fileIsIncluded && !fileWillBeIncludedAsCopyrightNotices) {
             warnings.append(
               s"License for $name is set to custom file `$filename`, but no such file is attached."
             )
