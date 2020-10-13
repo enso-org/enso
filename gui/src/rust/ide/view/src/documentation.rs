@@ -162,63 +162,13 @@ impl ViewModel {
             }
         };
 
-        // FIXME [MM] : Because of how Doc Parser was implemented in Engine repo, there is need to
-        //              remove stylesheet link from generated code, that would otherwise point to
-        //              non-existing file, as now stylesheet is connected by include_str! macro, and
-        //              soon will be replaced by a style generator.
-        //              This hack will be removed when https://github.com/enso-org/enso/issues/1063
-        //              will land in Engine's repo, also fixing non-existent character bug.
-        let import_css = r#"<link rel="stylesheet" href="style.css" />"#;
-        let html       = html.replace(import_css, "");
-
         self.push_to_dom(html);
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
     /// TODO [MM] : This should be replaced with a EnsoGL spinner in the next PR.
     fn load_waiting_screen(&self) {
-        let spinner = r#"
-        <div>
-        <style>
-        .spinner {
-          margin: 40vh auto;
-          width: 70px;
-          text-align: center;
-        }
-
-        .spinner > div {
-          width: 18px;
-          height: 18px;
-          background-color: rgb(50, 48, 47);
-
-          border-radius: 100%;
-          display: inline-block;
-          animation: sk-bouncedelay 1.4s infinite ease-in-out both;
-        }
-
-        .spinner .bounce1 {
-          animation-delay: -0.32s;
-        }
-
-        .spinner .bounce2 {
-          animation-delay: -0.16s;
-        }
-
-        @keyframes sk-bouncedelay {
-          0%, 80%, 100% {
-            transform: scale(0);
-          } 40% {
-            transform: scale(1.0);
-          }
-        }
-        </style>
-        <div class="spinner">
-            <div class="bounce1"></div>
-            <div class="bounce2"></div>
-            <div class="bounce3"></div>
-        </div>
-        </div>
-        "#;
+        let spinner = include_str!("documentation/spinner.html");
         self.push_to_dom(String::from(spinner))
     }
 
