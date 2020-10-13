@@ -197,6 +197,22 @@ type Vector
     take_right count = if count >= this.length then this else
         this.drop (this.length - count)
 
+    ## Performs a pair-wise operation passed in `function` on consecutive
+       elements of `this` and `that`.
+       The result of this function is a vector of length being the shorter of
+       `this` and `that`, containing results of calling `function`.
+       > Example
+         To pairwise-sum two vectors:
+             zip [1, 2, 3] [4, 5, 6] (+) == [5, 7, 9]
+         When the `function` is not provided, it defaults to creating a pair
+         of both elements:
+             zip [1, 2, 3] [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
+    zip : Vector -> (Any -> Any -> Any) -> Vector
+    zip that function=[_,_] =
+        len = min this.length that.length
+        Vector.new len i-> function (this.at i) (that.at i)
+
+
 ## A builder type for Enso vectors.
 
    A vector builder is a mutable data structure, that allows to gather a

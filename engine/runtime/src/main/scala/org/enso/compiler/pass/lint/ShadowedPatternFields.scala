@@ -148,9 +148,11 @@ case object ShadowedPatternFields extends IRPass {
                 name = IR.Name.Blank(location = name.location)
               )
               .addDiagnostic(warning)
-          } else {
+          } else if (!name.isInstanceOf[IR.Name.Blank]) {
             lastSeen(name.name) = named
             seenNames += name.name
+            named
+          } else {
             named
           }
         case cons @ Pattern.Constructor(_, fields, _, _, _) =>

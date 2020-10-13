@@ -5,6 +5,7 @@ import Test.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import Test.Semantic.Java_Interop_Spec
 import Test.Semantic.Error_Spec
 import Test.Semantic.Names_Spec
+import Test.Semantic.Meta_Spec
 
 import Test.List_Spec
 import Test.Number_Spec
@@ -29,3 +30,4 @@ main = Test.Suite.runMain <|
     Text_Spec.spec
     Time_Spec.spec
     File_Spec.spec
+    Meta_Spec.spec
