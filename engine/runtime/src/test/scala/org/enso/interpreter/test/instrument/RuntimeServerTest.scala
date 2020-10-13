@@ -2598,7 +2598,8 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionError(
-            "Constructor Unexpected not found in module Test.Main."
+            "Constructor Unexpected not found in module Test.Main.",
+            Api.ErrorLocation(mainFile)
           )
         )
       )
@@ -2643,7 +2644,8 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionError(
-            "Object Main does not define method ooops in module Test.Main."
+            "Object Main does not define method ooops in module Test.Main.",
+            Api.ErrorLocation(mainFile)
           )
         )
       )
@@ -2698,7 +2700,6 @@ class RuntimeServerTest
             "Object 42 is not invokable.",
             Some(
               Api.ErrorLocation(
-                moduleName,
                 mainFile,
                 model.Range(model.Position(0, 7), model.Position(0, 24))
               )
@@ -2757,7 +2758,6 @@ class RuntimeServerTest
             "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
             Some(
               Api.ErrorLocation(
-                moduleName,
                 mainFile,
                 model.Range(model.Position(2, 14), model.Position(2, 23))
               )
@@ -2869,7 +2869,6 @@ class RuntimeServerTest
             "No_Such_Method_Error Number UnresolvedSymbol<pi>",
             Some(
               Api.ErrorLocation(
-                moduleName,
                 mainFile,
                 model.Range(model.Position(2, 7), model.Position(2, 16))
               )

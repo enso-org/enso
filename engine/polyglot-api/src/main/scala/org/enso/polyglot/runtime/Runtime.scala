@@ -371,11 +371,31 @@ object Runtime {
     /**
       * The location of the error in the source file.
       *
-      * @param module the name of the module
       * @param file the file path
       * @param span the range in the source text containing an error
       */
-    case class ErrorLocation(module: String, file: File, span: Range)
+    case class ErrorLocation(file: File, span: Option[Range])
+    object ErrorLocation {
+
+      /**
+        * Create an [[ErrorLocation]] from a file.
+        *
+        * @param file the file path
+        * @return an instance of [[ErrorLocation]]
+        */
+      def apply(file: File): ErrorLocation =
+        new ErrorLocation(file, None)
+
+      /**
+        * Create an [[ErrorLocation]] containing an error span.
+        *
+        * @param file the file path
+        * @param span the location of the error
+        * @return an instance of [[ErrorLocation]]
+        */
+      def apply(file: File, span: Range): ErrorLocation =
+        new ErrorLocation(file, Some(span))
+    }
 
     /**
       * The error during a program execution.

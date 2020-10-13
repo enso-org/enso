@@ -562,7 +562,7 @@ interface ErrorLocation {
   /**
    * Range of characters in the source text containing an error.
    */
-  span: Range;
+  span?: Range;
 }
 ```
 

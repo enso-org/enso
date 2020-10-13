@@ -153,7 +153,7 @@ object ContextRegistryProtocol {
     * @param path the file path
     * @param span the range in the source text containing an error
     */
-  case class ErrorLocation(path: Path, span: model.Range)
+  case class ErrorLocation(path: Path, span: Option[model.Range])
 
   /**
     * The error during a program execution.

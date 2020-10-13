@@ -25,7 +25,11 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.service.error.ServiceException
+import org.enso.interpreter.service.error.{
+  ConstructorNotFoundException,
+  MethodNotFoundException,
+  ServiceException
+}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.text.editing.model
@@ -251,8 +255,22 @@ trait ProgramExecutionSupport {
             model.Position(loc.getStartLine - 1, loc.getStartColumn - 1),
             model.Position(loc.getEndLine - 1, loc.getEndColumn)
           )
-          Api.ErrorLocation(loc.getSource.getName, new File(path), position)
+          Api.ErrorLocation(new File(path), Some(position))
         }
+        Some(Api.ExecutionError(ex.getMessage, locationOpt))
+      case ex: ConstructorNotFoundException =>
+        val locationOpt = for {
+          module <-
+            ctx.executionService.getContext.findModule(ex.getModule).toScala
+          path <- Option(module.getPath)
+        } yield Api.ErrorLocation(new File(path), None)
+        Some(Api.ExecutionError(ex.getMessage, locationOpt))
+      case ex: MethodNotFoundException =>
+        val locationOpt = for {
+          module <-
+            ctx.executionService.getContext.findModule(ex.getModule).toScala
+          path <- Option(module.getPath)
+        } yield Api.ErrorLocation(new File(path), None)
         Some(Api.ExecutionError(ex.getMessage, locationOpt))
       case ex: ServiceException =>
         Some(Api.ExecutionError(ex.getMessage, None))
