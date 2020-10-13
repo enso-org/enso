@@ -1,0 +1,9 @@
+from Base import all
+
+import Base.Test
+
+spec = describe "Maps" <|
+    m = 1 . upto 10000 . fold Map.empty (m -> i -> m.insert i i)
+    IO.println m.size
+    IO.println (m.get 9999)
+

@@ -1,0 +1,219 @@
+from Base import all
+
+type No_Value_For_Key key
+
+type Map
+    type Tip
+    type Bin s key value left right
+
+    is_empty : Boolean
+    is_empty = case this of
+        Bin _ _ _ _ _ -> False
+        Tip -> True
+
+    size : Integer
+    size = case this of
+        Bin s _ _ _ _ -> s
+        Tip -> 0
+
+    to_vector : Vector
+    to_vector =
+        builder = Vector.new_builder
+        to_vector_with_builder m = case m of
+            Bin _ k v l r ->
+                to_vector_with_builder l
+                builder.append [k, v]
+                to_vector_with_builder r
+                Unit
+            Tip -> Unit
+        to_vector_with_builder this
+        result = builder.to_vector
+        result
+
+    map : (Any -> Any) -> Map
+    map function = case this of
+        Bin s k v l r ->
+            Bin s k (function v) (l.map function) (r.map function)
+        Tip -> Tip
+
+    to_text : Text
+    to_text = this.to_vector.to_text
+
+    get : Any -> Any
+    get key =
+        go map = case map of
+            Tip -> Error.throw (No_Value_For_Key key)
+            Bin _ k v l r ->
+                if k == key then v else
+                    if k > key then go l else go r
+        result = go this
+        result
+
+    insert : Any -> Any -> Map
+    insert key value = case this of
+        Tip -> Bin 1 key value Tip Tip
+        Bin s k v l r -> case key < k of
+            True ->
+                new_left = l.insert key value
+                res = here.balance_left k v new_left r
+                res
+            False -> if k == key then Bin s k value l r else
+                new_right = r.insert key value
+                res = here.balance_right k v l new_right
+                res
+
+    == : Map -> Boolean
+    == that = this.to_vector == that.to_vector
+
+mk_bin k v left right = Bin (1 + left.size + right.size) k v left right
+
+single_left k v l r = case r of
+    Bin _ rk rv rl rr ->
+        res = here.mk_bin rk rv (here.mk_bin k v l rl) rr
+        res
+
+single_right k v l r = case l of
+    Bin _ lk lv ll lr ->
+        res = here.mk_bin lk lv ll (here.mk_bin k v lr r)
+        res
+
+double_left k v l r = case r of
+    Bin _ rk rv (Bin _ rlk rlv rll rlr) rr ->
+        new_l = here.mk_bin k v l rll
+        new_r = here.mk_bin rk rv rlr rr
+        res = here.mk_bin rlk rlv new_l new_r
+        res
+
+double_right k v l r = case l of
+    Bin _ lk lv ll (Bin _ lrk lrv lrl lrr) ->
+        new_l = here.mk_bin lk lv ll lrl
+        new_r = here.mk_bin k v lrr r
+        res = here.mk_bin lrk lrv new_l new_r
+        res
+
+balance_left k v l r =
+    sl = size l
+    sr = size r
+    res = if sl + sr < 2 then here.mk_bin k v l r else
+        res = if sl <= Weight * sr then here.mk_bin k v l r else
+            if l.left.size > l.right.size then here.single_right k v l r else
+                here.double_right k v l r
+        res
+    res
+
+balance_right k v l r =
+    sl = size l
+    sr = size r
+    res = if sl + sr < 2 then here.mk_bin k v l r else
+        res = if sr <= Weight * sl then here.mk_bin k v l r else
+            if r.right.size > r.left.size then here.single_left k v l r else
+                here.double_left k v l r
+        res
+    res
+
+
+
+
+    #def delta: 3
+    #def ratio: 2
+
+    #def bin k v l r:
+        #l' = l
+        #r' = r
+        #s  = l'.size + r'.size + 1
+        #Bin s k v l' r'
+
+    #def singleL: case self of
+        #Bin s k v l (Bin rs rk rv rl rr):
+            #nl = Map.bin k v l rl
+            #Map.bin rk rv nl rr
+
+    #def singleR: case self of
+        #Bin s k v (Bin ls lk lv ll lr) r:
+            #nr = Map.bin k v lr r
+            #Map.bin lk lv ll nr
+
+    #def doubleL: case self of
+        #Bin s k v l (Bin rs rk rv (Bin rls rlk rlv rll rlr) rr):
+            #nl = Map.bin k v l rll
+            #nr = Map.bin rk rv rlr rr
+            #Map.bin rlk rlv nl nr
+
+    #def doubleR: case self of
+        #Bin s k v (Bin ls lk lv ll (Bin lrs lrk lrv lrl lrr)) r:
+            #nl = Map.bin lk lv ll lrl
+            #nr = Map.bin k v lrr r
+            #Map.bin lrk lrv nl nr
+
+    #def rotateL: case self of
+        #Bin _ _ _ _ (Bin _ _ _ l r):
+            #if l.size < Map.ratio * r.size then self.singleL else self.doubleL
+
+    #def rotateR: case self of
+        #Bin _ _ _ (Bin _ _ _ l r) _:
+            #if r.size < Map.ratio * l.size then self.singleR else self.doubleR
+
+    #def balance: case self of
+        #Bin _ _ _ l r:
+            #ls = l.size
+            #rs = r.size
+            #case ls + rs < 2 of
+                #True: self
+                #False: case rs > Map.delta * ls of
+                    #True: self.rotateL
+                    #False: case ls > Map.delta * rs of
+                        #True: self.rotateR
+                        #False: self
+
+    #def balanceL: case self of
+        #Bin _ _ _ l r:
+            #ls = l.size
+            #rs = r.size
+            #case ls + rs < 2 of
+                #True: self
+                #False: case ls > Map.delta * rs of
+                    #True: self.rotateR
+                    #False: self
+
+    #def balanceR: case self of
+        #Bin _ _ _ l r:
+            #ls = l.size
+            #rs = r.size
+            #case ls + rs < 2 of
+                #True: self
+                #False: case rs > Map.delta * ls of
+                    #True: self.rotateL
+                    #False: self
+
+    #def maxView: case self of
+        #Bin _ k v l r: case r of
+            #Tip: (k, v, l)
+            #Bin _ _ _ _ _:
+                #(km, vm, r') = r.maxView
+                #res = Map.bin k v l r' . balanceL
+                #(km, vm, res)
+
+    #def minView: case self of
+        #Bin _ k v l r: case l of
+            #Tip: (k, v, r)
+            #Bin _ _ _ _ _:
+                #(km, vm, l') = l.minView
+                #res = Map.bin k v l' r . balanceR
+                #(km, vm, res)
+
+    #def glue that: case (self, that) of
+        #(l, Tip): l
+        #(Tip, r): r
+        #(Bin ls lk lv ll lr, Bin rs rk rv rl rr): case ls > rs of
+            #True:
+                #(km, vm, l') = self . maxView
+                #Map.bin km vm l' that . balanceR
+            #False:
+                #(km, vm, r') = that . minView
+                #Map.bin km vm self r' . balanceR
+
+empty : Map
+empty = Tip
+
+weight : Integer
+weight = 2
