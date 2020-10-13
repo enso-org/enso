@@ -100,7 +100,11 @@ app.post("/modify/:report", function (req, res) {
   const package = req.body["package"];
   const action = req.body["action"];
   const file = req.body["file"];
-  const line = req.body["line"];
+  let line = req.body["line"];
+  const encodedLine = req.body["encoded_line"];
+  if (encodedLine !== undefined) {
+    line = Buffer.from(encodedLine, "base64").toString();
+  }
 
   try {
     if (action == "add") {

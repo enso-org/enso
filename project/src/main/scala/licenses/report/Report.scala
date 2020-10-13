@@ -174,8 +174,15 @@ object Report {
                   val customFileIncluded = files.exists(f =>
                     f._1.fileName == filename && f._2.included
                   )
+                  val customIsNotices =
+                    filename == PackageNotices.gatheredNoticesFilename
                   if (customFileIncluded) {
                     writer.writeText(s"Custom license $filename", Style.Green)
+                  } else if (customIsNotices) {
+                    writer.writeText(
+                      s"Custom license included within copyright notices",
+                      Style.Green
+                    )
                   } else {
                     writer.writeText(
                       s"Custom license `$filename` defined but not included!",
