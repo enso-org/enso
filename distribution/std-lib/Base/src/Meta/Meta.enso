@@ -9,6 +9,11 @@ type Language
     type Unknown
 
 ## A meta-representation of a runtime value.
+
+   ! Warning
+     The functionality contained in this module exposes certain implementation
+     details of the language. As such, the API has no stability guarantees and
+     is subject to change as the Enso interpreter evolves.
 type Meta
     ## An Atom meta-representation.
     type Atom value
