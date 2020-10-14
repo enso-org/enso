@@ -113,6 +113,11 @@ define_theme! { dark
             background {
                 color = color::Lcha::new(0.2,0.013,0.18,1.0)
             }
+            shadow {
+                color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+                fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+                exponent     = 2.0
+            }
             selection {
                 color = color::Lcha::new(0.72,0.5,0.22,1.0);
                 size = 7.0
@@ -127,6 +132,15 @@ define_theme! { dark
         visualization {
             background {
                 color = color::Lcha::new(0.2,0.013,0.18,1.0)
+            }
+            shadow {
+                color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+                fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+                exponent     = 2.0;
+                html {
+                    alpha = 0.16;
+                    size  = 16.0
+                }
             }
             text {
                 color = color::Lcha::new(1.0,0.0,0.0,0.7);
@@ -189,6 +203,11 @@ define_theme! { dark
             background {
                 color = color::Lcha::new(0.2,0.013,0.18,1.0)
             }
+            shadow {
+                color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+                fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+                exponent     = 2.0
+            }
             highlight {
                 color = color::Lcha::new(0.72,0.5,0.22,1.0)
             }
@@ -202,11 +221,6 @@ define_theme! { dark
                 }
             }
         }
-    }
-    shadow {
-        color        = color::Lcha::new(0.0,0.0,0.0,0.20);
-        fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
-        exponent     = 2.0
     }
 }
 
@@ -252,7 +266,11 @@ define_default_theme! { light
             shadow {
                 color        = color::Lcha::new(0.0,0.0,0.0,0.20);
                 fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
-                exponent     = 2.0
+                exponent     = 2.0;
+                html {
+                    alpha = 0.16;
+                    size  = 16.0
+                }
             }
             text {
                 color = color::Lcha::new(0.0,0.0,0.0,0.7);
@@ -313,7 +331,7 @@ define_default_theme! { light
     widget {
         list_view {
             background {
-                color = color::Lcha::new(0.94,0.013,0.18,1.0)
+                color = color::Lcha::new(0.98,0.013,0.18,1.0)
             }
             shadow {
                 color        = color::Lcha::new(0.0,0.0,0.0,0.20);
@@ -321,7 +339,7 @@ define_default_theme! { light
                 exponent     = 2.0
             }
             highlight {
-                color = color::Lcha::new(0.55,0.65,0.79,1.0)
+                color = color::Lcha::new(0.83,0.58,0.436,1.0)
             }
             text {
                 color = color::Lcha::new(0.0,0.0,0.0,0.7);

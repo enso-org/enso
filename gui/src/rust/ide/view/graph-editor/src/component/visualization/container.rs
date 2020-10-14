@@ -226,19 +226,29 @@ impl View {
         scene.views.main.remove(&shape_system.shape_system.symbol);
         scene.views.viz.add(&shape_system.shape_system.symbol);
 
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles   = StyleWatch::new(&scene.style_sheet);
+        let bg_color = styles.get_color(ensogl_theme::vars::graph_editor::visualization::background::color);
+        let bg_color = color::Rgba::from(bg_color);
+        let bg_hex   = format!("rgba({},{},{},{})",bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
+
+        let shadow_alpha = styles.get_number_or(ensogl_theme::vars::graph_editor::visualization::shadow::html::alpha,0.16);
+        let shadow_size  = styles.get_number_or(ensogl_theme::vars::graph_editor::visualization::shadow::html::size,16.0);
+        let shadow       = format!("0 0 {}px rgba(0, 0, 0, {})",shadow_size,shadow_alpha);
+
         let div            = web::create_div();
         let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was overlapping
         //        the JS visualization. This should be further investigated while fixing rust
         //        visualization displaying. (#796)
-        background_dom.dom().set_style_or_warn("width"         ,"0"                        ,&logger);
-        background_dom.dom().set_style_or_warn("height"        ,"0"                        ,&logger);
-        background_dom.dom().set_style_or_warn("z-index"       ,"1"                        ,&logger);
-        background_dom.dom().set_style_or_warn("overflow-y"    ,"auto"                     ,&logger);
-        background_dom.dom().set_style_or_warn("overflow-x"    ,"auto"                     ,&logger);
-        background_dom.dom().set_style_or_warn("background"    ,"#FDF9F6FA"                ,&logger);
-        background_dom.dom().set_style_or_warn("border-radius" ,"14px"                     ,&logger);
-        background_dom.dom().set_style_or_warn("box-shadow"    ,"0 0 16px rgba(0,0,0,0.14)",&logger);
+        background_dom.dom().set_style_or_warn("width"        ,"0"   ,&logger);
+        background_dom.dom().set_style_or_warn("height"       ,"0"   ,&logger);
+        background_dom.dom().set_style_or_warn("z-index"      ,"1"   ,&logger);
+        background_dom.dom().set_style_or_warn("overflow-y"   ,"auto",&logger);
+        background_dom.dom().set_style_or_warn("overflow-x"   ,"auto",&logger);
+        background_dom.dom().set_style_or_warn("background"   ,bg_hex,&logger);
+        background_dom.dom().set_style_or_warn("border-radius","14px",&logger);
+        background_dom.dom().set_style_or_warn("box-shadow"   ,shadow,&logger);
         display_object.add_child(&background_dom);
 
         scene.dom.layers.back.manage(&background_dom);
@@ -282,18 +292,24 @@ impl FullscreenView {
         scene.views.main.remove(&shape_system.shape_system.symbol);
         scene.views.viz_fullscreen.add(&shape_system.shape_system.symbol);
 
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles   = StyleWatch::new(&scene.style_sheet);
+        let bg_color = styles.get_color(ensogl_theme::vars::graph_editor::visualization::background::color);
+        let bg_color = color::Rgba::from(bg_color);
+        let bg_hex   = format!("rgba({},{},{},{})",bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
+
         let div            = web::create_div();
         let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was overlapping
         //        the JS visualization. This should be further investigated while fixing rust
         //        visualization displaying. (#796)
-        background_dom.dom().set_style_or_warn("width"         ,"0"                           ,&logger);
-        background_dom.dom().set_style_or_warn("height"        ,"0"                           ,&logger);
-        background_dom.dom().set_style_or_warn("z-index"       ,"1"                           ,&logger);
-        background_dom.dom().set_style_or_warn("overflow-y"    ,"auto"                        ,&logger);
-        background_dom.dom().set_style_or_warn("overflow-x"    ,"auto"                        ,&logger);
-        background_dom.dom().set_style_or_warn("background"    ,"#FDF9F6FA"                   ,&logger);
-        background_dom.dom().set_style_or_warn("border-radius" ,"0"                           ,&logger);
+        background_dom.dom().set_style_or_warn("width"        ,"0"   ,&logger);
+        background_dom.dom().set_style_or_warn("height"       ,"0"   ,&logger);
+        background_dom.dom().set_style_or_warn("z-index"      ,"1"   ,&logger);
+        background_dom.dom().set_style_or_warn("overflow-y"   ,"auto",&logger);
+        background_dom.dom().set_style_or_warn("overflow-x"   ,"auto",&logger);
+        background_dom.dom().set_style_or_warn("background"   ,bg_hex,&logger);
+        background_dom.dom().set_style_or_warn("border-radius","0"   ,&logger);
         display_object.add_child(&background_dom);
 
         scene.dom.layers.back.manage(&background_dom);
