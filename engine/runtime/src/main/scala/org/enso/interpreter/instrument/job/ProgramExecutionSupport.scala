@@ -243,12 +243,14 @@ trait ProgramExecutionSupport {
 
   private def getError(
     t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.Diagnostic] =
+  )(implicit ctx: RuntimeContext): Option[Api.Diagnostic] = {
+    def getLanguage(ex: TruffleException): Option[String] =
+      for {
+        location <- Option(ex.getSourceLocation)
+        source   <- Option(location.getSource)
+      } yield source.getLanguage
     t match {
-      case ex: TruffleException
-          if Option(ex.getSourceLocation).forall(
-            _.getSource.getLanguage == LanguageInfo.ID
-          ) =>
+      case ex: TruffleException if getLanguage(ex).contains(LanguageInfo.ID) =>
         val locationOpt = for {
           loc        <- Option(ex.getSourceLocation)
           moduleName <- Option(loc.getSource.getName)
@@ -292,6 +294,7 @@ trait ProgramExecutionSupport {
       case _ =>
         None
     }
+  }
 
   private def sendErrorUpdate(contextId: ContextId, error: Throwable)(implicit
     ctx: RuntimeContext
