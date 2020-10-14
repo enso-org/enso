@@ -39,7 +39,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`Position`](#position)
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
-  - [`ErrorLocation`](#errorlocation)
+  - [`DiagnosticType`](#diagnostictype)
+  - [`Diagnostic`](#diagnostic)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
   - [`FileContents`](#filecontents)
@@ -547,23 +548,43 @@ interface TextEdit {
 }
 ```
 
-### `ErrorLocation`
+### `DiagnosticType`
 
-Location of the error in a source file.
+The type of diagnostic message.
 
 #### Format
 
 ```typescript
-interface ErrorLocation {
+type DiagnosticType = Error | Warning;
+```
+
+### `Diagnostic`
+
+A diagnostic object produced as a compilation outcome, like an error or warning.
+
+#### Format
+
+```typescript
+interface Diagnostic {
   /**
-   * A path to the source file.
+   * The type of diagnostic message.
    */
-  file: Path;
+  kind: DiagnosticType;
 
   /**
-   * Range of characters in the source text containing an error.
+   * The diagnostic message.
    */
-  span?: Range;
+  message: String;
+
+  /**
+   * The location of a file containing the diagnostic.
+   */
+  file?: Path;
+
+  /**
+   * The location of the diagnostic object in a file.
+   */
+  location?: Range;
 }
 ```
 
@@ -2332,22 +2353,6 @@ Sent from the server to the client to inform about a status of execution.
    * The list of encountered problems.
    */
   diagnostics: Diagnostic[];
-}
-```
-
-```typescript
-type DiagnosticKind = Error | Warning;
-
-interface Diagnostic {
-  kind: DiagnosticKind;
-
-  message: String;
-
-  file?: Path;
-
-  location?: Range;
-
-  stacktrace?: String;
 }
 ```
 
