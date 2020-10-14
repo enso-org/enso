@@ -133,6 +133,10 @@ object Runtime {
         name  = "executionFailed"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExecutionUpdate],
+        name  = "executionUpdate"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ExecutionSuccessful],
         name  = "executionSuccessful"
       ),
@@ -425,6 +429,38 @@ object Runtime {
       def apply(message: String, location: ErrorLocation): ExecutionError =
         new ExecutionError(message, Some(location))
     }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[DiagnosticType.Error],
+          name  = "diagnosticTypeError"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[DiagnosticType.Warning],
+          name  = "diagnosticTypeWarning"
+        )
+      )
+    )
+    sealed trait DiagnosticType
+    object DiagnosticType {
+
+      case class Error()   extends DiagnosticType
+      case class Warning() extends DiagnosticType
+    }
+
+    case class Diagnostic(
+      kind: DiagnosticType,
+      message: String,
+      file: Option[File],
+      location: Option[Range]
+    )
+
+    case class ExecutionUpdate(
+      contextId: ContextId,
+      diagnostics: Seq[Diagnostic]
+    ) extends ApiNotification
 
     /**
       * An event signaling a visualisation update.

@@ -1539,23 +1539,21 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(32, 89)
+    val idMain   = metadata.addItem(32, 77)
     val id1      = metadata.addItem(41, 15)
     val id2      = metadata.addItem(61, 18)
-    val id3      = metadata.addItem(84, 16)
-    val idy      = metadata.addItem(109, 2)
+    val id3      = metadata.addItem(84, 15)
     val code =
       """from Builtins import all
         |
         |main =
         |    x = 15.overloaded 1
         |    "foo".overloaded 2
-        |    overloaded 10 30
-        |    y = 42
+        |    overloaded 10 x
         |    Unit
         |
-        |Text.overloaded arg = 10
-        |Number.overloaded arg = 20
+        |Text.overloaded arg = arg + 1
+        |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1586,7 +1584,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(8) should contain theSameElementsAs Seq(
+    context.receive(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExpressionValuesComputed(
@@ -1628,12 +1626,6 @@ class RuntimeServerTest
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
-        )
-      ),
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(Api.ExpressionValueUpdate(idy, Some("Number"), None))
         )
       ),
       Api.Response(
@@ -1689,19 +1681,7 @@ class RuntimeServerTest
                 "Any",
                 Suggestion.Scope(
                   Suggestion.Position(2, 6),
-                  Suggestion.Position(8, 0)
-                )
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(idy),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(2, 6),
-                  Suggestion.Position(8, 0)
+                  Suggestion.Position(7, 0)
                 )
               )
             )
@@ -2877,6 +2857,393 @@ class RuntimeServerTest
         )
       )
     )
+  }
+
+  it should "return compiler warning unused wariable" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main = x = 1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.Diagnostic(
+              Api.DiagnosticType.Warning(),
+              "Unused variable x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 7), model.Position(2, 8)))
+            )
+          )
+        )
+      ),
+      context.executionSuccessful(contextId)
+    )
+  }
+
+  it should "return compiler warning unused argument" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |foo x = 1
+        |
+        |main = 42
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.Diagnostic(
+              Api.DiagnosticType.Warning(),
+              "Unused function argument x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 4), model.Position(2, 5)))
+            )
+          )
+        )
+      ),
+      context.executionSuccessful(contextId)
+    )
+  }
+
+  it should "return compiler error variable redefined" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = 1
+        |    x = 2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.Diagnostic(
+              Api.DiagnosticType.Warning(),
+              "Unused variable x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
+            ),
+            Api.Diagnostic(
+              Api.DiagnosticType.Error(),
+              "Variable x is being redefined.",
+              Some(mainFile),
+              Some(model.Range(model.Position(4, 4), model.Position(4, 9)))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionError(
+            "Compile_Error Variable x is being redefined.",
+            Api.ErrorLocation(
+              mainFile,
+              model.Range(model.Position(4, 4), model.Position(4, 9))
+            )
+          ))
+      )
+    )
+  }
+
+  it should "return compiler error syntax error unrecognized token" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = Panic.recover @
+        |    IO.println (x.catch to_text)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.Diagnostic(
+              Api.DiagnosticType.Error(),
+              "Unrecognized token.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 22), model.Position(3, 23)))
+            )
+          )
+        )
+      ),
+      context.executionSuccessful(contextId)
+    )
+    context.consumeOut shouldEqual List("(Syntax_Error 'Unrecognized token.')")
+  }
+
+  it should "return compiler error syntax error" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = Panic.recover ()
+        |    IO.println (x.catch to_text)
+        |
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.Diagnostic(
+              Api.DiagnosticType.Error(),
+              "Parentheses can't be empty.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 22), model.Position(3, 24)))
+            )
+          )
+        )
+      ),
+      context.executionSuccessful(contextId)
+    )
+    context.consumeOut shouldEqual List(
+      """(Syntax_Error 'Parentheses can\'t be empty.')"""
+    )
+  }
+
+  it should "return compiler error method overloads are not supported" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |foo = 1
+        |foo = 2
+        |
+        |main = IO.println this.foo
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.Diagnostic(
+              Api.DiagnosticType.Error(),
+              "Method overloads are not supported: here.foo is defined multiple times in this module.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 0), model.Position(3, 7)))
+            )
+          )
+        )
+      ),
+      context.executionSuccessful(contextId)
+    )
+    context.consumeOut shouldEqual List("1")
   }
 
   it should "skip side effects when evaluating cached expression" in {

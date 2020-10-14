@@ -4,7 +4,9 @@ import java.io.{File, IOException}
 import java.util.logging.Level
 
 import cats.implicits._
-import org.enso.compiler.context.{Changeset, SuggestionBuilder}
+import org.enso.compiler.context.{Changeset, ModuleContext, SuggestionBuilder}
+import org.enso.compiler.core.IR
+import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
@@ -12,7 +14,7 @@ import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{Position, Range, TextEdit}
 
 import scala.collection.concurrent.TrieMap
 import scala.jdk.CollectionConverters._
@@ -30,7 +32,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireWriteCompilationLock()
     try {
-      val modules = ensureCompiledFiles(files)
+      val modules = files.flatMap { file =>
+        ctx.executionService.getContext.getModuleForFile(file).toScala
+      }
+      ensureCompiledModules(modules)
       ensureCompiledScope()
       ensureCompiledImports(modules)
     } finally {
@@ -41,18 +46,15 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /**
     * Run the scheduled compilation and invalidation logic.
     *
-    * @param files the list of files to compile.
+    * @param modules the list of modules to compile.
     * @param ctx the runtime context
     */
-  protected def ensureCompiledFiles(
-    files: Iterable[File]
-  )(implicit ctx: RuntimeContext): Iterable[Module] =
-    for {
-      file   <- files
-      module <- ctx.executionService.getContext.getModuleForFile(file).toScala
-    } yield {
+  protected def ensureCompiledModules(
+    modules: Iterable[Module]
+  )(implicit ctx: RuntimeContext): Unit = {
+    modules.foreach { module =>
       compile(module)
-      val changeset = applyEdits(file)
+      val changeset = applyEdits(new File(module.getPath))
       compile(module) match {
         case Left(err) =>
           ctx.executionService.getLogger.finest(s"Compilation error: $err")
@@ -61,9 +63,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             buildCacheInvalidationCommands(changeset, module.getLiteralSource)
           )
           analyzeModule(module, changeset)
+          sendDiagnostics(module)
       }
-      module
     }
+  }
 
   /**
     * Compile the imported modules and send the suggestion updates.
@@ -203,6 +206,51 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       sendModuleUpdate(update)
       module.setIndexed(true)
     }
+  }
+
+  private def sendDiagnostics(module: Module)(implicit
+    ctx: RuntimeContext
+  ): Unit = {
+    val errors = GatherDiagnostics
+      .runModule(module.getIr, ModuleContext(module))
+      .unsafeGetMetadata(
+        GatherDiagnostics,
+        "No diagnostics metadata right after the gathering pass."
+      )
+      .diagnostics
+    val diagnostics = errors.collect {
+      case warn: IR.Warning =>
+        createDiagnostic(Api.DiagnosticType.Warning(), module, warn)
+      case error: IR.Error =>
+        createDiagnostic(Api.DiagnosticType.Error(), module, error)
+    }
+    if (diagnostics.nonEmpty) {
+      ctx.contextManager.getAll.keys.foreach { contextId =>
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
+        )
+      }
+    }
+  }
+
+  private def createDiagnostic(
+    kind: Api.DiagnosticType,
+    module: Module,
+    diagnostic: IR.Diagnostic
+  ): Api.Diagnostic = {
+    val fileOpt = Option(module.getPath).map(new File(_))
+    val locationOpt =
+      diagnostic.location.map { loc =>
+        val section = module.getSource.createSection(
+          loc.location.start,
+          loc.location.length
+        )
+        Range(
+          Position(section.getStartLine - 1, section.getStartColumn - 1),
+          Position(section.getEndLine - 1, section.getEndColumn)
+        )
+      }
+    Api.Diagnostic(kind, diagnostic.message, fileOpt, locationOpt)
   }
 
   /**

@@ -30,6 +30,7 @@ import org.enso.interpreter.service.error.{
   MethodNotFoundException,
   ServiceException
 }
+import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.text.editing.model
@@ -243,7 +244,10 @@ trait ProgramExecutionSupport {
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionError] =
     t match {
-      case ex: TruffleException =>
+      case ex: TruffleException
+          if Option(ex.getSourceLocation).forall(
+            _.getSource.getLanguage == LanguageInfo.ID
+          ) =>
         val locationOpt = for {
           loc        <- Option(ex.getSourceLocation)
           moduleName <- Option(loc.getSource.getName)

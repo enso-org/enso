@@ -100,7 +100,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
-  - [`executionContext/executionFailed`](#executioncontextexecutionFailed)
+  - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
+  - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
@@ -2302,6 +2303,51 @@ expressions becoming available.
 {
   contextId: ContextId;
   updates: [ExpressionValueUpdate];
+}
+```
+
+#### Errors
+
+None
+
+### `executionContext/executionStatus`
+
+Sent from the server to the client to inform about a status of execution.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * The identifier of the execution context.
+   */
+  contextId: ContextId;
+
+  /**
+   * The list of encountered problems.
+   */
+  diagnostics: Diagnostic[];
+}
+```
+
+```typescript
+type DiagnosticKind = Error | Warning;
+
+interface Diagnostic {
+  kind: DiagnosticKind;
+
+  message: String;
+
+  file?: Path;
+
+  location?: Range;
+
+  stacktrace?: String;
 }
 ```
 
