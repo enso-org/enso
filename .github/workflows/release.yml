@@ -240,6 +240,12 @@ jobs:
           test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
           test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
 
+      # Verify Legal Review
+      - name: Verify Packages
+        run: |
+          sleep 1
+          sbt --no-colors enso/verifyLicensePackages
+
       # Publish
       - name: Upload the Engine Artifact
         uses: actions/upload-artifact@v2
