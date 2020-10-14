@@ -9,7 +9,10 @@ import src.main.scala.licenses.backend.{
 import src.main.scala.licenses.frontend.SbtLicenses
 import src.main.scala.licenses.report._
 import src.main.scala.licenses.{DependencySummary, DistributionDescription}
+import complete.DefaultParsers._
+import org.apache.ivy.core.resolve.IvyNode
 
+import scala.collection.JavaConverters._
 import scala.sys.process._
 
 /**
@@ -193,4 +196,40 @@ object GatherLicenses {
       .exitValue()
   }
 
+  val dependencyName = settingKey[String]("")
+
+  lazy val analyzeDependency = Def.inputTask {
+    val args: Seq[String]      = spaceDelimited("<arg>").parsed
+    val evaluatedDistributions = distributions.value
+    val log                    = streams.value.log
+    for (arg <- args) {
+      for (distribution <- evaluatedDistributions) {
+        for (sbtComponent <- distribution.sbtComponents) {
+          val ivyDeps =
+            sbtComponent.licenseReport.orig.getDependencies.asScala
+              .map(_.asInstanceOf[IvyNode])
+          for (dep <- sbtComponent.licenseReport.licenses) {
+            if (dep.module.name.contains(arg)) {
+              val module = dep.module
+              log.info(
+                s"${distribution.artifactName} distribution, project ${sbtComponent.name} " +
+                s"contains $module"
+              )
+              val node = ivyDeps.find(n =>
+                SbtLicenses.safeModuleInfo(n) == Some(dep.module)
+              )
+              node match {
+                case None =>
+                  log.warn(s"IvyNode for $module not found.")
+                case Some(ivyNode) =>
+                  val callers =
+                    ivyNode.getAllCallers.toSeq.map(_.toString).distinct
+                  log.info(s"Callers: $callers")
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

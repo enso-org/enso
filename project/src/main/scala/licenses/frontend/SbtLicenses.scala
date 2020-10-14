@@ -115,22 +115,6 @@ object SbtLicenses {
   }
 
   /**
-    * Uses the [[LicenseReport]] plugin to resolve the dependencies of the Ivy
-    * module of an SBT component.
-    *
-    * Returns the resolved report or throws an exception if any errors were
-    * encountered.
-    */
-  private def resolveIvy(
-    ivyModule: IvySbt#Module,
-    log: ManagedLogger
-  ): ResolveReport = {
-    val (report, err) = LicenseReport.resolve(ivyModule, log)
-    err.foreach(throw _)
-    report
-  }
-
-  /**
     * Returns a project URL if it is defined for the dependency or None.
     */
   private def tryFindingUrl(dependency: Dependency): Option[String] =
@@ -176,7 +160,7 @@ object SbtLicenses {
   /**
     * Returns [[DepModuleInfo]] for an [[IvyNode]] if it is defined, or None.
     */
-  private def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
+  def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
     for {
       moduleId       <- Option(dep.getModuleId)
       moduleRevision <- Option(dep.getModuleRevision)

@@ -146,11 +146,6 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.slick.slick_2.13-3.3.2`.
 
 
-'jsr305', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.code.findbugs.jsr305-3.0.2`.
-
-
 'shapeless_2.13', licensed under the Apache 2, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.4.0-M1`.

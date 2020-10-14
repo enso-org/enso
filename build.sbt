@@ -72,6 +72,9 @@ openLegalReviewReport := {
   GatherLicenses.runReportServer()
 }
 
+lazy val analyzeDependency = inputKey[Unit]("...")
+analyzeDependency := GatherLicenses.analyzeDependency.evaluated
+
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 // ============================================================================
@@ -388,7 +391,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scalaCompiler ++ Seq(
-        "com.google.guava" % "guava"     % guavaVersion,
+        "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
         "org.typelevel"  %%% "cats-core" % catsVersion,
         "org.typelevel"  %%% "kittens"   % kittensVersion
       )
@@ -763,7 +766,7 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
+    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7" exclude ("com.google.code.findbugs", "jsr305")
   )
 
 // ============================================================================
