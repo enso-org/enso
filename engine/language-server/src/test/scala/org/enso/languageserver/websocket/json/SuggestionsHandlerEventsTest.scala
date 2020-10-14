@@ -24,7 +24,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "",
+          "1",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.atom))
         )
       )
@@ -62,7 +62,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "",
+          "2",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.method))
         )
       )
@@ -110,7 +110,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "",
+          "3",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.function))
         )
       )
@@ -152,7 +152,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "",
+          "4",
           Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.local))
         )
       )
@@ -293,7 +293,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "",
+          "5",
           Seq(
             Api.SuggestionsDatabaseUpdate.Remove(Suggestions.method),
             Api.SuggestionsDatabaseUpdate.Remove(Suggestions.function)
