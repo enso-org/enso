@@ -4,8 +4,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  ErrorLocation,
-  ExecutionError,
+  ExecutionDiagnostic,
+  ExecutionDiagnosticKind,
   VisualisationContext,
   VisualisationUpdate
 }
@@ -81,11 +81,11 @@ final class ContextEventsListener(
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       context.become(withState(expressionUpdates :++ apiUpdates))
 
-    case Api.ExecutionFailed(`contextId`, error) =>
+    case Api.ExecutionUpdate(`contextId`, diagnostics) =>
       val payload =
-        ContextRegistryProtocol.ExecutionFailedNotification(
+        ContextRegistryProtocol.ExecutionDiagnosticNotification(
           contextId,
-          toProtocolError(error)
+          diagnostics.map(toProtocolDiagnostic)
         )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
@@ -146,20 +146,36 @@ final class ContextEventsListener(
   }
 
   /**
-    * Convert the runtime execution error to the context registry protocol
+    * Convert the runtime diagnostic message to the context registry protocol
     * representation.
     *
-    * @param error the execution error
-    * @return the execution error representation of the context registry
-    * protocol
+    * @param diagnostic the diagnostic message
+    * @return the registry protocol representation of the diagnostic message
     */
-  private def toProtocolError(error: Api.ExecutionError): ExecutionError = {
-    val locationOpt = for {
-      location <- error.location
-      path     <- config.findRelativePath(location.file)
-    } yield ErrorLocation(path, location.span)
-    ExecutionError(error.message, locationOpt)
-  }
+  private def toProtocolDiagnostic(
+    diagnostic: Api.Diagnostic
+  ): ExecutionDiagnostic =
+    ExecutionDiagnostic(
+      toDiagnosticType(diagnostic.kind),
+      diagnostic.message,
+      diagnostic.file.flatMap(config.findRelativePath),
+      diagnostic.location
+    )
+
+  /**
+    * Convert the runtime diagnostic type to the context registry protocol
+    * representation.
+    *
+    * @param kind the diagnostic type
+    * @return the registry protocol representation of the diagnostic type
+    */
+  private def toDiagnosticType(
+    kind: Api.DiagnosticType
+  ): ExecutionDiagnosticKind =
+    kind match {
+      case Api.DiagnosticType.Error()   => ExecutionDiagnosticKind.Error
+      case Api.DiagnosticType.Warning() => ExecutionDiagnosticKind.Warning
+    }
 
 }
 

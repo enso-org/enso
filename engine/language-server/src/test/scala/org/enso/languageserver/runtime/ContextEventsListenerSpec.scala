@@ -16,8 +16,9 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  ExecutionError,
-  ExecutionFailedNotification,
+  ExecutionDiagnostic,
+  ExecutionDiagnosticKind,
+  ExecutionDiagnosticNotification,
   ExpressionValuesComputedNotification,
   VisualisationContext,
   VisualisationEvaluationFailed,
@@ -199,14 +200,24 @@ class ContextEventsListenerSpec
     "send execution failed notification" taggedAs Retry in withDb {
       (clientId, contextId, _, router, listener) =>
         val message = "Test execution failed"
-        listener ! Api.ExecutionFailed(contextId, Api.ExecutionError(message))
+        listener ! Api.ExecutionUpdate(
+          contextId,
+          Seq(Api.Diagnostic.error(message))
+        )
 
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            ExecutionFailedNotification(
+            ExecutionDiagnosticNotification(
               contextId,
-              ExecutionError(message, None)
+              Seq(
+                ExecutionDiagnostic(
+                  ExecutionDiagnosticKind.Error,
+                  message,
+                  None,
+                  None
+                )
+              )
             )
           )
         )

@@ -2,6 +2,7 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
+import enumeratum._
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
@@ -147,34 +148,42 @@ object ContextRegistryProtocol {
     */
   case class InvalidStackItemError(contextId: ContextId) extends Failure
 
-  /**
-    * The location of an error in the source file.
-    *
-    * @param path the file path
-    * @param span the range in the source text containing an error
-    */
-  case class ErrorLocation(path: Path, span: Option[model.Range])
+  /** The type of a diagnostic message. */
+  sealed trait ExecutionDiagnosticKind extends EnumEntry
+  object ExecutionDiagnosticKind
+      extends Enum[ExecutionDiagnosticKind]
+      with CirceEnum[ExecutionDiagnosticKind] {
+
+    case object Error   extends ExecutionDiagnosticKind
+    case object Warning extends ExecutionDiagnosticKind
+
+    override val values = findValues
+  }
 
   /**
-    * The error during a program execution.
+    * A diagnostic message produced as a compilation outcome.
     *
+    * @param kind the type of diagnostic message
     * @param message the error message
-    * @param location the location of the error
+    * @param path the file path
+    * @param location the range in the source text containing a diagnostic
     */
-  case class ExecutionError(
+  case class ExecutionDiagnostic(
+    kind: ExecutionDiagnosticKind,
     message: String,
-    location: Option[ErrorLocation]
+    path: Option[Path],
+    location: Option[model.Range]
   )
 
   /**
-    * Signals execution of a context failed.
+    * Signals the status of a context execution.
     *
     * @param contextId execution context identifier
-    * @param error the execution error
+    * @param diagnostics the list of diagnostic messages
     */
-  case class ExecutionFailedNotification(
+  case class ExecutionDiagnosticNotification(
     contextId: ContextId,
-    error: ExecutionError
+    diagnostics: Seq[ExecutionDiagnostic]
   )
 
   /**
