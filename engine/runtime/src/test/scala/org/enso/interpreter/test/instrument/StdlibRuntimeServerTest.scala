@@ -129,7 +129,7 @@ class StdlibRuntimeServerTest
       result.linesIterator.toList
     }
 
-    def executionSuccessful(contextId: UUID): Api.Response =
+    def executionComplete(contextId: UUID): Api.Response =
       Api.Response(Api.ExecutionComplete(contextId))
 
   }
@@ -182,7 +182,7 @@ class StdlibRuntimeServerTest
     )
     val response =
       context.receiveAllUntil(
-        context.executionSuccessful(contextId),
+        context.executionComplete(contextId),
         timeout = 30
       )
     response should contain(

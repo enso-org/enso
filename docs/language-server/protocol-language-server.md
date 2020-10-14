@@ -102,7 +102,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
-  - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
@@ -2353,41 +2352,6 @@ Sent from the server to the client to inform about a status of execution.
    * The list of encountered problems.
    */
   diagnostics: Diagnostic[];
-}
-```
-
-#### Errors
-
-None
-
-### `executionContext/executionFailed`
-
-Sent from the server to the client to inform about a failure during execution of
-an execution context.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  /**
-   * The identifier of the execution context.
-   */
-  contextId: ContextId;
-
-  /**
-   * The error message.
-   */
-  message: String;
-
-  /**
-   * The location of the error.
-   */
-  location?: ErrorLocation;
 }
 ```
 
