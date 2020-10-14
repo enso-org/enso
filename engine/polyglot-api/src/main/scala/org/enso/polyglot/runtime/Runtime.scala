@@ -450,6 +450,15 @@ object Runtime {
       case class Warning() extends DiagnosticType
     }
 
+    /**
+      * A diagnostic object produced as a compilation outcome, like error or
+      * warning.
+      *
+      * @param kind the diagnostic type
+      * @param message the diagnostic message
+      * @param file the location of a file
+      * @param location the location of the diagnostic object in a file
+      */
     case class Diagnostic(
       kind: DiagnosticType,
       message: String,
@@ -457,6 +466,12 @@ object Runtime {
       location: Option[Range]
     )
 
+    /**
+      * The notification about the execution status.
+      *
+      * @param contextId the context's id
+      * @param diagnostics the list of diagnostic messages
+      */
     case class ExecutionUpdate(
       contextId: ContextId,
       diagnostics: Seq[Diagnostic]

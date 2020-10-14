@@ -3021,7 +3021,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3041,22 +3041,11 @@ class RuntimeServerTest
             )
           )
         )
-      ),
-      Api.Response(
-        Api.ExecutionFailed(
-          contextId,
-          Api.ExecutionError(
-            "Compile_Error Variable x is being redefined.",
-            Api.ErrorLocation(
-              mainFile,
-              model.Range(model.Position(4, 4), model.Position(4, 9))
-            )
-          ))
       )
     )
   }
 
-  it should "return compiler error syntax error unrecognized token" in {
+  it should "return compiler error unrecognized token" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
@@ -3098,7 +3087,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3112,10 +3101,9 @@ class RuntimeServerTest
             )
           )
         )
-      ),
-      context.executionSuccessful(contextId)
+      )
     )
-    context.consumeOut shouldEqual List("(Syntax_Error 'Unrecognized token.')")
+    context.consumeOut shouldEqual List()
   }
 
   it should "return compiler error syntax error" in {
@@ -3161,7 +3149,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3175,11 +3163,7 @@ class RuntimeServerTest
             )
           )
         )
-      ),
-      context.executionSuccessful(contextId)
-    )
-    context.consumeOut shouldEqual List(
-      """(Syntax_Error 'Parentheses can\'t be empty.')"""
+      )
     )
   }
 
@@ -3226,7 +3210,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3240,10 +3224,8 @@ class RuntimeServerTest
             )
           )
         )
-      ),
-      context.executionSuccessful(contextId)
+      )
     )
-    context.consumeOut shouldEqual List("1")
   }
 
   it should "skip side effects when evaluating cached expression" in {
