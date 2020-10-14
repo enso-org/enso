@@ -44,7 +44,7 @@ class ExecuteJob(
           updatedVisualisations,
           sendMethodCallUpdates
         )
-      diagnostics foreach { diagnostic =>
+      diagnostics.foreach { diagnostic =>
         ctx.endpoint.sendToClient(
           Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
         )
