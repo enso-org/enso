@@ -232,8 +232,12 @@ Below we list the warnings that show up currently and their explanations:
     contain any sources. We added a special note in its legal config that refers
     to the original `guava` module, so the warning can be safely discarded.
 - `Found a source .../.cache/coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/modules/scala-collection-compat_2.13/2.1.1/scala-collection-compat_2.13-2.1.1-sources.jar that does not belong to any known dependencies, perhaps the algorithm needs updating?`
-  - This is a bit unexpected - the engine does depend on `scala-collection-compat # 2.0.0` (used by `slick`), but here for some reason we find sources for version `2.1.1` (the sources for `2.0.0` are available too).
-    We could not figure out this issue for now, but it is not a problem for the legal review, because the engine distribution does include all necessary information for the version it actually uses (`2.0.0`).
+  - This is a bit unexpected - the engine does depend on
+    `scala-collection-compat # 2.0.0` (used by `slick`), but here for some
+    reason we find sources for version `2.1.1` (the sources for `2.0.0` are
+    available too). We could not figure out this issue for now, but it is not a
+    problem for the legal review, because the engine distribution does include
+    all necessary information for the version it actually uses (`2.0.0`).
 
 #### Updating Dependencies
 

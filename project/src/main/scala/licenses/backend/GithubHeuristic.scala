@@ -4,12 +4,7 @@ import java.nio.file.Path
 
 import sbt.Logger
 import sbt.io.syntax.url
-import src.main.scala.licenses.{
-  AttachedFile,
-  Attachment,
-  CopyrightMention,
-  DependencyInformation
-}
+import src.main.scala.licenses.{AttachedFile, Attachment, DependencyInformation}
 
 import scala.sys.process._
 import scala.util.control.NonFatal

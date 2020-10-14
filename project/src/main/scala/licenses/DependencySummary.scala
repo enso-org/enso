@@ -1,7 +1,5 @@
 package src.main.scala.licenses
 
-import java.nio.file.Path
-
 import sbt.IO
 import src.main.scala.licenses.report.{
   LicenseReview,

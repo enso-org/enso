@@ -1,6 +1,6 @@
 package src.main.scala.licenses.report
 
-import java.nio.file.{Files, InvalidPathException, Path}
+import java.nio.file.{InvalidPathException, Path}
 import java.time.LocalDate
 
 import sbt._

@@ -1,7 +1,6 @@
 package src.main.scala.licenses
 
 import com.typesafe.sbt.license.LicenseReport
-import com.typesafe.sbt.license.SbtCompat.IvySbt
 import sbt.File
 import sbt.librarymanagement.UpdateReport
 

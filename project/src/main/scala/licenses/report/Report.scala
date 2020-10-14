@@ -1,7 +1,6 @@
 package src.main.scala.licenses.report
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.Path
 import java.util.Base64
 
 import sbt.{File, IO}

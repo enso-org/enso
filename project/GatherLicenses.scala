@@ -1,5 +1,7 @@
 import sbt.Keys._
 import sbt._
+import complete.DefaultParsers._
+import org.apache.ivy.core.resolve.IvyNode
 import src.main.scala.licenses.backend.{
   CombinedBackend,
   GatherCopyrights,
@@ -9,8 +11,6 @@ import src.main.scala.licenses.backend.{
 import src.main.scala.licenses.frontend.SbtLicenses
 import src.main.scala.licenses.report._
 import src.main.scala.licenses.{DependencySummary, DistributionDescription}
-import complete.DefaultParsers._
-import org.apache.ivy.core.resolve.IvyNode
 
 import scala.collection.JavaConverters._
 import scala.sys.process._
@@ -196,8 +196,10 @@ object GatherLicenses {
       .exitValue()
   }
 
-  val dependencyName = settingKey[String]("")
-
+  /**
+    * A task that prints which sub-projects use a dependency and what
+    * dependencies use it (so that one can track where dependencies come from).
+    */
   lazy val analyzeDependency = Def.inputTask {
     val args: Seq[String]      = spaceDelimited("<arg>").parsed
     val evaluatedDistributions = distributions.value

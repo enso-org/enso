@@ -2,9 +2,7 @@ package src.main.scala.licenses.frontend
 
 import java.nio.file.Path
 
-import com.typesafe.sbt.license.SbtCompat.IvySbt
-import com.typesafe.sbt.license.{DepLicense, DepModuleInfo, LicenseReport}
-import org.apache.ivy.core.report.ResolveReport
+import com.typesafe.sbt.license.{DepLicense, DepModuleInfo}
 import org.apache.ivy.core.resolve.IvyNode
 import sbt.Compile
 import sbt.internal.util.ManagedLogger
