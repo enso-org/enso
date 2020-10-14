@@ -588,7 +588,7 @@ interface StackTraceElement {
 
 A diagnostic object is produced as a result of an execution attempt, like
 pushing the method pointer to a call stack, or editing the file. It can
-represent a compiler warning or error, or the runtime error. The message has
+represent a compiler warning, a compilation error, or a runtime error. The message has
 optional `path`, `location` and `stack` fields containing information about the
 location in the source code.
 
