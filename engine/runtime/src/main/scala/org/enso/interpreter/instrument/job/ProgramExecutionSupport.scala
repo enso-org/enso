@@ -6,7 +6,12 @@ import java.util.function.Consumer
 import java.util.logging.Level
 
 import cats.implicits._
-import com.oracle.truffle.api.TruffleException
+import com.oracle.truffle.api.source.SourceSection
+import com.oracle.truffle.api.{
+  TruffleException,
+  TruffleStackTrace,
+  TruffleStackTraceElement
+}
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -36,6 +41,7 @@ import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.text.editing.model
 
 import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * Provides support for executing Enso code. Adds convenient methods to
@@ -252,48 +258,72 @@ trait ProgramExecutionSupport {
     t match {
       case ex: TruffleException
           if getLanguage(ex).forall(_ == LanguageInfo.ID) =>
-        val locationOpt = for {
-          loc        <- Option(ex.getSourceLocation)
-          moduleName <- Option(loc.getSource.getName)
-          module <-
-            ctx.executionService.getContext.findModule(moduleName).toScala
-          path <- Option(module.getPath)
-        } yield {
-          val position = model.Range(
-            model.Position(loc.getStartLine - 1, loc.getStartColumn - 1),
-            model.Position(loc.getEndLine - 1, loc.getEndColumn)
-          )
-          (new File(path), position)
-        }
+        val section = Option(ex.getSourceLocation)
         Some(
           Api.Diagnostic.error(
             ex.getMessage,
-            locationOpt.map(_._1),
-            locationOpt.map(_._2)
+            section.flatMap(sec => findFileByModuleName(sec.getSource.getName)),
+            section.map(toLocation),
+            getStackTrace(ex)
           )
         )
 
       case ex: ConstructorNotFoundException =>
-        val fileOpt = for {
-          module <-
-            ctx.executionService.getContext.findModule(ex.getModule).toScala
-          path <- Option(module.getPath)
-        } yield new File(path)
-        Some(Api.Diagnostic.error(ex.getMessage, fileOpt))
+        Some(
+          Api.Diagnostic
+            .error(ex.getMessage, findFileByModuleName(ex.getModule))
+        )
 
       case ex: MethodNotFoundException =>
-        val fileOpt = for {
-          module <-
-            ctx.executionService.getContext.findModule(ex.getModule).toScala
-          path <- Option(module.getPath)
-        } yield new File(path)
-        Some(Api.Diagnostic.error(ex.getMessage, fileOpt))
+        Some(
+          Api.Diagnostic
+            .error(ex.getMessage, findFileByModuleName(ex.getModule))
+        )
 
       case ex: ServiceException =>
         Some(Api.Diagnostic.error(ex.getMessage))
 
       case _ =>
         None
+    }
+  }
+
+  /**
+    * Create a stack trace of a guest language from a java exception.
+    *
+    * @param throwable the exception
+    * @param ctx the runtime context
+    * @return a runtime API representation of a stack trace
+    */
+  private def getStackTrace(
+    throwable: Throwable
+  )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] =
+    TruffleStackTrace
+      .getStackTrace(throwable)
+      .asScala
+      .map(toStackElement)
+      .toVector
+
+  /**
+    * Convert from the truffle stack element to the runtime API representation.
+    *
+    * @param element the trufle stack trace element
+    * @param ctx the runtime context
+    * @return the runtime API representation of the stack trace element
+    */
+  private def toStackElement(
+    element: TruffleStackTraceElement
+  )(implicit ctx: RuntimeContext): Api.StackTraceElement = {
+    val node = element.getLocation
+    node.getEncapsulatingSourceSection match {
+      case null =>
+        Api.StackTraceElement(node.getRootNode.getName, None, None)
+      case section =>
+        Api.StackTraceElement(
+          section.getCharacters.toString,
+          findFileByModuleName(section.getSource.getName),
+          Some(toLocation(section))
+        )
     }
   }
 
@@ -408,6 +438,34 @@ trait ProgramExecutionSupport {
       typeName,
       call.getFunctionName
     )
+
+  /**
+    * Convert truffle source section to the range of text.
+    *
+    * @param section the source section
+    * @return the correponding range in the text file
+    */
+  private def toLocation(section: SourceSection): model.Range =
+    model.Range(
+      model.Position(section.getStartLine - 1, section.getStartColumn - 1),
+      model.Position(section.getEndLine - 1, section.getEndColumn)
+    )
+
+  /**
+    * Find source file path by the module name.
+    *
+    * @param module the module name
+    * @param ctx the runtime context
+    * @return the source file path
+    */
+  private def findFileByModuleName(
+    module: String
+  )(implicit ctx: RuntimeContext): Option[File] =
+    for {
+      module <- ctx.executionService.getContext.findModule(module).toScala
+      path   <- Option(module.getPath)
+    } yield new File(path)
+
 }
 
 object ProgramExecutionSupport {

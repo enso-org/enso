@@ -389,6 +389,19 @@ object Runtime {
     }
 
     /**
+      * The element in the stack trace.
+      *
+      * @param text the text representation of the element
+      * @param file the location of a file
+      * @param location the location of the element in a file
+      */
+    case class StackTraceElement(
+      text: String,
+      file: Option[File],
+      location: Option[Range]
+    )
+
+    /**
       * A diagnostic object produced as a compilation outcome, like error or
       * warning.
       *
@@ -396,12 +409,14 @@ object Runtime {
       * @param message the diagnostic message
       * @param file the location of a file
       * @param location the location of the diagnostic object in a file
+      * @param stack the stack trace
       */
     case class Diagnostic(
       kind: DiagnosticType,
       message: String,
       file: Option[File],
-      location: Option[Range]
+      location: Option[Range],
+      stack: Vector[StackTraceElement]
     )
 
     case object Diagnostic {
@@ -412,14 +427,16 @@ object Runtime {
         * @param message the diagnostic message
         * @param file the location of a file
         * @param location the location of the diagnostic object in a file
+        * @param stack the stack trace
         * @return the instance of an error [[Diagnostic]] message
         */
       def error(
         message: String,
-        file: Option[File]      = None,
-        location: Option[Range] = None
+        file: Option[File]               = None,
+        location: Option[Range]          = None,
+        stack: Vector[StackTraceElement] = Vector()
       ): Diagnostic =
-        new Diagnostic(DiagnosticType.Error(), message, file, location)
+        new Diagnostic(DiagnosticType.Error(), message, file, location, stack)
 
       /**
         * Create a warning diagnostic message.
@@ -427,14 +444,16 @@ object Runtime {
         * @param message the diagnostic message
         * @param file the location of a file
         * @param location the location of the diagnostic object in a file
+        * @param stack the stack trace
         * @return the instance of a warning [[Diagnostic]] message
         */
       def warning(
         message: String,
-        file: Option[File]      = None,
-        location: Option[Range] = None
+        file: Option[File]               = None,
+        location: Option[Range]          = None,
+        stack: Vector[StackTraceElement] = Vector()
       ): Diagnostic =
-        new Diagnostic(DiagnosticType.Warning(), message, file, location)
+        new Diagnostic(DiagnosticType.Warning(), message, file, location, stack)
     }
 
     /**

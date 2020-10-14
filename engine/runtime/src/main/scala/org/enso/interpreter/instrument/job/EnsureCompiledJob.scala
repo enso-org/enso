@@ -271,7 +271,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           Position(section.getEndLine - 1, section.getEndColumn)
         )
       }
-    Api.Diagnostic(kind, diagnostic.message, fileOpt, locationOpt)
+    Api.Diagnostic(kind, diagnostic.message, fileOpt, locationOpt, Vector())
   }
 
   /**

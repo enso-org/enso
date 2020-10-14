@@ -2688,7 +2688,14 @@ class RuntimeServerTest
             Api.Diagnostic.error(
               "Object 42 is not invokable.",
               Some(mainFile),
-              Some(model.Range(model.Position(0, 7), model.Position(0, 24)))
+              Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
+              Vector(
+                Api.StackTraceElement(
+                  "this.bar 40 2 123",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(0, 7), model.Position(0, 24)))
+                )
+              )
             )
           )
         )
@@ -2745,7 +2752,16 @@ class RuntimeServerTest
             Api.Diagnostic.error(
               "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 14), model.Position(2, 23)))
+              Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
+              Vector(
+                Api.StackTraceElement(
+                  "one + two",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(2, 14), model.Position(2, 23))
+                  )
+                )
+              )
             )
           )
         )
@@ -2800,7 +2816,19 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.Diagnostic.error(
-              "Unexpected type provided for argument `that` in Text.+"
+              "Unexpected type provided for argument `that` in Text.+",
+              None,
+              None,
+              Vector(
+                Api.StackTraceElement("Text.+", None, None),
+                Api.StackTraceElement(
+                  "x + y",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(2, 10), model.Position(2, 15))
+                  )
+                )
+              )
             )
           )
         )
@@ -2858,7 +2886,102 @@ class RuntimeServerTest
             Api.Diagnostic.error(
               "No_Such_Method_Error Number UnresolvedSymbol<pi>",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 7), model.Position(2, 16)))
+              Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
+              Vector(
+                Api.StackTraceElement(
+                  "Number.pi",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(2, 7), model.Position(2, 16)))
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return error with a stack trace" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main = this.foo
+        |
+        |foo =
+        |    x = this.bar
+        |    x
+        |bar =
+        |    x = this.baz
+        |    x
+        |baz =
+        |    x = 1 + quux
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.Diagnostic.error(
+              "Unexpected type provided for argument `that` in Integer.+",
+              None,
+              None,
+              Vector(
+                Api.StackTraceElement("Small_Integer.+", None, None),
+                Api.StackTraceElement(
+                  "1 + quux",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(11, 8), model.Position(11, 16))
+                  )
+                ),
+                Api.StackTraceElement(
+                  "this.baz",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(8, 8), model.Position(8, 16)))
+                ),
+                Api.StackTraceElement(
+                  "this.bar",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(5, 8), model.Position(5, 16)))
+                )
+              )
             )
           )
         )
@@ -2917,7 +3040,8 @@ class RuntimeServerTest
               Api.DiagnosticType.Warning(),
               "Unused variable x.",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 7), model.Position(2, 8)))
+              Some(model.Range(model.Position(2, 7), model.Position(2, 8))),
+              Vector()
             )
           )
         )
@@ -2978,7 +3102,8 @@ class RuntimeServerTest
               Api.DiagnosticType.Warning(),
               "Unused function argument x.",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 4), model.Position(2, 5)))
+              Some(model.Range(model.Position(2, 4), model.Position(2, 5))),
+              Vector()
             )
           )
         )
@@ -3039,13 +3164,15 @@ class RuntimeServerTest
               Api.DiagnosticType.Warning(),
               "Unused variable x.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
+              Some(model.Range(model.Position(3, 4), model.Position(3, 5))),
+              Vector()
             ),
             Api.Diagnostic(
               Api.DiagnosticType.Error(),
               "Variable x is being redefined.",
               Some(mainFile),
-              Some(model.Range(model.Position(4, 4), model.Position(4, 9)))
+              Some(model.Range(model.Position(4, 4), model.Position(4, 9))),
+              Vector()
             )
           )
         )
@@ -3105,7 +3232,8 @@ class RuntimeServerTest
               Api.DiagnosticType.Error(),
               "Unrecognized token.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 22), model.Position(3, 23)))
+              Some(model.Range(model.Position(3, 22), model.Position(3, 23))),
+              Vector()
             )
           )
         )
@@ -3167,7 +3295,8 @@ class RuntimeServerTest
               Api.DiagnosticType.Error(),
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 22), model.Position(3, 24)))
+              Some(model.Range(model.Position(3, 22), model.Position(3, 24))),
+              Vector()
             )
           )
         )
@@ -3228,7 +3357,8 @@ class RuntimeServerTest
               Api.DiagnosticType.Error(),
               "Method overloads are not supported: here.foo is defined multiple times in this module.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 0), model.Position(3, 7)))
+              Some(model.Range(model.Position(3, 0), model.Position(3, 7))),
+              Vector()
             )
           )
         )
