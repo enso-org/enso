@@ -215,7 +215,8 @@ class ContextEventsListenerSpec
                   ExecutionDiagnosticKind.Error,
                   message,
                   None,
-                  None
+                  None,
+                  Vector()
                 )
               )
             )

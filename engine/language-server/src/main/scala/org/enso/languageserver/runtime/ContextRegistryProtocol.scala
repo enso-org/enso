@@ -161,18 +161,33 @@ object ContextRegistryProtocol {
   }
 
   /**
+    * The element in the stack trace.
+    *
+    * @param text the text representation of the element
+    * @param path the location of a file
+    * @param location the location of the element in a file
+    */
+  case class ExecutionStackTraceElement(
+    text: String,
+    path: Option[Path],
+    location: Option[model.Range]
+  )
+
+  /**
     * A diagnostic message produced as a compilation outcome.
     *
     * @param kind the type of diagnostic message
     * @param message the error message
     * @param path the file path
     * @param location the range in the source text containing a diagnostic
+    * @param stack the stack trace
     */
   case class ExecutionDiagnostic(
     kind: ExecutionDiagnosticKind,
     message: String,
     path: Option[Path],
-    location: Option[model.Range]
+    location: Option[model.Range],
+    stack: Vector[ExecutionStackTraceElement]
   )
 
   /**

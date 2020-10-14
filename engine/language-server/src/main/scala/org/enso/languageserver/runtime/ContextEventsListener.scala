@@ -6,6 +6,7 @@ import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   ExecutionDiagnostic,
   ExecutionDiagnosticKind,
+  ExecutionStackTraceElement,
   VisualisationContext,
   VisualisationUpdate
 }
@@ -159,7 +160,8 @@ final class ContextEventsListener(
       toDiagnosticType(diagnostic.kind),
       diagnostic.message,
       diagnostic.file.flatMap(config.findRelativePath),
-      diagnostic.location
+      diagnostic.location,
+      diagnostic.stack.map(toStackTraceElement)
     )
 
   /**
@@ -177,6 +179,21 @@ final class ContextEventsListener(
       case Api.DiagnosticType.Warning() => ExecutionDiagnosticKind.Warning
     }
 
+  /**
+    * Convert the runtime stack trace element to the context registry protocol
+    * representation.
+    *
+    * @param element the runtime stack trace element
+    * @return the registry protocol representation of the stack trace element
+    */
+  private def toStackTraceElement(
+    element: Api.StackTraceElement
+  ): ExecutionStackTraceElement =
+    ExecutionStackTraceElement(
+      element.text,
+      element.file.flatMap(config.findRelativePath),
+      element.location
+    )
 }
 
 object ContextEventsListener {

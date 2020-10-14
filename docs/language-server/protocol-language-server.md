@@ -40,6 +40,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
   - [`DiagnosticType`](#diagnostictype)
+  - [`StackTraceElement`](#stacktraceelement)
   - [`Diagnostic`](#diagnostic)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
@@ -557,9 +558,48 @@ The type of diagnostic message.
 type DiagnosticType = Error | Warning;
 ```
 
+### `StackTraceElement`
+
+The frame of the stack trace. If the error refer to a builtin node, the `path`
+and `location` fields will be empty.
+
+#### Format
+
+```typescript
+interface StackTraceElement {
+  /**
+   * The text representation of the element.
+   */
+  text: String;
+
+  /**
+   * The location of the file.
+   */
+  path?: Path;
+
+  /**
+   * The location of the element in a file.
+   */
+  location?: Range;
+}
+```
+
 ### `Diagnostic`
 
-A diagnostic object produced as a compilation outcome, like an error or warning.
+A diagnostic object is produced as a result of an execution attempt, like
+pushing the method pointer to a call stack, or editing the file. It can
+represent a compiler warning or error, or the runtime error. The message has
+optional `path`, `location` and `stack` fields containing information about the
+location in the source code.
+
+Howewer, the diagnostic message will contain `path`, `location` and `stack`
+fields empty, if the the runtime was not able to locate the method to execute
+after a [`executionContext/push`](#executioncontextpush) command.
+
+In case of the runtime errors, the `path` and `location` fields may be empty if
+the error happens in a builtin node. Then, to locate the error in the code, you
+can use the `stack` field with a stack trace to find the first element with
+non-empty location (as the head of the stack will point to the builtin element).
 
 #### Format
 
@@ -578,12 +618,17 @@ interface Diagnostic {
   /**
    * The location of a file containing the diagnostic.
    */
-  file?: Path;
+  path?: Path;
 
   /**
    * The location of the diagnostic object in a file.
    */
   location?: Range;
+
+  /**
+   * The stack trace.
+   */
+  stack: StackTraceElement[];
 }
 ```
 
@@ -982,6 +1027,7 @@ given execution context.
 #### Enables
 
 - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+- [`executionContext/executionStatus`](#executioncontextexecutionstatus)
 
 #### Disables
 
