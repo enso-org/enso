@@ -5,6 +5,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -26,7 +27,7 @@ public class CatchErrorNode extends Node {
             new CallArgumentInfo[] {new CallArgumentInfo()},
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
-    this.invokeCallableNode.markTail();
+    this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
   Stateful execute(VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {

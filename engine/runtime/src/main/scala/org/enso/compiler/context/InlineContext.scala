@@ -1,6 +1,7 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.pass.PassConfiguration
+import org.enso.interpreter.node.BaseNode.TailStatus
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.Module
 
@@ -35,12 +36,12 @@ object InlineContext {
   def fromJava(
     localScope: LocalScope,
     moduleScope: ModuleScope,
-    isInTailPosition: Boolean
+    isInTailPosition: TailStatus
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
       module           = moduleScope.getModule,
-      isInTailPosition = Option(isInTailPosition)
+      isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL)
     )
   }
 }

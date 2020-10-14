@@ -62,7 +62,7 @@ public abstract class EvalNode extends BaseNode {
 
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     LocalScope localScope = scope.createChild();
-    InlineContext inlineContext = InlineContext.fromJava(localScope, moduleScope, isTail());
+    InlineContext inlineContext = InlineContext.fromJava(localScope, moduleScope, getTailStatus());
     ExpressionNode expr =
         lookupContextReference(Language.class)
             .get()
@@ -107,7 +107,7 @@ public abstract class EvalNode extends BaseNode {
           RootCallTarget cachedCallTarget,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Thunk thunk = new Thunk(cachedCallTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(thunk, state, isTail());
+    return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
   }
 
   @Specialization
@@ -123,6 +123,6 @@ public abstract class EvalNode extends BaseNode {
             callerInfo.getModuleScope(),
             toJavaStringNode.execute(expression));
     Thunk thunk = new Thunk(callTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(thunk, state, isTail());
+    return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
   }
 }

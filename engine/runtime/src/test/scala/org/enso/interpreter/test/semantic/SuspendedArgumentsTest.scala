@@ -38,7 +38,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
         """
           |main =
           |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF
-          |    sum = c -> acc -> ifTest c acc (sum c-1 acc+c)
+          |    sum = c -> acc -> ifTest c acc (@Tail_Call sum c-1 acc+c)
           |    sum 10000 0
           |""".stripMargin
       eval(code) shouldEqual 50005000

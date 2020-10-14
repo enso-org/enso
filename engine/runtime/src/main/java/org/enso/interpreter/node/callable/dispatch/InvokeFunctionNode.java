@@ -77,7 +77,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       @Cached("build(cachedSchema, argumentMapping, getArgumentsExecutionMode())")
           ArgumentSorterNode mappingNode,
       @Cached(
-              "build(cachedSchema, argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), isTail())")
+              "build(cachedSchema, argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), getTailStatus())")
           CurryNode curryNode) {
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(function, state, arguments);
@@ -146,7 +146,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
         argumentMapping.getPostApplicationSchema(),
         defaultsExecutionMode,
         argumentsExecutionMode,
-        isTail());
+        getTailStatus());
   }
 
   /**

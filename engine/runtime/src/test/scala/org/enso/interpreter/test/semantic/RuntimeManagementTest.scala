@@ -25,7 +25,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |
           |foo x =
           |    if x == 0 then IO.println "Start." else Unit
-          |    here.foo x+1
+          |    @Tail_Call here.foo x+1
           |
           |main =
           |    Thread.with_interrupt_handler (here.foo 0) (IO.println "Interrupted.")

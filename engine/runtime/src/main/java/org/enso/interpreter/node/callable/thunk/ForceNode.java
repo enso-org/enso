@@ -33,7 +33,7 @@ public abstract class ForceNode extends ExpressionNode {
       Thunk thunk,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
-    Stateful result = thunkExecutorNode.executeThunk(thunk, state, isTail());
+    Stateful result = thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
     frame.setObject(getStateFrameSlot(), result.getState());
     return result.getValue();
   }

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -23,7 +24,7 @@ public class ExplicitCallFunctionNode extends Node {
             new CallArgumentInfo[0],
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
-    invokeCallableNode.markTail();
+    invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
   Stateful execute(VirtualFrame frame, @MonadicState Object state, Function _this) {

@@ -12,7 +12,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
     """
       |main = sumTo ->
       |    summator = acc -> current ->
-      |        if current == 0 then acc else summator acc+current current-1
+      |        if current == 0 then acc else @Tail_Call summator acc+current current-1
       |
       |    res = summator 0 sumTo
       |    res
@@ -23,7 +23,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
     """
       |main = sumTo ->
       |    summator = acc -> i -> f ->
-      |        if i == 0 then acc else summator (f acc i) (i - 1) f
+      |        if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f
       |    res = summator 0 sumTo (x -> y -> x + y)
       |    res
       |""".stripMargin
@@ -42,7 +42,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
     """
       |main = sumTo ->
       |    summator = acc -> i -> f ->
-      |        if i == 0 then acc else summator (f acc i) (i - 1) f
+      |        if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f
       |    res = summator 0 sumTo (x -> y -> x + y)
       |    res
       |""".stripMargin
@@ -54,7 +54,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |stateSum = n ->
       |    acc = State.get Number
       |    State.put Number (acc + n)
-      |    if n == 0 then State.get Number else here.stateSum (n - 1)
+      |    if n == 0 then State.get Number else @Tail_Call here.stateSum (n - 1)
       |
       |main = sumTo ->
       |    res = State.run Number 0 (here.stateSum sumTo)
@@ -67,7 +67,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |
       |main = sumTo ->
       |    summator = acc -> current ->
-      |        if current == 0 then acc else Debug.eval "summator (acc + current) (current - 1)"
+      |        if current == 0 then acc else Debug.eval "@Tail_Call summator (acc + current) (current - 1)"
       |
       |    res = summator 0 sumTo
       |    res
@@ -79,7 +79,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |
       |doNTimes = n -> ~block ->
       |    block
-      |    if n == 1 then Unit else here.doNTimes n-1 block
+      |    if n == 1 then Unit else @Tail_Call here.doNTimes n-1 block
       |
       |main = n ->
       |    block =
