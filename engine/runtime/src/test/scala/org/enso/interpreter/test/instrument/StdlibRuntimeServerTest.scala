@@ -130,7 +130,7 @@ class StdlibRuntimeServerTest
     }
 
     def executionSuccessful(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionSuccessful(contextId))
+      Api.Response(Api.ExecutionComplete(contextId))
 
   }
 
@@ -180,12 +180,12 @@ class StdlibRuntimeServerTest
         )
       )
     )
-    val response  =
+    val response =
       context.receiveAllUntil(
         context.executionSuccessful(contextId),
         timeout = 30
       )
-    response should contain (
+    response should contain(
       Api.Response(requestId, Api.PushContextResponse(contextId))
     )
     val collected = response.collect {

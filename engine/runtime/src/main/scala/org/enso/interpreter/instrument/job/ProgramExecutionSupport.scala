@@ -144,14 +144,14 @@ trait ProgramExecutionSupport {
     * @param sendMethodCallUpdates a flag to send all the method calls of the
     * executed frame as a value updates
     * @param ctx a runtime context
-    * @return either an error message or Unit signaling completion of a program
+    * @return a diagnostic message
     */
   final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame],
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
-  )(implicit ctx: RuntimeContext): Either[Api.ExecutionError, Unit] = {
+  )(implicit ctx: RuntimeContext): Option[Api.Diagnostic] = {
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -191,10 +191,10 @@ trait ProgramExecutionSupport {
     }
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
-    for {
+    val executionResult = for {
       stackItem <- Either.fromOption(
         explicitCallOpt,
-        Api.ExecutionError("Stack is empty.")
+        Api.Diagnostic.error("Stack is empty.")
       )
       _ <-
         Either
@@ -210,6 +210,7 @@ trait ProgramExecutionSupport {
           )
           .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
+    executionResult.fold(Some(_), _ => None)
   }
 
   /** Execution error handler.
@@ -221,13 +222,13 @@ trait ProgramExecutionSupport {
   private def onExecutionError(
     item: ExecutionItem,
     error: Throwable
-  )(implicit ctx: RuntimeContext): Api.ExecutionError = {
+  )(implicit ctx: RuntimeContext): Api.Diagnostic = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(call)         => call.getFunction.getName
     }
-    val executionError = getError(error)
-    executionError match {
+    val executionUpdate = getError(error)
+    executionUpdate match {
       case Some(_) =>
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Error executing a function $itemName.")
@@ -235,14 +236,14 @@ trait ProgramExecutionSupport {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
-    executionError.getOrElse(
-      Api.ExecutionError(s"Error in function $itemName.", None)
+    executionUpdate.getOrElse(
+      Api.Diagnostic.error(s"Error in function $itemName.")
     )
   }
 
   private def getError(
     t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionError] =
+  )(implicit ctx: RuntimeContext): Option[Api.Diagnostic] =
     t match {
       case ex: TruffleException
           if Option(ex.getSourceLocation).forall(
@@ -259,28 +260,34 @@ trait ProgramExecutionSupport {
             model.Position(loc.getStartLine - 1, loc.getStartColumn - 1),
             model.Position(loc.getEndLine - 1, loc.getEndColumn)
           )
-          Api.ErrorLocation(new File(path), Some(position))
+          (new File(path), position)
         }
-        Some(Api.ExecutionError(ex.getMessage, locationOpt))
+        Some(
+          Api.Diagnostic.error(
+            ex.getMessage,
+            locationOpt.map(_._1),
+            locationOpt.map(_._2)
+          )
+        )
 
       case ex: ConstructorNotFoundException =>
-        val locationOpt = for {
+        val fileOpt = for {
           module <-
             ctx.executionService.getContext.findModule(ex.getModule).toScala
           path <- Option(module.getPath)
-        } yield Api.ErrorLocation(new File(path), None)
-        Some(Api.ExecutionError(ex.getMessage, locationOpt))
+        } yield new File(path)
+        Some(Api.Diagnostic.error(ex.getMessage, fileOpt))
 
       case ex: MethodNotFoundException =>
-        val locationOpt = for {
+        val fileOpt = for {
           module <-
             ctx.executionService.getContext.findModule(ex.getModule).toScala
           path <- Option(module.getPath)
-        } yield Api.ErrorLocation(new File(path), None)
-        Some(Api.ExecutionError(ex.getMessage, locationOpt))
+        } yield new File(path)
+        Some(Api.Diagnostic.error(ex.getMessage, fileOpt))
 
       case ex: ServiceException =>
-        Some(Api.ExecutionError(ex.getMessage, None))
+        Some(Api.Diagnostic.error(ex.getMessage))
 
       case _ =>
         None
@@ -291,7 +298,10 @@ trait ProgramExecutionSupport {
   ): Unit = {
     ctx.endpoint.sendToClient(
       Api.Response(
-        Api.ExecutionFailed(contextId, Api.ExecutionError(error.getMessage))
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(Api.Diagnostic.error(error.getMessage))
+        )
       )
     )
   }

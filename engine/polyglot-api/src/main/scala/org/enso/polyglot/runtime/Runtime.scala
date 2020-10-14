@@ -129,15 +129,11 @@ object Runtime {
         name  = "moduleNotFound"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionFailed],
-        name  = "executionFailed"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.ExecutionUpdate],
         name  = "executionUpdate"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionSuccessful],
+        value = classOf[Api.ExecutionComplete],
         name  = "executionSuccessful"
       ),
       new JsonSubTypes.Type(
@@ -372,64 +368,6 @@ object Runtime {
       case class Clean(module: String) extends SuggestionsDatabaseUpdate
     }
 
-    /**
-      * The location of the error in the source file.
-      *
-      * @param file the file path
-      * @param span the range in the source text containing an error
-      */
-    case class ErrorLocation(file: File, span: Option[Range])
-    object ErrorLocation {
-
-      /**
-        * Create an [[ErrorLocation]] from a file.
-        *
-        * @param file the file path
-        * @return an instance of [[ErrorLocation]]
-        */
-      def apply(file: File): ErrorLocation =
-        new ErrorLocation(file, None)
-
-      /**
-        * Create an [[ErrorLocation]] containing an error span.
-        *
-        * @param file the file path
-        * @param span the location of the error
-        * @return an instance of [[ErrorLocation]]
-        */
-      def apply(file: File, span: Range): ErrorLocation =
-        new ErrorLocation(file, Some(span))
-    }
-
-    /**
-      * The error during a program execution.
-      *
-      * @param message the error message
-      * @param location the location of the error
-      */
-    case class ExecutionError(message: String, location: Option[ErrorLocation])
-    object ExecutionError {
-
-      /**
-        * Create an [[ExecutionError]] with an error message.
-        *
-        * @param message the error message
-        * @return an instance of [[ExecutionError]]
-        */
-      def apply(message: String): ExecutionError =
-        new ExecutionError(message, None)
-
-      /**
-        * Create an [[ExecutionError]] with an error message and location.
-        *
-        * @param message the error message
-        * @param location the location of the error
-        * @return an instance of [[ExecutionError]]
-        */
-      def apply(message: String, location: ErrorLocation): ExecutionError =
-        new ExecutionError(message, Some(location))
-    }
-
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
       Array(
@@ -465,6 +403,39 @@ object Runtime {
       file: Option[File],
       location: Option[Range]
     )
+
+    case object Diagnostic {
+
+      /**
+        * Create an error diagnostic message.
+        *
+        * @param message the diagnostic message
+        * @param file the location of a file
+        * @param location the location of the diagnostic object in a file
+        * @return the instance of an error [[Diagnostic]] message
+        */
+      def error(
+        message: String,
+        file: Option[File]      = None,
+        location: Option[Range] = None
+      ): Diagnostic =
+        new Diagnostic(DiagnosticType.Error(), message, file, location)
+
+      /**
+        * Create a warning diagnostic message.
+        *
+        * @param message the diagnostic message
+        * @param file the location of a file
+        * @param location the location of the diagnostic object in a file
+        * @return the instance of a warning [[Diagnostic]] message
+        */
+      def warning(
+        message: String,
+        file: Option[File]      = None,
+        location: Option[Range] = None
+      ): Diagnostic =
+        new Diagnostic(DiagnosticType.Warning(), message, file, location)
+    }
 
     /**
       * The notification about the execution status.
@@ -648,20 +619,11 @@ object Runtime {
     case class ModuleNotFound(moduleName: String) extends Error
 
     /**
-      * Signals that execution of a context failed.
-      *
-      * @param contextId the context's id.
-      * @param error the execution error.
-      */
-    case class ExecutionFailed(contextId: ContextId, error: ExecutionError)
-        extends ApiNotification
-
-    /**
-      * Signals that execution of a context was successful.
+      * Signals that execution of a context completed.
       *
       * @param contextId the context's id
       */
-    case class ExecutionSuccessful(contextId: ContextId) extends ApiNotification
+    case class ExecutionComplete(contextId: ContextId) extends ApiNotification
 
     /**
       * Signals that an expression specified in a [[AttachVisualisation]] or

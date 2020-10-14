@@ -99,8 +99,8 @@ class RuntimeServerTest
       result.linesIterator.toList
     }
 
-    def executionSuccessful(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionSuccessful(contextId))
+    def executionComplete(contextId: UUID): Api.Response =
+      Api.Response(Api.ExecutionComplete(contextId))
 
     object Main {
 
@@ -324,7 +324,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push foo call
@@ -336,7 +336,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push method pointer on top of the non-empty stack
@@ -371,7 +371,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop main
@@ -488,7 +488,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -593,7 +593,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
   }
@@ -694,7 +694,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
   }
@@ -797,7 +797,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("10")
   }
@@ -904,7 +904,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -1041,7 +1041,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push foo call
@@ -1053,7 +1053,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop foo call
@@ -1072,7 +1072,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop main
@@ -1179,7 +1179,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1337")
 
@@ -1204,7 +1204,7 @@ class RuntimeServerTest
           Vector(Api.ExpressionValueUpdate(idResult, Some("Text"), None))
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hi")
   }
@@ -1362,7 +1362,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("144")
 
@@ -1393,7 +1393,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
 
@@ -1411,7 +1411,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionSuccessful(contextId))
+    context.receive shouldEqual Some(context.executionComplete(contextId))
     context.consumeOut shouldEqual List("5")
 
     // Edit s/1000.x 5/Main.pie/
@@ -1441,7 +1441,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
 
@@ -1472,7 +1472,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("7")
 
@@ -1503,7 +1503,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("hie!")
 
@@ -1528,7 +1528,7 @@ class RuntimeServerTest
           Vector(Api.ExpressionValueUpdate(idMainA, Some("Text"), None))
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello!")
   }
@@ -1688,7 +1688,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push call1
@@ -1703,7 +1703,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop call1
@@ -1746,7 +1746,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push call2
@@ -1761,7 +1761,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop call2
@@ -1804,7 +1804,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push call3
@@ -1819,7 +1819,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop call3
@@ -1862,7 +1862,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -1927,7 +1927,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
@@ -1945,7 +1945,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionSuccessful(contextId))
+    context.receive shouldEqual Some(context.executionComplete(contextId))
     context.consumeOut shouldEqual List("I'm a modified!")
 
     // Close the file
@@ -2026,7 +2026,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // Modify the file
@@ -2043,7 +2043,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionSuccessful(contextId))
+    context.receive shouldEqual Some(context.executionComplete(contextId))
   }
 
   it should "send suggestion notifications when file is executed" in {
@@ -2178,7 +2178,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push foo call
@@ -2190,7 +2190,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop foo call
@@ -2209,7 +2209,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop main
@@ -2287,7 +2287,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
@@ -2336,7 +2336,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a modified!")
 
@@ -2379,7 +2379,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute
@@ -2388,7 +2388,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -2425,7 +2425,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute
@@ -2440,7 +2440,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -2477,7 +2477,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute
@@ -2494,7 +2494,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -2530,13 +2530,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError("Module Unnamed.Main not found."))
-      )
+          Seq(Api.Diagnostic.error("Module Unnamed.Main not found."))
+        )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2572,17 +2574,20 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError(
-            "Constructor Unexpected not found in module Test.Main.",
-            Api.ErrorLocation(mainFile)
+          Seq(
+            Api.Diagnostic.error(
+              "Constructor Unexpected not found in module Test.Main.",
+              Some(mainFile)
+            )
           )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2618,17 +2623,20 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError(
-            "Object Main does not define method ooops in module Test.Main.",
-            Api.ErrorLocation(mainFile)
+          Seq(
+            Api.Diagnostic.error(
+              "Object Main does not define method ooops in module Test.Main.",
+              Some(mainFile)
+            )
           )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2671,22 +2679,21 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError(
-            "Object 42 is not invokable.",
-            Some(
-              Api.ErrorLocation(
-                mainFile,
-                model.Range(model.Position(0, 7), model.Position(0, 24))
-              )
+          Seq(
+            Api.Diagnostic.error(
+              "Object 42 is not invokable.",
+              Some(mainFile),
+              Some(model.Range(model.Position(0, 7), model.Position(0, 24)))
             )
           )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2729,22 +2736,21 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError(
-            "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
-            Some(
-              Api.ErrorLocation(
-                mainFile,
-                model.Range(model.Position(2, 14), model.Position(2, 23))
-              )
+          Seq(
+            Api.Diagnostic.error(
+              "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 14), model.Position(2, 23)))
             )
           )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2787,16 +2793,19 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError(
-            "Unexpected type provided for argument `that` in Text.+"
+          Seq(
+            Api.Diagnostic.error(
+              "Unexpected type provided for argument `that` in Text.+"
+            )
           )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2840,22 +2849,21 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError(
-            "No_Such_Method_Error Number UnresolvedSymbol<pi>",
-            Some(
-              Api.ErrorLocation(
-                mainFile,
-                model.Range(model.Position(2, 7), model.Position(2, 16))
-              )
+          Seq(
+            Api.Diagnostic.error(
+              "No_Such_Method_Error Number UnresolvedSymbol<pi>",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 7), model.Position(2, 16)))
             )
           )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2914,7 +2922,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -2975,7 +2983,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -3259,7 +3267,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main2.Update.mainY(contextId),
       context.Main2.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
 
@@ -3269,7 +3277,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
   }
@@ -3358,7 +3366,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // attach visualisation
@@ -3379,7 +3387,7 @@ class RuntimeServerTest
     val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -3404,7 +3412,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute invalidating x
@@ -3422,7 +3430,7 @@ class RuntimeServerTest
     val recomputeResponses2 = context.receive(3)
     recomputeResponses2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val Some(data2) = recomputeResponses2.collectFirst {
       case Api.Response(
@@ -3610,7 +3618,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // attach visualization
@@ -3631,7 +3639,7 @@ class RuntimeServerTest
     val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -3666,7 +3674,7 @@ class RuntimeServerTest
     )
 
     val editFileResponse = context.receive(2)
-    editFileResponse should contain(context.executionSuccessful(contextId))
+    editFileResponse should contain(context.executionComplete(contextId))
     val Some(data1) = editFileResponse.collectFirst {
       case Api.Response(
             None,
@@ -3730,7 +3738,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // attach visualisation
@@ -3752,7 +3760,7 @@ class RuntimeServerTest
     val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -3788,7 +3796,7 @@ class RuntimeServerTest
     val modifyVisualisationResponses = context.receive(3)
     modifyVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationModified()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val Some(dataAfterModification) =
       modifyVisualisationResponses.collectFirst {
@@ -3854,14 +3862,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionError("Stack is empty.")
+          Seq(Api.Diagnostic.error("Stack is empty."))
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
 
     // push main
@@ -3879,7 +3888,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) =
@@ -3920,7 +3929,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute invalidating x
@@ -3937,7 +3946,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -3978,7 +3987,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // rename Test -> Foo
@@ -3994,7 +4003,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute invalidating all
@@ -4021,7 +4030,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
