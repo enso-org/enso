@@ -37,7 +37,7 @@ public class FunctionSchema {
      * @return {@code true} if the function should be called directly, {@code false} otherwise
      */
     public boolean shouldCallDirect(boolean isTail) {
-      return this == ALWAYS_DIRECT || (this == DIRECT_WHEN_TAIL && isTail);
+      return (this == DIRECT_WHEN_TAIL && isTail);
     }
   }
 

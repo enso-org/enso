@@ -832,6 +832,8 @@ object AstToIr {
         } else {
           buildName(identifier)
         }
+      case AST.Ident.Annotation(name) =>
+        Name.Annotation(name, getIdentifiedLocation(identifier))
       case AST.Ident.Cons(_) =>
         buildName(identifier)
       case AST.Ident.Blank(_) =>

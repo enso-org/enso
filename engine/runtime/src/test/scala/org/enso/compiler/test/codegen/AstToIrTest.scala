@@ -87,6 +87,15 @@ class AstToIrTest extends CompilerTest with Inside {
     }
   }
 
+  "AST translation of annotations" should {
+    val ir =
+      """
+        |foo (@Tail_Call bar baz)
+        |
+        |""".stripMargin.toIrExpression.get
+    println(ir)
+  }
+
   "AST translation of function applications" should {
     "allow use of blank arguments" in {
       val ir =

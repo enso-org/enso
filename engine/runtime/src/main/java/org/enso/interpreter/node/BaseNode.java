@@ -11,7 +11,13 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 @NodeInfo(shortName = "Base", description = "A base node for the Enso AST")
 @ReportPolymorphism
 public abstract class BaseNode extends Node {
-  private @CompilationFinal boolean isTail = false;
+  public enum TailStatus {
+    TAIL_DIRECT,
+    TAIL_LOOP,
+    NOT_TAIL
+  }
+
+  private @CompilationFinal TailStatus tailStatus = TailStatus.NOT_TAIL;
   private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
 
   /**
@@ -27,31 +33,11 @@ public abstract class BaseNode extends Node {
     return stateFrameSlot;
   }
 
-  /**
-   * Sets whether the node is tail-recursive.
-   *
-   * @param isTail whether or not the node is tail-recursive.
-   */
-  public void setTail(boolean isTail) {
-    this.isTail = isTail;
+  public void setTailStatus(TailStatus tailStatus) {
+    this.tailStatus = tailStatus;
   }
 
-  /** Marks the node as tail-recursive. */
-  public final void markTail() {
-    setTail(true);
-  }
-
-  /** Marks the node as not tail-recursive. */
-  public final void markNotTail() {
-    setTail(false);
-  }
-
-  /**
-   * Checks if the node is tail-recursive.
-   *
-   * @return {@code true} if the node is tail-recursive, otherwise {@code false}
-   */
-  public boolean isTail() {
-    return isTail;
+  public TailStatus getTailStatus() {
+    return tailStatus;
   }
 }

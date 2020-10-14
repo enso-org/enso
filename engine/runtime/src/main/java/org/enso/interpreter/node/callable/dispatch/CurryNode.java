@@ -161,7 +161,8 @@ public class CurryNode extends BaseNode {
       Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
     if (preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
       return directCall.executeCall(function, callerInfo, state, arguments);
-    } else if (isTail()) {
+    } else if (isTail()
+        && preApplicationSchema.getCallStrategy() != FunctionSchema.CallStrategy.ALWAYS_DIRECT) {
       throw new TailCallException(function, callerInfo, state, arguments);
     } else {
       return loopingCall.executeDispatch(function, callerInfo, state, arguments);

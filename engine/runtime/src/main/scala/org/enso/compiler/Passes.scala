@@ -43,6 +43,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       IgnoredBindings,
       TypeFunctions,
       TypeSignatures,
+      Annotations,
       AliasAnalysis,
       UppercaseNames,
       VectorLiterals,
