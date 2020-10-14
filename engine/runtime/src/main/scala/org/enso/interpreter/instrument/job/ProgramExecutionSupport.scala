@@ -250,7 +250,8 @@ trait ProgramExecutionSupport {
         source   <- Option(location.getSource)
       } yield source.getLanguage
     t match {
-      case ex: TruffleException if getLanguage(ex).contains(LanguageInfo.ID) =>
+      case ex: TruffleException
+          if getLanguage(ex).forall(_ == LanguageInfo.ID) =>
         val locationOpt = for {
           loc        <- Option(ex.getSourceLocation)
           moduleName <- Option(loc.getSource.getName)
