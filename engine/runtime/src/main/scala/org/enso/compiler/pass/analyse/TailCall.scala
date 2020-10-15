@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.resolve.Annotations
 
 /** This pass performs tail call analysis on the Enso IR.
   *
@@ -128,14 +129,22 @@ case object TailCall extends IRPass {
     expression: IR.Expression,
     isInTailPosition: Boolean
   ): IR.Expression = {
-    expression match {
+    val expressionWithWarning =
+      if (
+        expression
+          .getMetadata(Annotations)
+          .contains(Annotations.TailCallAnnotated) && !isInTailPosition
+      ) expression.addDiagnostic(IR.Warning.WrongTco(expression.location))
+      else expression
+    expressionWithWarning match {
       case empty: IR.Empty =>
         empty.updateMetadata(this -->> TailPosition.NotTail)
-      case function: IR.Function => analyseFunction(function, isInTailPosition)
-      case caseExpr: IR.Case     => analyseCase(caseExpr, isInTailPosition)
-      case typ: IR.Type          => analyseType(typ, isInTailPosition)
-      case app: IR.Application   => analyseApplication(app, isInTailPosition)
-      case name: IR.Name         => analyseName(name, isInTailPosition)
+      case function: IR.Function =>
+        analyseFunction(function, isInTailPosition)
+      case caseExpr: IR.Case   => analyseCase(caseExpr, isInTailPosition)
+      case typ: IR.Type        => analyseType(typ, isInTailPosition)
+      case app: IR.Application => analyseApplication(app, isInTailPosition)
+      case name: IR.Name       => analyseName(name, isInTailPosition)
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
       case literal: IR.Literal => analyseLiteral(literal, isInTailPosition)
@@ -143,11 +152,19 @@ case object TailCall extends IRPass {
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
         )
-      case block @ IR.Expression.Block(expressions, returnValue, _, _, _, _) =>
+      case block @ IR.Expression.Block(
+            expressions,
+            returnValue,
+            _,
+            _,
+            _,
+            _
+          ) =>
         block
           .copy(
-            expressions =
-              expressions.map(analyseExpression(_, isInTailPosition = false)),
+            expressions = expressions.map(
+              analyseExpression(_, isInTailPosition = false)
+            ),
             returnValue = analyseExpression(returnValue, isInTailPosition)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
@@ -158,7 +175,9 @@ case object TailCall extends IRPass {
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case err: IR.Diagnostic =>
-        err.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+        err.updateMetadata(
+          this -->> TailPosition.fromBool(isInTailPosition)
+        )
     }
   }
 

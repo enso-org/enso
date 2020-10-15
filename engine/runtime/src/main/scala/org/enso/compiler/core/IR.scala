@@ -5272,6 +5272,16 @@ object IR {
       }
     }
 
+    case class WrongTco(override val location: Option[IdentifiedLocation])
+        extends Warning {
+
+      /**
+        * @return a human-readable description of this error condition.
+        */
+      override def message: String =
+        "A @Tail_Call annotation was placed in a non-tail-call position."
+    }
+
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 
