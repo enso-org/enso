@@ -2,8 +2,10 @@ module Fixtures where
 
 import Prelude
 
-import Data.Int (Int64)
+import qualified Data.Map.Strict as Map
 
+import Data.Int (Int64)
+import Data.List (foldl')
 
 
 ------------------
@@ -11,8 +13,6 @@ import Data.Int (Int64)
 ------------------
 
 data List a = Cons a (List a) | Nil deriving (Show)
-
-
 
 --------------------------
 -- === Input Values === --
@@ -32,7 +32,8 @@ millionElementList = genList 1000000
 hundredMillion :: Int64
 hundredMillion = 100000000
 
-
+tenThousand :: Integer
+tenThousand = 10000
 
 ----------------------
 -- === Fixtures === --
@@ -67,3 +68,5 @@ myFoldl _ z Nil         = z
 myFoldl f z (Cons x xs) = let z' = z `f` x
                     in seq z' $ myFoldl f z' xs
 
+buildMap :: Integer -> Map.Map Integer Integer
+buildMap i = foldl' (\m i -> Map.insert i i m) Map.empty [0..i]

@@ -415,6 +415,8 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .configs(Test)
   .configs(Benchmark)
   .settings(
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
     testFrameworks := Nil,
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
