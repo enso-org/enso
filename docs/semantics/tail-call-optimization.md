@@ -71,7 +71,7 @@ Note the placement of `@Tail_Call` in the recursive branch of `go`. It is placed
 correctly, marking the last operation in a function, and therefore `go` will be
 interpreted as a loop rather than a chain of function calls.
 
-> #### Note
+> #### Debugging Tail Calls
 >
 > The way `go` is wrapped in the example above is recommended for most uses.
 > Using the assignment and return of a variable, rather than a direct call,
