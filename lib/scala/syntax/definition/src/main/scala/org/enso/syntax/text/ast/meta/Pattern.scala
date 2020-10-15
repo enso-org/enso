@@ -64,18 +64,18 @@ object Pattern {
   final case class Cls     (cls  : Class , pat    : P)              extends P
 
   /** Token Patterns */
-  final case class Tok     (spaced : Spaced, ast  : AST)            extends P
-  final case class Blank   (spaced : Spaced)                        extends P
-  final case class Var     (spaced : Spaced)                        extends P
-  final case class Cons    (spaced : Spaced)                        extends P
-  final case class Opr     (spaced : Spaced, maxPrec: Option[Int])  extends P
-  final case class Annotation(spaced: Spaced) extends P
-  final case class Mod     (spaced : Spaced)                        extends P
-  final case class Num     (spaced : Spaced)                        extends P
-  final case class Text    (spaced : Spaced)                        extends P
-  final case class Block   (spaced : Spaced)                        extends P
-  final case class Macro   (spaced : Spaced)                        extends P
-  final case class Invalid (spaced : Spaced)                        extends P
+  final case class Tok       (spaced : Spaced, ast  : AST)            extends P
+  final case class Blank     (spaced : Spaced)                        extends P
+  final case class Var       (spaced : Spaced)                        extends P
+  final case class Cons      (spaced : Spaced)                        extends P
+  final case class Opr       (spaced : Spaced, maxPrec: Option[Int])  extends P
+  final case class Annotation(spaced : Spaced)                        extends P
+  final case class Mod       (spaced : Spaced)                        extends P
+  final case class Num       (spaced : Spaced)                        extends P
+  final case class Text      (spaced : Spaced)                        extends P
+  final case class Block     (spaced : Spaced)                        extends P
+  final case class Macro     (spaced : Spaced)                        extends P
+  final case class Invalid   (spaced : Spaced)                        extends P
   // format: on
 
   //// Smart Constructors ////
@@ -117,7 +117,8 @@ object Pattern {
     Blank(spaced) |
     Var(spaced) |
     Cons(spaced) |
-    Opr(spaced) | Annotation(spaced) |
+    Opr(spaced) |
+    Annotation(spaced) |
     Mod(spaced) |
     Num(spaced) |
     Text(spaced) |

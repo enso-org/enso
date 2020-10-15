@@ -50,7 +50,7 @@ optimization decisions to the user. To mark a function call as a tail call, the
 `@Tail_Call` annotation must be used. Note that if the annotation is placed
 incorrectly, it may either be reported as a warning by the compiler, or silently
 ignored if such analysis is impossible to perform due to the compiler's limited
-static analysis capabilities. However, it is guaranteed that a wrongly placed
+static analysis capabilities. However, it is _guaranteed_ that a wrongly placed
 `@Tail_Call` annotation will not lead to incorrect runtime behavior.
 
 If the `@Tail_Call` annotation is not placed, the call will be treated as a
@@ -70,3 +70,10 @@ reverse list =
 Note the placement of `@Tail_Call` in the recursive branch of `go`. It is placed
 correctly, marking the last operation in a function, and therefore `go` will be
 interpreted as a loop rather than a chain of function calls.
+
+> #### Note
+>
+> The way `go` is wrapped in the example above is recommended for most uses.
+> Using the assignment and return of a variable, rather than a direct call,
+> guarantees that calls to `reverse` won't themselves be removed from the call
+> stack and therefore greatly aids debugging.
