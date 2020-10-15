@@ -157,7 +157,7 @@ trait ProgramExecutionSupport {
     stack: List[InstrumentFrame],
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionOutcome] = {
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -200,7 +200,7 @@ trait ProgramExecutionSupport {
     val executionResult = for {
       stackItem <- Either.fromOption(
         explicitCallOpt,
-        Api.ExecutionFailure("Execution stack is empty.", None)
+        Api.ExecutionResult.Failure("Execution stack is empty.", None)
       )
       _ <-
         Either
@@ -228,7 +228,7 @@ trait ProgramExecutionSupport {
   private def onExecutionError(
     item: ExecutionItem,
     error: Throwable
-  )(implicit ctx: RuntimeContext): Api.ExecutionOutcome = {
+  )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(call)         => call.getFunction.getName
@@ -243,13 +243,14 @@ trait ProgramExecutionSupport {
           .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
     executionUpdate.getOrElse(
-      Api.ExecutionFailure(s"Error in function $itemName.", None)
+      Api.ExecutionResult
+        .Failure(s"Error in function $itemName.", None)
     )
   }
 
   private def getExecutionOutcome(
     t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionOutcome] = {
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     def getLanguage(ex: TruffleException): Option[String] =
       for {
         location <- Option(ex.getSourceLocation)
@@ -260,7 +261,7 @@ trait ProgramExecutionSupport {
           if getLanguage(ex).forall(_ == LanguageInfo.ID) =>
         val section = Option(ex.getSourceLocation)
         Some(
-          Api.Diagnostic.error(
+          Api.ExecutionResult.Diagnostic.error(
             ex.getMessage,
             section.flatMap(sec => findFileByModuleName(sec.getSource.getName)),
             section.map(toLocation),
@@ -270,7 +271,7 @@ trait ProgramExecutionSupport {
 
       case ex: ConstructorNotFoundException =>
         Some(
-          Api.ExecutionFailure(
+          Api.ExecutionResult.Failure(
             ex.getMessage,
             findFileByModuleName(ex.getModule)
           )
@@ -278,14 +279,14 @@ trait ProgramExecutionSupport {
 
       case ex: MethodNotFoundException =>
         Some(
-          Api.ExecutionFailure(
+          Api.ExecutionResult.Failure(
             ex.getMessage,
             findFileByModuleName(ex.getModule)
           )
         )
 
       case ex: ServiceException =>
-        Some(Api.ExecutionFailure(ex.getMessage, None))
+        Some(Api.ExecutionResult.Failure(ex.getMessage, None))
 
       case _ =>
         None
@@ -338,7 +339,7 @@ trait ProgramExecutionSupport {
       Api.Response(
         Api.ExecutionUpdate(
           contextId,
-          Seq(Api.Diagnostic.error(error.getMessage))
+          Seq(Api.ExecutionResult.Diagnostic.error(error.getMessage))
         )
       )
     )

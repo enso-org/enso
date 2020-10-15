@@ -45,11 +45,11 @@ class ExecuteJob(
           sendMethodCallUpdates
         )
       outcome.foreach {
-        case diagnostic: Api.Diagnostic =>
+        case diagnostic: Api.ExecutionResult.Diagnostic =>
           ctx.endpoint.sendToClient(
             Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
           )
-        case failure: Api.ExecutionFailure =>
+        case failure: Api.ExecutionResult.Failure =>
           ctx.endpoint.sendToClient(
             Api.Response(Api.ExecutionFailed(contextId, failure))
           )

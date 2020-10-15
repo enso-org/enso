@@ -259,7 +259,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     kind: Api.DiagnosticType,
     module: Module,
     diagnostic: IR.Diagnostic
-  ): Api.Diagnostic = {
+  ): Api.ExecutionResult.Diagnostic = {
     val fileOpt = Option(module.getPath).map(new File(_))
     val locationOpt =
       diagnostic.location.map { loc =>
@@ -272,7 +272,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           Position(section.getEndLine - 1, section.getEndColumn)
         )
       }
-    Api.Diagnostic(kind, diagnostic.message, fileOpt, locationOpt, Vector())
+    Api.ExecutionResult.Diagnostic(
+      kind,
+      diagnostic.message,
+      fileOpt,
+      locationOpt,
+      Vector()
+    )
   }
 
   /**
@@ -390,7 +396,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param ctx the runtime context
     */
   private def sendDiagnosticUpdates(
-    diagnostics: Seq[Api.Diagnostic]
+    diagnostics: Seq[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
     if (diagnostics.nonEmpty) {
       ctx.contextManager.getAll.keys.foreach { contextId =>
@@ -409,7 +415,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
 
   private def getCompilationStatus(
-    diagnostics: Iterable[Api.Diagnostic]
+    diagnostics: Iterable[Api.ExecutionResult.Diagnostic]
   ): CompilationStatus =
     if (diagnostics.exists(_.kind == Api.DiagnosticType.Error()))
       CompilationStatus.Error

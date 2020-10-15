@@ -2535,7 +2535,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionFailure("Module Unnamed.Main not found.", None)
+          Api.ExecutionResult.Failure("Module Unnamed.Main not found.", None)
         )
       ),
       context.executionComplete(contextId)
@@ -2579,7 +2579,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionFailure(
+          Api.ExecutionResult.Failure(
             "Constructor Unexpected not found in module Test.Main.",
             Some(mainFile)
           )
@@ -2626,7 +2626,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionFailure(
+          Api.ExecutionResult.Failure(
             "Object Main does not define method ooops in module Test.Main.",
             Some(mainFile)
           )
@@ -2681,7 +2681,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic.error(
+            Api.ExecutionResult.Diagnostic.error(
               "Object 42 is not invokable.",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
@@ -2745,7 +2745,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic.error(
+            Api.ExecutionResult.Diagnostic.error(
               "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
               Some(mainFile),
               Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
@@ -2811,7 +2811,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic.error(
+            Api.ExecutionResult.Diagnostic.error(
               "Unexpected type provided for argument `that` in Text.+",
               None,
               None,
@@ -2879,7 +2879,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic.error(
+            Api.ExecutionResult.Diagnostic.error(
               "No_Such_Method_Error Number UnresolvedSymbol<pi>",
               Some(mainFile),
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
@@ -2954,7 +2954,7 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic.error(
+            Api.ExecutionResult.Diagnostic.error(
               "Unexpected type provided for argument `that` in Integer.+",
               None,
               None,
@@ -3032,12 +3032,10 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic(
-              Api.DiagnosticType.Warning(),
+            Api.ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 7), model.Position(2, 8))),
-              Vector()
+              Some(model.Range(model.Position(2, 7), model.Position(2, 8)))
             )
           )
         )
@@ -3094,12 +3092,10 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic(
-              Api.DiagnosticType.Warning(),
+            Api.ExecutionResult.Diagnostic.warning(
               "Unused function argument x.",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 4), model.Position(2, 5))),
-              Vector()
+              Some(model.Range(model.Position(2, 4), model.Position(2, 5)))
             )
           )
         )
@@ -3156,19 +3152,15 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic(
-              Api.DiagnosticType.Warning(),
+            Api.ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 4), model.Position(3, 5))),
-              Vector()
+              Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
             ),
-            Api.Diagnostic(
-              Api.DiagnosticType.Error(),
+            Api.ExecutionResult.Diagnostic.error(
               "Variable x is being redefined.",
               Some(mainFile),
-              Some(model.Range(model.Position(4, 4), model.Position(4, 9))),
-              Vector()
+              Some(model.Range(model.Position(4, 4), model.Position(4, 9)))
             )
           )
         )
@@ -3224,12 +3216,10 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic(
-              Api.DiagnosticType.Error(),
+            Api.ExecutionResult.Diagnostic.error(
               "Unrecognized token.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 22), model.Position(3, 23))),
-              Vector()
+              Some(model.Range(model.Position(3, 22), model.Position(3, 23)))
             )
           )
         )
@@ -3287,12 +3277,10 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic(
-              Api.DiagnosticType.Error(),
+            Api.ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 22), model.Position(3, 24))),
-              Vector()
+              Some(model.Range(model.Position(3, 22), model.Position(3, 24)))
             )
           )
         )
@@ -3349,12 +3337,10 @@ class RuntimeServerTest
         Api.ExecutionUpdate(
           contextId,
           Seq(
-            Api.Diagnostic(
-              Api.DiagnosticType.Error(),
+            Api.ExecutionResult.Diagnostic.error(
               "Method overloads are not supported: here.foo is defined multiple times in this module.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 0), model.Position(3, 7))),
-              Vector()
+              Some(model.Range(model.Position(3, 0), model.Position(3, 7)))
             )
           )
         )
@@ -3993,7 +3979,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          Api.ExecutionFailure("Execution stack is empty.", None)
+          Api.ExecutionResult.Failure("Execution stack is empty.", None)
         )
       ),
       context.executionComplete(contextId)
