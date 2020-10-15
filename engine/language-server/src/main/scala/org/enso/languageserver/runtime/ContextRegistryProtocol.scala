@@ -163,12 +163,12 @@ object ContextRegistryProtocol {
   /**
     * The element in the stack trace.
     *
-    * @param text the text representation of the element
+    * @param functionName the function containing the stack call
     * @param path the location of a file
     * @param location the location of the element in a file
     */
   case class ExecutionStackTraceElement(
-    text: String,
+    functionName: String,
     path: Option[Path],
     location: Option[model.Range]
   )

@@ -248,6 +248,13 @@ trait ProgramExecutionSupport {
     )
   }
 
+  /**
+    * Convert the runtime exception to the corresponding API error messages.
+    *
+    * @param t the exception
+    * @param ctx the runtime context
+    * @return the API message describing the error
+    */
   private def getExecutionOutcome(
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
@@ -325,7 +332,7 @@ trait ProgramExecutionSupport {
         Api.StackTraceElement(node.getRootNode.getName, None, None)
       case section =>
         Api.StackTraceElement(
-          section.getCharacters.toString,
+          element.getTarget.getRootNode.getName,
           findFileByModuleName(section.getSource.getName),
           Some(toLocation(section))
         )

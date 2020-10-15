@@ -2687,7 +2687,7 @@ class RuntimeServerTest
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
               Vector(
                 Api.StackTraceElement(
-                  "this.bar 40 2 123",
+                  "Main.main",
                   Some(mainFile),
                   Some(model.Range(model.Position(0, 7), model.Position(0, 24)))
                 )
@@ -2751,7 +2751,7 @@ class RuntimeServerTest
               Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
               Vector(
                 Api.StackTraceElement(
-                  "one + two",
+                  "Main.bar",
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(2, 14), model.Position(2, 23))
@@ -2818,7 +2818,7 @@ class RuntimeServerTest
               Vector(
                 Api.StackTraceElement("Text.+", None, None),
                 Api.StackTraceElement(
-                  "x + y",
+                  "Main.bar",
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(2, 10), model.Position(2, 15))
@@ -2885,7 +2885,7 @@ class RuntimeServerTest
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
               Vector(
                 Api.StackTraceElement(
-                  "Number.pi",
+                  "Main.main",
                   Some(mainFile),
                   Some(model.Range(model.Position(2, 7), model.Position(2, 16)))
                 )
@@ -2961,19 +2961,19 @@ class RuntimeServerTest
               Vector(
                 Api.StackTraceElement("Small_Integer.+", None, None),
                 Api.StackTraceElement(
-                  "1 + quux",
+                  "Main.baz",
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(11, 8), model.Position(11, 16))
                   )
                 ),
                 Api.StackTraceElement(
-                  "this.baz",
+                  "Main.bar",
                   Some(mainFile),
                   Some(model.Range(model.Position(8, 8), model.Position(8, 16)))
                 ),
                 Api.StackTraceElement(
-                  "this.bar",
+                  "Main.foo",
                   Some(mainFile),
                   Some(model.Range(model.Position(5, 8), model.Position(5, 16)))
                 )

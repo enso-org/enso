@@ -395,12 +395,12 @@ object Runtime {
     /**
       * The element in the stack trace.
       *
-      * @param text the text representation of the element
+      * @param functionName the function containing the stack call
       * @param file the location of a file
       * @param location the location of the element in a file
       */
     case class StackTraceElement(
-      text: String,
+      functionName: String,
       file: Option[File],
       location: Option[Range]
     )

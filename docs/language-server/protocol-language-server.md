@@ -570,9 +570,9 @@ and `location` fields will be empty.
 ```typescript
 interface StackTraceElement {
   /**
-   * The text representation of the element.
+   * The function name containing the stack trace element.
    */
-  text: String;
+  functionName: String;
 
   /**
    * The location of the file.
