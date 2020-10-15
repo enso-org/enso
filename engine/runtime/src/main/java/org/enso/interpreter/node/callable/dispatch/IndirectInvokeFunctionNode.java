@@ -86,7 +86,6 @@ public abstract class IndirectInvokeFunctionNode extends Node {
         mappedArguments.getState(),
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
-        function.getSchema(),
         argumentMapping.getPostApplicationSchema(),
         defaultsExecutionMode,
         argumentsExecutionMode,

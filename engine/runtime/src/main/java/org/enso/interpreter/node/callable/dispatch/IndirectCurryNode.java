@@ -37,7 +37,6 @@ public abstract class IndirectCurryNode extends Node {
    * @param arguments the properly ordered arguments to pass to the function.
    * @param oversaturatedArguments any arguments that should be treated as candidates for an
    *     eta-expanded call.
-   * @param originalSchema function schema before the call.
    * @param postApplicationSchema function schema after the call.
    * @param defaultsExecutionMode should default arguments be used for this call.
    * @param argumentsExecutionMode are arguments pre-executed or suspended.
@@ -51,7 +50,6 @@ public abstract class IndirectCurryNode extends Node {
       Object state,
       Object[] arguments,
       Object[] oversaturatedArguments,
-      FunctionSchema originalSchema,
       FunctionSchema postApplicationSchema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
@@ -65,7 +63,6 @@ public abstract class IndirectCurryNode extends Node {
       Object state,
       Object[] arguments,
       Object[] oversaturatedArguments,
-      FunctionSchema preApplicationSchema,
       FunctionSchema postApplicationSchema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
@@ -82,7 +79,6 @@ public abstract class IndirectCurryNode extends Node {
                 callerInfo,
                 state,
                 arguments,
-                preApplicationSchema,
                 isTail,
                 directCall,
                 loopingCall);
@@ -129,7 +125,6 @@ public abstract class IndirectCurryNode extends Node {
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
-      FunctionSchema preApplicationSchema,
       BaseNode.TailStatus isTail,
       ExecuteCallNode directCall,
       CallOptimiserNode loopingCall) {

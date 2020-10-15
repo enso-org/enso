@@ -21,7 +21,6 @@ import java.util.concurrent.locks.Lock;
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
 @NodeInfo(description = "Handles runtime currying and eta-expansion")
 public class CurryNode extends BaseNode {
-  private final FunctionSchema preApplicationSchema;
   private final FunctionSchema postApplicationSchema;
   private final boolean appliesFully;
   private @Child InvokeCallableNode oversaturatedCallableNode;
@@ -31,14 +30,12 @@ public class CurryNode extends BaseNode {
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
 
   private CurryNode(
-      FunctionSchema originalSchema,
       FunctionSchema postApplicationSchema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
     setTailStatus(isTail);
     this.defaultsExecutionMode = defaultsExecutionMode;
-    this.preApplicationSchema = originalSchema;
     this.postApplicationSchema = postApplicationSchema;
     appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionMode);
     initializeCallNodes();
@@ -48,8 +45,6 @@ public class CurryNode extends BaseNode {
   /**
    * Creates a new instance of this node.
    *
-   * @param preApplicationSchema the schema of all functions being used in the {@link
-   *     #execute(VirtualFrame, Function, CallerInfo, Object, Object[], Object[])} method.
    * @param argumentMapping the argument mapping for moving from the original schema to the argument
    *     schema expected by the function.
    * @param defaultsExecutionMode the mode of handling defaulted arguments for this call.
@@ -58,13 +53,11 @@ public class CurryNode extends BaseNode {
    * @return an instance of this node.
    */
   public static CurryNode build(
-      FunctionSchema preApplicationSchema,
       CallArgumentInfo.ArgumentMapping argumentMapping,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus tailStatus) {
     return new CurryNode(
-        preApplicationSchema,
         argumentMapping.getPostApplicationSchema(),
         defaultsExecutionMode,
         argumentsExecutionMode,
