@@ -109,6 +109,12 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           case Left(err) =>
             ctx.executionService.getLogger
               .log(Level.SEVERE, s"Compilation error in ${module.getPath}", err)
+            sendFailureUpdate(
+              Api.ExecutionResult.Failure(
+                err.getMessage,
+                Option(module.getPath).map(new File(_))
+              )
+            )
             CompilationStatus.Failure
           case Right(module) =>
             analyzeModuleInScope(module)
@@ -404,6 +410,21 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
         )
       }
+    }
+
+  /**
+    * Send notification about the compilation status.
+    *
+    * @param failure the execution failure
+    * @param ctx the runtime context
+    */
+  private def sendFailureUpdate(
+    failure: Api.ExecutionResult.Failure
+  )(implicit ctx: RuntimeContext): Unit =
+    ctx.contextManager.getAll.keys.foreach { contextId =>
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.ExecutionFailed(contextId, failure))
+      )
     }
 
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
