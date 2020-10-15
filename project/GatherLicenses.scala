@@ -142,7 +142,7 @@ object GatherLicenses {
     for (distribution <- distributions.value) {
       val distributionRoot = configRoot / distribution.artifactName
       val name             = distribution.artifactName
-      ReviewState.read(distributionRoot / stateFileName) match {
+      ReviewState.read(distributionRoot / stateFileName, log) match {
         case Some(reviewState) =>
           val currentInputHash = ReviewState.computeInputHash(distribution)
           if (currentInputHash != reviewState.inputHash) {

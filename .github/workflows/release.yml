@@ -102,6 +102,7 @@ jobs:
 
       # Verify Legal Review
       - name: Verify Packages
+        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
         working-directory: repo
         run: |
           sleep 1

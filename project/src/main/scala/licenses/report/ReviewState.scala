@@ -3,6 +3,7 @@ package src.main.scala.licenses.report
 import java.nio.file.Files
 import java.security.MessageDigest
 
+import sbt.internal.util.ManagedLogger
 import sbt.{File, IO}
 import src.main.scala.licenses.{
   DistributionDescription,
@@ -19,20 +20,31 @@ case class ReviewState(
 )
 
 object ReviewState {
-  def read(file: File): Option[ReviewState] = {
+  def read(file: File, log: ManagedLogger): Option[ReviewState] = {
     try {
-      val content                             = IO.read(file)
-      val Array(inputHash, outputHash, count) = content.strip().split(';')
-      Some(ReviewState(inputHash, outputHash, count.toInt))
-    } catch { case NonFatal(_) => None }
+      IO.readLines(file) match {
+        case List(inputHash, outputHash, count) =>
+          Some(ReviewState(inputHash, outputHash, count.toInt))
+        case _ =>
+          log.error(s"Review state at $file is malformed.")
+          None
+      }
+    } catch {
+      case NonFatal(error) =>
+        log.error(s"Could not read review state at $file: $error")
+        None
+    }
   }
 
   def write(file: File, reviewState: ReviewState): Unit = {
     IO.createDirectory(file.getParentFile)
     IO.write(
       file,
-      s"${reviewState.inputHash};${reviewState.outputHash};" +
-      s"${reviewState.warningsCount}\n"
+      Seq(
+        reviewState.inputHash,
+        reviewState.outputHash,
+        reviewState.warningsCount
+      ).mkString("", "\n", "\n")
     )
   }
 
