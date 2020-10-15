@@ -152,6 +152,10 @@ case object LambdaConsolidate extends IRPass {
         val (processedArgList, newBody) =
           computeReplacedExpressions(newArgNames, lastBody, usageIdsForShadowed)
 
+        val consolidatedArgs = processedArgList.map(
+          _.mapExpressions(runExpression(_, inlineContext))
+        )
+
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
             Some(
@@ -167,7 +171,7 @@ case object LambdaConsolidate extends IRPass {
         }
 
         lam.copy(
-          arguments = processedArgList,
+          arguments = consolidatedArgs,
           body      = runExpression(newBody, inlineContext),
           location  = newLocation,
           canBeTCO  = chainedLambdas.last.canBeTCO

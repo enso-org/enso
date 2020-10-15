@@ -196,8 +196,18 @@ public class AtomConstructor implements TruffleObject {
     return newInstance(arguments);
   }
 
+  @ExportMessage
+  String toDisplayString(boolean allowSideEffects) {
+    return "Constructor<" + name + ">";
+  }
+
   /** @return the fully qualified name of this constructor. */
   public QualifiedName getQualifiedName() {
     return definitionScope.getModule().getName().createChild(getName());
+  }
+
+  /** @return the fields defined by this constructor. */
+  public ArgumentDefinition[] getFields() {
+    return constructorFunction.getSchema().getArgumentInfos();
   }
 }

@@ -4,11 +4,13 @@ import Base.Number.Extensions
 import Base.Text.Extensions
 import Base.System.File
 import Base.Meta.Enso_Project
+import Base.Meta.Meta
 import Base.Error.Extensions
 import Base.Polyglot.Java
-from Builtins import Unit, Number, Integer, Any, True, False
+from Builtins import Unit, Number, Integer, Any, True, False, Cons
 
-from Builtins export all
+export Base.Meta.Meta
+from Builtins export all hiding Meta
 
 from Base.Meta.Enso_Project export all
 from Base.List export Nil, Cons
@@ -68,3 +70,26 @@ type Math
     to its diameter.
 Math.pi : Decimal
 Math.pi = 3.141592653589793
+
+## Generic equality of arbitrary values.
+Any.== : Any -> Boolean
+Any.== that = if Meta.is_same_object this that then True else
+    this_meta = Meta.meta this
+    that_meta = Meta.meta that
+    case Cons this_meta that_meta of
+        Cons (Meta.Atom _) (Meta.Atom _) ->
+            c_1 = this_meta.constructor
+            c_2 = that_meta.constructor
+            if not (Meta.is_same_object c_1 c_2) then False else
+                f_1 = this_meta.fields
+                f_2 = that_meta.fields
+                0.upto f_1.length . every i-> (f_1.at i) == (f_2.at i)
+        Cons (Meta.Error _) (Meta.Error _) -> this_meta.payload == that_meta.payload
+        Cons (Meta.Polyglot o_1) (Meta.Polyglot o_2) ->
+            langs_match = this_meta.language == Meta.Java && that_meta.language == Meta.Java
+            if not langs_match then False else o_1.equals [o_2]
+        ## Constructor comparison is covered by the identity equality.
+           Primitive objects should define their own equality.
+           Therefore, there is no more cases to handle in this method.
+        _ -> False
+

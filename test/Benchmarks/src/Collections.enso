@@ -1,4 +1,5 @@
 from Base import all
+import Builtins
 import Base.Bench_Utils
 
 gen_list len = 0.upto len . fold Nil (l -> i -> Cons i+1 l)
@@ -11,11 +12,22 @@ sum_vec vec =
     res = sumator 0 0
     res
 
+sum_list_meta list =
+    nil_cons = Meta.meta Nil . constructor
+    folder acc list =
+        meta_list = Meta.meta list
+        if meta_list.constructor == nil_cons then acc else
+            fs = meta_list.fields
+            folder (acc + fs.at 0) (fs.at 1)
+    res = folder 0 list
+    res
+
 main =
     mil = 1000000
     list = here.gen_list mil
     vec = Vector.new mil (ix -> ix + 1)
     vec_decimal = Vector.new mil (ix -> ix + 0.0)
-    Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 1000 10
+    Bench_Utils.measure (here.sum_list_meta list) "list meta-fold" 1000 10
     Bench_Utils.measure (list.fold 0 (+)) "list fold" 1000 10
+    Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 1000 10
     Bench_Utils.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
