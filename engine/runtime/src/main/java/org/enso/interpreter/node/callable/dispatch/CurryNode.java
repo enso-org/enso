@@ -72,8 +72,7 @@ public class CurryNode extends BaseNode {
   }
 
   private void initializeCallNodes() {
-    if (postApplicationSchema.hasOversaturatedArgs()
-        || getTailStatus() == TailStatus.NOT_TAIL) { // !preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
+    if (postApplicationSchema.hasOversaturatedArgs() || getTailStatus() == TailStatus.NOT_TAIL) {
       this.loopingCall = CallOptimiserNode.build();
     } else {
       this.directCall = ExecuteCallNode.build();
@@ -159,7 +158,7 @@ public class CurryNode extends BaseNode {
 
   private Stateful doCall(
       Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
-    switch(getTailStatus()) {
+    switch (getTailStatus()) {
       case TAIL_DIRECT:
         return directCall.executeCall(function, callerInfo, state, arguments);
       case TAIL_LOOP:

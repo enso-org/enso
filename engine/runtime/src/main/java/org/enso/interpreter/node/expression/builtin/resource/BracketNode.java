@@ -62,7 +62,8 @@ public abstract class BracketNode extends Node {
       Thunk constructor,
       Object destructor,
       Object action) {
-    Stateful resourceStateful = invokeConstructorNode.executeThunk(constructor, state, BaseNode.TailStatus.NOT_TAIL);
+    Stateful resourceStateful =
+        invokeConstructorNode.executeThunk(constructor, state, BaseNode.TailStatus.NOT_TAIL);
     Object resource = resourceStateful.getValue();
     state = resourceStateful.getState();
     try {

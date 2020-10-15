@@ -43,7 +43,8 @@ public abstract class IndirectArgumentSorterNode extends Node {
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (TypesGen.isThunk(arguments[i]) && mapping.getArgumentShouldExecute()[i]) {
         Stateful result =
-            thunkExecutorNode.executeThunk(TypesGen.asThunk(arguments[i]), state, BaseNode.TailStatus.NOT_TAIL);
+            thunkExecutorNode.executeThunk(
+                TypesGen.asThunk(arguments[i]), state, BaseNode.TailStatus.NOT_TAIL);
         arguments[i] = result.getValue();
         state = result.getState();
       }

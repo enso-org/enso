@@ -2084,7 +2084,7 @@ object IR {
       override def showCode(indent: Int): String = name
     }
 
-    /** The representation of a annotation name.
+    /** The representation of an annotation name.
       *
       * @param name the annotation text of the name
       * @param location the source location that the node corresponds to
@@ -5272,12 +5272,13 @@ object IR {
       }
     }
 
+    /**
+      * A warning about a `@Tail_Call` annotation placed in a non-tail
+      * position.
+      * @param location the location of the annotated application
+      */
     case class WrongTco(override val location: Option[IdentifiedLocation])
         extends Warning {
-
-      /**
-        * @return a human-readable description of this error condition.
-        */
       override def message: String =
         "A @Tail_Call annotation was placed in a non-tail-call position."
     }
@@ -5429,11 +5430,18 @@ object IR {
           " importing the default definition from the Base.Vector module."
       }
 
+      /**
+        * An error coming from an unknown annotation name.
+        */
       case object UnknownAnnotation extends Reason {
         override def explain(originalName: Name): String =
           s"The annotation ${originalName.name} is not defined."
       }
 
+      /**
+        * An error coming from a tail call annotation placed in a syntactically
+        * incorrect position.
+        */
       case object UnexpectedTailCallAnnotation extends Reason {
         override def explain(originalName: Name): String =
           s"Unexpected @TailCall annotation. This annotation can only be " +

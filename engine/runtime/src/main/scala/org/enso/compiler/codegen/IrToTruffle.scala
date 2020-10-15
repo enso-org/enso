@@ -631,11 +631,6 @@ class IrToTruffle(
           "No scope information on a case branch."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Child]
-//
-//      val branchIsTail = branch.unsafeGetMetadata(
-//        TailCall,
-//        "Case branch is missing tail position information."
-//      )
 
       val childProcessor = this.createChild("case_branch", scopeInfo.scope)
 
@@ -650,7 +645,6 @@ class IrToTruffle(
           )
 
           val branchNode = CatchAllBranchNode.build(branchCodeNode)
-//          branchNode.setTail(branchIsTail)
 
           Right(branchNode)
         case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
@@ -716,7 +710,6 @@ class IrToTruffle(
               } else {
                 ConstructorBranchNode.build(atomCons, branchCodeNode)
               }
-//            branchNode.setTail(branchIsTail)
 
             branchNode
           }
@@ -1010,15 +1003,9 @@ class IrToTruffle(
         } else seenArgNames.add(argName)
       }
 
-//      val bodyIsTail = body.unsafeGetMetadata(
-//        TailCall,
-//        "Function body missing tail call information."
-//      )
-
       val bodyExpr = this.run(body)
 
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
-//      fnBodyNode.setTail(bodyIsTail)
       (fnBodyNode, argDefinitions)
     }
 
@@ -1201,11 +1188,6 @@ class IrToTruffle(
           val result = if (!shouldSuspend) {
             argumentExpression
           } else {
-//            val argExpressionIsTail = value.unsafeGetMetadata(
-//              TailCall,
-//              "Argument with missing tail call information."
-//            )
-
             argumentExpression.setTailStatus(getTailStatus(value))
 
             val displayName =

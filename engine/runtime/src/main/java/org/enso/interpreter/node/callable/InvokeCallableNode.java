@@ -185,7 +185,8 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state, TailStatus.NOT_TAIL);
+        Stateful selfResult =
+            thisExecutor.executeThunk((Thunk) selfArgument, state, TailStatus.NOT_TAIL);
         selfArgument = selfResult.getValue();
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;
