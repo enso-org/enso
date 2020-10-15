@@ -91,6 +91,13 @@ our distribution and usage scheme. Licenses are reviewed per-distribution, as
 for example the binary distribution of the launcher may impose different
 requirements than distribution of the engine as JARs.
 
+If an indirect dependency is found with a problematic license, the
+`analyzeDependency` command may prove helpful. Running `analyzeDependency <arg>`
+will search for all dependencies containing `<arg>` in their name and list in
+which projects they show up and which packages depend on them directly. This
+latter functionality can be used to track down the direct dependency that
+brought the indirect one.
+
 After the review is done, the `enso/gatherLicenses` should be re-run again to
 generate the updated packages that are included in the distribution. Before a PR
 is merged, it should be ensure that there are no warnings in the generation. The
