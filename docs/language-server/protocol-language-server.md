@@ -42,7 +42,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`DiagnosticType`](#diagnostictype)
   - [`StackTraceElement`](#stacktraceelement)
   - [`Diagnostic`](#diagnostic)
-  - [`ExecutionFailure`](#executionfailure)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
   - [`FileContents`](#filecontents)
@@ -630,32 +629,6 @@ interface Diagnostic {
 }
 ```
 
-### `ExecutionFailure`
-
-A critical failure when attempting to execute a context.
-
-When the `Diagnostic` error notifies about potential problems in the code found
-by compiler, or the errors during runtime, the `ExecutionFailure` signals about
-the errors in the logic or the implementation. It can be a compiler crash, an
-attempt to execute an empty stack, an error location a method or a module when
-issuing a [`executionContext/push`](#executioncontextpush) command.
-
-#### Format
-
-```typescript
-interface ExecutionFailure {
-  /**
-   * The error message.
-   */
-  message: String;
-
-  /**
-   * The location of a file producing the error.
-   */
-  path?: Path;
-}
-```
-
 ### `SHA3-224`
 
 The `SHA3-224` message digest encoded as a base16 string.
@@ -1051,6 +1024,7 @@ given execution context.
 #### Enables
 
 - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+- [`executionContext/executionFailed`](#executioncontextexecutionfailed)
 - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
 
 #### Disables
@@ -2405,6 +2379,13 @@ None
 Sent from the server to the client to inform about a critical failure when
 attempting to execute a context.
 
+When the [`executionContext/executionStatus`](#executioncontextexecutionstatus)
+notifies about potential problems in the code found by compiler, or the errors
+during runtime, this message signals about the errors in the logic or the
+implementation. It can be a compiler crash, an attempt to execute an empty
+stack, an error location a method or a module when issuing a
+[`executionContext/push`](#executioncontextpush) command.
+
 - **Type:** Notification
 - **Direction:** Server -> Client
 - **Connection:** Protocol
@@ -2420,9 +2401,14 @@ attempting to execute a context.
   contextId: ContextId;
 
   /**
-   * The object describing the issue.
+   * The error message.
    */
-  failure: ExecutionFailure;
+  message: String;
+
+  /**
+   * The location of a file producing the error.
+   */
+  path?: Path;
 }
 ```
 

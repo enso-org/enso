@@ -4,10 +4,8 @@ import java.util.UUID
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
-import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  ExecutionDiagnostic,
-  ExecutionFailure
-}
+import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnostic
 
 /**
   * The execution JSON RPC API provided by the language server.
@@ -106,7 +104,8 @@ object ExecutionApi {
 
     case class Params(
       contextId: ContextId,
-      failure: ExecutionFailure
+      message: String,
+      path: Option[Path]
     )
 
     implicit val hasParams = new HasParams[this.type] {
