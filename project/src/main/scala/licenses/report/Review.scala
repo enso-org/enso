@@ -122,7 +122,10 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def findAdditionalFiles(dir: File): Seq[AttachedFile] =
     listFiles(dir).map { f =>
       if (f.isDirectory)
-        AttachedFile(f.toPath.toAbsolutePath, Review.directoryMark)
+        AttachedFile(
+          PortablePath(f.toPath.toAbsolutePath),
+          Review.directoryMark
+        )
       else
         AttachedFile.read(f.toPath, Some(dir.toPath))
     }
@@ -257,8 +260,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         (
           CopyrightMention(
             content  = "<manually added mentions>",
-            contexts = Seq(text),
-            origins  = Seq()
+            contexts = Seq(text)
           ),
           AttachmentStatus.Added
         )

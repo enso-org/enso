@@ -4,7 +4,12 @@ import java.nio.file.Path
 
 import sbt.Logger
 import sbt.io.syntax.url
-import src.main.scala.licenses.{AttachedFile, Attachment, DependencyInformation}
+import src.main.scala.licenses.{
+  AttachedFile,
+  Attachment,
+  DependencyInformation,
+  PortablePath
+}
 
 import scala.sys.process._
 import scala.util.control.NonFatal
@@ -54,7 +59,11 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
             val content =
               url("https://github.com" + href.replace("blob", "raw")).cat.!!
             Seq(
-              AttachedFile(Path.of(href), content, origin = Some("github.com"))
+              AttachedFile(
+                PortablePath.of(href),
+                content,
+                origin = Some("github.com")
+              )
             )
           } catch {
             case NonFatal(error) =>

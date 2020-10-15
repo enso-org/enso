@@ -33,7 +33,7 @@ object GatherCopyrights extends AttachmentGatherer {
             .map { case (str, idx) => (str, findContext(lines)(idx)) }
             .map {
               case (line, context) =>
-                CopyrightMention(
+                CopyrightMention.from(
                   CopyrightMention.cleanup(line),
                   Seq(context),
                   Seq(relativePath)
@@ -42,7 +42,7 @@ object GatherCopyrights extends AttachmentGatherer {
         } catch {
           case NonFatal(e) =>
             Seq(
-              CopyrightMention(
+              CopyrightMention.from(
                 "<some files could not be read>",
                 Seq(e.toString),
                 Seq(relativePath)

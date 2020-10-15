@@ -4,7 +4,11 @@ import java.nio.file.Files
 import java.security.MessageDigest
 
 import sbt.{File, IO}
-import src.main.scala.licenses.{DistributionDescription, FilesHelper}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  FilesHelper,
+  PortablePath
+}
 
 import scala.util.control.NonFatal
 
@@ -61,11 +65,15 @@ object ReviewState {
     val digest = MessageDigest.getInstance("SHA-256")
     val root   = distributionDescription.packageDestination.toPath
     val allFiles =
-      FilesHelper.walk(root)(Seq(_)).sortBy(p => root.relativize(p).toString)
+      FilesHelper
+        .walk(root)(Seq(_))
+        .map(p => PortablePath(root.relativize(p)))
+        .sortBy(_.toString)
     for (path <- allFiles) {
-      digest.update(root.relativize(path).toString.getBytes)
-      if (!Files.isDirectory(path)) {
-        digest.update(IO.readBytes(path.toFile))
+      digest.update(path.toString.getBytes)
+      val file = root.resolve(path.path).toFile
+      if (!file.isDirectory) {
+        digest.update(IO.readBytes(file))
       }
     }
     hexString(digest.digest())
