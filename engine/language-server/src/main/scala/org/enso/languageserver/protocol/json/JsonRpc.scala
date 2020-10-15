@@ -66,6 +66,7 @@ object JsonRpc {
     .registerNotification(EventFile)
     .registerNotification(ExecutionContextExpressionValuesComputed)
     .registerNotification(ExecutionContextExecutionFailed)
+    .registerNotification(ExecutionContextExecutionStatus)
     .registerNotification(StandardOutputAppended)
     .registerNotification(StandardErrorAppended)
     .registerNotification(WaitingForStandardInput)

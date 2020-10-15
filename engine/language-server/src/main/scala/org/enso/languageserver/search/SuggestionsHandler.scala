@@ -1,5 +1,7 @@
 package org.enso.languageserver.search
 
+import java.util
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.pipe
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -140,14 +142,26 @@ final class SuggestionsHandler(
       context.become(initialized(projectName, clients - client.clientId))
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
-      applyDatabaseUpdates(msg)
+      val isVersionChanged =
+        fileVersionsRepo.getVersion(msg.file).map { versionOpt =>
+          versionOpt.fold(true)(
+            !util.Arrays.equals(_, versionCalculator.evalDigest(msg.contents))
+          )
+        }
+      val applyUpdatesIfVersionChanged =
+        isVersionChanged.flatMap { isChanged =>
+          if (isChanged) applyDatabaseUpdates(msg).map(Some(_))
+          else Future.successful(None)
+        }
+      applyUpdatesIfVersionChanged
         .onComplete {
-          case Success(notification) =>
+          case Success(Some(notification)) =>
             if (notification.updates.nonEmpty) {
               clients.foreach { clientId =>
                 sessionRouter ! DeliverToJsonController(clientId, notification)
               }
             }
+          case Success(None) =>
           case Failure(ex) =>
             log.error(
               ex,

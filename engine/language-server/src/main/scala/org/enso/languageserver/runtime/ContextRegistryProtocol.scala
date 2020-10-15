@@ -2,10 +2,12 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
+import enumeratum._
 import org.enso.languageserver.data.ClientId
-import org.enso.languageserver.filemanager.FileSystemFailure
+import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
+import org.enso.text.editing.model
 
 object ContextRegistryProtocol {
 
@@ -146,13 +148,77 @@ object ContextRegistryProtocol {
     */
   case class InvalidStackItemError(contextId: ContextId) extends Failure
 
+  /** The type of a diagnostic message. */
+  sealed trait ExecutionDiagnosticKind extends EnumEntry
+  object ExecutionDiagnosticKind
+      extends Enum[ExecutionDiagnosticKind]
+      with CirceEnum[ExecutionDiagnosticKind] {
+
+    case object Error   extends ExecutionDiagnosticKind
+    case object Warning extends ExecutionDiagnosticKind
+
+    override val values = findValues
+  }
+
   /**
-    * Signals execution of a context failed.
+    * The element in the stack trace.
+    *
+    * @param functionName the function containing the stack call
+    * @param path the location of a file
+    * @param location the location of the element in a file
+    */
+  case class ExecutionStackTraceElement(
+    functionName: String,
+    path: Option[Path],
+    location: Option[model.Range]
+  )
+
+  /**
+    * A diagnostic message produced as a compilation outcome.
+    *
+    * @param kind the type of diagnostic message
+    * @param message the error message
+    * @param path the file path
+    * @param location the range in the source text containing a diagnostic
+    * @param stack the stack trace
+    */
+  case class ExecutionDiagnostic(
+    kind: ExecutionDiagnosticKind,
+    message: String,
+    path: Option[Path],
+    location: Option[model.Range],
+    stack: Vector[ExecutionStackTraceElement]
+  )
+
+  /**
+    * A critical failure when attempting to execute a context.
+    *
+    * @param message the error message
+    * @param path the location of a file producing the error
+    */
+  case class ExecutionFailure(message: String, path: Option[Path])
+
+  /**
+    * Signals about a critical failure in a context execution.
     *
     * @param contextId execution context identifier
-    * @param message the error message
+    * @param failure the error description
     */
-  case class ExecutionFailedNotification(contextId: ContextId, message: String)
+  case class ExecutionFailedNotification(
+    contextId: ContextId,
+    failure: ExecutionFailure
+  )
+
+  /**
+    * Signals the status of a context execution.
+    *
+    * @param contextId execution context identifier
+    * @param diagnostics the list of diagnostic messages
+    */
+  case class ExecutionDiagnosticNotification(
+    contextId: ContextId,
+    diagnostics: Seq[ExecutionDiagnostic]
+  )
 
   /**
     * Requests the language server to attach a visualisation to the expression

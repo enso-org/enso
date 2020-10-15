@@ -24,10 +24,14 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
   ): Future[Unit] = {
     for {
       _ <- Future { ctx.jobControlPlane.abortAllJobs() }
-      _ <- ctx.jobProcessor.run(
+      status <- ctx.jobProcessor.run(
         EnsureCompiledJob(request.path, request.edits)
       )
-      _ <- Future.sequence(executeJobs.map(ctx.jobProcessor.run))
+      _ <-
+        if (status == EnsureCompiledJob.CompilationStatus.Success)
+          Future.traverse(executeJobs)(ctx.jobProcessor.run)
+        else
+          Future.successful(())
     } yield ()
   }
 
