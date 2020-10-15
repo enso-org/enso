@@ -91,7 +91,7 @@ jobs:
           key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
 
-      # Build Artifacts
+      # Bootstrap
       - name: Enable Release Mode
         run: echo ::set-env name=ENSO_RELEASE_MODE::true
       - name: Bootstrap the Project
@@ -99,6 +99,14 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors bootstrap
+
+      # Verify Legal Review
+      - name: Verify Packages
+        run: |
+          sleep 1
+          sbt --no-colors verifyLicensePackages
+
+      # Build Artifacts
       - name: Build the Runtime Uberjar
         working-directory: repo
         run: |
@@ -239,12 +247,6 @@ jobs:
           engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso.bat --version --json | jq -r '.version')
           test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
           test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
-
-      # Verify Legal Review
-      - name: Verify Packages
-        run: |
-          sleep 1
-          sbt --no-colors enso/verifyLicensePackages
 
       # Publish
       - name: Upload the Engine Artifact

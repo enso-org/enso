@@ -58,21 +58,7 @@ jobs:
       #        with:
       #          toolchain: ${{ env.rustToolchain }}
       #          override: true
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - name: Setup Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: |
-          conda create --name enso
-          conda init powershell
-      - name: Activate Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: conda activate enso
-      - name: Install FlatBuffers Compiler
-        run: conda install --freeze-installed flatbuffers=1.12.0
+
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
         with:
@@ -100,4 +86,4 @@ jobs:
       - name: Verify Packages
         run: |
           sleep 1
-          sbt --no-colors enso/verifyLicensePackages
+          sbt --no-colors verifyLicensePackages
