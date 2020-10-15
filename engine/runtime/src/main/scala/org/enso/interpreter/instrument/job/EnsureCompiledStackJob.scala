@@ -20,10 +20,10 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
 ) extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
 
   /** @inheritdoc */
-  override protected def ensureCompiledFiles(
-    files: Iterable[File]
-  )(implicit ctx: RuntimeContext): Iterable[Module] = {
-    val modules = super.ensureCompiledFiles(files)
+  override protected def ensureIndexedModules(
+    modules: Iterable[Module]
+  )(implicit ctx: RuntimeContext): Unit = {
+    super.ensureIndexedModules(modules)
     getCacheMetadata(stack).foreach { metadata =>
       CacheInvalidation.run(
         stack,
@@ -33,7 +33,6 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
         )
       )
     }
-    modules
   }
 
   private def getCacheMetadata(

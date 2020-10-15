@@ -99,8 +99,8 @@ class RuntimeServerTest
       result.linesIterator.toList
     }
 
-    def executionSuccessful(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionSuccessful(contextId))
+    def executionComplete(contextId: UUID): Api.Response =
+      Api.Response(Api.ExecutionComplete(contextId))
 
     object Main {
 
@@ -324,7 +324,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push foo call
@@ -336,7 +336,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push method pointer on top of the non-empty stack
@@ -371,7 +371,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop main
@@ -488,7 +488,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -593,7 +593,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
   }
@@ -694,7 +694,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
   }
@@ -797,7 +797,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("10")
   }
@@ -904,7 +904,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -1041,7 +1041,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push foo call
@@ -1053,7 +1053,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop foo call
@@ -1072,7 +1072,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop main
@@ -1179,7 +1179,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1337")
 
@@ -1204,7 +1204,7 @@ class RuntimeServerTest
           Vector(Api.ExpressionValueUpdate(idResult, Some("Text"), None))
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hi")
   }
@@ -1362,7 +1362,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("144")
 
@@ -1393,7 +1393,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
 
@@ -1411,7 +1411,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionSuccessful(contextId))
+    context.receive shouldEqual Some(context.executionComplete(contextId))
     context.consumeOut shouldEqual List("5")
 
     // Edit s/1000.x 5/Main.pie/
@@ -1441,7 +1441,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
 
@@ -1472,7 +1472,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("7")
 
@@ -1503,7 +1503,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("hie!")
 
@@ -1528,7 +1528,7 @@ class RuntimeServerTest
           Vector(Api.ExpressionValueUpdate(idMainA, Some("Text"), None))
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello!")
   }
@@ -1539,23 +1539,21 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(32, 89)
+    val idMain   = metadata.addItem(32, 77)
     val id1      = metadata.addItem(41, 15)
     val id2      = metadata.addItem(61, 18)
-    val id3      = metadata.addItem(84, 16)
-    val idy      = metadata.addItem(109, 2)
+    val id3      = metadata.addItem(84, 15)
     val code =
       """from Builtins import all
         |
         |main =
         |    x = 15.overloaded 1
         |    "foo".overloaded 2
-        |    overloaded 10 30
-        |    y = 42
+        |    overloaded 10 x
         |    Unit
         |
-        |Text.overloaded arg = 10
-        |Number.overloaded arg = 20
+        |Text.overloaded arg = arg + 1
+        |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1586,7 +1584,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(8) should contain theSameElementsAs Seq(
+    context.receive(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExpressionValuesComputed(
@@ -1628,12 +1626,6 @@ class RuntimeServerTest
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
-        )
-      ),
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(Api.ExpressionValueUpdate(idy, Some("Number"), None))
         )
       ),
       Api.Response(
@@ -1689,26 +1681,14 @@ class RuntimeServerTest
                 "Any",
                 Suggestion.Scope(
                   Suggestion.Position(2, 6),
-                  Suggestion.Position(8, 0)
-                )
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(idy),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(2, 6),
-                  Suggestion.Position(8, 0)
+                  Suggestion.Position(7, 0)
                 )
               )
             )
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push call1
@@ -1723,7 +1703,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop call1
@@ -1766,7 +1746,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push call2
@@ -1781,7 +1761,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop call2
@@ -1824,7 +1804,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push call3
@@ -1839,7 +1819,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop call3
@@ -1882,7 +1862,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -1947,7 +1927,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
@@ -1965,7 +1945,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionSuccessful(contextId))
+    context.receive shouldEqual Some(context.executionComplete(contextId))
     context.consumeOut shouldEqual List("I'm a modified!")
 
     // Close the file
@@ -2046,7 +2026,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // Modify the file
@@ -2063,7 +2043,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionSuccessful(contextId))
+    context.receive shouldEqual Some(context.executionComplete(contextId))
   }
 
   it should "send suggestion notifications when file is executed" in {
@@ -2198,7 +2178,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // push foo call
@@ -2210,7 +2190,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
       context.Main.Update.fooZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop foo call
@@ -2229,7 +2209,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // pop main
@@ -2307,7 +2287,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
@@ -2356,7 +2336,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a modified!")
 
@@ -2399,7 +2379,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute
@@ -2408,7 +2388,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -2445,7 +2425,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute
@@ -2460,7 +2440,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -2497,7 +2477,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute
@@ -2514,7 +2494,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -2550,11 +2530,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(contextId, "Module Unnamed.Main not found.")
-      )
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure("Module Unnamed.Main not found.", None)
+        )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2590,14 +2574,18 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Constructor Unexpected not found in module Test.Main."
+          Api.ExecutionResult.Failure(
+            "Constructor Unexpected not found in module Test.Main.",
+            Some(mainFile)
+          )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2633,14 +2621,18 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Object Main does not define method ooops in module Test.Main."
+          Api.ExecutionResult.Failure(
+            "Object Main does not define method ooops in module Test.Main.",
+            Some(mainFile)
+          )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2650,7 +2642,7 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar 40 2 9
+      """main = this.bar 40 2 123
         |
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2683,15 +2675,32 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(contextId, "Object 42 is not invokable.")
-      )
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Object 42 is not invokable.",
+              Some(mainFile),
+              Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
+              Vector(
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(0, 7), model.Position(0, 24)))
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
-  it should "return error in function main" in {
+  it should "return error unresolved symbol" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
@@ -2699,7 +2708,7 @@ class RuntimeServerTest
     val code =
       """main = this.bar x y
         |
-        |bar x y = x + y
+        |bar one two = one + two
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2730,9 +2739,30 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(Api.ExecutionFailed(contextId, "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>"))
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
+              Vector(
+                Api.StackTraceElement(
+                  "Main.bar",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(2, 14), model.Position(2, 23))
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2775,14 +2805,31 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          "Unexpected type provided for argument `that` in Text.+"
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Unexpected type provided for argument `that` in Text.+",
+              None,
+              None,
+              Vector(
+                Api.StackTraceElement("Text.+", None, None),
+                Api.StackTraceElement(
+                  "Main.bar",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(2, 10), model.Position(2, 15))
+                  )
+                )
+              )
+            )
+          )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 
@@ -2796,7 +2843,280 @@ class RuntimeServerTest
       """from Builtins import all
         |
         |main = Number.pi
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "No_Such_Method_Error Number UnresolvedSymbol<pi>",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
+              Vector(
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(2, 7), model.Position(2, 16)))
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return error with a stack trace" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main = this.foo
+        |
+        |foo =
+        |    x = this.bar
+        |    x
+        |bar =
+        |    x = this.baz
+        |    x
+        |baz =
+        |    x = 1 + quux
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Unexpected type provided for argument `that` in Integer.+",
+              None,
+              None,
+              Vector(
+                Api.StackTraceElement("Small_Integer.+", None, None),
+                Api.StackTraceElement(
+                  "Main.baz",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(11, 8), model.Position(11, 16))
+                  )
+                ),
+                Api.StackTraceElement(
+                  "Main.bar",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(8, 8), model.Position(8, 16)))
+                ),
+                Api.StackTraceElement(
+                  "Main.foo",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(5, 8), model.Position(5, 16)))
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return compiler warning unused wariable" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main = x = 1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused variable x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 7), model.Position(2, 8)))
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return compiler warning unused argument" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |foo x = 1
+        |
+        |main = 42
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused function argument x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 4), model.Position(2, 5)))
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return compiler error variable redefined" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = 1
+        |    x = 2
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -2829,9 +3149,200 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          "No_Such_Method_Error Number UnresolvedSymbol<pi>"
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused variable x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
+            ),
+            Api.ExecutionResult.Diagnostic.error(
+              "Variable x is being redefined.",
+              Some(mainFile),
+              Some(model.Range(model.Position(4, 4), model.Position(4, 9)))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  it should "return compiler error unrecognized token" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = Panic.recover @
+        |    IO.println (x.catch to_text)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Unrecognized token.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 22), model.Position(3, 23)))
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List()
+  }
+
+  it should "return compiler error syntax error" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = Panic.recover ()
+        |    IO.println (x.catch to_text)
+        |
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Parentheses can't be empty.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 22), model.Position(3, 24)))
+            )
+          )
+        )
+      )
+    )
+  }
+
+  it should "return compiler error method overloads are not supported" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code =
+      """from Builtins import all
+        |
+        |foo = 1
+        |foo = 2
+        |
+        |main = IO.println this.foo
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Method overloads are not supported: here.foo is defined multiple times in this module.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 0), model.Position(3, 7)))
+            )
+          )
         )
       )
     )
@@ -2868,7 +3379,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main2.Update.mainY(contextId),
       context.Main2.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
 
@@ -2878,7 +3389,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
   }
@@ -2967,7 +3478,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // attach visualisation
@@ -2988,7 +3499,7 @@ class RuntimeServerTest
     val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -3013,7 +3524,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute invalidating x
@@ -3031,7 +3542,7 @@ class RuntimeServerTest
     val recomputeResponses2 = context.receive(3)
     recomputeResponses2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val Some(data2) = recomputeResponses2.collectFirst {
       case Api.Response(
@@ -3219,7 +3730,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // attach visualization
@@ -3240,7 +3751,7 @@ class RuntimeServerTest
     val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -3275,7 +3786,7 @@ class RuntimeServerTest
     )
 
     val editFileResponse = context.receive(2)
-    editFileResponse should contain(context.executionSuccessful(contextId))
+    editFileResponse should contain(context.executionComplete(contextId))
     val Some(data1) = editFileResponse.collectFirst {
       case Api.Response(
             None,
@@ -3339,7 +3850,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // attach visualisation
@@ -3361,7 +3872,7 @@ class RuntimeServerTest
     val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -3397,7 +3908,7 @@ class RuntimeServerTest
     val modifyVisualisationResponses = context.receive(3)
     modifyVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationModified()),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val Some(dataAfterModification) =
       modifyVisualisationResponses.collectFirst {
@@ -3463,9 +3974,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
-      Api.Response(Api.ExecutionFailed(contextId, "Stack is empty."))
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure("Execution stack is empty.", None)
+        )
+      ),
+      context.executionComplete(contextId)
     )
 
     // push main
@@ -3483,7 +4000,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) =
@@ -3524,7 +4041,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute invalidating x
@@ -3541,7 +4058,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 
@@ -3582,7 +4099,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // rename Test -> Foo
@@ -3598,7 +4115,7 @@ class RuntimeServerTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
 
     // recompute invalidating all
@@ -3625,7 +4142,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionSuccessful(contextId)
+      context.executionComplete(contextId)
     )
   }
 

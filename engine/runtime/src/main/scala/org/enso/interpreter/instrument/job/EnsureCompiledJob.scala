@@ -3,7 +3,10 @@ package org.enso.interpreter.instrument.job
 import java.io.{File, IOException}
 import java.util.logging.Level
 
-import org.enso.compiler.context.{Changeset, SuggestionBuilder}
+import cats.implicits._
+import org.enso.compiler.context.{Changeset, ModuleContext, SuggestionBuilder}
+import org.enso.compiler.core.IR
+import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
@@ -11,7 +14,7 @@ import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{Position, Range, TextEdit}
 
 import scala.collection.concurrent.TrieMap
 import scala.jdk.CollectionConverters._
@@ -23,41 +26,46 @@ import scala.jdk.OptionConverters._
   * @param files a files to compile
   */
 class EnsureCompiledJob(protected val files: Iterable[File])
-    extends Job[Unit](List.empty, true, false) {
+    extends Job[EnsureCompiledJob.CompilationStatus](List.empty, true, false) {
+
+  import EnsureCompiledJob.CompilationStatus
 
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): Unit = {
+  override def run(implicit ctx: RuntimeContext): CompilationStatus = {
     ctx.locking.acquireWriteCompilationLock()
     try {
-      val modules = ensureCompiledFiles(files)
+      val modules = files.flatMap { file =>
+        ctx.executionService.getContext.getModuleForFile(file).toScala
+      }
+      ensureIndexedModules(modules)
+      ensureIndexedImports(modules)
       ensureCompiledScope()
-      ensureCompiledImports(modules)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
     }
   }
 
   /**
-    * Run the scheduled compilation and invalidation logic.
+    * Run the scheduled compilation and invalidation logic, and send the
+    * suggestion updates.
     *
-    * @param files the list of files to compile.
+    * @param modules the list of modules to compile.
     * @param ctx the runtime context
     */
-  protected def ensureCompiledFiles(
-    files: Iterable[File]
-  )(implicit ctx: RuntimeContext): Iterable[Module] = {
-    for {
-      file   <- files
-      module <- compile(file)
-    } yield {
-      val changeset = applyEdits(file)
-      compile(module)
-      runInvalidationCommands(
-        buildCacheInvalidationCommands(changeset, module.getLiteralSource)
-      )
-      analyzeModule(module, changeset)
-      module
-    }
+  protected def ensureIndexedModules(
+    modules: Iterable[Module]
+  )(implicit ctx: RuntimeContext): Unit = {
+    modules
+      .foreach { module =>
+        compile(module)
+        val changeset = applyEdits(new File(module.getPath))
+        compile(module).foreach { module =>
+          runInvalidationCommands(
+            buildCacheInvalidationCommands(changeset, module.getLiteralSource)
+          )
+          analyzeModule(module, changeset)
+        }
+      }
   }
 
   /**
@@ -66,19 +74,20 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param modules the list of modules to analyze.
     * @param ctx the runtime context
     */
-  protected def ensureCompiledImports(
+  protected def ensureIndexedImports(
     modules: Iterable[Module]
   )(implicit ctx: RuntimeContext): Unit = {
     modules.foreach { module =>
-      compile(module)
-      val importedModules =
-        new ImportResolver(ctx.executionService.getContext.getCompiler)
-          .mapImports(module)
-          .filter(_.getName != module.getName)
-      ctx.executionService.getLogger.finest(
-        s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
-      )
-      importedModules.foreach(analyzeImport)
+      compile(module).foreach { module =>
+        val importedModules =
+          new ImportResolver(ctx.executionService.getContext.getCompiler)
+            .mapImports(module)
+            .filter(_.getName != module.getName)
+        ctx.executionService.getLogger.finest(
+          s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
+        )
+        importedModules.foreach(analyzeImport)
+      }
     }
   }
 
@@ -87,15 +96,33 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     *
     * @param ctx the runtime context
     */
-  protected def ensureCompiledScope()(implicit ctx: RuntimeContext): Unit = {
+  protected def ensureCompiledScope()(implicit
+    ctx: RuntimeContext
+  ): CompilationStatus = {
     val modulesInScope =
       ctx.executionService.getContext.getTopScope.getModules.asScala
     ctx.executionService.getLogger
       .finest(s"Modules in scope: ${modulesInScope.map(_.getName)}")
-    modulesInScope.foreach { module =>
-      compile(module)
-      analyzeModuleInScope(module)
-    }
+    modulesInScope
+      .map { module =>
+        compile(module) match {
+          case Left(err) =>
+            ctx.executionService.getLogger
+              .log(Level.SEVERE, s"Compilation error in ${module.getPath}", err)
+            sendFailureUpdate(
+              Api.ExecutionResult.Failure(
+                err.getMessage,
+                Option(module.getPath).map(new File(_))
+              )
+            )
+            CompilationStatus.Failure
+          case Right(module) =>
+            analyzeModuleInScope(module)
+            runCompilationDiagnostics(module)
+        }
+      }
+      .maxOption
+      .getOrElse(CompilationStatus.Success)
   }
 
   private def analyzeImport(
@@ -199,19 +226,65 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   }
 
   /**
-    * Compile the file.
+    * Extract compilation diagnostics from the module and send the diagnostic
+    * updates.
     *
-    * @param file the file path to compile
+    * @param module the module to analyze
     * @param ctx the runtime context
-    * @return the compiled module
+    * @return the compilation outcome
     */
-  private def compile(
-    file: File
-  )(implicit ctx: RuntimeContext): Option[Module] = {
-    ctx.executionService.getContext
-      .getModuleForFile(file)
-      .map(compile(_))
-      .toScala
+  private def runCompilationDiagnostics(module: Module)(implicit
+    ctx: RuntimeContext
+  ): CompilationStatus = {
+    val errors = GatherDiagnostics
+      .runModule(module.getIr, ModuleContext(module))
+      .unsafeGetMetadata(
+        GatherDiagnostics,
+        "No diagnostics metadata right after the gathering pass."
+      )
+      .diagnostics
+    val diagnostics = errors.collect {
+      case warn: IR.Warning =>
+        createDiagnostic(Api.DiagnosticType.Warning(), module, warn)
+      case error: IR.Error =>
+        createDiagnostic(Api.DiagnosticType.Error(), module, error)
+    }
+    sendDiagnosticUpdates(diagnostics)
+    getCompilationStatus(diagnostics)
+  }
+
+  /**
+    * Create Api diagnostic message from the `IR` node.
+    *
+    * @param kind the diagnostic type
+    * @param module the module to analyze
+    * @param diagnostic the diagnostic `IR` node
+    * @return the diagnostic message
+    */
+  private def createDiagnostic(
+    kind: Api.DiagnosticType,
+    module: Module,
+    diagnostic: IR.Diagnostic
+  ): Api.ExecutionResult.Diagnostic = {
+    val fileOpt = Option(module.getPath).map(new File(_))
+    val locationOpt =
+      diagnostic.location.map { loc =>
+        val section = module.getSource.createSection(
+          loc.location.start,
+          loc.location.length
+        )
+        Range(
+          Position(section.getStartLine - 1, section.getStartColumn - 1),
+          Position(section.getEndLine - 1, section.getEndColumn)
+        )
+      }
+    Api.ExecutionResult.Diagnostic(
+      kind,
+      diagnostic.message,
+      fileOpt,
+      locationOpt,
+      Vector()
+    )
   }
 
   /**
@@ -223,15 +296,17 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def compile(
     module: Module
-  )(implicit ctx: RuntimeContext): Module = {
+  )(implicit ctx: RuntimeContext): Either[Throwable, Module] = {
     val prevStage = module.getCompilationStage
-    module.compileScope(ctx.executionService.getContext).getModule
+    val compilationResult = Either.catchNonFatal {
+      module.compileScope(ctx.executionService.getContext).getModule
+    }
     if (prevStage != module.getCompilationStage) {
       ctx.executionService.getLogger.finest(
         s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
       )
     }
-    module
+    compilationResult
   }
 
   /**
@@ -319,6 +394,39 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
 
+  /**
+    * Send notification about the compilation status.
+    *
+    * @param diagnostics the list of diagnostic messages returned by the
+    * compiler
+    * @param ctx the runtime context
+    */
+  private def sendDiagnosticUpdates(
+    diagnostics: Seq[Api.ExecutionResult.Diagnostic]
+  )(implicit ctx: RuntimeContext): Unit =
+    if (diagnostics.nonEmpty) {
+      ctx.contextManager.getAll.keys.foreach { contextId =>
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
+        )
+      }
+    }
+
+  /**
+    * Send notification about the compilation status.
+    *
+    * @param failure the execution failure
+    * @param ctx the runtime context
+    */
+  private def sendFailureUpdate(
+    failure: Api.ExecutionResult.Failure
+  )(implicit ctx: RuntimeContext): Unit =
+    ctx.contextManager.getAll.keys.foreach { contextId =>
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.ExecutionFailed(contextId, failure))
+      )
+    }
+
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
     suggestion match {
       case _: Suggestion.Atom     => true
@@ -326,9 +434,38 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       case _: Suggestion.Function => false
       case _: Suggestion.Local    => false
     }
+
+  private def getCompilationStatus(
+    diagnostics: Iterable[Api.ExecutionResult.Diagnostic]
+  ): CompilationStatus =
+    if (diagnostics.exists(_.kind == Api.DiagnosticType.Error()))
+      CompilationStatus.Error
+    else
+      CompilationStatus.Success
 }
 
 object EnsureCompiledJob {
+
+  /** The outcome of a compilation. */
+  sealed trait CompilationStatus
+  case object CompilationStatus {
+
+    /** Compilation completed. */
+    case object Success extends CompilationStatus
+
+    /** Compilation completed with errors. */
+    case object Error extends CompilationStatus
+
+    /** Compiler crashed. */
+    case object Failure extends CompilationStatus
+
+    implicit val ordering: Ordering[CompilationStatus] =
+      Ordering.by {
+        case Success => 0
+        case Error   => 1
+        case Failure => 2
+      }
+  }
 
   private val unappliedEdits =
     new TrieMap[File, Seq[TextEdit]]()

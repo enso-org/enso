@@ -1,15 +1,26 @@
 package org.enso.languageserver.runtime
 
+import java.io.File
 import java.nio.file.Files
 import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.data.DirectoriesConfig
+import org.enso.languageserver.data.{
+  Config,
+  DirectoriesConfig,
+  ExecutionContextConfig,
+  FileManagerConfig,
+  PathWatcherConfig
+}
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  ExecutionDiagnostic,
+  ExecutionDiagnosticKind,
+  ExecutionDiagnosticNotification,
   ExecutionFailedNotification,
+  ExecutionFailure,
   ExpressionValuesComputedNotification,
   VisualisationContext,
   VisualisationEvaluationFailed,
@@ -191,12 +202,48 @@ class ContextEventsListenerSpec
     "send execution failed notification" taggedAs Retry in withDb {
       (clientId, contextId, _, router, listener) =>
         val message = "Test execution failed"
-        listener ! Api.ExecutionFailed(contextId, message)
+        listener ! Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure(message, None)
+        )
 
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            ExecutionFailedNotification(contextId, message)
+            ExecutionFailedNotification(
+              contextId,
+              ExecutionFailure(
+                message,
+                None
+              )
+            )
+          )
+        )
+    }
+
+    "send execution update notification" taggedAs Retry in withDb {
+      (clientId, contextId, _, router, listener) =>
+        val message = "Test execution failed"
+        listener ! Api.ExecutionUpdate(
+          contextId,
+          Seq(Api.ExecutionResult.Diagnostic.error(message))
+        )
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            ExecutionDiagnosticNotification(
+              contextId,
+              Seq(
+                ExecutionDiagnostic(
+                  ExecutionDiagnosticKind.Error,
+                  message,
+                  None,
+                  None,
+                  Vector()
+                )
+              )
+            )
           )
         )
     }
@@ -215,6 +262,16 @@ class ContextEventsListenerSpec
     }
   }
 
+  def newConfig(root: File): Config = {
+    Config(
+      Map(UUID.randomUUID() -> root),
+      FileManagerConfig(timeout = 3.seconds),
+      PathWatcherConfig(),
+      ExecutionContextConfig(requestTimeout = 3.seconds),
+      DirectoriesConfig(root)
+    )
+  }
+
   def newJsonSession(clientId: UUID): JsonSession =
     JsonSession(clientId, TestProbe().ref)
 
@@ -228,13 +285,14 @@ class ContextEventsListenerSpec
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val dirsConfig = DirectoriesConfig(testContentRoot.toFile)
-    val clientId   = UUID.randomUUID()
-    val contextId  = UUID.randomUUID()
-    val router     = TestProbe("session-router")
-    val repo       = SqlSuggestionsRepo(dirsConfig.suggestionsDatabaseFile)
+    val config    = newConfig(testContentRoot.toFile)
+    val clientId  = UUID.randomUUID()
+    val contextId = UUID.randomUUID()
+    val router    = TestProbe("session-router")
+    val repo      = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
     val listener = system.actorOf(
       ContextEventsListener.props(
+        config,
         repo,
         newJsonSession(clientId),
         contextId,

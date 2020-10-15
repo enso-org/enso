@@ -176,10 +176,26 @@ class JsonConnectionController(
         ExecutionContextExpressionValuesComputed.Params(contextId, updates)
       )
 
-    case ContextRegistryProtocol.ExecutionFailedNotification(contextId, msg) =>
+    case ContextRegistryProtocol.ExecutionFailedNotification(
+          contextId,
+          failure
+        ) =>
       webActor ! Notification(
         ExecutionContextExecutionFailed,
-        ExecutionContextExecutionFailed.Params(contextId, msg)
+        ExecutionContextExecutionFailed.Params(
+          contextId,
+          failure.message,
+          failure.path
+        )
+      )
+
+    case ContextRegistryProtocol.ExecutionDiagnosticNotification(
+          contextId,
+          diagnostics
+        ) =>
+      webActor ! Notification(
+        ExecutionContextExecutionStatus,
+        ExecutionContextExecutionStatus.Params(contextId, diagnostics)
       )
 
     case SearchProtocol.SuggestionsDatabaseUpdateNotification(

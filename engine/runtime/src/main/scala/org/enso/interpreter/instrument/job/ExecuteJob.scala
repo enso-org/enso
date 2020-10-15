@@ -37,23 +37,26 @@ class ExecuteJob(
     ctx.locking.acquireReadCompilationLock()
     ctx.executionService.getContext.getThreadManager.enter()
     try {
-      val errorOrOk =
+      val outcome =
         runProgram(
           contextId,
           stack,
           updatedVisualisations,
           sendMethodCallUpdates
         )
-      errorOrOk match {
-        case Left(e) =>
+      outcome.foreach {
+        case diagnostic: Api.ExecutionResult.Diagnostic =>
           ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionFailed(contextId, e))
+            Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
           )
-        case Right(()) =>
+        case failure: Api.ExecutionResult.Failure =>
           ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionSuccessful(contextId))
+            Api.Response(Api.ExecutionFailed(contextId, failure))
           )
       }
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.ExecutionComplete(contextId))
+      )
     } finally {
       ctx.executionService.getContext.getThreadManager.leave()
       ctx.locking.releaseReadCompilationLock()

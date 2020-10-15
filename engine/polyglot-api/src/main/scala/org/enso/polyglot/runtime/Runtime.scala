@@ -12,7 +12,7 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.polyglot.Suggestion
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{Range, TextEdit}
 
 import scala.util.Try
 
@@ -129,11 +129,15 @@ object Runtime {
         name  = "moduleNotFound"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExecutionUpdate],
+        name  = "executionUpdate"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ExecutionFailed],
         name  = "executionFailed"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionSuccessful],
+        value = classOf[Api.ExecutionComplete],
         name  = "executionSuccessful"
       ),
       new JsonSubTypes.Type(
@@ -368,6 +372,149 @@ object Runtime {
       case class Clean(module: String) extends SuggestionsDatabaseUpdate
     }
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[DiagnosticType.Error],
+          name  = "diagnosticTypeError"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[DiagnosticType.Warning],
+          name  = "diagnosticTypeWarning"
+        )
+      )
+    )
+    sealed trait DiagnosticType
+    object DiagnosticType {
+
+      case class Error()   extends DiagnosticType
+      case class Warning() extends DiagnosticType
+    }
+
+    /**
+      * The element in the stack trace.
+      *
+      * @param functionName the function containing the stack call
+      * @param file the location of a file
+      * @param location the location of the element in a file
+      */
+    case class StackTraceElement(
+      functionName: String,
+      file: Option[File],
+      location: Option[Range]
+    )
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionResult.Diagnostic],
+          name  = "executionOutcomeDiagnostic"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionResult.Failure],
+          name  = "executionOutcomeFailure"
+        )
+      )
+    )
+    sealed trait ExecutionResult
+    object ExecutionResult {
+
+      /**
+        * A diagnostic object produced as a compilation outcome, like error or
+        * warning.
+        *
+        * @param kind the diagnostic type
+        * @param message the diagnostic message
+        * @param file the location of a file
+        * @param location the location of the diagnostic object in a file
+        * @param stack the stack trace
+        */
+      case class Diagnostic(
+        kind: DiagnosticType,
+        message: String,
+        file: Option[File],
+        location: Option[Range],
+        stack: Vector[StackTraceElement]
+      ) extends ExecutionResult
+
+      case object Diagnostic {
+
+        /**
+          * Create an error diagnostic message.
+          *
+          * @param message the diagnostic message
+          * @param file the location of a file
+          * @param location the location of the diagnostic object in a file
+          * @param stack the stack trace
+          * @return the instance of an error [[Diagnostic]] message
+          */
+        def error(
+          message: String,
+          file: Option[File]               = None,
+          location: Option[Range]          = None,
+          stack: Vector[StackTraceElement] = Vector()
+        ): Diagnostic =
+          new Diagnostic(DiagnosticType.Error(), message, file, location, stack)
+
+        /**
+          * Create a warning diagnostic message.
+          *
+          * @param message the diagnostic message
+          * @param file the location of a file
+          * @param location the location of the diagnostic object in a file
+          * @param stack the stack trace
+          * @return the instance of a warning [[Diagnostic]] message
+          */
+        def warning(
+          message: String,
+          file: Option[File]               = None,
+          location: Option[Range]          = None,
+          stack: Vector[StackTraceElement] = Vector()
+        ): Diagnostic =
+          new Diagnostic(
+            DiagnosticType.Warning(),
+            message,
+            file,
+            location,
+            stack
+          )
+      }
+
+      /**
+        * A critical failure when attempting to execute a context.
+        *
+        * @param message the error message
+        * @param file the location of a file producing the error
+        */
+      case class Failure(message: String, file: Option[File])
+          extends ExecutionResult
+
+    }
+
+    /**
+      * The notification about the execution status.
+      *
+      * @param contextId the context's id
+      * @param diagnostics the list of diagnostic messages
+      */
+    case class ExecutionUpdate(
+      contextId: ContextId,
+      diagnostics: Seq[ExecutionResult.Diagnostic]
+    ) extends ApiNotification
+
+    /**
+      * Signals about the critical failure during the context execution.
+      *
+      * @param contextId the context's id
+      * @param failure the error description
+      */
+    case class ExecutionFailed(
+      contextId: ContextId,
+      failure: ExecutionResult.Failure
+    ) extends ApiNotification
+
     /**
       * An event signaling a visualisation update.
       *
@@ -539,20 +686,11 @@ object Runtime {
     case class ModuleNotFound(moduleName: String) extends Error
 
     /**
-      * Signals that execution of a context failed.
-      *
-      * @param contextId the context's id.
-      * @param message the error message.
-      */
-    case class ExecutionFailed(contextId: ContextId, message: String)
-        extends ApiNotification
-
-    /**
-      * Signals that execution of a context was successful.
+      * Signals that execution of a context completed.
       *
       * @param contextId the context's id
       */
-    case class ExecutionSuccessful(contextId: ContextId) extends ApiNotification
+    case class ExecutionComplete(contextId: ContextId) extends ApiNotification
 
     /**
       * Signals that an expression specified in a [[AttachVisualisation]] or

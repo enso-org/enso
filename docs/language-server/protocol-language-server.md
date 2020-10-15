@@ -39,6 +39,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`Position`](#position)
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
+  - [`DiagnosticType`](#diagnostictype)
+  - [`StackTraceElement`](#stacktraceelement)
+  - [`Diagnostic`](#diagnostic)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
   - [`FileContents`](#filecontents)
@@ -99,7 +102,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
-  - [`executionContext/executionFailed`](#executioncontextexecutionFailed)
+  - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
+  - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
@@ -545,6 +549,86 @@ interface TextEdit {
 }
 ```
 
+### `DiagnosticType`
+
+The type of diagnostic message.
+
+#### Format
+
+```typescript
+type DiagnosticType = Error | Warning;
+```
+
+### `StackTraceElement`
+
+The frame of the stack trace. If the error refer to a builtin node, the `path`
+and `location` fields will be empty.
+
+#### Format
+
+```typescript
+interface StackTraceElement {
+  /**
+   * The function name containing the stack trace element.
+   */
+  functionName: String;
+
+  /**
+   * The location of the file.
+   */
+  path?: Path;
+
+  /**
+   * The location of the element in a file.
+   */
+  location?: Range;
+}
+```
+
+### `Diagnostic`
+
+A diagnostic object is produced as a result of an execution attempt, like
+pushing the method pointer to a call stack, or editing the file. It can
+represent a compiler warning, a compilation error, or a runtime error. The
+message has optional `path`, `location` and `stack` fields containing
+information about the location in the source code.
+
+In case of the runtime errors, the `path` and `location` fields may be empty if
+the error happens in a builtin node. Then, to locate the error in the code, you
+can use the `stack` field with a stack trace to find the first element with
+non-empty location (as the head of the stack will point to the builtin element).
+
+#### Format
+
+```typescript
+interface Diagnostic {
+  /**
+   * The type of diagnostic message.
+   */
+  kind: DiagnosticType;
+
+  /**
+   * The diagnostic message.
+   */
+  message: String;
+
+  /**
+   * The location of a file containing the diagnostic.
+   */
+  path?: Path;
+
+  /**
+   * The location of the diagnostic object in a file.
+   */
+  location?: Range;
+
+  /**
+   * The stack trace.
+   */
+  stack: StackTraceElement[];
+}
+```
+
 ### `SHA3-224`
 
 The `SHA3-224` message digest encoded as a base16 string.
@@ -940,6 +1024,8 @@ given execution context.
 #### Enables
 
 - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+- [`executionContext/executionFailed`](#executioncontextexecutionfailed)
+- [`executionContext/executionStatus`](#executioncontextexecutionstatus)
 
 #### Disables
 
@@ -2290,8 +2376,15 @@ None
 
 ### `executionContext/executionFailed`
 
-Sent from the server to the client to inform about a failure during execution of
-an execution context.
+Sent from the server to the client to inform about a critical failure when
+attempting to execute a context.
+
+When the [`executionContext/executionStatus`](#executioncontextexecutionstatus)
+notifies about potential problems in the code found by compiler, or the errors
+during runtime, this message signals about the errors in the logic or the
+implementation. It can be a compiler crash, an attempt to execute an empty
+stack, an error location a method or a module when issuing a
+[`executionContext/push`](#executioncontextpush) command.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -2302,8 +2395,49 @@ an execution context.
 
 ```typescript
 {
+  /**
+   * The identifier of the execution context.
+   */
   contextId: ContextId;
+
+  /**
+   * The error message.
+   */
   message: String;
+
+  /**
+   * The location of a file producing the error.
+   */
+  path?: Path;
+}
+```
+
+#### Errors
+
+None
+
+### `executionContext/executionStatus`
+
+Sent from the server to the client to inform about a status of execution.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * The identifier of the execution context.
+   */
+  contextId: ContextId;
+
+  /**
+   * The list of encountered problems.
+   */
+  diagnostics: Diagnostic[];
 }
 ```
 

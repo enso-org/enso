@@ -1,12 +1,17 @@
 package org.enso.interpreter.instrument.job
 
+import java.io.File
 import java.util.{Objects, UUID}
 import java.util.function.Consumer
 import java.util.logging.Level
 
 import cats.implicits._
-import com.oracle.truffle.api.TruffleException
-import com.oracle.truffle.api.interop.InteropException
+import com.oracle.truffle.api.source.SourceSection
+import com.oracle.truffle.api.{
+  TruffleException,
+  TruffleStackTrace,
+  TruffleStackTraceElement
+}
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -25,9 +30,18 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.service.error.ServiceException
+import org.enso.interpreter.service.error.{
+  ConstructorNotFoundException,
+  MethodNotFoundException,
+  ServiceException
+}
+import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.text.editing.model
+
+import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * Provides support for executing Enso code. Adds convenient methods to
@@ -136,14 +150,14 @@ trait ProgramExecutionSupport {
     * @param sendMethodCallUpdates a flag to send all the method calls of the
     * executed frame as a value updates
     * @param ctx a runtime context
-    * @return either an error message or Unit signaling completion of a program
+    * @return a diagnostic message
     */
   final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame],
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
-  )(implicit ctx: RuntimeContext): Either[String, Unit] = {
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -183,8 +197,11 @@ trait ProgramExecutionSupport {
     }
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
-    for {
-      stackItem <- Either.fromOption(explicitCallOpt, "Stack is empty.")
+    val executionResult = for {
+      stackItem <- Either.fromOption(
+        explicitCallOpt,
+        Api.ExecutionResult.Failure("Execution stack is empty.", None)
+      )
       _ <-
         Either
           .catchNonFatal(
@@ -199,6 +216,7 @@ trait ProgramExecutionSupport {
           )
           .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
+    executionResult.fold(Some(_), _ => None)
   }
 
   /** Execution error handler.
@@ -210,37 +228,127 @@ trait ProgramExecutionSupport {
   private def onExecutionError(
     item: ExecutionItem,
     error: Throwable
-  )(implicit ctx: RuntimeContext): String = {
+  )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(call)         => call.getFunction.getName
     }
-    val errorMessage = getErrorMessage(error)
-    errorMessage match {
+    val executionUpdate = getExecutionOutcome(error)
+    executionUpdate match {
       case Some(_) =>
         ctx.executionService.getLogger
-          .log(Level.FINE, s"Error executing a function $itemName.")
+          .log(Level.FINEST, s"Error executing a function $itemName.")
       case None =>
         ctx.executionService.getLogger
-          .log(Level.FINE, s"Error executing a function $itemName.", error)
+          .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
-    errorMessage.getOrElse(s"Error in function $itemName.")
+    executionUpdate.getOrElse(
+      Api.ExecutionResult
+        .Failure(s"Error in function $itemName.", None)
+    )
   }
 
-  /** Get error message from throwable. */
-  private def getErrorMessage(t: Throwable): Option[String] =
+  /**
+    * Convert the runtime exception to the corresponding API error messages.
+    *
+    * @param t the exception
+    * @param ctx the runtime context
+    * @return the API message describing the error
+    */
+  private def getExecutionOutcome(
+    t: Throwable
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
+    def getLanguage(ex: TruffleException): Option[String] =
+      for {
+        location <- Option(ex.getSourceLocation)
+        source   <- Option(location.getSource)
+      } yield source.getLanguage
     t match {
-      case ex: InteropException => Some(ex.getMessage)
-      case ex: TruffleException => Some(ex.getMessage)
-      case ex: ServiceException => Some(ex.getMessage)
-      case _                    => None
+      case ex: TruffleException
+          if getLanguage(ex).forall(_ == LanguageInfo.ID) =>
+        val section = Option(ex.getSourceLocation)
+        Some(
+          Api.ExecutionResult.Diagnostic.error(
+            ex.getMessage,
+            section.flatMap(sec => findFileByModuleName(sec.getSource.getName)),
+            section.map(toLocation),
+            getStackTrace(ex)
+          )
+        )
+
+      case ex: ConstructorNotFoundException =>
+        Some(
+          Api.ExecutionResult.Failure(
+            ex.getMessage,
+            findFileByModuleName(ex.getModule)
+          )
+        )
+
+      case ex: MethodNotFoundException =>
+        Some(
+          Api.ExecutionResult.Failure(
+            ex.getMessage,
+            findFileByModuleName(ex.getModule)
+          )
+        )
+
+      case ex: ServiceException =>
+        Some(Api.ExecutionResult.Failure(ex.getMessage, None))
+
+      case _ =>
+        None
     }
+  }
+
+  /**
+    * Create a stack trace of a guest language from a java exception.
+    *
+    * @param throwable the exception
+    * @param ctx the runtime context
+    * @return a runtime API representation of a stack trace
+    */
+  private def getStackTrace(
+    throwable: Throwable
+  )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] =
+    TruffleStackTrace
+      .getStackTrace(throwable)
+      .asScala
+      .map(toStackElement)
+      .toVector
+
+  /**
+    * Convert from the truffle stack element to the runtime API representation.
+    *
+    * @param element the trufle stack trace element
+    * @param ctx the runtime context
+    * @return the runtime API representation of the stack trace element
+    */
+  private def toStackElement(
+    element: TruffleStackTraceElement
+  )(implicit ctx: RuntimeContext): Api.StackTraceElement = {
+    val node = element.getLocation
+    node.getEncapsulatingSourceSection match {
+      case null =>
+        Api.StackTraceElement(node.getRootNode.getName, None, None)
+      case section =>
+        Api.StackTraceElement(
+          element.getTarget.getRootNode.getName,
+          findFileByModuleName(section.getSource.getName),
+          Some(toLocation(section))
+        )
+    }
+  }
 
   private def sendErrorUpdate(contextId: ContextId, error: Throwable)(implicit
     ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(
-      Api.Response(Api.ExecutionFailed(contextId, error.getMessage))
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(Api.ExecutionResult.Diagnostic.error(error.getMessage))
+        )
+      )
     )
   }
 
@@ -342,6 +450,34 @@ trait ProgramExecutionSupport {
       typeName,
       call.getFunctionName
     )
+
+  /**
+    * Convert truffle source section to the range of text.
+    *
+    * @param section the source section
+    * @return the correponding range in the text file
+    */
+  private def toLocation(section: SourceSection): model.Range =
+    model.Range(
+      model.Position(section.getStartLine - 1, section.getStartColumn - 1),
+      model.Position(section.getEndLine - 1, section.getEndColumn)
+    )
+
+  /**
+    * Find source file path by the module name.
+    *
+    * @param module the module name
+    * @param ctx the runtime context
+    * @return the source file path
+    */
+  private def findFileByModuleName(
+    module: String
+  )(implicit ctx: RuntimeContext): Option[File] =
+    for {
+      module <- ctx.executionService.getContext.findModule(module).toScala
+      path   <- Option(module.getPath)
+    } yield new File(path)
+
 }
 
 object ProgramExecutionSupport {

@@ -77,6 +77,8 @@ final class ContextRegistry(
     context.system.eventStream
       .subscribe(self, classOf[Api.ExecutionFailed])
     context.system.eventStream
+      .subscribe(self, classOf[Api.ExecutionUpdate])
+    context.system.eventStream
       .subscribe(self, classOf[Api.VisualisationEvaluationFailed])
   }
 
@@ -98,6 +100,9 @@ final class ContextRegistry(
     case update: Api.ExecutionFailed =>
       store.getListener(update.contextId).foreach(_ ! update)
 
+    case update: Api.ExecutionUpdate =>
+      store.getListener(update.contextId).foreach(_ ! update)
+
     case update: Api.VisualisationEvaluationFailed =>
       store.getListener(update.contextId).foreach(_ ! update)
 
@@ -107,7 +112,13 @@ final class ContextRegistry(
         context.actorOf(CreateContextHandler.props(timeout, runtime))
       val listener =
         context.actorOf(
-          ContextEventsListener.props(repo, client, contextId, sessionRouter)
+          ContextEventsListener.props(
+            config,
+            repo,
+            client,
+            contextId,
+            sessionRouter
+          )
         )
       handler.forward(Api.CreateContextRequest(contextId))
       context.become(

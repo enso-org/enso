@@ -13,7 +13,8 @@ import org.enso.syntax.text.Shape.{
   SegmentEscape,
   SegmentExpr,
   SegmentPlain,
-  SegmentRawEscape
+  SegmentRawEscape,
+  TextUnclosed
 }
 import org.enso.syntax.text.ast.text.Escape
 import org.enso.syntax.text.ast.text.Escape.Unicode
@@ -472,7 +473,7 @@ object AstToIr {
     * @param literal the literal to translate
     * @return the [[IR]] representation of `literal`
     */
-  def translateLiteral(literal: AST.Literal): Expression = {
+  def translateLiteral(literal: AST.Literal): Expression =
     literal match {
       case AST.Literal.Number(base, number) =>
         if (base.isDefined && base.get != "10") {
@@ -518,13 +519,14 @@ object AstToIr {
               case Right(str) =>
                 IR.Literal.Text(str, getIdentifiedLocation(literal))
             }
+          case TextUnclosed(_) =>
+            Error.Syntax(literal, Error.Syntax.UnclosedTextLiteral)
 
           case _ =>
             throw new UnhandledEntity(literal.shape, "translateLiteral")
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
-  }
 
   private def parseFmtSegments(
     literal: AST,
