@@ -12,7 +12,6 @@ import org.enso.interpreter.runtime.state.Stateful;
 @BuiltinMethod(
     type = "Boolean",
     name = "if_then_else",
-    alwaysDirect = false,
     description = "Performs the standard if-then-else control flow operation.")
 public class IfThenElseNode extends Node {
   private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();

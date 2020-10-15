@@ -15,8 +15,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
     type = "Any",
     name = "catch",
     description =
-        "If called on an error, executes the provided handler on the error's payload. Otherwise acts as identity.",
-    alwaysDirect = false)
+        "If called on an error, executes the provided handler on the error's payload. Otherwise acts as identity.")
 public class CatchErrorNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
   private final ConditionProfile executionProfile = ConditionProfile.createCountingProfile();

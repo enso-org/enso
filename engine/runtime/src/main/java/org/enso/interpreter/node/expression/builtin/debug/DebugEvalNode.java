@@ -13,8 +13,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @BuiltinMethod(
     type = "Debug",
     name = "eval",
-    description = "Evaluates an expression passed as a Text argument, in the caller frame.",
-    alwaysDirect = false)
+    description = "Evaluates an expression passed as a Text argument, in the caller frame.")
 public class DebugEvalNode extends Node {
   private @Child EvalNode evalNode = EvalNode.build();
 

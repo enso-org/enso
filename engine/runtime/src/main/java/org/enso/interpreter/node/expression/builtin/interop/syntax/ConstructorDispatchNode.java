@@ -13,7 +13,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -37,7 +36,6 @@ public class ConstructorDispatchNode extends BuiltinRootNode {
   public static Function makeFunction(Language language) {
     return Function.fromBuiltinRootNode(
         new ConstructorDispatchNode(language),
-        CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
   }

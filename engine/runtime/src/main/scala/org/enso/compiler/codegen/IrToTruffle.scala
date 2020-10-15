@@ -272,10 +272,7 @@ class IrToTruffle(
               new RuntimeFunction(
                 callTarget,
                 null,
-                new FunctionSchema(
-                  FunctionSchema.CallStrategy.CALL_LOOP,
-                  arguments: _*
-                )
+                new FunctionSchema(arguments: _*)
               )
             case _ =>
               throw new CompilerError(
@@ -352,7 +349,6 @@ class IrToTruffle(
       new EnsoProjectNode(language, context, pkg)
     )
     val schema = new FunctionSchema(
-      FunctionSchema.CallStrategy.ALWAYS_DIRECT,
       new ArgumentDefinition(
         0,
         "this",
@@ -371,7 +367,6 @@ class IrToTruffle(
         ),
         null,
         new FunctionSchema(
-          FunctionSchema.CallStrategy.ALWAYS_DIRECT,
           new ArgumentDefinition(
             0,
             "this",

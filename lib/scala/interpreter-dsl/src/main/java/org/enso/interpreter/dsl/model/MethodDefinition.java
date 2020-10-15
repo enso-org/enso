@@ -172,11 +172,6 @@ public class MethodDefinition {
     return needsCallerInfo;
   }
 
-  /** @return whether this method can be always safely called directly. */
-  public boolean isAlwaysDirect() {
-    return annotation.alwaysDirect();
-  }
-
   public String getConstructorExpression() {
     return constructorExpression;
   }

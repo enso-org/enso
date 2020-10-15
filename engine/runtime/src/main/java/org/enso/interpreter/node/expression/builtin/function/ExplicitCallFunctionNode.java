@@ -13,8 +13,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @BuiltinMethod(
     type = "Function",
     name = "call",
-    description = "Allows function calls to be made explicitly",
-    alwaysDirect = false)
+    description = "Allows function calls to be made explicitly")
 public class ExplicitCallFunctionNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 

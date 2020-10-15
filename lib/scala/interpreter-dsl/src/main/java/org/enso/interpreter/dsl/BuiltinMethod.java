@@ -17,7 +17,4 @@ public @interface BuiltinMethod {
 
   /** @return a short description of this method. */
   String description();
-
-  /** @return whether it is safe to always call this function directly. */
-  boolean alwaysDirect() default true;
 }

@@ -5,7 +5,6 @@ import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.*;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.GetArrayElementMethodGen;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -36,7 +35,6 @@ public class Polyglot {
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
     interopDispatchSchema =
         new FunctionSchema(
-            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
             FunctionSchema.CallerFrameAccess.NONE,
             new ArgumentDefinition[] {
               new ArgumentDefinition(1, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
