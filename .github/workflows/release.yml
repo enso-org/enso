@@ -102,6 +102,7 @@ jobs:
 
       # Verify Legal Review
       - name: Verify Packages
+        working-directory: repo
         run: |
           sleep 1
           sbt --no-colors verifyLicensePackages
