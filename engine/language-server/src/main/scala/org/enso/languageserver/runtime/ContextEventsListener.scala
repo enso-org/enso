@@ -6,6 +6,7 @@ import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   ExecutionDiagnostic,
   ExecutionDiagnosticKind,
+  ExecutionFailure,
   ExecutionStackTraceElement,
   VisualisationContext,
   VisualisationUpdate
@@ -82,6 +83,14 @@ final class ContextEventsListener(
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       context.become(withState(expressionUpdates :++ apiUpdates))
 
+    case Api.ExecutionFailed(`contextId`, error) =>
+      val payload =
+        ContextRegistryProtocol.ExecutionFailedNotification(
+          contextId,
+          toProtocolError(error)
+        )
+      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+
     case Api.ExecutionUpdate(`contextId`, diagnostics) =>
       val payload =
         ContextRegistryProtocol.ExecutionDiagnosticNotification(
@@ -147,6 +156,21 @@ final class ContextEventsListener(
   }
 
   /**
+    * Convert the runtime failure message to the context registry protocol
+    * representation.
+    *
+    * @param error the error message
+    * @return the registry protocol representation fo the diagnostic message
+    */
+  private def toProtocolError(
+    error: Api.ExecutionResult.Failure
+  ): ExecutionFailure =
+    ExecutionFailure(
+      error.message,
+      error.file.flatMap(config.findRelativePath)
+    )
+
+  /**
     * Convert the runtime diagnostic message to the context registry protocol
     * representation.
     *
@@ -154,7 +178,7 @@ final class ContextEventsListener(
     * @return the registry protocol representation of the diagnostic message
     */
   private def toProtocolDiagnostic(
-    diagnostic: Api.Diagnostic
+    diagnostic: Api.ExecutionResult.Diagnostic
   ): ExecutionDiagnostic =
     ExecutionDiagnostic(
       toDiagnosticType(diagnostic.kind),

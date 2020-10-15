@@ -75,6 +75,8 @@ final class ContextRegistry(
     context.system.eventStream
       .subscribe(self, classOf[Api.VisualisationUpdate])
     context.system.eventStream
+      .subscribe(self, classOf[Api.ExecutionFailed])
+    context.system.eventStream
       .subscribe(self, classOf[Api.ExecutionUpdate])
     context.system.eventStream
       .subscribe(self, classOf[Api.VisualisationEvaluationFailed])
@@ -94,6 +96,9 @@ final class ContextRegistry(
       store
         .getListener(update.visualisationContext.contextId)
         .foreach(_ ! update)
+
+    case update: Api.ExecutionFailed =>
+      store.getListener(update.contextId).foreach(_ ! update)
 
     case update: Api.ExecutionUpdate =>
       store.getListener(update.contextId).foreach(_ ! update)

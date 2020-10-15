@@ -191,6 +191,25 @@ object ContextRegistryProtocol {
   )
 
   /**
+    * A critical failure when attempting to execute a context.
+    *
+    * @param message the error message
+    * @param path the location of a file producing the error
+    */
+  case class ExecutionFailure(message: String, path: Option[Path])
+
+  /**
+    * Signals about a critical failure in a context execution.
+    *
+    * @param contextId execution context identifier
+    * @param failure the error description
+    */
+  case class ExecutionFailedNotification(
+    contextId: ContextId,
+    failure: ExecutionFailure
+  )
+
+  /**
     * Signals the status of a context execution.
     *
     * @param contextId execution context identifier

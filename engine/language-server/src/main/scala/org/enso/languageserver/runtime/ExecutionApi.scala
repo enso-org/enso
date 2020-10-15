@@ -4,7 +4,10 @@ import java.util.UUID
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
-import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnostic
+import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  ExecutionDiagnostic,
+  ExecutionFailure
+}
 
 /**
   * The execution JSON RPC API provided by the language server.
@@ -95,6 +98,19 @@ object ExecutionApi {
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ExecutionContextExpressionValuesComputed.Params
+    }
+  }
+
+  case object ExecutionContextExecutionFailed
+      extends Method("executionContext/executionFailed") {
+
+    case class Params(
+      contextId: ContextId,
+      failure: ExecutionFailure
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextExecutionFailed.Params
     }
   }
 

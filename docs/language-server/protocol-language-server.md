@@ -42,6 +42,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`DiagnosticType`](#diagnostictype)
   - [`StackTraceElement`](#stacktraceelement)
   - [`Diagnostic`](#diagnostic)
+  - [`ExecutionFailure`](#executionfailure)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
   - [`FileContents`](#filecontents)
@@ -593,10 +594,6 @@ represent a compiler warning, a compilation error, or a runtime error. The
 message has optional `path`, `location` and `stack` fields containing
 information about the location in the source code.
 
-Howewer, the diagnostic message will contain `path`, `location` and `stack`
-fields empty, if the the runtime was not able to locate the method to execute
-after a [`executionContext/push`](#executioncontextpush) command.
-
 In case of the runtime errors, the `path` and `location` fields may be empty if
 the error happens in a builtin node. Then, to locate the error in the code, you
 can use the `stack` field with a stack trace to find the first element with
@@ -630,6 +627,32 @@ interface Diagnostic {
    * The stack trace.
    */
   stack: StackTraceElement[];
+}
+```
+
+### `ExecutionFailure`
+
+A critical failure when attempting to execute a context.
+
+When the `Diagnostic` error notifies about potential problems in the code found
+by compiler, or the errors during runtime, the `ExecutionFailure` signals about
+the errors in the logic or the implementation. It can be a compiler crash, an
+attempt to execute an empty stack, an error location a method or a module when
+issuing a [`executionContext/push`](#executioncontextpush) command.
+
+#### Format
+
+```typescript
+interface ExecutionFailure {
+  /**
+   * The error message.
+   */
+  message: String;
+
+  /**
+   * The location of a file producing the error.
+   */
+  path?: Path;
 }
 ```
 
@@ -2397,9 +2420,9 @@ attempting to execute a context.
   contextId: ContextId;
 
   /**
-   * The message describing the issue.
+   * The object describing the issue.
    */
-  message: String;
+  failure: ExecutionFailure;
 }
 ```
 
