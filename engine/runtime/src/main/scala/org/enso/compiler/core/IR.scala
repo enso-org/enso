@@ -2084,6 +2084,82 @@ object IR {
       override def showCode(indent: Int): String = name
     }
 
+    /** The representation of an annotation name.
+      *
+      * @param name the annotation text of the name
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Annotation(
+      override val name: String,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the annotation text of the name
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        name: String                         = name,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Annotation = {
+        val res = Annotation(name, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Annotation =
+        copy(
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = randomId
+        )
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Annotation =
+        copy(location = location)
+
+      override def mapExpressions(fn: Expression => Expression): Annotation =
+        this
+
+      override def toString: String =
+        s"""
+           |IR.Name.Annotation(
+           |name = $name,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      override def children: List[IR] = List()
+
+      override def isReferent: Boolean = false
+
+      override def showCode(indent: Int): String = name
+    }
+
     /** A representation of the name `this`, used to refer to the current type.
       *
       * @param location the source location that the node corresponds to
@@ -5196,6 +5272,17 @@ object IR {
       }
     }
 
+    /**
+      * A warning about a `@Tail_Call` annotation placed in a non-tail
+      * position.
+      * @param location the location of the annotated application
+      */
+    case class WrongTco(override val location: Option[IdentifiedLocation])
+        extends Warning {
+      override def message: String =
+        "A @Tail_Call annotation was placed in a non-tail-call position."
+    }
+
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 
@@ -5341,6 +5428,24 @@ object IR {
         override def explain(originalName: Name): String =
           "No definition for the sequence macro could be found. Try" +
           " importing the default definition from the Base.Vector module."
+      }
+
+      /**
+        * An error coming from an unknown annotation name.
+        */
+      case object UnknownAnnotation extends Reason {
+        override def explain(originalName: Name): String =
+          s"The annotation ${originalName.name} is not defined."
+      }
+
+      /**
+        * An error coming from a tail call annotation placed in a syntactically
+        * incorrect position.
+        */
+      case object UnexpectedTailCallAnnotation extends Reason {
+        override def explain(originalName: Name): String =
+          s"Unexpected @TailCall annotation. This annotation can only be " +
+          s"used with function applications."
       }
 
       /**

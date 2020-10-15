@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -61,7 +62,8 @@ public abstract class BracketNode extends Node {
       Thunk constructor,
       Object destructor,
       Object action) {
-    Stateful resourceStateful = invokeConstructorNode.executeThunk(constructor, state, false);
+    Stateful resourceStateful =
+        invokeConstructorNode.executeThunk(constructor, state, BaseNode.TailStatus.NOT_TAIL);
     Object resource = resourceStateful.getValue();
     state = resourceStateful.getState();
     try {

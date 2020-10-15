@@ -149,9 +149,9 @@ class TailCallTest extends CompilerTest {
     val ir =
       """
         |a -> b -> c ->
-        |    d = a + b
+        |    d = @Tail_Call (a + b)
         |    e = a * c
-        |    d + e
+        |    @Tail_Call (d + e)
         |""".stripMargin.preprocessExpression.get.analyse
         .asInstanceOf[IR.Function.Lambda]
 
@@ -169,6 +169,22 @@ class TailCallTest extends CompilerTest {
           TailPosition.NotTail
         )
       )
+    }
+
+    "warn about misplaced @TailCall annotations" in {
+      fnBody
+        .expressions(0)
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
+        .diagnostics
+        .filter(_.isInstanceOf[IR.Warning.WrongTco])
+        .toList
+        .length shouldEqual 1
+
+      fnBody.returnValue.diagnostics
+        .filter(_.isInstanceOf[IR.Warning.WrongTco])
+        .toList
+        .length shouldEqual 0
     }
   }
 

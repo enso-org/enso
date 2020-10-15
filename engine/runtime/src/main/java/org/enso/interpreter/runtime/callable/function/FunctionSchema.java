@@ -11,36 +11,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
  * arguments positions.
  */
 public class FunctionSchema {
-
-  /**
-   * Denotes the call strategy that should be used whenever a function with this schema is called.
-   *
-   * <p>For builtin functions, the algorithm for choosing the proper {@link CallStrategy} is as
-   * follows: if the node executes user-provided code ({@link
-   * org.enso.interpreter.runtime.callable.argument.Thunk} or a {@link Function}) using the Tail
-   * Call Optimization machinery (i.e. marking the execution node as tail position), the right
-   * choice is {@code DIRECT_WHEN_TAIL}. Otherwise {@code ALWAYS_DIRECT} should be chosen.
-   */
-  public enum CallStrategy {
-
-    /** Always call the function directly. */
-    ALWAYS_DIRECT,
-    /** Call the function directly when said function is in tail call position. */
-    DIRECT_WHEN_TAIL,
-    /** Always call the function using standard tail call machinery. */
-    CALL_LOOP;
-
-    /**
-     * Should this function be called directly in the given position?
-     *
-     * @param isTail is this a tail position?
-     * @return {@code true} if the function should be called directly, {@code false} otherwise
-     */
-    public boolean shouldCallDirect(boolean isTail) {
-      return this == ALWAYS_DIRECT || (this == DIRECT_WHEN_TAIL && isTail);
-    }
-  }
-
   /** Denotes the caller frame access functions with this schema require to run properly. */
   public enum CallerFrameAccess {
     /** Requires full access to the (materialized) caller frame. */
@@ -62,7 +32,6 @@ public class FunctionSchema {
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
-  private final CallStrategy callStrategy;
   private final boolean hasAnyPreApplied;
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
@@ -70,7 +39,6 @@ public class FunctionSchema {
   /**
    * Creates an {@link FunctionSchema} instance.
    *
-   * @param callStrategy the call strategy to use for functions having this schema
    * @param callerFrameAccess the declaration of whether access to caller frame is required for this
    *     function
    * @param argumentInfos Definition site arguments information
@@ -80,12 +48,10 @@ public class FunctionSchema {
    *     this function so far
    */
   public FunctionSchema(
-      CallStrategy callStrategy,
       CallerFrameAccess callerFrameAccess,
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
       CallArgumentInfo[] oversaturatedArguments) {
-    this.callStrategy = callStrategy;
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
@@ -106,16 +72,13 @@ public class FunctionSchema {
    * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
    * arguments.
    *
-   * @param callStrategy the call strategy to use for this function
    * @param callerFrameAccess the declaration of need to access the caller frame from the function
    * @param argumentInfos Definition site arguments information
    */
   public FunctionSchema(
-      CallStrategy callStrategy,
       CallerFrameAccess callerFrameAccess,
       ArgumentDefinition... argumentInfos) {
     this(
-        callStrategy,
         callerFrameAccess,
         argumentInfos,
         new boolean[argumentInfos.length],
@@ -128,11 +91,10 @@ public class FunctionSchema {
    *
    * <p>Caller frame access is assumed to be {@link CallerFrameAccess#NONE}.
    *
-   * @param callStrategy the call strategy to use for this function
    * @param argumentInfos Definition site arguments information
    */
-  public FunctionSchema(CallStrategy callStrategy, ArgumentDefinition... argumentInfos) {
-    this(callStrategy, CallerFrameAccess.NONE, argumentInfos);
+  public FunctionSchema(ArgumentDefinition... argumentInfos) {
+    this(CallerFrameAccess.NONE, argumentInfos);
   }
 
   /**
@@ -220,15 +182,6 @@ public class FunctionSchema {
    */
   public CallArgumentInfo[] getOversaturatedArguments() {
     return oversaturatedArguments;
-  }
-
-  /**
-   * Returns the call strategy to use for functions with this schema.
-   *
-   * @return the call strategy to use
-   */
-  public CallStrategy getCallStrategy() {
-    return callStrategy;
   }
 
   /**

@@ -23,7 +23,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Builtins import all
       |
       |main = length ->
-      |    generator = acc -> i -> if i == 0 then acc else generator (Cons i acc) (i - 1)
+      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (Cons i acc) (i - 1)
       |
       |    res = generator Nil length
       |    res
@@ -34,7 +34,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Builtins import all
       |
       |main = length ->
-      |    generator = acc -> i -> if i == 0 then acc else generator (Builtins.cons i acc) (i - 1)
+      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (Builtins.cons i acc) (i - 1)
       |
       |    res = generator Builtins.nil length
       |    res
@@ -46,7 +46,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |main = list ->
       |    reverser = acc -> list -> case list of
-      |        Cons h t -> reverser (Cons h acc) t
+      |        Cons h t -> @Tail_Call reverser (Cons h acc) t
       |        Nil -> acc
       |
       |    res = reverser Nil list
@@ -58,7 +58,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Builtins import all
       |
       |Cons.reverse = acc -> case this of
-      |    Cons h t -> reverse t (Cons h acc)
+      |    Cons h t -> @Tail_Call reverse t (Cons h acc)
       |
       |Nil.reverse = acc -> acc
       |
@@ -73,7 +73,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |main = list ->
       |    summator = acc -> list -> case list of
-      |        Cons h t -> summator acc+h t
+      |        Cons h t -> @Tail_Call summator acc+h t
       |        Nil -> acc
       |
       |    res = summator 0 list
@@ -86,7 +86,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |main = list ->
       |    fold = f -> acc -> list -> case list of
-      |        Cons h t -> fold f (f acc h) t
+      |        Cons h t -> @Tail_Call fold f (f acc h) t
       |        _ -> acc
       |
       |    res = fold (x -> y -> x + y) 0 list
@@ -99,7 +99,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |main = list ->
       |    summator = acc -> list -> case list of
-      |        Cons h t -> summator acc+h t
+      |        Cons h t -> @Tail_Call summator acc+h t
       |        _ -> acc
       |
       |    res = summator 0 list
@@ -112,7 +112,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |Nil.sum = acc -> acc
       |Cons.sum = acc -> case this of
-      |    Cons h t -> sum t h+acc
+      |    Cons h t -> @Tail_Call sum t h+acc
       |
       |main = list ->
       |    res = sum list 0
@@ -125,7 +125,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
-      |    Cons h t -> mapReverse t f (Cons (f h) acc)
+      |    Cons h t -> @Tail_Call mapReverse t f (Cons (f h) acc)
       |
       |main = list ->
       |    res = mapReverse list (x -> x + 1) Nil
@@ -138,7 +138,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
-      |    Cons h t -> mapReverse t f (Cons (f h) acc)
+      |    Cons h t -> @Tail_Call mapReverse t f (Cons (f h) acc)
       |
       |main = list ->
       |    adder = x -> y -> x + y

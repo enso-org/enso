@@ -2756,6 +2756,11 @@ class RuntimeServerTest
                   Some(
                     model.Range(model.Position(2, 14), model.Position(2, 23))
                   )
+                ),
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(0, 7), model.Position(0, 19)))
                 )
               )
             )
@@ -2823,6 +2828,11 @@ class RuntimeServerTest
                   Some(
                     model.Range(model.Position(2, 10), model.Position(2, 15))
                   )
+                ),
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(0, 7), model.Position(0, 23)))
                 )
               )
             )
@@ -2976,6 +2986,11 @@ class RuntimeServerTest
                   "Main.foo",
                   Some(mainFile),
                   Some(model.Range(model.Position(5, 8), model.Position(5, 16)))
+                ),
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(2, 7), model.Position(2, 15)))
                 )
               )
             )

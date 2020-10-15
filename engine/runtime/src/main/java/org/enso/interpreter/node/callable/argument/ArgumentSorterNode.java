@@ -82,7 +82,8 @@ public class ArgumentSorterNode extends BaseNode {
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {
-        Stateful result = executors[i].executeThunk(TypesGen.asThunk(arguments[i]), state, false);
+        Stateful result =
+            executors[i].executeThunk(TypesGen.asThunk(arguments[i]), state, TailStatus.NOT_TAIL);
         arguments[i] = result.getValue();
         state = result.getState();
       }

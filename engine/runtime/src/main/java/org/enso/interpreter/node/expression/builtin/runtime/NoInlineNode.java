@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -17,6 +18,6 @@ public class NoInlineNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   Stateful execute(@MonadicState Object state, Object _this, Thunk action) {
-    return thunkExecutorNode.executeThunk(action, state, false);
+    return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
   }
 }

@@ -24,7 +24,7 @@ Text.each function =
     iterate prev nxt = if nxt == -1 then Unit else
         function (Text_Utils.substring [this, prev, nxt])
         next_nxt = iterator.next []
-        iterate nxt next_nxt
+        @Tail_Call iterate nxt next_nxt
     iterate fst nxt
     Unit
 
@@ -39,8 +39,7 @@ Text.characters : Vector
 Text.characters =
     bldr = Vector.new_builder
     this.each bldr.append
-    r = bldr.to_vector
-    r
+    bldr.to_vector
 
 ## Takes a separator string and returns a vector resulting from splitting
    `this` on each occurence of `separator`.

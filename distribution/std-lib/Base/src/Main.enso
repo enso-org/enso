@@ -33,7 +33,7 @@ type Range
     each function =
         it start end = if start == end then Unit else
             function start
-            it start+1 end
+            @Tail_Call it start+1 end
         it this.start this.end
         Unit
 
@@ -52,7 +52,7 @@ type Range
     fold initial function =
         it acc start end = if start == end then acc else
             new_acc = function acc start
-            it new_acc start+1 end
+            @Tail_Call it new_acc start+1 end
         res = it initial this.start this.end
         res
 
@@ -60,7 +60,7 @@ type Range
     every predicate =
         it start end = if start==end then True else
             r = predicate start
-            if r then (it start+1 end) else False
+            if r then (@Tail_Call it start+1 end) else False
         res = it this.start this.end
         res
 

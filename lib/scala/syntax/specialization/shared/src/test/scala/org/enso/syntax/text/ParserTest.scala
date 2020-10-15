@@ -77,16 +77,17 @@ class ParserTest extends AnyFlatSpec with Matchers {
   //// Identifiers /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "_"      ?= "_"
-  "Name"   ?= "Name"
-  "name"   ?= "name"
-  "name'"  ?= "name'"
-  "name''" ?= "name''"
-  "name'a" ?= Ident.InvalidSuffix("name'", "a")
-  "name_"  ?= "name_"
-  "name_'" ?= "name_'"
-  "name'_" ?= Ident.InvalidSuffix("name'", "_")
-  "name`"  ?= "name" $ Invalid.Unrecognized("`")
+  "_"           ?= "_"
+  "Name"        ?= "Name"
+  "name"        ?= "name"
+  "name'"       ?= "name'"
+  "name''"      ?= "name''"
+  "name'a"      ?= Ident.InvalidSuffix("name'", "a")
+  "name_"       ?= "name_"
+  "name_'"      ?= "name_'"
+  "name'_"      ?= Ident.InvalidSuffix("name'", "_")
+  "name`"       ?= "name" $ Invalid.Unrecognized("`")
+  "@Annotation" ?= Ident.Annotation("@Annotation")
 
   //////////////////////////////////////////////////////////////////////////////
   //// Operators ///////////////////////////////////////////////////////////////

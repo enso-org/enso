@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
+import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -36,7 +37,7 @@ public abstract class ThunkExecutorNode extends Node {
    * @param isTail is the execution happening in a tail-call position
    * @return the return value of this thunk
    */
-  public abstract Stateful executeThunk(Thunk thunk, Object state, boolean isTail);
+  public abstract Stateful executeThunk(Thunk thunk, Object state, BaseNode.TailStatus isTail);
 
   @Specialization(
       guards = "callNode.getCallTarget() == thunk.getCallTarget()",
@@ -44,11 +45,11 @@ public abstract class ThunkExecutorNode extends Node {
   Stateful doCached(
       Thunk thunk,
       Object state,
-      boolean isTail,
+      BaseNode.TailStatus isTail,
       @Cached("create(thunk.getCallTarget())") DirectCallNode callNode,
       @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
     CompilerAsserts.partialEvaluationConstant(isTail);
-    if (isTail) {
+    if (isTail != BaseNode.TailStatus.NOT_TAIL) {
       return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
     } else {
       try {
@@ -64,10 +65,10 @@ public abstract class ThunkExecutorNode extends Node {
   Stateful doUncached(
       Thunk thunk,
       Object state,
-      boolean isTail,
+      BaseNode.TailStatus isTail,
       @Cached IndirectCallNode callNode,
       @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
-    if (isTail) {
+    if (isTail != BaseNode.TailStatus.NOT_TAIL) {
       return (Stateful)
           callNode.call(
               thunk.getCallTarget(), Function.ArgumentsHelper.buildArguments(thunk, state));

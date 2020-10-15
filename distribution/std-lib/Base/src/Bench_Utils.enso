@@ -2,27 +2,31 @@ from Base import all
 
 reverse_list = list ->
     go = list -> acc -> case list of
-        Cons h t -> go t (Cons h acc)
+        Cons h t -> @Tail_Call go t (Cons h acc)
         Nil -> acc
-    go list Nil
+    res = go list Nil
+    res
 
 sum_list = list ->
     go = list -> acc -> case list of
-        Cons a b -> go b (acc + a)
+        Cons a b -> @Tail_Call go b (acc + a)
         Nil -> acc
 
-    go list 0
+    res = go list 0
+    res
 
 avg_list = list -> here.sum_list list / here.len_list list
 
 len_list = list ->
     go = list -> acc -> case list of
-        Cons _ b -> go b (acc + 1)
+        Cons _ b -> @Tail_Call go b (acc + 1)
         Nil -> acc
-    go list 0
+    res = go list 0
+    res
 
 Number.times = act ->
-    go = results -> number -> if number == 0 then results else go (Cons (act number) results) number-1
+    go = results -> number -> if number == 0 then results else
+        @Tail_Call go (Cons (act number) results) number-1
     res = here.reverse_list (go Nil this)
     res
 

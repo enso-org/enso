@@ -197,6 +197,7 @@ object Shape extends ShapeImplicit {
   final case class Opr[T](name: String) extends Ident[T] {
     val (prec, assoc) = opr.Info.of(name)
   }
+  final case class Annotation[T](name: String) extends Ident[T]
   final case class InvalidSuffix[T](elem: AST.Ident, suffix: String)
       extends Invalid[T]
       with Phantom
@@ -449,6 +450,13 @@ object Shape extends ShapeImplicit {
     implicit def repr[T]: Repr[Opr[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Opr, T] = t => t.coerce
     implicit def span[T]: HasSpan[Opr[T]]   = t => t.name.length
+  }
+  object Annotation {
+    implicit def ftor: Functor[Annotation]         = semi.functor
+    implicit def fold: Foldable[Annotation]        = semi.foldable
+    implicit def repr[T]: Repr[Annotation[T]]      = _.name
+    implicit def ozip[T]: OffsetZip[Annotation, T] = t => t.coerce
+    implicit def span[T]: HasSpan[Annotation[T]]   = t => t.name.length
   }
   object InvalidSuffix {
     implicit def ftor: Functor[InvalidSuffix]         = semi.functor
@@ -1140,6 +1148,7 @@ sealed trait ShapeImplicit {
     case s: Var[T]           => s.repr
     case s: Cons[T]          => s.repr
     case s: Opr[T]           => s.repr
+    case s: Annotation[T]    => s.repr
     case s: Mod[T]           => s.repr
     case s: InvalidSuffix[T] => s.repr
     case s: Number[T]        => s.repr
@@ -1182,6 +1191,7 @@ sealed trait ShapeImplicit {
     case s: Var[T]           => OffsetZip[Var, T].zipWithOffset(s)
     case s: Cons[T]          => OffsetZip[Cons, T].zipWithOffset(s)
     case s: Opr[T]           => OffsetZip[Opr, T].zipWithOffset(s)
+    case s: Annotation[T]    => OffsetZip[Annotation, T].zipWithOffset(s)
     case s: Mod[T]           => OffsetZip[Mod, T].zipWithOffset(s)
     case s: InvalidSuffix[T] => OffsetZip[InvalidSuffix, T].zipWithOffset(s)
     case s: Number[T]        => OffsetZip[Number, T].zipWithOffset(s)
@@ -1225,6 +1235,7 @@ sealed trait ShapeImplicit {
     case s: Var[T]           => s.span()
     case s: Cons[T]          => s.span()
     case s: Opr[T]           => s.span()
+    case s: Annotation[T]    => s.span()
     case s: Mod[T]           => s.span()
     case s: InvalidSuffix[T] => s.span()
     case s: Number[T]        => s.span()
@@ -1685,28 +1696,31 @@ object AST {
 
   //// Reexports ////
 
-  type Blank = Ident.Blank
-  type Var   = Ident.Var
-  type Cons  = Ident.Cons
-  type Opr   = Ident.Opr
-  type Mod   = Ident.Mod
+  type Blank      = Ident.Blank
+  type Var        = Ident.Var
+  type Cons       = Ident.Cons
+  type Opr        = Ident.Opr
+  type Mod        = Ident.Mod
+  type Annotation = Ident.Annotation
 
-  val Blank = Ident.Blank
-  val Var   = Ident.Var
-  val Cons  = Ident.Cons
-  val Opr   = Ident.Opr
-  val Mod   = Ident.Mod
+  val Blank      = Ident.Blank
+  val Var        = Ident.Var
+  val Cons       = Ident.Cons
+  val Opr        = Ident.Opr
+  val Mod        = Ident.Mod
+  val Annotation = Ident.Annotation
 
   //// Definition ////
 
   type Ident = ASTOf[Shape.Ident]
 
   object Ident {
-    type Blank = ASTOf[Shape.Blank]
-    type Var   = ASTOf[Shape.Var]
-    type Cons  = ASTOf[Shape.Cons]
-    type Mod   = ASTOf[Shape.Mod]
-    type Opr   = ASTOf[Shape.Opr]
+    type Blank      = ASTOf[Shape.Blank]
+    type Var        = ASTOf[Shape.Var]
+    type Cons       = ASTOf[Shape.Cons]
+    type Mod        = ASTOf[Shape.Mod]
+    type Opr        = ASTOf[Shape.Opr]
+    type Annotation = ASTOf[Shape.Annotation]
 
     type InvalidSuffix = ASTOf[Shape.InvalidSuffix]
 
@@ -1767,6 +1781,11 @@ object AST {
       val any                      = UnapplyByType[Opr]
       def unapply(t: AST)          = Unapply[Opr].run(_.name)(t)
       def apply(name: String): Opr = Shape.Opr[AST](name)
+    }
+    object Annotation {
+      val any                             = UnapplyByType[Annotation]
+      def unapply(t: AST)                 = Unapply[Annotation].run(_.name)(t)
+      def apply(name: String): Annotation = Shape.Annotation[AST](name)
     }
   }
 

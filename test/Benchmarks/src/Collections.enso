@@ -4,21 +4,13 @@ import Base.Bench_Utils
 
 gen_list len = 0.upto len . fold Nil (l -> i -> Cons i+1 l)
 
-sum_vec vec =
-    arr = vec.to_array
-    len = vec.length
-    sumator = acc -> idx ->
-        if idx == len then acc else sumator (acc + arr.at idx) idx+1
-    res = sumator 0 0
-    res
-
 sum_list_meta list =
     nil_cons = Meta.meta Nil . constructor
     folder acc list =
         meta_list = Meta.meta list
         if meta_list.constructor == nil_cons then acc else
             fs = meta_list.fields
-            folder (acc + fs.at 0) (fs.at 1)
+            @Tail_Call folder (acc + fs.at 0) (fs.at 1)
     res = folder 0 list
     res
 

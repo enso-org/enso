@@ -19,6 +19,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
+  Annotations,
   MethodDefinitions,
   Patterns,
   UppercaseNames
@@ -51,6 +52,7 @@ import org.enso.interpreter.node.expression.literal.{
 }
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
+  BaseNode,
   ClosureRootNode,
   MethodRootNode,
   ExpressionNode => RuntimeExpression
@@ -270,10 +272,7 @@ class IrToTruffle(
               new RuntimeFunction(
                 callTarget,
                 null,
-                new FunctionSchema(
-                  FunctionSchema.CallStrategy.CALL_LOOP,
-                  arguments: _*
-                )
+                new FunctionSchema(arguments: _*)
               )
             case _ =>
               throw new CompilerError(
@@ -301,6 +300,23 @@ class IrToTruffle(
     location
       .map(loc => source.createSection(loc.start, loc.length))
       .getOrElse(source.createUnavailableSection())
+  }
+
+  private def getTailStatus(
+    expression: IR.Expression
+  ): BaseNode.TailStatus = {
+    val isTailPosition =
+      expression.getMetadata(TailCall).contains(TailCall.TailPosition.Tail)
+    val isTailAnnotated = expression.getMetadata(Annotations).isDefined
+    if (isTailPosition) {
+      if (isTailAnnotated) {
+        BaseNode.TailStatus.TAIL_LOOP
+      } else {
+        BaseNode.TailStatus.TAIL_DIRECT
+      }
+    } else {
+      BaseNode.TailStatus.NOT_TAIL
+    }
   }
 
   /** Sets the source section for a given expression node to the provided
@@ -333,7 +349,6 @@ class IrToTruffle(
       new EnsoProjectNode(language, context, pkg)
     )
     val schema = new FunctionSchema(
-      FunctionSchema.CallStrategy.ALWAYS_DIRECT,
       new ArgumentDefinition(
         0,
         "this",
@@ -352,7 +367,6 @@ class IrToTruffle(
         ),
         null,
         new FunctionSchema(
-          FunctionSchema.CallStrategy.ALWAYS_DIRECT,
           new ArgumentDefinition(
             0,
             "this",
@@ -460,11 +474,6 @@ class IrToTruffle(
       * @return a truffle expression that represents the same program as `ir`
       */
     def run(ir: IR.Expression): RuntimeExpression = {
-      val tailMeta = ir.unsafeGetMetadata(
-        TailCall,
-        "Missing tail call information on method."
-      )
-
       val runtimeExpression = ir match {
         case block: IR.Expression.Block     => processBlock(block)
         case literal: IR.Literal            => processLiteral(literal)
@@ -489,7 +498,7 @@ class IrToTruffle(
           )
       }
 
-      runtimeExpression.setTail(tailMeta)
+      runtimeExpression.setTailStatus(getTailStatus(ir))
       runtimeExpression
     }
 
@@ -623,11 +632,6 @@ class IrToTruffle(
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
-      val branchIsTail = branch.unsafeGetMetadata(
-        TailCall,
-        "Case branch is missing tail position information."
-      )
-
       val childProcessor = this.createChild("case_branch", scopeInfo.scope)
 
       branch.pattern match {
@@ -641,7 +645,6 @@ class IrToTruffle(
           )
 
           val branchNode = CatchAllBranchNode.build(branchCodeNode)
-          branchNode.setTail(branchIsTail)
 
           Right(branchNode)
         case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
@@ -707,7 +710,6 @@ class IrToTruffle(
               } else {
                 ConstructorBranchNode.build(atomCons, branchCodeNode)
               }
-            branchNode.setTail(branchIsTail)
 
             branchNode
           }
@@ -861,6 +863,10 @@ class IrToTruffle(
               passData
             )
           )
+        case _: IR.Name.Annotation =>
+          throw new CompilerError(
+            "Annotation should not be present at codegen time."
+          )
         case _: IR.Name.Blank =>
           throw new CompilerError(
             "Blanks should not be present at codegen time."
@@ -997,15 +1003,9 @@ class IrToTruffle(
         } else seenArgNames.add(argName)
       }
 
-      val bodyIsTail = body.unsafeGetMetadata(
-        TailCall,
-        "Function body missing tail call information."
-      )
-
       val bodyExpr = this.run(body)
 
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
-      fnBodyNode.setTail(bodyIsTail)
       (fnBodyNode, argDefinitions)
     }
 
@@ -1188,12 +1188,7 @@ class IrToTruffle(
           val result = if (!shouldSuspend) {
             argumentExpression
           } else {
-            val argExpressionIsTail = value.unsafeGetMetadata(
-              TailCall,
-              "Argument with missing tail call information."
-            )
-
-            argumentExpression.setTail(argExpressionIsTail)
+            argumentExpression.setTailStatus(getTailStatus(value))
 
             val displayName =
               s"argument<${name.map(_.name).getOrElse(String.valueOf(position))}>"

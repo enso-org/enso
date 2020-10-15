@@ -12,7 +12,7 @@ map_helper list cons f = case list of
     Cons h t ->
         res = Cons (f h) Nil
         Unsafe.set_atom_field cons 1 res
-        here.map_helper t res f
+        @Tail_Call here.map_helper t res f
     Nil -> Unsafe.set_atom_field cons 1 Nil
 
 ## The basic cons-list type.
@@ -53,11 +53,14 @@ type List
          to the standard output:
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . each IO.println
     each : (Any -> Any) -> Unit
-    each f = case this of
-        Nil -> Unit
-        Cons h t ->
-            f h
-            t.each f
+    each f =
+        go list = case list of
+            Nil -> Unit
+            Cons h t ->
+                f h
+                @Tail_Call go t
+        res = go this
+        res
 
     ## Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
@@ -75,7 +78,7 @@ type List
     fold init f =
         go acc list = case list of
             Nil -> acc
-            Cons h t -> go (f acc h) t
+            Cons h t -> @Tail_Call go (f acc h) t
         res = go init this
         res
 
@@ -98,7 +101,10 @@ type List
          larger than `1`:
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . any (> 5)
     any : (Any -> Boolean) -> Boolean
-    any predicate = case this of
-        Nil -> False
-        Cons h t -> if predicate h then True else t.any predicate
-
+    any predicate =
+        go list = case list of
+            Nil -> False
+            Cons h t -> if predicate h then True else
+                @Tail_Call go t
+        res = go this
+        res

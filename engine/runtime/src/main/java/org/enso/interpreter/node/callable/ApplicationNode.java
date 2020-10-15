@@ -65,9 +65,9 @@ public class ApplicationNode extends ExpressionNode {
    * @param isTail whether or not the node is tail-recursive.
    */
   @Override
-  public void setTail(boolean isTail) {
-    super.setTail(isTail);
-    invokeCallableNode.setTail(isTail);
+  public void setTailStatus(TailStatus isTail) {
+    super.setTailStatus(isTail);
+    invokeCallableNode.setTailStatus(isTail);
   }
 
   /**

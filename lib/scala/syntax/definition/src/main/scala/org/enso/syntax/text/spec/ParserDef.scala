@@ -180,21 +180,23 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         if (current.isDefined) submit()
       }
 
-    val char: Pattern   = alphaNum | '_'
-    val body: Pattern   = char.many >> '\''.many
-    val _var: Pattern   = lowerLetter >> body
-    val cons: Pattern   = upperLetter >> body
-    val breaker: String = "^`!@#$%^&*()-=+[]{}|;:<>,./ \t\r\n\\"
-    val errSfx: Pattern = noneOf(breaker).many1
+    val char: Pattern       = alphaNum | '_'
+    val body: Pattern       = char.many >> '\''.many
+    val _var: Pattern       = lowerLetter >> body
+    val cons: Pattern       = upperLetter >> body
+    val annotation: Pattern = "@" >> cons
+    val breaker: String     = "^`!@#$%^&*()-=+[]{}|;:<>,./ \t\r\n\\"
+    val errSfx: Pattern     = noneOf(breaker).many1
 
     val SFX_CHECK = state.define("Identifier Suffix Check")
   }
 
-  ROOT            || ident._var   || ident.on(AST.Var(_))
-  ROOT            || ident.cons   || ident.on(AST.Cons(_))
-  ROOT            || "_"          || ident.on(AST.Blank())
-  ident.SFX_CHECK || ident.errSfx || ident.onErrSfx()
-  ident.SFX_CHECK || always       || ident.onNoErrSfx()
+  ROOT            || ident._var       || ident.on(AST.Var(_))
+  ROOT            || ident.cons       || ident.on(AST.Cons(_))
+  ROOT            || "_"              || ident.on(AST.Blank())
+  ROOT            || ident.annotation || ident.on(AST.Annotation(_))
+  ident.SFX_CHECK || ident.errSfx     || ident.onErrSfx()
+  ident.SFX_CHECK || always           || ident.onNoErrSfx()
 
   //////////////////
   //// Operator ////

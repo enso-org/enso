@@ -166,6 +166,11 @@ case object DemandAnalysis extends IRPass {
           case lit: IR.Name.Literal => lit.copy(location = newNameLocation)
           case ths: IR.Name.This    => ths.copy(location = newNameLocation)
           case here: IR.Name.Here   => here.copy(location = newNameLocation)
+          case _: IR.Name.Annotation =>
+            throw new CompilerError(
+              "Annotations should not be present by the time demand analysis" +
+              " runs."
+            )
           case _: IR.Name.MethodReference =>
             throw new CompilerError(
               "Method references should not be present by the time demand " +

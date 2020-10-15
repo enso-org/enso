@@ -74,12 +74,12 @@ class ExpressionIdTest extends InterpreterTest {
       val id1  = meta.addItem(106, 5)
       val id2  = meta.addItem(124, 1)
       val id3  = meta.addItem(120, 7)
-      val id4  = meta.addItem(133, 9)
+      val id4  = meta.addItem(132, 9)
 
       instrumenter.assertNodeExists(id1, "30")
       instrumenter.assertNodeExists(id2, "10")
-      instrumenter.assertNodeExistsTail(id3)
-      instrumenter.assertNodeExistsTail(id4)
+      instrumenter.assertNodeExists(id3, "30")
+      instrumenter.assertNodeExists(id4, "30")
       eval(meta.appendToCode(code))
     }
 

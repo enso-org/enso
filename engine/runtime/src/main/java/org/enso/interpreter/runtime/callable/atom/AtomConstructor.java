@@ -75,8 +75,7 @@ public class AtomConstructor implements TruffleObject {
     ExpressionNode instantiateNode = InstantiateNode.build(this, argumentReaders);
     RootNode rootNode = InstantiateAtomNode.build(null, name, instantiateNode);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    return new Function(
-        callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.ALWAYS_DIRECT, args));
+    return new Function(callTarget, null, new FunctionSchema(args));
   }
 
   private void generateMethods(ArgumentDefinition[] args) {
@@ -94,7 +93,6 @@ public class AtomConstructor implements TruffleObject {
             callTarget,
             null,
             new FunctionSchema(
-                FunctionSchema.CallStrategy.ALWAYS_DIRECT,
                 new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(
         definitionScope.getAssociatedType(), this.name.toLowerCase(), function);
@@ -107,7 +105,6 @@ public class AtomConstructor implements TruffleObject {
         callTarget,
         null,
         new FunctionSchema(
-            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
             new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 

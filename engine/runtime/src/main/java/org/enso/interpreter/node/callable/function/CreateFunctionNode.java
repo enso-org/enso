@@ -4,7 +4,6 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -23,7 +22,7 @@ public class CreateFunctionNode extends ExpressionNode {
 
   private CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
     this.callTarget = callTarget;
-    this.schema = new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, args);
+    this.schema = new FunctionSchema(args);
   }
 
   /**
