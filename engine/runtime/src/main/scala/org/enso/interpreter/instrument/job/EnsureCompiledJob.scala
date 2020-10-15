@@ -37,8 +37,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val modules = files.flatMap { file =>
         ctx.executionService.getContext.getModuleForFile(file).toScala
       }
-      ensureCompiledModules(modules)
-      ensureCompiledImports(modules)
+      ensureIndexedModules(modules)
+      ensureIndexedImports(modules)
       ensureCompiledScope()
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -52,7 +52,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param modules the list of modules to compile.
     * @param ctx the runtime context
     */
-  protected def ensureCompiledModules(
+  protected def ensureIndexedModules(
     modules: Iterable[Module]
   )(implicit ctx: RuntimeContext): Unit = {
     modules
@@ -74,7 +74,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @param modules the list of modules to analyze.
     * @param ctx the runtime context
     */
-  protected def ensureCompiledImports(
+  protected def ensureIndexedImports(
     modules: Iterable[Module]
   )(implicit ctx: RuntimeContext): Unit = {
     modules.foreach { module =>
@@ -107,14 +107,15 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       .map { module =>
         compile(module) match {
           case Left(err) =>
-            ctx.executionService.getLogger.severe(s"Compilation error: $err")
+            ctx.executionService.getLogger
+              .log(Level.SEVERE, s"Compilation error in ${module.getPath}", err)
             CompilationStatus.Failure
           case Right(module) =>
             analyzeModuleInScope(module)
             runCompilationDiagnostics(module)
         }
       }
-      .find(_ == CompilationStatus.Failure)
+      .maxOption
       .getOrElse(CompilationStatus.Success)
   }
 
@@ -411,7 +412,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     diagnostics: Iterable[Api.Diagnostic]
   ): CompilationStatus =
     if (diagnostics.exists(_.kind == Api.DiagnosticType.Error()))
-      CompilationStatus.Failure
+      CompilationStatus.Error
     else
       CompilationStatus.Success
 }
@@ -421,8 +422,22 @@ object EnsureCompiledJob {
   /** The outcome of a compilation. */
   sealed trait CompilationStatus
   case object CompilationStatus {
+
+    /** Compilation completed. */
     case object Success extends CompilationStatus
+
+    /** Compilation completed with errors. */
+    case object Error extends CompilationStatus
+
+    /** Compiler crashed. */
     case object Failure extends CompilationStatus
+
+    implicit val ordering: Ordering[CompilationStatus] =
+      Ordering.by {
+        case Success => 0
+        case Error   => 1
+        case Failure => 2
+      }
   }
 
   private val unappliedEdits =

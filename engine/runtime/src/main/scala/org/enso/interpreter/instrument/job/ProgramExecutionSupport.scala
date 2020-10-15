@@ -157,7 +157,7 @@ trait ProgramExecutionSupport {
     stack: List[InstrumentFrame],
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
-  )(implicit ctx: RuntimeContext): Option[Api.Diagnostic] = {
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionOutcome] = {
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -200,7 +200,7 @@ trait ProgramExecutionSupport {
     val executionResult = for {
       stackItem <- Either.fromOption(
         explicitCallOpt,
-        Api.Diagnostic.error("Stack is empty.")
+        Api.ExecutionFailure("Execution stack is empty.", None)
       )
       _ <-
         Either
@@ -228,12 +228,12 @@ trait ProgramExecutionSupport {
   private def onExecutionError(
     item: ExecutionItem,
     error: Throwable
-  )(implicit ctx: RuntimeContext): Api.Diagnostic = {
+  )(implicit ctx: RuntimeContext): Api.ExecutionOutcome = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(call)         => call.getFunction.getName
     }
-    val executionUpdate = getError(error)
+    val executionUpdate = getExecutionOutcome(error)
     executionUpdate match {
       case Some(_) =>
         ctx.executionService.getLogger
@@ -243,13 +243,13 @@ trait ProgramExecutionSupport {
           .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
     executionUpdate.getOrElse(
-      Api.Diagnostic.error(s"Error in function $itemName.")
+      Api.ExecutionFailure(s"Error in function $itemName.", None)
     )
   }
 
-  private def getError(
+  private def getExecutionOutcome(
     t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.Diagnostic] = {
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionOutcome] = {
     def getLanguage(ex: TruffleException): Option[String] =
       for {
         location <- Option(ex.getSourceLocation)
@@ -270,18 +270,22 @@ trait ProgramExecutionSupport {
 
       case ex: ConstructorNotFoundException =>
         Some(
-          Api.Diagnostic
-            .error(ex.getMessage, findFileByModuleName(ex.getModule))
+          Api.ExecutionFailure(
+            ex.getMessage,
+            findFileByModuleName(ex.getModule)
+          )
         )
 
       case ex: MethodNotFoundException =>
         Some(
-          Api.Diagnostic
-            .error(ex.getMessage, findFileByModuleName(ex.getModule))
+          Api.ExecutionFailure(
+            ex.getMessage,
+            findFileByModuleName(ex.getModule)
+          )
         )
 
       case ex: ServiceException =>
-        Some(Api.Diagnostic.error(ex.getMessage))
+        Some(Api.ExecutionFailure(ex.getMessage, None))
 
       case _ =>
         None

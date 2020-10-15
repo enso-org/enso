@@ -2533,9 +2533,9 @@ class RuntimeServerTest
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(Api.Diagnostic.error("Module Unnamed.Main not found."))
+          Api.ExecutionFailure("Module Unnamed.Main not found.", None)
         )
       ),
       context.executionComplete(contextId)
@@ -2577,13 +2577,11 @@ class RuntimeServerTest
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.Diagnostic.error(
-              "Constructor Unexpected not found in module Test.Main.",
-              Some(mainFile)
-            )
+          Api.ExecutionFailure(
+            "Constructor Unexpected not found in module Test.Main.",
+            Some(mainFile)
           )
         )
       ),
@@ -2626,13 +2624,11 @@ class RuntimeServerTest
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.Diagnostic.error(
-              "Object Main does not define method ooops in module Test.Main.",
-              Some(mainFile)
-            )
+          Api.ExecutionFailure(
+            "Object Main does not define method ooops in module Test.Main.",
+            Some(mainFile)
           )
         )
       ),
@@ -3995,9 +3991,9 @@ class RuntimeServerTest
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(Api.Diagnostic.error("Stack is empty."))
+          Api.ExecutionFailure("Execution stack is empty.", None)
         )
       ),
       context.executionComplete(contextId)

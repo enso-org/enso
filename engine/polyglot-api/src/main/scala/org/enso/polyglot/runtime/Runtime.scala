@@ -133,6 +133,10 @@ object Runtime {
         name  = "executionUpdate"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExecutionFailed],
+        name  = "executionFailed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ExecutionComplete],
         name  = "executionSuccessful"
       ),
@@ -401,6 +405,21 @@ object Runtime {
       location: Option[Range]
     )
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[Diagnostic],
+          name  = "executionOutcomeDiagnostic"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionFailure],
+          name  = "executionOutcomeFailure"
+        )
+      )
+    )
+    sealed trait ExecutionOutcome
+
     /**
       * A diagnostic object produced as a compilation outcome, like error or
       * warning.
@@ -417,7 +436,7 @@ object Runtime {
       file: Option[File],
       location: Option[Range],
       stack: Vector[StackTraceElement]
-    )
+    ) extends ExecutionOutcome
 
     case object Diagnostic {
 
@@ -456,6 +475,9 @@ object Runtime {
         new Diagnostic(DiagnosticType.Warning(), message, file, location, stack)
     }
 
+    case class ExecutionFailure(message: String, file: Option[File])
+        extends ExecutionOutcome
+
     /**
       * The notification about the execution status.
       *
@@ -466,6 +488,15 @@ object Runtime {
       contextId: ContextId,
       diagnostics: Seq[Diagnostic]
     ) extends ApiNotification
+
+    /**
+      * Signals about the critical failure during the context execution.
+      *
+      * @param contextId the context's id
+      * @param failure the error description
+      */
+    case class ExecutionFailed(contextId: ContextId, failure: ExecutionFailure)
+        extends ApiNotification
 
     /**
       * An event signaling a visualisation update.

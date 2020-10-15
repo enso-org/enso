@@ -102,6 +102,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+  - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
@@ -588,9 +589,9 @@ interface StackTraceElement {
 
 A diagnostic object is produced as a result of an execution attempt, like
 pushing the method pointer to a call stack, or editing the file. It can
-represent a compiler warning, a compilation error, or a runtime error. The message has
-optional `path`, `location` and `stack` fields containing information about the
-location in the source code.
+represent a compiler warning, a compilation error, or a runtime error. The
+message has optional `path`, `location` and `stack` fields containing
+information about the location in the source code.
 
 Howewer, the diagnostic message will contain `path`, `location` and `stack`
 fields empty, if the the runtime was not able to locate the method to execute
@@ -2369,6 +2370,36 @@ expressions becoming available.
 {
   contextId: ContextId;
   updates: [ExpressionValueUpdate];
+}
+```
+
+#### Errors
+
+None
+
+### `executionContext/executionFailed`
+
+Sent from the server to the client to inform about a critical failure when
+attempting to execute a context.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * The identifier of the execution context.
+   */
+  contextId: ContextId;
+
+  /**
+   * The message describing the issue.
+   */
+  message: String;
 }
 ```
 
