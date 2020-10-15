@@ -53,11 +53,7 @@ type Vector
     ## Converts a polyglot value representing an array into a vector. This is
        useful when wrapping polyglot APIs for further use in Enso.
     from_polyglot_array : Any -> Vector
-    from_polyglot_array arr =
-        a = Array.new arr.length
-        0.upto arr.length . each i->
-            a.set_at i (arr.at i)
-        Vector a
+    from_polyglot_array arr = Vector.new arr.length arr.at
 
     ## Returns the number of elements stored in this vector.
     length : Number
@@ -79,8 +75,7 @@ type Vector
     fold initial function =
         arr = this.to_array
         f = acc -> ix -> function acc (arr.at ix)
-        res = 0.upto this.length . fold initial f
-        res
+        0.upto this.length . fold initial f
 
     ## Creates a new vector of the given length, initializing elements using
        the provided constructor function.
@@ -146,8 +141,7 @@ type Vector
         arr1 = this.to_array
         arr2 = that.to_array
         eq_at i = arr1.at i == arr2.at i
-        r = if arr1.length == arr2.length then 0.upto arr1.length . every eq_at else False
-        r
+        if arr1.length == arr2.length then 0.upto arr1.length . every eq_at else False
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `this`, followed by all the elements of `that`.

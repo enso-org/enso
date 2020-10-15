@@ -8,27 +8,31 @@ type Sum
 
 sum_tco = sum_to ->
     summator = acc -> current ->
-        if current == 0 then acc else summator acc+current current-1
+        if current == 0 then acc else
+            @Tail_Call summator acc+current current-1
     res = summator 0 sum_to
     res
 
 sum_tco_decimal = sum_to ->
     s = sum_to.to_decimal
     summator = acc -> current ->
-        if current >= s then acc else summator acc+current current+1.0
+        if current >= s then acc else
+            @Tail_Call summator acc+current current+1.0
     res = summator 0.0 0.0
     res
 
 sum_tco_eval = sumTo ->
     summator = acc -> current ->
-        if current == 0 then acc else Debug.eval "summator (acc + current) (current - 1)"
+        if current == 0 then acc else
+            Debug.eval "@Tail_Call summator (acc + current) (current - 1)"
 
     res = summator 0 sumTo
     res
 
 sum_tco_java = sum_to ->
     summator = acc -> current ->
-        if current == 0 then acc else summator (Long.sum [acc, current]) (current - 1)
+        if current == 0 then acc else
+            @Tail_Call summator (Long.sum [acc, current]) (current - 1)
     res = summator 0 sum_to
     res
 
@@ -37,7 +41,7 @@ sum_co_state_body =
     acc = State.get Sum
     State.put Counter n-1
     State.put Sum     acc+n
-    if n == 0 then acc else here.sum_co_state_body
+    if n == 0 then acc else @Tail_Call here.sum_co_state_body
 
 sum_co_state n =
     res = State.run Counter n (State.run Sum 0 here.sum_co_state_body)
@@ -46,14 +50,26 @@ sum_co_state n =
 sum_state_body n =
     acc = State.get Number
     State.put Number (acc + n)
-    if n == 0 then State.get Number else here.sum_state_body (n - 1)
+    if n == 0 then State.get Number else
+        @Tail_Call here.sum_state_body (n - 1)
 
 sum_state = sum_to ->
     res = State.run Number 0 (here.sum_state_body sum_to)
     res
 
+sum_co_1 n acc = if n == 0 then acc else @Tail_Call here.sum_co_2 n-1 acc+n
+
+sum_co_2 n acc = if n == 0 then acc else here.sum_co_1 n-1 acc+n
+
+sum_co n =
+    res = here.sum_co_2 n 0
+    res
+
 main =
     hundred_mil = 100000000
+    IO.println (here.sum_co 1000)
+    IO.println "Measuring Sum TCO Corecursive"
+    Bench_Utils.measure (here.sum_co hundred_mil) "sum_tco_corecursive" 100 10
     IO.println "Measuring Sum TCO Decimal"
     Bench_Utils.measure (here.sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
     IO.println "Measuring SumTCO"

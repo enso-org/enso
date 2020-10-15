@@ -184,7 +184,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val body: Pattern       = char.many >> '\''.many
     val _var: Pattern       = lowerLetter >> body
     val cons: Pattern       = upperLetter >> body
-    val annotation: Pattern = "@" >> body
+    val annotation: Pattern = "@" >> cons
     val breaker: String     = "^`!@#$%^&*()-=+[]{}|;:<>,./ \t\r\n\\"
     val errSfx: Pattern     = noneOf(breaker).many1
 

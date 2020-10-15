@@ -167,8 +167,7 @@ type File
     read_bytes : Vector ! File_Error
     read_bytes =
         opts = [Option.Read]
-        bytes = this.with_input_stream opts (_.read_all_bytes)
-        bytes
+        this.with_input_stream opts (_.read_all_bytes)
 
     ## Reads the whole file into a `Text`, assuming UTF-8 content encoding.
     read : Text ! File_Error
