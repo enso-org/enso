@@ -3,14 +3,14 @@
 use crate::prelude::*;
 
 use crate as frp;
+use crate::io::js::CurrentJsEvent;
+use crate::io::js::EventCallback;
+use crate::io::js::KeyboardEventCallback;
+use crate::io::js::Listener;
 
-use ensogl_system_web as web;
 use inflector::Inflector;
 use unicode_segmentation::UnicodeSegmentation;
 use web_sys::KeyboardEvent;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::Window;
 
 
 
@@ -328,95 +328,30 @@ impl Default for Keyboard {
 
 
 
-// ================
-// === Listener ===
-// ================
-
-/// Callback for keyboard events.
-pub trait ListenerCallback = FnMut(KeyboardEvent) + 'static;
-
-/// Keyboard event listener which calls the callback function as long it lives.
-#[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-pub struct Listener<Callback:?Sized> {
-    logger     : Logger,
-    callback   : Closure<Callback>,
-    element    : Window,
-    event_type : String
-}
-
-impl<Callback:?Sized> Listener<Callback> {
-    /// Constructor.
-    pub fn new(logger:impl AnyLogger,event_type:impl Str, callback:Closure<Callback>) -> Self {
-        let element     = web::window();
-        let js_function = callback.as_ref().unchecked_ref();
-        let logger      = Logger::sub(logger,"Listener");
-        let event_type  = event_type.as_ref();
-        if element.add_event_listener_with_callback(event_type,js_function).is_err() {
-            logger.warning(|| format!("Couldn't add {} event listener.",event_type));
-        }
-        let event_type = event_type.into();
-        Self {callback,element,event_type,logger}
-    }
-}
-
-impl Listener<dyn ListenerCallback> {
-    /// Creates a new key down event listener.
-    pub fn new_key_down<F>(logger:impl AnyLogger, f:F) -> Self
-    where F : ListenerCallback {
-        let boxed   = Box::new(f);
-        let closure = Closure::<dyn ListenerCallback>::wrap(boxed);
-        Self::new(logger,"keydown",closure)
-    }
-
-    /// Creates a new key up event listener.
-    pub fn new_key_up<F>(logger:impl AnyLogger, f:F) -> Self
-    where F : ListenerCallback {
-        let boxed   = Box::new(f);
-        let closure = Closure::<dyn ListenerCallback>::wrap(boxed);
-        Self::new(logger,"keyup",closure)
-    }
-}
-
-impl Listener<dyn FnMut() + 'static> {
-    /// Creates a blur event listener.
-    pub fn new_blur<F>(logger:impl AnyLogger, f:F) -> Self
-    where F : FnMut() + 'static {
-        let boxed   = Box::new(f);
-        let closure = Closure::<dyn FnMut() + 'static>::wrap(boxed);
-        Self::new(logger,"blur",closure)
-    }
-}
-
-impl<Callback:?Sized> Drop for Listener<Callback> {
-    fn drop(&mut self) {
-        let callback = self.callback.as_ref().unchecked_ref();
-        if self.element.remove_event_listener_with_callback(&self.event_type, callback).is_err() {
-            self.logger.warning("Couldn't remove event listener.");
-        }
-    }
-}
+// ===================
+// === DomBindings ===
+// ===================
 
 /// A handle of listener emitting events on bound FRP graph.
 #[derive(Debug)]
 pub struct DomBindings {
-    key_down : Listener<dyn ListenerCallback>,
-    key_up   : Listener<dyn ListenerCallback>,
-    blur     : Listener<dyn FnMut() + 'static>,
+    key_down : Listener<dyn KeyboardEventCallback>,
+    key_up   : Listener<dyn KeyboardEventCallback>,
+    blur     : Listener<dyn EventCallback>,
 }
 
 impl DomBindings {
     /// Create new Keyboard and Frp bindings.
-    pub fn new(logger:impl AnyLogger, keyboard:&Keyboard) -> Self {
-        let key_down = Listener::new_key_down(&logger,f!((event:KeyboardEvent)
-            keyboard.source.down.emit(Key::new(event.key(),event.code()))
-        ));
-        let key_up = Listener::new_key_up(&logger,f!((event:KeyboardEvent)
-            keyboard.source.up.emit(Key::new(event.key(),event.code()))
-        ));
-        let blur = Listener::new_blur(&logger,f!(()
-            keyboard.source.window_defocused.emit(())
-        ));
+    pub fn new(logger:impl AnyLogger, keyboard:&Keyboard, current_event:&CurrentJsEvent) -> Self {
+        let key_down = Listener::new_key_down(&logger,current_event.make_event_handler(
+            f!((event:&KeyboardEvent) keyboard.source.down.emit(Key::new(event.key(),event.code()))
+        )));
+        let key_up = Listener::new_key_up(&logger,current_event.make_event_handler(
+            f!((event:&KeyboardEvent) keyboard.source.up.emit(Key::new(event.key(),event.code()))
+        )));
+        let blur = Listener::new_blur(&logger,current_event.make_event_handler(
+            f_!(keyboard.source.window_defocused.emit(())
+        )));
         Self {key_down,key_up,blur}
     }
 }

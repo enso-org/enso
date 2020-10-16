@@ -28,47 +28,51 @@ fn generate_data(seconds:f64) -> Vec<Vector2<f32>> {
 
 fn constructor_graph() -> visualization::java_script::Definition {
     let source = r#"
-        class Graph {
-            static inputTypes = ["[[Float,Float,Float]]"]
+        class Graph extends Visualization {
+            static inputType = "[[Float,Float,Float]]"
 
-            onDataReceived(root, data) {
-                if (!root.canvas) {
-                    root.canvas  = document.createElement("canvas");
-                    root.context = root.canvas.getContext("2d");
-                    root.appendChild(root.canvas);
+            onDataReceived(data) {
+                if (!this.canvas) {
+                    this.canvas  = document.createElement("canvas");
+                    this.canvas.setAttribute("tabindex","0");
+                    this.context = this.canvas.getContext("2d");
+                    this.dom.appendChild(this.canvas);
+                    this.dom.addEventListener("keydown", function(e) {
+                        console.log("pressed",e);
+                    })
                 }
 
                 let first = data.shift();
                 if (first) {
-                    root.context.clearRect(0,0,root.canvas.width,root.canvas.height);
-                    root.context.save();
-                    root.context.scale(root.canvas.width/2,root.canvas.height/2);
-                    root.context.translate(1,1);
-                    root.context.lineWidth = 1/Math.min(root.canvas.width,root.canvas.height);
-                    root.context.beginPath();
-                    root.context.moveTo(first[0],first[1]);
+                    this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
+                    this.context.save();
+                    this.context.scale(this.canvas.width/2,this.canvas.height/2);
+                    this.context.translate(1,1);
+                    this.context.lineWidth = 1/Math.min(this.canvas.width,this.canvas.height);
+                    this.context.beginPath();
+                    this.context.moveTo(first[0],first[1]);
                     data.forEach(data => {
-                        root.context.lineTo(data[0],data[1]);
+                        this.context.lineTo(data[0],data[1]);
                     });
-                    root.context.stroke();
-                    root.context.restore();
-                    root.context.beginPath();
-                    root.context.moveTo(first[0],first[1]);
-                    root.context.stroke();
+                    this.context.stroke();
+                    this.context.restore();
+                    this.context.beginPath();
+                    this.context.moveTo(first[0],first[1]);
+                    this.context.stroke();
                 }
             }
 
-            setSize(root, size) {
-                if (root.canvas) {
-                    root.canvas.width  = size[0];
-                    root.canvas.height = size[1];
+            setSize(size) {
+                if (this.canvas) {
+                    this.canvas.width  = size[0];
+                    this.canvas.height = size[1];
                 }
             }
         }
 
-        return Graph;
+        return Graph
     "#;
-    visualization::java_script::Definition::new(data::builtin_library(),source).unwrap() // FIXME unwrap
+    visualization::java_script::Definition::new(data::builtin_library(),source).unwrap()
 }
 
 #[wasm_bindgen]
@@ -89,7 +93,7 @@ fn init(app:&Application) {
     let scene     = world.scene();
     let camera    = scene.camera();
     let navigator = Navigator::new(&scene,&camera);
-    let registry  = Registry::with_default_visualizations();
+    let registry  = Registry::new();
 
     registry.add(constructor_graph());
 
@@ -98,8 +102,9 @@ fn init(app:&Application) {
         &*class.signature.name == "Graph"
     }).expect("Couldn't find Graph class.");
     let visualization = vis_class.new_instance(&scene).expect("Couldn't create visualiser.");
+    visualization.activate.emit(());
 
-    let mut was_rendered = false;
+    let mut was_rendered  = false;
     let mut loader_hidden = false;
     world.on_frame(move |time_info| {
         let _keep_alive = &navigator;

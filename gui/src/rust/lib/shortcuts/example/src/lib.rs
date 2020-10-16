@@ -32,7 +32,7 @@ pub fn main() {
 
     let logger   = Logger::new("kb");
     let kb       = Keyboard::new();
-    let bindings = keyboard::DomBindings::new(&logger,&kb);
+    let bindings = keyboard::DomBindings::new(&logger,&kb,&default());
 
     let shortcut_registry2 = shortcut_registry.clone_ref();
     let shortcut_registry3 = shortcut_registry.clone_ref();
