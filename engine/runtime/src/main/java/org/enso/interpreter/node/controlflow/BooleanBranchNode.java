@@ -49,8 +49,7 @@ public abstract class BooleanBranchNode extends BranchNode {
    * @param target the atom to destructure
    */
   @Specialization
-  public void doAtom(VirtualFrame frame, boolean target) {
-    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+  public void doAtom(VirtualFrame frame, Object state, boolean target) {
     if (profile.profile(matched == target)) {
       Stateful result =
           (Stateful)
@@ -69,7 +68,7 @@ public abstract class BooleanBranchNode extends BranchNode {
    * @param target the object to execute on
    */
   @Fallback
-  public void doFallback(VirtualFrame frame, Object target) {}
+  public void doFallback(VirtualFrame frame, Object state, Object target) {}
 
   /* Note [Caller Info For Case Branches]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

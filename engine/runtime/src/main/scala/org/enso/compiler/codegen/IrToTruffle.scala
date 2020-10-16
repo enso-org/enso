@@ -15,7 +15,8 @@ import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   BindingAnalysis,
   DataflowAnalysis,
-  TailCall
+  TailCall,
+  TailPatternMatch
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
@@ -596,7 +597,11 @@ class IrToTruffle(
               .toArray[BranchNode]
 
             // Note [Pattern Match Fallbacks]
-            val matchExpr = CaseNode.build(scrutineeNode, cases)
+            val matchExpr = CaseNode.build(
+              scrutineeNode,
+              cases,
+              caseExpr.getMetadata(TailPatternMatch).isDefined
+            )
             setLocation(matchExpr, location)
           } else {
             val invalidBranches = maybeCases.collect {
@@ -1170,11 +1175,15 @@ class IrToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
-          val shouldSuspend = shouldBeSuspended.getOrElse(
-            throw new CompilerError(
-              "Demand analysis information missing from call argument."
-            )
-          )
+          val shouldSuspend = value match {
+            case _: IR.Name => false
+            case _ =>
+              shouldBeSuspended.getOrElse(
+                throw new CompilerError(
+                  "Demand analysis information missing from call argument."
+                )
+              )
+          }
 
           val childScope = if (shouldSuspend) {
             scope.createChild(scopeInfo.scope)

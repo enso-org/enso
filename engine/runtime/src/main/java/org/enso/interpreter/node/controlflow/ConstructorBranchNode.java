@@ -65,8 +65,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @param target the atom to destructure
    */
   @Specialization
-  public void doAtom(VirtualFrame frame, Atom target) {
-    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+  public void doAtom(VirtualFrame frame, Object state, Atom target) {
     if (profile.profile(matcher == target.getConstructor())) {
       //      Function function = TypesGen.asFunction(branch.executeGeneric(frame));
 
@@ -89,7 +88,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @param target the object to execute on
    */
   @Fallback
-  public void doFallback(VirtualFrame frame, Object target) {}
+  public void doFallback(VirtualFrame frame, Object state, Object target) {}
 
   /* Note [Caller Info For Case Branches]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

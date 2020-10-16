@@ -2,14 +2,17 @@ package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -20,11 +23,13 @@ import org.enso.interpreter.runtime.type.TypesGen;
     shortName = "Catch_All",
     description = "An explicit catch-all branch in a case expression")
 public class CatchAllBranchNode extends BranchNode {
-  @Child private ExpressionNode functionNode;
-  @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
+//  @Child private ExpressionNode functionNode;
+  //  @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
+  private @Child DirectCallNode callNode;
+  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   private CatchAllBranchNode(CreateFunctionNode functionNode) {
-    this.functionNode = functionNode;
+    this.callNode = DirectCallNode.create(functionNode.getCallTarget());
   }
 
   /**
@@ -43,13 +48,14 @@ public class CatchAllBranchNode extends BranchNode {
    * @param frame the stack frame in which to execute
    * @param target the object to match against
    */
-  public void execute(VirtualFrame frame, Object target) {
+  public void execute(VirtualFrame frame, Object state, Object target) {
     // Note [Safe Casting to Function in Catch All Branches]
-    Function function = TypesGen.asFunction(functionNode.executeGeneric(frame));
-    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
-    throw new BranchSelectedException(
-        // Note [Caller Info For Case Branches]
-        executeCallNode.executeCall(function, null, state, new Object[] {target}));
+    Stateful result =
+        (Stateful)
+            callNode.call(
+                Function.ArgumentsHelper.buildArguments(
+                    frame.materialize(), null, state, new Object[] {target}));
+    throw new BranchSelectedException(result);
   }
 
   /* Note [Safe Casting to Function in Catch All Branches]

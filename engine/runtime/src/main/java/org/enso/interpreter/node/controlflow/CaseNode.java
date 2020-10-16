@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -13,6 +14,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -28,11 +30,13 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @NodeInfo(shortName = "case_of", description = "The runtime representation of a case expression.")
 public abstract class CaseNode extends ExpressionNode {
 
+  private final boolean isTailCase;
   @Children private final BranchNode[] cases;
   private final BranchProfile typeErrorProfile = BranchProfile.create();
 
-  CaseNode(BranchNode[] cases) {
+  CaseNode(BranchNode[] cases, boolean isTailCase) {
     this.cases = cases;
+    this.isTailCase = isTailCase;
   }
 
   /**
@@ -42,8 +46,8 @@ public abstract class CaseNode extends ExpressionNode {
    * @param cases the case branches
    * @return a node representing a pattern match
    */
-  public static CaseNode build(ExpressionNode scrutinee, BranchNode[] cases) {
-    return CaseNodeGen.create(cases, scrutinee);
+  public static CaseNode build(ExpressionNode scrutinee, BranchNode[] cases, boolean isTailCase) {
+    return CaseNodeGen.create(cases, isTailCase, scrutinee);
   }
 
   /**
@@ -74,9 +78,10 @@ public abstract class CaseNode extends ExpressionNode {
       VirtualFrame frame,
       Object object,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     try {
       for (BranchNode branchNode : cases) {
-        branchNode.execute(frame, object);
+        branchNode.execute(frame, state, object);
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
@@ -105,4 +110,8 @@ public abstract class CaseNode extends ExpressionNode {
    * The main alternative to this was desugaring to a nested-if, which would've been significantly
    * harder to maintain, and also resulted in significantly higher code complexity.
    */
+
+  public boolean isTailCase() {
+    return isTailCase;
+  }
 }

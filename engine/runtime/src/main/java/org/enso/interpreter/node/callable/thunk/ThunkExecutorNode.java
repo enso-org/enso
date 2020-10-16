@@ -37,7 +37,7 @@ public abstract class ThunkExecutorNode extends Node {
    * @param isTail is the execution happening in a tail-call position
    * @return the return value of this thunk
    */
-  public abstract Stateful executeThunk(Thunk thunk, Object state, BaseNode.TailStatus isTail);
+  public abstract Stateful executeThunk(Object thunk, Object state, BaseNode.TailStatus isTail);
 
   @Specialization(
       guards = "callNode.getCallTarget() == thunk.getCallTarget()",
@@ -82,5 +82,10 @@ public abstract class ThunkExecutorNode extends Node {
             e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
       }
     }
+  }
+
+  @Fallback
+  Stateful doOther(Object thunk, Object state, BaseNode.TailStatus isTail) {
+    return new Stateful(state, thunk);
   }
 }

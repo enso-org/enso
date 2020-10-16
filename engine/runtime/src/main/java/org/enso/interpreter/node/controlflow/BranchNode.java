@@ -17,5 +17,6 @@ public abstract class BranchNode extends BaseNode {
    * @param frame the stack frame in which to execute
    * @param target the object to match against
    */
-  public abstract void execute(VirtualFrame frame, Object target);
+  public abstract void execute(VirtualFrame frame, Object state, Object target);
+
 }

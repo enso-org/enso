@@ -185,10 +185,12 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        Stateful selfResult =
-            thisExecutor.executeThunk((Thunk) selfArgument, state, TailStatus.NOT_TAIL);
-        selfArgument = selfResult.getValue();
-        state = selfResult.getState();
+        if (selfArgument instanceof Thunk) {
+          Stateful selfResult =
+              thisExecutor.executeThunk((Thunk) selfArgument, state, TailStatus.NOT_TAIL);
+          state = selfResult.getState();
+          selfArgument = selfResult.getValue();
+        }
         arguments[thisArgumentPosition] = selfArgument;
       }
       Function function = methodResolverNode.execute(symbol, selfArgument);
