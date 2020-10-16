@@ -157,7 +157,14 @@ case object NestedPatternMatch extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     expr.transformExpressions {
-      case cse: IR.Case => desugarCase(cse, freshNameSupply)
+      case cse: IR.Case =>
+        val r = desugarCase(cse, freshNameSupply)
+        println("Result of case desugaring: ")
+        println("BEFORE ")
+        println(cse.showCode())
+        println("AFTER ")
+        println(r.showCode())
+        r
     }
   }
 

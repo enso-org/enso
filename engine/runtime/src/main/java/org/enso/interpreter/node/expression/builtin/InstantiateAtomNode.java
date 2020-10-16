@@ -13,16 +13,17 @@ import org.enso.interpreter.runtime.state.Stateful;
 /** This node represents the process of instantiating an atom at runtime. */
 @NodeInfo(shortName = "constructor::", description = "An atom instantiation at runtime.")
 public class InstantiateAtomNode extends RootNode {
-  private @Node.Child ExpressionNode instantiator;
+  private final AtomConstructor constructor; // instantiator;
   private final String name;
 
-  private InstantiateAtomNode(Language language, String name, ExpressionNode instantiator) {
+  private InstantiateAtomNode(Language language, String name, AtomConstructor constructor) {
     super(language);
     this.name = name;
-    this.instantiator = instantiator;
+    this.constructor = constructor;
   }
 
-  /** Executes this node.
+  /**
+   * Executes this node.
    *
    * @param frame the language frame being executed
    * @return the result of executing this node
@@ -31,10 +32,13 @@ public class InstantiateAtomNode extends RootNode {
   public Stateful execute(VirtualFrame frame) {
     return new Stateful(
         Function.ArgumentsHelper.getState(frame.getArguments()),
-        instantiator.executeGeneric(frame));
+        constructor.newInstance(
+            Function.ArgumentsHelper.getPositionalArguments(
+                frame.getArguments()))); // .executeGeneric(frame));
   }
 
-  /** Returns a string representation of this node.
+  /**
+   * Returns a string representation of this node.
    *
    * @return a string representation of this node
    */
@@ -43,7 +47,8 @@ public class InstantiateAtomNode extends RootNode {
     return "constructor::" + name;
   }
 
-  /** Creates an instance of this node.
+  /**
+   * Creates an instance of this node.
    *
    * @param language the language for which the node is created
    * @param name the name of the atom being instantated
@@ -51,7 +56,7 @@ public class InstantiateAtomNode extends RootNode {
    * @return an instance of this node
    */
   public static InstantiateAtomNode build(
-      Language language, String name, ExpressionNode instantiator) {
-    return new InstantiateAtomNode(language, name, instantiator);
+      Language language, String name, AtomConstructor constructor) {
+    return new InstantiateAtomNode(language, name, constructor);
   }
 }

@@ -1,11 +1,15 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import org.enso.compiler.Compiler;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
@@ -13,19 +17,21 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
 @NodeInfo(shortName = "ConstructorMatch")
 public abstract class ConstructorBranchNode extends BranchNode {
   private final AtomConstructor matcher;
-  private @Child ExpressionNode branch;
-  private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
+  //  private @Child ExpressionNode branch;
+  //  private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
+  private @Child DirectCallNode callNode;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   ConstructorBranchNode(AtomConstructor matcher, CreateFunctionNode branch) {
     this.matcher = matcher;
-    this.branch = branch;
+    this.callNode = DirectCallNode.create(branch.getCallTarget());
   }
 
   /**
@@ -37,6 +43,16 @@ public abstract class ConstructorBranchNode extends BranchNode {
    */
   public static ConstructorBranchNode build(AtomConstructor matcher, CreateFunctionNode branch) {
     return ConstructorBranchNodeGen.create(matcher, branch);
+  }
+
+  @ExplodeLoop
+  private Object[] copyArgs(Object[] fields) {
+    Object[] res = new Object[matcher.getArity()];
+//    CompilerDirectives.ensureVirtualized(res);
+    for (int i = 0; i < matcher.getArity(); i++) {
+      res[i] = fields[i];
+    }
+    return res;
   }
 
   /**
@@ -52,11 +68,17 @@ public abstract class ConstructorBranchNode extends BranchNode {
   public void doAtom(VirtualFrame frame, Atom target) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(matcher == target.getConstructor())) {
-      Function function = TypesGen.asFunction(branch.executeGeneric(frame));
+      //      Function function = TypesGen.asFunction(branch.executeGeneric(frame));
 
+//      Object[] args = copyArgs(target.getFields());
+
+      Stateful result =
+          (Stateful)
+              callNode.call(
+                  Function.ArgumentsHelper.buildArguments(
+                      frame.materialize(), null, state, target.getFields()));
       // Note [Caller Info For Case Branches]
-      throw new BranchSelectedException(
-          executeCallNode.executeCall(function, null, state, target.getFields()));
+      throw new BranchSelectedException(result);
     }
   }
 

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
@@ -13,19 +14,21 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on booleans. */
 @NodeInfo(shortName = "BooleanMatch")
 public abstract class BooleanBranchNode extends BranchNode {
   private final boolean matched;
-  private @Child ExpressionNode branch;
-  private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
+  //  private @Child ExpressionNode branch;
+  //  private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+  private @Child DirectCallNode callNode;
 
   BooleanBranchNode(boolean matched, CreateFunctionNode branch) {
     this.matched = matched;
-    this.branch = branch;
+    this.callNode = DirectCallNode.create(branch.getCallTarget());
   }
 
   /**
@@ -49,11 +52,13 @@ public abstract class BooleanBranchNode extends BranchNode {
   public void doAtom(VirtualFrame frame, boolean target) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(matched == target)) {
-      Function function = TypesGen.asFunction(branch.executeGeneric(frame));
-
+      Stateful result =
+          (Stateful)
+              callNode.call(
+                  Function.ArgumentsHelper.buildArguments(
+                      frame.materialize(), null, state, new Object[0]));
       // Note [Caller Info For Case Branches]
-      throw new BranchSelectedException(
-          executeCallNode.executeCall(function, null, state, new Object[0]));
+      throw new BranchSelectedException(result);
     }
   }
 
