@@ -1,0 +1,61 @@
+from Base import all
+
+##
+type To_Uri
+
+    type To_Uri
+
+    to_uri : Uri
+
+## Implement To_Uri for Text
+Text.to_uri = Uri.parse this
+
+type Uri
+
+    type Uri
+
+    ## Implement To_Uri
+    to_uri : Uri
+    to_uri = this
+
+    ## Get scheme part of this Uri.
+    scheme: Text
+
+    ## Get user info part of this Uri.
+    user_info : Text
+
+    ## Get host part of this Uri.
+    host : Text
+
+    ## Get authority (user info and host) part of this Uri.
+    authority: Text
+
+    ## Get port part of this Uri.
+    port : Integer
+
+    ## Get path part of this Uri.
+    path: Text
+
+    ## Get query part of this Uri.
+    query : Text
+
+    ## Get fragment part of this Uri.
+    fragment : Text
+
+    ## Get unescaped user info part of this Uri.
+    raw_user_info : Text
+
+    ## Get unescaped authority part of this Uri.
+    raw_authority : Text
+
+    ## Get unescaped path part of this Uri.
+    raw_path: Text
+
+    ## Get unescaped query part of this Uri.
+    raw_query : Text
+
+    ## Get unescaped fragment part of this Uri.
+    raw_fragment : Text
+
+## Parse Uri from text.
+parse : Text -> Uri

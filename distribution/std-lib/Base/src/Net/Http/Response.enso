@@ -1,0 +1,9 @@
+type Response
+
+    type Response
+
+    headers : [Header]
+
+    body : Any
+
+    status : Status

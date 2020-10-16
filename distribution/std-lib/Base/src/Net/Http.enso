@@ -1,0 +1,99 @@
+from Base import all
+import Base.Net.Uri
+import Base.Net.Http.Config
+import Base.Net.Http.Request
+
+type Http
+
+    type Http
+
+    ## Create an OPTIONS request.
+    options : Request.To_Request -> Response
+
+    ## Create a GET request.
+    get : Request.To_Request -> Response
+
+    ## Create a POST request.
+    post : Request.To_Request -> Request.To_Post_Data -> Response
+
+    ## Create a PUT request.
+    put : Request.To_Request -> Request.To_Put_Data -> Response
+
+    ## Create a DELETE request.
+    delete : Request.To_Request -> Response
+
+    ## Create a TRACE request.
+    trace : Request.To_Request -> Response
+
+    ## Create a CONECT request.
+    connect : Request.To_Request -> Response
+
+    ## Create a request
+    request : Request.To_Request -> Response
+
+## Open an Http connection using `Uri`.
+
+   > Example
+     Open a connection and send a GET request.
+         Http.new "http://httpbin.org" http->
+             res = http.get "http://httpbin.org/get?key=val"
+             res.code
+
+   > Example
+     Open a connection and send a Post request.
+         Http.new "http://httpbin.org" http->
+             req = Request.new Method.POST "http://httpbin.org/post" . with_body [Request.Part "key" "value"] . with_header (Header.header "X-Trace-Id" "123456789")
+             res = http.request req
+             res.code
+
+   > Example
+     Open a connection and send multiple requests.
+         Http.new "http://httpbin.org" http->
+             http.get "http://httpbin.org/get"
+             http.put "http://httpbin.org/put" [Part "key" "val"]
+             http.delete "http://httpbin.org/delete"
+new : Uri.To_Uri -> (Http -> Any) -> Any
+new uri f = Unit
+
+## Open an Http connection using the config.
+
+   > Example
+     Authenticated GET request.
+         conf = Config.new . with_basic_auth "user" "pass"
+         Http.with_config "https://httpbin.org" conf http->
+             http.get "https://httpbin.org/basic-auth/user/pass"
+with_config : Uri.To_Uri -> Config -> (Http -> Any) -> Any
+with_config uri config f = Unit
+
+options : Request.To_Request -> Config -> Response
+options request (config = Config.new) = Unit
+
+## Send a GET request.
+
+   > Example
+     Send a GET request.
+         Http.get "http://httpbin.org/get"
+get : Uri.To_Uri -> Config -> Response
+get uri (config = Config.new) = Unit
+
+## Send a POST request.
+
+   > Example
+     Send a POST request with urlencoded form data
+         Http.post "http://httpbin.org/post" [Request.Part "key" "val"]
+
+   > Example
+     Send a POST request with json data
+         Http.post "http://httpbin.org/post" (Json.new "{\"key\": \"val\"}")
+post : Request.To_Request -> Request.To_Post_Data -> Config -> Response
+
+put : Request.To_Request -> Request.To_Put_Data -> Config -> Response
+
+delete : Request.To_Request -> Config -> Response
+
+trace : Request.To_Request -> Config -> Response
+
+connect : Request.To_Request -> Config -> Response
+
+## Generic request
+request : Request.To_Request -> Config -> Response

@@ -1,0 +1,10 @@
+type Method
+
+    type OPTIONS
+    type GET
+    type HEAD
+    type POST
+    type PUT
+    type DELETE
+    type TRACE
+    type CONNECT
