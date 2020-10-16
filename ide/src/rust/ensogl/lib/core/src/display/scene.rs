@@ -37,6 +37,7 @@ use crate::system::web::StyleSetter;
 use crate::system::web::IgnoreContextMenuHandle;
 
 use enso_frp as frp;
+use enso_frp::io::js::CurrentJsEvent;
 use std::any::TypeId;
 use web_sys::HtmlElement;
 
@@ -299,7 +300,9 @@ pub struct Mouse {
 }
 
 impl Mouse {
-    pub fn new(scene_frp:&Frp, variables:&UniformScope, logger:Logger) -> Self {
+    pub fn new
+    (scene_frp:&Frp, variables:&UniformScope, current_js_event:&CurrentJsEvent, logger:Logger)
+    -> Self {
         let scene_frp       = scene_frp.clone_ref();
         let target          = Target::default();
         let last_position   = Rc::new(Cell::new(Vector2::new(0,0)));
@@ -309,7 +312,7 @@ impl Mouse {
         let body            = web::dom::WithKnownShape::new(&web::document().body().unwrap());
         let mouse_manager   = MouseManager::new_separated(&body.into(),&web::window());
         let frp             = frp::io::Mouse::new();
-        let on_move         = mouse_manager.on_move.add(Self::make_handler(&scene_frp,
+        let on_move         = mouse_manager.on_move.add(current_js_event.make_event_handler(
             f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
                 let shape       = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio as i32;
@@ -327,10 +330,12 @@ impl Mouse {
                 }
             }
         )));
-        let on_down = mouse_manager.on_down.add(Self::make_handler(&scene_frp,
-            f!((event:&mouse::OnDown) frp.down.emit(event.button()))));
-        let on_up   = mouse_manager.on_up.add(Self::make_handler(&scene_frp,
-            f!((event:&mouse::OnUp) frp.up.emit(event.button()))));
+        let on_down = mouse_manager.on_down.add(current_js_event.make_event_handler(
+            f!((event:&mouse::OnDown) frp.down.emit(event.button())))
+        );
+        let on_up = mouse_manager.on_up.add(current_js_event.make_event_handler(
+            f!((event:&mouse::OnUp) frp.up.emit(event.button())))
+        );
         let handles = Rc::new([on_move,on_down,on_up]);
         Self {mouse_manager,last_position,position,hover_ids,target,handles,frp,scene_frp,logger}
     }
@@ -361,21 +366,6 @@ impl Mouse {
         let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
         self.frp.position.emit(position);
     }
-
-    /// A helper function for creating mouse event handlers.
-    ///
-    /// This wraps the `processing_fn` so before processing the `current_js_event` in scene FRP is
-    /// set to the received js event, and after processing it is set back to `None`.
-    fn make_handler<JsEvent,Event>
-    (scene_frp:&Frp, mut processing_fn:impl FnMut(&Event)) -> impl FnMut(&Event)
-    where Event   : AsRef<JsEvent>,
-          JsEvent : AsRef<web_sys::Event> {
-        f!([scene_frp] (event) {
-            scene_frp.current_js_event_source.emit(Some(event.as_ref().as_ref().clone()));
-            processing_fn(event);
-            scene_frp.current_js_event_source.emit(None);
-        })
-    }
 }
 
 
@@ -391,17 +381,11 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new() -> Self {
+    pub fn new(current_event:&CurrentJsEvent) -> Self {
         let logger   = Logger::new("keyboard");
         let frp      = enso_frp::io::keyboard::Keyboard::default();
-        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&logger, &frp));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&logger,&frp,current_event));
         Self {frp,bindings}
-    }
-}
-
-impl Default for Keyboard {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -766,13 +750,8 @@ pub struct Frp {
     pub shape                        : frp::Sampler<Shape>,
     pub camera_changed               : frp::Stream,
     pub frame_time                   : frp::Stream<f32>,
-    pub current_js_event             : frp::Stream<Option<web_sys::Event>>,
-    /// Emitting this signal while handling js event (`current_js_event` is Some) makes this event
-    /// pass to the DOM elements. Otherwise the js event propagation will be stopped.
-    pub pass_current_js_event_to_dom : frp::Source<()>,
     camera_changed_source            : frp::Source,
     frame_time_source                : frp::Source<f32>,
-    current_js_event_source          : frp::Source<Option<web_sys::Event>>,
 }
 
 impl Frp {
@@ -781,38 +760,11 @@ impl Frp {
         frp::new_network! { network
             camera_changed_source        <- source();
             frame_time_source            <- source();
-            current_js_event_source      <- source();
-            pass_current_js_event_to_dom <- source();
-            event_is_passed_to_dom       <- any(...);
-            event_is_passed_to_dom       <+ pass_current_js_event_to_dom.constant(true);
-            current_js_event             <- any(...);
-
-            new_current_js_event <- current_js_event_source.map3
-                (&current_js_event,&event_is_passed_to_dom,Self::on_current_js_event_change);
-            event_is_passed_to_dom <+ new_current_js_event.constant(false);
-            current_js_event       <+ new_current_js_event;
         }
         let shape            = shape.clone_ref();
         let camera_changed   = camera_changed_source.clone_ref().into();
         let frame_time       = frame_time_source.clone_ref().into();
-        let current_js_event = current_js_event.into();
-        Self {network,shape,camera_changed,frame_time,current_js_event,pass_current_js_event_to_dom,
-            camera_changed_source,frame_time_source,current_js_event_source}
-    }
-
-    // The bool is passed by reference to match the signatures expected by FRP eval.
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn on_current_js_event_change
-    (new:&Option<web_sys::Event>, current:&Option<web_sys::Event>, is_passed:&bool)
-    -> Option<web_sys::Event> {
-        // Whenever the current js event change, we pass the processed one to the dom if someone
-        // asked to.
-        if let Some(e) = current {
-            if !is_passed {
-                e.stop_propagation();
-            }
-        }
-        new.clone()
+        Self {network,shape,camera_changed,frame_time,camera_changed_source,frame_time_source}
     }
 }
 
@@ -853,6 +805,7 @@ pub struct SceneData {
     pub context          : Context,
     pub symbols          : SymbolRegistry,
     pub variables        : UniformScope,
+    pub current_js_event : CurrentJsEvent,
     pub mouse            : Mouse,
     pub keyboard         : Keyboard,
     pub uniforms         : Uniforms,
@@ -903,11 +856,12 @@ impl SceneData {
         let renderer             = Renderer::new(&logger,&dom,&context,&variables);
         let style_sheet          = style::Sheet::new();
         let fonts                = font::SharedRegistry::new();
+        let current_js_event     = CurrentJsEvent::new();
         let frp                  = Frp::new(&dom.root.shape);
         let mouse_logger         = Logger::sub(&logger,"mouse");
-        let mouse                = Mouse::new(&frp,&variables,mouse_logger);
+        let mouse                = Mouse::new(&frp,&variables,&current_js_event,mouse_logger);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root).unwrap());
-        let keyboard             = Keyboard::new();
+        let keyboard             = Keyboard::new(&current_js_event);
         let network              = &frp.network;
         let extensions           = Extensions::default();
         let bg_color_var         = style_sheet.var("application . background . color");
@@ -926,7 +880,7 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables,stats
              ,uniforms,mouse,keyboard,shapes,style_sheet,bg_color_var,bg_color_change,fonts,frp
-             ,extensions,disable_context_menu}
+             ,extensions,disable_context_menu,current_js_event}
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {

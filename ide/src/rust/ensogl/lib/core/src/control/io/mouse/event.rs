@@ -48,6 +48,13 @@ macro_rules! define_events {
                 mouse::Button::from_code(self.raw.button().into())
             }
         }
+
+        impl AsRef<web_sys::Event> for $name {
+            fn as_ref(&self) -> &web_sys::Event {
+                let js_event = AsRef::<web_sys::$js_event>::as_ref(self);
+                js_event.as_ref()
+            }
+        }
     )*};
 }
 
