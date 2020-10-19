@@ -33,7 +33,7 @@ public class InstantiateAtomNode extends RootNode {
   public Stateful execute(VirtualFrame frame) {
     return new Stateful(
         Function.ArgumentsHelper.getState(frame.getArguments()),
-            instantiator.executeGeneric(frame));
+        instantiator.executeGeneric(frame));
   }
 
   /**

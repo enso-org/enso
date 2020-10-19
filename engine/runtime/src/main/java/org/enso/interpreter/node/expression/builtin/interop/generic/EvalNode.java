@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Language;
@@ -46,11 +47,24 @@ public abstract class EvalNode extends Node {
     return hostValueToEnsoNode.execute(callNode.call());
   }
 
+  @Specialization(replaces = "doCached")
+  Object doUncached(
+      Object _this,
+      Text language,
+      Text code,
+      @CachedContext(Language.class) Context context,
+      @Cached IndirectCallNode callNode,
+      @Cached("build()") ToJavaStringNode toJavaStringNode,
+      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
+    CallTarget ct = parse(context, language, code, toJavaStringNode);
+    return hostValueToEnsoNode.execute(callNode.call(ct));
+  }
+
   CallTarget parse(Context context, Text language, Text code, ToJavaStringNode toJavaStringNode) {
     String languageStr = toJavaStringNode.execute(language);
     String codeStr = toJavaStringNode.execute(code);
 
     Source source = Source.newBuilder(languageStr, codeStr, "<interactive>").build();
-    return context.getEnvironment().parsePublic(source, "foo");
+    return context.getEnvironment().parsePublic(source);
   }
 }

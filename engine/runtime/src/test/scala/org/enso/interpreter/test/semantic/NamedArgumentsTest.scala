@@ -211,7 +211,6 @@ class NamedArgumentsTest extends InterpreterTest {
     }
 
     "be usable and overridable in constructors" in {
-      pending
       val code =
         """
           |type Nil2

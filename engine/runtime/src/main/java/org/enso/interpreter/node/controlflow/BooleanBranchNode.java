@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
@@ -21,14 +22,12 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @NodeInfo(shortName = "BooleanMatch")
 public abstract class BooleanBranchNode extends BranchNode {
   private final boolean matched;
-  //  private @Child ExpressionNode branch;
-  //  private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
   private @Child DirectCallNode callNode;
 
-  BooleanBranchNode(boolean matched, CreateFunctionNode branch) {
+  BooleanBranchNode(boolean matched, RootCallTarget branch) {
     this.matched = matched;
-    this.callNode = DirectCallNode.create(branch.getCallTarget());
+    this.callNode = DirectCallNode.create(branch);
   }
 
   /**
@@ -38,7 +37,7 @@ public abstract class BooleanBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static BooleanBranchNode build(boolean matched, CreateFunctionNode branch) {
+  public static BooleanBranchNode build(boolean matched, RootCallTarget branch) {
     return BooleanBranchNodeGen.create(matched, branch);
   }
 
@@ -46,6 +45,7 @@ public abstract class BooleanBranchNode extends BranchNode {
    * Handles the boolean scrutinee case.
    *
    * @param frame the stack frame in which to execute
+   * @param state current monadic state
    * @param target the atom to destructure
    */
   @Specialization

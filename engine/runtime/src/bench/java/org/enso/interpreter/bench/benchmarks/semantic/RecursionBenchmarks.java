@@ -1,19 +1,10 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.concurrent.TimeUnit;
-
-import org.enso.interpreter.bench.fixtures.semantic.MappyMap;
 import org.enso.interpreter.bench.fixtures.semantic.RecursionFixtures;
 import org.enso.interpreter.test.DefaultInterpreterRunner;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.annotations.*;
+
+import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -22,27 +13,6 @@ import org.openjdk.jmh.annotations.Warmup;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class RecursionBenchmarks {
   private static RecursionFixtures recursionFixtures = new RecursionFixtures();
-
-  static {
-    MappyMap.Map m = MappyMap.empty();
-    for (int j = 0; j < 10; j++) {
-      m = MappyMap.insert(m, j, j);
-    }
-    System.out.println(m);
-  }
-
-  private MappyMap.Map doMap(int n) {
-    MappyMap.Map m = MappyMap.empty();
-    for (int i = 0; i < n; i++) {
-      m = MappyMap.insert(m, i, i);
-    }
-    return m;
-  }
-
-  @Benchmark
-  public void benchMappyMap() {
-    doMap(10000);
-  }
 
   private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundredMillion());

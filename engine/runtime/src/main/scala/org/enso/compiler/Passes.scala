@@ -40,7 +40,6 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,
-      TailPatternMatch,
       IgnoredBindings,
       TypeFunctions,
       TypeSignatures,

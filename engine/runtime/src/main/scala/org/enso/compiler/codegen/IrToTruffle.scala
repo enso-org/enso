@@ -15,8 +15,7 @@ import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   BindingAnalysis,
   DataflowAnalysis,
-  TailCall,
-  TailPatternMatch
+  TailCall
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
@@ -599,8 +598,7 @@ class IrToTruffle(
             // Note [Pattern Match Fallbacks]
             val matchExpr = CaseNode.build(
               scrutineeNode,
-              cases,
-              caseExpr.getMetadata(TailPatternMatch).isDefined
+              cases
             )
             setLocation(matchExpr, location)
           } else {
@@ -649,7 +647,8 @@ class IrToTruffle(
             branch.location
           )
 
-          val branchNode = CatchAllBranchNode.build(branchCodeNode)
+          val branchNode =
+            CatchAllBranchNode.build(branchCodeNode.getCallTarget)
 
           Right(branchNode)
         case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
@@ -709,11 +708,14 @@ class IrToTruffle(
             val bool = context.getBuiltins.bool()
             val branchNode: BranchNode =
               if (atomCons == bool.getTrue) {
-                BooleanBranchNode.build(true, branchCodeNode)
+                BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
               } else if (atomCons == bool.getFalse) {
-                BooleanBranchNode.build(false, branchCodeNode)
+                BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
               } else {
-                ConstructorBranchNode.build(atomCons, branchCodeNode)
+                ConstructorBranchNode.build(
+                  atomCons,
+                  branchCodeNode.getCallTarget
+                )
               }
 
             branchNode

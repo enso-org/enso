@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
@@ -24,14 +25,12 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @NodeInfo(shortName = "ConstructorMatch")
 public abstract class ConstructorBranchNode extends BranchNode {
   private final AtomConstructor matcher;
-  //  private @Child ExpressionNode branch;
-  //  private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private @Child DirectCallNode callNode;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  ConstructorBranchNode(AtomConstructor matcher, CreateFunctionNode branch) {
+  ConstructorBranchNode(AtomConstructor matcher, RootCallTarget branch) {
     this.matcher = matcher;
-    this.callNode = DirectCallNode.create(branch.getCallTarget());
+    this.callNode = DirectCallNode.create(branch);
   }
 
   /**
@@ -41,18 +40,8 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static ConstructorBranchNode build(AtomConstructor matcher, CreateFunctionNode branch) {
+  public static ConstructorBranchNode build(AtomConstructor matcher, RootCallTarget branch) {
     return ConstructorBranchNodeGen.create(matcher, branch);
-  }
-
-  @ExplodeLoop
-  private Object[] copyArgs(Object[] fields) {
-    Object[] res = new Object[matcher.getArity()];
-//    CompilerDirectives.ensureVirtualized(res);
-    for (int i = 0; i < matcher.getArity(); i++) {
-      res[i] = fields[i];
-    }
-    return res;
   }
 
   /**
@@ -62,21 +51,18 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * all the atom's fields as arguments.
    *
    * @param frame the stack frame in which to execute
+   * @param state current monadic state
    * @param target the atom to destructure
    */
   @Specialization
   public void doAtom(VirtualFrame frame, Object state, Atom target) {
     if (profile.profile(matcher == target.getConstructor())) {
-      //      Function function = TypesGen.asFunction(branch.executeGeneric(frame));
-
-//      Object[] args = copyArgs(target.getFields());
-
+      // Note [Caller Info For Case Branches]
       Stateful result =
           (Stateful)
               callNode.call(
                   Function.ArgumentsHelper.buildArguments(
-                      frame.materialize(), null, state, target.getFields()));
-      // Note [Caller Info For Case Branches]
+                      frame.materialize(), state, target.getFields()));
       throw new BranchSelectedException(result);
     }
   }

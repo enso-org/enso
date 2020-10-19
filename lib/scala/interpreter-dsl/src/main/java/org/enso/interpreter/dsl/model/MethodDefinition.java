@@ -220,7 +220,10 @@ public class MethodDefinition {
       if (type.toString().equals(THUNK)) {
         processingEnvironment
             .getMessager()
-            .printMessage(Diagnostic.Kind.ERROR, "Thunk argument, I refuse", element);
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "Argument must not be typed as Thunk. Use @Suspend instead.",
+                element);
         return false;
       }
       return true;

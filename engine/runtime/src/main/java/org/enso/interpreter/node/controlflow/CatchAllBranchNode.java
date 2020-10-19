@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
@@ -23,13 +24,10 @@ import org.enso.interpreter.runtime.type.TypesGen;
     shortName = "Catch_All",
     description = "An explicit catch-all branch in a case expression")
 public class CatchAllBranchNode extends BranchNode {
-//  @Child private ExpressionNode functionNode;
-  //  @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private @Child DirectCallNode callNode;
-  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  private CatchAllBranchNode(CreateFunctionNode functionNode) {
-    this.callNode = DirectCallNode.create(functionNode.getCallTarget());
+  private CatchAllBranchNode(RootCallTarget functionNode) {
+    this.callNode = DirectCallNode.create(functionNode);
   }
 
   /**
@@ -38,7 +36,7 @@ public class CatchAllBranchNode extends BranchNode {
    * @param functionNode the function to execute in this case
    * @return a catch-all node
    */
-  public static CatchAllBranchNode build(CreateFunctionNode functionNode) {
+  public static CatchAllBranchNode build(RootCallTarget functionNode) {
     return new CatchAllBranchNode(functionNode);
   }
 
@@ -46,6 +44,7 @@ public class CatchAllBranchNode extends BranchNode {
    * Executes the case branch on an arbitrary target.
    *
    * @param frame the stack frame in which to execute
+   * @param state current monadic state
    * @param target the object to match against
    */
   public void execute(VirtualFrame frame, Object state, Object target) {
