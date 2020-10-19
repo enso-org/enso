@@ -81,11 +81,11 @@ insert_r key value k v l r =
     here.balance_right k v l new_right
 
 insert map key value = case map of
-    Tip -> Bin 1 key value Tip Tip
     Bin s k v l r ->
         if key > k then @Tail_Call here.insert_r key value k v l r else
             if key == k then @Tail_Call Bin s k value l r else
                 @Tail_Call here.insert_l key value k v l r
+    _ -> Bin 1 key value Tip Tip
 
 #balance_left k x l r = case r of
     #Tip -> case l of
@@ -115,7 +115,18 @@ insert map key value = case map of
 
 
 balance_left k x l r = case r of
-    Tip -> case l of
+    Bin rs _ _ _ _ -> case l of
+        Bin ls lk lx ll lr ->
+            if ls <= Delta*rs then Bin 1+ls+rs k x l r else
+                lls = here.size ll
+                case lr of
+                    Bin lrs lrk lrx lrl lrr ->
+                        if lrs < Ratio*lls then Bin 1+ls+rs lk lx ll (Bin 1+rs+lrs k x lr r) else
+                            lrls = here.size lrl
+                            lrrs = here.size lrr
+                            Bin 1+ls+rs lrk lrx (Bin 1+lls+lrls lk lx ll lrl) (Bin 1+rs+lrrs k x lrr r)
+        _ -> Bin 1+rs k x Tip r
+    _ -> case l of
         Tip -> Bin 1 k x Tip Tip
         Bin _ _ _ Tip Tip -> Bin 2 k x l Tip
         Bin _ lk lx Tip (Bin _ lrk lrx _ _) -> Bin 3 lrk lrx (Bin 1 lk lx Tip Tip) (Bin 1 k x Tip Tip)
@@ -127,24 +138,24 @@ balance_left k x l r = case r of
                     lrls = here.size lrl
                     lrrs = here.size lrr
                     Bin 1+ls lrk lrx (Bin 1+lls+lrls lk lx ll lrl) (Bin 1+lrrs k x lrr Tip)
-    Bin rs _ _ _ _ -> case l of
-        Tip -> Bin 1+rs k x Tip r
-        Bin ls lk lx ll lr ->
-            if ls <= Delta*rs then Bin 1+ls+rs k x l r else
-                lls = here.size ll
-                case lr of
-                    Bin lrs lrk lrx lrl lrr ->
-                        if lrs < Ratio*lls then Bin 1+ls+rs lk lx ll (Bin 1+rs+lrs k x lr r) else
-                            lrls = here.size lrl
-                            lrrs = here.size lrr
-                            Bin 1+ls+rs lrk lrx (Bin 1+lls+lrls lk lx ll lrl) (Bin 1+rs+lrrs k x lrr r)
 
 size m = case m of
     Bin s _ _ _ _ -> s
-    Tip -> 0
+    _ -> 0
 
 balance_right k x l r = case l of
-    Tip -> case r of
+    Bin ls _ _ _ _ -> case r of
+        Bin rs rk rx rl rr ->
+            if rs <= Delta*ls then Bin 1+ls+rs k x l r else
+                case rl of
+                    Bin rls rlk rlx rll rlr ->
+                        rrs = here.size rr
+                        if rls < Ratio*rrs then Bin 1+ls+rs rk rx (Bin 1+ls+rls k x l rl) rr else
+                            rlls = here.size rll
+                            rlrs = here.size rlr
+                            Bin 1+ls+rs rlk rlx (Bin 1+ls+rlls k x l rll) (Bin 1+rrs+rlrs rk rx rlr rr)
+        _ -> Bin 1+ls k x l Tip
+    _ -> case r of
         Tip -> Bin 1 k x Tip Tip
         Bin _ _ _ Tip Tip -> Bin 2 k x Tip r
         Bin _ rk rx Tip rr -> Bin 3 rk rx (Bin 1 k x Tip Tip) rr
@@ -155,17 +166,6 @@ balance_right k x l r = case l of
                     srll = here.size rll
                     srlr = here.size rlr
                     Bin 1+rs rlk rlx (Bin 1+srll k x Tip rll) (Bin 1+rrs+srlr rk rx rlr rr)
-    Bin ls _ _ _ _ -> case r of
-        Tip -> Bin 1+ls k x l Tip
-        Bin rs rk rx rl rr ->
-            if rs <= Delta*ls then Bin 1+ls+rs k x l r else
-                case rl of
-                    Bin rls rlk rlx rll rlr ->
-                        rrs = here.size rr
-                        if rls < Ratio*rrs then Bin 1+ls+rs rk rx (Bin 1+ls+rls k x l rl) rr else
-                            rlls = here.size rll
-                            rlrs = here.size rlr
-                            Bin 1+ls+rs rlk rlx (Bin 1+ls+rlls k x l rll) (Bin 1+rrs+rlrs rk rx rlr rr)
 
 #balance_right k x l r = case l of
     #Tip -> case r of

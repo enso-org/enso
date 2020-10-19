@@ -4,8 +4,10 @@ import Prelude
 
 import qualified Data.Map.Strict as Map
 
+import Control.Monad (foldM)
 import Data.Int (Int64)
 import Data.List (foldl')
+import System.Random (randomRIO)
 
 
 ------------------
@@ -69,4 +71,7 @@ myFoldl f z (Cons x xs) = let z' = z `f` x
                     in seq z' $ myFoldl f z' xs
 
 buildMap :: Integer -> Map.Map Integer Integer
-buildMap i = foldl' (\m i -> Map.insert i i m) Map.empty [0..i]
+buildMap n = foldl' (\m i -> Map.insert i i m) Map.empty [0..n]
+
+buildRandomMap :: Integer -> IO (Map.Map Integer Integer)
+buildRandomMap n = foldM (\m i -> fmap (\key -> Map.insert key i m) $ randomRIO (0, 10000)) Map.empty [0..n]

@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -13,13 +14,13 @@ import org.enso.interpreter.runtime.state.Stateful;
 /** This node represents the process of instantiating an atom at runtime. */
 @NodeInfo(shortName = "constructor::", description = "An atom instantiation at runtime.")
 public class InstantiateAtomNode extends RootNode {
-  private final AtomConstructor constructor; // instantiator;
+  private @Child ExpressionNode instantiator;
   private final String name;
 
-  private InstantiateAtomNode(Language language, String name, AtomConstructor constructor) {
+  private InstantiateAtomNode(Language language, String name, ExpressionNode instantiator) {
     super(language);
     this.name = name;
-    this.constructor = constructor;
+    this.instantiator = instantiator;
   }
 
   /**
@@ -32,9 +33,7 @@ public class InstantiateAtomNode extends RootNode {
   public Stateful execute(VirtualFrame frame) {
     return new Stateful(
         Function.ArgumentsHelper.getState(frame.getArguments()),
-        constructor.newInstance(
-            Function.ArgumentsHelper.getPositionalArguments(
-                frame.getArguments()))); // .executeGeneric(frame));
+            instantiator.executeGeneric(frame));
   }
 
   /**
@@ -56,7 +55,7 @@ public class InstantiateAtomNode extends RootNode {
    * @return an instance of this node
    */
   public static InstantiateAtomNode build(
-      Language language, String name, AtomConstructor constructor) {
-    return new InstantiateAtomNode(language, name, constructor);
+      Language language, String name, ExpressionNode instantiator) {
+    return new InstantiateAtomNode(language, name, instantiator);
   }
 }
