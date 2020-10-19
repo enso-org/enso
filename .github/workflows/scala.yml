@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.3.0
+        uses: ilammy/msvc-dev-cmd@v1.4.1
       - name: Disable TCP/UDP Offloading (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -262,7 +262,7 @@ jobs:
 
       # Publish
       - name: Publish the Engine Distribution Artifact
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ENGINE_DIST_ROOT }}
           path: ${{ env.ENGINE_DIST_ROOT }}
@@ -282,7 +282,7 @@ jobs:
           zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
       - name: Publish the FlatBuffers Schemas
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v2
         with:
           name: Engine Protocol FlatBuffers Schemas
           path: ./fbs-upload/fbs-schema.zip
@@ -293,7 +293,7 @@ jobs:
           cp ./target/scala-parser.js parser-upload
       - name: Publish the Parser JS Bundle
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v2
         with:
           name: Parser JS Bundle
           path: ./target/scala-parser.js
