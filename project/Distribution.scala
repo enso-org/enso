@@ -47,11 +47,12 @@ object Distribution {
         reify {
           val deliberatelyTriggerAndIgnore = (p.splice / update).value
 
+          val configs   = GatherLicenses.licenseConfigurations.value
           val ivyMod    = (p.splice / ivyModule).value
           val overrides = (p.splice / licenseOverrides).value.lift
           val report = license.LicenseReport.makeReport(
             ivyMod,
-            GatherLicenses.licenseConfigurations.value,
+            configs,
             (p.splice / licenseSelection).value,
             overrides,
             (p.splice / streams).value.log
@@ -59,7 +60,6 @@ object Distribution {
           SBTDistributionComponent(
             p.splice.id,
             report,
-            ivyMod,
             (p.splice / updateClassifiers).value
           )
         }

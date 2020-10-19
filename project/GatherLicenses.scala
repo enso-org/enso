@@ -1,5 +1,7 @@
 import sbt.Keys._
 import sbt._
+import complete.DefaultParsers._
+import org.apache.ivy.core.resolve.IvyNode
 import src.main.scala.licenses.backend.{
   CombinedBackend,
   GatherCopyrights,
@@ -7,14 +9,10 @@ import src.main.scala.licenses.backend.{
   GithubHeuristic
 }
 import src.main.scala.licenses.frontend.SbtLicenses
-import src.main.scala.licenses.report.{
-  PackageNotices,
-  Report,
-  Review,
-  WithWarnings
-}
+import src.main.scala.licenses.report._
 import src.main.scala.licenses.{DependencySummary, DistributionDescription}
 
+import scala.collection.JavaConverters._
 import scala.sys.process._
 
 /**
@@ -27,6 +25,7 @@ object GatherLicenses {
   val configurationRoot = settingKey[File]("Path to review configuration.")
   val licenseConfigurations =
     settingKey[Set[String]]("The ivy configurations we consider in the review.")
+  private val stateFileName = "report-state"
 
   /**
     * The task that performs the whole license gathering process.
@@ -69,9 +68,10 @@ object GatherLicenses {
         (dependency, attachments)
       }
 
-      val summary = DependencySummary(processed)
+      val summary          = DependencySummary(processed)
+      val distributionRoot = configRoot / distribution.artifactName
       val WithWarnings(processedSummary, summaryWarnings) =
-        Review(configRoot / distribution.artifactName, summary).run()
+        Review(distributionRoot, summary).run()
       val allWarnings = sbtWarnings ++ summaryWarnings
       val reportDestination =
         targetRoot / s"${distribution.artifactName}-report.html"
@@ -91,11 +91,16 @@ object GatherLicenses {
         reportDestination
       )
       log.info(
-        s"Written the report for ${distribution.artifactName} to " +
-        s"`${reportDestination}`."
+        s"Written the report for the ${distribution.artifactName} to " +
+        s"`$reportDestination`."
       )
       val packagePath = distribution.packageDestination
       PackageNotices.create(distribution, processedSummary, packagePath)
+      ReviewState.write(
+        distributionRoot / stateFileName,
+        distribution,
+        summaryWarnings.length
+      )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
       if (summaryWarnings.nonEmpty) {
         // TODO [RW] A separate task should be added to verify that the package
@@ -121,6 +126,64 @@ object GatherLicenses {
     reports
   }
 
+  lazy val verifyReports = Def.task {
+    val configRoot = configurationRoot.value
+    val log        = streams.value.log
+    def warnAndThrow(exceptionMessage: String): Nothing = {
+      log.error(exceptionMessage)
+      log.warn(
+        "Please make sure to run `enso / gatherLicenses` " +
+        "and review any changed dependencies, " +
+        "ensuring that the review is complete and there are no warnings."
+      )
+      throw LegalReviewException(exceptionMessage)
+    }
+
+    for (distribution <- distributions.value) {
+      val distributionRoot = configRoot / distribution.artifactName
+      val name             = distribution.artifactName
+      ReviewState.read(distributionRoot / stateFileName, log) match {
+        case Some(reviewState) =>
+          val currentInputHash = ReviewState.computeInputHash(distribution)
+          if (currentInputHash != reviewState.inputHash) {
+            warnAndThrow(
+              s"Report for the $name is not up to date - " +
+              s"it seems that some dependencies were added or removed."
+            )
+          }
+
+          if (reviewState.warningsCount > 0) {
+            warnAndThrow(
+              s"Report for the $name has ${reviewState.warningsCount} warnings."
+            )
+          }
+
+          val currentOutputHash = ReviewState.computeOutputHash(distribution)
+          if (currentOutputHash != reviewState.outputHash) {
+            log.error(
+              s"Report for the $name seems to be up-to-date but the notice " +
+              s"package has been changed."
+            )
+            log.warn(
+              "Re-run `enso / gatherLicenses` and make sure that all files " +
+              "from the notice package are committed and no unexpected files " +
+              "have been added."
+            )
+            throw LegalReviewException(
+              s"Output directory for $name has different content than expected."
+            )
+          }
+
+          log.info(s"Report and package for $name are reviewed and up-to-date.")
+        case None =>
+          warnAndThrow(s"Report for $name has not been generated.")
+      }
+    }
+  }
+
+  case class LegalReviewException(string: String)
+      extends RuntimeException(string)
+
   /**
     * Launches a server that allows to easily review the generated report.
     *
@@ -133,4 +196,42 @@ object GatherLicenses {
       .exitValue()
   }
 
+  /**
+    * A task that prints which sub-projects use a dependency and what
+    * dependencies use it (so that one can track where dependencies come from).
+    */
+  lazy val analyzeDependency = Def.inputTask {
+    val args: Seq[String]      = spaceDelimited("<arg>").parsed
+    val evaluatedDistributions = distributions.value
+    val log                    = streams.value.log
+    for (arg <- args) {
+      for (distribution <- evaluatedDistributions) {
+        for (sbtComponent <- distribution.sbtComponents) {
+          val ivyDeps =
+            sbtComponent.licenseReport.orig.getDependencies.asScala
+              .map(_.asInstanceOf[IvyNode])
+          for (dep <- sbtComponent.licenseReport.licenses) {
+            if (dep.module.name.contains(arg)) {
+              val module = dep.module
+              log.info(
+                s"${distribution.artifactName} distribution, project ${sbtComponent.name} " +
+                s"contains $module"
+              )
+              val node = ivyDeps.find(n =>
+                SbtLicenses.safeModuleInfo(n) == Some(dep.module)
+              )
+              node match {
+                case None =>
+                  log.warn(s"IvyNode for $module not found.")
+                case Some(ivyNode) =>
+                  val callers =
+                    ivyNode.getAllCallers.toSeq.map(_.toString).distinct
+                  log.info(s"Callers: $callers")
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

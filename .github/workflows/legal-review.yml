@@ -1,0 +1,89 @@
+name: Legal Review
+
+on:
+  push:
+    branches: [main, "release/*"]
+  pull_request:
+    branches: ["*"]
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 20.2.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.3.13
+  # Please ensure that this is in sync with rustVersion in build.sbt
+  rustToolchain: nightly-2019-11-04
+  excludedPaths: |
+    .github/PULL_REQUEST_TEMPLATE.md
+    .github/CODEOWNERS
+    .github/ISSUE_TEMPLATE/*
+    /doc/*
+    .gitignore
+    .scalafmt.conf
+    CODE_OF_CONDUCT.md
+    CONTRIBUTING.md
+    LICENSE
+    README.md
+
+jobs:
+  verify-review:
+    name: Verify Notice Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Disable TCP/UDP Offloading (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+      - name: Disable TCP/UDP Offloading (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo ethtool -K eth0 tx off rx off
+      - name: Disable TCP/UDP Offloading (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >
+          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
+          -UdpIPv6
+      # TODO [RW] Rust will be needed by #1187
+      #      - name: Install Rust
+      #        uses: actions-rs/toolchain@v1
+      #        with:
+      #          toolchain: ${{ env.rustToolchain }}
+      #          override: true
+
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
+      - name: Set Up SBT
+        run: |
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      # Verify
+      - name: Verify Packages
+        run: |
+          sleep 1
+          sbt --no-colors verifyLicensePackages

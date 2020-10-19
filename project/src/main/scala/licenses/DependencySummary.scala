@@ -1,9 +1,11 @@
 package src.main.scala.licenses
 
-import java.nio.file.Path
-
 import sbt.IO
-import src.main.scala.licenses.report.WithWarnings
+import src.main.scala.licenses.report.{
+  LicenseReview,
+  PackageNotices,
+  WithWarnings
+}
 
 /**
   * Contains a sequence of dependencies and any attachments found.
@@ -88,11 +90,7 @@ object AttachmentStatus {
   * Gathers information related to a dependency after the review.
   *
   * @param information original [[DependencyInformation]]
-  * @param licenseReviewed indicates if the license associated with the
-  *                        dependency is marked as reviewed
-  * @param licensePath may contain a path to the default license file that will
-  *                    be used; if empty, `files` should contain an alternative
-  *                    license
+  * @param licenseReview review status of the dependency's main license
   * @param files list of files attached to the dependency, with their review
   *              statuses
   * @param copyrights list of copyright mentions attached to the dependency,
@@ -100,8 +98,7 @@ object AttachmentStatus {
   */
 case class ReviewedDependency(
   information: DependencyInformation,
-  licenseReviewed: Boolean,
-  licensePath: Option[Path],
+  licenseReview: LicenseReview,
   files: Seq[(AttachedFile, AttachmentStatus)],
   copyrights: Seq[(CopyrightMention, AttachmentStatus)]
 )
@@ -146,11 +143,6 @@ object ReviewedSummary {
     val warnings = summary.dependencies.flatMap { dep =>
       val warnings = collection.mutable.Buffer[String]()
       val name     = dep.information.moduleInfo.toString
-      if (!dep.licenseReviewed) {
-        warnings.append(
-          s"License ${dep.information.license.name} for $name is not reviewed."
-        )
-      }
 
       val missingFiles = dep.files.filter(_._2 == AttachmentStatus.NotReviewed)
       if (missingFiles.nonEmpty) {
@@ -174,22 +166,39 @@ object ReviewedSummary {
         )
       }
 
-      (summary.includedLicense(dep), dep.licensePath) match {
-        case (Some(kept), Some(reviewedLicense)) =>
-          val licenseContent = IO.read(reviewedLicense.toFile)
-          if (licenseContent.strip != kept.content) {
+      dep.licenseReview match {
+        case LicenseReview.NotReviewed =>
+          warnings.append(
+            s"License ${dep.information.license.name} for $name is not reviewed."
+          )
+        case LicenseReview.Default(
+              defaultPath,
+              allowAdditionalCustomLicenses
+            ) =>
+          if (!allowAdditionalCustomLicenses) {
+            summary.includedLicense(dep) match {
+              case Some(includedLicense) =>
+                val licenseContent = IO.read(defaultPath.toFile)
+                if (licenseContent.strip != includedLicense.content) {
+                  warnings.append(
+                    s"A license file was discovered in $name that is different " +
+                    s"from the default license file that is associated with its " +
+                    s"license ${dep.information.license.name}."
+                  )
+                }
+              case None =>
+            }
+          }
+        case LicenseReview.Custom(filename) =>
+          val fileIsIncluded =
+            dep.files.exists(f => f._1.fileName == filename && f._2.included)
+          val fileWillBeIncludedAsCopyrightNotices =
+            filename == PackageNotices.gatheredNoticesFilename
+          if (!fileIsIncluded && !fileWillBeIncludedAsCopyrightNotices) {
             warnings.append(
-              s"A license file was discovered in $name that is different " +
-              s"from the default license file that is associated with its " +
-              s"license ${dep.information.license.name}."
+              s"License for $name is set to custom file `$filename`, but no such file is attached."
             )
           }
-        case (None, None) =>
-          warnings.append(
-            s"The license for $name is set to <custom> but no license-like " +
-            s"file is found."
-          )
-        case _ =>
       }
 
       warnings

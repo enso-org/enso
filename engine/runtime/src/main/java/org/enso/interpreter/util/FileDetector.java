@@ -13,7 +13,7 @@ import org.enso.polyglot.LanguageInfo;
 public final class FileDetector implements TruffleFile.FileTypeDetector {
 
   /**
-   * Finds the MINE type for a given {@link TruffleFile}.
+   * Finds the MIME type for a given {@link TruffleFile}.
    *
    * @param file the {@link TruffleFile file} to find a MIME type for
    * @return the MIME type or {@code null} if the MIME type is not recognized
