@@ -1,13 +1,10 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.expression.atom.InstantiateNode;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 

@@ -279,7 +279,6 @@ class CodeLocationsTest extends InterpreterTest {
         instrumenter.assertNodeExists(55, 67, classOf[CaseNode])
         instrumenter.assertNodeExists(60, 1, classOf[ReadLocalVariableNode])
         instrumenter.assertNodeExists(103, 3, classOf[IntegerLiteralNode])
-        instrumenter.assertNodeExists(73, 33, classOf[CreateFunctionNode])
 
         eval(code) shouldEqual 100
     }

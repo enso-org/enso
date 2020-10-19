@@ -28,7 +28,8 @@ public class ApplicationOperator extends Node {
     invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Stateful execute(VirtualFrame frame, @MonadicState Object state, Function _this, @Suspend Object argument) {
+  Stateful execute(
+      VirtualFrame frame, @MonadicState Object state, Function _this, @Suspend Object argument) {
     return invokeCallableNode.execute(_this, frame, state, new Object[] {argument});
   }
 }

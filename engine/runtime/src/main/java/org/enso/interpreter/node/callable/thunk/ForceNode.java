@@ -30,7 +30,7 @@ public abstract class ForceNode extends ExpressionNode {
   @Specialization
   Object passToExecutorNode(
       VirtualFrame frame,
-      Thunk thunk,
+      Object thunk,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     Stateful result = thunkExecutorNode.executeThunk(thunk, state, getTailStatus());

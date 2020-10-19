@@ -55,7 +55,7 @@ public abstract class BooleanBranchNode extends BranchNode {
           (Stateful)
               callNode.call(
                   Function.ArgumentsHelper.buildArguments(
-                      frame.materialize(), null, state, new Object[0]));
+                      frame.materialize(), state, new Object[0]));
       // Note [Caller Info For Case Branches]
       throw new BranchSelectedException(result);
     }

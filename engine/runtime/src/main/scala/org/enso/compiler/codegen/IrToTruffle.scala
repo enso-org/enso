@@ -1179,6 +1179,8 @@ class IrToTruffle(
 
           val shouldSuspend = value match {
             case _: IR.Name => false
+            case _: IR.Literal.Text => false
+            case _: IR.Literal.Number => false
             case _ =>
               shouldBeSuspended.getOrElse(
                 throw new CompilerError(

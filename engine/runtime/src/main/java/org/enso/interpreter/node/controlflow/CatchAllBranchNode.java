@@ -53,7 +53,7 @@ public class CatchAllBranchNode extends BranchNode {
         (Stateful)
             callNode.call(
                 Function.ArgumentsHelper.buildArguments(
-                    frame.materialize(), null, state, new Object[] {target}));
+                    frame.materialize(), state, new Object[] {target}));
     throw new BranchSelectedException(result);
   }
 
