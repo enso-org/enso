@@ -119,7 +119,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       Object selfArgument = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
         Stateful selfResult =
-            thisExecutor.executeThunk((Thunk) selfArgument, state, BaseNode.TailStatus.NOT_TAIL);
+            thisExecutor.executeThunk(selfArgument, state, BaseNode.TailStatus.NOT_TAIL);
         selfArgument = selfResult.getValue();
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;

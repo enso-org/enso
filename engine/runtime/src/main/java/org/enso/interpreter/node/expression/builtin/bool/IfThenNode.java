@@ -7,6 +7,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
@@ -25,11 +26,11 @@ public abstract class IfThenNode extends Node {
     return IfThenNodeGen.create();
   }
 
-  abstract Stateful execute(@MonadicState Object state, boolean _this, Thunk if_true);
+  abstract Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object if_true);
 
   @Specialization
   Stateful doExecute(
-      Object state, boolean _this, Thunk if_true, @CachedContext(Language.class) Context context) {
+      Object state, boolean _this, Object if_true, @CachedContext(Language.class) Context context) {
     if (condProfile.profile(_this)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {

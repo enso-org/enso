@@ -55,11 +55,11 @@ public class ArgumentSorterNode extends BaseNode {
         preApplicationSchema, mapping.getPostApplicationSchema(), mapping, argumentsExecutionMode);
   }
 
-  private void initArgumentExecutors(Object[] arguments) {
+  private void initArgumentExecutors() {
     ThunkExecutorNode[] executors =
         new ThunkExecutorNode[mapping.getArgumentShouldExecute().length];
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
-      if (mapping.getArgumentShouldExecute()[i] && TypesGen.isThunk(arguments[i])) {
+      if (mapping.getArgumentShouldExecute()[i]) {
         executors[i] = insert(ThunkExecutorNode.build());
       }
     }
@@ -74,7 +74,7 @@ public class ArgumentSorterNode extends BaseNode {
       lock.lock();
       try {
         if (executors == null) {
-          initArgumentExecutors(arguments);
+          initArgumentExecutors();
         }
       } finally {
         lock.unlock();
@@ -82,8 +82,7 @@ public class ArgumentSorterNode extends BaseNode {
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {
-        Stateful result =
-            executors[i].executeThunk(TypesGen.asThunk(arguments[i]), state, TailStatus.NOT_TAIL);
+        Stateful result = executors[i].executeThunk(arguments[i], state, TailStatus.NOT_TAIL);
         arguments[i] = result.getValue();
         state = result.getState();
       }

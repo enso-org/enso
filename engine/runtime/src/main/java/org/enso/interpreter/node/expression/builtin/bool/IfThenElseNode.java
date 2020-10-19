@@ -4,6 +4,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -18,7 +19,11 @@ public class IfThenElseNode extends Node {
   private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
 
-  Stateful execute(@MonadicState Object state, boolean _this, Thunk if_true, Thunk if_false) {
+  Stateful execute(
+      @MonadicState Object state,
+      boolean _this,
+      @Suspend Object if_true,
+      @Suspend Object if_false) {
     if (condProfile.profile(_this)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {

@@ -2,7 +2,9 @@ from Base import all
 import Builtins
 import Base.Bench_Utils
 
-gen_list len = 0.upto len . fold Nil (l -> i -> Cons i+1 l)
+polyglot java import java.util.Random
+
+gen_list len = 0.upto len . fold Nil (l -> i -> Cons i+1 l) # My_Cons i+1 l 0 0 0 0 0 0)
 
 sum_list_meta list =
     nil_cons = Meta.meta Nil . constructor
@@ -14,15 +16,45 @@ sum_list_meta list =
     res = folder 0 list
     res
 
-build_map size = 0.upto size . fold Map.empty (m -> i -> m.insert i i)
+type My_Cons h t x y z w r f
+
+id_list list = case list of
+    Nil -> Nil
+    Cons h t -> Cons h (here.id_list t)
+
+sum_list_simple list =
+    go list = case list of
+        #My_Cons h t x y z w r f -> h + go t
+        Cons h t -> h + go t
+        Nil -> 0
+    res = go list
+    res
+
+sum_recur_case n = case n == 0 of
+    True -> 0
+    False -> n + here.sum_recur_case n-1
+
+sum_recur n = if n == 0 then 0 else 1 + here.sum_recur n-1
+
+build_map size =
+    rand = Random.new [].to_array
+    0.upto size . fold Map.empty (m -> i -> m.insert i i) # (rand.nextInt [10000]) i)
 
 main =
-    mil = 1000000
-    list = here.gen_list mil
-    vec = Vector.new mil (ix -> ix + 1)
-    vec_decimal = Vector.new mil (ix -> ix + 0.0)
-    Bench_Utils.measure (here.build_map 10000) "build a map" 10 10
-    Bench_Utils.measure (here.sum_list_meta list) "list meta-fold" 1000 10
-    Bench_Utils.measure (list.fold 0 (+)) "list fold" 1000 10
-    Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 1000 10
-    Bench_Utils.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
+    #mil = 1000000
+    #list = here.gen_list 1000
+
+    #Bench_Utils.measure (0.upto 1000 . each _-> here.sum_recur_case 100) "recur_sum" 100 10
+    #Bench_Utils.measure (0.upto 1000 . each _-> here.sum_recur 100) "recur_sum" 100 10
+
+    #Bench_Utils.measure (act = 0.upto 1000 . each _-> here.id_list list) "rec" 100 10
+    #Bench_Utils.measure (0.upto 1000 . each _-> here.sum_list_simple list) "rec" 100 10
+    #Bench_Utils.measure (0.upto 1000 . each _-> list.fold 0 (+)) "rec" 100 10
+    Bench_Utils.measure (here.build_map 10000) "build a map" 100 100
+    #list = here.gen_list mil
+    #vec = Vector.new mil (ix -> ix + 1)
+    #vec_decimal = Vector.new mil (ix -> ix + 0.0)
+    #Bench_Utils.measure (here.sum_list_meta list) "list meta-fold" 1000 10
+    #Bench_Utils.measure (list.fold 0 (+)) "list fold" 1000 10
+    #Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 1000 10
+    #Bench_Utils.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10

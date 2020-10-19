@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /** Node responsible for executing (forcing) thunks passed to it as runtime values. */
 @GenerateUncached
@@ -38,6 +39,15 @@ public abstract class ThunkExecutorNode extends Node {
    * @return the return value of this thunk
    */
   public abstract Stateful executeThunk(Object thunk, Object state, BaseNode.TailStatus isTail);
+
+  static boolean isThunk(Object th) {
+    return TypesGen.isThunk(th);
+  }
+
+  @Specialization(guards = "!isThunk(thunk)")
+  Stateful doOther(Object thunk, Object state, BaseNode.TailStatus isTail) {
+    return new Stateful(state, thunk);
+  }
 
   @Specialization(
       guards = "callNode.getCallTarget() == thunk.getCallTarget()",
@@ -82,10 +92,5 @@ public abstract class ThunkExecutorNode extends Node {
             e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
       }
     }
-  }
-
-  @Fallback
-  Stateful doOther(Object thunk, Object state, BaseNode.TailStatus isTail) {
-    return new Stateful(state, thunk);
   }
 }
