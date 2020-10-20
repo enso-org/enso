@@ -1,0 +1,38 @@
+from Base import all
+
+type To_Form
+
+    type To_Form internal_form
+
+    to_form : Form
+    to_form = internal_form
+
+type Form
+
+    type From form_parts
+
+    ## Implement To_Form.to_form
+    to_form : Form
+    to_form = this
+
+type Part
+
+    type Part key value
+
+type Part_Value
+
+    type Part_Text part_value_text
+
+    type Part_File part_value_file
+
+Vector.to_form = Form this
+
+## Create Form data from Parts
+new : Vector -> Form
+new parts = Form parts
+
+part_text : Text -> Text -> Part
+part_text key val = Part key (Part_Text val)
+
+part_file : Text -> Text -> Part
+part_file key file = Part key (Part_File file)

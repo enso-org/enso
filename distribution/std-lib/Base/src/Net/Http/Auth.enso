@@ -1,0 +1,6 @@
+## Authentication settings.
+type Auth
+
+    type None
+
+    type Basic_Auth user password

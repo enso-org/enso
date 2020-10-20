@@ -1,0 +1,14 @@
+from Base import all
+import Base.Net.Http.Uri
+
+## Proxy settings.
+type Proxy
+
+    type None
+
+    type Proxy proxy_http proxy_https
+
+new : Uri.To_Uri -> Proxy
+new addr =
+    uri = addr.to_uri
+    Proxy uri uri

@@ -1,69 +1,44 @@
 from Base import all
 import Base.Net.Uri
+import Base.Net.Http.Form
 import Base.Net.Http.Method
-
-type To_Request
-
-    type To_Request internal_request
-
-    to_request : Request
-    to_request = this.internal_request
-
-type To_Post_Data
-
-    type To_Post_Data internal_to_post_data
-
-    to_post_data : Any
-    to_post_data = this.internal_to_post_data
-
-## Create a GET request from Uri string
-
-   > Example
-     Create a GET request.
-         "http://httpbin.org/get".to_request
-Text.to_request : Request
-Text.to_request = Request.new Method.GET . with_uri (Uri.parse this)
+import Base.Net.Http.Request.Body as Request_Body
+import Base.System.File
 
 type Request
 
     type Request
 
-    to_request : Request
-    to_request = this
-
-    ## Get method
+    ## Get method.
     method : Method
 
-    ## Get request Uri
+    ## Get request Uri.
     uri : Uri
 
-    ## Get request headers
-    headers : [Header]
+    ## Get request headers.
+       Return the vector of head
+    headers : Vector
 
-    ## Get request body
-    body : [Part]
+    ## Get request body.
+    body : Request_Body
 
-    ## Set header
-    with_header : Header -> Request
+    ## Set header.
+    with_header : Text -> Text -> Request
 
-    ## Set headers
+    ## Set headers.
     with_headers : [Header] -> Request
 
-    ## Set body
-    with_body : Any -> Request
+    ## Set body.
+    with_body : Request_Body -> Request
 
-    ## Set body encoded as 'application/json'
-    with_json : Text -> Request
+    ## Set body encoded as "application/json".
+    with_json : Any -> Request
 
-    ## Set body encoded as 'application/x-www-form-urlencoded'
-    with_form_urlencoded : [Part] -> Request
+    ## Set body as vector of parts encoded as
+       "application/x-www-form-urlencoded".
+    with_form : Form.To_Form -> Request
 
-    ## Set body encoded as 'multipart/form-data'
-    with_multipart : [Part] -> Request
-
-type Part
-
-    type Part key value
+# Request constructors
 
 new : Method -> Uri.To_Uri -> Request
 
@@ -76,3 +51,9 @@ head : Uri.To_Uri -> Request
 post : Uri.To_Uri -> Request
 
 put : Uri.To_Uri -> Request
+
+delete : Uri.To_Uri -> Request
+
+trace : Uri.To_Uri -> Request
+
+connect : Uri.To_Uri -> Request

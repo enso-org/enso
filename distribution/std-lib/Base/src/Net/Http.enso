@@ -1,99 +1,137 @@
 from Base import all
 import Base.Net.Uri
-import Base.Net.Http.Config
+import Base.Net.Http.Auth
+import Base.Net.Http.Proxy
 import Base.Net.Http.Request
+import Base.Net.Http.Request.Body as Request_Body
+import Base.Time.Duration
 
 type Http
 
     type Http
 
-    ## Create an OPTIONS request.
-    options : Request.To_Request -> Response
+    # Methods
 
-    ## Create a GET request.
-    get : Request.To_Request -> Response
+    ## Send an OPTIONS request.
+    options : Uri.To_Uri -> Response
 
-    ## Create a POST request.
-    post : Request.To_Request -> Request.To_Post_Data -> Response
+    ## Send a GET request.
 
-    ## Create a PUT request.
-    put : Request.To_Request -> Request.To_Put_Data -> Response
+       > Example
+         Send a GET request.
+             Http.new . get "http://httpbin.org/get"
+
+       > Example
+         Authenticated GET request.
+             http = Http.new . with_basic_auth "user" "pass"
+             http.get "https://httpbin.org/basic-auth/user/pass"
+    get : Uri.To_Uri -> Response
+
+    ## Send a HEAD request
+    head : Uri.To_Uri -> Response
+
+    ## Send a POST request with form encoded as
+       "application/x-www-form-urlencoded".
+
+       > Example
+         Send a POST request with form.
+             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             Http.new.post_form "http://httpbin.org/post" form
+
+       > Example
+         Configure http client and send a POST request.
+             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             http = Http.new . with_basic_auth "user" "pass"
+             http.post_form "http://httpbin.org/post" form
+    post_form : Uri.To_Uri -> Form.To_Form -> Response
+
+    ## Send a POST request with body encoded as "application/json".
+
+       > Example
+         Send a POST request with json data.
+             Http.new.post_json "http://httpbin.org/post" "{\"key\": \"val\"}"
+    post_json : Uri.To_Uri -> Any -> Response
+
+    ## Send a PUT request with body encoded as "application/json".
+
+       > Example
+         Send a PUT request with json data.
+             Http.new.put_json "http://httpbin.org/post" "{\"key\": \"val\"}"
+    put_json : Uri.To_Uri -> Any -> Response
 
     ## Create a DELETE request.
-    delete : Request.To_Request -> Response
+    delete : Uri.To_Uri -> Response
 
     ## Create a TRACE request.
-    trace : Request.To_Request -> Response
+    trace : Uri.To_Uri -> Response
 
     ## Create a CONECT request.
-    connect : Request.To_Request -> Response
+    connect : Uri.To_Uri -> Response
 
     ## Create a request
-    request : Request.To_Request -> Response
 
-## Open an Http connection using `Uri`.
+       > Example
+         Send a GET request with headers.
+             req = Request.new Method.GET "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
+             Http.new . request req
 
-   > Example
-     Open a connection and send a GET request.
-         Http.new "http://httpbin.org" http->
-             res = http.get "http://httpbin.org/get?key=val"
-             res.code
+       > Example
+         Open a connection and send a POST request.
+                 req = Request.post "http://httpbin.org/post" . with_body [Request.Part "key" "value"] . with_header "X-Trace-Id" "123456789"
+                 res = http.new.request req
+                 res.code
 
-   > Example
-     Open a connection and send a Post request.
-         Http.new "http://httpbin.org" http->
-             req = Request.new Method.POST "http://httpbin.org/post" . with_body [Request.Part "key" "value"] . with_header (Header.header "X-Trace-Id" "123456789")
-             res = http.request req
-             res.code
+       > Example
+         Send a POST request with urlencoded form data.
+             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             req = Request.post "http://httpbin.org/post" . with_form form
+             Http.new.request req
 
-   > Example
-     Open a connection and send multiple requests.
-         Http.new "http://httpbin.org" http->
-             http.get "http://httpbin.org/get"
-             http.put "http://httpbin.org/put" [Part "key" "val"]
-             http.delete "http://httpbin.org/delete"
-new : Uri.To_Uri -> (Http -> Any) -> Any
-new uri f = Unit
+       > Example
+         Send a POST request with form encoded as "multipart/form-data".
+             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             req = Request.post "http://httpbin.org/post" . with_form form . with_headers [Header.multipart_form_data]
+             Http.new.post req
 
-## Open an Http connection using the config.
+       > Example
+         Configure http client and send a POST request with form.
+             form = [Form.part_text "name" "John Doe"]
+             req = Request.new Method.POST "http://httpbin.org/post" . with_form form
+             http = Http.new (timeout = 30.seconds) (proxy = Proxy.new "proxy.example.com:80")
+             http.request req
+    request : Request -> Response
 
-   > Example
-     Authenticated GET request.
-         conf = Config.new . with_basic_auth "user" "pass"
-         Http.with_config "https://httpbin.org" conf http->
-             http.get "https://httpbin.org/basic-auth/user/pass"
-with_config : Uri.To_Uri -> Config -> (Http -> Any) -> Any
-with_config uri config f = Unit
+    # Settings
 
-options : Request.To_Request -> Config -> Response
-options request (config = Config.new) = Unit
+    ## Get connection timeout settng.
+    timeout : Duration
 
-## Send a GET request.
+    ## Get authentication settings.
+    auth : Auth
 
-   > Example
-     Send a GET request.
-         Http.get "http://httpbin.org/get"
-get : Uri.To_Uri -> Config -> Response
-get uri (config = Config.new) = Unit
+    ## Get follow_redirects setting.
+    follow_redirects : Boolean
 
-## Send a POST request.
+    ## Get proxy setting.
+    proxy : Proxy
 
-   > Example
-     Send a POST request with urlencoded form data
-         Http.post "http://httpbin.org/post" [Request.Part "key" "val"]
+    # Builder
 
-   > Example
-     Send a POST request with json data
-         Http.post "http://httpbin.org/post" (Json.new "{\"key\": \"val\"}")
-post : Request.To_Request -> Request.To_Post_Data -> Config -> Response
+    ## Set basic_auth setting.
 
-put : Request.To_Request -> Request.To_Put_Data -> Config -> Response
+       > Example
+         Create client with basic_auth setting.
+             Http.new . with_basic_auth "user" "pass"
+    with_basic_auth : Text -> Text -> Http
 
-delete : Request.To_Request -> Config -> Response
+    ## Set connection timeout.
+    with_timeout : Duration -> Config
 
-trace : Request.To_Request -> Config -> Response
+    ## Set follow_redirects setting.
+    with_follow_redirects : Boolean -> Config
 
-connect : Request.To_Request -> Config -> Response
+    ## Set proxy setting.
+    with_proxy : Proxy -> Config
 
-## Generic request
-request : Request.To_Request -> Config -> Response
+new : Duration -> Auth -> Boolean -> Proxy -> Http
+new (duration = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.None) = Unit

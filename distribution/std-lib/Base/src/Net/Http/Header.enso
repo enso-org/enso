@@ -1,3 +1,14 @@
 type Header
 
     type Header name value
+
+content_type : Text -> Header
+content_type text = Header "Content-Type" text
+
+# Common headers
+
+multipart_form_data : Header
+multipart_form_data = this.content_type "multipart/form-data"
+
+application_json : Header
+application_json = this.content_type "application/json"

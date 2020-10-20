@@ -1,0 +1,13 @@
+from Base import all
+
+type Body
+
+    type Body internal_input_stream
+
+    text : Text
+
+    bytes : Vector
+
+    json : Any
+
+    with_input_stream : (Input_Stream -> Any) -> Any

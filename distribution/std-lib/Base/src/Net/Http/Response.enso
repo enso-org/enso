@@ -1,9 +1,13 @@
+from Base import all
+
 type Response
 
     type Response
 
-    headers : [Header]
+    headers : Vector
 
-    body : Any
+    header: Text -> Text
+
+    body : Body
 
     status : Status
