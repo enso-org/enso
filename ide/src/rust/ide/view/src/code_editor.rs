@@ -28,22 +28,21 @@ pub const PADDING_LEFT : f32 = 7.0;
 // === Frp ===
 // ===========
 
-ensogl::def_command_api!( Commands
-    /// Show the Code Editor.
-    show,
-    /// Hide the Code Editor.
-    hide,
-    /// Toggle Code Editor visibility.
-    toggle,
-);
+ensogl::define_endpoints! {
+    Input {
+        /// Show the Code Editor.
+        show(),
+        /// Hide the Code Editor.
+        hide(),
+        /// Toggle Code Editor visibility.
+        toggle(),
+    }
 
-ensogl_text::define_endpoints! {
-    Commands { Commands }
-    Input {}
     Output {
-        is_shown        (bool),
+        is_visible (bool),
     }
 }
+
 
 
 // ============
@@ -55,6 +54,13 @@ ensogl_text::define_endpoints! {
 pub struct View {
     model : text::Area,
     frp   : Frp,
+}
+
+impl Deref for View {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
 impl View {
@@ -69,25 +75,29 @@ impl View {
         model.set_position_x(PADDING_LEFT);
         model.remove_from_view(&scene.views.main);
         model.add_to_view(&scene.views.breadcrumbs);
+        // TODO[ao]: To have code editor usable we treat it as constantly mouse-hovered, but this
+        //  should be changed in the second part of focus management
+        //  (https://github.com/enso-org/ide/issues/823)
+        model.hover();
 
         frp::extend!{ network
             trace frp.input.toggle;
-            let is_shown      =  frp.output.is_shown.clone_ref();
-            show_after_toggle <- frp.toggle.gate_not(&is_shown);
-            hide_after_toggle <- frp.toggle.gate    (&is_shown);
+            let is_visible     =  frp.output.is_visible.clone_ref();
+            show_after_toggle <- frp.toggle.gate_not(&is_visible);
+            hide_after_toggle <- frp.toggle.gate    (&is_visible);
             show              <- any(frp.input.show,show_after_toggle);
             hide              <- any(frp.input.hide,hide_after_toggle);
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
-            eval_ show (model.set_active_on());
+            eval_ show (model.focus());
             eval_ hide (height_fraction.set_target_value(0.0));
             eval_ hide ([model] {
                 model.remove_all_cursors();
-                model.set_active_off();
+                model.defocus();
             });
 
-            frp.source.is_shown <+ bool(&frp.input.hide,&frp.input.show);
-            frp.source.is_shown <+ frp.toggle.map2(&is_shown, |(),b| !b);
+            frp.source.is_visible <+ bool(&frp.input.hide,&frp.input.show);
+            frp.source.is_visible <+ frp.toggle.map2(&is_visible, |(),b| !b);
 
             let shape  = app.display.scene().shape();
             position <- all_with(&height_fraction.value,shape, |height_f,scene_size| {
@@ -114,25 +124,15 @@ impl application::command::FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network { &self.frp.network }
 }
 
-impl application::command::CommandApi for View {
-    fn command_api_docs() -> Vec<application::command::EndpointDocs> {
-        Commands::command_api_docs()
-    }
-
-    fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
-        self.frp.input.command.command_api()
-    }
-}
-
-impl application::command::Provider for View {
-    fn label() -> &'static str { "CodeEditor" }
-}
-
 impl application::View for View {
-    fn new(app: &Application) -> Self { Self::new(app) }
-}
+    fn label() -> &'static str { "CodeEditor" }
 
-impl application::shortcut::DefaultShortcutProvider for View {
+    fn new(app: &Application) -> Self { Self::new(app) }
+
+    fn app(&self) -> &Application {
+        &self.model.app()
+    }
+
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[ (Press, "ctrl `" , "toggle")

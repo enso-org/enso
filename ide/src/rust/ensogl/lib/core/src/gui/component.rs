@@ -33,7 +33,7 @@ pub struct ShapeViewEvents {
     pub mouse_down : frp::Source,
     pub mouse_over : frp::Source,
     pub mouse_out  : frp::Source,
-    on_drop        : frp::Source,
+    pub on_drop    : frp::Source,
 }
 
 impl ShapeViewEvents {
@@ -70,22 +70,28 @@ impl MouseTarget for ShapeViewEvents {
 /// reference to an existing `Shape` as soon as it is placed on the scene and the scene is updated.
 /// As soon as it is removed from the scene, the shape is freed.
 #[derive(Clone,CloneRef,Debug,Deref)]
-#[clone_ref(bound="Shape:CloneRef")]
+#[clone_ref(bound="S:CloneRef")]
 #[allow(missing_docs)]
-pub struct ShapeView<Shape> {
-    model : Rc<ShapeViewModel<Shape>>
+pub struct ShapeView<S:Shape> {
+    model : Rc<ShapeViewModel<S>>
 }
 
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct ShapeViewModel<Shape> {
-    pub shape          : Shape,
+pub struct ShapeViewModel<S:Shape> {
+    pub registry       : ShapeRegistry,
+    pub shape          : S,
     pub display_object : display::object::Instance,
     pub events         : ShapeViewEvents,
 }
 
-impl<Shape> Drop for ShapeViewModel<Shape> {
+impl<S:Shape> Drop for ShapeViewModel<S> {
     fn drop(&mut self) {
+        for sprite in self.shape.sprites() {
+            let symbol_id   = sprite.symbol_id();
+            let instance_id = *sprite.instance_id;
+            self.registry.remove_mouse_target(symbol_id,instance_id);
+        }
         self.events.on_drop.emit(());
     }
 }
@@ -107,22 +113,19 @@ impl<S:Shape> ShapeView<S> {
     pub fn new(logger:impl AnyLogger, scene:&Scene) -> Self {
         let logger         = Logger::sub(logger,"shape_view");
         let display_object = display::object::Instance::new(logger);
-//        let data           = default();
-        let shape_registry: &ShapeRegistry = &scene.shapes;
-        let shape          = shape_registry.new_instance::<S>();
+        let registry       = scene.shapes.clone_ref();
+        let shape          = registry.new_instance::<S>();
         let events         = ShapeViewEvents::new();
         display_object.add_child(&shape);
         for sprite in shape.sprites() {
             let events      = events.clone_ref();
             let symbol_id   = sprite.symbol_id();
             let instance_id = *sprite.instance_id;
-            shape_registry.insert_mouse_target(symbol_id,instance_id,events);
+            registry.insert_mouse_target(symbol_id,instance_id,events);
         }
-//        let data = T::new(&shape,scene,shape_registry);
 
-        let model = Rc::new(ShapeViewModel {display_object,events,shape});
+        let model = Rc::new(ShapeViewModel {registry,display_object,events,shape});
         Self {model}
-
     }
 
 //    fn init(self) -> Self {
@@ -173,7 +176,7 @@ impl<S:Shape> ShapeView<S> {
 //    }
 }
 
-impl<T> display::Object for ShapeView<T> {
+impl<T:Shape> display::Object for ShapeView<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }

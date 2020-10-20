@@ -7,17 +7,7 @@ use super::command;
 use super::shortcut;
 use super::Application;
 
-
-
-// ============
-// === View ===
-// ============
-
-/// A visual component of an application.
-pub trait View : command::Provider + shortcut::DefaultShortcutProvider {
-    /// Constructor.
-    fn new(app:&Application) -> Self;
-}
+pub use command::View;
 
 
 

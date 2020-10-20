@@ -74,7 +74,7 @@ mod background {
 // === Frp ===
 // ===========
 
-ensogl_text::define_endpoints! {
+ensogl::define_endpoints! {
     Input {
         set_size                       (Vector2),
         show_icons                     (),
@@ -82,6 +82,7 @@ ensogl_text::define_endpoints! {
         set_visualization_alternatives (Vec<visualization::Path>),
         set_selected_visualization     (Option<visualization::Path>),
     }
+
     Output {
         visualisation_selection  (Option<visualization::Path>),
         mouse_over               (),

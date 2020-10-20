@@ -34,18 +34,13 @@ pub fn main() {
     let kb       = Keyboard::new();
     let bindings = keyboard::DomBindings::new(&logger,&kb,&default());
 
-    let shortcut_registry2 = shortcut_registry.clone_ref();
-    let shortcut_registry3 = shortcut_registry.clone_ref();
     frp::new_network! { network
-        on_down <- kb.down.map (move |t| shortcut_registry2.on_press(t.simple_name()));
-        on_up   <- kb.up.map   (move |t| shortcut_registry3.on_release(t.simple_name()));
-        trace on_down;
-        trace on_up;
+        eval kb.down ((t)shortcut_registry.on_press(t.simple_name()));
+        eval kb.up   ((t)shortcut_registry.on_release(t.simple_name()));
     }
     mem::forget(network);
     mem::forget(bindings);
     mem::forget(shortcut_registry);
-
 
     let shortcut_registry = shortcuts::HashSetRegistry::<String>::new();
     shortcut_registry.add(shortcuts::Press, "ctrl a", "press ctrl a");

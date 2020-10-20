@@ -81,9 +81,9 @@ impl Model {
     }
 
     fn add_node_and_edit(&self) {
-        let graph_editor_inputs = &self.graph_editor.frp.inputs;
+        let graph_editor_inputs = &self.graph_editor.frp.input;
         graph_editor_inputs.add_node_at_cursor.emit(());
-        let created_node_id = self.graph_editor.frp.outputs.node_added.value();
+        let created_node_id = self.graph_editor.frp.output.node_added.value();
         graph_editor_inputs.set_node_expression.emit(&(created_node_id,Expression::default()));
         graph_editor_inputs.edit_node.emit(&created_node_id);
     }
@@ -93,34 +93,22 @@ impl Model {
 // === FRP ===
 // ===========
 
-ensogl::def_command_api! { Commands
-    /// Add new node and start editing it's expression.
-    add_new_node,
-    /// Abort currently node edit. If it was added node, it will be removed, if the existing node was edited, its old expression will be restored.
-    abort_node_editing,
-    /// Simulates a style toggle press event.
-    toggle_style,
-    /// Saves the currently opened module to file.
-    save_module,
-}
-
-impl application::command::CommandApi for View {
-    fn command_api_docs() -> Vec<application::command::EndpointDocs> {
-        Commands::command_api_docs()
-    }
-
-    fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
-        self.frp.input.command.command_api()
-    }
-}
-
-ensogl_text::define_endpoints! {
-    Commands { Commands }
+ensogl::define_endpoints! {
     Input {
+        /// Add new node and start editing it's expression.
+        add_new_node(),
+        /// Abort currently node edit. If it was added node, it will be removed, if the existing node was edited, its old expression will be restored.
+        abort_node_editing(),
+        /// Simulates a style toggle press event.
+        toggle_style(),
+        /// Saves the currently opened module to file.
+        save_module(),
     }
+
     Output {
         adding_new_node               (bool),
-        edited_node                   (Option<NodeId>),
+        node_being_edited             (Option<NodeId>),
+        editing_node                  (bool),
         old_expression_of_edited_node (Expression),
         editing_aborted               (NodeId),
         editing_committed             (NodeId),
@@ -141,6 +129,13 @@ ensogl_text::define_endpoints! {
 pub struct View {
     model   : Model,
     pub frp : Frp,
+}
+
+impl Deref for View {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
 impl View {
@@ -179,22 +174,23 @@ impl View {
             // committing and aborting node editing.
 
             // This node is false when received "abort_node_editing" signal, and should get true
-            // once processing of "edited_node" event from graph is performed.
+            // once processing of "node_being_edited" event from graph is performed.
             editing_aborted <- any(...);
             editing_aborted <+ frp.abort_node_editing.constant(true);
-            should_finish_editing <-
+            should_finish_editing_if_any <-
                 any(frp.abort_node_editing,searcher.editing_committed,frp.add_new_node);
-            eval should_finish_editing ((()) graph.inputs.stop_editing.emit(()));
-            _eval <- graph.outputs.edited_node.map2(&searcher.is_visible,
-                f!([model,searcher_left_top_position](edited_node_id,is_visible) {
-                    model.update_searcher_view(*edited_node_id,&searcher_left_top_position);
+            should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
+            eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
+            _eval <- graph.output.node_being_edited.map2(&searcher.is_visible,
+                f!([model,searcher_left_top_position](node_id,is_visible) {
+                    model.update_searcher_view(*node_id,&searcher_left_top_position);
                     if !is_visible {
                         // Do not animate
                         searcher_left_top_position.skip();
                     }
                 })
             );
-            _eval <- graph.outputs.node_position_set.map2(&graph.outputs.edited_node,
+            _eval <- graph.output.node_position_set.map2(&graph.output.node_being_edited,
                 f!([searcher_left_top_position]((node_id,position),edited_node_id) {
                     if edited_node_id.contains(node_id) {
                         let new = Model::searcher_left_top_position_when_under_node_at(*position);
@@ -203,11 +199,13 @@ impl View {
                 })
             );
             editing_not_aborted          <- editing_aborted.map(|b| !b);
-            let editing_finished         =  graph.outputs.node_editing_finished.clone_ref();
+            let editing_finished         =  graph.output.node_editing_finished.clone_ref();
             frp.source.editing_committed <+ editing_finished.gate(&editing_not_aborted);
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
-            editing_aborted              <+ graph.outputs.edited_node.constant(false);
+            editing_aborted              <+ graph.output.node_being_edited.constant(false);
 
+            frp.source.node_being_edited <+ graph.output.node_being_edited;
+            frp.source.editing_node      <+ frp.node_being_edited.map(|n| n.is_some());
 
             // === Adding New Node ===
 
@@ -251,22 +249,22 @@ impl application::command::FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network { &self.frp.network }
 }
 
-impl application::command::Provider for View {
-    fn label() -> &'static str { "ProjectView" }
-}
-
 impl application::View for View {
-    fn new(app:&Application) -> Self { View::new(app) }
-}
+    fn label() -> &'static str { "ProjectView" }
 
-impl application::shortcut::DefaultShortcutProvider for View {
+    fn new(app:&Application) -> Self { View::new(app) }
+
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
+
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press   , "shift tab"    , "add_new_node")
-          , (Press   , "escape"       , "abort_node_editing")
-          , (Press   , "ctrl shift s" , "toggle_style")
-          , (Release , "ctrl shift s" , "toggle_style")
-          , (Press   , "cmd s"        , "save_module")
-          ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
+        (&[ (Press   , "!editing_node" , "tab"          , "add_new_node")
+          , (Press   , ""              , "escape"       , "abort_node_editing")
+          , (Press   , ""              , "ctrl shift s" , "toggle_style")
+          , (Release , ""              , "ctrl shift s" , "toggle_style")
+          , (Press   , ""              , "cmd s"        , "save_module")
+          ]).iter().map(|(a,b,c,d)|Self::self_shortcut_when(*a,*c,*d,*b)).collect()
     }
 }

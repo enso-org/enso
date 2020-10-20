@@ -3,6 +3,7 @@
 pub mod command;
 pub mod shortcut;
 pub mod view;
+pub mod frp;
 
 pub use view::View;
 

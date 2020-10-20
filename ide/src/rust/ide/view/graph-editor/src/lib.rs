@@ -54,7 +54,17 @@ use ensogl::prelude::*;
 use ensogl::system::web;
 use ensogl_theme;
 
-pub use ensogl::prelude;
+
+
+// ===============
+// === Prelude ===
+// ===============
+
+/// Commonly used utilities.
+pub mod prelude {
+    pub use ensogl::application::command::View;
+    pub use ensogl::prelude::*;
+}
 
 
 
@@ -271,313 +281,200 @@ impl<K,V,S> SharedHashMap<K,V,S> {
 
 
 
-
-
-#[derive(Debug,Clone,CloneRef)]
-pub struct Frp {
-    pub inputs  : FrpInputs,
-    pub outputs : FrpOutputs,
-    pub status  : FrpStatus,
-    pub node_release : frp::Stream<NodeId>
-}
-
-impl Deref for Frp {
-    type Target = FrpInputs;
-    fn deref(&self) -> &FrpInputs {
-        &self.inputs
-    }
-}
-
-
-ensogl::def_status_api! { FrpStatus
-    /// Checks whether this graph editor instance is active.
-    is_active,
-    /// Checks whether this graph editor instance is empty.
-    is_empty,
-}
-
-ensogl::def_command_api! { Commands
-    /// Push a hardcoded breadcrumb without notifying the controller.
-    debug_push_breadcrumb,
-    /// Pop a breadcrumb without notifying the controller.
-    debug_pop_breadcrumb,
-    /// Cancel project name editing, restablishing the old name.
-    cancel_project_name_editing,
-    /// Add a new node and place it in the origin of the workspace.
-    add_node,
-    /// Add a new node and place it at the mouse cursor position.
-    add_node_at_cursor,
-    /// Remove all selected nodes from the graph.
-    remove_selected_nodes,
-    /// Remove all nodes from the graph.
-    remove_all_nodes,
-    /// Remove all nodes from the graph.
-    collapse_selected_nodes,
-    /// Toggle the visibility of the selected visualizations.
-    toggle_visualization_visibility,
-    /// Simulates a visualization open press event. In case the event will be shortly followed by `release_visualization_visibility`, the visualization will be shown permanently. In other case, it will be disabled as soon as the `release_visualization_visibility` is emitted.
-    press_visualization_visibility,
-    /// Simulates a visualization open double press event. This event toggles the visualization fullscreen mode.
-    double_press_visualization_visibility,
-    /// Simulates a visualization open release event. See `press_visualization_visibility` to learn more.
-    release_visualization_visibility,
-    /// Set a test visualization data for the selected nodes. Useful for testing visualizations during their development.
-    set_test_visualization_data_for_selected_node,
-    /// Cycle the visualization for the selected nodes.
-    cycle_visualization_for_selected_node,
-    /// Enter the last selected node.
-    enter_selected_node,
-    /// Steps out of the current node, popping the topmost stack frame from the crumb list.
-    exit_node,
-    /// Enable mode in which the pressed node will be edited.
-    edit_mode_on,
-    /// Disable mode in which the pressed node will be edited.
-    edit_mode_off,
-    /// Stop node editing, whatever node is currently edited.
-    stop_editing,
-
-
-    /// Enable nodes multi selection mode. It works like inverse mode for single node selection and like merge mode for multi node selection mode.
-    enable_node_multi_select,
-    /// Disable nodes multi selection mode. It works like inverse mode for single node selection and like merge mode for multi node selection mode.
-    disable_node_multi_select,
-    /// Toggle nodes multi selection mode. It works like inverse mode for single node selection and like merge mode for multi node selection mode.
-    toggle_node_multi_select,
-
-
-    /// Enable nodes merge selection mode.
-    enable_node_merge_select,
-    /// Disable nodes merge selection mode.
-    disable_node_merge_select,
-    /// Toggles nodes merge selection mode.
-    toggle_node_merge_select,
-
-
-    /// Enable nodes subtract selection mode.
-    enable_node_subtract_select,
-    /// Disable nodes subtract selection mode.
-    disable_node_subtract_select,
-    /// Toggle nodes subtract selection mode.
-    toggle_node_subtract_select,
-
-
-    /// Enable nodes inverse selection mode.
-    enable_node_inverse_select,
-    /// Disable nodes inverse selection mode.
-    disable_node_inverse_select,
-    /// Toggle nodes inverse selection mode.
-    toggle_node_inverse_select,
-
-    /// Switches the selected visualisation to/from fullscreen mode.
-    toggle_fullscreen_for_selected_visualization,
-
-    /// Cancel the operation being currently performed. Often mapped to the escape key.
-    cancel,
-}
-
-
-
 // =================
 // === FrpInputs ===
 // =================
 
-#[derive(Debug,Clone,CloneRef,Shrinkwrap)]
-pub struct FrpInputs {
-    #[shrinkwrap(main_field)]
-    commands                         : Commands,
-    pub set_detached_edge_targets    : frp::Source<EdgeTarget>,
-    pub set_detached_edge_sources    : frp::Source<EdgeTarget>,
-    pub set_edge_source              : frp::Source<(EdgeId,EdgeTarget)>,
-    pub set_edge_target              : frp::Source<(EdgeId,EdgeTarget)>,
-    pub unset_edge_source            : frp::Source<EdgeId>,
-    pub unset_edge_target            : frp::Source<EdgeId>,
-    pub connect_nodes                : frp::Source<(EdgeTarget,EdgeTarget)>,
-    pub deselect_all_nodes           : frp::Source,
-    pub press_node_input             : frp::Source<EdgeTarget>,
-    pub press_node_output            : frp::Source<EdgeTarget>,
-    pub remove_all_node_edges        : frp::Source<NodeId>,
-    pub remove_all_node_input_edges  : frp::Source<NodeId>,
-    pub remove_all_node_output_edges : frp::Source<NodeId>,
-    pub remove_edge                  : frp::Source<EdgeId>,
-    pub select_node                  : frp::Source<NodeId>,
-    pub remove_node                  : frp::Source<NodeId>,
-    pub edit_node                    : frp::Source<NodeId>,
-    pub collapse_nodes               : frp::Source<(Vec<NodeId>,NodeId)>,
-    pub set_node_expression          : frp::Source<(NodeId,node::Expression)>,
-    pub set_node_position            : frp::Source<(NodeId,Vector2)>,
-    pub set_expression_type          : frp::Source<(NodeId,ast::Id,Option<Type>)>,
-    pub set_method_pointer           : frp::Source<(ast::Id,Option<MethodPointer>)>,
-    pub cycle_visualization          : frp::Source<NodeId>,
-    pub set_visualization            : frp::Source<(NodeId,Option<visualization::Path>)>,
-    pub register_visualization       : frp::Source<Option<visualization::Definition>>,
-    pub set_visualization_data       : frp::Source<(NodeId,visualization::Data)>,
+ensogl::define_endpoints! {
+    Input {
+        // === General ===
+        /// Cancel the operation being currently performed. Often mapped to the escape key.
+        cancel(),
 
-    hover_node_input           : frp::Source<Option<EdgeTarget>>,
-    hover_node_output          : frp::Source<Option<EdgeTarget>>,
-    some_edge_targets_detached : frp::Source,
-    some_edge_sources_detached : frp::Source,
-    all_edge_targets_attached  : frp::Source,
-    all_edge_sources_attached  : frp::Source,
-    all_edges_attached         : frp::Source, // FIXME: wrong name! Its all sources and targets of a single edge!
 
-}
+        // === Node Selection ===
 
-impl FrpInputs {
-    pub fn new(network:&frp::Network) -> Self {
-        frp::extend! { network
-            set_detached_edge_targets    <- source();
-            set_detached_edge_sources    <- source();
-            set_edge_source              <- source();
-            set_edge_target              <- source();
-            unset_edge_source            <- source();
-            unset_edge_target            <- source();
-            connect_nodes                <- source();
-            deselect_all_nodes           <- source();
-            press_node_input             <- source();
-            press_node_output            <- source();
-            remove_all_node_edges        <- source();
-            remove_all_node_input_edges  <- source();
-            remove_all_node_output_edges <- source();
-            remove_edge                  <- source();
-            select_node                  <- source();
-            remove_node                  <- source();
-            edit_node                    <- source();
-            collapse_nodes               <- source();
-            set_node_expression          <- source();
-            set_node_position            <- source();
-            set_expression_type          <- source();
-            set_method_pointer           <- source();
-            set_visualization_data       <- source();
-            cycle_visualization          <- source();
-            set_visualization            <- source();
-            register_visualization       <- source();
+        /// Node press event
+        node_press(),
+        /// Node press event
+        node_release(),
+        /// Enable nodes multi selection mode. It works like inverse mode for single node selection
+        /// and like merge mode for multi node selection mode.
+        enable_node_multi_select(),
+        /// Disable nodes multi selection mode. It works like inverse mode for single node selection
+        /// and like merge mode for multi node selection mode.
+        disable_node_multi_select(),
+        /// Toggle nodes multi selection mode. It works like inverse mode for single node selection
+        /// and like merge mode for multi node selection mode.
+        toggle_node_multi_select(),
 
-            hover_node_input             <- source();
-            hover_node_output            <- source();
-            some_edge_targets_detached   <- source();
-            some_edge_sources_detached   <- source();
-            all_edge_targets_attached    <- source();
-            all_edge_sources_attached    <- source();
-            all_edges_attached           <- source();
-        }
-        let commands = Commands::new(&network);
-        Self {commands,remove_edge,press_node_input,remove_all_node_edges
-             ,remove_all_node_input_edges,remove_all_node_output_edges,set_visualization_data
-             ,set_detached_edge_targets,set_edge_source,set_edge_target
-             ,unset_edge_source,unset_edge_target
-             ,set_node_position,set_expression_type,set_method_pointer,select_node,remove_node
-             ,edit_node,collapse_nodes,set_node_expression,connect_nodes,deselect_all_nodes
-             ,cycle_visualization,set_visualization,register_visualization
-             ,some_edge_targets_detached,some_edge_sources_detached,all_edge_targets_attached
-             ,hover_node_input,all_edge_sources_attached,hover_node_output,press_node_output
-             ,set_detached_edge_sources,all_edges_attached
-        }
+        /// Enable nodes merge selection mode.
+        enable_node_merge_select(),
+        /// Disable nodes merge selection mode.
+        disable_node_merge_select(),
+        /// Toggles nodes merge selection mode.
+        toggle_node_merge_select(),
+
+        /// Enable nodes subtract selection mode.
+        enable_node_subtract_select(),
+        /// Disable nodes subtract selection mode.
+        disable_node_subtract_select(),
+        /// Toggle nodes subtract selection mode.
+        toggle_node_subtract_select(),
+
+        /// Enable nodes inverse selection mode.
+        enable_node_inverse_select(),
+        /// Disable nodes inverse selection mode.
+        disable_node_inverse_select(),
+        /// Toggle nodes inverse selection mode.
+        toggle_node_inverse_select(),
+
+
+        // === Navigation ===
+
+        /// Enter the last selected node.
+        enter_selected_node(),
+        /// Steps out of the current node, popping the topmost stack frame from the crumb list.
+        exit_node(),
+
+
+        // === Node Editing ===
+
+        /// Add a new node and place it in the origin of the workspace.
+        add_node(),
+        /// Add a new node and place it at the mouse cursor position.
+        add_node_at_cursor(),
+        /// Remove all selected nodes from the graph.
+        remove_selected_nodes(),
+        /// Remove all nodes from the graph.
+        remove_all_nodes(),
+        /// Enable mode in which the pressed node will be edited.
+        edit_mode_on(),
+        /// Disable mode in which the pressed node will be edited.
+        edit_mode_off(),
+        /// Stop node editing, whatever node is currently edited.
+        stop_editing(),
+        /// Remove all nodes from the graph.
+        collapse_selected_nodes(),
+
+
+        // === Visualization ===
+
+        /// Toggle the visibility of the selected visualizations.
+        toggle_visualization_visibility(),
+        /// Simulates a visualization open press event. In case the event will be shortly followed by `release_visualization_visibility`, the visualization will be shown permanently. In other case, it will be disabled as soon as the `release_visualization_visibility` is emitted.
+        press_visualization_visibility(),
+        /// Simulates a visualization open double press event. This event toggles the visualization fullscreen mode.
+        double_press_visualization_visibility(),
+        /// Simulates a visualization open release event. See `press_visualization_visibility` to learn more.
+        release_visualization_visibility(),
+        /// Cycle the visualization for the selected nodes.
+        cycle_visualization_for_selected_node(),
+        /// Switches the selected visualisation to/from fullscreen mode.
+        toggle_fullscreen_for_selected_visualization(),
+
+
+        // === Project Management ===
+
+        /// Cancel project name editing, restablishing the old name.
+        cancel_project_name_editing(),
+
+
+        // === Debug ===
+
+        /// Push a hardcoded breadcrumb without notifying the controller.
+        debug_push_breadcrumb(),
+        /// Pop a breadcrumb without notifying the controller.
+        debug_pop_breadcrumb(),
+        /// Set a test visualization data for the selected nodes. Useful for testing visualizations during their development.
+        debug_set_test_visualization_data_for_selected_node(),
+
+
+        set_detached_edge_targets    (EdgeTarget),
+        set_detached_edge_sources    (EdgeTarget),
+        set_edge_source              ((EdgeId,EdgeTarget)),
+        set_edge_target              ((EdgeId,EdgeTarget)),
+        unset_edge_source            (EdgeId),
+        unset_edge_target            (EdgeId),
+        connect_nodes                ((EdgeTarget,EdgeTarget)),
+        deselect_all_nodes           (),
+        press_node_input             (EdgeTarget),
+        press_node_output            (EdgeTarget),
+        remove_all_node_edges        (NodeId),
+        remove_all_node_input_edges  (NodeId),
+        remove_all_node_output_edges (NodeId),
+        remove_edge                  (EdgeId),
+        select_node                  (NodeId),
+        remove_node                  (NodeId),
+        edit_node                    (NodeId),
+        collapse_nodes               ((Vec<NodeId>,NodeId)),
+        set_node_expression          ((NodeId,node::Expression)),
+        set_node_position            ((NodeId,Vector2)),
+        set_expression_type          ((NodeId,ast::Id,Option<Type>)),
+        set_method_pointer           ((ast::Id,Option<MethodPointer>)),
+        cycle_visualization          (NodeId),
+        set_visualization            ((NodeId,Option<visualization::Path>)),
+        register_visualization       (Option<visualization::Definition>),
+        set_visualization_data       ((NodeId,visualization::Data)),
+
+        hover_node_input            (Option<EdgeTarget>),
+        hover_node_output           (Option<EdgeTarget>),
+
+        // FIXME[WD]: These FRP endpoints look like output endpoints, but are used in some strange
+        //            cyclic way. To be refactored / removed.
+        some_edge_targets_detached  (),
+        some_edge_sources_detached  (),
+        all_edge_targets_attached   (),
+        all_edge_sources_attached   (),
+        all_edges_attached          (), // FIXME: wrong name! Its all sources and targets of a single edge!
+
+    }
+    Output {
+        node_added                (NodeId),
+        node_removed              (NodeId),
+        nodes_collapsed           ((Vec<NodeId>,NodeId)),
+        node_selected             (NodeId),
+        node_deselected           (NodeId),
+        node_position_set         ((NodeId,Vector2)),
+        node_position_set_batched ((NodeId,Vector2)),
+        node_expression_set       ((NodeId,String)),
+        node_entered              (NodeId),
+        node_exited               (),
+        node_edit_mode            (bool),
+        node_editing_started      (NodeId),
+        node_editing_finished     (NodeId),
+
+        edge_added         (EdgeId),
+        edge_removed       (EdgeId),
+        edge_source_set    ((EdgeId,EdgeTarget)),
+        edge_target_set    ((EdgeId,EdgeTarget)),
+        edge_source_unset  (EdgeId),
+        edge_target_unset  (EdgeId),
+
+        some_edge_targets_detached (),
+        some_edge_sources_detached (),
+        all_edge_targets_attached  (),
+        all_edge_sources_attached  (),
+        all_edges_attached         (),
+
+        connection_added   (EdgeId),
+        connection_removed (EdgeId),
+
+        visualization_enabled           (NodeId),
+        visualization_disabled          (NodeId),
+        visualization_enable_fullscreen (NodeId),
+        visualization_set_preprocessor  ((NodeId,data::EnsoCode)),
+
+        node_being_edited (Option<NodeId>),
+        node_editing (bool)
     }
 }
+
 
 impl application::command::FrpNetworkProvider for GraphEditor {
     fn network(&self) -> &frp::Network {
         &self.model.network
     }
-}
-
-impl application::command::CommandApi for GraphEditor {
-    fn command_api_docs() -> Vec<application::command::EndpointDocs> {
-        Commands::command_api_docs()
-    }
-
-    fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
-        self.frp.inputs.commands.command_api()
-    }
-}
-
-impl application::command::StatusApi for GraphEditor {
-    fn status_api_docs() -> Vec<application::command::EndpointDocs> {
-        FrpStatus::status_api_docs()
-    }
-
-    fn status_api(&self) -> Vec<application::command::StatusEndpoint> {
-        self.frp.status.status_api()
-    }
-}
-
-
-
-// ==================
-// === FrpOutputs ===
-// ==================
-
-macro_rules! generate_frp_outputs {
-    ($( $field:ident : $field_ty:ty ),* $(,)?) => {
-        #[derive(Debug,Clone,CloneRef)]
-        pub struct UnsealedFrpOutputs {
-            network : frp::Network,
-            $($field : frp::Any<$field_ty>),*
-        }
-
-        #[derive(Debug,Clone,CloneRef)]
-        pub struct FrpOutputs {
-            network : frp::Network,
-            $(pub $field : frp::Sampler<$field_ty>),*
-        }
-
-        #[allow(clippy::new_without_default)]
-        impl UnsealedFrpOutputs {
-            pub fn new() -> Self {
-                frp::new_network! { network
-                    $(def $field = any_mut();)*
-                }
-                Self {network, $($field),*}
-            }
-
-            pub fn seal(&self) -> FrpOutputs {
-                let network = self.network.clone_ref();
-                frp::extend! { network
-                    $(def $field = self.$field.sampler();)*
-                }
-                FrpOutputs {network, $($field),*}
-            }
-        }
-    };
-}
-
-
-generate_frp_outputs! {
-    node_added                : NodeId,
-    node_removed              : NodeId,
-    nodes_collapsed           : (Vec<NodeId>,NodeId),
-    node_selected             : NodeId,
-    node_deselected           : NodeId,
-    node_position_set         : (NodeId,Vector2),
-    node_position_set_batched : (NodeId,Vector2),
-    node_expression_set       : (NodeId,String),
-    node_entered              : NodeId,
-    node_exited               : (),
-    node_editing_started      : NodeId,
-    node_editing_finished     : NodeId,
-
-    edge_added        : EdgeId,
-    edge_removed      : EdgeId,
-    edge_source_set   : (EdgeId,EdgeTarget),
-    edge_target_set   : (EdgeId,EdgeTarget),
-    edge_source_unset : EdgeId,
-    edge_target_unset : EdgeId,
-
-    some_edge_targets_detached : (),
-    some_edge_sources_detached : (),
-    all_edge_targets_attached  : (),
-    all_edge_sources_attached  : (),
-    all_edges_attached         : (),
-
-    connection_added   : EdgeId,
-    connection_removed : EdgeId,
-
-    visualization_enabled           : NodeId,
-    visualization_disabled          : NodeId,
-    visualization_enable_fullscreen : NodeId,
-    visualization_set_preprocessor  : (NodeId,data::EnsoCode),
-
-    edited_node : Option<NodeId>,
 }
 
 
@@ -995,10 +892,11 @@ impl GraphEditorModelWithNetwork {
 
     fn new_node
     ( &self
-    , cursor_style   : &frp::Source<cursor::Style>
-    , output_press   : &frp::Source<EdgeTarget>
-    , input_press    : &frp::Source<EdgeTarget>
-    , expression_set : &frp::Source<(NodeId,String)>
+    , pointer_style   : &frp::Source<cursor::Style>
+    , output_press    : &frp::Source<EdgeTarget>
+    , input_press     : &frp::Source<EdgeTarget>
+    , expression_set  : &frp::Source<(NodeId,String)>
+    , edit_mode_ready : &frp::Stream<bool>
     ) -> NodeId {
         let view    = component::Node::new(&self.app,self.visualizations.clone_ref());
         let node    = Node::new(view);
@@ -1008,30 +906,34 @@ impl GraphEditorModelWithNetwork {
         let touch = &self.touch_state;
         let model = &self.model;
 
-        frp::new_bridge_network! { [self.network, node.main_area.events.network]
-            eval_ node.drag_area.events.mouse_down(touch.nodes.down.emit(node_id));
-            eval node.ports.frp.cursor_style ((style) cursor_style.emit(style));
-            eval node.view.output_ports.frp.port_mouse_down ([output_press](crumbs){
+        frp::new_bridge_network! { [self.network, node.frp.network]
+            eval_ node.frp.background_press(touch.nodes.down.emit(node_id));
+            let ports_frp       = &node.model.ports.frp;
+            let edit_mode_ready = edit_mode_ready.clone_ref();
+
+            eval edit_mode_ready ((t) ports_frp.input.edit_mode_ready.emit(t));
+            eval node.model.ports.frp.pointer_style ((style) pointer_style.emit(style));
+            eval node.model.output_ports.frp.port_mouse_down ([output_press](crumbs){
                 let target = EdgeTarget::new(node_id,crumbs.clone());
                 output_press.emit(target);
             });
 
-            eval node.ports.frp.press ([input_press](crumbs)
+            eval node.model.ports.frp.press ([input_press](crumbs)
                 let target = EdgeTarget::new(node_id,crumbs.clone());
                 input_press.emit(target);
             );
 
-            eval node.ports.frp.hover ([model](crumbs) {
+            eval node.model.ports.frp.hover ([model](crumbs) {
                 let target = crumbs.as_ref().map(|c| EdgeTarget::new(node_id,c.clone()));
                 model.frp.hover_node_input.emit(target);
             });
 
-            eval node.view.output_ports.frp.port_mouse_over ([model](crumbs) {
+            eval node.model.output_ports.frp.port_mouse_over ([model](crumbs) {
                let target = EdgeTarget::new(node_id,crumbs.clone());
                model.frp.hover_node_output.emit(Some(target));
             });
 
-            eval_ node.view.output_ports.frp.port_mouse_out (
+            eval_ node.model.output_ports.frp.port_mouse_out (
                 model.frp.hover_node_output.emit(None)
             );
 
@@ -1230,7 +1132,7 @@ impl GraphEditorModel {
     fn enable_visualization(&self, node_id:impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.visualization.frp.set_visibility.emit(true);
+            node.model.visualization.frp.set_visibility.emit(true);
         }
     }
 
@@ -1238,14 +1140,14 @@ impl GraphEditorModel {
     fn disable_visualization(&self, node_id:impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.visualization.frp.set_visibility.emit(false);
+            node.model.visualization.frp.set_visibility.emit(false);
         }
     }
 
     fn enable_visualization_fullscreen(&self, node_id:impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.visualization.frp.enable_fullscreen.emit(());
+            node.model.visualization.frp.enable_fullscreen.emit(());
         }
     }
 
@@ -1479,8 +1381,8 @@ impl GraphEditorModel {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
-                    edge.view.frp.source_width.emit(node.width());
-                    edge.view.frp.source_height.emit(node.height());
+                    edge.view.frp.source_width.emit(node.model.width());
+                    edge.view.frp.source_height.emit(node.model.height());
                     edge.view.frp.redraw.emit(());
                 }
             }
@@ -1499,7 +1401,7 @@ impl GraphEditorModel {
             if let Some(edge_source) = edge.source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
                     edge.mod_position(|p| {
-                        p.x = node.position().x + node.width()/2.0;
+                        p.x = node.position().x + node.model.width()/2.0;
                         p.y = node.position().y + node::NODE_HEIGHT/2.0;
                     });
                 }
@@ -1511,7 +1413,7 @@ impl GraphEditorModel {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_target) = edge.target() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_target.node_id) {
-                    let offset = node.ports.get_port_offset(&edge_target.port).unwrap_or_default();
+                    let offset = node.model.ports.get_port_offset(&edge_target.port).unwrap_or_default();
                     let pos = node.position().xy() + offset;
                     edge.view.frp.target_position.emit(pos);
                     edge.view.frp.redraw.emit(());
@@ -1524,8 +1426,8 @@ impl GraphEditorModel {
     /// with the target port.
     fn try_get_edge_target_color(&self, edge_target:EdgeTarget) -> Option<color::Lcha> {
         let node              = self.nodes.get_cloned_ref(&edge_target.node_id)?;
-        let input_port_color  = node.view.ports.get_port_color(&edge_target.port);
-        let output_port_color = || node.view.output_ports.get_port_color(&edge_target.port);
+        let input_port_color  = node.model.ports.get_port_color(&edge_target.port);
+        let output_port_color = || node.model.output_ports.get_port_color(&edge_target.port);
         input_port_color.or_else(output_port_color)
     }
 
@@ -1578,9 +1480,9 @@ pub struct GraphEditor {
 }
 
 impl Deref for GraphEditor {
-    type Target = GraphEditorModelWithNetwork;
+    type Target = Frp;
     fn deref(&self) -> &Self::Target {
-        &self.model
+        &self.frp
     }
 }
 
@@ -1588,52 +1490,70 @@ impl GraphEditor {
     /// Add a new node and returns its ID.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
-        self.frp.outputs.node_added.value()
-    }
-}
-
-impl application::command::Provider for GraphEditor {
-    fn label() -> &'static str {
-        "GraphEditor"
-    }
-}
-
-impl application::shortcut::DefaultShortcutProvider for GraphEditor {
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
-        use shortcut::ActionType::*;
-        (&[ (Press       , "ctrl shift enter" , "debug_push_breadcrumb")
-          , (Press       , "ctrl shift up"    , "debug_pop_breadcrumb")
-          , (Press       , "escape"           , "cancel_project_name_editing")
-          , (Press       , "ctrl backspace"   , "remove_selected_nodes")
-          , (Press       , "ctrl g"           , "collapse_selected_nodes")
-          , (Press       , "ctrl space"       , "press_visualization_visibility")
-          , (DoublePress , "ctrl space"       , "double_press_visualization_visibility")
-          , (Release     , "ctrl space"       , "release_visualization_visibility")
-          , (Press       , "cmd"              , "toggle_node_multi_select")
-          , (Release     , "cmd"              , "toggle_node_multi_select")
-          , (Press       , "shift"            , "toggle_node_merge_select")
-          , (Release     , "shift"            , "toggle_node_merge_select")
-          , (Press       , "alt"              , "toggle_node_subtract_select")
-          , (Release     , "alt"              , "toggle_node_subtract_select")
-          , (Press       , "shift alt"        , "toggle_node_inverse_select")
-          , (Release     , "shift alt"        , "toggle_node_inverse_select")
-          , (Press       , "ctrl d"           , "set_test_visualization_data_for_selected_node")
-          , (Press       , "ctrl f"           , "cycle_visualization_for_selected_node")
-          , (Release     , "ctrl enter"       , "enter_selected_node")
-          , (Release     , "ctrl up"          , "exit_node")
-          , (Press       , "cmd"              , "edit_mode_on")
-          , (Release     , "cmd"              , "edit_mode_off")
-          , (Release     , "enter"            , "stop_editing")
-          // FIXME[WD] We need to add something like that to debug shapes.
-          , // (Press       , "ctrl n"           , "add_node_at_cursor")
-          ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
-
+        self.frp.output.node_added.value()
     }
 }
 
 impl application::View for GraphEditor {
+    fn label() -> &'static str {
+        "GraphEditor"
+    }
+
     fn new(app:&Application) -> Self {
         new_graph_editor(app)
+    }
+
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
+
+    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+        use shortcut::ActionType::*;
+        (&[
+          // === Drag ===
+            (Press   , ""              , "left-mouse-button" , "node_press")
+          , (Release , ""              , "left-mouse-button" , "node_release")
+          , (Press   , "!node_editing" , "escape"            , "cancel_project_name_editing")
+          , (Press   , "!node_editing" , "backspace"         , "remove_selected_nodes")
+          , (Press   , ""              , "cmd g"             , "collapse_selected_nodes")
+
+          // === Visualization ===
+          , (Press       , "!node_editing" , "space" , "press_visualization_visibility")
+          , (DoublePress , "!node_editing" , "space" , "double_press_visualization_visibility")
+          , (Release     , "!node_editing" , "space" , "release_visualization_visibility")
+
+          // === Selection ===
+          , (Press   , "" , "shift"          , "toggle_node_multi_select")
+          , (Release , "" , "shift"          , "toggle_node_multi_select")
+          , (Press   , "" , "shift ctrl"     , "toggle_node_merge_select")
+          , (Release , "" , "shift ctrl"     , "toggle_node_merge_select")
+          , (Press   , "" , "shift alt"      , "toggle_node_subtract_select")
+          , (Release , "" , "shift alt"      , "toggle_node_subtract_select")
+          , (Press   , "" , "shift ctrl alt" , "toggle_node_inverse_select")
+          , (Release , "" , "shift ctrl alt" , "toggle_node_inverse_select")
+
+          // === Navigation ===
+          , (Press       , "" , "ctrl space"        , "cycle_visualization_for_selected_node")
+          , (DoublePress , "" , "left-mouse-button" , "enter_selected_node")
+          , (Press       , "" , "enter"             , "enter_selected_node")
+          , (Press       , "" , "alt enter"         , "exit_node")
+
+          // === Node Editing ===
+          , (Press   , "" , "cmd"                   , "edit_mode_on")
+          , (Release , "" , "cmd"                   , "edit_mode_off")
+          , (Press   , "" , "cmd enter"             , "edit_selected_node")
+          , (Press   , "" , "cmd left-mouse-button" , "edit_mode_on")
+          , (Release , "" , "cmd left-mouse-button" , "edit_mode_off")
+          , (Release , "" , "enter"                 , "stop_editing")
+
+          // === Debug ===
+          , (Press , "debug_mode" , "ctrl d"           , "debug_set_test_visualization_data_for_selected_node")
+          , (Press , "debug_mode" , "ctrl shift enter" , "debug_push_breadcrumb")
+          , (Press , "debug_mode" , "ctrl shift up"    , "debug_pop_breadcrumb")
+          , (Press , "debug_mode" , "ctrl n"           , "add_node_at_cursor")
+
+        ]).iter().map(|(a,b,c,d)|Self::self_shortcut_when(*a,*c,*d,*b)).collect()
+
     }
 }
 
@@ -1703,8 +1623,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     let touch          = &model.touch_state;
     let visualizations = &model.visualizations;
     let logger         = &model.logger;
-    let outputs        = UnsealedFrpOutputs::new();
-    let sealed_outputs = outputs.seal(); // Done here to keep right eval order.
+    let out            = FrpEndpoints::new(&network,inputs.clone_ref());
 
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
     let styles             = StyleWatch::new(&scene.style_sheet);
@@ -1779,33 +1698,34 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Node Editing ===
 
     frp::extend! { network
-        is_edited                <- outputs.edited_node.map(|n| n.is_some());
-        edit_mode                <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
-        node_edited_in_edit_mode <- touch.nodes.selected.gate(&edit_mode);
-        start_editing            <- any(&node_edited_in_edit_mode,&inputs.edit_node);
-         // FIXME: add other cases like node select.
-        stop_editing_by_bg_click <- touch.background.selected.gate(&is_edited);
-        stop_editing             <- any(&stop_editing_by_bg_click,&inputs.stop_editing);
-
-        switched    <- start_editing.gate(&is_edited);
-        edited_node <- outputs.edited_node.map(|n| n.unwrap_or_default());
+        node_edit_mode        <- out.node_being_edited.map(|n| n.is_some());
+        edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
+        node_to_edit          <- touch.nodes.down.gate(&edit_mode);
+        edit_node             <- any(&node_to_edit,&inputs.edit_node);
+        stop_edit_on_bg_click <- touch.background.selected.gate(&node_edit_mode);
+        stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
+        edit_switch           <- edit_node.gate(&node_edit_mode);
+        node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
 
         // The "finish" events must be emitted before "start", to properly cover the "switch" case.
-        outputs.node_editing_finished <+ edited_node.sample(&stop_editing);
-        outputs.node_editing_finished <+ edited_node.sample(&switched);
-        outputs.node_editing_started  <+ start_editing;
+        out.source.node_editing_finished <+ node_being_edited.sample(&stop_edit);
+        out.source.node_editing_finished <+ node_being_edited.sample(&edit_switch);
+        out.source.node_editing_started  <+ edit_node;
 
-        outputs.edited_node <+ outputs.node_editing_started.map(|n| Some(*n));;
-        outputs.edited_node <+ outputs.node_editing_finished.constant(None);
+        out.source.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));;
+        out.source.node_being_edited <+ out.node_editing_finished.constant(None);
+        out.source.node_editing      <+ out.node_being_edited.map(|t|t.is_some());
 
-        eval outputs.node_editing_started ([model] (id) {
+        out.source.node_edit_mode <+ node_edit_mode;
+
+        eval out.node_editing_started ([model] (id) {
             if let Some(node) = model.nodes.get_cloned_ref(&id) {
-                node.ports.frp.start_edit_mode.emit(());
+                node.model.ports.frp.edit_mode.emit(true);
             }
         });
-        eval outputs.node_editing_finished ([model](id) {
+        eval out.node_editing_finished ([model](id) {
             if let Some(node) = model.nodes.get_cloned_ref(&id) {
-                node.ports.frp.stop_edit_mode.emit(());
+                node.model.ports.frp.edit_mode.emit(false);
             }
         });
     }
@@ -1838,7 +1758,9 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     }
 
+
     // === Node Select ===
+
     frp::extend! { network
 
     deselect_all_nodes <- any_(...);
@@ -1883,32 +1805,34 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         }
     );
 
-    let node_pressed = touch.nodes.selected.clone_ref();
+    edit_mode               <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
+    node_to_select_non_edit <- touch.nodes.selected.gate_not(&edit_mode);
+    node_to_select_edit     <- touch.nodes.down.gate(&edit_mode);
+    node_to_select          <- any(&node_to_select_non_edit,&node_to_select_edit);
+    node_was_selected       <- node_to_select.map(f!((id) model.nodes.selected.contains(id)));
 
-    node_was_selected <- node_pressed.map(f!((id) model.nodes.selected.contains(id)));
-
-    should_select <- node_pressed.map3(&selection_mode,&node_was_selected,
+    should_select <- node_to_select.map3(&selection_mode,&node_was_selected,
         |_,mode,was_selected| mode.single_should_select(*was_selected)
     );
 
-    should_deselect <- node_pressed.map3(&selection_mode,&node_was_selected,
+    should_deselect <- node_to_select.map3(&selection_mode,&node_was_selected,
         |_,mode,was_selected| mode.single_should_deselect(*was_selected)
     );
 
     keep_selection          <- selection_mode.map(|t| *t != SelectionMode::Normal);
-    deselect_on_select      <- node_pressed.gate_not(&keep_selection);
+    deselect_on_select      <- node_to_select.gate_not(&keep_selection);
     deselect_all_nodes      <+ deselect_on_select;
     deselect_all_nodes      <+ inputs.deselect_all_nodes;
 
     deselect_on_bg_press    <- touch.background.selected.gate_not(&keep_selection);
     deselect_all_nodes      <+ deselect_on_bg_press;
     all_nodes_to_deselect   <= deselect_all_nodes.map(f_!(model.nodes.selected.mem_take()));
-    outputs.node_deselected <+ all_nodes_to_deselect;
+    out.source.node_deselected <+ all_nodes_to_deselect;
 
-    node_selected           <- node_pressed.gate(&should_select);
-    node_deselected         <- node_pressed.gate(&should_deselect);
-    outputs.node_selected   <+ node_selected;
-    outputs.node_deselected <+ node_deselected;
+    node_selected           <- node_to_select.gate(&should_select);
+    node_deselected         <- node_to_select.gate(&should_deselect);
+    out.source.node_selected   <+ node_selected;
+    out.source.node_deselected <+ node_deselected;
     }
 
 
@@ -1917,12 +1841,12 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
 
 
-    node_cursor_style <- source::<cursor::Style>();
+    node_pointer_style <- source::<cursor::Style>();
 
     let node_input_touch  = TouchNetwork::<EdgeTarget>::new(&network,&mouse);
     let node_output_touch = TouchNetwork::<EdgeTarget>::new(&network,&mouse);
     node_expression_set <- source();
-    outputs.node_expression_set <+ node_expression_set;
+    out.source.node_expression_set <+ node_expression_set;
 
     on_output_connect_drag_mode   <- node_output_touch.down.constant(true);
     on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
@@ -1988,8 +1912,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     eval edge_source_click (((edge_id, _)) model.remove_edge_source(*edge_id));
     eval edge_target_click (((edge_id, _)) model.remove_edge_target(*edge_id));
 
-    outputs.edge_source_unset <+ edge_source_click.map(|(edge_id,_)| *edge_id);
-    outputs.edge_target_unset <+ edge_target_click.map(|(edge_id,_)| *edge_id);
+    out.source.edge_source_unset <+ edge_source_click.map(|(edge_id,_)| *edge_id);
+    out.source.edge_target_unset <+ edge_target_click.map(|(edge_id,_)| *edge_id);
 
     }
 
@@ -1997,10 +1921,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     frp::extend! { network
 
-    on_node_output_touch <- node_output_touch.down.constant(());
-    on_node_input_touch  <- node_input_touch.down.constant(());
+    output_down <- node_output_touch.down.constant(());
+    input_down  <- node_input_touch.down.constant(());
 
-    has_detached_on_output_down <- has_detached_edge.sample(&inputs.hover_node_output);
+    has_detached_edge_on_output_down <- has_detached_edge.sample(&inputs.hover_node_output);
 
     port_input_mouse_up  <- inputs.hover_node_input.sample(&mouse.up).unwrap();
     port_output_mouse_up <- inputs.hover_node_output.sample(&mouse.up).unwrap();
@@ -2008,12 +1932,13 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     attach_all_edge_inputs  <- any (port_input_mouse_up, inputs.press_node_input, inputs.set_detached_edge_targets);
     attach_all_edge_outputs <- any (port_output_mouse_up, inputs.press_node_output, inputs.set_detached_edge_sources);
 
-    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_on_output_down);
+    create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down);
     create_edge_from_input  <- node_input_touch.down.map(|value| value.clone());
+
 
     // === Edge creation  ===
 
-    on_new_edge    <- any(&on_node_output_touch,&on_node_input_touch);
+    on_new_edge    <- any(&output_down,&input_down);
     deselect_edges <- on_new_edge.gate_not(&keep_selection);
     eval_ deselect_edges ( model.clear_all_detached_edges() );
 
@@ -2027,22 +1952,22 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         Some(model.new_edge_from_input(&edge_mouse_down,&edge_over,&edge_out))
     })).unwrap();
 
-    outputs.edge_added <+ new_output_edge;
+    out.source.edge_added <+ new_output_edge;
     new_edge_source <- new_output_edge.map2(&node_output_touch.down, move |id,target| (*id,target.clone()));
-    outputs.edge_source_set <+ new_edge_source;
+    out.source.edge_source_set <+ new_edge_source;
 
-    outputs.edge_added <+ new_input_edge;
+    out.source.edge_added <+ new_input_edge;
     new_edge_target <- new_input_edge.map2(&node_input_touch.down, move |id,target| (*id,target.clone()));
-    outputs.edge_target_set <+ new_edge_target;
+    out.source.edge_target_set <+ new_edge_target;
 
     let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
     add_node           <- any (inputs.add_node,add_node_at_cursor);
-    new_node           <- add_node.map(f_!([model,node_cursor_style] model.new_node(&node_cursor_style,&node_output_touch.down,&node_input_touch.down,&node_expression_set)));
-    outputs.node_added <+ new_node;
+    new_node           <- add_node.map(f_!([model,node_pointer_style] model.new_node(&node_pointer_style,&node_output_touch.down,&node_input_touch.down,&node_expression_set,&edit_mode)));
+    out.source.node_added <+ new_node;
 
     node_with_position <- add_node_at_cursor.map3(&new_node,&mouse.position,|_,id,pos| (*id,*pos));
-    outputs.node_position_set         <+ node_with_position;
-    outputs.node_position_set_batched <+ node_with_position;
+    out.source.node_position_set         <+ node_with_position;
+    out.source.node_position_set_batched <+ node_with_position;
 
     }
 
@@ -2051,30 +1976,30 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     frp::extend! { network
 
-    outputs.edge_source_set <+ inputs.set_edge_source;
-    outputs.edge_target_set <+ inputs.set_edge_target;
+    out.source.edge_source_set <+ inputs.set_edge_source;
+    out.source.edge_target_set <+ inputs.set_edge_target;
 
     let endpoints            = inputs.connect_nodes.clone_ref();
     edge                    <- endpoints . map(f_!(model.new_edge_from_output(&edge_mouse_down,&edge_over,&edge_out)));
     new_edge_source         <- endpoints . _0() . map2(&edge, |t,id| (*id,t.clone()));
     new_edge_target         <- endpoints . _1() . map2(&edge, |t,id| (*id,t.clone()));
-    outputs.edge_added      <+ edge;
-    outputs.edge_source_set <+ new_edge_source;
-    outputs.edge_target_set <+ new_edge_target;
+    out.source.edge_added      <+ edge;
+    out.source.edge_source_set <+ new_edge_source;
+    out.source.edge_target_set <+ new_edge_target;
 
     detached_edges_without_targets <= attach_all_edge_inputs.map(f_!(model.take_edges_with_detached_targets()));
     detached_edges_without_sources <= attach_all_edge_outputs.map(f_!(model.take_edges_with_detached_sources()));
 
     new_edge_target <- detached_edges_without_targets.map2(&attach_all_edge_inputs, |id,t| (*id,t.clone()));
-    outputs.edge_target_set <+ new_edge_target;
+    out.source.edge_target_set <+ new_edge_target;
     new_edge_source <- detached_edges_without_sources.map2(&attach_all_edge_outputs, |id,t| (*id,t.clone()));
-    outputs.edge_source_set <+ new_edge_source;
+    out.source.edge_source_set <+ new_edge_source;
 
     on_new_edge_source <- new_edge_source.constant(());
     on_new_edge_target <- new_edge_target.constant(());
 
-    overlapping_edges       <= outputs.edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
-    outputs.edge_removed    <+ overlapping_edges;
+    overlapping_edges       <= out.edge_target_set._1().map(f!((t) model.overlapping_edges(t)));
+    out.source.edge_removed    <+ overlapping_edges;
 
     drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
     drop_edges     <- any (drop_on_bg_up,touch.background.down);
@@ -2094,7 +2019,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     nodes_to_remove <- any (all_nodes, selected_nodes);
     eval nodes_to_remove ((node_id) inputs.remove_all_node_edges.emit(node_id));
 
-    outputs.node_removed <+ nodes_to_remove;
+    out.source.node_removed <+ nodes_to_remove;
     }
 
 
@@ -2108,7 +2033,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     nodes_to_collapse <- inputs.collapse_selected_nodes . map(move |_|
         (model_clone.selected_nodes(),empty_id)
     );
-    outputs.nodes_collapsed <+ nodes_to_collapse;
+    out.source.nodes_collapsed <+ nodes_to_collapse;
     }
 
 
@@ -2116,7 +2041,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     frp::extend! { network
 
     set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
-    outputs.node_expression_set <+ set_node_expression_string;
+    out.source.node_expression_set <+ set_node_expression_string;
 
 
 
@@ -2124,54 +2049,56 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Move Nodes ===
     // ==================
 
-    mouse_pos_fix <- mouse.position.map(|p| Vector2(p.x,p.y));
-
+    mouse_pos <- mouse.position.map(|p| Vector2(p.x,p.y));
 
     // === Discovering drag targets ===
 
-    let main            = touch.nodes.down.clone_ref();
-    let main_pressed    = touch.nodes.is_down.clone_ref();
-    main_was_sel       <- main.map(f!((id) model.nodes.selected.contains(id)));
-    tgts_if_non_sel    <- main.map(|id|vec![*id]).gate_not(&main_was_sel);
-    tgts_if_sel        <- main.map(f_!(model.nodes.selected.items())).gate(&main_was_sel);
-    tgts               <- any(tgts_if_non_sel,tgts_if_sel);
-    eval tgts ((ids) model.disable_grid_snapping_for(ids));
-
-    main_pos_on_press       <- main.map(f!((id) model.node_position(id)));
-    mouse_pos_on_press      <- mouse_pos_fix.sample(&main);
-    mouse_pos_diff          <- mouse_pos_fix.map2(&mouse_pos_on_press,|t,s|t-s).gate(&main_pressed);
-    main_tgt_pos_rt_changed <- mouse_pos_diff.map2(&main_pos_on_press,|t,s|t+s);
-    just_pressed            <- bool (&main_tgt_pos_rt_changed,&main_pos_on_press);
-    main_tgt_pos_rt         <- any  (&main_tgt_pos_rt_changed,&main_pos_on_press);
+    let node_down      = touch.nodes.down.clone_ref();
+    let node_is_down   = touch.nodes.is_down.clone_ref();
+    node_in_edit_mode <- node_down.map2(&out.node_being_edited,|t,s| Some(*t) == *s);
+    node_was_selected <- node_down.map(f!((id) model.nodes.selected.contains(id)));
+    tgts_if_non_sel   <- node_down.map(|id|vec![*id]).gate_not(&node_was_selected);
+    tgts_if_sel       <- node_down.map(f_!(model.nodes.selected.items())).gate(&node_was_selected);
+    tgts_if_non_edit  <- any(tgts_if_non_sel,tgts_if_sel).gate_not(&node_in_edit_mode);
+    tgts_if_edit      <- node_down.map(|_|default()).gate(&node_in_edit_mode);
+    drag_tgts         <- any(tgts_if_non_edit,tgts_if_edit);
+    any_drag_tgt      <- drag_tgts.map(|t|!t.is_empty());
+    node_pos_on_down  <- node_down.map(f!((id) model.node_position(id)));
+    mouse_pos_on_down <- mouse_pos.sample(&node_down);
+    mouse_pos_diff    <- mouse_pos.map2(&mouse_pos_on_down,|t,s|t-s).gate(&node_is_down);
+    node_tgt_pos_rt   <- mouse_pos_diff.map2(&node_pos_on_down,|t,s|t+s);
+    just_pressed      <- bool (&node_tgt_pos_rt,&node_pos_on_down);
+    node_tgt_pos_rt   <- any  (&node_tgt_pos_rt,&node_pos_on_down);
 
 
     // === Snapping ===
 
-    let main_tgt_pos_anim = Animation::<Vector2<f32>>::new(&network);
-    let x_snap_strength     = Tween::new(&network);
-    let y_snap_strength     = Tween::new(&network);
+    eval drag_tgts ((ids) model.disable_grid_snapping_for(ids));
+    let node_tgt_pos_anim = Animation::<Vector2<f32>>::new(&network);
+    let x_snap_strength   = Tween::new(&network);
+    let y_snap_strength   = Tween::new(&network);
     x_snap_strength.set_duration(300.0);
     y_snap_strength.set_duration(300.0);
 
-    _eval <- main_tgt_pos_rt.map2(&just_pressed,
-        f!([model,x_snap_strength,y_snap_strength,main_tgt_pos_anim](pos,just_pressed) {
+    _eval <- node_tgt_pos_rt.map2(&just_pressed,
+        f!([model,x_snap_strength,y_snap_strength,node_tgt_pos_anim](pos,just_pressed) {
             let snapped = model.nodes.check_grid_magnet(*pos);
             let x = snapped.x.unwrap_or(pos.x);
             let y = snapped.y.unwrap_or(pos.y);
             x_snap_strength.set_target_value(if snapped.x.is_none() { 0.0 } else { 1.0 });
             y_snap_strength.set_target_value(if snapped.y.is_none() { 0.0 } else { 1.0 });
-            main_tgt_pos_anim.set_target_value(Vector2::new(x,y));
+            node_tgt_pos_anim.set_target_value(Vector2::new(x,y));
             if *just_pressed {
-                main_tgt_pos_anim.set_target_value(*pos);
+                node_tgt_pos_anim.set_target_value(*pos);
                 x_snap_strength.skip();
                 y_snap_strength.skip();
-                main_tgt_pos_anim.skip();
+                node_tgt_pos_anim.skip();
             }
     }));
 
-    main_tgt_pos <- all_with4
-        ( &main_tgt_pos_rt
-        , &main_tgt_pos_anim.value
+    node_tgt_pos <- all_with4
+        ( &node_tgt_pos_rt
+        , &node_tgt_pos_anim.value
         , &x_snap_strength.value
         , &y_snap_strength.value
         , |rt,snap,xw,yw| {
@@ -2183,33 +2110,34 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Update All Target Nodes Positions ===
 
-    main_tgt_pos_prev <- main_tgt_pos.previous();
-    main_tgt_pos_diff <- main_tgt_pos.map2(&main_tgt_pos_prev,|t,s|t-s).gate_not(&just_pressed);
-    tgt               <= tgts.sample(&main_tgt_pos_diff);
-    tgt_new_pos       <- tgt.map2(&main_tgt_pos_diff,f!((id,tx) model.node_pos_mod(id,*tx)));
-    outputs.node_position_set <+ tgt_new_pos;
+    main_tgt_pos_prev <- node_tgt_pos.previous();
+    main_tgt_pos_diff <- node_tgt_pos.map2(&main_tgt_pos_prev,|t,s|t-s).gate_not(&just_pressed);
+    drag_tgt          <= drag_tgts.sample(&main_tgt_pos_diff);
+    tgt_new_pos       <- drag_tgt.map2(&main_tgt_pos_diff,f!((id,tx) model.node_pos_mod(id,*tx)));
+    out.source.node_position_set <+ tgt_new_pos;
 
 
     // === Batch Update ===
 
     after_drag             <- touch.nodes.up.gate_not(&just_pressed);
-    tgt_after_drag         <= tgts.sample(&after_drag);
+    tgt_after_drag         <= drag_tgts.sample(&after_drag);
     tgt_after_drag_new_pos <- tgt_after_drag.map(f!([model](id)(*id,model.node_position(id))));
-    outputs.node_position_set_batched <+ tgt_after_drag_new_pos;
+    out.source.node_position_set_batched <+ tgt_after_drag_new_pos;
 
 
     // === Mouse style ===
 
-    cursor_on_drag_down <- main.map(|_| cursor::Style::new_with_all_fields_default().press());
+    node_down_on_drag   <- node_down.gate(&any_drag_tgt);
+    cursor_on_drag_down <- node_down_on_drag.map(|_| cursor::Style::new_with_all_fields_default().press());
     cursor_on_drag_up   <- touch.nodes.up.map(|_| cursor::Style::default());
-    cursor_on_drag      <- any (&cursor_on_drag_down,&cursor_on_drag_up);
+    pointer_on_drag     <- any (&cursor_on_drag_down,&cursor_on_drag_up);
 
 
     // === Set Node Position ===
 
-    outputs.node_position_set         <+ inputs.set_node_position;
-    outputs.node_position_set_batched <+ inputs.set_node_position;
-    eval outputs.node_position_set (((id,pos)) model.set_node_position(id,*pos));
+    out.source.node_position_set         <+ inputs.set_node_position;
+    out.source.node_position_set_batched <+ inputs.set_node_position;
+    eval out.node_position_set (((id,pos)) model.set_node_position(id,*pos));
 
     }
 
@@ -2293,12 +2221,6 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }
 
 
-     // === Activate Visualisation ===
-
-//    def _activate_visualisation = visualizations.frp.clicked.map(f!([visualizations](id) {
-//        visualizations.set_selected(id);
-//    }));
-
    // === Vis Set ===
    frp::extend! { network
 
@@ -2306,9 +2228,9 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
        match (&nodes.get_cloned_ref(node_id), vis_path) {
             (Some(node), Some(vis_path)) => {
                 let vis_definition = visualizations.definition_from_path(vis_path);
-                node.visualization.frp.set_visualization.emit(vis_definition);
+                node.model.visualization.frp.set_visualization.emit(vis_definition);
             },
-            (Some(node), None) => node.visualization.frp.set_visualization.emit(None),
+            (Some(node), None) => node.model.visualization.frp.set_visualization.emit(None),
              _                 => logger.warning(|| format!("Failed to get node: {:?}",node_id)),
 
        }
@@ -2319,7 +2241,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // TODO remove this once real data is available.
     let sample_data_generator = MockDataGenerator3D::default();
-    def _set_dumy_data = inputs.set_test_visualization_data_for_selected_node.map(f!([nodes,inputs](_) {
+    def _set_dumy_data = inputs.debug_set_test_visualization_data_for_selected_node.map(f!([nodes,inputs](_) {
         for node_id in &*nodes.selected.raw.borrow() {
             let data    = Rc::new(sample_data_generator.generate_data()); // FIXME: why rc?
             let content = serde_json::to_value(data).unwrap();
@@ -2330,7 +2252,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     def _set_data = inputs.set_visualization_data.map(f!([nodes]((node_id,data)) {
          if let Some(node) = nodes.get_cloned(node_id) {
-             node.visualization.frp.set_data.emit(data);
+             node.model.visualization.frp.set_data.emit(data);
          }
      }));
 
@@ -2345,10 +2267,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         let node = nodes.get_cloned_ref(node_id);
         match (vis, node) {
             (Some(vis), Some(node))  => {
-                node.visualization.frp.set_visualization.emit(vis.clone());
+                node.model.visualization.frp.set_visualization.emit(vis.clone());
             },
             (None, _) => logger.warning(|| "Failed to get visualization while cycling.".to_string()),
-            _           => {}
+            _         => {}
         };
         cycle_count.set(cycle_count.get() + 1);
     }));
@@ -2377,7 +2299,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     viz_tgt_nodes_off    <- viz_tgt_nodes.map(f!([model](node_ids) {
         node_ids.iter().cloned().filter(|node_id| {
             model.nodes.get_cloned_ref(node_id)
-                .map(|node| !node.visualization.is_active())
+                .map(|node| !node.model.visualization.is_active())
                 .unwrap_or_default()
         }).collect_vec()
     }));
@@ -2388,10 +2310,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     viz_preview_disable  <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
     viz_fullscreen_on    <= viz_d_press_ev.map(f_!(model.last_selected_node()));
 
-    outputs.visualization_enabled  <+ viz_enable;
-    outputs.visualization_disabled <+ viz_disable;
-    outputs.visualization_disabled <+ viz_preview_disable;
-    outputs.visualization_enable_fullscreen <+ viz_fullscreen_on;
+    out.source.visualization_enabled  <+ viz_enable;
+    out.source.visualization_disabled <+ viz_disable;
+    out.source.visualization_disabled <+ viz_preview_disable;
+    out.source.visualization_enable_fullscreen <+ viz_fullscreen_on;
 
 
     // === Register Visualization ===
@@ -2405,55 +2327,43 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Entering and Exiting Nodes ===
 
-    node_to_enter        <= inputs.enter_selected_node.map(f_!(model.last_selected_node()));
-    outputs.node_entered <+ node_to_enter;
-    outputs.node_exited  <+ inputs.exit_node;
+    node_to_enter           <= inputs.enter_selected_node.map(f_!(model.last_selected_node()));
+    out.source.node_entered <+ node_to_enter;
+    out.source.node_exited  <+ inputs.exit_node;
 
 
     // === OUTPUTS REBIND ===
 
-    outputs.some_edge_targets_detached <+ inputs.some_edge_targets_detached;
-    outputs.some_edge_sources_detached <+ inputs.some_edge_sources_detached;
-    outputs.all_edge_targets_attached  <+ inputs.all_edge_targets_attached;
-    outputs.all_edges_attached         <+ inputs.all_edges_attached;
+    out.source.some_edge_targets_detached <+ inputs.some_edge_targets_detached;
+    out.source.some_edge_sources_detached <+ inputs.some_edge_sources_detached;
+    out.source.all_edge_targets_attached  <+ inputs.all_edge_targets_attached;
+    out.source.all_edges_attached         <+ inputs.all_edges_attached;
 
-    eval outputs.edge_source_set        (((id,tgt)) model.set_edge_source(*id,tgt));
-    eval outputs.edge_target_set        (((id,tgt)) model.set_edge_target(*id,tgt));
-    eval outputs.node_selected          ((id) model.select_node(id));
-    eval outputs.node_deselected        ((id) model.deselect_node(id));
-    eval outputs.edge_removed           ((id) model.remove_edge(id));
-    eval outputs.node_removed           ((id) model.remove_node(id));
+    eval out.edge_source_set        (((id,tgt)) model.set_edge_source(*id,tgt));
+    eval out.edge_target_set        (((id,tgt)) model.set_edge_target(*id,tgt));
+    eval out.node_selected          ((id) model.select_node(id));
+    eval out.node_deselected        ((id) model.deselect_node(id));
+    eval out.edge_removed           ((id) model.remove_edge(id));
+    eval out.node_removed           ((id) model.remove_node(id));
     // TODO[ao] This one action is triggered by input frp node event instead of output, because
     //  the output emits the string and we need the expression with span-trees here.
     eval inputs.set_node_expression     (((id,expr)) model.set_node_expression(id,expr));
-    eval outputs.visualization_enabled  ((id) model.enable_visualization(id));
-    eval outputs.visualization_disabled ((id) model.disable_visualization(id));
-    eval outputs.visualization_enable_fullscreen ((id) model.enable_visualization_fullscreen(id));
+    eval out.visualization_enabled  ((id) model.enable_visualization(id));
+    eval out.visualization_disabled ((id) model.disable_visualization(id));
+    eval out.visualization_enable_fullscreen ((id) model.enable_visualization_fullscreen(id));
 
 
     // === Edge discovery ===
 
-    edge_endpoint_set          <- any (outputs.edge_source_set, outputs.edge_target_set)._0();
+    edge_endpoint_set          <- any (out.edge_source_set, out.edge_target_set)._0();
     both_endpoints_set         <- edge_endpoint_set.map(f!((id) model.is_connection(id)));
     new_connection             <- edge_endpoint_set.gate(&both_endpoints_set);
-    outputs.connection_added   <+ new_connection;
-    outputs.connection_removed <+ any
-        (outputs.edge_removed,outputs.edge_source_unset,outputs.edge_target_unset);
-    trace outputs.connection_removed;
-
-
-    // === Status ===
-
-    def is_active_src = source::<bool>();
-    def is_empty_src  = source::<bool>();
-    def is_active = is_active_src.sampler();
-    def is_empty  = is_empty_src.sampler();
+    out.source.connection_added   <+ new_connection;
+    out.source.connection_removed <+ any(out.edge_removed,out.edge_source_unset,out.edge_target_unset);
 
 
     // === Remove implementation ===
-    outputs.node_removed <+ inputs.remove_node;
-
-
+    out.source.node_removed <+ inputs.remove_node;
     }
 
 
@@ -2465,14 +2375,14 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     input_edges_to_rm    <= rm_input_edges  . map(f!((node_id) model.node_in_edges(node_id)));
     output_edges_to_rm   <= rm_output_edges . map(f!((node_id) model.node_out_edges(node_id)));
     edges_to_rm          <- any (inputs.remove_edge, input_edges_to_rm, output_edges_to_rm);
-    outputs.edge_removed <+ edges_to_rm;
+    out.source.edge_removed <+ edges_to_rm;
     }
 
 
 
-    // ====================
-    // === Cursor Style ===
-    // ====================
+    // =====================
+    // === Pointer Style ===
+    // =====================
 
     frp::extend! { network
 
@@ -2483,35 +2393,24 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
             cursor::Style::new_color_no_animation(missing_type_color).press()
         }
     }));
-    cursor_style_on_edge_drag_stop <- outputs.all_edges_attached.constant(default());
+    cursor_style_on_edge_drag_stop <- out.all_edges_attached.constant(default());
     cursor_style_edge_drag         <- any (cursor_style_edge_drag,cursor_style_on_edge_drag_stop);
 
 
-    cursor_style <- all
-        [ cursor_on_drag
+    pointer_style <- all
+        [ pointer_on_drag
         , cursor_selection
         , cursor_press
-        , node_cursor_style
+        , node_pointer_style
         , cursor_style_edge_drag
         ].fold();
 
-    eval cursor_style ((style) cursor.frp.set_style.emit(style));
+    eval pointer_style ((style) cursor.frp.set_style.emit(style));
 
     }
 
 
-    // FIXME This is a temporary solution. Should be replaced by a real thing once layout
-    //       management is implemented.
-    is_active_src.emit(true);
-
-    let status = FrpStatus {is_active,is_empty};
-
-    let node_release = touch.nodes.up.clone_ref();
-
-
-    let inputs = inputs.clone_ref();
-    let outputs = sealed_outputs;
-    let frp = Frp {inputs,outputs,status,node_release};
+    let frp = Frp::new(network.clone(),out); // fixme clone
 
     GraphEditor {model,frp}
 }
@@ -2521,7 +2420,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
 impl display::Object for GraphEditor {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &self.model.display_object
     }
 }
 

@@ -134,7 +134,7 @@ pub mod drag_area {
 // === Frp ===
 // ===========
 
-ensogl_text::define_endpoints! {
+ensogl::define_endpoints! {
     Input {
         select              (),
         deselect            (),
@@ -143,6 +143,9 @@ ensogl_text::define_endpoints! {
         set_visualization   (Option<visualization::Definition>),
     }
     Output {
+        /// Press event. Emitted when user clicks on non-active part of the node, like its
+        /// background. In edit mode, the whole node area is considered non-active.
+        background_press (),
         expression (Text)
     }
 }
@@ -158,8 +161,8 @@ ensogl_text::define_endpoints! {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Node {
-    pub model       : Rc<NodeModel>,
-    pub frp_network : frp::Network,
+    pub model : Rc<NodeModel>,
+    pub frp   : Frp,
 }
 
 impl AsRef<Node> for Node {
@@ -170,9 +173,9 @@ impl AsRef<Node> for Node {
 
 
 impl Deref for Node {
-    type Target = NodeModel;
+    type Target = Frp;
     fn deref(&self) -> &Self::Target {
-        &self.model
+        &self.frp
     }
 }
 
@@ -183,7 +186,6 @@ pub struct NodeModel {
     pub app            : Application,
     pub display_object : display::object::Instance,
     pub logger         : Logger,
-    pub frp            : FrpEndpoints,
     pub main_area      : component::ShapeView<shape::Shape>,
     pub drag_area      : component::ShapeView<drag_area::Shape>,
     pub ports          : port::Manager,
@@ -194,7 +196,7 @@ pub struct NodeModel {
 
 impl NodeModel {
     /// Constructor.
-    pub fn new(app:&Application, network:&frp::Network,registry:visualization::Registry) -> Self {
+    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         let scene  = app.display.scene();
         let logger = Logger::new("node");
         edge::sort_hack_1(scene);
@@ -218,9 +220,6 @@ impl NodeModel {
 
         let ports = port::Manager::new(&logger,app);
         let scene = scene.clone_ref();
-        let input = FrpInputs::new(&network);
-        let frp   = FrpEndpoints::new(&network,input);
-
         let visualization = visualization::Container::new(&logger,&app,registry);
         visualization.mod_position(|t| {
             t.x = 60.0;
@@ -241,7 +240,7 @@ impl NodeModel {
         display_object.add_child(&output_ports);
 
         let app = app.clone_ref();
-        Self {app,display_object,logger,frp,main_area,drag_area,output_ports,ports
+        Self {app,display_object,logger,main_area,drag_area,output_ports,ports
              ,visualization} . init()
     }
 
@@ -287,13 +286,15 @@ impl NodeModel {
 }
 
 impl Node {
-    pub fn new(app:&Application,registry:visualization::Registry) -> Self {
-        let frp_network      = frp::Network::new();
-        let model            = Rc::new(NodeModel::new(app,&frp_network,registry));
-        let inputs           = &model.frp.input;
-        let selection        = Animation::<f32>::new(&frp_network);
+    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
+        let frp       = Frp::new_network();
+        let network   = &frp.network;
+        let inputs    = &frp.input;
+        let out       = &frp.output;
+        let model     = Rc::new(NodeModel::new(app,registry));
+        let selection = Animation::<f32>::new(network);
 
-        frp::extend! { frp_network
+        frp::extend! { network
             eval  selection.value ((v) model.main_area.shape.selection.set(*v));
             eval_ inputs.select   (selection.set_target_value(1.0));
             eval_ inputs.deselect (selection.set_target_value(0.0));
@@ -310,15 +311,20 @@ impl Node {
 
             eval model.ports.frp.width ((w) model.set_width(*w));
 
-            model.frp.source.expression <+ model.ports.frp.expression.map(|t|t.clone_ref());
+            out.source.background_press <+ model.drag_area.events.mouse_down;
+
+            eval_ model.drag_area.events.mouse_over (model.ports.hover());
+            eval_ model.drag_area.events.mouse_out  (model.ports.unhover());
+
+            out.source.expression <+ model.ports.frp.expression.map(|t|t.clone_ref());
         }
 
-        Self {frp_network,model}
+        Self {frp,model}
     }
 }
 
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &self.model.display_object
     }
 }

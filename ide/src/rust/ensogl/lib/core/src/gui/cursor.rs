@@ -35,7 +35,7 @@ fn DEFAULT_SIZE() -> Vector2<f32> { Vector2(16.0,16.0) }
 // ==================
 
 /// Defines a value of the cursor style.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Eq,PartialEq)]
 #[allow(missing_docs)]
 pub struct StyleValue<T> {
     /// Defines the value of the style. In case it is set to `None`, the default value will be used.
@@ -95,7 +95,7 @@ macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $
     /// that cursor does not implement any complex style management (like pushing or popping a style
     /// from a style stack) on purpose, as it is stateful, while it is straightforward to implement
     /// it in FRP.
-    #[derive(Debug,Clone,Default)]
+    #[derive(Debug,Clone,Default,PartialEq)]
     pub struct Style {
         $($(#$meta)? $field : Option<StyleValue<$field_type>>),*
     }
@@ -107,6 +107,11 @@ macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $
         pub fn new_with_all_fields_default() -> Self {
             $(let $field = Some(StyleValue::new_default());)*
             Self {$($field),*}
+        }
+
+        /// Check whether the style is a default, empty one.
+        pub fn is_default(&self) -> bool {
+            $(self.$field.is_none())&&*
         }
     }
 
@@ -483,20 +488,21 @@ impl Cursor {
             );
 
 
-            // === Fade-out when not moved ===
+            // === Fade-out when not active ===
 
-            move_time            <- scene.frp.frame_time.sample(&mouse.position);
-            time_since_last_move <- scene.frp.frame_time.map2(&move_time,|t,s|t-s);
-            check_fade_time      <- time_since_last_move.gate(&is_not_hosted).gate(&mouse.ever_moved);
-            eval check_fade_time ([inactive_fade](time) {
-                if *time > FADE_OUT_TIME {
+            action_event           <- any_(&mouse.position,&input.set_style);
+            action_time            <- scene.frp.frame_time.sample(&action_event);
+            time_since_last_action <- scene.frp.frame_time.map2(&action_time,|t,s|t-s);
+            check_fade_time        <- time_since_last_action.gate(&mouse.ever_moved);
+            _eval <- check_fade_time.map2(&input.set_style, f!([inactive_fade](time,style) {
+                if *time > FADE_OUT_TIME && style.is_default() {
                     inactive_fade.set_spring(fade_out_spring);
                     inactive_fade.set_target_value(0.0)
                 } else {
                     inactive_fade.set_spring(fade_in_spring);
                     inactive_fade.set_target_value(1.0)
                 }
-            });
+            }));
 
 
             // === Evals ===
