@@ -1,0 +1,79 @@
+from Base import all
+import Base.Data.Map.Internal
+
+## An error for getting a missing value from a map.
+type No_Value_For_Key key
+
+## A key-value store. This type assumes all keys are pairwise comparable,
+   using the `<`, `>` and `==` operators.
+type Map
+    type Tip
+    type Bin s key value left right
+
+    ## Checks if the map is empty.
+    is_empty : Boolean
+    is_empty = case this of
+        Bin _ _ _ _ _ -> False
+        Tip -> True
+
+    ## Returns the number of entries in this map.
+    size : Integer
+    size = case this of
+        Bin s _ _ _ _ -> s
+        Tip -> 0
+
+    ## Converts the map into a vector of `[key, value]` pairs.
+       The returned vector is sorted in the increasing order of keys.
+    to_vector : Vector
+    to_vector =
+        builder = Vector.new_builder
+        to_vector_with_builder m = case m of
+            Bin _ k v l r ->
+                to_vector_with_builder l
+                builder.append [k, v]
+                to_vector_with_builder r
+                Unit
+            Tip -> Unit
+        to_vector_with_builder this
+        result = builder.to_vector
+        result
+
+    ## Returns a text representation of this map.
+    to_text : Text
+    to_text = this.to_vector.to_text
+
+    ## Checks if this map is equal to another map.
+
+       Maps are equal when they contained the same keys and the values
+       associated with each key are pairwise equal.
+    == : Map -> Boolean
+    == that = this.to_vector == that.to_vector
+
+    ## Maps a function over each value in this map.
+    map : (Any -> Any) -> Map
+    map function = case this of
+        Bin s k v l r ->
+            Bin s k (function v) (l.map function) (r.map function)
+        Tip -> Tip
+
+    ## Gets the value associated with `key` in this map, or returns a
+       `No_Value_For_Key` error, if `key` is not present.
+    get : Any -> Any ! No_Value_For_Key
+    get key =
+        go map = case map of
+            Tip -> Error.throw (No_Value_For_Key key)
+            Bin _ k v l r ->
+                if k == key then v else
+                    if k > key then @Tail_Call go l else @Tail_Call go r
+        result = go this
+        result
+
+    ## Inserts a key-value mapping into this map. If `key` is already present,
+       it will be overriden with the new `value`.
+    insert : Any -> Any -> Map
+    insert key value = Internal.insert this key value
+
+## Returns an empty map.
+empty : Map
+empty = Tip
+

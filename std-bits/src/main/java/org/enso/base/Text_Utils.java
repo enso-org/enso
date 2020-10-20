@@ -95,4 +95,15 @@ public class Text_Utils {
   public static boolean starts_with(String str, String prefix) {
     return str.startsWith(prefix);
   }
+
+  /**
+   * Checks whether {@code a} is lexicographically before {@code b}.
+   *
+   * @param a the left operand
+   * @param b the right operand
+   * @return whether {@code a} is before {@code b}.
+   */
+  public static boolean lt(String a, String b) {
+    return a.compareTo(b) < 0;
+  }
 }

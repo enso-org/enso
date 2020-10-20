@@ -596,7 +596,10 @@ class IrToTruffle(
               .toArray[BranchNode]
 
             // Note [Pattern Match Fallbacks]
-            val matchExpr = CaseNode.build(scrutineeNode, cases)
+            val matchExpr = CaseNode.build(
+              scrutineeNode,
+              cases
+            )
             setLocation(matchExpr, location)
           } else {
             val invalidBranches = maybeCases.collect {
@@ -644,7 +647,8 @@ class IrToTruffle(
             branch.location
           )
 
-          val branchNode = CatchAllBranchNode.build(branchCodeNode)
+          val branchNode =
+            CatchAllBranchNode.build(branchCodeNode.getCallTarget)
 
           Right(branchNode)
         case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
@@ -704,11 +708,14 @@ class IrToTruffle(
             val bool = context.getBuiltins.bool()
             val branchNode: BranchNode =
               if (atomCons == bool.getTrue) {
-                BooleanBranchNode.build(true, branchCodeNode)
+                BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
               } else if (atomCons == bool.getFalse) {
-                BooleanBranchNode.build(false, branchCodeNode)
+                BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
               } else {
-                ConstructorBranchNode.build(atomCons, branchCodeNode)
+                ConstructorBranchNode.build(
+                  atomCons,
+                  branchCodeNode.getCallTarget
+                )
               }
 
             branchNode
@@ -1170,11 +1177,17 @@ class IrToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
-          val shouldSuspend = shouldBeSuspended.getOrElse(
-            throw new CompilerError(
-              "Demand analysis information missing from call argument."
-            )
-          )
+          val shouldSuspend = value match {
+            case _: IR.Name => false
+            case _: IR.Literal.Text => false
+            case _: IR.Literal.Number => false
+            case _ =>
+              shouldBeSuspended.getOrElse(
+                throw new CompilerError(
+                  "Demand analysis information missing from call argument."
+                )
+              )
+          }
 
           val childScope = if (shouldSuspend) {
             scope.createChild(scopeInfo.scope)

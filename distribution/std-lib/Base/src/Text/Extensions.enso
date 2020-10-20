@@ -69,6 +69,14 @@ Text.split_at separator =
 Text.== : Text -> Boolean
 Text.== that = Text_Utils.equals [this, that]
 
+## Checks if `this` is lexicographically before `that`.
+Text.< : Text -> Boolean
+Text.< that = Text_Utils.lt [this, that]
+
+## Checks if `this` is lexicographically after `that`.
+Text.> : Text -> Boolean
+Text.> that = Text_Utils.lt [that, this]
+
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
@@ -103,4 +111,5 @@ Text.from_codepoints : Vector -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_array]
 
 ## Checks whether `this` starts with `prefix`.
+Text.starts_with : Text -> Boolean
 Text.starts_with prefix = Text_Utils.starts_with [this, prefix]

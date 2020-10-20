@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
@@ -26,13 +27,13 @@ public abstract class CatchPanicNode extends Node {
     return CatchPanicNodeGen.create();
   }
 
-  abstract Stateful execute(@MonadicState Object state, Object _this, Thunk action);
+  abstract Stateful execute(@MonadicState Object state, Object _this, @Suspend Object action);
 
   @Specialization
   Stateful doExecute(
       @MonadicState Object state,
       Object _this,
-      Thunk action,
+      Object action,
       @CachedContext(Language.class) Context ctx) {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);

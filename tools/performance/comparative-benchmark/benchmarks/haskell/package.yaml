@@ -16,6 +16,7 @@ library:
     - base
     - deepseq
     - containers
+    - random
 
 benchmarks:
   haskell-benchmark:

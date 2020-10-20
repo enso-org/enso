@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -50,7 +51,7 @@ public abstract class BracketNode extends Node {
       @MonadicState Object state,
       VirtualFrame frame,
       Object _this,
-      Thunk constructor,
+      @Suspend Object constructor,
       Object destructor,
       Object action);
 
@@ -59,7 +60,7 @@ public abstract class BracketNode extends Node {
       Object state,
       VirtualFrame frame,
       Object _this,
-      Thunk constructor,
+      Object constructor,
       Object destructor,
       Object action) {
     Stateful resourceStateful =
