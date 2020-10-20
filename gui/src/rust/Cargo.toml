@@ -17,7 +17,6 @@ members = [
     "ide/lib/json-rpc",
     "ide/lib/parser",
     "ide/lib/span-tree",
-    "ide/lib/span-tree/example",
     "ide/lib/utils",
     "ide/view",
     "ide/view/graph-editor",

@@ -123,8 +123,7 @@ define_theme! { dark
                 size = 7.0
             }
             text {
-                color             = color::Lcha::new(1.0,0.0,0.0,0.7);
-                missing_arg_color = color::Lcha::new(1.0,0.0,0.0,0.3);
+                color = color::Lcha::new(1.0,0.0,0.0,0.7);
                 selection {
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
                 }
@@ -254,8 +253,7 @@ define_default_theme! { light
                 size = 7.0
             }
             text {
-                color             = color::Lcha::new(0.0,0.0,0.0,0.7);
-                missing_arg_color = color::Lcha::new(0.0,0.0,0.0,0.3);
+                color = color::Lcha::new(0.0,0.0,0.0,0.7);
                 selection {
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
                 }
