@@ -113,3 +113,11 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_arra
 ## Checks whether `this` starts with `prefix`.
 Text.starts_with : Text -> Boolean
 Text.starts_with prefix = Text_Utils.starts_with [this, prefix]
+
+## Checks whether `this` contains `sequence` as its substring.
+Text.contains : Text -> Boolean
+Text.contains sequence = Text_Utils.contains [this, sequence]
+
+## Text to JSON conversion.
+Text.to_json : Json.String
+Text.to_json = Json.String this

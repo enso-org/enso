@@ -38,7 +38,7 @@ type Verbs
 
     equal subject argument =
         if subject == argument then Success else
-            msg = this.to_text + " did not equal " + argument.to_text + "."
+            msg = subject.to_text + " did not equal " + argument.to_text + "."
             here.fail msg
 
     be subject argument = this.equal subject argument

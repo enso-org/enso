@@ -18,7 +18,6 @@ import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen;
-import org.enso.interpreter.node.expression.builtin.text.JsonSerializeMethodGen;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
@@ -51,7 +50,7 @@ public class Builtins {
   private final Error error;
   private final Bool bool;
   private final System system;
-  private final Array array;
+  private final Mutable mutable;
   private final Polyglot polyglot;
   private final Resource resource;
   private final Meta meta;
@@ -70,7 +69,7 @@ public class Builtins {
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
     error = new Error(language, scope);
-    array = new Array(language, scope);
+    mutable = new Mutable(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new Text(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
@@ -147,7 +146,6 @@ public class Builtins {
     scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
-    scope.registerMethod(any, "json_serialize", JsonSerializeMethodGen.makeFunction(language));
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));
@@ -234,9 +232,9 @@ public class Builtins {
     return system;
   }
 
-  /** @return the container for array-related builtins. */
-  public Array array() {
-    return array;
+  /** @return the container for mutable memory related builtins. */
+  public Mutable mutable() {
+    return mutable;
   }
 
   /** @return the container for polyglot-related builtins. */

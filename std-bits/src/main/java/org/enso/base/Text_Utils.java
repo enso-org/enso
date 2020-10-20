@@ -106,4 +106,15 @@ public class Text_Utils {
   public static boolean lt(String a, String b) {
     return a.compareTo(b) < 0;
   }
+
+  /**
+   * Checks if {@code substring} is a substring of {@code string}.
+   *
+   * @param string the containing string.
+   * @param substring the contained string.
+   * @return whether {@code substring} is a substring of {@code string}.
+   */
+  public static boolean contains(String string, String substring) {
+    return string.contains(substring);
+  }
 }
