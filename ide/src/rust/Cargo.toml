@@ -48,7 +48,7 @@ members = [
 # enso-shapely-macros = { path = '../../../rust-lib/src/shapely/macros' }
 
 [profile.dev]
-opt-level = 2
+opt-level = 0
 lto       = false
 debug     = true
 
