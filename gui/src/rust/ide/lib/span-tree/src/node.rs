@@ -41,6 +41,18 @@ pub enum Kind {
 }
 
 impl Kind {
+    /// Target constructor.
+    pub fn target(is_removable:bool) -> Self {
+        Self::Target {is_removable}
+    }
+
+    /// Argument constructor.
+    pub fn argument(is_removable:bool) -> Self {
+        Self::Argument {is_removable}
+    }
+}
+
+impl Kind {
     /// Match the value with `Kind::Empty{..}`.
     pub fn is_empty(self) -> bool {
         match self {
@@ -49,6 +61,7 @@ impl Kind {
         }
     }
 
+    /// Match the value with `Kind::Operation{..}`.
     pub fn is_operation(self) -> bool {
         match self {
             Self::Operation => true,
@@ -56,6 +69,7 @@ impl Kind {
         }
     }
 
+    /// Match the value with `Kind::Empty{..}` but not `Kind::Empty(ExpectedArgument(_))`.
     pub fn is_positional_insertion_point(self) -> bool {
         match self {
             Self::Empty(InsertType::ExpectedArgument(_)) => false,
@@ -64,19 +78,12 @@ impl Kind {
         }
     }
 
+    /// Match the value with `Kind::Empty(ExpectedArgument(_))`.
     pub fn is_expected_argument(self) -> bool {
         match self {
             Self::Empty(InsertType::ExpectedArgument(_)) => true,
             _                                            => false
         }
-    }
-
-    pub fn target(is_removable:bool) -> Self {
-        Self::Target {is_removable}
-    }
-
-    pub fn argument(is_removable:bool) -> Self {
-        Self::Argument {is_removable}
     }
 }
 
@@ -166,6 +173,7 @@ pub struct Node {
 }
 
 impl Node {
+    /// Constructor.
     pub fn new() -> Self {
         default()
     }
@@ -180,17 +188,8 @@ impl Node {
         Self { kind,size,children,expression_id,parameter_info }
     }
 
-    pub fn add_child(&mut self, mut f:impl FnOnce(Child)->Child) {
-        let mut new_child = Child::default();
-        let offset        = self.size;
-        new_child.offset  = offset;
-        let child         = f(new_child);
-        let offset_diff   = child.offset - offset;
-        self.size += child.size + offset_diff;
-        self.children.push(child);
-    }
-
-    pub fn add_child_builder(&mut self, mut f:impl FnOnce(ChildBuilder)->ChildBuilder) {
+    /// Define a new child by using the `ChildBuilder` pattern.
+    pub fn add_child_builder(&mut self, f:impl FnOnce(ChildBuilder)->ChildBuilder) {
         let mut new_child = Child::default();
         let offset        = self.size;
         new_child.offset  = offset;
@@ -201,7 +200,8 @@ impl Node {
         self.children.push(child);
     }
 
-    pub fn new_child(mut self, mut f:impl FnOnce(ChildBuilder)->ChildBuilder) -> Self {
+    /// Define a new child by using the `ChildBuilder` pattern. Consumes self.
+    pub fn new_child(mut self, f:impl FnOnce(ChildBuilder)->ChildBuilder) -> Self {
         self.add_child_builder(f);
         self
     }
@@ -227,69 +227,6 @@ impl Node {
     pub fn with_expression_id(mut self, id:ast::Id) -> Self {
         self.expression_id = Some(id);
         self
-    }
-}
-
-
-
-// ====================
-// === ChildBuilder ===
-// ====================
-
-pub struct ChildBuilder {
-    pub child : Child,
-}
-
-impl Deref for ChildBuilder {
-    type Target = Child;
-    fn deref(&self) -> &Self::Target {
-        &self.child
-    }
-}
-
-impl DerefMut for ChildBuilder {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.child
-    }
-}
-
-impl ChildBuilder {
-    pub fn new(child:Child) -> Self {
-        Self {child}
-    }
-
-    pub fn new_child(mut self, mut f:impl FnOnce(Self)->Self) -> Self {
-        self.node.add_child_builder(f);
-        self
-    }
-
-    pub fn offset(mut self, offset:usize) -> Self {
-        self.offset = Size::new(offset);
-        self
-    }
-
-    pub fn crumbs(mut self, crumbs:impl IntoCrumbs) -> Self {
-        self.ast_crumbs = crumbs.into_crumbs();
-        self
-    }
-
-    pub fn kind(mut self, kind:Kind) -> Self {
-        self.node.kind = kind;
-        self
-    }
-
-    pub fn size(mut self, size:usize) -> Self {
-        self.node.size = Size::new(size);
-        self
-    }
-
-    pub fn expression_id(mut self, id:ast::Id) -> Self {
-        self.node.expression_id = Some(id);
-        self
-    }
-
-    pub fn new_id(mut self) -> Self {
-        self.expression_id(ast::Id::new_v4())
     }
 }
 
@@ -321,6 +258,81 @@ impl Deref for Child {
 impl DerefMut for Child {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.node
+    }
+}
+
+
+
+// ====================
+// === ChildBuilder ===
+// ====================
+
+/// A builder pattern for `SpanTree`. A think wrapper for `Child` which adds useful methods for
+/// building properties of the current node.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ChildBuilder {
+    pub child : Child,
+}
+
+impl Deref for ChildBuilder {
+    type Target = Child;
+    fn deref(&self) -> &Self::Target {
+        &self.child
+    }
+}
+
+impl DerefMut for ChildBuilder {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.child
+    }
+}
+
+impl ChildBuilder {
+    /// Constructor.
+    pub fn new(child:Child) -> Self {
+        Self {child}
+    }
+
+    /// Add new child and use the `ChildBuilder` pattern to define its properties.
+    pub fn new_child(mut self, f:impl FnOnce(Self)->Self) -> Self {
+        self.node.add_child_builder(f);
+        self
+    }
+
+    /// Offset setter.
+    pub fn offset(mut self, offset:usize) -> Self {
+        self.offset = Size::new(offset);
+        self
+    }
+
+    /// Crummbs setter.
+    pub fn crumbs(mut self, crumbs:impl IntoCrumbs) -> Self {
+        self.ast_crumbs = crumbs.into_crumbs();
+        self
+    }
+
+    /// Kind setter.
+    pub fn kind(mut self, kind:Kind) -> Self {
+        self.node.kind = kind;
+        self
+    }
+
+    /// Size setter.
+    pub fn size(mut self, size:usize) -> Self {
+        self.node.size = Size::new(size);
+        self
+    }
+
+    /// Expression ID setter.
+    pub fn id(mut self, id:ast::Id) -> Self {
+        self.node.expression_id = Some(id);
+        self
+    }
+
+    /// Expression ID generator.
+    pub fn new_id(self) -> Self {
+        self.id(ast::Id::new_v4())
     }
 }
 

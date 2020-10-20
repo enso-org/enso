@@ -401,7 +401,7 @@ impl Manager {
     }
 
     pub fn get_port_offset(&self, crumbs:&[span_tree::Crumb]) -> Option<Vector2<f32>> {
-        self.model.position_map.borrow().get(crumbs).map(|((size,index))| {
+        self.model.position_map.borrow().get(crumbs).map(|(size,index)| {
             let unit  = 7.224_609_4;
             let width = unit * *size as f32;
             let x     = width/2.0 + unit * *index as f32;

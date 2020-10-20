@@ -440,12 +440,14 @@ fn generate_expected_arguments
 
 use ast::Id;
 
+/// Mock version of `Context`. Useful for debugging and testing.
 #[derive(Clone,Debug,Default)]
 pub struct MockContext {
     map : HashMap<Id, CalledMethodInfo>,
 }
 
 impl MockContext {
+    /// Constructor.
     pub fn new_single(id:Id, info: CalledMethodInfo) -> Self {
         let mut ret = Self::default();
         ret.map.insert(id,info);
