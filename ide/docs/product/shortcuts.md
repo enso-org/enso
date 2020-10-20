@@ -86,7 +86,7 @@ further investigation.
 | <kbd>enter</kbd> or <kbd>LMB</kbd> on suggestion | Pick selected suggestion and commit editing. |
 
 
-#### Visualization
+### Visualization
 | Shortcut | Action |
 | -------- | ------ |
 | <kbd>space</kbd>                         | Toggle visualization visibility of the selected node. |
@@ -96,7 +96,7 @@ further investigation.
 | :bangbang: <kbd>cmd</kbd> + <kbd>\</kbd> | Toggle documentation view visibility |
 
 
-#### Debug
+### Debug
 | Shortcut | Action |
 | -------- | ------ |
 | <kbd>ctrl</kbd> + <kbd>d</kbd>                           | Send test data to the selected node. |

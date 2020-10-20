@@ -24,7 +24,6 @@ use super::super::node;
 
 use crate::Type;
 use crate::component::type_coloring::TypeColorMap;
-use ensogl_text::buffer::data::unit::traits::*;
 
 
 
@@ -141,12 +140,6 @@ pub struct Model {
     width          : Cell<f32>,
     port_networks  : RefCell<Vec<frp::Network>>,
     type_color_map : TypeColorMap,
-    styles         : StyleWatch,
-    // Used for caching positions of ports. Used when dragging nodes to compute new edge position
-    // based on the provided `Crumbs`. It would not be possible to do it fast without this map, as
-    // some ports are virtual and have the same offset - like missing arguments.
-    // FIXME: Think of other design, where the SpanTree will be modified to contain correct offsets.
-    position_map   : RefCell<HashMap<span_tree::Crumbs,(usize,usize)>>,
 }
 
 impl Model {
@@ -159,7 +152,6 @@ impl Model {
         let type_color_map = default();
         let label          = app.new_view::<text::Area>();
         let ports          = default();
-        let position_map   = default();
 
         label.single_line(true);
         label.disable_command("cursor_move_up");
@@ -186,7 +178,7 @@ impl Model {
         let width      = default();
 
         Self {logger,display_object,ports_group,label,ports,width,app,expression,port_networks
-             ,type_color_map,styles,position_map}
+             ,type_color_map}
     }
 }
 
@@ -269,6 +261,14 @@ impl Manager {
         let model      = &self.model;
         let expression = expression.into();
 
+        model.label.set_cursor(&default());
+        model.label.select_all();
+        model.label.insert(&expression.code);
+        model.label.remove_all_cursors();
+        if self.frp.editing.value() {
+            model.label.set_cursor_at_end();
+        }
+
         let glyph_width = 7.224_609_4; // FIXME hardcoded literal
         let width       = expression.code.len() as f32 * glyph_width;
         model.width.set(width);
@@ -276,50 +276,27 @@ impl Manager {
         let mut to_visit      = vec![expression.input_span_tree.root_ref()];
         let mut ports         = vec![];
         let mut port_networks = vec![];
-        let mut offset_shift  = 0;
-        let mut vis_expr      = expression.code.clone();
-
-        let mut position_map : HashMap<span_tree::Crumbs,(usize,usize)> = HashMap::new();
 
         loop {
             match to_visit.pop() {
                 None => break,
                 Some(node) => {
-                    let span            = node.span();
-                    let contains_root   = span.index.value == 0;
-                    let is_empty        = node.kind.is_positional_insertion_point();
-                    let is_opr          = node.kind.is_operation();
-                    let skip            = contains_root || is_empty || is_opr;
-                    let is_expected_arg = node.kind.is_expected_argument();
-
-                    // FIXME: How to properly discover self? Like `image.blur 15`, to disable
-                    // 'blur' port?
-
+                    let span          = node.span();
+                    let contains_root = span.index.value == 0;
+                    let skip          = node.kind.is_empty() || contains_root;
                     if !skip {
                         let logger   = Logger::sub(&model.logger,"port");
                         let port     = component::ShapeView::<shape::Shape>::new(&logger,self.scene());
                         let type_map = &model.type_color_map;
 
-                        let mut size  = span.size.value;
-                        let mut index = span.index.value + offset_shift;
-                        if is_expected_arg {
-                            let name      = node.parameter_info.as_ref().unwrap().name.as_ref().unwrap();
-                            size          = name.len();
-                            index        += 1;
-                            offset_shift += 1 + size;
-                            vis_expr.push(' ');
-                            vis_expr += name;
-                        }
-                        position_map.insert(node.crumbs.clone(),(size,index));
-
                         let unit        = 7.224_609_4;
-                        let width       = unit * size as f32;
+                        let width       = unit * span.size.value as f32;
                         let width2      = width + 8.0;
                         let node_height = 28.0;
                         let height      = 18.0;
                         let size        = Vector2::new(width2,height);
                         port.shape.sprite.size.set(Vector2::new(width2,node_height));
-                        let x = width/2.0 + unit * index as f32;
+                        let x = width/2.0 + unit * span.index.value as f32;
                         port.mod_position(|t| t.x = x);
                         model.ports_group.add_child(&port);
 
@@ -369,44 +346,25 @@ impl Manager {
                         port_networks.push(port_network);
                     }
 
-                    // FIXME: This is ugly because `children_iter` is not DoubleEndedIterator.
-                    to_visit.extend(node.children_iter().collect_vec().into_iter().rev());
+                    to_visit.extend(node.children_iter());
                 }
             }
-        }
-
-
-        model.label.set_cursor(&default());
-        model.label.select_all();
-        model.label.insert(&vis_expr);
-        model.label.remove_all_cursors();
-
-        // === Missing args styling ===
-        // FIXME[WD]: The text offset is computed in bytes as text area supports only this interface
-        //            now. May break with unicode input. To be fixed.
-        let arg_color   = model.styles.get_color(theme::vars::graph_editor::node::text::missing_arg_color);
-        let start_bytes = (expression.code.len() as i32).bytes();
-        let end_bytes   = (vis_expr.len() as i32).bytes();
-        let range       = ensogl_text::buffer::Range::from(start_bytes..end_bytes);
-        model.label.set_color_bytes(range,color::Rgba::from(arg_color));
-
-        if self.frp.editing.value() {
-            model.label.set_cursor_at_end();
         }
 
         *model.expression.borrow_mut()    = expression;
         *model.ports.borrow_mut()         = ports;
         *model.port_networks.borrow_mut() = port_networks;
-        *model.position_map.borrow_mut()  = position_map;
     }
 
     pub fn get_port_offset(&self, crumbs:&[span_tree::Crumb]) -> Option<Vector2<f32>> {
-        self.model.position_map.borrow().get(crumbs).map(|(size,index)| {
+        let span_tree = &self.model.expression.borrow().input_span_tree;
+        span_tree.root_ref().get_descendant(crumbs).map(|node|{
+            let span  = node.span();
             let unit  = 7.224_609_4;
-            let width = unit * *size as f32;
-            let x     = width/2.0 + unit * *index as f32;
+            let width = unit * span.size.value as f32;
+            let x     = width/2.0 + unit * span.index.value as f32;
             Vector2::new(x + node::TEXT_OFF,node::NODE_HEIGHT/2.0) // FIXME
-        })
+        }).ok()
     }
 
     pub fn get_port_color(&self, crumbs:&[span_tree::Crumb]) -> Option<color::Lcha> {
