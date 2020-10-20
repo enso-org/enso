@@ -7,8 +7,8 @@ import sbt.io.syntax.url
 import src.main.scala.licenses.{
   AttachedFile,
   Attachment,
-  CopyrightMention,
-  DependencyInformation
+  DependencyInformation,
+  PortablePath
 }
 
 import scala.sys.process._
@@ -53,13 +53,17 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
         .map(m => (m.group("name"), m.group("href")))
         .filter(p => mayBeRelevant(p._1))
         .toList
-      val files = matches.flatMap {
+      matches.flatMap {
         case (_, href) =>
           try {
             val content =
               url("https://github.com" + href.replace("blob", "raw")).cat.!!
             Seq(
-              AttachedFile(Path.of(href), content, origin = Some("github.com"))
+              AttachedFile(
+                PortablePath.of(href),
+                content,
+                origin = Some("github.com")
+              )
             )
           } catch {
             case NonFatal(error) =>
@@ -69,16 +73,6 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
               Seq()
           }
       }
-      val copyrights = homePage.linesIterator.toList
-        .filter(_.toLowerCase.contains("copyright"))
-        .map(line =>
-          CopyrightMention(
-            line,
-            Seq(s"Found at $address"),
-            Seq(Path.of("github.com"))
-          )
-        )
-      files ++ copyrights
     } catch {
       case NonFatal(error) =>
         log.warn(s"GitHub backend for ${info.packageName} failed with $error")

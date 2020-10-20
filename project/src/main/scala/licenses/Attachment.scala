@@ -15,7 +15,7 @@ sealed trait Attachment
   * This may be a license file, a copyright notice, a credits file etc.
   */
 case class AttachedFile(
-  path: Path,
+  path: PortablePath,
   content: String,
   origin: Option[String] = None
 ) extends Attachment {
@@ -31,7 +31,7 @@ case class AttachedFile(
   /**
     * Name of the file.
     */
-  def fileName: String = path.getFileName.toString
+  def fileName: String = path.getFileName
 }
 
 /**
@@ -51,12 +51,35 @@ case class AttachedFile(
 case class CopyrightMention(
   content: String,
   contexts: Seq[String],
-  origins: Seq[Path]
+  origins: Seq[PortablePath]
 ) extends Attachment {
+
+  /**
+    * @inheritdoc
+    */
   override def toString: String = s"CopyrightMention('$content')"
 }
 
 object CopyrightMention {
+
+  /**
+    * Creates a [[CopyrightMention]] converting `origins` to [[PortablePath]].
+    */
+  def from(
+    content: String,
+    contexts: Seq[String],
+    origins: Seq[Path]
+  ): CopyrightMention =
+    CopyrightMention(content, contexts, origins.map(PortablePath(_)))
+
+  /**
+    * Creates a [[CopyrightMention]] with no origins.
+    */
+  def apply(
+    content: String,
+    contexts: Seq[String]
+  ): CopyrightMention =
+    CopyrightMention(content, contexts, Seq.empty[PortablePath])
 
   /**
     * Transforms the sequence of copyright mentions by merging ones that have
@@ -128,6 +151,17 @@ object CopyrightMention {
       copyrights.flatMap(_.origins).distinct
     )
   }
+
+  /**
+    * Strips comment-related characters from the prefix and whitespace from
+    * suffix of the copyright line.
+    */
+  def cleanup(string: String): String = {
+    val charsToIgnore = Seq('*', '-', '#', '/')
+    string
+      .dropWhile(char => char.isWhitespace || charsToIgnore.contains(char))
+      .strip
+  }
 }
 
 object AttachedFile {
@@ -144,6 +178,6 @@ object AttachedFile {
       case Some(root) => root.relativize(path)
       case None       => path
     }
-    AttachedFile(actualPath, content)
+    AttachedFile(PortablePath(actualPath), content)
   }
 }

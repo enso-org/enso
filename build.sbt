@@ -31,6 +31,12 @@ scalaVersion in ThisBuild := scalacVersion
 lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
 gatherLicenses := GatherLicenses.run.value
+lazy val verifyLicensePackages =
+  taskKey[Unit](
+    "Verifies if the license package has been generated, " +
+    "has no warnings and is up-to-date with dependencies."
+  )
+verifyLicensePackages := GatherLicenses.verifyReports.value
 GatherLicenses.distributions := Seq(
     Distribution(
       "launcher",
@@ -65,6 +71,9 @@ openLegalReviewReport := {
   gatherLicenses.value
   GatherLicenses.runReportServer()
 }
+
+lazy val analyzeDependency = inputKey[Unit]("...")
+analyzeDependency := GatherLicenses.analyzeDependency.evaluated
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
@@ -382,7 +391,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scalaCompiler ++ Seq(
-        "com.google.guava" % "guava"     % guavaVersion,
+        "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
         "org.typelevel"  %%% "cats-core" % catsVersion,
         "org.typelevel"  %%% "kittens"   % kittensVersion
       )
@@ -757,7 +766,7 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
+    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7" exclude ("com.google.code.findbugs", "jsr305")
   )
 
 // ============================================================================
@@ -942,7 +951,7 @@ lazy val runtime = (project in file("engine/runtime"))
         .value
   )
   .settings(
-    (Test / compile) := (Test / compile)
+    (Runtime / compile) := (Runtime / compile)
         .dependsOn(`std-bits` / Compile / packageBin)
         .value
   )
@@ -982,7 +991,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(searcher)
-  .dependsOn(testkit)
+  .dependsOn(testkit % Test)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -57,11 +57,11 @@ $(function () {
 
   copys.each(function (index) {
     var package = $(this).data("package");
-    var content = atob($(this).data("content"));
+    var encodedContent = $(this).data("content");
     var status = $(this).data("status");
     var contexts = parseInt($(this).data("contexts"));
     var data = {
-      line: content,
+      encoded_line: encodedContent,
       package: package,
     };
     if (status == "NotReviewed") {

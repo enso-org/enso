@@ -91,7 +91,7 @@ jobs:
           key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
 
-      # Build Artifacts
+      # Bootstrap
       - name: Enable Release Mode
         run: echo ::set-env name=ENSO_RELEASE_MODE::true
       - name: Bootstrap the Project
@@ -99,6 +99,16 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors bootstrap
+
+      # Verify Legal Review
+      - name: Verify Packages
+        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
+        working-directory: repo
+        run: |
+          sleep 1
+          sbt --no-colors verifyLicensePackages
+
+      # Build Artifacts
       - name: Build the Runtime Uberjar
         working-directory: repo
         run: |
@@ -171,8 +181,7 @@ jobs:
           mkdir ${{ env.LAUNCHER_DIST_DIR }}/runtime
           cp distribution/launcher/.enso.portable ${{ env.LAUNCHER_DIST_DIR }}
           cp distribution/launcher/README.md ${{ env.LAUNCHER_DIST_DIR }}
-          cp distribution/launcher/NOTICE ${{ env.LAUNCHER_DIST_DIR }}
-          cp -r distribution/launcher/components-licences ${{ env.LAUNCHER_DIST_DIR }}
+          cp -r distribution/launcher/THIRD-PARTY ${{ env.LAUNCHER_DIST_DIR }}
 
       - name: Prepare Launcher Distribution (Unix)
         working-directory: repo
@@ -189,6 +198,7 @@ jobs:
           cp enso.exe ${{ env.LAUNCHER_DIST_DIR }}/bin/
 
       - name: Build Base Java Extensions
+        working-directory: repo
         shell: bash
         run: |
           sleep 1
@@ -213,6 +223,7 @@ jobs:
           mv project-manager.jar $ENGINE_DIST_DIR/component
           cp -r distribution/std-lib $ENGINE_DIST_DIR/std-lib
           cp -r distribution/bin $ENGINE_DIST_DIR/bin
+          cp -r distribution/engine/THIRD-PARTY $ENGINE_DIST_DIR/THIRD-PARTY
           cp manifest.yaml $ENGINE_DIST_DIR
 
       # Ensure that the versions encoded in the binary and in the release match

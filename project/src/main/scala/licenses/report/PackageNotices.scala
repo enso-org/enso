@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path}
 
 import sbt._
 import src.main.scala.licenses.{
+  AttachedFile,
   AttachmentStatus,
   CopyrightMention,
   DistributionDescription,
@@ -30,6 +31,7 @@ object PackageNotices {
     summary: ReviewedSummary,
     destination: File
   ): Unit = {
+    val ReviewedSummary(dependencies, noticeHeader, additionalFiles) = summary
     IO.delete(destination)
     IO.createDirectory(destination)
     if (IO.listFiles(destination).nonEmpty) {
@@ -41,20 +43,24 @@ object PackageNotices {
 
     val artifactName = description.artifactName
     val mainNotice   = new StringBuilder
-    mainNotice.append(summary.noticeHeader)
+    mainNotice.append(noticeHeader)
 
     val licensesRoot      = destination / "licenses"
     val processedLicenses = collection.mutable.Set[Path]()
 
-    for (dependency <- summary.dependencies) {
+    writeFiles(destination, additionalFiles)
+
+    for (dependency <- dependencies) {
       val name        = dependency.information.moduleInfo.name
       val licenseName = dependency.information.license.name
       mainNotice.append(
         s"\n\n'$name', licensed under the $licenseName, " +
         s"is distributed with the $artifactName.\n"
       )
-      dependency.licensePath match {
-        case Some(path) =>
+
+      dependency.licenseReview match {
+        case LicenseReview.NotReviewed =>
+        case LicenseReview.Default(path, _) =>
           val name = path.getFileName.toString
           if (!processedLicenses.contains(path)) {
             val destination = licensesRoot / name
@@ -67,9 +73,9 @@ object PackageNotices {
           mainNotice.append(
             s"The license file can be found at `licenses/$name`.\n"
           )
-        case None =>
+        case LicenseReview.Custom(_) =>
           mainNotice.append(
-            s"The license file can be found at along the copyright notices.\n"
+            s"The license information can be found along with the copyright notices.\n"
           )
       }
 
@@ -87,18 +93,7 @@ object PackageNotices {
         IO.createDirectory(packageRoot)
       }
 
-      @tailrec
-      def findFreeName(name: String, counter: Int = 0): File = {
-        val actualName = if (counter > 0) s"$name.$counter" else name
-        val file       = packageRoot / actualName
-        if (Files.exists(file.toPath)) findFreeName(name, counter + 1)
-        else file
-      }
-
-      for (attachedFile <- files) {
-        val file = findFreeName(attachedFile.path.getFileName.toString)
-        IO.write(file, attachedFile.content)
-      }
+      writeFiles(packageRoot, files)
 
       def renderCopyright(
         copyright: CopyrightMention,
@@ -110,7 +105,7 @@ object PackageNotices {
             if (copyright.contexts.size != 1) {
               throw new IllegalStateException(
                 "`KeepWithContext` can only be used for copyrights that " +
-                "have exactly one context."
+                s"have exactly one context: `${copyright.content}`"
               )
             }
             copyright.contexts.head
@@ -128,11 +123,45 @@ object PackageNotices {
             case (m, s) => renderCopyright(m, s)
           }
           .mkString("\n\n")
-        val freeName = findFreeName("NOTICES")
-        IO.write(freeName, compiledCopyrights)
+        val freeName = findFreeName(packageRoot, gatheredNoticesFilename)
+        IO.write(freeName, compiledCopyrights + "\n")
       }
     }
 
-    IO.write(destination / "NOTICE", mainNotice.toString())
+    IO.write(destination / "NOTICE", mainNotice.toString() + "\n")
+  }
+
+  /**
+    * Name of the generated file that contains concatenated copyright notices that were found in the
+    * project.
+    */
+  val gatheredNoticesFilename = "NOTICES"
+
+  /**
+    * Finds a filename that is not taken.
+    *
+    * First tries the `name` and adds increasing numerical suffixes if the
+    * previous names were taken.
+    */
+  @tailrec
+  def findFreeName(root: File, name: String, counter: Int = 0): File = {
+    val actualName = if (counter > 0) s"$name.$counter" else name
+    val file       = root / actualName
+    if (Files.exists(file.toPath)) findFreeName(root, name, counter + 1)
+    else file
+  }
+
+  /**
+    * Writes attached files to the given directory.
+    */
+  def writeFiles(root: File, files: Seq[AttachedFile]): Unit = {
+    for (attachedFile <- files) {
+      val file = findFreeName(root, attachedFile.path.getFileName.toString)
+      if (attachedFile.content == Review.directoryMark) {
+        IO.copyDirectory(attachedFile.path.toFile, file)
+      } else {
+        IO.write(file, attachedFile.content)
+      }
+    }
   }
 }

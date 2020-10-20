@@ -1,7 +1,6 @@
 package src.main.scala.licenses.report
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.Path
 import java.util.Base64
 
 import sbt.{File, IO}
@@ -96,20 +95,25 @@ object Report {
     * it is redundant) the message is also displayed as a minor warning.
     */
   private def renderSimilarity(
-    licensePath: Option[Path],
+    defaultLicense: Option[LicenseReview.Default],
     file: AttachedFile,
     status: AttachmentStatus
   ): String = {
     val name = file.path.getFileName.toString.toLowerCase
     if (name.contains("license") || name.contains("licence")) {
-      licensePath match {
-        case Some(value) =>
-          val defaultText = IO.read(value.toFile)
+      defaultLicense match {
+        case Some(LicenseReview.Default(path, allowAdditionalCustomLicenses)) =>
+          val defaultText = IO.read(path.toFile)
           if (defaultText.strip() == file.content.strip()) {
             val color = if (status.included) Style.Red else Style.Green
             s"""<span style="$color">100% identical to default license</span>"""
-          } else
-            s"""<span style="${Style.Red}">Differs from used license!</span>"""
+          } else {
+            val shouldWarn = !allowAdditionalCustomLicenses
+            val (color, message) =
+              if (shouldWarn) (Style.Red, "Differs from used license!")
+              else (Style.Gray, "Differs from the default license.")
+            s"""<span style="$color">$message</span>"""
+          }
         case None => ""
       }
     } else ""
@@ -141,8 +145,7 @@ object Report {
       rows = sorted.map {
         case dep @ ReviewedDependency(
               information,
-              licenseReviewed,
-              licensePath,
+              licenseReview,
               files,
               copyrights
             ) =>
@@ -162,33 +165,45 @@ object Report {
             rowWriter.addColumn {
               writer.writeLink(license.name, license.url)
               writer.writeText(s"(${license.category.name}) <br>")
-              licensePath match {
-                case Some(path) =>
-                  writer.writeText(
-                    path.getFileName.toString,
-                    if (licenseReviewed) Style.Green else Style.Red
-                  )
-                case None if licenseReviewed =>
-                  val licenseFile = summary.includedLicense(dep)
-                  licenseFile match {
-                    case Some(file) =>
-                      writer.writeText(
-                        s"Custom license ${file.path.getFileName}",
-                        Style.Green
-                      )
-                    case None =>
-                      writer.writeText(
-                        "Custom license defined but not provided!",
-                        Style.Red
-                      )
-                  }
-                case None if !licenseReviewed =>
+              licenseReview match {
+                case LicenseReview.NotReviewed =>
                   val name = Review.normalizeName(license.name)
                   writer.writeText(
                     s"Not reviewed, filename: <pre>$name</pre>",
                     Style.Red
                   )
+                case LicenseReview.Default(path, allowAdditional) =>
+                  val additional =
+                    if (allowAdditional) " and additional included files."
+                    else ""
+                  writer.writeText(
+                    path.getFileName.toString + additional,
+                    Style.Green
+                  )
+                case LicenseReview.Custom(filename) =>
+                  val customFileIncluded = files.exists(f =>
+                    f._1.fileName == filename && f._2.included
+                  )
+                  val customIsNotices =
+                    filename == PackageNotices.gatheredNoticesFilename
+                  if (customFileIncluded) {
+                    writer.writeText(s"Custom license $filename", Style.Green)
+                  } else if (customIsNotices) {
+                    writer.writeText(
+                      s"Custom license included within copyright notices",
+                      Style.Green
+                    )
+                  } else {
+                    writer.writeText(
+                      s"Custom license `$filename` defined but not included!",
+                      Style.Red
+                    )
+                  }
               }
+            }
+
+            val defaultLicense = Some(licenseReview).collect {
+              case l: LicenseReview.Default => l
             }
             rowWriter.addColumn {
               if (files.isEmpty) writer.writeText("No attached files.")
@@ -207,7 +222,7 @@ object Report {
                         .getOrElse("")
                       writer.writeCollapsible(
                         s"${file.fileName} (${renderStatus(status)})$origin " +
-                        s"${renderSimilarity(licensePath, file, status)}",
+                        s"${renderSimilarity(defaultLicense, file, status)}",
                         injection +
                         writer.escape(file.content)
                       )
@@ -226,7 +241,7 @@ object Report {
                   writer.writeText("No copyright information found.")
                 }
               } else
-                writer.writeList(copyrights.map {
+                writer.writeList(copyrights.sortBy(_._1.content).map {
                   case (mention, status) =>
                     () =>
                       val foundAt = mention.origins match {

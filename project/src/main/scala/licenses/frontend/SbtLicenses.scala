@@ -2,9 +2,7 @@ package src.main.scala.licenses.frontend
 
 import java.nio.file.Path
 
-import com.typesafe.sbt.license.SbtCompat.IvySbt
-import com.typesafe.sbt.license.{DepLicense, DepModuleInfo, LicenseReport}
-import org.apache.ivy.core.report.ResolveReport
+import com.typesafe.sbt.license.{DepLicense, DepModuleInfo}
 import org.apache.ivy.core.resolve.IvyNode
 import sbt.Compile
 import sbt.internal.util.ManagedLogger
@@ -52,7 +50,7 @@ object SbtLicenses {
   ): (Seq[DependencyInformation], Seq[String]) = {
     val results: Seq[(Seq[Dependency], Vector[Path], Seq[String])] =
       components.map { component =>
-        val report = resolveIvy(component.ivyModule, log)
+        val report = component.licenseReport.orig
         val ivyDeps =
           report.getDependencies.asScala.map(_.asInstanceOf[IvyNode])
         val sourceArtifacts = component.classifiedArtifactsReport
@@ -115,22 +113,6 @@ object SbtLicenses {
   }
 
   /**
-    * Uses the [[LicenseReport]] plugin to resolve the dependencies of the Ivy
-    * module of an SBT component.
-    *
-    * Returns the resolved report or throws an exception if any errors were
-    * encountered.
-    */
-  private def resolveIvy(
-    ivyModule: IvySbt#Module,
-    log: ManagedLogger
-  ): ResolveReport = {
-    val (report, err) = LicenseReport.resolve(ivyModule, log)
-    err.foreach(throw _)
-    report
-  }
-
-  /**
     * Returns a project URL if it is defined for the dependency or None.
     */
   private def tryFindingUrl(dependency: Dependency): Option[String] =
@@ -176,7 +158,7 @@ object SbtLicenses {
   /**
     * Returns [[DepModuleInfo]] for an [[IvyNode]] if it is defined, or None.
     */
-  private def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
+  def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
     for {
       moduleId       <- Option(dep.getModuleId)
       moduleRevision <- Option(dep.getModuleRevision)
