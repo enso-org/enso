@@ -222,7 +222,7 @@ public class MethodDefinition {
             .getMessager()
             .printMessage(
                 Diagnostic.Kind.ERROR,
-                "Argument must not be typed as Thunk. Use @Suspend instead.",
+                "Argument must not be typed as Thunk. Use @Suspend Object instead.",
                 element);
         return false;
       }

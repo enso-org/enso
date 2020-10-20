@@ -18,6 +18,7 @@ insert_r key value k v l r =
 ## PRIVATE
 
    Helper for inserting a new key-value pair into a map.
+
    The algorithm used here is based on the paper "Implementing Sets Efficiently
    in a Functional Language" by Stephen Adams.
    Implementation is based on Haskell's `Data.Map.Strict` implemented in the
@@ -88,12 +89,18 @@ balance_right k x l r = case l of
 
    Controls the difference between inner and outer siblings of a heavy subtree.
    Used to decide between a double and a single rotation.
+
+   The choice of values for `ratio` and `delta` is taken from the Haskell
+   implementation.
 ratio : Integer
 ratio = 2
 
 ## PRIVATE
 
    Controls the maximum size difference between subtrees.
+
+   The choice of values for `ratio` and `delta` is taken from the Haskell
+   implementation.
 delta : Integer
 delta = 3
 
