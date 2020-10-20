@@ -1,23 +1,23 @@
 from Base import all
 
-##
-type To_Uri
+## A type that can be converted to Uri.
+type To_Uri_1
 
-    type To_Uri to_uri
+    type To_Uri_1 to_uri_1
 
 ## Implement To_Uri for Text
 Text.to_uri = Uri.parse this
 
 type Uri
 
-    type Uri
+    type Uri internal_uri
 
     ## Implement To_Uri
     to_uri : Uri
     to_uri = this
 
     ## Get scheme part of this Uri.
-    scheme: Text
+    scheme : Text
 
     ## Get user info part of this Uri.
     user_info : Text
@@ -26,13 +26,13 @@ type Uri
     host : Text
 
     ## Get authority (user info and host) part of this Uri.
-    authority: Text
+    authority : Text
 
     ## Get port part of this Uri.
     port : Integer
 
     ## Get path part of this Uri.
-    path: Text
+    path : Text
 
     ## Get query part of this Uri.
     query : Text
@@ -47,7 +47,7 @@ type Uri
     raw_authority : Text
 
     ## Get unescaped path part of this Uri.
-    raw_path: Text
+    raw_path : Text
 
     ## Get unescaped query part of this Uri.
     raw_query : Text
@@ -57,3 +57,4 @@ type Uri
 
 ## Parse Uri from text.
 parse : Text -> Uri
+parse text = Unit

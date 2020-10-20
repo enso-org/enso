@@ -35,12 +35,12 @@ type Http
 
        > Example
          Send a POST request with form.
-             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              Http.new.post_form "http://httpbin.org/post" form
 
        > Example
          Configure http client and send a POST request.
-             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              http = Http.new . with_basic_auth "user" "pass"
              http.post_form "http://httpbin.org/post" form
     post_form : Uri.To_Uri -> Form.To_Form -> Response
@@ -83,19 +83,19 @@ type Http
 
        > Example
          Send a POST request with urlencoded form data.
-             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              req = Request.post "http://httpbin.org/post" . with_form form
              Http.new.request req
 
        > Example
          Send a POST request with form encoded as "multipart/form-data".
-             form = [Form.part_text "name" "John Doe", Form.part_file "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              req = Request.post "http://httpbin.org/post" . with_form form . with_headers [Header.multipart_form_data]
              Http.new.post req
 
        > Example
          Configure http client and send a POST request with form.
-             form = [Form.part_text "name" "John Doe"]
+             form = [Form.text_field "name" "John Doe"]
              req = Request.new Method.POST "http://httpbin.org/post" . with_form form
              http = Http.new (timeout = 30.seconds) (proxy = Proxy.new "proxy.example.com:80")
              http.request req

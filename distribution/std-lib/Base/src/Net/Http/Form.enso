@@ -7,6 +7,9 @@ type To_Form
     to_form : Form
     to_form = internal_form
 
+## Implement To_Form for vector
+Vector.to_form = Form this
+
 type Form
 
     type From form_parts
@@ -21,18 +24,18 @@ type Part
 
 type Part_Value
 
-    type Part_Text part_value_text
+    type Part_Text part_text
 
-    type Part_File part_value_file
-
-Vector.to_form = Form this
+    type Part_File part_file
 
 ## Create Form data from Parts
 new : Vector -> Form
 new parts = Form parts
 
-part_text : Text -> Text -> Part
-part_text key val = Part key (Part_Text val)
+# Helpers for creating different parts of the form.
 
-part_file : Text -> Text -> Part
-part_file key file = Part key (Part_File file)
+text_field : Text -> Text -> Part
+text_field key val = Part key (Part_Text val)
+
+file_field : Text -> Text -> Part
+file_field key file = Part key (Part_File file)
