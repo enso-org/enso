@@ -6,7 +6,7 @@ type Response
 
     headers : Vector
 
-    header: Text -> Text
+    header : Text -> Text
 
     body : Body
 
