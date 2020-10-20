@@ -18,6 +18,8 @@ use ensogl::display::object::ObjectOps;
 use ensogl_text as text;
 use ensogl_theme;
 use wasm_bindgen::prelude::*;
+use parser::Parser;
+
 
 
 const STUB_MODULE:&str = "from Base import all\n\nmain = IO.println \"Hello\"\n";
@@ -123,8 +125,7 @@ fn init(app:&Application) {
         }
     });
 
-    let expression_2 = ttt();
-    println!("{:#?}",expression_2.input_span_tree);
+    let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
     expression_2.input_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let  Some(expr_id) = node.expression_id {
@@ -236,10 +237,7 @@ pub fn expression_mock2() -> Expression {
     Expression {code,input_span_tree,output_span_tree}
 }
 
-use parser::Parser;
-use span_tree::SpanTree;
-
-pub fn ttt() -> Expression {
+pub fn expression_mock3() -> Expression {
     let code       = "image.blur 15".to_string();
     let parser     = Parser::new_or_panic();
     let this_param = span_tree::ParameterInfo {
