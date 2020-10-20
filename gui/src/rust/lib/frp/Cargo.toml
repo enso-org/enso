@@ -9,8 +9,8 @@ edition = "2018"
 [dependencies]
 enso-callback        = { version = "0.1.0" , path = "../../lib/callback" }
 enso-generics        = { version = "0.1.1"                               }
-enso-logger          = { version = "0.1.1"                               }
-enso-prelude         = { version = "0.1.2"                               }
+enso-logger          = { version = "0.1.2"                               }
+enso-prelude         = { version = "0.1.4"                               }
 ensogl-system-web    = { version = "0.1.0" , path = "../system/web"      }
 Inflector            = { version = "0.11.4"                              }
 keyboard-types       = { version = "0.5.0"                               }

@@ -43,7 +43,7 @@ impl Rule {
 // === Command ===
 // ===============
 
-/// A command name.
+/// A command, textual label of action that should be evaluated in the target component.
 #[derive(Clone,Debug,Eq,From,Hash,Into,PartialEq,Shrinkwrap)]
 pub struct Command {
     name : String,
@@ -61,16 +61,71 @@ impl From<&str> for Command {
 // === Condition ===
 // =================
 
-// TODO[WD]: Uncomment and handle more complex cases. Left commented to show the direction of future
-//           development.
 /// Condition expression.
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 #[allow(missing_docs)]
 pub enum Condition {
-    Ok,
-    Simple (String),
-    // Or  (Box<Condition>, Box<Condition>),
-    // And (Box<Condition>, Box<Condition>),
+    Always,
+    Never,
+    When (String),
+    Not (Box<Condition>),
+    Or  (Box<Condition>, Box<Condition>),
+    And (Box<Condition>, Box<Condition>),
+}
+
+impl Condition {
+    fn when(t:impl Into<String>) -> Self {
+        Self::When(t.into())
+    }
+
+    fn not(a:Self) -> Self {
+        Self::Not(Box::new(a))
+    }
+
+    fn and(a:Self, b:Self) -> Self {
+        Self::And(Box::new(a),Box::new(b))
+    }
+
+    fn or(a:Self, b:Self) -> Self {
+        Self::Or(Box::new(a),Box::new(b))
+    }
+
+    /// Split the input on the provided `separator`, process each chunk with `f`, and fold results
+    /// using the `cons`.
+    fn split_parse
+    ( input     : &str
+    , separator : char
+    , cons      : impl Fn(Self,Self) -> Self
+    , f         : impl Fn(&str) -> Self
+    ) -> Self {
+        input.split(separator).map(|t|t.trim()).map(f).fold1(cons).unwrap_or(Self::Never)
+    }
+
+    /// Parses the provided input expression. The currently recognizable symbols are (sorted by
+    /// precedence - high to low): negations(!), conjunctions (&), alternatives (|), and variables.
+    /// For example, it parses the following expression: "a & b | !c". Parentheses are not supported
+    /// yet.
+    #[allow(clippy::redundant_closure)] // Rust TC does not agree.
+    fn parse(s:impl AsRef<str>) -> Self {
+        let s = s.as_ref().trim();
+        if s.is_empty() { Self::Always } else {
+            Self::split_parse(s,'|',Self::or,|s|
+                Self::split_parse(s,'&',Self::and,|s|{
+                    if s.starts_with('!') {
+                        Self::not(Self::when(s[1..].trim()))
+                    } else {
+                        Self::when(s)
+                    }
+                })
+            )
+        }
+    }
+}
+
+impl From<&str> for Condition {
+    fn from(s:&str) -> Self {
+        Self::parse(s)
+    }
 }
 
 
@@ -84,24 +139,24 @@ pub enum Condition {
 /// to be executed.
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Action {
-    target  : String,
-    command : Command,
-    when    : Condition,
+    target    : String,
+    command   : Command,
+    condition : Condition,
 }
 
 impl Action {
     /// Constructor. Version without condition checker.
-    pub fn new<T,C>(target:T, command:C) -> Self
-        where T:Into<String>, C:Into<Command> {
-        Self::new_when(target,command,Condition::Ok)
+    pub fn new(target:impl Into<String>, command:impl Into<Command>) -> Self {
+        Self::new_when(target,command,Condition::Always)
     }
 
     /// Constructor.
-    pub fn new_when<T,C>(target:T, command:C, when:Condition) -> Self
-        where T:Into<String>, C:Into<Command> {
-        let target  = target.into();
-        let command = command.into();
-        Self {target,when,command}
+    pub fn new_when
+    (target:impl Into<String>, command:impl Into<Command>, condition:impl Into<Condition>) -> Self {
+        let target    = target.into();
+        let condition = condition.into();
+        let command   = command.into();
+        Self {target,condition,command}
     }
 }
 
@@ -121,16 +176,23 @@ pub struct Shortcut {
 
 impl Shortcut {
     /// Constructor. Version without condition checker.
-    pub fn new<A,T,C>(rule:A, target:T, command:C) -> Self
-    where A:Into<Rule>, T:Into<String>, C:Into<Command> {
+    pub fn new
+    ( rule    : impl Into<Rule>
+    , target  : impl Into<String>
+    , command : impl Into<Command>
+    ) -> Self {
         let action = Action::new(target,command);
         let rule   = rule.into();
         Self {action,rule}
     }
 
     /// Constructor.
-    pub fn new_when<A,T,C>(rule:A, target:T, command:C, condition:Condition) -> Self
-        where A:Into<Rule>, T:Into<String>, C:Into<Command> {
+    pub fn new_when
+    ( rule      : impl Into<Rule>
+    , target    : impl Into<String>
+    , command   : impl Into<Command>
+    , condition : impl Into<Condition>
+    ) -> Self {
         let action = Action::new_when(target,command,condition);
         let rule   = rule.into();
         Self {action,rule}
@@ -214,17 +276,17 @@ impl RegistryModel {
     fn process_rules(&self, rules:&[Shortcut]) {
         let mut targets = Vec::new();
         {
-            let borrowed_command_map = self.command_registry.instances.borrow();
+            let borrowed_command_map = self.command_registry.name_map.borrow();
             for rule in rules {
                 let target = &rule.action.target;
-                borrowed_command_map.get(target).for_each(|commands| {
-                    for command in commands {
-                        if Self::condition_checker(&rule.when,&command.status_map) {
+                borrowed_command_map.get(target).for_each(|instances| {
+                    for instance in instances {
+                        if Self::condition_checker(&rule.condition,&instance.status_map) {
                             let command_name = &rule.command.name;
-                            match command.command_map.get(command_name){
-                                Some(t) => targets.push(t.frp.clone_ref()),
-                                None    => warning!(&self.logger,
-                                        "Command {command_name} was not found on {target}."),
+                            match instance.command_map.borrow().get(command_name){
+                                Some(cmd) => if cmd.enabled { targets.push(cmd.frp.clone_ref()) },
+                                None      => warning!(&self.logger,
+                                    "Command {command_name} was not found on {target}."),
                             }
                         }
                     }
@@ -237,10 +299,15 @@ impl RegistryModel {
     }
 
     fn condition_checker
-    (condition:&Condition, status_map:&HashMap<String,command::Status>) -> bool {
+    (condition:&Condition, status:&Rc<RefCell<HashMap<String,frp::Sampler<bool>>>>) -> bool {
+        use Condition::*;
         match condition {
-            Condition::Ok           => true,
-            Condition::Simple(name) => status_map.get(name).map(|t| t.frp.value()).unwrap_or(false)
+            Always     => true,
+            Never      => false,
+            When(name) => status.borrow().get(name).map(|t| t.value()).unwrap_or(false),
+            Not(a)     => !Self::condition_checker(a,status),
+            Or(a,b)    => Self::condition_checker(a,status) || Self::condition_checker(b,status),
+            And(a,b)   => Self::condition_checker(a,status) && Self::condition_checker(b,status),
         }
     }
 }
@@ -249,31 +316,5 @@ impl Add<Shortcut> for &Registry {
     type Output = ();
     fn add(self, shortcut:Shortcut) {
         self.model.shortcuts_registry.add(shortcut.rule.tp,&shortcut.rule.pattern,shortcut.clone());
-    }
-}
-
-
-
-// ===============================
-// === DefaultShortcutProvider ===
-// ===============================
-
-/// Trait allowing providing default set of shortcuts exposed by an object.
-pub trait DefaultShortcutProvider : command::Provider {
-    /// Set of default shortcuts.
-    fn default_shortcuts() -> Vec<Shortcut> {
-        default()
-    }
-
-    /// Helper for defining shortcut targeting this object.
-    fn self_shortcut_when
-    (action:impl Into<Rule>, command:impl Into<Command>, condition:Condition) -> Shortcut {
-        Shortcut::new_when(action,Self::label(),command,condition)
-    }
-
-    /// Add a new shortcut targetting the self object.
-    fn self_shortcut
-    (action_type:ActionType, pattern:impl Into<String>, command:impl Into<Command>) -> Shortcut {
-        Shortcut::new(Rule::new(action_type,pattern),Self::label(),command)
     }
 }

@@ -28,7 +28,7 @@ fn init(app:&Application) {
     let area = app.new_view::<Area>();
     area.set_position_x(-100.0);
     area.set_content("Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta");
-    area.set_active_on();
+    area.focus();
     area.set_cursor_at_end();
 
     let scene     = app.display.scene();

@@ -85,6 +85,7 @@ impl<T:DocumentationProvider + 'static> From<Rc<T>> for AnyDocumentationProvider
 
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
+    app            : Application,
     logger         : Logger,
     display_object : display::object::Instance,
     list           : ListView,
@@ -94,6 +95,7 @@ struct Model {
 
 impl Model {
     fn new(app:&Application) -> Self {
+        let app            = app.clone_ref();
         let logger         = Logger::new("SearcherView");
         let scene          = app.display.scene();
         let display_object = display::object::Instance::new(&logger);
@@ -104,7 +106,7 @@ impl Model {
         display_object.add_child(&list);
         list.set_position_x(SUGGESTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
-        Self{logger,display_object,list,documentation,doc_provider}
+        Self{app,logger,display_object,list,documentation,doc_provider}
     }
 
     fn documentation_for_entry(&self, id:Option<entry::Id>) -> String {
@@ -127,19 +129,16 @@ impl Model {
 // === FRP ===
 // ===========
 
-ensogl::def_command_api!( Commands
-    /// Pick the selected suggestion and add it to the current input.
-    pick_suggestion,
-);
-
-ensogl_text::define_endpoints! {
-    Commands { Commands }
+ensogl::define_endpoints! {
     Input {
+        /// Pick the selected suggestion and add it to the current input.
+        pick_suggestion   (),
         set_suggestions   (entry::AnyModelProvider,AnyDocumentationProvider),
         select_suggestion (entry::Id),
         show              (),
         hide              (),
     }
+
     Output {
         selected_entry    (Option<entry::Id>),
         picked_entry      (Option<entry::Id>),
@@ -248,25 +247,14 @@ impl application::command::FrpNetworkProvider for View {
     }
 }
 
-impl application::command::CommandApi for View {
-    fn command_api_docs() -> Vec<application::command::EndpointDocs> {
-        Commands::command_api_docs()
-    }
-
-    fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
-        self.frp.input.command.command_api()
-    }
-}
-
-impl application::command::Provider for View {
-    fn label() -> &'static str { "Searcher" }
-}
-
 impl application::View for View {
-    fn new(app: &Application) -> Self { Self::new(app) }
-}
+    fn label() -> &'static str { "Searcher" }
 
-impl application::shortcut::DefaultShortcutProvider for View {
+    fn new(app: &Application) -> Self { Self::new(app) }
+    fn app(&self) -> &Application {
+        &self.model.app
+    }
+
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[ (Press , "tab" , "pick_suggestion"),

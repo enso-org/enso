@@ -9,7 +9,6 @@ use ensogl_core::application::Application;
 use ensogl_core::application::shortcut;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::Scene;
 use ensogl_core::display::shape::*;
 use ensogl_core::gui::component;
 use ensogl_core::gui::component::Animation;
@@ -107,7 +106,7 @@ struct View {
 /// The Model of Select Component.
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
-    scene          : Scene,
+    app            : Application,
     entries        : entry::List,
     selection      : component::ShapeView<selection::Shape>,
     background     : component::ShapeView<background::Shape>,
@@ -117,18 +116,19 @@ struct Model {
 
 impl Model {
     fn new(app:&Application) -> Self {
+        let app            = app.clone_ref();
         let scene          = app.display.scene().clone_ref();
         let logger         = Logger::new("SelectionContainer");
         let display_object = display::object::Instance::new(&logger);
         let scrolled_area  = display::object::Instance::new(&logger);
-        let entries        = entry::List::new(&logger, app);
+        let entries        = entry::List::new(&logger,&app);
         let background     = component::ShapeView::<background::Shape>::new(&logger,&scene);
         let selection      = component::ShapeView::<selection::Shape>::new(&logger,&scene);
         display_object.add_child(&background);
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model{scene,entries,selection,background,display_object,scrolled_area}
+        Model{app,entries,selection,background,display_object,scrolled_area}
     }
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
@@ -167,7 +167,7 @@ impl Model {
 
     /// Check if the `point` is inside component assuming that it have given `size`.
     fn is_inside(&self, point:Vector2<f32>, size:Vector2<f32>) -> bool {
-        let pos_obj_space = self.scene.screen_to_object_space(&self.background,point);
+        let pos_obj_space = self.app.display.scene().screen_to_object_space(&self.background,point);
         let x_range       = (-size.x / 2.0)..=(size.x / 2.0);
         let y_range       = (-size.y / 2.0)..=(size.y / 2.0);
         x_range.contains(&pos_obj_space.x) && y_range.contains(&pos_obj_space.y)
@@ -192,45 +192,32 @@ impl Model {
 // === FRP ===
 // ===========
 
-ensogl_core::def_command_api! { Commands
-    /// Move selection one position up.
-    move_selection_up,
-    /// Move selection page up (jump over all visible entries).
-    move_selection_page_up,
-    /// Move selection to the first argument.
-    move_selection_to_first,
-    /// Move selection one position down.
-    move_selection_down,
-    /// Move selection page down (jump over all visible entries).
-    move_selection_page_down,
-    /// Move selection to the last argument.
-    move_selection_to_last,
-    /// Chose the currently selected entry.
-    chose_selected_entry,
-    /// Deselect all entries.
-    deselect_entries,
-}
-
-impl application::command::CommandApi for ListView {
-    fn command_api_docs() -> Vec<application::command::EndpointDocs> {
-        Commands::command_api_docs()
-    }
-
-    fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
-        self.frp.input.command.command_api()
-    }
-}
-
-ensogl_text::define_endpoints! {
-    Commands { Commands }
+ensogl_core::define_endpoints! {
     Input {
+        /// Move selection one position up.
+        move_selection_up(),
+        /// Move selection page up (jump over all visible entries).
+        move_selection_page_up(),
+        /// Move selection to the first argument.
+        move_selection_to_first(),
+        /// Move selection one position down.
+        move_selection_down(),
+        /// Move selection page down (jump over all visible entries).
+        move_selection_page_down(),
+        /// Move selection to the last argument.
+        move_selection_to_last(),
+        /// Chose the currently selected entry.
+        chose_selected_entry(),
+        /// Deselect all entries.
+        deselect_entries(),
+
         resize           (Vector2<f32>),
         scroll_jump      (f32),
         set_entries      (entry::AnyModelProvider),
         select_entry     (entry::Id),
         chose_entry      (entry::Id),
-        deselect_entries (),
     }
+
     Output {
         selected_entry  (Option<entry::Id>),
         chosen_entry    (Option<entry::Id>),
@@ -436,15 +423,13 @@ impl application::command::FrpNetworkProvider for ListView {
     fn network(&self) -> &frp::Network { &self.frp.network }
 }
 
-impl application::command::Provider for ListView {
-    fn label() -> &'static str { "ListView" }
-}
-
 impl application::View for ListView {
-    fn new(app:&Application) -> Self { ListView::new(app) }
-}
+    fn label() -> &'static str { "ListView" }
 
-impl application::shortcut::DefaultShortcutProvider for ListView {
+    fn new(app:&Application) -> Self { ListView::new(app) }
+
+    fn app(&self) -> &Application { &self.model.app }
+
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[ (Press, "up"        , "move_selection_up")

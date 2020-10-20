@@ -60,7 +60,7 @@ dependencies = [
  "ast-macros 0.1.0",
  "derive_more 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -78,7 +78,7 @@ version = "0.1.0"
 dependencies = [
  "Inflector 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-macro-utils 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 1.0.42 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -129,14 +129,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "backtrace"
-version = "0.3.51"
+version = "0.3.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "addr2line 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.78 (registry+https://github.com/rust-lang/crates.io-index)",
  "miniz_oxide 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "object 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "object 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-demangle 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -268,6 +268,11 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "cfg-if"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "chrono"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -292,7 +297,7 @@ dependencies = [
 name = "code-builder"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -458,14 +463,14 @@ name = "enso-automata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "enso-callback"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -473,7 +478,7 @@ name = "enso-data"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.116 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -484,8 +489,8 @@ dependencies = [
  "Inflector 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-callback 0.1.0",
  "enso-generics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-system-web 0.1.0",
  "keyboard-types 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -506,10 +511,10 @@ dependencies = [
 
 [[package]]
 name = "enso-logger"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)",
  "web-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -530,12 +535,12 @@ name = "enso-optics"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "enso-prelude"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "boolinator 2.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -564,8 +569,8 @@ dependencies = [
  "bytes 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-build-utilities 0.1.0",
  "ensogl-system-web 0.1.0",
@@ -619,8 +624,8 @@ version = "0.1.0"
 dependencies = [
  "enso-automata 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-system-web 0.1.0",
  "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -636,8 +641,8 @@ version = "0.1.0"
 dependencies = [
  "enso-automata 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shortcuts 0.1.0",
  "ensogl-system-web 0.1.0",
  "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -686,9 +691,9 @@ dependencies = [
  "enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-frp 0.1.0",
  "enso-generics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-optics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shortcuts 0.1.0",
  "enso-types 0.1.0",
@@ -719,8 +724,8 @@ name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-core 0.1.0",
  "ensogl-gui-list-view 0.1.0",
@@ -740,8 +745,8 @@ name = "ensogl-gui-drop-down-menu"
 version = "0.1.0"
 dependencies = [
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-types 0.1.0",
  "ensogl-core 0.1.0",
@@ -756,8 +761,8 @@ name = "ensogl-gui-list-view"
 version = "0.1.0"
 dependencies = [
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-types 0.1.0",
  "ensogl-core 0.1.0",
@@ -773,8 +778,8 @@ dependencies = [
  "async-std 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "gloo-timers 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -789,7 +794,7 @@ name = "ensogl-text"
 version = "0.1.0"
 dependencies = [
  "enso-frp 0.1.0",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-types 0.1.0",
  "ensogl-core 0.1.0",
@@ -804,7 +809,7 @@ dependencies = [
 name = "ensogl-text-embedded-fonts"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-build-utilities 0.1.0",
  "zip 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -813,7 +818,7 @@ dependencies = [
 name = "ensogl-text-msdf-sys"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-build-utilities 0.1.0",
  "ensogl-text-embedded-fonts 0.1.0",
  "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -853,7 +858,7 @@ name = "failure"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "backtrace 0.3.51 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace 0.3.53 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1054,7 +1059,7 @@ dependencies = [
 name = "fuzzly"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1237,8 +1242,8 @@ dependencies = [
  "enso-callback 0.1.0",
  "enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-protocol 0.1.0",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl 0.1.0",
@@ -1277,8 +1282,8 @@ version = "0.1.0"
 dependencies = [
  "ast 0.1.0",
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-protocol 0.1.0",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl 0.1.0",
@@ -1304,8 +1309,8 @@ version = "0.1.0"
 dependencies = [
  "ast 0.1.0",
  "enso-frp 0.1.0",
- "enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-protocol 0.1.0",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl 0.1.0",
@@ -1413,7 +1418,7 @@ dependencies = [
 name = "json-rpc"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-system-web 0.1.0",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1797,7 +1802,7 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.20.0"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1872,7 +1877,7 @@ dependencies = [
  "bytes 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl-build-utilities 0.1.0",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2465,7 +2470,7 @@ version = "0.1.0"
 dependencies = [
  "ast 0.1.0",
  "enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "parser 0.1.0",
  "utils 0.1.0",
@@ -2814,7 +2819,7 @@ dependencies = [
 name = "utils"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "pin-utils 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2984,7 +2989,7 @@ dependencies = [
 name = "web-test"
 version = "0.1.0"
 dependencies = [
- "enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ensogl 0.1.0",
  "ensogl-system-web 0.1.0",
  "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3127,7 +3132,7 @@ dependencies = [
 "checksum async-task 1.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0ac2c016b079e771204030951c366db398864f5026f84a44dafb0ff20f02085d"
 "checksum autocfg 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "1d49d90015b3c36167a20fe2810c5cd875ad504b39cff3d4eae7977e6b7c1cb2"
 "checksum autocfg 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
-"checksum backtrace 0.3.51 (registry+https://github.com/rust-lang/crates.io-index)" = "ec1931848a574faa8f7c71a12ea00453ff5effbb5f51afe7f77d7a48cace6ac1"
+"checksum backtrace 0.3.53 (registry+https://github.com/rust-lang/crates.io-index)" = "707b586e0e2f247cbde68cdd2c3ce69ea7b7be43e1c5b426e37c9319c4b9838e"
 "checksum base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0b25d992356d2eb0ed82172f5248873db5560c4721f564b13cb5193bda5e668e"
 "checksum base64 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
 "checksum base64 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)" = "489d6c0ed21b11d038c31b6ceccca973e65d73ba3bd8ecb9a2babf5546164643"
@@ -3147,6 +3152,7 @@ dependencies = [
 "checksum bzip2-sys 0.1.9+1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "ad3b39a260062fca31f7b0b12f207e8f2590a67d32ec7d59c20484b07ea7285e"
 "checksum cc 1.0.60 (registry+https://github.com/rust-lang/crates.io-index)" = "ef611cc68ff783f18535d77ddd080185275713d852c4f5cbb6122c462a7a825c"
 "checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+"checksum cfg-if 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 "checksum chrono 0.4.19 (registry+https://github.com/rust-lang/crates.io-index)" = "670ad68c9088c2a963aaa298cb369688cf3f9465ce5e2d4ca10e6e0098a1ce73"
 "checksum cloudabi 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
 "checksum console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "b8d976903543e0c48546a91908f21588a680a8c8f984df9a5d69feccb2b2a211"
@@ -3171,10 +3177,10 @@ dependencies = [
 "checksum enso-automata 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2f8d432048ea9d4c4b5f84fd246303b74c8a52d9e5878f593fef540a67faff24"
 "checksum enso-data 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ffc40b4b23f9e915afe3985e0786bd9ca497573a80fbcb3b84978f32cc744c37"
 "checksum enso-generics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0bf6f66c10edfaa8b55292053192112d0796c12b2aeab0e2f51dae5eec729d3b"
-"checksum enso-logger 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "db48f2812226edcefd983e34b54bdeef0793a966b52438bb8b3b1e7b2964a883"
+"checksum enso-logger 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c7441811c7ced397587e78694c3fdae701bd8b92abfd478b551e7cf5e3683845"
 "checksum enso-macro-utils 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "616e099985be92ef3de01f4c062868b46ab06868e1fc9cd077050709ccc2d9ae"
 "checksum enso-optics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0f403efb0c27b67eb8cfec664ed7456224d564b3095268d856023648848d4139"
-"checksum enso-prelude 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "468042bb4c07f210a815b232e20db03c532fab83f40222be93e17bd4a3c3350b"
+"checksum enso-prelude 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "6aa4af65ea178a844c68df804fc7d425af0679f6991e73074da0c0d4235bffa6"
 "checksum enso-shapely 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7cb58453f07271a20818286f7bb4b151a6f98394f6ae5b51772e1293c2cabe32"
 "checksum enso-shapely-macros 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93efddfab94ddd125a5f5f9af5f6e463ad2ee4e647b8fa8688d930cda69a7c6a"
 "checksum enum_dispatch 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "733967190e01b0dcb64f2f42687a78af0e418e064489e993e16445643d088560"
@@ -3271,7 +3277,7 @@ dependencies = [
 "checksum num_cpus 1.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "05499f3756671c15885fee9034446956fff3f243d6077b91e5767df161f766b3"
 "checksum num_enum 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ca565a7df06f3d4b485494f25ba05da1435950f4dc263440eda7a6fa9b8e36e4"
 "checksum num_enum_derive 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ffa5a33ddddfee04c0283a7653987d634e880347e96b5b2ed64de07efb59db9d"
-"checksum object 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1ab52be62400ca80aa00285d25253d7f7c437b7375c4de678f5405d3afe82ca5"
+"checksum object 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)" = "37fd5004feb2ce328a52b0b3d01dbf4ffff72583493900ed15f22d4111c51693"
 "checksum once_cell 1.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "260e51e7efe62b592207e9e13a68e43692a7a279171d6ba57abd208bf23645ad"
 "checksum opaque-debug 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
 "checksum openssl 0.10.30 (registry+https://github.com/rust-lang/crates.io-index)" = "8d575eff3665419f9b83678ff2815858ad9d11567e082f5ac1814baba4e2bcb4"

@@ -16,7 +16,7 @@ quote          = "1.0"
 Inflector      = "0.11.4"
 
 enso-macro-utils = { version = "0.1.1" }
-enso-prelude     = { version = "0.1.2" }
+enso-prelude     = { version = "0.1.4" }
 
 [dependencies.syn]
 version = "1.0"

@@ -442,7 +442,7 @@ struct PortFrp {
 ///
 /// This allows us to use the same setup code for bot the `multi_port_area::Shape` and the
 /// `single_port_area::Shape`.
-fn init_port_frp<Shape: PortShape + CloneRef + 'static>
+fn init_port_frp<Shape: display::shape::system::Shape + PortShape + CloneRef + 'static>
 (view:&component::ShapeView<Shape>, port_id:PortId, frp:PortFrp, network:&frp::Network) {
     let PortFrp { mouse_over,mouse_out,mouse_down,
         hide,activate_and_highlight_selected} = frp;

@@ -71,7 +71,7 @@ pub mod chooser_hover_area {
 // === FRP ===
 // ===========
 
-ensogl_text::define_endpoints! {
+ensogl_core::define_endpoints! {
     Input {
         set_entries         (list_view::entry::AnyModelProvider),
         set_icon_size       (Vector2),

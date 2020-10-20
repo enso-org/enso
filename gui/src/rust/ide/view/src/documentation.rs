@@ -200,14 +200,13 @@ impl ViewModel {
 // === FRP ===
 // ===========
 
-ensogl_text::define_endpoints! {
+ensogl::define_endpoints! {
     Input {
         /// Display documentation of the entity represented by given code.
         display_documentation (String),
         /// Display documentation represented by docstring.
         display_docstring (String),
     }
-    Output {}
 }
 
 

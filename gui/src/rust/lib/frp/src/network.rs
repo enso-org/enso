@@ -8,6 +8,16 @@ use crate::debug;
 
 
 
+// ==========
+// === Id ===
+// ==========
+
+/// Globally unique identifier of an frp network.
+#[derive(Clone,CloneRef,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq)]
+pub struct NetworkId(usize);
+
+
+
 // ===============
 // === Network ===
 // ===============
@@ -19,13 +29,13 @@ use crate::debug;
 /// Moreover, you should not grow the FRP network after it is constructed.
 #[derive(Clone,CloneRef,Debug,Default,)]
 pub struct Network {
-    data : Rc<NetworkData>
+    data : Rc<NetworkData>,
 }
 
 /// Weak version of `Network`.
 #[derive(Clone,CloneRef,Debug)]
 pub struct WeakNetwork {
-    data : Weak<NetworkData>
+    data : Weak<NetworkData>,
 }
 
 /// Network item.
@@ -41,7 +51,6 @@ pub struct NetworkData {
     links   : RefCell<HashMap<Id,Link>>,
     bridges : RefCell<Vec<BridgeNetwork>>,
 }
-
 
 
 // === API ===
@@ -61,14 +70,16 @@ impl Drop for NetworkData {
 
 impl Network {
     /// Constructor.
-    pub fn new() -> Self {
-        let data = Rc::new(NetworkData::new());
-        Self {data}
-    }
+    pub fn new() -> Self { default() }
 
     /// Get the weak version.
     pub fn downgrade(&self) -> WeakNetwork {
         WeakNetwork {data:Rc::downgrade(&self.data)}
+    }
+
+    /// ID getter of this network.
+    pub fn id(&self) -> NetworkId {
+        self.downgrade().id()
     }
 
     /// Register the node and return it's weak reference.
@@ -111,6 +122,11 @@ impl WeakNetwork {
     /// Upgrade to strong reference.
     pub fn upgrade(&self) -> Option<Network> {
         self.data.upgrade().map(|data| Network {data})
+    }
+
+    /// ID getter of this network.
+    pub fn id(&self) -> NetworkId {
+        NetworkId(self.data.as_raw() as *const() as usize)
     }
 }
 

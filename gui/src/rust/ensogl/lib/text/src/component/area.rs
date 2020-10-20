@@ -24,10 +24,11 @@ use ensogl_core::display::shape::*;
 use ensogl_core::display;
 use ensogl_core::gui::component::Animation;
 use ensogl_core::gui::component;
-use ensogl_core::gui;
-use ensogl_core::system::web::clipboard;
+use ensogl_core::gui::cursor;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
+use ensogl_core::system::web::clipboard;
 use ensogl_theme;
+use std::ops::Not;
 
 
 
@@ -38,27 +39,6 @@ use ensogl_theme;
 /// Record separator ASCII code. Used for separating of copied strings. It is defined as the `\RS`
 /// escape code (`x1E`) (https://en.wikipedia.org/wiki/ASCII).
 pub const RECORD_SEPARATOR : &str = "\x1E";
-
-
-
-// ==================
-// === Background ===
-// ==================
-
-// FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
-// This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
-
-// /// Canvas node shape definition.
-// pub mod background {
-//     use super::*;
-//
-//     ensogl::define_shape_system! {
-//         (style:Style, selection:f32) {
-//             let out = Rect((1000.px(),1000.px())).fill(color::Rgba::new(1.0,1.0,1.0,0.05));
-//             out.into()
-//         }
-//     }
-// }
 
 
 
@@ -340,112 +320,100 @@ impl Lines {
 // === FRP ===
 // ===========
 
-ensogl_core::def_command_api! { Commands
-    /// Insert character of the last pressed key at every cursor.
-    insert_char_of_last_pressed_key,
-    /// Increase the indentation of all lines containing cursors.
-    increase_indentation,
-    /// Decrease the indentation of all lines containing cursors.
-    decrease_indentation,
-    /// Removes the character on the left of every cursor.
-    delete_left,
-    /// Removes the character on the right of every cursor.
-    delete_right,
-    /// Removes the word on the left of every cursor.
-    delete_word_left,
-    /// Removes the word on the right of every cursor.
-    delete_word_right,
-    /// Set the text cursor at the mouse cursor position.
-    set_cursor_at_mouse_position,
-    /// Set the text cursor at the end of text.
-    set_cursor_at_end,
-    /// Add a new cursor at the mouse cursor position.
-    add_cursor_at_mouse_position,
-    /// Remove all cursors.
-    remove_all_cursors,
-    /// Start changing the shape of the newest selection with the mouse position.
-    start_newest_selection_end_follow_mouse,
-    /// Stop changing the shape of the newest selection with the mouse position.
-    stop_newest_selection_end_follow_mouse,
-    /// Move the cursor to the left by one character.
-    cursor_move_left,
-    /// Move the cursor to the right by one character.
-    cursor_move_right,
-    /// Move the cursor to the left by one word.
-    cursor_move_left_word,
-    /// Move the cursor to the right by one word.
-    cursor_move_right_word,
-    /// Move the cursor to the beginning of the line.
-    cursor_move_left_of_line,
-    /// Move the cursor to the end of the line.
-    cursor_move_right_of_line,
-    /// Move the cursor down one line.
-    cursor_move_down,
-    /// Move the cursor up one line.
-    cursor_move_up,
-    /// Extend the cursor selection to the left by one character.
-    cursor_select_left,
-    /// Extend the cursor selection to the right by one character.
-    cursor_select_right,
-    /// Extend the cursor selection down one line.
-    cursor_select_down,
-    /// Extend the cursor selection up one line.
-    cursor_select_up,
-    /// Extend the cursor selection to the left by one word.
-    cursor_select_left_word,
-    /// Extend the cursor selection to the right by one word.
-    cursor_select_right_word,
-    /// Select all characters.
-    select_all,
-    /// Select the word at cursor position.
-    select_word_at_cursor,
-    /// Discard all but the first selection.
-    keep_first_selection_only,
-    /// Discard all but the last selection.
-    keep_last_selection_only,
-    /// Discard all but the first selection and convert it to cursor.
-    keep_first_cursor_only,
-    /// Discard all but the last selection and convert it to cursor.
-    keep_last_cursor_only,
-    /// Discard all but the newest selection.
-    keep_newest_selection_only,
-    /// Discard all but the oldest selection.
-    keep_oldest_selection_only,
-    /// Discard all but the newest selection and convert it to cursor.
-    keep_newest_cursor_only,
-    /// Discard all but the oldest selection and convert it to cursor.
-    keep_oldest_cursor_only,
-    /// Set the oldest selection end to mouse position.
-    set_newest_selection_end_to_mouse_position,
-    /// Set the newest selection end to mouse position.
-    set_oldest_selection_end_to_mouse_position,
-    /// Undo the last operation.
-    undo,
-    /// Redo the last operation.
-    redo,
-    /// Copy selected text to clipboard.
-    copy,
-    /// Paste selected text from clipboard.
-    paste,
-    /// Set the text area in active state. You should rather not need to control it manually, as it is automatically managed by the active state manager.
-    set_active_on,
-    /// Set the text area in non-active state. You should rather not need to control it manually, as it is automatically managed by the active state manager.
-    set_active_off,
-}
-
-impl application::command::CommandApi for Area {
-    fn command_api_docs() -> Vec<application::command::EndpointDocs> {
-        Commands::command_api_docs()
-    }
-
-    fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
-        self.frp.input.command.command_api()
-    }
-}
-
-crate::define_endpoints! {
-    Commands { Commands }
+ensogl_core::define_endpoints! {
     Input {
+        /// Insert character of the last pressed key at every cursor.
+        insert_char_of_last_pressed_key(),
+        /// Increase the indentation of all lines containing cursors.
+        increase_indentation(),
+        /// Decrease the indentation of all lines containing cursors.
+        decrease_indentation(),
+        /// Removes the character on the left of every cursor.
+        delete_left(),
+        /// Removes the character on the right of every cursor.
+        delete_right(),
+        /// Removes the word on the left of every cursor.
+        delete_word_left(),
+        /// Removes the word on the right of every cursor.
+        delete_word_right(),
+        /// Set the text cursor at the mouse cursor position.
+        set_cursor_at_mouse_position(),
+        /// Set the text cursor at the end of text.
+        set_cursor_at_end(),
+        /// Add a new cursor at the mouse cursor position.
+        add_cursor_at_mouse_position(),
+        /// Remove all cursors.
+        remove_all_cursors(),
+        /// Start changing the shape of the newest selection with the mouse position.
+        start_newest_selection_end_follow_mouse(),
+        /// Stop changing the shape of the newest selection with the mouse position.
+        stop_newest_selection_end_follow_mouse(),
+        /// Move the cursor to the left by one character.
+        cursor_move_left(),
+        /// Move the cursor to the right by one character.
+        cursor_move_right(),
+        /// Move the cursor to the left by one word.
+        cursor_move_left_word(),
+        /// Move the cursor to the right by one word.
+        cursor_move_right_word(),
+        /// Move the cursor to the beginning of the line.
+        cursor_move_left_of_line(),
+        /// Move the cursor to the end of the line.
+        cursor_move_right_of_line(),
+        /// Move the cursor down one line.
+        cursor_move_down(),
+        /// Move the cursor up one line.
+        cursor_move_up(),
+        /// Extend the cursor selection to the left by one character.
+        cursor_select_left(),
+        /// Extend the cursor selection to the right by one character.
+        cursor_select_right(),
+        /// Extend the cursor selection down one line.
+        cursor_select_down(),
+        /// Extend the cursor selection up one line.
+        cursor_select_up(),
+        /// Extend the cursor selection to the left by one word.
+        cursor_select_left_word(),
+        /// Extend the cursor selection to the right by one word.
+        cursor_select_right_word(),
+        /// Select all characters.
+        select_all(),
+        /// Select the word at cursor position.
+        select_word_at_cursor(),
+        /// Discard all but the first selection.
+        keep_first_selection_only(),
+        /// Discard all but the last selection.
+        keep_last_selection_only(),
+        /// Discard all but the first selection and convert it to cursor.
+        keep_first_cursor_only(),
+        /// Discard all but the last selection and convert it to cursor.
+        keep_last_cursor_only(),
+        /// Discard all but the newest selection.
+        keep_newest_selection_only(),
+        /// Discard all but the oldest selection.
+        keep_oldest_selection_only(),
+        /// Discard all but the newest selection and convert it to cursor.
+        keep_newest_cursor_only(),
+        /// Discard all but the oldest selection and convert it to cursor.
+        keep_oldest_cursor_only(),
+        /// Set the oldest selection end to mouse position.
+        set_newest_selection_end_to_mouse_position(),
+        /// Set the newest selection end to mouse position.
+        set_oldest_selection_end_to_mouse_position(),
+        /// Undo the last operation.
+        undo(),
+        /// Redo the last operation.
+        redo(),
+        /// Copy selected text to clipboard.
+        copy(),
+        /// Paste selected text from clipboard.
+        paste(),
+
+        hover(),
+        unhover(),
+        single_line(bool),
+        set_hover(bool),
+
         set_cursor            (Location),
         add_cursor            (Location),
         paste_string          (String),
@@ -456,11 +424,11 @@ crate::define_endpoints! {
         set_content           (String),
     }
     Output {
-        mouse_cursor_style (gui::cursor::Style),
-        active             (bool),
-        width              (f32),
-        changed            (Vec<buffer::view::Change>),
-        content            (Text),
+        pointer_style (cursor::Style),
+        width         (f32),
+        changed       (Vec<buffer::view::Change>),
+        content       (Text),
+        hovered       (bool),
     }
 }
 
@@ -477,7 +445,7 @@ pub const LINE_HEIGHT : f32 = 14.0;
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Area {
-    data    : AreaData,
+    data    : AreaModel,
     pub frp : Frp,
 }
 
@@ -489,57 +457,54 @@ impl Deref for Area {
 }
 
 impl Area {
-    /// Consturctor.
+    /// Constructor.
     pub fn new(app:&Application) -> Self {
-        let network = frp::Network::new();
-        let data    = AreaData::new(app,&network);
-        let output  = data.frp_endpoints.clone_ref();
-        let frp     = Frp::new(network,output);
+        let frp  = Frp::new_network();
+        let data = AreaModel::new(app,&frp.output);
         Self {data,frp} . init()
     }
 
     fn init(self) -> Self {
         let network  = &self.frp.network;
         let model    = &self.data;
-        let mouse    = &model.scene.mouse.frp;
-        let input    = &model.frp_endpoints.input;
-        let cmd      = &input.command;
+        let scene    = model.app.display.scene();
+        let mouse    = &scene.mouse.frp;
+        let input    = &self.frp.input;
+        let out      = &self.frp.output;
         let pos      = Animation :: <Vector2> :: new(&network);
-        let keyboard = &model.scene.keyboard;
+        let keyboard = &scene.keyboard;
         let m        = &model;
         pos.update_spring(|spring| spring*2.0);
 
         frp::extend! { network
 
-            // FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
-            // This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
+            // === Multi / Single Line ===
 
-            // cursor_over  <- bg.events.mouse_over.constant(gui::cursor::Style::new_text_cursor());
-            // cursor_out   <- bg.events.mouse_out.constant(gui::cursor::Style::default());
-            // mouse_cursor <- any(cursor_over,cursor_out);
-            // self.frp.source.mouse_cursor_style <+ mouse_cursor;
+            eval input.single_line((t) m.single_line.set(*t));
 
 
-            // === Active State Management ===
+            // === Hover ===
 
-            // FIXME[WD]: Connect the active state to active state management when its ready.
-            // Should be removed as part of https://github.com/enso-org/ide/issues/670
-            active <- bool(&cmd.set_active_off,&cmd.set_active_on);
-            self.frp.source.active <+ active;
+            hover_events  <- bool(&input.unhover,&input.hover);
+            hovered       <- any(&input.set_hover,&hover_events);
+            out.source.hovered <+ hovered;
+
+
+            // === Pointer Style ===
+
+            pointer_style <- hovered.map(|hovered| {
+                if *hovered { cursor::Style::new_text_cursor() } else { cursor::Style::default() }
+            });
+            out.source.pointer_style <+ pointer_style;
+
 
             // === Set / Add cursor ===
 
-            // FIXME[WD]: These frp nodes are simulating active state management. To be removed
-            // as part of https://github.com/enso-org/ide/issues/670
-            set_cursor_at_mouse_position <- cmd.set_cursor_at_mouse_position.gate(&active);
-            set_cursor_at_end            <- cmd.set_cursor_at_end           .gate(&active);
-            add_cursor_at_mouse_position <- cmd.add_cursor_at_mouse_position.gate(&active);
-
-            mouse_on_set_cursor      <- mouse.position.sample(&set_cursor_at_mouse_position);
-            mouse_on_add_cursor      <- mouse.position.sample(&add_cursor_at_mouse_position);
+            mouse_on_set_cursor      <- mouse.position.sample(&input.set_cursor_at_mouse_position);
+            mouse_on_add_cursor      <- mouse.position.sample(&input.add_cursor_at_mouse_position);
             loc_on_set_cursor_mouse  <- mouse_on_set_cursor.map(f!((p) m.get_in_text_location(*p)));
             loc_on_add_cursor_mouse  <- mouse_on_add_cursor.map(f!((p) m.get_in_text_location(*p)));
-            loc_on_set_cursor_at_end <- set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
+            loc_on_set_cursor_at_end <- input.set_cursor_at_end.map(f_!(model.buffer.text().location_of_text_end()));
             loc_on_set_cursor        <- any(input.set_cursor,loc_on_set_cursor_mouse,loc_on_set_cursor_at_end);
             loc_on_add_cursor        <- any(&input.add_cursor,&loc_on_add_cursor_mouse);
 
@@ -547,26 +512,26 @@ impl Area {
             eval loc_on_add_cursor ((loc) m.buffer.frp.add_cursor(loc));
 
             _eval <- m.buffer.frp.selection_edit_mode.map2
-                (&m.scene.frp.frame_time,f!([m](selections,time) {
+                (&scene.frp.frame_time,f!([m](selections,time) {
                         m.redraw(); // FIXME: added for undo redo. Should not be needed.
                         m.on_modified_selection(selections,*time,true)
                     }
             ));
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
-                (&m.scene.frp.frame_time,f!([m](selections,time) {
+                (&scene.frp.frame_time,f!([m](selections,time) {
                     m.redraw(); // FIXME: added for undo redo. Should not be needed.
                     m.on_modified_selection(selections,*time,false)
                 }
             ));
 
             selecting <- bool
-                ( &cmd.stop_newest_selection_end_follow_mouse
-                , &cmd.start_newest_selection_end_follow_mouse
+                ( &input.stop_newest_selection_end_follow_mouse
+                , &input.start_newest_selection_end_follow_mouse
                 );
 
             set_sel_end_1 <- mouse.position.gate(&selecting);
-            set_sel_end_2 <- mouse.position.sample(&cmd.set_newest_selection_end_to_mouse_position);
+            set_sel_end_2 <- mouse.position.sample(&input.set_newest_selection_end_to_mouse_position);
             set_newest_selection_end <- any(&set_sel_end_1,&set_sel_end_2);
 
             eval set_newest_selection_end([m](screen_pos) {
@@ -577,7 +542,7 @@ impl Area {
 
             // === Copy / Paste ===
 
-            copy_sels      <- cmd.copy.map(f_!(m.buffer.selections_contents()));
+            copy_sels      <- input.copy.map(f_!(m.buffer.selections_contents()));
             all_empty_sels <- copy_sels.map(|s|s.iter().all(|t|t.is_empty()));
             line_sel_mode  <- copy_sels.gate(&all_empty_sels);
 
@@ -586,53 +551,53 @@ impl Area {
             line_sel_mode_sels     <- line_sel_mode.map(f_!(m.buffer.selections_contents()));
             sels                   <- any(&line_sel_mode_sels,&non_line_sel_mode_sels);
             eval sels ((s) m.copy(s));
-            eval_ cmd.paste (m.paste());
+            eval_ input.paste (m.paste());
             eval input.paste_string ((s) m.buffer.frp.paste(m.decode_paste(s)));
 
 
             eval_ m.buffer.frp.text_change (m.redraw());
 
-            eval_ cmd.remove_all_cursors (m.buffer.frp.remove_all_cursors());
+            eval_ input.remove_all_cursors (m.buffer.frp.remove_all_cursors());
 
-            eval_ cmd.keep_first_selection_only (m.buffer.frp.keep_first_selection_only());
-            eval_ cmd.keep_last_selection_only  (m.buffer.frp.keep_last_selection_only());
-            eval_ cmd.keep_first_cursor_only    (m.buffer.frp.keep_first_cursor_only());
-            eval_ cmd.keep_last_cursor_only     (m.buffer.frp.keep_last_cursor_only());
+            eval_ input.keep_first_selection_only (m.buffer.frp.keep_first_selection_only());
+            eval_ input.keep_last_selection_only  (m.buffer.frp.keep_last_selection_only());
+            eval_ input.keep_first_cursor_only    (m.buffer.frp.keep_first_cursor_only());
+            eval_ input.keep_last_cursor_only     (m.buffer.frp.keep_last_cursor_only());
 
-            eval_ cmd.keep_newest_selection_only (m.buffer.frp.keep_newest_selection_only());
-            eval_ cmd.keep_oldest_selection_only (m.buffer.frp.keep_oldest_selection_only());
-            eval_ cmd.keep_newest_cursor_only    (m.buffer.frp.keep_newest_cursor_only());
-            eval_ cmd.keep_oldest_cursor_only    (m.buffer.frp.keep_oldest_cursor_only());
+            eval_ input.keep_newest_selection_only (m.buffer.frp.keep_newest_selection_only());
+            eval_ input.keep_oldest_selection_only (m.buffer.frp.keep_oldest_selection_only());
+            eval_ input.keep_newest_cursor_only    (m.buffer.frp.keep_newest_cursor_only());
+            eval_ input.keep_oldest_cursor_only    (m.buffer.frp.keep_oldest_cursor_only());
 
-            eval_ cmd.cursor_move_left  (m.buffer.frp.cursors_move(Transform::Left));
-            eval_ cmd.cursor_move_right (m.buffer.frp.cursors_move(Transform::Right));
-            eval_ cmd.cursor_move_up    (m.buffer.frp.cursors_move(Transform::Up));
-            eval_ cmd.cursor_move_down  (m.buffer.frp.cursors_move(Transform::Down));
+            eval_ input.cursor_move_left  (m.buffer.frp.cursors_move(Transform::Left));
+            eval_ input.cursor_move_right (m.buffer.frp.cursors_move(Transform::Right));
+            eval_ input.cursor_move_up    (m.buffer.frp.cursors_move(Transform::Up));
+            eval_ input.cursor_move_down  (m.buffer.frp.cursors_move(Transform::Down));
 
-            eval_ cmd.cursor_move_left_word  (m.buffer.frp.cursors_move(Transform::LeftWord));
-            eval_ cmd.cursor_move_right_word (m.buffer.frp.cursors_move(Transform::RightWord));
+            eval_ input.cursor_move_left_word  (m.buffer.frp.cursors_move(Transform::LeftWord));
+            eval_ input.cursor_move_right_word (m.buffer.frp.cursors_move(Transform::RightWord));
 
-            eval_ cmd.cursor_move_left_of_line  (m.buffer.frp.cursors_move(Transform::LeftOfLine));
-            eval_ cmd.cursor_move_right_of_line (m.buffer.frp.cursors_move(Transform::RightOfLine));
+            eval_ input.cursor_move_left_of_line  (m.buffer.frp.cursors_move(Transform::LeftOfLine));
+            eval_ input.cursor_move_right_of_line (m.buffer.frp.cursors_move(Transform::RightOfLine));
 
-            eval_ cmd.cursor_select_left  (m.buffer.frp.cursors_select(Transform::Left));
-            eval_ cmd.cursor_select_right (m.buffer.frp.cursors_select(Transform::Right));
-            eval_ cmd.cursor_select_up    (m.buffer.frp.cursors_select(Transform::Up));
-            eval_ cmd.cursor_select_down  (m.buffer.frp.cursors_select(Transform::Down));
+            eval_ input.cursor_select_left  (m.buffer.frp.cursors_select(Transform::Left));
+            eval_ input.cursor_select_right (m.buffer.frp.cursors_select(Transform::Right));
+            eval_ input.cursor_select_up    (m.buffer.frp.cursors_select(Transform::Up));
+            eval_ input.cursor_select_down  (m.buffer.frp.cursors_select(Transform::Down));
 
-            eval_ cmd.cursor_select_left_word  (m.buffer.frp.cursors_select(Transform::LeftWord));
-            eval_ cmd.cursor_select_right_word (m.buffer.frp.cursors_select(Transform::RightWord));
+            eval_ input.cursor_select_left_word  (m.buffer.frp.cursors_select(Transform::LeftWord));
+            eval_ input.cursor_select_right_word (m.buffer.frp.cursors_select(Transform::RightWord));
 
-            eval_ cmd.select_all            (m.buffer.frp.cursors_select(Transform::All));
-            eval_ cmd.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
+            eval_ input.select_all            (m.buffer.frp.cursors_select(Transform::All));
+            eval_ input.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
 
-            eval_ cmd.delete_left       (m.buffer.frp.delete_left());
-            eval_ cmd.delete_right      (m.buffer.frp.delete_right());
-            eval_ cmd.delete_word_left  (m.buffer.frp.delete_word_left());
-            eval_ cmd.delete_word_right (m.buffer.frp.delete_word_right());
+            eval_ input.delete_left       (m.buffer.frp.delete_left());
+            eval_ input.delete_right      (m.buffer.frp.delete_right());
+            eval_ input.delete_word_left  (m.buffer.frp.delete_word_left());
+            eval_ input.delete_word_right (m.buffer.frp.delete_word_right());
 
-            eval_ cmd.undo (m.buffer.frp.undo());
-            eval_ cmd.redo (m.buffer.frp.redo());
+            eval_ input.undo (m.buffer.frp.undo());
+            eval_ input.redo (m.buffer.frp.redo());
 
 
             // === Insert ===
@@ -641,11 +606,11 @@ impl Area {
             key_to_insert <= key_inserted.map(f!((key) m.key_to_string(key)));
             str_to_insert <- any(&input.insert,&key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
-            eval input.set_content ([input,cmd](s) {
+            eval input.set_content ([input](s) {
                 input.set_cursor(&default());
-                cmd.select_all();
+                input.select_all();
                 input.insert(s);
-                cmd.remove_all_cursors();
+                input.remove_all_cursors();
             });
 
             // === Colors ===
@@ -680,7 +645,7 @@ impl Area {
 
     fn symbols(&self) -> SmallVec<[display::Symbol;1]> {
         let text_symbol       = self.data.glyph_system.sprite_system().symbol.clone_ref();
-        let selection_system  = self.data.scene.shapes.shape_system(PhantomData::<selection::Shape>);
+        let selection_system  = self.data.app.display.scene().shapes.shape_system(PhantomData::<selection::Shape>);
         let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
         //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
         SmallVec::from_buf([text_symbol,/*selection_symbol*/])
@@ -689,14 +654,14 @@ impl Area {
 
 
 
-// ================
-// === AreaData ===
-// ================
+// =================
+// === AreaModel ===
+// =================
 
 /// Internal representation of `Area`.
 #[derive(Clone,CloneRef,Debug)]
-pub struct AreaData {
-    scene          : Scene,
+pub struct AreaModel {
+    app            : Application,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
     camera         : Rc<CloneRefCell<display::camera::Camera2d>>,
@@ -706,35 +671,24 @@ pub struct AreaData {
     display_object : display::object::Instance,
     glyph_system   : glyph::System,
     lines          : Lines,
+    single_line    : Rc<Cell<bool>>,
     selection_map  : Rc<RefCell<SelectionMap>>,
-    // FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
-    // This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
-    //background     : component::ShapeView<background::Shape>,
 }
 
-impl AreaData {
+impl AreaModel {
     /// Constructor.
-    pub fn new(app:&Application, network:&frp::Network) -> Self {
-        let scene          = app.display.scene().clone_ref();
+    pub fn new(app:&Application, frp_endpoints:&FrpEndpoints) -> Self {
+        let app            = app.clone_ref();
+        let scene          = app.display.scene();
         let logger         = Logger::new("text_area");
-        let _bg_logger     = Logger::sub(&logger,"background");
         let selection_map  = default();
-
-        // FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
-        // This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
-        // let background     = component::ShapeView::<background::Shape>::new(&bg_logger,&scene);
-        // display_object.add_child(&background);
-        // background.shape.sprite.size.set(Vector2(150.0,100.0));
-        // background.mod_position(|p| p.x += 50.0);
-
         let fonts          = scene.extension::<typeface::font::Registry>();
         let font           = fonts.load("DejaVuSansMono");
         let glyph_system   = typeface::glyph::System::new(&scene,font);
         let display_object = display::object::Instance::new(&logger);
         let buffer         = default();
         let lines          = default();
-        let frp_inputs     = FrpInputs::new(network);
-        let frp_endpoints  = FrpEndpoints::new(&network,frp_inputs.clone_ref());
+        let single_line    = default();
         let camera         = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
 
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
@@ -749,8 +703,10 @@ impl AreaData {
         scene.views.main.remove(symbol);
         scene.views.label.add(symbol);
 
-        Self {scene,logger,frp_endpoints,display_object,glyph_system,buffer,lines,selection_map
-            ,camera}.init()
+        let frp_endpoints = frp_endpoints.clone_ref();
+
+        Self {app,logger,display_object,glyph_system,buffer,lines,selection_map,camera
+             ,single_line,frp_endpoints}.init()
     }
 
     fn on_modified_selection(&self, selections:&buffer::selection::Group, time:f32, do_edit:bool) {
@@ -788,7 +744,7 @@ impl AreaData {
                         selection
                     }
                     None => {
-                        let selection = Selection::new(&logger,&self.scene,do_edit);
+                        let selection = Selection::new(&logger,&self.app.display.scene(),do_edit);
                         selection.shape.letter_width.set(7.0); // FIXME hardcoded values
                         self.add_child(&selection);
                         selection.position.set_target_value(pos);
@@ -824,7 +780,7 @@ impl AreaData {
         let origin_clip_space  = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix  = self.transform_matrix().try_inverse().unwrap();
 
-        let shape        = self.scene.frp.shape.value();
+        let shape        = self.app.display.scene().frp.shape.value();
         let clip_space_z = origin_clip_space.z;
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
@@ -955,14 +911,14 @@ impl AreaData {
     fn key_to_string(&self, key:&Key) -> Option<String> {
         match key {
             Key::Character(s) => Some(s.clone()),
-            Key::Enter        => Some("\n".into()),
+            Key::Enter        => self.single_line.get().not().as_some("\n".into()),
             Key::Space        => Some(" ".into()),
             _                 => None
         }
     }
 }
 
-impl display::Object for AreaData {
+impl display::Object for AreaModel {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
@@ -980,23 +936,19 @@ impl application::command::FrpNetworkProvider for Area {
     }
 }
 
-impl application::command::Provider for Area {
+impl application::View for Area {
     fn label() -> &'static str {
         "TextArea"
     }
-}
 
-impl application::View for Area {
     fn new(app:&Application) -> Self {
         Area::new(app)
     }
-}
 
-// FIXME[WD]: Some of the shortcuts are commented out and some are assigned to strange key bindings
-//            because the shortcut manager is broken. To be fixed after fixing the shortcut manager.
-//            Moreover, the lines should fit 100 chars after introducing the new cmd engine.
-//            Should be resolved as part of https://github.com/enso-org/ide/issues/713
-impl application::shortcut::DefaultShortcutProvider for Area {
+    fn app(&self) -> &Application {
+        &self.data.app
+    }
+
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[ (Press       , "left"                    , "cursor_move_left")
@@ -1030,13 +982,12 @@ impl application::shortcut::DefaultShortcutProvider for Area {
           , (Press       , "cmd a"                   , "select_all")
           , (Press       , "cmd c"                   , "copy")
           , (Press       , "cmd v"                   , "paste")
-//        , Self::self_shortcut(Press   (&[Key::Escape]                          , shortcut::Pattern::Any) , "keep_oldest_cursor_only"),
-//        , Self::self_shortcut(Press   (shortcut::Pattern::Any,&[])                                       , "insert_char_of_last_pressed_key"),
-//        , Self::self_shortcut(Release (&[Key::Meta,Key::Character("z".into())],&[])                      , "undo"),
-//        , Self::self_shortcut(Release (&[Key::Meta,Key::Character("y".into())],&[])                      , "redo"),
-//        , Self::self_shortcut(Release (&[Key::Meta,Key::Shift,Key::Character("z".into())],&[])           , "redo"),
-//        , Self::self_shortcut(Press   (&[Key::Escape]                          , shortcut::Pattern::Any) , "undo"),
-          ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
+          , (Press       , "escape"                  , "keep_oldest_cursor_only")
+          ]).iter().map(|(action,rule,command)| {
+              let only_hovered = *action != Release && rule.contains("left-mouse-button");
+              let condition = if only_hovered { "focused & hovered" } else { "focused" };
+              Self::self_shortcut_when(*action,*rule,*command,condition)
+          }).collect()
     }
 }
 

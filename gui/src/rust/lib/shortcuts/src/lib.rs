@@ -71,7 +71,7 @@ lazy_static! {
     static ref SIDE_KEYS_SET: HashSet<&'static str> = SIDE_KEYS.iter().copied().collect();
 }
 
-const DOUBLE_EVENT_TIME_MS : f32 = 500.0;
+const DOUBLE_EVENT_TIME_MS : f32 = 300.0;
 
 
 
@@ -505,12 +505,18 @@ impl<T:HashSetRegistryItem> HashSetRegistryModel<T> {
     }
 
     fn on_event(&mut self, input:impl AsRef<str>, press:bool) -> Vec<T> {
-        let input = input.as_ref().to_lowercase();
-        let out   = self.process_event(false);
-        if press { self.pressed.insert(input); }
-        else     { self.pressed.remove(&input); }
-        self.current_expr = self.current_expr();
-        out.extended(self.process_event(true))
+        let input  = input.as_ref().to_lowercase();
+        let exists = self.pressed.contains(&input);
+        let repeat = if press { exists } else { !exists };
+        if !repeat {
+            let out = self.process_event(false);
+            if press { self.pressed.insert(input); }
+            else     { self.pressed.remove(&input); }
+            self.current_expr = self.current_expr();
+            out.extended(self.process_event(true))
+        } else {
+            default()
+        }
     }
 
     fn process_event(&mut self, press:bool) -> Vec<T> {
@@ -779,6 +785,26 @@ mod tests {
         assert_eq!(registry.on_press("a"),vec!["press ctrl a"]);
         assert_eq!(registry.on_release("ctrl-left"),vec!["release ctrl a", "press a"]);
         assert_eq!(registry.on_release("a"),vec!["release a"]);
+        registry
+    }
+
+
+    // === Disabled Key Repeat ===
+
+    // #[test] fn automata_registry_repeat() { repeat::<AutomataRegistry<&'static str>>(); }
+    #[test] fn hash_set_registry_repeat() { repeat::<HashSetRegistry<&'static str>>(); }
+    fn repeat<T:Registry<&'static str>>() -> T {
+        let nothing = Vec::<&'static str>::new();
+        let registry : T = default();
+        registry.add(Press   , "a" , "press a");
+        registry.add(Release , "a" , "release a");
+        for _ in 0..10 {
+            assert_eq!(registry.on_press("a"), vec!["press a"]);
+            assert_eq!(registry.on_press("a"), nothing);
+            assert_eq!(registry.on_press("a"), nothing);
+            assert_eq!(registry.on_press("a"), nothing);
+            assert_eq!(registry.on_release("a"), vec!["release a"]);
+        }
         registry
     }
 

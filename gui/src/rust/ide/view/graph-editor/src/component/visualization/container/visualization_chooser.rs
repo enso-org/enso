@@ -23,7 +23,7 @@ use ensogl_gui_drop_down_menu as drop_down_menu;
 // === FRP ===
 // ===========
 
-ensogl_text::define_endpoints! {
+ensogl::define_endpoints! {
     Input {
         set_entries         (Vec<visualization::Path>),
         set_icon_size       (Vector2),
@@ -32,6 +32,7 @@ ensogl_text::define_endpoints! {
         set_selected        (Option<visualization::Path>),
         set_menu_offset_y   (f32),
     }
+
     Output {
         menu_visible  (bool),
         menu_closed   (),
