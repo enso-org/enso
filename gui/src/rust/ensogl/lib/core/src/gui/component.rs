@@ -192,6 +192,59 @@ impl<T:Shape> display::Object for ShapeView<T> {
 
 
 
+// ==================
+// === Animatable ===
+// ==================
+
+/// Indicate what datatype to use in the animation space representation.
+pub trait HasAnimationSpaceRepr {
+    /// Representation in animation space. Needs to support linear interpolation and all
+    /// pre-requisites of `inertia::Value`.
+    type AnimationSpaceRepr: inertia::Value;
+}
+
+/// Newtype that indicates that the wrapped value is valid to be used in animations.
+#[derive(Debug)]
+pub struct AnimationLinearSpace<T> {
+    /// Wrapped value representing the animation space value.
+    pub value: T
+}
+
+/// Shorthand for a  HasAnimationSpaceRepr::AnimationSpaceRepr wrapped in a `AnimationLinearSpace`.
+pub type AnimationSpaceRepr<T> = AnimationLinearSpace<<T as HasAnimationSpaceRepr>::AnimationSpaceRepr>;
+
+pub trait Animatable = HasAnimationSpaceRepr + BiInto<AnimationSpaceRepr<Self>>;
+
+/// Convert the animation space value to the respective `Animatable`.
+pub fn from_animation_space<T:Animatable>(value:T::AnimationSpaceRepr) -> T {
+    AnimationLinearSpace{value}.into()
+}
+
+macro_rules! define_self_animatable {
+    ($type:ty ) => {
+        impl HasAnimationSpaceRepr for $type { type AnimationSpaceRepr = $type; }
+
+        impl From<$type> for AnimationLinearSpace<$type> {
+            fn from(value:$type) -> AnimationLinearSpace<$type> {
+                 AnimationLinearSpace{value}
+            }
+        }
+
+        impl Into<$type> for AnimationLinearSpace<$type> {
+            fn into(self) -> $type {
+                self.value
+            }
+        }
+    }
+}
+
+define_self_animatable!(f32);
+define_self_animatable!(Vector2);
+define_self_animatable!(Vector3);
+define_self_animatable!(Vector4);
+
+
+
 // =================
 // === Animation ===
 // =================
@@ -201,21 +254,44 @@ impl<T:Shape> display::Object for ShapeView<T> {
 #[derive(CloneRef,Derivative,Debug,Shrinkwrap)]
 #[derivative(Clone(bound=""))]
 #[allow(missing_docs)]
-pub struct Animation<T> {
+pub struct Animation<T:Animatable> {
     #[shrinkwrap(main_field)]
-    pub simulator : DynSimulator<T>,
+    pub simulator : DynSimulator<T::AnimationSpaceRepr>,
     pub value     : frp::Stream<T>,
 }
 
-impl<T:inertia::Value> Animation<T> {
+#[allow(missing_docs)]
+impl<T:Animatable+frp::Data> Animation<T> {
     /// Constructor.
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! { network
             def target = source::<T>();
         }
-        let simulator = DynSimulator::<T>::new(Box::new(f!((t) target.emit(t))));
+        let simulator = DynSimulator::<T::AnimationSpaceRepr>::new(Box::new(f!((t) {
+             target.emit(from_animation_space::<T>(t))
+        })));
         let value     = target.into();
         Self {simulator,value}
+    }
+
+    pub fn set_value(&self, value:T) {
+        let animation_space_repr = value.into();
+        self.simulator.set_value(animation_space_repr.value);
+    }
+
+    pub fn value(&self) -> T {
+        let value = self.simulator.value();
+        from_animation_space(value)
+    }
+
+    pub fn set_target_value(&self, target_value:T) {
+        let state:AnimationLinearSpace<_> = target_value.into();
+        self.simulator.set_target_value(state.value);
+    }
+
+    pub fn target_value(&self) -> T {
+        let value = self.simulator.target_value();
+        from_animation_space(value)
     }
 }
 
