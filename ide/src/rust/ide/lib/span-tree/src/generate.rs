@@ -434,6 +434,33 @@ fn generate_expected_arguments
 
 
 
+// ===================
+// === MockContext ===
+// ===================
+
+use ast::Id;
+
+#[derive(Clone,Debug,Default)]
+pub struct MockContext {
+    map : HashMap<Id, CalledMethodInfo>,
+}
+
+impl MockContext {
+    pub fn new_single(id:Id, info: CalledMethodInfo) -> Self {
+        let mut ret = Self::default();
+        ret.map.insert(id,info);
+        ret
+    }
+}
+
+impl Context for MockContext {
+    fn call_info(&self, id:Id, _name:Option<&str>) -> Option<CalledMethodInfo> {
+        self.map.get(&id).cloned()
+    }
+}
+
+
+
 // ============
 // === Test ===
 // ============
@@ -450,7 +477,6 @@ mod test {
     use crate::node::InsertType::*;
 
     use ast::Crumbs;
-    use ast::Id;
     use ast::IdMap;
     use ast::crumbs::AmbiguousCrumb;
     use ast::crumbs::AmbiguousSegmentCrumb;
@@ -466,22 +492,6 @@ mod test {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    #[derive(Clone,Debug,Default)]
-    struct MockContext {
-        map : HashMap<Id, CalledMethodInfo>,
-    }
-    impl MockContext {
-        fn new_single(id:Id, info: CalledMethodInfo) -> Self {
-            let mut ret = Self::default();
-            ret.map.insert(id,info);
-            ret
-        }
-    }
-    impl Context for MockContext {
-        fn call_info(&self, id:Id, _name:Option<&str>) -> Option<CalledMethodInfo> {
-            self.map.get(&id).cloned()
-        }
-    }
 
     /// A helper function which removes information about expression id from thw tree rooted at
     /// `node`.

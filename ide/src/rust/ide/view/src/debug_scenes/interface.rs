@@ -81,7 +81,7 @@ impl DummyTypeGenerator {
 fn init(app:&Application) {
 
     ensogl_theme::dark::setup(&app);
-    ensogl_theme::light::setup(&app);
+    // ensogl_theme::light::setup(&app);
 
     let _bg = app.display.scene().style_sheet.var(ensogl_theme::vars::application::background::color);
 
@@ -123,7 +123,8 @@ fn init(app:&Application) {
         }
     });
 
-    let expression_2 = expression_mock2();
+    let expression_2 = ttt();
+    println!("{:#?}",expression_2.input_span_tree);
     graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
     expression_2.input_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let  Some(expr_id) = node.expression_id {
@@ -156,9 +157,15 @@ fn init(app:&Application) {
         }
         was_rendered = true;
     }).forget();
+    visual_expr(expression_mock2());
 
 }
 
+
+fn visual_expr(expr:Expression) {
+    println!("-----------------");
+    println!("{:#?}",expr);
+}
 
 
 // =============
@@ -226,6 +233,37 @@ pub fn expression_mock2() -> Expression {
             .done()
         .add_empty_child(36,span_tree::node::InsertType::Append)
         .build();
+    Expression {code,input_span_tree,output_span_tree}
+}
+
+use parser::Parser;
+use span_tree::SpanTree;
+
+pub fn ttt() -> Expression {
+    let code       = "image.blur 15".to_string();
+    let parser     = Parser::new_or_panic();
+    let this_param = span_tree::ParameterInfo {
+        name     : Some("this".to_owned()),
+        typename : Some("Image".to_owned()),
+    };
+    let param0 = span_tree::ParameterInfo {
+        name     : Some("radius".to_owned()),
+        typename : Some("Number".to_owned()),
+    };
+    let param1 = span_tree::ParameterInfo {
+        name     : Some("foo".to_owned()),
+        typename : Some("Number".to_owned()),
+    };
+    let param2 = span_tree::ParameterInfo {
+        name     : Some("bar".to_owned()),
+        typename : Some("Number".to_owned()),
+    };
+    let parameters       = vec![this_param, param0, param1, param2];
+    let ast              = parser.parse_line(&code).unwrap();
+    let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
+    let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
+    let output_span_tree = span_tree::SpanTree::default();
+    let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
     Expression {code,input_span_tree,output_span_tree}
 }
 
