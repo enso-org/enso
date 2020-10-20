@@ -8,7 +8,7 @@ type Duration
 
     ## An amount of time in terms of years, months, days, hours, minutes,
        seconds and nanoseconds.
-    type Duration interval_period interval_duration
+    type Duration internal_period internal_duration
 
     ## Add specified amount of time to this duration.
 
@@ -20,7 +20,7 @@ type Duration
          Add 12 hours to a duration of a month.
              1.month + 12.hours
     + : Duration -> Duration
-    + other = Duration (this.interval_period . plus [other.interval_period]) (this.interval_duration . plus [other.interval_duration])
+    + other = Duration (this.internal_period . plus [other.internal_period]) (this.internal_duration . plus [other.internal_duration])
 
     ## Subtract specified amount of time from this duration.
        > Example
@@ -31,39 +31,39 @@ type Duration
          Substract 30 minutes from a duration of 7 months.
              7.months - 30.minutes
     - : Duration -> Duration
-    - other = Duration (this.interval_period . minus [other.interval_period]) (this.interval_duration . minus [other.interval_duration])
+    - other = Duration (this.internal_period . minus [other.internal_period]) (this.internal_duration . minus [other.internal_duration])
 
     ## Get the amount of nanoseconds of this duration.
     nanoseconds : Integer
-    nanoseconds = this.interval_duration . toNanosPart []
+    nanoseconds = this.internal_duration . toNanosPart []
 
     ## Get the amount of milliseconds of this duration.
     milliseconds : Integer
-    milliseconds = this.interval_duration . toMillisPart []
+    milliseconds = this.internal_duration . toMillisPart []
 
     ## Get the amount of minutes of this duration.
     seconds : Integer
-    seconds = this.interval_duration . toSecondsPart []
+    seconds = this.internal_duration . toSecondsPart []
 
     ## Get the amount of minutes of this duration.
     minutes : Integer
-    minutes = this.interval_duration . toMinutesPart []
+    minutes = this.internal_duration . toMinutesPart []
 
     ## Get the amount of hours of this duration.
     hours : Integer
-    hours = this.interval_duration . toHours []
+    hours = this.internal_duration . toHours []
 
     ## Get the amount of days of this duration.
     days : Integer
-    days = this.interval_period . getDays []
+    days = this.internal_period . getDays []
 
     ## Get the amount of months of this duration.
     months : Integer
-    months = this.interval_period . getMonths []
+    months = this.internal_period . getMonths []
 
     ## Get the amount of days of this duration.
     years : Integer
-    years = this.interval_period . getYears []
+    years = this.internal_period . getYears []
 
     ## Convert this duration to a Vector of years, months, days, hours, minutes,
        seconds and nanosecnods.
@@ -77,6 +77,8 @@ type Duration
              800.nanoseconds . to_vector
     to_vector : Vector
     to_vector = [this.years, this.months, this.days, this.hours, this.minutes, this.seconds, this.nanoseconds]
+
+    to_seconds : Integer
 
     ## Check if this duration is date-based.
     is_date : Boolean

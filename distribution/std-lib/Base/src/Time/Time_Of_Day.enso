@@ -50,7 +50,7 @@ type Time_Of_Day
          Add 3 seconds to a local time.
              Time_Of_Day.new + 3.seconds
     + : Duration -> Time_Of_Day
-    + amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.interval_duration])
+    + amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.internal_duration])
 
     ## Subtract specified amount of time to this instant.
 
@@ -58,7 +58,7 @@ type Time_Of_Day
          Subtract 12 hours from a local time.
              Time_Of_Day.new - 12.hours
     - : Duration -> Time_Of_Day
-    - amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.interval_duration])
+    - amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.internal_duration])
 
     ## Format this time of day using the default formatter.
     to_text : Text

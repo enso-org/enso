@@ -93,7 +93,7 @@ type Time
          Add 15 years and 3 hours to a zoned date time.
              Time.new 2020 + 15.years + 3.hours
     + : Duration -> Time
-    + amount = Time (this . internal_zoned_date_time . plus [amount.interval_period] . plus [amount.interval_duration])
+    + amount = Time (this . internal_zoned_date_time . plus [amount.internal_period] . plus [amount.internal_duration])
 
     ## Subtract specified amount of time to this instant.
 
@@ -105,7 +105,7 @@ type Time
          Subtract 1 year and 9 months from a zoned date time.
              Time.new 2020 - 1.year - 9.months
     - : Duration -> Time
-    - amount = Time (this . internal_zoned_date_time . minus [amount.interval_period] . minus [amount.interval_duration])
+    - amount = Time (this . internal_zoned_date_time . minus [amount.internal_period] . minus [amount.internal_duration])
 
     ## Format this time using the default formatter.
     to_text : Text
