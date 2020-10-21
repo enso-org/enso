@@ -31,9 +31,9 @@ further investigation.
 #### General Shortcuts
 | Shortcut | Action |
 | -------- | ------ |
-| <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>s</kbd> | Toggle light/dark application style. Currently doesn't work properly, as the Theme Switcher is not created yet. (https://github.com/enso-org/ide/issues/795)|
-| <kbd>ctrl</kbd>+<kbd>`</kbd>                  | Show Code Editor |
-| <kbd>meta</kbd>+<kbd>s</kbd>                  | Save module |
+| <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>shift</kbd>+<kbd>t</kbd> | Toggle light/dark application style. Currently doesn't work properly, as the Theme Switcher is not created yet. (https://github.com/enso-org/ide/issues/795)|
+| <kbd>ctrl</kbd>+<kbd>`</kbd>                                | Show Code Editor |
+| <kbd>meta</kbd>+<kbd>s</kbd>                                | Save module |
 
 
 #### Navigation
