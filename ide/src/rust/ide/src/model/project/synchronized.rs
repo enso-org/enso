@@ -61,7 +61,7 @@ impl ExecutionContextsRegistry {
     (&self
      , context : VisualisationContext
      , data    : VisualizationUpdateData
-    ) -> FallibleResult<()> {
+    ) -> FallibleResult {
         self.with_context(context.context_id, |ctx| {
             ctx.dispatch_visualization_update(context.visualization_id,data)
         })
@@ -69,7 +69,7 @@ impl ExecutionContextsRegistry {
 
     /// Handles the update about expressions being computed.
     pub fn handle_expression_values_computed
-    (&self, update:language_server::ExpressionValuesComputed) -> FallibleResult<()> {
+    (&self, update:language_server::ExpressionValuesComputed) -> FallibleResult {
         self.with_context(update.context_id, |ctx| {
             ctx.handle_expression_values_computed(update)
         })
@@ -336,7 +336,7 @@ impl model::project::API for Project {
         }.boxed_local()
     }
 
-    fn rename_project(&self, name:String) -> BoxFuture<FallibleResult<()>> {
+    fn rename_project(&self, name:String) -> BoxFuture<FallibleResult> {
         async move {
             self.project_manager.rename_project(&self.data.id,&name).await?;
             self.data.set_name(name);

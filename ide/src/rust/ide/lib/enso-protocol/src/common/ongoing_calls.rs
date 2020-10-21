@@ -70,7 +70,7 @@ where Id:Copy + Debug + Display + Hash + Eq + Send + Sync + 'static {
 
     /// Passes peer's `reply` to complete request with given `id`.
     /// Fails, if such request was not present in the storage.
-    pub fn complete_request(&mut self, id:Id, reply:Reply) -> FallibleResult<()> {
+    pub fn complete_request(&mut self, id:Id, reply:Reply) -> FallibleResult {
         if let Some(request) = self.remove_request(&id) {
             // Explicitly ignore error. Can happen only if the other side already dropped future
             // with the call result. In such case no one needs to be notified and we are fine.

@@ -60,10 +60,10 @@ pub type Event = crate::common::event::Event<Notification>;
 #[automock]
 pub trait API {
     /// Initializes the protocol. Must be called exactly once before making any other calls.
-    fn init(&self, client_id:Uuid) -> StaticBoxFuture<FallibleResult<()>>;
+    fn init(&self, client_id:Uuid) -> StaticBoxFuture<FallibleResult>;
 
     /// Writes binary data to the file.
-    fn write_file(&self, path:&Path, contents:&[u8]) -> StaticBoxFuture<FallibleResult<()>>;
+    fn write_file(&self, path:&Path, contents:&[u8]) -> StaticBoxFuture<FallibleResult>;
 
     /// Retrieves the file contents as a binary data.
     fn read_file(&self, path:&Path) -> StaticBoxFuture<FallibleResult<Vec<u8>>>;
@@ -90,7 +90,7 @@ pub struct Client {
 
 impl Client {
     /// Helper function that fails if the received message represents a remote error.
-    fn expect_success(result: FromServerPayloadOwned) -> FallibleResult<()> {
+    fn expect_success(result: FromServerPayloadOwned) -> FallibleResult {
         if let FromServerPayloadOwned::Success {} = result {
             Ok(())
         } else {
@@ -175,13 +175,13 @@ impl Client {
 }
 
 impl API for Client {
-    fn init(&self, client_id:Uuid) -> StaticBoxFuture<FallibleResult<()>> {
+    fn init(&self, client_id:Uuid) -> StaticBoxFuture<FallibleResult> {
         info!(self.logger,"Initializing binary connection as client with id {client_id}.");
         let payload = ToServerPayload::InitSession {client_id};
         self.make_request(payload,Self::expect_success)
     }
 
-    fn write_file(&self, path:&Path, contents:&[u8]) -> StaticBoxFuture<FallibleResult<()>> {
+    fn write_file(&self, path:&Path, contents:&[u8]) -> StaticBoxFuture<FallibleResult> {
         info!(self.logger,"Writing file {path} with {contents.len()} bytes.");
         let payload = ToServerPayload::WriteFile {path,contents};
         self.make_request(payload,Self::expect_success)

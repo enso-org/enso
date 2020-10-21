@@ -103,7 +103,7 @@ impl Path {
     }
 
     /// Check if the given file path is a valid module path.
-    pub fn validate_path(file_path:&FilePath) -> FallibleResult<()> {
+    pub fn validate_path(file_path:&FilePath) -> FallibleResult {
         use ModulePathViolation::*;
         let error = |issue| {
             let path = file_path.clone();
@@ -256,7 +256,7 @@ impl From<Path> for Id {
 
 /// Notification about change in module content.
 #[derive(Clone,Debug,Eq,PartialEq)]
-pub enum Notification {
+pub enum NotificationKind {
     /// The whole content is invalidated.
     Invalidate,
     /// The code has been edited. That involves also a change in module's id_map.
@@ -264,10 +264,24 @@ pub enum Notification {
         /// The code change description.
         change:TextChange,
         /// Information about line:col position of replaced fragment.
-        replaced_location:Range<TextLocation>
+        replaced_location:Range<TextLocation>,
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,
+}
+
+/// Notification about change in module content.
+#[derive(Clone,Debug,Eq,PartialEq)]
+pub struct Notification {
+    /// The expected state of the source file at the point when this notification is emit.
+    ///
+    /// This information is necessary for notifying LS about edits -- in case of failure the
+    /// synchronization handler must be able to perform full invalidation. The model state cannot be
+    /// used for this as LS communication is asynchronous and model state can already be modified
+    /// further.
+    pub new_file : SourceFile,
+    /// Describes the notified event.
+    pub kind : NotificationKind,
 }
 
 
@@ -422,20 +436,20 @@ pub trait API:Debug {
 // === Setters ===
 
     /// Update whole content of the module.
-    fn update_whole(&self, content:Content);
+    fn update_whole(&self, content:Content) -> FallibleResult;
 
     /// Update ast in module controller.
-    fn update_ast(&self, ast:ast::known::Module);
+    fn update_ast(&self, ast:ast::known::Module) -> FallibleResult;
 
     /// Updates AST after code change.
     ///
     /// May return Error when new code causes parsing errors, or when parsed code does not produce
     /// Module ast.
     fn apply_code_change
-    (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult<()>;
+    (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult;
 
     /// Sets metadata for given node.
-    fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata);
+    fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata) -> FallibleResult;
 
     /// Removes metadata of given node and returns them.
     fn remove_node_metadata(&self, id:ast::Id) -> FallibleResult<NodeMetadata>;
@@ -445,7 +459,8 @@ pub trait API:Debug {
     /// If ID doesn't have metadata, empty (default) metadata is inserted. Inside callback you
     /// should use only the data passed as argument; don't use functions of this controller for
     /// getting and setting metadata for the same node.
-    fn with_node_metadata(&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>);
+    fn with_node_metadata
+    (&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>) -> FallibleResult;
 
 
 // === Utils ===

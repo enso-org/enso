@@ -141,7 +141,7 @@ impl model::execution_context::API for ExecutionContext {
         Box::new((0..stack_size).filter_map(move |i| self.stack.borrow().get(i).cloned()))
     }
 
-    fn push(&self, stack_item:LocalCall) -> LocalBoxFuture<'_, FallibleResult<()>> {
+    fn push(&self, stack_item:LocalCall) -> LocalBoxFuture<'_, FallibleResult> {
         self.push(stack_item);
         futures::future::ready(Ok(())).boxed_local()
     }
@@ -162,7 +162,7 @@ impl model::execution_context::API for ExecutionContext {
     }
 
     fn dispatch_visualization_update
-    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult<()> {
+    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult {
         if let Some(visualization) = self.visualizations.borrow_mut().get(&visualization_id) {
             // TODO [mwu] Should we consider detaching the visualization if the view has dropped the
             //   channel's receiver? Or we need to provide a way to re-establish the channel.

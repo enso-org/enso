@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::double_representation::definition::DefinitionInfo;
 use crate::double_representation::graph::Id;
 use crate::model::module::API;
+use crate::model::module::NotificationKind;
 use crate::model::module::Content;
 use crate::model::module::Notification;
 use crate::model::module::NodeMetadata;
@@ -34,6 +35,15 @@ struct ContentSummary {
     end_of_file : TextLocation,
 }
 
+impl ContentSummary {
+    fn new(text:&str) -> Self {
+        Self {
+            digest      : Sha3_224::new(text.as_bytes()),
+            end_of_file : TextLocation::at_document_end(text)
+        }
+    }
+}
+
 /// The information about module's content. In addition to minimal summery defined in
 /// `ContentSummary` it adds information about sections, what enables efficient updates after code
 /// and metadata changes.
@@ -49,12 +59,8 @@ struct ParsedContentSummary {
 impl ParsedContentSummary {
     /// Get summary from `SourceFile`.
     fn from_source(source:&SourceFile) -> Self {
-        let summary = ContentSummary {
-            digest      : Sha3_224::new(source.content.as_bytes()),
-            end_of_file : TextLocation::at_document_end(&source.content)
-        };
         ParsedContentSummary {
-            summary,
+            summary     : ContentSummary::new(&source.content),
             code        : TextLocation::convert_byte_range(&source.content,&source.code),
             id_map      : TextLocation::convert_byte_range(&source.content,&source.id_map),
             metadata    : TextLocation::convert_byte_range(&source.content,&source.metadata),
@@ -67,7 +73,7 @@ impl ParsedContentSummary {
 enum LanguageServerContent {
     /// The content is synchronized with our module state after last fully handled notification.
     Synchronized(ParsedContentSummary),
-    /// The content is not synchronized with our module state after last fully handled notificaiton,
+    /// The content is not synchronized with our module state after last fully handled notification,
     /// probably due to connection error when sending update.
     Desynchronized(ContentSummary)
 }
@@ -127,7 +133,9 @@ impl Module {
         let summary = ContentSummary {digest,end_of_file};
         let model   = model::module::Plain::new(path,source.ast,source.metadata);
         let this    = Rc::new(Module {model,language_server,logger});
-        executor::global::spawn(Self::runner(this.clone_ref(),summary));
+        let content = this.model.serialized_content()?;
+        let first_invalidation = this.full_invalidation(&summary,content);
+        executor::global::spawn(Self::runner(this.clone_ref(),summary,first_invalidation));
         Ok(this)
     }
 
@@ -167,20 +175,20 @@ impl API for Module {
         self.model.node_metadata(id)
     }
 
-    fn update_whole(&self, content:Content) {
+    fn update_whole(&self, content:Content) -> FallibleResult {
         self.model.update_whole(content)
     }
 
-    fn update_ast(&self, ast: ast::known::Module) {
+    fn update_ast(&self, ast: ast::known::Module) -> FallibleResult {
         self.model.update_ast(ast)
     }
 
     fn apply_code_change
-    (&self, change:TextChange, parser:&Parser, new_id_map:IdMap) -> FallibleResult<()> {
+    (&self, change:TextChange, parser:&Parser, new_id_map:IdMap) -> FallibleResult {
         self.model.apply_code_change(change,parser,new_id_map)
     }
 
-    fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata) {
+    fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata) -> FallibleResult {
         self.model.set_node_metadata(id,data)
     }
 
@@ -188,7 +196,8 @@ impl API for Module {
         self.model.remove_node_metadata(id)
     }
 
-    fn with_node_metadata(&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>) {
+    fn with_node_metadata
+    (&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>) -> FallibleResult {
         self.model.with_node_metadata(id,fun)
     }
 }
@@ -199,9 +208,12 @@ impl API for Module {
 impl Module {
     /// The asynchronous task scheduled during struct creation which listens for all module changes
     /// and send proper updates to Language Server.
-    async fn runner(self:Rc<Self>, initial_ls_content: ContentSummary) {
-        let first_invalidation = self.full_invalidation(&initial_ls_content).await;
-        let mut ls_content     = self.new_ls_content_info(initial_ls_content, first_invalidation);
+    async fn runner
+    ( self               : Rc<Self>
+    , initial_ls_content : ContentSummary
+    , first_invalidation : impl Future<Output=FallibleResult<ParsedContentSummary>>) {
+        let first_invalidation = first_invalidation.await;
+        let mut ls_content     = self.new_ls_content_info(initial_ls_content,first_invalidation);
         let mut subscriber     = self.model.subscribe();
         let weak               = Rc::downgrade(&self);
         drop(self);
@@ -228,7 +240,10 @@ impl Module {
     (&self, old_content:ContentSummary, new_content:FallibleResult<ParsedContentSummary>)
     -> LanguageServerContent {
         match new_content {
-            Ok(new_content) => LanguageServerContent::Synchronized(new_content),
+            Ok(new_content) => {
+                debug!(self.logger,"Updating the LS content digest to: {new_content.summary:?}");
+                LanguageServerContent::Synchronized(new_content)
+            },
             Err(err)        => {
                 error!(self.logger,"Error during sending text change to Language Server: {err}");
                 LanguageServerContent::Desynchronized(old_content)
@@ -241,63 +256,73 @@ impl Module {
     async fn handle_notification
     (&self, content:&LanguageServerContent, notification:Notification)
     -> FallibleResult<ParsedContentSummary> {
+        let Notification{new_file,kind} = notification;
         debug!(self.logger,"Handling notification: {content:?}.");
         match content {
-            LanguageServerContent::Desynchronized(summary) => self.full_invalidation(summary).await,
-            LanguageServerContent::Synchronized(summary)   => match notification {
-                Notification::Invalidate => self.full_invalidation(&summary.summary).await,
-                Notification::CodeChanged{change,replaced_location} =>
-                    self.notify_language_server(&summary.summary, |content| {
-                        let code_change = TextEdit {
-                            range : replaced_location.into(),
-                            text  : change.inserted,
-                        };
-                        let id_map_change = TextEdit {
-                            range : summary.id_map.clone().into(),
-                            text  : content.id_map_slice().to_string(),
-                        };
-                        //id_map goes first, because code change may alter it's position.
-                        vec![id_map_change,code_change]
-                    }).await,
-                Notification::MetadataChanged =>
-                    self.notify_language_server(&summary.summary, |content| vec![TextEdit {
-                        range : summary.metadata.clone().into(),
-                        text  : content.metadata_slice().to_string(),
-                    }]).await,
+            LanguageServerContent::Desynchronized(summary) =>
+                self.full_invalidation(summary,new_file).await,
+            LanguageServerContent::Synchronized(summary) => match kind {
+                NotificationKind::Invalidate =>
+                    self.full_invalidation(&summary.summary,new_file).await,
+                NotificationKind::CodeChanged{change,replaced_location} => {
+                    let code_change = TextEdit {
+                        range: replaced_location.into(),
+                        text: change.inserted,
+                    };
+                    let id_map_change = TextEdit {
+                        range: summary.id_map.clone().into(),
+                        text: new_file.id_map_slice().to_string(),
+                    };
+                    //id_map goes first, because code change may alter it's position.
+                    let edits = vec![id_map_change, code_change];
+                    self.notify_language_server(&summary.summary,&new_file,edits).await
+                }
+                NotificationKind::MetadataChanged => {
+                    let edits = vec![TextEdit {
+                        range: summary.metadata.clone().into(),
+                        text: new_file.metadata_slice().to_string(),
+                    }];
+                    self.notify_language_server(&summary.summary,&new_file,edits).await
+                }
             },
         }
     }
 
     /// Send update to Language Server with the entire file content. Returns the new content summary
     /// of Language Server state.
-    async fn full_invalidation
-    (&self, ls_content:&ContentSummary) -> FallibleResult<ParsedContentSummary> {
+    fn full_invalidation
+    (&self, ls_content:&ContentSummary, new_file:SourceFile)
+    -> impl Future<Output=FallibleResult<ParsedContentSummary>> + 'static {
         debug!(self.logger,"Handling full invalidation: {ls_content:?}.");
         let range = TextLocation::at_document_begin()..ls_content.end_of_file;
-        self.notify_language_server(ls_content,|content| vec![TextEdit {
+        let edits = vec![TextEdit {
             range : range.into(),
-            text  : content.content
-        }]).await
+            text  : new_file.content.clone(),
+        }];
+        self.notify_language_server(ls_content,&new_file,edits)
     }
 
     /// This is a helper function with all common logic regarding sending the update to
     /// Language Server. Returns the new summary of Language Server state.
-    async fn notify_language_server
+    fn notify_language_server
     ( &self
     , ls_content        : &ContentSummary
-    , edits_constructor : impl FnOnce(SourceFile) -> Vec<TextEdit>
-    ) -> FallibleResult<ParsedContentSummary> {
-        let content = self.model.serialized_content()?;
-        let summary = ParsedContentSummary::from_source(&content);
+    , new_file          : &SourceFile
+    , edits             : Vec<TextEdit>
+    ) -> impl Future<Output=FallibleResult<ParsedContentSummary>> + 'static  {
+        let summary = ParsedContentSummary::from_source(&new_file);
         let edit    = language_server::types::FileEdit {
+            edits,
             path        : self.path().file_path().clone(),
-            edits       : edits_constructor(content),
             old_version : ls_content.digest.clone(),
-            new_version : summary.digest.clone()
+            new_version : Sha3_224::new(new_file.content.as_bytes()),
         };
-        debug!(self.logger,"Notifying LS with edit: {edit:?}.");
-        self.language_server.client.apply_text_file_edit(&edit).await?;
-        Ok(summary)
+        debug!(self.logger,"Notifying LS with edit: {edit:#?}.");
+        let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit);
+        async {
+            ls_future_reply.await?;
+            Ok(summary)
+        }
     }
 }
 
@@ -333,158 +358,234 @@ impl Deref for Module {
 pub mod test {
     use super::*;
 
-    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::test::Runner;
 
-    use data::text::TextChange;
     use data::text;
-    use enso_protocol::language_server::CapabilityRegistration;
+    use data::text::TextChange;
+    use enso_protocol::language_server::FileEdit;
+    use enso_protocol::language_server::MockClient;
+    use enso_protocol::language_server::Position;
+    use enso_protocol::language_server::TextRange;
     use json_rpc::error::RpcError;
-    use json_rpc::expect_call;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
 
+    // === LsClientSetup ===
 
-    /// A helper structure for setting up the Language Server Mock Client calls during opening
-    /// and invalidating module file.
-    ///
-    /// When setting new calls (e.g. using `expect_invalidate` function) it assumes the Language
-    /// Server state with all previous;y set calls successfully applied.
+    // Ensures that subsequent LS text operations form a consistent series of versions.
+    #[derive(Clone,Debug)]
     struct LsClientSetup {
-        file_path          : language_server::Path,
-        current_ls_code    : Rc<CloneCell<String>>,
-        current_ls_version : Rc<CloneCell<Sha3_224>>,
-        client             : language_server::MockClient,
+        logger              : Logger,
+        path                : Path,
+        current_ls_content  : Rc<CloneCell<String>>,
+        current_ls_version  : Rc<CloneCell<Sha3_224>>,
     }
 
     impl LsClientSetup {
-        fn new(file_path:language_server::Path, initial_content:impl Str) -> Self {
-            let initial_content = initial_content.into();
-            let initial_version = Sha3_224::new(initial_content.as_bytes());
-            let client          = language_server::MockClient::default();
-
-            let capability = CapabilityRegistration::create_can_edit_text_file(file_path.clone());
-            let open_resp  = language_server::response::OpenTextFile {
-                write_capability : Some(capability),
-                content          : initial_content.clone(),
-                current_version  : initial_version.clone(),
-            };
-            expect_call!(client.open_text_file(path=file_path.clone()) => Ok(open_resp));
-
-            let current_ls_code    = Rc::new(CloneCell::new(initial_content));
-            let current_ls_version = Rc::new(CloneCell::new(initial_version));
-            LsClientSetup { file_path,client,current_ls_code,current_ls_version}
+        fn new(parent:impl AnyLogger, path:Path, initial_content:impl Into<String>) -> Self {
+            let current_ls_content = initial_content.into();
+            let current_ls_version = Sha3_224::new(current_ls_content.as_bytes());
+            let logger             = Logger::sub(parent,"LsClientSetup");
+            debug!(logger,"Initial content:\n===\n{current_ls_content}\n===");
+            Self {
+                path,logger,
+                current_ls_content : Rc::new(CloneCell::new(current_ls_content)),
+                current_ls_version : Rc::new(CloneCell::new(current_ls_version)),
+            }
         }
 
-        fn expect_edit<EditApplier>(&self, result:json_rpc::Result<()>, edit_applier:EditApplier)
-        where EditApplier : FnOnce(&[TextEdit]) -> String + 'static {
-            let path       = self.file_path.clone();
-            let ls_version = self.current_ls_version.clone_ref();
-            let ls_code    = self.current_ls_code.clone_ref();
-            self.client.expect.apply_text_file_edit(move |edit| {
-                let new_content = edit_applier(&edit.edits);
-                // check the requested edit content:
-                assert_eq!(edit.path       , path);
-                assert_eq!(edit.old_version, ls_version.get());
-                assert_eq!(edit.new_version, Sha3_224::new(new_content.as_bytes()));
-                // Update state:
+        /// Create a setup initialized with the data from the given mock description.
+        fn new_for_mock_data(data:&crate::test::mock::Unified) -> Self {
+            Self::new(&data.logger,data.module_path.clone(),data.get_code())
+        }
+
+        /// Set up general text edit expectation in the mock client.
+        ///
+        /// This edit can be anything (full invalidation, code or metadata edit). The given function
+        /// should perform any necessary assertions on the `FileEdit` and provide the result that
+        /// the mock client will reply with.
+        fn expect_some_edit
+        (&self, client:&mut MockClient, f:impl FnOnce(&FileEdit) -> json_rpc::Result<()> + 'static) {
+            let this = self.clone();
+            client.expect.apply_text_file_edit(move |edits| {
+                let content_so_far = this.current_ls_content.get();
+                let result         = f(edits);
+                let new_content    = apply_edits(content_so_far, &edits);
+                let actual_old     = this.current_ls_version.get();
+                let actual_new     = Sha3_224::new(new_content.as_bytes());
+                debug!(this.logger,"Actual digest:   {actual_old} => {actual_new}");
+                debug!(this.logger,"Declared digest: {edits.old_version} => {edits.new_version}");
+                debug!(this.logger,"New content:\n===\n{new_content}\n===");
+                assert_eq!(&edits.path,this.path.file_path());
+                assert_eq!(edits.old_version,actual_old);
+                assert_eq!(edits.new_version,actual_new);
                 if result.is_ok() {
-                    ls_code.set(new_content);
-                    ls_version.set(edit.new_version.clone());
+                    this.current_ls_content.set(new_content);
+                    this.current_ls_version.set(actual_new);
+                    debug!(this.logger,"Accepted!");
+                } else {
+                    debug!(this.logger,"Rejected!");
                 }
                 result
             });
         }
 
-        fn expect_invalidate(&self, result:json_rpc::Result<()>) {
-            let end_of_file = TextLocation::at_document_end(self.current_ls_code.get());
-            self.expect_edit(result, move |edits| {
-                let (edit,)      = edits.iter().expect_tuple();
-                let expected_range = language_server::types::TextRange {
-                    start : language_server::types::Position { line:0,character:0  },
-                    end   : end_of_file.into(),
-                };
-                assert_eq!(edit.range, expected_range);
-                edit.text.clone()
+        /// The single text edit with accompanying metadata idmap changes.
+        fn expect_edit_w_metadata
+        (&self, client:&mut MockClient, f:impl FnOnce(&TextEdit) -> json_rpc::Result<()> + 'static) {
+            let this = self.clone();
+            self.expect_some_edit(client, move |edit| {
+                if let [edit_idmap,edit_code] = edit.edits.as_slice() {
+                    let code_so_far = this.current_ls_content.get();
+                    let file_so_far = SourceFile::new(code_so_far);
+                    // TODO [mwu]
+                    //  Currently this assumes that the whole idmap is replaced at each edit.
+                    //  This code should be adjusted, if partial metadata updates are implemented.
+                    let idmap_range = TextLocation::convert_byte_range(&file_so_far.content,
+                        &file_so_far.id_map);
+                    let idmap_range = TextRange::from(idmap_range);
+                    assert_eq!(edit_idmap.range, idmap_range);
+                    assert!(SourceFile::looks_like_idmap(&edit_idmap.text));
+                    f(edit_code)
+                } else {
+                    // This test assumes that expected single file edit consists from two text
+                    // edits: first for idmap adjustment and the second for the actual code edit.
+                    panic!("Expected exactly two edits.");
+                }
             });
         }
 
-        fn finish(self) -> Rc<language_server::Connection> {
-            let client = self.client;
-            expect_call!(client.close_text_file(path=self.file_path) => Ok(()));
-            language_server::Connection::new_mock_rc(client)
+        /// Set up expectation that the content will be fully invalidated. The mock client will
+        /// report a success.
+        fn expect_full_invalidation(&self, client:&mut MockClient) {
+            self.expect_full_invalidation_result(client,Ok(()))
+        }
+
+        /// Set up expectation that the content will be fully invalidated. The mock client will
+        /// report a given result.
+        fn expect_full_invalidation_result
+        (&self, client:&mut MockClient, result:json_rpc::Result<()>) {
+            let this = self.clone();
+            self.expect_some_edit(client, move |edits| {
+                let (edit,) = edits.edits.iter().expect_tuple();
+                assert_eq!(edit.range,this.whole_document_range());
+                result
+            });
+        }
+
+        fn whole_document_range(&self) -> TextRange {
+            let code_so_far = self.current_ls_content.get();
+            let end_of_file = TextLocation::at_document_end(&code_so_far);
+            TextRange {
+                start : Position { line:0,character:0  },
+                end   : end_of_file.into(),
+            }
         }
     }
 
+    fn apply_edit(code:&str, edit:&TextEdit) -> String {
+        let start = TextLocation::from(edit.range.start.into()).to_index(code);
+        let end   = TextLocation::from(edit.range.end.into()).to_index(code);
+        data::text::TextChange::replace(start..end,edit.text.clone()).applied(code)
+    }
+
+    fn apply_edits(code:impl Into<String>, file_edit:&FileEdit) -> String {
+        let initial = code.into();
+        file_edit.edits.iter().fold(initial, |content,edit| apply_edit(&content,edit))
+    }
+
+
+    // === Test cases ===
+
     #[wasm_bindgen_test]
     fn handling_notifications() {
-        let path            = model::module::Path::from_mock_module_name("TestModule");
-        let parser          = Parser::new_or_panic();
-        let initial_content = "main =\n    println \"Hello World!\"";
+        // The test starts with code as below. Then it replaces the whole AST to print "Test".
+        // Then partial edit happens to change Test into Test 2.
+        // Tested logic is:
+        // * there is an initial invalidation after opening the module
+        // * replacing AST causes invalidation
+        // * localized text edit emits similarly localized synchronization updates.
+        let initial_code = "main =\n    println \"Hello World!\"";
+        let mut data = crate::test::mock::Unified::new();
+        data.set_code(initial_code);
+        // We do actually care about sharing `data` between `test` invocations, as it stores the
+        // Parser which is time-consuming to construct.
+        let test = |runner:&mut Runner| {
+            let module_path  = data.module_path.clone();
+            let edit_handler = Rc::new(LsClientSetup::new(&data.logger,module_path,initial_code));
+            let mut fixture  = data.fixture_customize(|data, client| {
+                data.expect_opening_module(client);
+                data.expect_closing_module(client);
+                // Opening module and metadata generation.
+                edit_handler.expect_full_invalidation(client);
+                // Explicit AST update.
+                edit_handler.expect_full_invalidation(client);
+                // Replacing `Test` with `Test 2`
+                edit_handler.expect_some_edit(client, |edits| {
+                    let edit_code = &edits.edits[1];
+                    assert_eq!(edit_code.text, "Test 2");
+                    assert_eq!(edit_code.range, TextRange {
+                        start : Position { line: 1, character: 13 },
+                        end   : Position { line: 1, character: 17 },
+                    });
+                    Ok(())
+                });
+            });
 
-        let setup           = LsClientSetup::new(path.file_path().clone(),initial_content);
-        setup.expect_invalidate(Ok(()));
-        setup.expect_invalidate(Ok(()));
-        setup.expect_edit(Ok(()), |edits| {
-            // Check that it's not invalidate:
-            assert_ne!(edits[0].range.start, TextLocation::at_document_begin().into());
-            "main =\n    println \"Test 2\"".to_string()
-        });
-        let connection                             = setup.finish();
-        let mut test                               = TestWithLocalPoolExecutor::set_up();
-        let module:Rc<RefCell<Option<Rc<Module>>>> = default();
-        let module_ref1                            = module.clone();
-        let module_ref2                            = module.clone();
-        let module_ref3                            = module.clone();
-        test.run_task(async move {
-            let module = Module::open(path,connection,Parser::new_or_panic()).await.unwrap();
-            *module_ref1.borrow_mut() = Some(module);
-        });
-        test.when_stalled(move || {
-            let module_ref  = module_ref2.borrow_mut();
-            let module      = module_ref.as_ref().unwrap();
+            let parser = data.parser.clone();
+            let module = fixture.synchronized_module();
+
             let new_content = "main =\n    println \"Test\"".to_string();
-            let new_ast     = parser.parse_module(new_content.clone(),default()).unwrap();
-            module.update_ast(new_ast);
-        });
-        test.when_stalled(move || {
-            let module_ref = module_ref3.borrow_mut();
-            let module     = module_ref.as_ref().unwrap();
-            let change     = TextChange {
+            let new_ast     = parser.parse_module(new_content.clone(), default()).unwrap();
+            module.update_ast(new_ast).unwrap();
+            runner.perhaps_run_until_stalled(&mut fixture);
+            let change = TextChange {
                 replaced : text::Index::new(20)..text::Index::new(24),
                 inserted : "Test 2".to_string(),
             };
-            module.apply_code_change(change,&Parser::new_or_panic(),default()).unwrap()
-        });
-        test.when_stalled(move || *module.borrow_mut() = None);
+            module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
+            runner.perhaps_run_until_stalled(&mut fixture);
+        };
+
+        Runner::run(test);
     }
 
     #[wasm_bindgen_test]
     fn handling_notification_after_failure() {
-        let path            = model::module::Path::from_mock_module_name("TestModule");
-        let initial_content = "main =\n    println \"Hello World!\"";
+        let initial_code = "main =\n    println \"Hello World!\"";
+        let mut data     = crate::test::mock::Unified::new();
+        data.set_code(initial_code);
 
-        let setup           = LsClientSetup::new(path.file_path().clone(),initial_content);
-        setup.expect_invalidate(Err(RpcError::LostConnection));
-        setup.expect_invalidate(Ok(()));
-        let connection                             = setup.finish();
-        let mut test                               = TestWithLocalPoolExecutor::set_up();
-        let module:Rc<RefCell<Option<Rc<Module>>>> = default();
-        let module_ref1                            = module.clone();
-        let module_ref2                            = module.clone();
-        test.run_task(async move {
-            let module = Module::open(path,connection,Parser::new_or_panic()).await.unwrap();
-            *module_ref1.borrow_mut() = Some(module);
-        });
-        test.when_stalled(move || {
-            let module_ref = module_ref2.borrow_mut();
-            let module     = module_ref.as_ref().unwrap();
-            let change     = TextChange {
-                replaced : text::Index::new(20)..text::Index::new(24),
-                inserted : "Test 2".to_string(),
+        let test = |runner:&mut Runner| {
+            let edit_handler = LsClientSetup::new_for_mock_data(&data);
+            let mut fixture  = data.fixture_customize(|data, client| {
+                data.expect_opening_module(client);
+                data.expect_closing_module(client);
+                // Opening module and metadata generation.
+                edit_handler.expect_full_invalidation(client);
+                // Applying code update.
+                edit_handler.expect_edit_w_metadata(client, |edit| {
+                    assert_eq!(edit.text, "Test 2");
+                    assert_eq!(edit.range, TextRange {
+                        start : Position { line: 1, character: 13 },
+                        end   : Position { line: 1, character: 17 },
+                    });
+                    Err(RpcError::LostConnection)
+                });
+                // Full synchronization due to failed update in previous edit.
+                edit_handler.expect_full_invalidation(client);
+            });
+
+            let (_module, controller) = fixture.synchronized_module_w_controller();
+            runner.perhaps_run_until_stalled(&mut fixture);
+            let change = TextChange {
+                replaced: text::Index::new(20)..text::Index::new(24),
+                inserted: "Test 2".to_string(),
             };
-            module.apply_code_change(change,&Parser::new_or_panic(),default()).unwrap()
-        });
-        test.when_stalled(move || *module.borrow_mut() = None);
+            controller.apply_code_change(change).unwrap();
+            runner.perhaps_run_until_stalled(&mut fixture);
+        };
+        Runner::run(test);
     }
 }

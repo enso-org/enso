@@ -2,15 +2,22 @@
 
 use crate::prelude::*;
 
-use parser::api::{ParsedSourceFile, SourceFile};
-use crate::model::module::{Metadata, NodeMetadata, NodeMetadataNotFound, Path};
+use crate::model::module::Metadata;
+use crate::model::module::NodeMetadata;
+use crate::model::module::NodeMetadataNotFound;
+use crate::model::module::Path;
+use crate::model::module::NotificationKind;
 use crate::model::module::Notification;
 use crate::notification;
-use flo_stream::Subscriber;
 use crate::double_representation::definition::DefinitionInfo;
 use crate::model::module::Content;
-use data::text::{TextChange, TextLocation};
+
+use data::text::TextChange;
+use data::text::TextLocation;
+use flo_stream::Subscriber;
 use parser::Parser;
+use parser::api::ParsedSourceFile;
+use parser::api::SourceFile;
 
 /// A structure describing the module.
 ///
@@ -32,6 +39,51 @@ impl Module {
             content       : RefCell::new(ParsedSourceFile{ast,metadata}),
             notifications : default(),
         }
+    }
+
+    /// Replace the module's content with the new value and emit notification of given kind.
+    ///
+    /// Fails if the `new_content` is so broken that it cannot be serialized to text. In such case
+    /// the module's state is guaranteed to remain unmodified and the notification will not be
+    /// emitted.
+    fn set_content(&self, new_content:Content, kind:NotificationKind) -> FallibleResult {
+        // We want the line below to fail before changing state.
+        let new_file     = new_content.serialize()?;
+        let notification = Notification {new_file,kind};
+        self.content.replace(new_content);
+        self.notifications.notify(notification);
+        Ok(())
+    }
+
+    /// Use `f` to update the module's content.
+    ///
+    /// # Panics
+    ///
+    ///  This method is intended as internal implementation helper.
+    /// `f` gets the borrowed `content`, so any attempt to borrow it directly or transitively from
+    /// `self.content` again will panic.
+    fn update_content<R>
+    (&self, kind:NotificationKind, f:impl FnOnce(&mut Content) -> R) -> FallibleResult<R> {
+        let mut content = self.content.borrow().clone();
+        let ret         = f(&mut content);
+        self.set_content(content,kind)?;
+        Ok(ret)
+    }
+
+    /// Use `f` to update the module's content.
+    ///
+    /// # Panics
+    ///
+    ///  This method is intended as internal implementation helper.
+    /// `f` gets the borrowed `content`, so any attempt to borrow it directly or transitively from
+    /// `self.content` again will panic.
+    fn try_updating_content<R>
+    (&self, kind:NotificationKind, f:impl FnOnce(&mut Content) -> FallibleResult<R>)
+    -> FallibleResult<R> {
+        let mut content = self.content.borrow().clone();
+        let ret         = f(&mut content)?;
+        self.set_content(content,kind)?;
+        Ok(ret)
     }
 }
 
@@ -63,45 +115,45 @@ impl model::module::API for Module {
         data.ok_or_else(|| NodeMetadataNotFound(id).into())
     }
 
-    fn update_whole(&self, content:Content) {
-        *self.content.borrow_mut() = content;
-        self.notifications.notify(Notification::Invalidate);
+    fn update_whole(&self, content:Content) -> FallibleResult {
+        self.set_content(content,NotificationKind::Invalidate)
     }
 
-    fn update_ast(&self, ast:ast::known::Module) {
-        self.content.borrow_mut().ast  = ast;
-        self.notifications.notify(Notification::Invalidate);
+    fn update_ast(&self, ast:ast::known::Module) -> FallibleResult {
+        self.update_content(NotificationKind::Invalidate, |content| content.ast = ast)
     }
 
     fn apply_code_change
-    (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult<()> {
-        let mut code          = self.ast().repr();
+    (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult {
+        let code              = self.ast().repr();
         let replaced_location = TextLocation::convert_range(&code,&change.replaced);
-        change.apply(&mut code);
-        let new_ast = parser.parse(code,new_id_map)?.try_into()?;
-        self.content.borrow_mut().ast = new_ast;
-        self.notifications.notify(Notification::CodeChanged {change,replaced_location});
-        Ok(())
+        let new_code          = change.applied(&code);
+        let new_ast           = parser.parse(new_code,new_id_map)?.try_into()?;
+        let notification      = NotificationKind::CodeChanged {change,replaced_location};
+        self.update_content(notification,|content| content.ast = new_ast)
     }
 
-    fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata) {
-        self.content.borrow_mut().metadata.ide.node.insert(id, data);
-        self.notifications.notify(Notification::MetadataChanged);
+    fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata) -> FallibleResult {
+        self.update_content(NotificationKind::MetadataChanged, |content| {
+            let _ = content.metadata.ide.node.insert(id, data);
+        })
     }
 
     fn remove_node_metadata(&self, id:ast::Id) -> FallibleResult<NodeMetadata> {
-        let lookup = self.content.borrow_mut().metadata.ide.node.remove(&id);
-        let data   = lookup.ok_or_else(|| NodeMetadataNotFound(id))?;
-        self.notifications.notify(Notification::MetadataChanged);
-        Ok(data)
+        self.try_updating_content(NotificationKind::MetadataChanged, |content| {
+            let lookup = content.metadata.ide.node.remove(&id);
+            lookup.ok_or_else(|| NodeMetadataNotFound(id).into())
+        })
     }
 
-    fn with_node_metadata(&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>) {
-        let lookup   = self.content.borrow_mut().metadata.ide.node.remove(&id);
-        let mut data = lookup.unwrap_or_default();
-        fun(&mut data);
-        self.content.borrow_mut().metadata.ide.node.insert(id, data);
-        self.notifications.notify(Notification::MetadataChanged);
+    fn with_node_metadata
+    (&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>) -> FallibleResult {
+        self.update_content(NotificationKind::MetadataChanged, |content| {
+            let lookup   = content.metadata.ide.node.remove(&id);
+            let mut data = lookup.unwrap_or_default();
+            fun(&mut data);
+            content.metadata.ide.node.insert(id, data);
+        })
     }
 }
 
@@ -140,14 +192,20 @@ mod test {
         let mut subscription = module.subscribe().boxed_local();
         subscription.expect_pending();
 
+        let mut expect_notification = |kind:NotificationKind| {
+            let notification = test.expect_completion(subscription.next()).unwrap();
+            assert_eq!(kind,notification.kind);
+            assert_eq!(module.serialized_content().unwrap(), notification.new_file);
+            // We expect exactly one notification. There should be no more.
+            subscription.expect_pending();
+        };
+
         // Ast update
         let new_line       = Ast::infix_var("a","+","b");
         let new_module_ast = Ast::one_line_module(new_line);
         let new_module_ast = ast::known::Module::try_new(new_module_ast).unwrap();
-        module.update_ast(new_module_ast.clone_ref());
-        test.run_until_stalled();
-        assert_eq!(Some(Notification::Invalidate), test.expect_completion(subscription.next()));
-        subscription.expect_pending();
+        module.update_ast(new_module_ast.clone_ref()).unwrap();
+        expect_notification(NotificationKind::Invalidate);
 
         // Code change
         let change = TextChange {
@@ -155,31 +213,26 @@ mod test {
             inserted: "foo".to_string(),
         };
         module.apply_code_change(change.clone(),&Parser::new_or_panic(),default()).unwrap();
-        test.run_until_stalled();
         let replaced_location = TextLocation{line:0, column:0}..TextLocation{line:0, column:1};
-        let notification      = Notification::CodeChanged {change,replaced_location};
-        assert_eq!(Some(notification),test.expect_completion(subscription.next()));
-        subscription.expect_pending();
+        expect_notification(NotificationKind::CodeChanged {change,replaced_location});
 
         // Metadata update
         let id            = Uuid::new_v4();
         let node_metadata = NodeMetadata {position:Some(Position::new(1.0, 2.0)),..default()};
-        module.set_node_metadata(id.clone(),node_metadata.clone());
-        assert_eq!(Some(Notification::MetadataChanged),test.expect_completion(subscription.next()));
-        subscription.expect_pending();
+        module.set_node_metadata(id.clone(),node_metadata.clone()).unwrap();
+        expect_notification(NotificationKind::MetadataChanged);
+
         module.remove_node_metadata(id.clone()).unwrap();
-        assert_eq!(Some(Notification::MetadataChanged),test.expect_completion(subscription.next()));
-        subscription.expect_pending();
-        module.with_node_metadata(id.clone(),Box::new(|md| *md = node_metadata.clone()));
-        assert_eq!(Some(Notification::MetadataChanged),test.expect_completion(subscription.next()));
-        subscription.expect_pending();
+        expect_notification(NotificationKind::MetadataChanged);
+
+        module.with_node_metadata(id.clone(),Box::new(|md| *md = node_metadata.clone())).unwrap();
+        expect_notification(NotificationKind::MetadataChanged);
 
         // Whole update
         let mut metadata = Metadata::default();
         metadata.ide.node.insert(id,node_metadata);
-        module.update_whole(ParsedSourceFile{ast:new_module_ast, metadata});
-        assert_eq!(Some(Notification::Invalidate), test.expect_completion(subscription.next()));
-        subscription.expect_pending();
+        module.update_whole(ParsedSourceFile{ast:new_module_ast, metadata}).unwrap();
+        expect_notification(NotificationKind::Invalidate);
 
         // No more notifications emitted
         drop(module);
@@ -196,14 +249,14 @@ mod test {
         assert!(initial_md.is_err());
 
         let md_to_set = NodeMetadata {position:Some(Position::new(1.0, 2.0)),..default()};
-        module.set_node_metadata(id.clone(),md_to_set.clone());
+        module.set_node_metadata(id.clone(),md_to_set.clone()).unwrap();
         assert_eq!(md_to_set.position, module.node_metadata(id.clone()).unwrap().position);
 
         let new_pos = Position::new(4.0, 5.0);
         module.with_node_metadata(id.clone(), Box::new(|md| {
             assert_eq!(md_to_set.position, md.position);
             md.position = Some(new_pos);
-        }));
+        })).unwrap();
         assert_eq!(Some(new_pos), module.node_metadata(id).unwrap().position);
     }
 }

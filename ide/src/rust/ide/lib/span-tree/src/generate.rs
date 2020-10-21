@@ -345,7 +345,7 @@ impl SpanTreeGenerator for ast::known::Match {
 
 fn generate_children_from_segment
 (gen:&mut ChildGenerator, index:usize, segment:&MacroMatchSegment<Ast>, context:&impl Context)
--> FallibleResult<()> {
+-> FallibleResult {
     let is_removable  = false;
     let children_kind = node::Kind::Argument {is_removable};
     gen.spacing(segment.head.len());
@@ -382,7 +382,7 @@ impl SpanTreeGenerator for ast::known::Ambiguous {
 
 fn generate_children_from_ambiguous
 (gen:&mut ChildGenerator, index:usize, segment:&MacroAmbiguousSegment<Ast>, context:&impl Context)
--> FallibleResult<()> {
+-> FallibleResult {
     let is_removable  = false;
     let children_kind = node::Kind::Argument {is_removable};
     gen.spacing(segment.head.len());
@@ -471,7 +471,6 @@ impl Context for MockContext {
 mod test {
     use super::*;
 
-    use crate::Context;
     use crate::ParameterInfo;
     use crate::builder::TreeBuilder;
     use crate::generate::context::CalledMethodInfo;

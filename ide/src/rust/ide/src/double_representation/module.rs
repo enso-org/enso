@@ -390,7 +390,7 @@ impl Info {
     ///
     /// If there is more than one line matching, only the first one will be removed.
     /// Fails if there is no import matching given argument.
-    pub fn remove_import(&mut self, to_remove:&ImportInfo) -> FallibleResult<()> {
+    pub fn remove_import(&mut self, to_remove:&ImportInfo) -> FallibleResult {
         let lookup_result = self.enumerate_imports().find(|(_,import)| import == to_remove);
         let (crumb,_)     = lookup_result.ok_or_else(|| ImportNotFound(to_remove.clone()))?;
         self.remove_line(crumb.line_index)?;
@@ -422,7 +422,7 @@ impl Info {
     /// line and describes the added line location in relation to other definitions.
     ///
     /// Typically used to place lines with definitions in the module.
-    pub fn add_ast(&mut self, ast:Ast, location:Placement) -> FallibleResult<()> {
+    pub fn add_ast(&mut self, ast:Ast, location:Placement) -> FallibleResult {
         #[derive(Clone,Copy,Debug,Eq,PartialEq)]
         enum BlankLinePlacement {Before,After,None};
         let blank_line = match location {
@@ -459,7 +459,7 @@ impl Info {
     /// Add a new method definition to the module.
     pub fn add_method
     (&mut self, method:definition::ToAdd, location:Placement, parser:&parser::Parser)
-    -> FallibleResult<()> {
+    -> FallibleResult {
         let no_indent      = 0;
         let definition_ast = method.ast(no_indent,parser)?;
         self.add_ast(definition_ast,location)

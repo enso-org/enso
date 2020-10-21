@@ -144,7 +144,7 @@ impl<T> Message<T> {
 impl<'a> crate::handler::IsRequest for MessageToServerRef<'a> {
     type Id = Uuid;
 
-    fn send(&self, transport:&mut dyn Transport) -> FallibleResult<()> {
+    fn send(&self, transport:&mut dyn Transport) -> FallibleResult {
         self.with_serialized(|data| transport.send_binary(data))
     }
 

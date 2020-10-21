@@ -1430,7 +1430,7 @@ mod tests {
     // === InvalidSuffix ===
 
     #[test]
-    fn invalid_suffix_crumb() -> FallibleResult<()> {
+    fn invalid_suffix_crumb() -> FallibleResult {
         let elem          = Ast::var("foo");
         let ast           = Ast::invalid_suffix(elem,"@");
         let to_crumb_enum = Crumb::InvalidSuffix;
@@ -1444,7 +1444,7 @@ mod tests {
     }
 
     #[test]
-    fn iterate_invalid_suffix() -> FallibleResult<()> {
+    fn iterate_invalid_suffix() -> FallibleResult {
         let elem   = Ast::var("foo");
         let ast    = Ast::invalid_suffix(elem,"@");
 
@@ -1459,7 +1459,7 @@ mod tests {
     // === Infix ===
 
     #[test]
-    fn infix_crumb() -> FallibleResult<()> {
+    fn infix_crumb() -> FallibleResult {
         let infix         = Ast::infix_var("foo","+","bar");
         let to_crumb_enum = Crumb::Infix;
         let baz           = Ast::var("baz");
@@ -1488,7 +1488,7 @@ mod tests {
     }
 
     #[test]
-    fn nested_infix() -> FallibleResult<()> {
+    fn nested_infix() -> FallibleResult {
         use InfixCrumb::*;
 
         let sum   = Ast::infix_var("foo", "+", "bar");
@@ -1660,7 +1660,7 @@ mod tests {
     // === Prefix ===
 
     #[test]
-    fn prefix_crumb() -> FallibleResult<()> {
+    fn prefix_crumb() -> FallibleResult {
         let prefix = Ast::prefix(Ast::var("func"), Ast::var("arg"));
         let get   = |prefix_crumb| {
             let crumb = Crumb::Prefix(prefix_crumb);
@@ -1685,7 +1685,7 @@ mod tests {
     }
 
     #[test]
-    fn iterate_prefix() -> FallibleResult<()> {
+    fn iterate_prefix() -> FallibleResult {
         let prefix = Ast::prefix(Ast::var("func"), Ast::var("arg"));
 
         let (func,arg) = prefix.iter_subcrumbs().expect_tuple();
@@ -1700,7 +1700,7 @@ mod tests {
     // === SectionLeft ===
 
     #[test]
-    fn section_left_crumb() -> FallibleResult<()> {
+    fn section_left_crumb() -> FallibleResult {
         let app = Ast::section_left(Ast::var("foo"), "bar");
         let get   = |app_crumb| {
             let crumb = Crumb::SectionLeft(app_crumb);
@@ -1725,7 +1725,7 @@ mod tests {
     }
 
     #[test]
-    fn iterate_section_left() -> FallibleResult<()> {
+    fn iterate_section_left() -> FallibleResult {
         let app = Ast::section_left(Ast::var("foo"), "bar");
 
         let (arg,opr) = app.iter_subcrumbs().expect_tuple();
@@ -1739,7 +1739,7 @@ mod tests {
     // === SectionRight ===
 
     #[test]
-    fn section_right_crumb() -> FallibleResult<()> {
+    fn section_right_crumb() -> FallibleResult {
         let app = Ast::section_right("foo", Ast::var("bar"));
         let get   = |app_crumb| {
             let crumb = Crumb::SectionRight(app_crumb);
@@ -1764,7 +1764,7 @@ mod tests {
     }
 
     #[test]
-    fn iterate_section_right() -> FallibleResult<()> {
+    fn iterate_section_right() -> FallibleResult {
         let app = Ast::section_right("foo", Ast::var("bar"));
 
         let (opr,arg) = app.iter_subcrumbs().expect_tuple();
@@ -1778,7 +1778,7 @@ mod tests {
     // === SectionSides ===
 
     #[test]
-    fn section_sides_crumb() -> FallibleResult<()> {
+    fn section_sides_crumb() -> FallibleResult {
         let app = Ast::section_sides("foo");
         let get   = |app_crumb| {
             let crumb = Crumb::SectionSides(app_crumb);
@@ -1799,7 +1799,7 @@ mod tests {
     }
 
     #[test]
-    fn iterate_section_sides() -> FallibleResult<()> {
+    fn iterate_section_sides() -> FallibleResult {
         let app = Ast::section_sides("foo");
 
         let mut iter = app.iter_subcrumbs();

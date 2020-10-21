@@ -92,7 +92,7 @@ mod tests {
     fn test_connection() {
         let case = async {
             let client_id = Uuid::from_u128(159);
-            let mock_returning = |ret: FallibleResult<()>| {
+            let mock_returning = |ret: FallibleResult| {
                 let mut mock = MockClient::new();
                 mock.expect_init()
                     .with(eq(client_id))

@@ -292,7 +292,7 @@ pub trait API : Debug {
     fn stack_items<'a>(&'a self) -> Box<dyn Iterator<Item=LocalCall> + 'a>;
 
     /// Push a new stack item to execution context.
-    fn push(&self, stack_item:LocalCall) -> BoxFuture<FallibleResult<()>>;
+    fn push(&self, stack_item:LocalCall) -> BoxFuture<FallibleResult>;
 
     /// Pop the last stack item from this context. It returns error when only root call remains.
     fn pop(&self) -> BoxFuture<FallibleResult<LocalCall>>;
@@ -311,7 +311,7 @@ pub trait API : Debug {
     /// Dispatches the visualization update data (typically received from as LS binary notification)
     /// to the respective's visualization update channel.
     fn dispatch_visualization_update
-    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult<()>;
+    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult;
 
     /// Attempt detaching all the currently active visualizations.
     ///

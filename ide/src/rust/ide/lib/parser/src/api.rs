@@ -6,11 +6,11 @@ use ast::HasRepr;
 use ast::HasIdMap;
 use enso_data::text::ByteIndex;
 
-pub use ast::Ast;
-
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
+
+pub use ast::Ast;
 
 
 
@@ -44,6 +44,67 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
+    /// Describe source file contents. Uses heuristics to locate the metadata section.
+    ///
+    /// Method investigates the last `METADATA_LINES` lines of content to check for metadata tag and
+    /// whether idmap and metadata looks "reasonable enough". If proper metadata is not recognized,
+    /// the whole contents is treated as the code.
+    pub fn new(content:String) -> Self {
+        pub const METADATA_LINES:usize = 3;
+        let newline_indices            = enso_data::text::rev_newline_byte_indices(&content);
+        let newline_indices_from_end   = newline_indices.take(METADATA_LINES).collect_vec();
+        match newline_indices_from_end.as_slice() {
+            [last, before_last, two_before_last] => {
+                // Last line should be metadata. Line before should be id map. Line before is the
+                // metadata tag.
+                // We check that tag matches and that trailing lines looks like JSON list/object
+                // respectively.
+                let code_length       = *two_before_last + 1 - NEWLINES_BEFORE_TAG;
+                let code_range        = 0                   .. code_length;
+                let tag_range         = two_before_last + 1 .. *before_last;
+                let id_map_range      = before_last + 1     ..  *last;
+                let metadata_range    = last + 1            ..  content.len();
+                let tag               = &content[tag_range];
+                let idmap             = &content[id_map_range.clone()];
+                let metadata          = &content[metadata_range.clone()];
+                let tag_matching      = tag == METADATA_TAG;
+                let idmap_matching    = Self::looks_like_idmap(idmap);
+                let metadata_matching = Self::looks_like_metadata(metadata);
+                if tag_matching && idmap_matching && metadata_matching {
+                    SourceFile {
+                        code     : ByteIndex::new_range(code_range),
+                        id_map   : ByteIndex::new_range(id_map_range),
+                        metadata : ByteIndex::new_range(metadata_range),
+                        content,
+                    }
+                } else {
+                    Self::new_without_metadata(content)
+                }
+            }
+            _ => Self::new_without_metadata(content),
+        }
+    }
+
+    /// Create a description of source file consisting only of code, with no metadata.
+    fn new_without_metadata(content:String) -> Self {
+        Self {
+            code     : ByteIndex::new_range(0            ..content.len()),
+            id_map   : ByteIndex::new_range(content.len()..content.len()),
+            metadata : ByteIndex::new_range(content.len()..content.len()),
+            content,
+        }
+    }
+
+    /// Checks if given line might be an ID map.
+    pub fn looks_like_idmap(line:&str) -> bool {
+        line.is_enclosed('[', ']')
+    }
+
+    /// Checks if given line might be a metadata map.
+    pub fn looks_like_metadata(line:&str) -> bool {
+        line.is_enclosed('{', '}')
+    }
+
     /// Get fragment of serialized string with code.
     pub fn code_slice(&self) -> &str { &self.slice(&self.code) }
 
@@ -80,7 +141,9 @@ impl<M:Metadata> TryFrom<&ParsedSourceFile<M>> for String {
 
 // === Parsed Source File Serialization ===
 
-const METADATA_TAG:&str = "\n\n\n#### METADATA ####\n";
+const NEWLINES_BEFORE_TAG:usize = 3;
+
+const METADATA_TAG:&str = "#### METADATA ####";
 
 fn to_json_single_line(val:&impl Serialize) -> std::result::Result<String,serde_json::Error> {
     let json = serde_json::to_string(val)?;
@@ -91,17 +154,20 @@ fn to_json_single_line(val:&impl Serialize) -> std::result::Result<String,serde_
 impl<M:Metadata> ParsedSourceFile<M> {
     /// Serialize to the SourceFile structure,
     pub fn serialize(&self) -> std::result::Result<SourceFile,serde_json::Error> {
-        let code                  = self.ast.repr();
-        let id_map                = to_json_single_line(&self.ast.id_map())?;
-        let metadata              = to_json_single_line(&self.metadata)?;
-        let id_map_start          = code.len() + METADATA_TAG.len();
-        let newlines_after_id_map = 1;
-        let metadata_start        = id_map_start + id_map.len() + newlines_after_id_map;
+        let before_tag      = "\n".repeat(NEWLINES_BEFORE_TAG);
+        let before_idmap    = "\n";
+        let before_metadata = "\n";
+        let code            = self.ast.repr();
+        let id_map          = to_json_single_line(&self.ast.id_map())?;
+        let metadata        = to_json_single_line(&self.metadata)?;
+        let id_map_start    = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
+        let metadata_start  = id_map_start + id_map.len() + before_metadata.len();
         Ok(SourceFile {
-            content  : iformat!("{code}{METADATA_TAG}{id_map}\n{metadata}"),
-            code     : ByteIndex::new(0             )..ByteIndex::new(code.len()                     ),
-            id_map   : ByteIndex::new(id_map_start  )..ByteIndex::new(id_map_start   + id_map.len()  ),
-            metadata : ByteIndex::new(metadata_start)..ByteIndex::new(metadata_start + metadata.len()),
+            content  : iformat!("{code}{before_tag}{METADATA_TAG}{before_idmap}{id_map}\
+                                 {before_metadata}{metadata}"),
+            code     : ByteIndex::new_range(0              .. code.len()                     ),
+            id_map   : ByteIndex::new_range(id_map_start   .. id_map_start   + id_map.len()  ),
+            metadata : ByteIndex::new_range(metadata_start .. metadata_start + metadata.len()),
         })
     }
 }
@@ -186,6 +252,10 @@ mod test {
         assert_eq!(serialized.content         , expected_content.to_string());
         assert_eq!(serialized.code_slice()    , "main = 2 + 2");
         assert_eq!(serialized.id_map_slice()  , expected_id_map.as_str());
-        assert_eq!(serialized.metadata_slice(), expected_metadata.as_str())
+        assert_eq!(serialized.metadata_slice(), expected_metadata.as_str());
+
+        // Check that SourceFile round-trips.
+        let source_file = SourceFile::new(serialized.content.clone());
+        assert_eq!(source_file,serialized);
     }
 }

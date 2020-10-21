@@ -254,7 +254,7 @@ impl DefinitionInfo {
     /// Sets the definition block lines. `lines` must contain at least one non-empty line to
     /// succeed.
     pub fn set_block_lines
-    (&mut self, mut lines:Vec<ast::BlockLine<Option<Ast>>>) -> FallibleResult<()> {
+    (&mut self, mut lines:Vec<ast::BlockLine<Option<Ast>>>) -> FallibleResult {
         // FIXME [mwu]
         //  This doesn't deal correctly with offsets, but I have no idea how it should behave,
         //  as the current parser's behavior and AST is inconsistent.

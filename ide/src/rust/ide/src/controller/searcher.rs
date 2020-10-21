@@ -274,7 +274,7 @@ impl ThisNode {
     /// Introduce a pattern with variable on the node serving as provider of "this" argument.
     ///
     /// Does nothing if node already has a pattern.
-    pub fn introduce_pattern(&self, graph:controller::Graph) -> FallibleResult<()> {
+    pub fn introduce_pattern(&self, graph:controller::Graph) -> FallibleResult {
         if self.needs_to_introduce_pattern {
             graph.set_pattern_on(self.id,ast::Ast::var(&self.var))?;
         }
@@ -446,7 +446,7 @@ impl Searcher {
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new suggestion list (the aprriopriate notification will be emitted).
-    pub fn set_input(&self, new_input:String) -> FallibleResult<()> {
+    pub fn set_input(&self, new_input:String) -> FallibleResult {
         debug!(self.logger, "Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input,&self.parser)?;
         let old_expr     = self.data.borrow().input.expression.repr();
@@ -574,11 +574,11 @@ impl Searcher {
                 self.graph.graph().set_expression(node_id,expression)?;
                 self.graph.graph().module.with_node_metadata(node_id,Box::new(|md| {
                     md.intended_method = intended_method
-                }));
+                }))?;
                 node_id
             }
         };
-        self.add_required_imports();
+        self.add_required_imports()?;
         Ok(id)
     }
 
@@ -592,7 +592,7 @@ impl Searcher {
         });
     }
 
-    fn add_required_imports(&self) {
+    fn add_required_imports(&self) -> FallibleResult {
         let data_borrowed = self.data.borrow();
         let fragments     = data_borrowed.fragments_added_by_picking.iter();
         let imports       = fragments.map(|frag| &frag.picked_suggestion.module);
@@ -606,7 +606,7 @@ impl Searcher {
                 module.add_import(&self.parser,import);
             }
         }
-        self.graph.graph().module.update_ast(module.ast);
+        self.graph.graph().module.update_ast(module.ast)
     }
 
     /// Reload Suggestion List.
@@ -1444,7 +1444,7 @@ pub mod test {
         };
         graph.module.with_node_metadata(node_id, Box::new(|md| {
             md.intended_method = Some(intended_method);
-        }));
+        })).unwrap();
         let searcher_data = Data::new_with_edited_node(&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());

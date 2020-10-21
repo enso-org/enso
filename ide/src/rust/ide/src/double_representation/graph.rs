@@ -84,7 +84,7 @@ impl GraphInfo {
 
     /// Adds a new node to this graph.
     pub fn add_node
-    (&mut self, line_ast:Ast, location_hint:LocationHint) -> FallibleResult<()> {
+    (&mut self, line_ast:Ast, location_hint:LocationHint) -> FallibleResult {
         let mut lines      = self.source.block_lines()?;
         let last_non_empty = || lines.iter().rposition(|line| line.elem.is_some());
         let index          = match location_hint {
@@ -111,19 +111,19 @@ impl GraphInfo {
     }
 
     /// Removes the node from graph.
-    pub fn remove_node(&mut self, node_id:ast::Id) -> FallibleResult<()> {
+    pub fn remove_node(&mut self, node_id:ast::Id) -> FallibleResult {
         self.update_node(node_id, |_| None)
     }
 
     /// Sets a new state for the node. The id of the described node must denote already existing
     /// node.
-    pub fn set_node(&mut self, node:&NodeInfo) -> FallibleResult<()> {
+    pub fn set_node(&mut self, node:&NodeInfo) -> FallibleResult {
         self.update_node(node.id(), |_| Some(node.clone()))
     }
 
     /// Sets a new state for the node. The id of the described node must denote already existing
     /// node.
-    pub fn update_node(&mut self, id:ast::Id, f:impl FnOnce(NodeInfo) -> Option<NodeInfo>) -> FallibleResult<()> {
+    pub fn update_node(&mut self, id:ast::Id, f:impl FnOnce(NodeInfo) -> Option<NodeInfo>) -> FallibleResult {
         let mut lines = self.source.block_lines()?;
         let node_entry = lines.iter().enumerate().find_map(|(index,line)| {
             let node     = NodeInfo::from_block_line(line);
@@ -148,7 +148,7 @@ impl GraphInfo {
     }
 
     /// Sets expression of the given node.
-    pub fn edit_node(&mut self, node_id:ast::Id, new_expression:Ast) -> FallibleResult<()> {
+    pub fn edit_node(&mut self, node_id:ast::Id, new_expression:Ast) -> FallibleResult {
         self.update_node(node_id, |mut node| {
             node.set_expression(new_expression);
             Some(node)

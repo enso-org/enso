@@ -187,7 +187,7 @@ impl Handle {
     ///
     /// Fails if method graph cannot be created (see `graph_for_method` documentation).
     pub async fn enter_method_pointer
-    (&self, local_call:&LocalCall) -> FallibleResult<()> {
+    (&self, local_call:&LocalCall) -> FallibleResult {
         debug!(self.logger, "Entering node {local_call.call}.");
         let method_ptr = &local_call.definition;
         let graph      = controller::Graph::new_method(&self.logger,&self.project,method_ptr);
@@ -221,7 +221,7 @@ impl Handle {
     /// Fails if there's no information about target method pointer (e.g. because node value hasn't
     /// been yet computed by the engine) or if method graph cannot be created (see
     /// `graph_for_method` documentation).
-    pub async fn enter_node(&self, node:double_representation::node::Id) -> FallibleResult<()> {
+    pub async fn enter_node(&self, node:double_representation::node::Id) -> FallibleResult {
         let definition = self.node_method_pointer(node)?;
         let definition = (*definition).clone();
         let local_call = LocalCall{call:node,definition};
@@ -232,7 +232,7 @@ impl Handle {
     ///
     /// Fails if this execution context is already at the stack's root or if the parent graph
     /// cannot be retrieved.
-    pub async fn exit_node(&self) -> FallibleResult<()> {
+    pub async fn exit_node(&self) -> FallibleResult {
         let frame  = self.execution_ctx.pop().await?;
         let method = self.execution_ctx.current_method();
         let graph  = controller::Graph::new_method(&self.logger,&self.project,&method).await?;
@@ -258,12 +258,12 @@ impl Handle {
     }
 
     /// Create connection in graph.
-    pub fn connect(&self, connection:&Connection) -> FallibleResult<()> {
+    pub fn connect(&self, connection:&Connection) -> FallibleResult {
         self.graph.borrow().connect(connection,self)
     }
 
     /// Remove the connections from the graph.
-    pub fn disconnect(&self, connection:&Connection) -> FallibleResult<()> {
+    pub fn disconnect(&self, connection:&Connection) -> FallibleResult {
         self.graph.borrow().disconnect(connection,self)
     }
 }
@@ -401,7 +401,7 @@ pub mod tests {
         module.set_node_metadata(id,NodeMetadata {
             position        : None,
             intended_method : entry1.method_id(),
-        });
+        }).unwrap();
         let info = get_invocation_info().unwrap();
         assert_call_info(info,&entry1);
 
