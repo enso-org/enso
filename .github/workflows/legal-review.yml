@@ -54,7 +54,7 @@ jobs:
           -UdpIPv6
       # TODO [RW] Rust will be needed by #1187
       #      - name: Install Rust
-      #        uses: actions-rs/toolchain@v1
+      #        uses: actions-rs/toolchain@v1.0.6
       #        with:
       #          toolchain: ${{ env.rustToolchain }}
       #          override: true
@@ -69,7 +69,7 @@ jobs:
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
-          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
 
       # Caches
       - name: Cache SBT

@@ -24,7 +24,7 @@ jobs:
 
       # Install Tooling
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true
@@ -47,7 +47,7 @@ jobs:
 
       # Lint
       - name: Check Code
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@v1.0.1
         with:
           command: check
 
@@ -64,7 +64,7 @@ jobs:
 
       # Install Tooling
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true
@@ -87,7 +87,7 @@ jobs:
 
       # Lint
       - name: Lint Code
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@v1.0.1
         with:
           command: clippy
 
@@ -106,7 +106,7 @@ jobs:
 
       # Install Tooling
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true
@@ -127,7 +127,7 @@ jobs:
 
       # Tests
       - name: Test Native
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@v1.0.1
         with:
           command: test
 
@@ -144,7 +144,7 @@ jobs:
 
       # Install Tooling
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true

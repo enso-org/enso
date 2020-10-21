@@ -10,11 +10,13 @@ on:
       - "*"
 
 env:
-  # Please ensure that this is in sync with graalAPIVersion in build.sbt
+  # Please ensure that this is in sync with graalVersion in build.sbt
   graalVersion: 20.2.0
-  javaVersion: java11
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.13
+  # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2019-11-04
 
 jobs:
@@ -43,26 +45,27 @@ jobs:
 
       # Set Up Environment
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true
       - name: Setup conda
-        uses: s-weigand/setup-conda@v1
+        uses: s-weigand/setup-conda@v1.0.5
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Install FlatBuffers Compiler
         run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: ayltai/setup-graalvm@v1
         with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
       - name: Set Up SBT
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
-          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
 
       # Caches
       - name: Cache SBT

@@ -31,7 +31,7 @@ jobs:
         with:
           path: repo
       - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.3.0
+        uses: ilammy/msvc-dev-cmd@v1.4.1
       - name: Disable TCP/UDP Offloading (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -49,12 +49,12 @@ jobs:
           Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
           -UdpIPv6
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true
       - name: Setup conda
-        uses: s-weigand/setup-conda@v1
+        uses: s-weigand/setup-conda@v1.0.5
         with:
           update-conda: true
           conda-channels: anaconda, conda-forge
@@ -75,10 +75,11 @@ jobs:
           java-version: ${{ env.javaVersion }}
           native-image: true
       - name: Set Up SBT
+        shell: bash
         run: |
           curl -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
-          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
 
       # Caches
       - name: Cache SBT
@@ -93,7 +94,8 @@ jobs:
 
       # Bootstrap
       - name: Enable Release Mode
-        run: echo ::set-env name=ENSO_RELEASE_MODE::true
+        shell: bash
+        run: echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
       - name: Bootstrap the Project
         working-directory: repo
         run: |
@@ -145,7 +147,7 @@ jobs:
         run: |
           chmod +x enso
           DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
-          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
 
       - name: Prepare Distribution Version (Windows)
         working-directory: repo
@@ -153,7 +155,7 @@ jobs:
         shell: bash
         run: |
           DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
-          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
 
       # Currently the only architecture supported by Github runners is amd64
       - name: Prepare Distribution Environment
@@ -166,10 +168,10 @@ jobs:
           LAUNCHER_DIST_DIR=$LAUNCHER_DIST_ROOT/enso
           ENGINE_DIST_ROOT=enso-engine-$DIST_VERSION-$DIST_OS-$DIST_ARCH
           ENGINE_DIST_DIR=$ENGINE_DIST_ROOT/enso-$DIST_VERSION
-          echo ::set-env name=LAUNCHER_DIST_DIR::$LAUNCHER_DIST_DIR
-          echo ::set-env name=LAUNCHER_DIST_ROOT::$LAUNCHER_DIST_ROOT
-          echo ::set-env name=ENGINE_DIST_DIR::$ENGINE_DIST_DIR
-          echo ::set-env name=ENGINE_DIST_ROOT::$ENGINE_DIST_ROOT
+          echo "LAUNCHER_DIST_DIR=$LAUNCHER_DIST_DIR" >> $GITHUB_ENV
+          echo "LAUNCHER_DIST_ROOT=$LAUNCHER_DIST_ROOT" >> $GITHUB_ENV
+          echo "ENGINE_DIST_DIR=$ENGINE_DIST_DIR" >> $GITHUB_ENV
+          echo "ENGINE_DIST_ROOT=$ENGINE_DIST_ROOT" >> $GITHUB_ENV
 
       - name: Prepare Launcher Distribution (Common)
         working-directory: repo
@@ -297,7 +299,7 @@ jobs:
           ref=${{ github.ref }}
           DIST_VERSION=${ref#"refs/tags/enso-"}
           echo "Preparing release for $DIST_VERSION"
-          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
 
       - name: Download GraalVM for Bundles
         shell: bash
