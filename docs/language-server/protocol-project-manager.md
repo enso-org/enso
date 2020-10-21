@@ -72,6 +72,14 @@ This message requests that the project manager open a specified project. This
 operation also includes spawning an instance of the language server open on the
 specified project.
 
+To open a project, an engine version that is specified in project settings needs
+to be installed. If `installMissingComponents` is set, this action will install
+any missing components, otherwise, an error will be reported if a component is
+missing. A typical usage scenario may consist of first trying to open the
+project without installing missing components. If that fails with the
+`MissingComponentError`, the client can ask the user if they want to install the
+missing components and re-attempt the action.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
@@ -82,6 +90,7 @@ specified project.
 ```typescript
 interface ProjectOpenRequest {
   projectId: UUID;
+  installMissingComponents?: bool; // If not provided, defaults to false.
 }
 ```
 
@@ -101,6 +110,11 @@ interface ProjectOpenResult {
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
 - [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
+- [`MissingComponentError`](#missingcomponenterror) to signal that the component
+  required to open the project was missing (only in case
+  `installMissingComponents` was set to `true`).
+- [`ComponentInstallationError`](#componentinstallationerror) to signal that the
+  installation of a missing component has failed.
 
 ### `project/close`
 
@@ -176,6 +190,21 @@ interface ProjectListResponse {
 
 This message requests the creation of a new project.
 
+Possible values for `version` are: a semver version string identifying an Enso
+engine version, `default` to use the current default or `latest-installed` to
+use the most recent version that is installed on the system.
+
+> TODO [RW] discuss: Do we also want a 'latest-available' that would check the
+> repository for newer versions? While we are at it, as the version needs to be
+> specified somehow, we may want to be able to query all available version
+> strings from the repository? To allow users to choose a version for their new
+> project, besides just `engine/list` which only lists currently installed
+> versions.
+
+To create a project, an engine version associated with it needs to be installed.
+If `installMissingComponents` is set, this action will install any missing
+components, otherwise, an error will be reported if a component is missing.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
@@ -186,6 +215,8 @@ This message requests the creation of a new project.
 ```typescript
 interface ProjectCreateRequest {
   name: String;
+  version: String;
+  installMissingComponents?: bool; // If not provided, defaults to false.
 }
 ```
 
@@ -205,6 +236,11 @@ interface ProjectOpenResponse {
   underlying data store.
 - [`ProjectExistsError`](#projectexistserror) to signal that the project already
   exists.
+- [`MissingComponentError`](#missingcomponenterror) to signal that the component
+  required to create the project was missing (only in case
+  `installMissingComponents` was set to `true`).
+- [`ComponentInstallationError`](#componentinstallationerror) to signal that the
+  installation of a missing component has failed.
 
 ### `project/rename`
 
@@ -321,6 +357,30 @@ restart is attempted.
 
 The project manager component has its own set of errors. This section is not a
 complete specification and will be updated as new errors are added.
+
+### `ComponentInstallationError`
+
+Signals that installation of a missing component has been attempted but it has
+failed.
+
+```typescript
+"error" : {
+  "code" : 4020,
+  "message" : "A problem occurred when trying to find the release: Cannot find release `enso-1.2.3-not-published`.""
+}
+```
+
+### `MissingComponentError`
+
+Signals that a component required to complete the action was missing, but the
+action did not ask for it to be automatically installed.
+
+```typescript
+"error" : {
+  "code" : 4021,
+  "message" : "Engine 1.2.3 is required to complete the action but it is not installed."
+}
+```
 
 ### `ProjectNameValidationError`
 
