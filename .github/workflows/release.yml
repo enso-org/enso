@@ -49,12 +49,12 @@ jobs:
           Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
           -UdpIPv6
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true
       - name: Setup conda
-        uses: s-weigand/setup-conda@v1
+        uses: s-weigand/setup-conda@v1.0.5
         with:
           update-conda: true
           conda-channels: anaconda, conda-forge

@@ -54,7 +54,7 @@ jobs:
           -UdpIPv6
       # TODO [RW] Rust will be needed by #1187
       #      - name: Install Rust
-      #        uses: actions-rs/toolchain@v1
+      #        uses: actions-rs/toolchain@v1.0.6
       #        with:
       #          toolchain: ${{ env.rustToolchain }}
       #          override: true
