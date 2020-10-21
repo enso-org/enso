@@ -154,7 +154,11 @@ impl CurrentJsEvent {
     where Event : AsRef<web_sys::Event> {
         let event_source = self.event_source.clone_ref();
         move |event| {
-            event_source.emit(Some(event.as_ref().clone()));
+            let js_event = event.as_ref().clone();
+            // Prevent events from propagating ot user agent, so default browser actions will
+            // not be triggered.
+            js_event.prevent_default();
+            event_source.emit(Some(js_event));
             processing_fn(event);
             event_source.emit(None);
         }

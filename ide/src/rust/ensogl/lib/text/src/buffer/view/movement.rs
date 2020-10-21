@@ -162,11 +162,12 @@ impl ViewBuffer {
             }
 
             Transform::RightOfLine => {
-                let line             = selection.end.line;
-                let text_byte_size   = text.byte_size();
-                let is_last_line     = line == self.last_line_index();
-                let next_line_offset = self.byte_offset_of_line_index(line+1.line()).unwrap();
-                let offset           = if is_last_line { text_byte_size } else {
+                let line                 = selection.end.line;
+                let text_byte_size       = text.byte_size();
+                let is_last_line         = line == self.last_line_index();
+                let next_line_offset_opt = self.byte_offset_of_line_index(line+1.line());
+                let next_line_offset     = next_line_offset_opt.unwrap_or_else(|_|text.byte_size());
+                let offset               = if is_last_line { text_byte_size } else {
                     text.prev_grapheme_offset(next_line_offset).unwrap_or(text_byte_size)
                 };
                 let end = self.offset_to_location(offset);

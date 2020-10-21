@@ -29,6 +29,7 @@ fn init(app:&Application) {
     area.set_position_x(-100.0);
     area.set_content("Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta");
     area.focus();
+    area.hover();
     area.set_cursor_at_end();
 
     let scene     = app.display.scene();
