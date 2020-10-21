@@ -99,16 +99,15 @@ impl Key {
     /// result in key `ą` in some keyboard layouts and the code `KeyA`. When layout changes, the
     /// symbol `ą` could be mapped to a different hardware key. Check the following site for more
     /// info: https://keycode.info.
-    pub fn new(key:String, code:String) -> Self {
-        let label_ref : &str = &key;
-        let code_ref  : &str = &code;
+    pub fn new(key:String, code:&str) -> Self {
+        let key_ref  : &str = &key;
         // Space is very special case. It has key value being a character, but we don't want to
         // interpret is as a Key::Character.
         if      key == " "                       { Self::Space          }
         else if key.graphemes(true).count() == 1 { Self::Character(key) }
         else {
-            let key = KEY_NAME_MAP.get(label_ref).cloned().unwrap_or(Self::Other(key));
-            match (key,code_ref) {
+            let key = KEY_NAME_MAP.get(key_ref).cloned().unwrap_or(Self::Other(key));
+            match (key,code) {
                 (Self::Alt      (_), "AltRight")     => Self::Alt      (Side::Right),
                 (Self::AltGr    (_), "AltRight")     => Self::AltGr    (Side::Right),
                 (Self::AltGraph (_), "AltRight")     => Self::AltGraph (Side::Right),
@@ -175,14 +174,61 @@ impl Default for Key {
 
 
 
+// ===================
+// === KeyWithCode ===
+// ===================
+
+/// Structure representing key with its code.
+///
+/// For difference between keys and codes see
+/// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code and
+/// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
+#[allow(missing_docs)]
+#[derive(Clone,Debug,Default)]
+pub struct KeyWithCode {
+    pub key  : Key,
+    pub code : String,
+}
+
+impl KeyWithCode {
+    /// Create a Key structure and return it with the passed code.
+    pub fn new(key:String, code:String) -> Self {
+        let key = Key::new(key,code.as_str());
+        KeyWithCode{key,code}
+    }
+}
+
+impl From<&KeyboardEvent> for KeyWithCode {
+    fn from(event:&KeyboardEvent) -> Self { Self::new(event.key(),event.code()) }
+}
+
+
+
 // =====================
 // === KeyboardModel ===
 // =====================
 
 /// Model keeping track of currently pressed keys.
+///
+/// The keys are usually defined by their `key` value (see
+/// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key), however we need to keep
+/// also codes of pressed keys to properly handle releases:
+///
+/// Consider the following event sequence:
+/// 1. press Shift
+/// 2. press KeyA (emitted with key `A`)
+/// 3. release Shift
+/// 4. release KeyA (emitted with key `a`)
+///
+/// During release KeyA we must realize that the acrual key to release is `A`, otherwise the key `A`
+/// will be stuck.
+///
+/// The current implementation will therefore emit repeat/release of pressed "key" values.
+/// (so in above example releasing `a` will never be emitted, only releasing `A`).
 #[derive(Clone,CloneRef,Debug,Default)]
 pub struct KeyboardModel {
-    set : Rc<RefCell<HashSet<Key>>>,
+    pressed_keys        : Rc<RefCell<HashSet<Key>>>,
+    pressed_code_to_key : Rc<RefCell<HashMap<String,Key>>>,
 }
 
 impl KeyboardModel {
@@ -208,17 +254,25 @@ impl KeyboardModel {
 
     /// Checks whether the provided key is currently pressed.
     pub fn is_down(&self, key:&Key) -> bool {
-        self.set.borrow().contains(key)
+        self.pressed_keys.borrow().contains(key)
     }
 
     /// Simulate press of the provided key.
-    pub fn press(&self, key:&Key) {
-        self.set.borrow_mut().insert(key.clone());
+    pub fn press(&self, KeyWithCode{key,code}:&KeyWithCode) -> Key {
+        let pressed_key_opt = self.pressed_code_to_key.borrow_mut().get(code).cloned();
+        let key = pressed_key_opt.unwrap_or_else(|| {
+            self.pressed_code_to_key.borrow_mut().insert(code.clone(),key.clone());
+            key.clone()
+        });
+        self.pressed_keys.borrow_mut().insert(key.clone());
+        key
     }
 
     /// Simulate release of the provided key.
-    pub fn release(&self, key:&Key) {
-        self.set.borrow_mut().remove(key);
+    pub fn release(&self, KeyWithCode{key,code}:&KeyWithCode) -> Key {
+        let key = self.pressed_code_to_key.borrow_mut().remove(code).unwrap_or_else(|| key.clone());
+        self.pressed_keys.borrow_mut().remove(&key);
+        key
     }
 
     /// Release all keys which can become "sticky" when meta key is down. To learn more, refer to
@@ -226,21 +280,25 @@ impl KeyboardModel {
     #[allow(clippy::unnecessary_filter_map)] // Allows not cloning the element.
     pub fn release_meta_dependent(&self) -> Vec<Key> {
         let mut to_release = Vec::new();
-        let new_set        = self.set.borrow_mut().drain().filter_map(|key| {
+        let new_set        = self.pressed_code_to_key.borrow_mut().drain().filter_map(|(code,key)| {
             if key.can_be_missing_when_meta_is_down() {
                 to_release.push(key);
                 None
             } else {
-                Some(key)
+                Some((code,key))
             }
         }).collect();
-        *self.set.borrow_mut() = new_set;
+        *self.pressed_code_to_key.borrow_mut() = new_set;
+        for released in &to_release {
+            self.pressed_keys.borrow_mut().remove(released);
+        }
         to_release
     }
 
     /// Release all keys and return list of keys released.
     pub fn release_all(&self) -> HashSet<Key> {
-        std::mem::take(&mut *self.set.borrow_mut())
+        self.pressed_code_to_key.borrow_mut().clear();
+        std::mem::take(&mut *self.pressed_keys.borrow_mut())
     }
 }
 
@@ -254,8 +312,8 @@ impl KeyboardModel {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct KeyboardSource {
-    pub up               : frp::Source<Key>,
-    pub down             : frp::Source<Key>,
+    pub up               : frp::Source<KeyWithCode>,
+    pub down             : frp::Source<KeyWithCode>,
     pub window_defocused : frp::Source,
 }
 
@@ -299,15 +357,14 @@ impl Keyboard {
         let model   = KeyboardModel::default();
         let source  = KeyboardSource::new(&network);
         frp::extend! { network
-            eval source.down ((key) model.press(key));
-            eval source.up   ((key) model.release(key));
-            down             <- source.down.map(|t|t.clone());
-            is_meta_down     <- any(&source.down,&source.up).map(f_!(model.is_meta_down()));
-            meta_release     <= source.down.gate(&is_meta_down).map(
+            down         <- source.down.map(f!((kc) model.press(kc)));
+            up           <- source.up.map(f!((kc) model.release(kc)));
+            is_meta_down <- any(&down,&up).map(f_!(model.is_meta_down()));
+            meta_release <= source.down.gate(&is_meta_down).map(
                 f_!(model.release_meta_dependent())
             );
             defocus_release  <= source.window_defocused.map(f_!(model.release_all()));
-            up               <- any3(&source.up,&meta_release,&defocus_release);
+            up               <- any3(&up,&meta_release,&defocus_release);
             change           <- any(&down,&up).constant(());
             is_control_down  <- change.map(f_!(model.is_control_down()));
             is_alt_down      <- change.map(f_!(model.is_alt_down()));
@@ -344,14 +401,14 @@ impl DomBindings {
     /// Create new Keyboard and Frp bindings.
     pub fn new(logger:impl AnyLogger, keyboard:&Keyboard, current_event:&CurrentJsEvent) -> Self {
         let key_down = Listener::new_key_down(&logger,current_event.make_event_handler(
-            f!((event:&KeyboardEvent) keyboard.source.down.emit(Key::new(event.key(),event.code()))
-        )));
+            f!((event:&KeyboardEvent) keyboard.source.down.emit(KeyWithCode::from(event)))
+        ));
         let key_up = Listener::new_key_up(&logger,current_event.make_event_handler(
-            f!((event:&KeyboardEvent) keyboard.source.up.emit(Key::new(event.key(),event.code()))
-        )));
+            f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event)))
+        ));
         let blur = Listener::new_blur(&logger,current_event.make_event_handler(
-            f_!(keyboard.source.window_defocused.emit(())
-        )));
+            f_!(keyboard.source.window_defocused.emit(()))
+        ));
         Self {key_down,key_up,blur}
     }
 }
