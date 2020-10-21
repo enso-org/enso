@@ -310,10 +310,12 @@ The project manager is also responsible for managing the language server. This
 means that it needs to be able to spawn the process, but also tell the process
 when to shut down.
 
-> The actionables for this section are:
->
-> - Fill it in when we have more of an idea about exactly how this spawning
->   relationship is going to work.
+A language server process is spawned within the `project/open` call. That call
+returns endpoints that the client can use to connect to the language server.
+When `project/close` is called, the language server is shutdown. Moreover,
+between these two calls, the project manager sends heartbeat messages to the
+language server to check if it is still running. In case that it has crashed, a
+restart is attempted.
 
 ## Errors
 
