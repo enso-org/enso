@@ -78,8 +78,6 @@ type Duration
     to_vector : Vector
     to_vector = [this.years, this.months, this.days, this.hours, this.minutes, this.seconds, this.nanoseconds]
 
-    to_seconds : Integer
-
     ## Check if this duration is date-based.
     is_date : Boolean
     is_date = (not this.years==0) || (not this.months==0) || (not this.days==0)

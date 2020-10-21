@@ -1,14 +1,25 @@
 from Base import all
+import Base.Net.Proxy
 import Base.Net.Uri
 import Base.Net.Http.Auth
-import Base.Net.Http.Proxy
 import Base.Net.Http.Request
 import Base.Net.Http.Request.Body as Request_Body
+import Base.Net.Http.Response
 import Base.Time.Duration
+import Base.Time.Time
+
+polyglot java import java.time.Duration as Java_Duration
+polyglot java import java.net.InetSocketAddress
+polyglot java import java.net.ProxySelector
+polyglot java import java.net.URI
+polyglot java import java.net.http.HttpClient
+polyglot java import java.net.http.HttpRequest
+polyglot java import java.net.http.HttpResponse
+polyglot java import org.enso.base.Http_Utils
 
 type Http
 
-    type Http
+    type Http internal_http_client
 
     # Methods
 
@@ -26,6 +37,12 @@ type Http
              http = Http.new . with_basic_auth "user" "pass"
              http.get "https://httpbin.org/basic-auth/user/pass"
     get : Uri.To_Uri -> Response
+    get link =
+        req = HttpRequest.newBuilder [] . uri [link.to_uri.internal_uri] . build []
+        body_handlers = Polyglot.get_member HttpResponse "BodyHandlers"
+        body_stream = body_handlers.ofInputStream []
+        res = this.internal_http_client.send [req, body_stream]
+        Response.response res
 
     ## Send a HEAD request
     head : Uri.To_Uri -> Response
@@ -134,4 +151,31 @@ type Http
     with_proxy : Proxy -> Config
 
 new : Duration -> Auth -> Boolean -> Proxy -> Http
-new (duration = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.None) = Unit
+new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy_addr = Proxy.System) =
+    builder = HttpClient.newBuilder []
+    # timeout
+    if timeout.is_date then Error.throw Time.time_error "Connection timeout does not support date intervals" else builder.connectTimeout [timeout.internal_duration]
+    # auth
+    case auth of
+        Auth.Basic_Auth user pass -> builder.authenticator(Http_Utils.basic_authenticator [user, pass])
+        Auth.None -> Unit
+    # redirect
+    redirect = Polyglot.get_member HttpClient "Redirect"
+    redirect_policy = case follow_redirects of
+        True -> case auth of
+            Auth.None -> Polyglot.get_member redirect "ALWAYS"
+            _ -> Polyglot.get_member redirect "NORMAL"
+        False -> Polyglot.get_member redirect "NEVER"
+    builder.followRedirects [redirect_policy]
+    # proxy
+    case proxy_addr of
+        Proxy.Proxy_Addr proxy_host proxy_port ->
+            proxy_selector = ProxySelector.of [InetSocketAddress.new [proxy_host, proxy_port].to_array]
+            builder.proxy [proxy_selector]
+        Proxy.System ->
+            proxy_selector = ProxySelector.getDefault []
+            builder.proxy [proxy_selector]
+        Proxy.None ->
+            Unit
+
+    Http (builder.build [])

@@ -1,10 +1,24 @@
 from Base import all
 
+polyglot java import java.io.ByteArrayOutputStream
+polyglot java import java.nio.charset.StandardCharsets
+polyglot java import org.enso.base.Http_Utils
+
 type Body
 
     type Body internal_input_stream
 
     text : Text
+    text =
+        baos = ByteArrayOutputStream.new [1024].to_array
+        read_stream =
+            buffer = Http_Utils.byte_array [1024]
+            length = this.internal_input_stream.read [buffer]
+            if not (length == -1) then
+                baos.write [buffer, 0, length]
+                @Tail_Call read_stream
+        read_stream
+        baos.toString [Polyglot.get_member StandardCharsets "UTF_8"]
 
     bytes : Vector
 

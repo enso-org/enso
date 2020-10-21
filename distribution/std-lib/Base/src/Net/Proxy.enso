@@ -1,0 +1,14 @@
+from Base import all
+import Base.Net.Uri
+
+## Proxy settings.
+type Proxy
+
+    type None
+
+    type System
+
+    type Proxy_Addr proxy_host proxy_port
+
+new : Text -> Integer -> Proxy
+new host port=80 = Proxy_Addr host port

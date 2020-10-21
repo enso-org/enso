@@ -1,12 +1,14 @@
 from Base import all
 
-## A type that can be converted to Uri.
-type To_Uri_1
+polyglot java import java.net.URI as Java_URI
 
-    type To_Uri_1 to_uri_1
+## A type that can be converted to Uri.
+type To_Uri
+
+    type To_Uri to_uri
 
 ## Implement To_Uri for Text
-Text.to_uri = Uri.parse this
+Text.to_uri = here.parse this
 
 type Uri
 
@@ -57,4 +59,4 @@ type Uri
 
 ## Parse Uri from text.
 parse : Text -> Uri
-parse text = Unit
+parse text = Uri (Java_URI.create [text])
