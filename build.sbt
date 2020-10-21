@@ -30,7 +30,9 @@ scalaVersion in ThisBuild := scalacVersion
 
 lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
-gatherLicenses := GatherLicenses.run.value
+gatherLicenses := {
+  GatherLicenses.run.value
+}
 lazy val verifyLicensePackages =
   taskKey[Unit](
     "Verifies if the license package has been generated, " +
@@ -38,27 +40,27 @@ lazy val verifyLicensePackages =
   )
 verifyLicensePackages := GatherLicenses.verifyReports.value
 GatherLicenses.distributions := Seq(
-    Distribution(
-      "launcher",
-      file("distribution/launcher/THIRD-PARTY"),
-      Distribution.sbtProjects(launcher)
-    ),
-    Distribution(
-      "engine",
-      file("distribution/engine/THIRD-PARTY"),
-      Distribution.sbtProjects(
-        runtime,
-        `engine-runner`,
-        `project-manager`,
-        `language-server`
-      )
-    ),
-    Distribution(
-      "std-lib-Base",
-      file("distribution/std-lib/Base/THIRD-PARTY"),
-      Distribution.sbtProjects(`std-bits`)
+  Distribution(
+    "launcher",
+    file("distribution/launcher/THIRD-PARTY"),
+    Distribution.sbtProjects(launcher)
+  ),
+  Distribution(
+    "engine",
+    file("distribution/engine/THIRD-PARTY"),
+    Distribution.sbtProjects(
+      runtime,
+      `engine-runner`,
+      `project-manager`,
+      `language-server`
     )
+  ),
+  Distribution(
+    "std-lib-Base",
+    file("distribution/std-lib/Base/THIRD-PARTY"),
+    Distribution.sbtProjects(`std-bits`)
   )
+)
 GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
 
@@ -68,7 +70,7 @@ lazy val openLegalReviewReport =
     "report in review mode in the browser."
   )
 openLegalReviewReport := {
-  gatherLicenses.value
+  val _ = gatherLicenses.value
   GatherLicenses.runReportServer()
 }
 
@@ -391,10 +393,10 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scalaCompiler ++ Seq(
-        "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
-        "org.typelevel"  %%% "cats-core" % catsVersion,
-        "org.typelevel"  %%% "kittens"   % kittensVersion
-      )
+      "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
+      "org.typelevel"  %%% "cats-core" % catsVersion,
+      "org.typelevel"  %%% "kittens"   % kittensVersion
+    )
   )
   .jsSettings(jsSettings)
 
@@ -952,8 +954,8 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .settings(
     (Runtime / compile) := (Runtime / compile)
-        .dependsOn(`std-bits` / Compile / packageBin)
-        .value
+      .dependsOn(`std-bits` / Compile / packageBin)
+      .value
   )
   .settings(
     bench := (test in Benchmark).tag(Exclusive).value,
@@ -1143,19 +1145,19 @@ lazy val `std-bits` = project
     Compile / packageBin / artifactPath :=
       `std-lib-polyglot-root` / "std-bits.jar",
     libraryDependencies ++= Seq(
-        "com.ibm.icu" % "icu4j" % icuVersion
-      ),
+      "com.ibm.icu" % "icu4j" % icuVersion
+    ),
     Compile / packageBin := Def.task {
-        val result = (Compile / packageBin).value
-        StdBits
-          .copyDependencies(
-            `std-lib-polyglot-root`,
-            "std-bits.jar",
-            ignoreScalaLibrary = true
-          )
-          .value
-        result
-      }.value
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `std-lib-polyglot-root`,
+          "std-bits.jar",
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
   )
 
 /* Note [HTTPS in the Launcher]
