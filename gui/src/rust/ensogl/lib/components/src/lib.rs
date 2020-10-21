@@ -1,8 +1,6 @@
-//! DropDownMenu EnsoGL Component.
+//! EnsoGL Components.
 //!
-//! The DropDownMenu displays a actionable element that can expand to a ListView from which an
-//! element can be picked.
-
+//! A collection of useful standard UI components for EnsoGL.
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 
@@ -17,11 +15,11 @@
 
 #![recursion_limit="512"]
 
-pub mod component;
+pub mod drop_down_menu;
+pub mod list_view;
+pub mod toggle_button;
 
 /// Commonly used types and functions.
 pub mod prelude {
     pub use ensogl_core::prelude::*;
 }
-
-pub use component::DropDownMenu;

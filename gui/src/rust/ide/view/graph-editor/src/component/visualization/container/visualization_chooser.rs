@@ -14,8 +14,8 @@ use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl_gui_list_view as list_view;
-use ensogl_gui_drop_down_menu as drop_down_menu;
+use ensogl_gui_components::list_view;
+use ensogl_gui_components::drop_down_menu;
 
 
 

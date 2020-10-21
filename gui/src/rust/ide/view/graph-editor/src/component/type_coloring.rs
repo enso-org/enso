@@ -7,7 +7,7 @@ use crate::SharedHashMap;
 use crate::Type;
 
 use ensogl::data::color;
-use ensogl::display::shape::primitive::system::StyleWatch;
+use ensogl::display::shape::StyleWatch;
 use ensogl_theme;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;

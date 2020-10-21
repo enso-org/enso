@@ -31,7 +31,7 @@ impl Path {
     /// Builds the path from reversed segment iterator. See `from_segments` to learn more.
     pub fn from_rev_segments<T,Item>(t:T) -> Self
     where T:IntoIterator<Item=Item>, Item:ToString {
-        Self { rev_segments : t.into_iter().map(|s|s.to_string()).collect() }
+        Self { rev_segments : t.into_iter().map(|s|s.to_string().trim().to_string()).collect() }
     }
 
     /// Empty path constructor.

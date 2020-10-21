@@ -15,7 +15,7 @@ enso-prelude          = { version = "0.1.4"                                     
 enso-protocol         = { version = "0.1.0", path = "../lib/enso-protocol"           }
 enso-shapely          = { version = "0.1.1"                                          }
 ensogl                = { version = "0.1.0", path = "../../ensogl"                   }
-ensogl-gui-list-view  = { version = "0.1.0", path = "../../ensogl/lib/list-view"     }
+ensogl-gui-components = { version = "0.1.0", path = "../../ensogl/lib/components"    }
 ensogl-text           = { version = "0.1.0", path = "../../ensogl/lib/text"          }
 ensogl-text-msdf-sys  = { version = "0.1.0", path = "../../ensogl/lib/text/msdf-sys" }
 ensogl-theme          = { version = "0.1.0", path = "../../ensogl/lib/theme"         }

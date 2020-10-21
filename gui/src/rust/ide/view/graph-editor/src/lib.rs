@@ -45,7 +45,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::Id;
 use ensogl::display::Scene;
-use ensogl::display::shape::primitive::system::StyleWatch;
+use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::text::text_field::FocusManager;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component::Tween;
@@ -443,6 +443,8 @@ ensogl::define_endpoints! {
         node_edit_mode            (bool),
         node_editing_started      (NodeId),
         node_editing_finished     (NodeId),
+        node_action_freeze        ((NodeId,bool)),
+        node_action_skip          ((NodeId,bool)),
 
         edge_added         (EdgeId),
         edge_removed       (EdgeId),
@@ -890,6 +892,7 @@ impl GraphEditorModelWithNetwork {
         Self {model,network}
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_node
     ( &self
     , pointer_style   : &frp::Source<cursor::Style>
@@ -897,6 +900,8 @@ impl GraphEditorModelWithNetwork {
     , input_press     : &frp::Source<EdgeTarget>
     , expression_set  : &frp::Source<(NodeId,String)>
     , edit_mode_ready : &frp::Stream<bool>
+    , action_freeze   : &frp::Source<(NodeId,bool)>
+    , action_skip     : &frp::Source<(NodeId,bool)>
     ) -> NodeId {
         let view    = component::Node::new(&self.app,self.visualizations.clone_ref());
         let node    = Node::new(view);
@@ -938,6 +943,18 @@ impl GraphEditorModelWithNetwork {
             );
 
             eval node.frp.expression((t) expression_set.emit((node_id,t.into())));
+
+
+            // === Actions ===
+
+            eval node.view.frp.freeze ((is_frozen) {
+                action_freeze.emit((node_id,*is_frozen));
+            });
+
+            eval node.view.frp.skip ([node,action_skip](is_skipped) {
+                action_skip.emit((node_id,*is_skipped));
+                node.frp.set_dimmed.emit(is_skipped);
+            });
         }
 
         self.nodes.insert(node_id,node);
@@ -970,7 +987,7 @@ impl GraphEditorModelWithNetwork {
     , edge_over  : &frp::Source<EdgeId>
     , edge_out   : &frp::Source<EdgeId>
     ) -> EdgeId {
-        let edge    = Edge::new(component::Edge::new(&self.app.display.scene()));
+        let edge    = Edge::new(component::Edge::new(&self.app));
         let edge_id = edge.id();
         self.add_child(&edge);
         self.edges.insert(edge.clone_ref());
@@ -1326,6 +1343,13 @@ impl GraphEditorModel {
         }
         overlapping
     }
+
+    fn set_edge_freeze<T:Into<EdgeId>>(&self, edge_id:T, is_frozen:bool) {
+        let edge_id = edge_id.into();
+        if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
+            edge.view.frp.set_dimmed.emit(is_frozen);
+        }
+    }
 }
 
 
@@ -1392,7 +1416,8 @@ impl GraphEditorModel {
     pub fn refresh_edge_color(&self, edge_id:EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             let color = self.get_edge_color_or_default(edge_id);
-            edge.view.set_color(color);
+            let color = color::Rgba::from(color);
+            edge.view.frp.set_color.emit(color);
         };
     }
 
@@ -1960,15 +1985,42 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     new_edge_target <- new_input_edge.map2(&node_input_touch.down, move |id,target| (*id,target.clone()));
     out.source.edge_target_set <+ new_edge_target;
 
+
+    // === Node creation  ===
+
     let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
     add_node           <- any (inputs.add_node,add_node_at_cursor);
-    new_node           <- add_node.map(f_!([model,node_pointer_style] model.new_node(&node_pointer_style,&node_output_touch.down,&node_input_touch.down,&node_expression_set,&edit_mode)));
+
+    node_action_freeze <- source::<(NodeId,bool)>();
+    node_action_skip   <- source::<(NodeId,bool)>();
+    out.source.node_action_freeze <+ node_action_freeze;
+    out.source.node_action_skip   <+ node_action_skip;
+
+    new_node <- add_node.map(f_!([model,node_pointer_style,edit_mode,node_action_freeze,
+                                  node_action_skip] {
+        model.new_node(&node_pointer_style,&node_output_touch.down,&node_input_touch.down,
+                       &node_expression_set,&edit_mode,&node_action_freeze,&node_action_skip)
+    }));
     out.source.node_added <+ new_node;
 
     node_with_position <- add_node_at_cursor.map3(&new_node,&mouse.position,|_,id,pos| (*id,*pos));
     out.source.node_position_set         <+ node_with_position;
     out.source.node_position_set_batched <+ node_with_position;
 
+    }
+
+
+    // === Node Actions ===
+
+
+    frp::extend! { network
+
+        freeze_edges <= out.node_action_freeze.map (f!([model]((node_id,is_frozen)) {
+            let edges = model.node_in_edges(node_id);
+            edges.into_iter().map(|edge_id| (edge_id,*is_frozen)).collect_vec()
+        }));
+
+        eval freeze_edges (((edge_id,is_frozen)) model.set_edge_freeze(edge_id,*is_frozen) );
     }
 
 

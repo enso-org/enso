@@ -18,7 +18,7 @@ use bimap::BiMap;
 use enso_frp as frp;
 use enso_frp::stream::EventEmitter;
 use ensogl::display::traits::*;
-use ensogl_gui_list_view as list_view;
+use ensogl_gui_components::list_view;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::EdgeTarget;

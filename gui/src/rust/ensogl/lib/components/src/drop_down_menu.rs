@@ -1,6 +1,9 @@
 //! Drop Down Menu Component.
 use ensogl_core::prelude::*;
 
+use crate::list_view;
+use crate::list_view::entry::ModelProvider;
+
 use enso_frp as frp;
 use enso_frp;
 use ensogl_core::gui::component::Animation;
@@ -10,8 +13,6 @@ use ensogl_core::display::shape::*;
 use ensogl_core::display::shape::primitive::StyleWatch;
 use ensogl_core::display;
 use ensogl_core::gui::component;
-use ensogl_gui_list_view as list_view;
-use ensogl_gui_list_view::entry::ModelProvider;
 use ensogl_text as text;
 use ensogl_theme as theme;
 
@@ -247,7 +248,7 @@ impl DropDownMenu {
                 // Align the top of the menu to the bottom of the icon.
                 model.selection_menu.set_position_y(-menu_size.y/2.0-icon_size.y/2.0-menu_offset_y);
                 // Align the right of the menu to the right of the icon.
-                let offfset_y = -menu_size.x/2.0+icon_size.x/2.0-list_view::component::SHADOW_PX/2.0;
+                let offfset_y = -menu_size.x/2.0+icon_size.x/2.0-list_view::SHADOW_PX/2.0;
                 model.selection_menu.set_position_x(offfset_y);
             });
 
