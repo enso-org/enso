@@ -86,7 +86,7 @@ const DOUBLE_EVENT_TIME_MS : f32 = 300.0;
 #[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
 #[allow(missing_docs)]
 pub enum ActionType {
-    Press, Release, DoublePress, DoubleClick
+    Press, PressAndRepeat, Release, DoublePress, DoubleClick
 }
 pub use ActionType::*;
 
@@ -309,25 +309,25 @@ impl<T:Clone> AutomataRegistryModel<T> {
     /// event, and is set to false in case of a release event.
     fn on_event(&mut self, input:impl AsRef<str>, press:bool) -> Vec<T> {
         self.optimize();
-        let action        = if press { Press }       else { Release };
-        let double_action = if press { DoublePress } else { DoubleClick };
-        let input         = input.as_ref().to_lowercase();
-        let symbol_input  = if press { input.clone() } else { format!("-{}",input) };
-        let symbol        = Symbol::from(hash(&symbol_input));
-        let current_state = self.current;
-        let next_state    = self.dfa.next_state(current_state,&symbol);
-        let focus_state   = if press { next_state } else { current_state };
-        let nfa_states    = &self.dfa.sources[focus_state.id()];
-        let time          = web::time_from_start() as f32;
-        let last_time_map = if press { &self.press_times } else { &self.release_times };
-        let last_time     = last_time_map.get(&focus_state);
-        let time_diff     = last_time.map(|t| time-t);
-        let is_double     = time_diff.map(|t| t < DOUBLE_EVENT_TIME_MS) == Some(true);
-        let new_time      = if is_double { 0.0 } else { time };
-        self.current      = next_state;
-        let mut actions   = nfa_states.iter().filter_map(|t|self.get_action(action,*t)).collect_vec();
+        let action      = if press { Press }       else { Release };
+        let action2     = if press { DoublePress } else { DoubleClick };
+        let input       = input.as_ref().to_lowercase();
+        let sym_input   = if press { input.clone() } else { format!("-{}",input) };
+        let symbol      = Symbol::from(hash(&sym_input));
+        let state       = self.current;
+        let next_state  = self.dfa.next_state(state,&symbol);
+        let focus_state = if press { next_state } else { state };
+        let nfa_states  = &self.dfa.sources[focus_state.id()];
+        let time        = web::time_from_start() as f32;
+        let time_map    = if press { &self.press_times } else { &self.release_times };
+        let last_time   = time_map.get(&focus_state);
+        let time_diff   = last_time.map(|t| time-t);
+        let is_double   = time_diff.map(|t| t < DOUBLE_EVENT_TIME_MS) == Some(true);
+        let new_time    = if is_double { 0.0 } else { time };
+        self.current    = next_state;
+        let mut actions = nfa_states.iter().filter_map(|t|self.get_action(action,*t)).collect_vec();
         if is_double {
-            actions.extend(nfa_states.iter().filter_map(|t|self.get_action(double_action,*t)));
+            actions.extend(nfa_states.iter().filter_map(|t|self.get_action(action2,*t)));
         }
         if press {
             self.pressed.insert(input);
@@ -504,37 +504,46 @@ impl<T:HashSetRegistryItem> HashSetRegistryModel<T> {
         }
     }
 
+    #[allow(clippy::collapsible_if)]
     fn on_event(&mut self, input:impl AsRef<str>, press:bool) -> Vec<T> {
         let input  = input.as_ref().to_lowercase();
         let exists = self.pressed.contains(&input);
         let repeat = if press { exists } else { !exists };
         if !repeat {
-            let out = self.process_event(false);
+            let out = self.process_event(Release);
             if press { self.pressed.insert(input); }
             else     { self.pressed.remove(&input); }
             self.current_expr = self.current_expr();
-            out.extended(self.process_event(true))
+            out.extended(self.process_event(Press))
+               .extended(self.process_event(PressAndRepeat))
         } else {
-            default()
+            if press {
+                self.process_event(PressAndRepeat)
+            } else {
+                default()
+            }
         }
     }
 
-    fn process_event(&mut self, press:bool) -> Vec<T> {
-        let expr          = &self.current_expr;
-        let action        = if press { Press }       else { Release };
-        let double_action = if press { DoublePress } else { DoubleClick };
-        let last_time_map = if press { &mut self.press_times } else { &mut self.release_times };
-        let mut out       = Vec::<T>::new();
-        let time          = web::time_from_start() as f32;
-        let last_time     = last_time_map.get(expr);
-        let time_diff     = last_time.map(|t| time-t);
-        let is_double     = time_diff.map(|t| t < DOUBLE_EVENT_TIME_MS) == Some(true);
-        out.extend(self.actions.get(&action).and_then(|t|t.get(expr)).into_iter().flatten().cloned());
-        if is_double {
-            out.extend(self.actions.get(&double_action).and_then(|t|t.get(expr)).into_iter().flatten().cloned());
-            last_time_map.remove(expr);
-        } else {
-            *last_time_map.entry(expr.clone()).or_default() = time;
+    fn process_event(&mut self, action:ActionType) -> Vec<T> {
+        let expr    = &self.current_expr;
+        let mut out = self.actions.get(&action).and_then(|t|t.get(expr)).into_iter().flatten()
+                    .cloned().collect_vec();
+        if action != PressAndRepeat {
+            let is_press  = action == Press;
+            let action2   = if is_press { DoublePress }           else { DoubleClick };
+            let time_map  = if is_press { &mut self.press_times } else { &mut self.release_times };
+            let time      = web::time_from_start() as f32;
+            let last_time = time_map.get(expr);
+            let time_diff = last_time.map(|t| time-t);
+            let is_double = time_diff.map(|t| t < DOUBLE_EVENT_TIME_MS) == Some(true);
+            if is_double {
+                out.extend(self.actions.get(&action2).and_then
+                    (|t|t.get(expr)).into_iter().flatten().cloned());
+                time_map.remove(expr);
+            } else {
+                *time_map.entry(expr.clone()).or_default() = time;
+            }
         }
         out
     }
