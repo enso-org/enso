@@ -110,7 +110,7 @@ impl Default for SpanTree {
         let size           = default();
         let children       = default();
         let parameter_info = default();
-        let root          = Node {kind,size,children,expression_id,parameter_info};
+        let root           = Node {kind,size,children,expression_id,parameter_info};
         Self {root}
     }
 }
