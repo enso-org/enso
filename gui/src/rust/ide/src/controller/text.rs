@@ -92,7 +92,7 @@ impl Handle {
     }
 
     /// Store the given content to file.
-    pub fn store_content(&self, content:String) -> impl Future<Output=FallibleResult<()>> {
+    pub fn store_content(&self, content:String) -> impl Future<Output=FallibleResult> {
         let file_handle = self.file.clone_ref();
         async move {
             match file_handle {
@@ -113,7 +113,7 @@ impl Handle {
     /// This function should be called by view on every user interaction changing the text content
     /// of file. It will e.g. update the Module Controller state and notify other views about
     /// update in case of module files.
-    pub fn apply_text_change(&self, change:TextChange) -> FallibleResult<()> {
+    pub fn apply_text_change(&self, change:TextChange) -> FallibleResult {
         if let FileHandle::Module {controller} = &self.file {
             controller.apply_code_change(change)
         } else {
@@ -134,10 +134,10 @@ impl Handle {
 
     async fn map_module_notification
     (notification:model::module::Notification) -> Option<Notification> {
-        match notification {
-            model::module::Notification::Invalidate      |
-            model::module::Notification::CodeChanged{..} => Some(Notification::Invalidate),
-            model::module::Notification::MetadataChanged => None,
+        match notification.kind {
+            model::module::NotificationKind::Invalidate      |
+            model::module::NotificationKind::CodeChanged{..} => Some(Notification::Invalidate),
+            model::module::NotificationKind::MetadataChanged => None,
         }
     }
 }

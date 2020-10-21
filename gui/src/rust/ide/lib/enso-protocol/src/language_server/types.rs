@@ -321,8 +321,8 @@ impls!{ From + &From <Range<enso_data::text::TextLocation>> for TextRange { |ran
     }
 }}
 
-impls!{ Into + &Into <Range<enso_data::text::TextLocation>> for TextRange { |this|
-    this.start.into()..this.end.into()
+impls!{ From + &From <TextRange> for Range<enso_data::text::TextLocation> { |range|
+    range.start.into()..range.end.into()
 }}
 
 

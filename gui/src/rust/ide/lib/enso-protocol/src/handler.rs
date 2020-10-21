@@ -202,7 +202,7 @@ pub trait IsRequest:Debug {
     type Id : Copy;
 
     /// Send the message to the peer using the provided transport.
-    fn send(&self, transport:&mut dyn Transport) -> FallibleResult<()>;
+    fn send(&self, transport:&mut dyn Transport) -> FallibleResult;
 
     /// Request ID, that will be used later to associate peer's response.
     fn id(&self) -> Self::Id;

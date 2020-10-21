@@ -331,7 +331,7 @@ impl Integration {
     , invalidate : &frp::Source<()>
     ) -> impl Fn(&Parameter,&bool)
     where Action : Fn(&Model,&Parameter)
-            -> FallibleResult<()> + 'static {
+            -> FallibleResult + 'static {
         f!([model,invalidate] (parameter,is_hold) {
             if !*is_hold {
                 let result = action(&*model,parameter);
@@ -426,7 +426,7 @@ impl Model {
 
 impl Model {
     /// Refresh displayed code to be up to date with module state.
-    pub fn refresh_code_editor(&self) -> FallibleResult<()> {
+    pub fn refresh_code_editor(&self) -> FallibleResult {
         let current_code = self.code_view.get().to_string();
         let new_code     = self.graph.graph().module.ast().repr();
         if new_code != current_code {
@@ -437,7 +437,7 @@ impl Model {
     }
 
     /// Reload whole displayed content to be up to date with module state.
-    pub fn refresh_graph_view(&self) -> FallibleResult<()> {
+    pub fn refresh_graph_view(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph view.");
         use controller::graph::Connections;
         let Connections{trees,connections} = self.graph.connections()?;
@@ -447,7 +447,7 @@ impl Model {
     }
 
     fn refresh_node_views
-    (&self, mut trees:HashMap<double_representation::node::Id,NodeTrees>) -> FallibleResult<()> {
+    (&self, mut trees:HashMap<double_representation::node::Id,NodeTrees>) -> FallibleResult {
         let nodes = self.graph.graph().nodes()?;
         let ids   = nodes.iter().map(|node| node.info.id() ).collect();
         self.retain_node_views(&ids);
@@ -552,7 +552,7 @@ impl Model {
     }
 
     /// Like `refresh_computed_info` but for multiple expressions.
-    fn refresh_computed_infos(&self, expressions_to_refresh:&[ExpressionId]) -> FallibleResult<()> {
+    fn refresh_computed_infos(&self, expressions_to_refresh:&[ExpressionId]) -> FallibleResult {
         debug!(self.logger, "Refreshing type information for IDs: {expressions_to_refresh:?}.");
         for id in expressions_to_refresh {
             self.refresh_computed_info(*id)
@@ -595,7 +595,7 @@ impl Model {
     }
 
     fn refresh_connection_views
-    (&self, connections:Vec<controller::graph::Connection>) -> FallibleResult<()> {
+    (&self, connections:Vec<controller::graph::Connection>) -> FallibleResult {
         self.retain_connection_views(&connections);
         for con in connections {
             if !self.connection_views.borrow().contains_left(&con) {
@@ -636,17 +636,17 @@ impl Model {
 
 impl Model {
     /// Handle notification received from controller about the whole graph being invalidated.
-    pub fn on_graph_invalidated(&self) -> FallibleResult<()> {
+    pub fn on_graph_invalidated(&self) -> FallibleResult {
         self.refresh_graph_view()
     }
 
     /// Handle notification received from controller about the whole graph being invalidated.
-    pub fn on_text_invalidated(&self) -> FallibleResult<()> {
+    pub fn on_text_invalidated(&self) -> FallibleResult {
         self.refresh_code_editor()
     }
 
     /// Handle notification received from controller about values having been entered.
-    pub fn on_node_entered(&self, local_call:&LocalCall) -> FallibleResult<()> {
+    pub fn on_node_entered(&self, local_call:&LocalCall) -> FallibleResult {
         let definition = local_call.definition.clone().into();
         let call       = local_call.call;
         let local_call = graph_editor::LocalCall{definition,call};
@@ -657,7 +657,7 @@ impl Model {
     }
 
     /// Handle notification received from controller about node having been exited.
-    pub fn on_node_exited(&self, id:double_representation::node::Id) -> FallibleResult<()> {
+    pub fn on_node_exited(&self, id:double_representation::node::Id) -> FallibleResult {
         self.view.graph().frp.deselect_all_nodes.emit_event(&());
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()?;
@@ -668,7 +668,7 @@ impl Model {
     }
 
     /// Handle notification received from controller about values having been computed.
-    pub fn on_values_computed(&self, expressions:&[ExpressionId]) -> FallibleResult<()> {
+    pub fn on_values_computed(&self, expressions:&[ExpressionId]) -> FallibleResult {
         self.refresh_computed_infos(&expressions)
     }
 
@@ -772,7 +772,7 @@ impl Model {
 #[allow(clippy::trivially_copy_pass_by_ref)]
 #[allow(clippy::ptr_arg)]
 impl Model {
-    fn node_removed_in_ui(&self, node:&graph_editor::NodeId) -> FallibleResult<()> {
+    fn node_removed_in_ui(&self, node:&graph_editor::NodeId) -> FallibleResult {
         debug!(self.logger, "Removing node.");
         let id = self.get_controller_node_id(*node)?;
         self.node_views.borrow_mut().remove_by_left(&id);
@@ -781,19 +781,19 @@ impl Model {
     }
 
     fn node_moved_in_ui
-    (&self, (displayed_id,pos):&(graph_editor::NodeId,Vector2)) -> FallibleResult<()> {
+    (&self, (displayed_id,pos):&(graph_editor::NodeId,Vector2)) -> FallibleResult {
         debug!(self.logger, "Moving node.");
         if let Ok(id) = self.get_controller_node_id(*displayed_id) {
             self.graph.graph().module.with_node_metadata(id, Box::new(|md| {
                 md.position = Some(model::module::Position::new(pos.x,pos.y));
-            }));
+            }))?;
         }
         Ok(())
     }
 
     fn nodes_collapsed_in_ui
     (&self, (collapsed,_new_node_view_id):&(Vec<graph_editor::NodeId>,graph_editor::NodeId))
-    -> FallibleResult<()> {
+    -> FallibleResult {
         debug!(self.logger, "Collapsing node.");
         let ids          = self.get_controller_node_ids(collapsed)?;
         let _new_node_id = self.graph.graph().collapse(ids,COLLAPSED_FUNCTION_NAME)?;
@@ -804,7 +804,7 @@ impl Model {
     }
 
     fn node_expression_set_in_ui
-    (&self, (displayed_id,expression):&(graph_editor::NodeId,String)) -> FallibleResult<()> {
+    (&self, (displayed_id,expression):&(graph_editor::NodeId,String)) -> FallibleResult {
         debug!(self.logger, "Setting node expression.");
         let searcher = self.searcher.borrow();
         self.expression_views.borrow_mut().insert(*displayed_id,expression.clone());
@@ -815,7 +815,7 @@ impl Model {
     }
 
     fn node_editing_in_ui(weak_self:Weak<Self>)
-    -> impl Fn(&Self,&Option<graph_editor::NodeId>) -> FallibleResult<()> {
+    -> impl Fn(&Self,&Option<graph_editor::NodeId>) -> FallibleResult {
         move |this,displayed_id| {
             if let Some(displayed_id) = displayed_id {
                 debug!(this.logger, "Starting node editing.");
@@ -851,7 +851,7 @@ impl Model {
     }
 
     fn suggestion_picked_in_ui
-    (&self, entry:&Option<ide_view::searcher::entry::Id>) -> FallibleResult<()> {
+    (&self, entry:&Option<ide_view::searcher::entry::Id>) -> FallibleResult {
         debug!(self.logger, "Picking suggestion.");
         if let Some(entry) = entry {
             let graph_frp      = &self.view.graph().frp;
@@ -871,7 +871,7 @@ impl Model {
     }
 
     fn node_editing_committed_in_ui
-    (&self, displayed_id:&graph_editor::NodeId) -> FallibleResult<()> {
+    (&self, displayed_id:&graph_editor::NodeId) -> FallibleResult {
         debug!(self.logger, "Committing node expression.");
         let error = || MissingSearcherController;
         let searcher = self.searcher.borrow().clone().ok_or_else(error)?;
@@ -888,7 +888,7 @@ impl Model {
         }
     }
 
-    fn connection_created_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult<()> {
+    fn connection_created_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult {
         debug!(self.logger, "Creating connection.");
         let displayed = self.view.graph().model.edges.get_cloned(&edge_id).ok_or(GraphEditorInconsistency)?;
         let con       = self.controller_connection_from_displayed(&displayed)?;
@@ -901,7 +901,7 @@ impl Model {
         Ok(())
     }
 
-    fn connection_removed_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult<()> {
+    fn connection_removed_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult {
         debug!(self.logger, "Removing connection.");
         let connection = self.get_controller_connection(*edge_id)?;
         self.connection_views.borrow_mut().remove_by_left(&connection);
@@ -932,7 +932,7 @@ impl Model {
         Ok(Visualization{ast_id,expression,id,visualisation_module})
     }
 
-    fn visualization_enabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
+    fn visualization_enabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult {
         // Do nothing if there is already a visualization attached.
         let err = || VisualizationAlreadyAttached(*node_id);
         self.get_controller_visualization_id(*node_id).is_err().ok_or_else(err)?;
@@ -964,7 +964,7 @@ impl Model {
         Ok(())
     }
 
-    fn visualization_disabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
+    fn visualization_disabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult {
         debug!(self.logger,"Node editor wants to detach visualization on {node_id}.");
         let id             = self.get_controller_visualization_id(*node_id)?;
         let graph          = self.graph.clone_ref();
@@ -996,7 +996,7 @@ impl Model {
     }
 
     fn expression_entered_in_ui
-    (&self, local_call:&Option<LocalCall>) -> FallibleResult<()> {
+    (&self, local_call:&Option<LocalCall>) -> FallibleResult {
         if let Some(local_call) = local_call {
             let local_call   = local_call.clone();
             let controller   = self.graph.clone_ref();
@@ -1012,7 +1012,7 @@ impl Model {
         Ok(())
     }
 
-    fn node_entered_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
+    fn node_entered_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult {
         debug!(self.logger,"Requesting entering the node {node_id}.");
         let call           = self.get_controller_node_id(*node_id)?;
         let method_pointer = self.graph.node_method_pointer(call)?;
@@ -1021,7 +1021,7 @@ impl Model {
         self.expression_entered_in_ui(&Some(local_call))
     }
 
-    fn node_exited_in_ui(&self, _:&()) -> FallibleResult<()> {
+    fn node_exited_in_ui(&self, _:&()) -> FallibleResult {
         debug!(self.logger,"Requesting exiting the current node.");
         let controller = self.graph.clone_ref();
         let logger     = self.logger.clone_ref();
@@ -1035,7 +1035,7 @@ impl Model {
         Ok(())
     }
 
-    fn code_changed_in_ui(&self, changes:&Vec<ensogl_text::Change>) -> FallibleResult<()> {
+    fn code_changed_in_ui(&self, changes:&Vec<ensogl_text::Change>) -> FallibleResult {
         for change in changes {
             let range_start = data::text::Index::new(change.range.start.value as usize);
             let range_end   = data::text::Index::new(change.range.end.value   as usize);

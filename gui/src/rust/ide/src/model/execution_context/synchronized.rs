@@ -56,7 +56,7 @@ impl ExecutionContext {
         }
     }
 
-    fn push_root_frame(&self) -> impl Future<Output=FallibleResult<()>> {
+    fn push_root_frame(&self) -> impl Future<Output=FallibleResult> {
         let method_pointer                   = self.model.entry_point.clone();
         let this_argument_expression         = default();
         let positional_arguments_expressions = default();
@@ -89,7 +89,7 @@ impl ExecutionContext {
 
     /// Handles the update about expressions being computed.
     pub fn handle_expression_values_computed
-    (&self, notification:ExpressionValuesComputed) -> FallibleResult<()> {
+    (&self, notification:ExpressionValuesComputed) -> FallibleResult {
         self.model.computed_value_info_registry.apply_updates(notification.updates);
         Ok(())
     }
@@ -121,7 +121,7 @@ impl model::execution_context::API for ExecutionContext {
         self.model.stack_items()
     }
 
-    fn push(&self, stack_item: LocalCall) -> BoxFuture<FallibleResult<()>> {
+    fn push(&self, stack_item: LocalCall) -> BoxFuture<FallibleResult> {
         async move {
             let expression_id = stack_item.call;
             let call          = language_server::LocalCall{expression_id};
@@ -176,7 +176,7 @@ impl model::execution_context::API for ExecutionContext {
     }
 
     fn dispatch_visualization_update
-    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult<()> {
+    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult {
         debug!(self.logger, "Dispatching visualization update through the context {self.id()}");
         self.model.dispatch_visualization_update(visualization_id,data)
     }
