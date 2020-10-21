@@ -12,6 +12,7 @@ use ast::crumbs::IntoCrumbs;
 // === Builder Trait ===
 // =====================
 
+// FIXME[WD]: This builder is obsolete. Please use `ChildBuilder` instead.
 /// A trait with common operations for all builders.
 pub trait Builder : Sized {
     /// Reference to currently built  node.

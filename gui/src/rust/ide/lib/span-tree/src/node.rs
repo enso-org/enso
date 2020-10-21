@@ -7,14 +7,13 @@ use crate::iter::TreeFragment;
 
 use enso_data::text::Index;
 use enso_data::text::Size;
+use ast::crumbs::IntoCrumbs;
 
 
 
-// ====================
-// === Helper Types ===
-// ====================
-
+// ============
 // === Kind ===
+// ============
 
 /// An enum describing kind of node.
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
@@ -27,28 +26,65 @@ pub enum Kind {
     Operation,
     /// A node being a target (or "self") parameter of parent Infix, Section or Prefix.
     Target {
-        /// Indicates if this node can be erased from SpanTree.
+        /// Indicates if this node can be erased.
         is_removable:bool
     },
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
     Argument {
-        /// Indicates if this node can be erased from SpanTree.
+        /// Indicates if this node can be erased.
         is_removable:bool
     },
     /// A node being a placeholder for inserting new child to Prefix or Operator chain. It should
-    /// have assigned span of length 0 and should not have any child.
+    /// have assigned span of length 0 and should not have children.
+    // FIXME: Rename to InsertionPoint
     Empty(InsertType),
+}
+
+impl Kind {
+    /// Target constructor.
+    pub fn target(is_removable:bool) -> Self {
+        Self::Target {is_removable}
+    }
+
+    /// Argument constructor.
+    pub fn argument(is_removable:bool) -> Self {
+        Self::Argument {is_removable}
+    }
 }
 
 impl Kind {
     /// Match the value with `Kind::Empty{..}`.
     pub fn is_empty(self) -> bool {
-        match self {
-            Self::Empty(_) => true,
-            _              => false
-        }
+        matches!(self,Self::Empty(_))
+    }
+
+    /// Match the value with `Kind::Operation{..}`.
+    pub fn is_operation(self) -> bool {
+        matches!(self,Self::Operation)
+    }
+
+    /// Match the value with `Kind::Empty{..}` but not `Kind::Empty(ExpectedArgument(_))`.
+    pub fn is_positional_insertion_point(self) -> bool {
+        self.is_empty() && !self.is_expected_argument()
+    }
+
+    /// Match the value with `Kind::Empty(ExpectedArgument(_))`.
+    pub fn is_expected_argument(self) -> bool {
+        matches!(self,Self::Empty(InsertType::ExpectedArgument(_)))
     }
 }
+
+impl Default for Kind {
+    fn default() -> Self {
+        Self::Empty(default())
+    }
+}
+
+
+
+// ==================
+// === InsertType ===
+// ==================
 
 /// A helpful information about how the new AST should be inserted during Set action. See `action`
 /// module.
@@ -58,6 +94,7 @@ pub enum InsertType {
     BeforeTarget,
     AfterTarget,
     Append,
+    // FIXME: When this insert type can be assigned to node without name?
     /// Ast should be inserted as an argument at given index into the chain.
     /// Note that this is just argument index in the application, it may be not the same as the
     /// index of the function parameter, as `this` argument might be passed using the `this.func`
@@ -65,8 +102,17 @@ pub enum InsertType {
     ExpectedArgument(usize),
 }
 
+impl Default for InsertType {
+    fn default() -> Self {
+        Self::Append
+    }
+}
 
-// === Errors ===
+
+
+// ====================
+// === InvalidCrumb ===
+// ====================
 
 #[allow(missing_docs)]
 #[fail(display = "The crumb `{}` is invalid, only {} children present. Traversed crumbs: {:?}.",
@@ -92,43 +138,94 @@ pub fn parent_crumbs(crumbs:&[Crumb]) -> Option<&[Crumb]> {
     crumbs.len().checked_sub(1).map(|new_len| &crumbs[..new_len])
 }
 
+
+
+// ============
 // === Node ===
+// ============
 
 /// SpanTree Node.
 ///
 /// Each node in SpanTree is bound to some span of code, and potentially may have corresponding
 /// AST node.
-#[derive(Clone,Debug,Eq,PartialEq)]
+#[derive(Clone,Debug,Default,Eq,PartialEq)]
 #[allow(missing_docs)]
 pub struct Node {
     pub kind           : Kind,
     pub size           : Size,
     pub children       : Vec<Child>,
     pub expression_id  : Option<ast::Id>,
+    // FIXME: This uses nested options, which is a bad design
     pub parameter_info : Option<crate::ParameterInfo>,
 }
 
 impl Node {
-    /// Create Empty node.
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Create empty node.
     pub fn new_empty(insert_type:InsertType) -> Self {
-        Node {
-            kind           : Kind::Empty(insert_type),
-            size           : Size::new(0),
-            children       : Vec::new(),
-            expression_id  : None,
-            parameter_info : None,
-        }
+        let kind           = Kind::Empty(insert_type);
+        let size           = default();
+        let children       = default();
+        let expression_id  = default();
+        let parameter_info = default();
+        Self { kind,size,children,expression_id,parameter_info }
+    }
+
+    /// Define a new child by using the `ChildBuilder` pattern.
+    pub fn add_child_builder(&mut self, f:impl FnOnce(ChildBuilder)->ChildBuilder) {
+        let mut new_child = Child::default();
+        let offset        = self.size;
+        new_child.offset  = offset;
+        let builder       = ChildBuilder::new(new_child);
+        let child         = f(builder).child;
+        let offset_diff   = child.offset - offset;
+        self.size += child.size + offset_diff;
+        self.children.push(child);
+    }
+
+    /// Define a new child by using the `ChildBuilder` pattern. Consumes self.
+    pub fn new_child(mut self, f:impl FnOnce(ChildBuilder)->ChildBuilder) -> Self {
+        self.add_child_builder(f);
+        self
     }
 
     /// Is this node empty?
     pub fn is_empty(&self) -> bool {
         self.kind.is_empty()
     }
+
+    /// Kind setter.
+    pub fn with_kind(mut self, kind:Kind) -> Self {
+        self.kind = kind;
+        self
+    }
+
+    /// Size setter.
+    pub fn with_size(mut self, size:Size) -> Self {
+        self.size = size;
+        self
+    }
+
+    /// Expression ID setter.
+    pub fn with_expression_id(mut self, id:ast::Id) -> Self {
+        self.expression_id = Some(id);
+        self
+    }
 }
+
+
+
+// =============
+// === Child ===
+// =============
 
 /// A structure which contains `Node` being a child of some parent. It contains some additional
 /// data regarding this relation
-#[derive(Clone,Debug,Eq,PartialEq)]
+#[derive(Clone,Debug,Default,Eq,PartialEq)]
 pub struct Child {
     /// A child node.
     pub node       : Node,
@@ -138,8 +235,121 @@ pub struct Child {
     pub ast_crumbs : ast::Crumbs,
 }
 
+impl Deref for Child {
+    type Target = Node;
+    fn deref(&self) -> &Self::Target {
+        &self.node
+    }
+}
 
-// === Node Reference ===
+impl DerefMut for Child {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.node
+    }
+}
+
+
+
+// ====================
+// === ChildBuilder ===
+// ====================
+
+/// A builder pattern for `SpanTree`. A think wrapper for `Child` which adds useful methods for
+/// building properties of the current node.
+///
+/// This builder exposes two main functions - `new_child`, and `add_child`. The former provides a
+/// nice, user-friendly interface for building a `SpanTree`, while the later provides a very
+/// explicit argument setting interface meant for building `SpanTree` for shape testing purposes.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ChildBuilder {
+    pub child : Child,
+}
+
+impl Deref for ChildBuilder {
+    type Target = Child;
+    fn deref(&self) -> &Self::Target {
+        &self.child
+    }
+}
+
+impl DerefMut for ChildBuilder {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.child
+    }
+}
+
+impl ChildBuilder {
+    /// Constructor.
+    pub fn new(child:Child) -> Self {
+        Self {child}
+    }
+
+    /// Add new child and use the `ChildBuilder` pattern to define its properties. This is a smart
+    /// child constructor. This function will automatically compute all not provided properties,
+    /// such as span or offset. Moreover, it will default all other not provided fields.
+    pub fn new_child(mut self, f:impl FnOnce(Self)->Self) -> Self {
+        self.node.add_child_builder(f);
+        self
+    }
+
+    /// Add new child and use the `ChildBuilder` pattern to define its properties. This function
+    /// accepts explicit list of arguments and disables all automatic computation of spans and
+    /// offsets. It is useful for testing purposes.
+    pub fn add_child
+    ( mut self
+    , offset : usize
+    , size   : usize
+    , kind   : Kind
+    , crumbs : impl IntoCrumbs
+    , f      : impl FnOnce(Self)->Self) -> Self {
+        let child = ChildBuilder::new(default());
+        let child = f(child.offset(offset).size(size).kind(kind).crumbs(crumbs));
+        self.node.children.push(child.child);
+        self
+    }
+
+    /// Offset setter.
+    pub fn offset(mut self, offset:usize) -> Self {
+        self.offset = Size::new(offset);
+        self
+    }
+
+    /// Crummbs setter.
+    pub fn crumbs(mut self, crumbs:impl IntoCrumbs) -> Self {
+        self.ast_crumbs = crumbs.into_crumbs();
+        self
+    }
+
+    /// Kind setter.
+    pub fn kind(mut self, kind:Kind) -> Self {
+        self.node.kind = kind;
+        self
+    }
+
+    /// Size setter.
+    pub fn size(mut self, size:usize) -> Self {
+        self.node.size = Size::new(size);
+        self
+    }
+
+    /// Expression ID setter.
+    pub fn id(mut self, id:ast::Id) -> Self {
+        self.node.expression_id = Some(id);
+        self
+    }
+
+    /// Expression ID generator.
+    pub fn new_id(self) -> Self {
+        self.id(ast::Id::new_v4())
+    }
+}
+
+
+
+// ===========
+// === Ref ===
+// ===========
 
 /// Crumbs specifying this node position related to root.
 pub type Crumbs = Vec<Crumb>;
@@ -172,7 +382,7 @@ impl<'a> Ref<'a> {
         enso_data::text::Span::new(self.span_begin,self.node.size)
     }
 
-    /// Get the reference to child with given index. Returns None if index if out of bounds.
+    /// Get the reference to child with given index. Fails if index if out of bounds.
     pub fn child(mut self, index:usize) -> FallibleResult<Ref<'a>> {
         let err = || InvalidCrumb {
             crumb   : index,
