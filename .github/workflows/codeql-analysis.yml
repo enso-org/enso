@@ -1,13 +1,19 @@
 name: "CodeQL"
 
+# CodeQL is temporarily disabled because it seems that it is unable to discover
+# code compiled with SBT.
 on:
   push:
-    branches:
-      - main
-      - "release/*"
+    branches-ignore:
+      - "**"
+  #    branches:
+  #      - main
+  #      - "release/*"
   pull_request:
-    branches:
-      - "*"
+    branches-ignore:
+      - "**"
+#    branches:
+#      - "*"
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
