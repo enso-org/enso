@@ -28,17 +28,33 @@ transport formats, please look [here](./protocol-architecture).
   - [`project/rename`](#projectrename)
   - [`project/delete`](#projectdelete)
   - [`project/listSample`](#projectlistsample)
+- [Action Progress Reporting](#action-progress-reporting)
+  - [`task/started`](#taskstarted)
+  - [`task/progress-update`](#taskprogress-update)
+  - [`task/finished`](#taskfinished)
+- [Components Management](#components-management)
+  - [`engine/list`](#enginelist)
+  - [`engine/uninstall`](#engineuninstall)
+- [Configuration Management](#configuration-management)
+  - [`global-config/get`](#global-configget)
+  - [`global-config/set`](#global-configset)
+  - [`global-config/delete`](#global-configdelete)
+- [Logging Service](#logging-service)
+  - [`logging-service/get-endpoint`](#logging-serviceget-endpoint)
 - [Language Server Management](#language-server-management)
-- [Errors](#errors)
+- [Errors](#errors-13)
+  - [`ComponentInstallationError`](#componentinstallationerror)
+  - [`MissingComponentError`](#missingcomponenterror)
   - [`ProjectNameValidationError`](#projectnamevalidationerror)
   - [`ProjectDataStoreError`](#projectdatastoreerror)
   - [`ProjectExistsError`](#projectexistserror)
   - [`ProjectNotFoundError`](#projectnotfounderror)
   - [`ProjectOpenError`](#projectopenerror)
-  - [`ProjectCloseError`](#projectcloseerror)
   - [`ProjectNotOpenError`](#projectnotopenerror)
   - [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror)
   - [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror)
+  - [`ProjectCloseError`](#projectcloseerror)
+  - [`LanguageServerError`](#languageservererror)
 
 <!-- /MarkdownTOC -->
 
@@ -334,6 +350,215 @@ interface ProjectListSampleRequest {
 interface ProjectListSampleResponse {
   projects: [ProjectMetadata];
 }
+```
+
+#### Errors
+
+TBC
+
+## Action Progress Reporting
+
+### `task/started`
+
+TODO
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+### `task/progress-update`
+
+TODO
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+### `task/finished`
+
+TODO
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+## Components Management
+
+### `engine/list`
+
+TODO
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+#### Result
+
+```typescript
+interface ProjectListSampleResponse {}
+```
+
+#### Errors
+
+TBC
+
+### `engine/uninstall`
+
+TODO
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+#### Result
+
+```typescript
+interface ProjectListSampleResponse {}
+```
+
+#### Errors
+
+TBC
+
+## Configuration Management
+
+### `global-config/get`
+
+TODO
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+#### Result
+
+```typescript
+interface ProjectListSampleResponse {}
+```
+
+#### Errors
+
+TBC
+
+### `global-config/set`
+
+TODO
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+#### Result
+
+```typescript
+interface ProjectListSampleResponse {}
+```
+
+#### Errors
+
+TBC
+
+### `global-config/delete`
+
+TODO
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+#### Result
+
+```typescript
+interface ProjectListSampleResponse {}
+```
+
+#### Errors
+
+TBC
+
+## Logging Service
+
+### `logging-service/get-endpoint`
+
+TODO
+
+> TODO [RW] discuss: This approach assumes that the project manager always
+> starts the logging service. It makes sense as it needs to log its boot, but we
+> may want to somehow allow the client to decide or maybe re-configure the
+> logging service? But it would make more sense to do it when launching the
+> project-manager.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectListSampleRequest {}
+```
+
+#### Result
+
+```typescript
+interface ProjectListSampleResponse {}
 ```
 
 #### Errors
