@@ -9,8 +9,6 @@ use ensogl::display;
 use ensogl::gui::component::Animation;
 use ensogl_text as text;
 
-pub use ensogl_gui_list_view::entry;
-
 
 
 // =================

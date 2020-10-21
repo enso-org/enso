@@ -3,6 +3,8 @@
 #![allow(missing_docs)]
 // WARNING! UNDER HEAVY DEVELOPMENT. EXPECT DRASTIC CHANGES.
 
+#[deny(missing_docs)]
+pub mod action_bar;
 pub mod port;
 
 pub use port::Expression;
@@ -11,20 +13,22 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use enso_frp;
+use ensogl::application::Application;
+use ensogl::data::color::animation::ColorAnimation;
 use ensogl::data::color;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component;
-use ensogl::application::Application;
 use ensogl_text::Text;
 use ensogl_theme;
 
-use super::edge;
-use crate::component::visualization;
-use crate::component::node::port::output::OutputPorts;
 use crate::Type;
+use crate::component::node::port::output::OutputPorts;
+use crate::component::visualization;
+
+use super::edge;
 
 
 
@@ -32,12 +36,13 @@ use crate::Type;
 // === Constants ===
 // =================
 
-pub const NODE_SHAPE_PADDING : f32 = 40.0;
-pub const NODE_SHAPE_RADIUS  : f32 = 14.0;
+pub const ACTION_BAR_HEIGHT  : f32 = 15.0;
 pub const CORNER_RADIUS      : f32 = 14.0;
 pub const NODE_HEIGHT        : f32 = 28.0;
-pub const TEXT_OFF           : f32 = 10.0;
+pub const NODE_SHAPE_PADDING : f32 = 40.0;
+pub const NODE_SHAPE_RADIUS  : f32 = 14.0;
 pub const SHADOW_SIZE        : f32 = 10.0;
+pub const TEXT_OFF           : f32 = 10.0;
 
 
 // ============
@@ -49,12 +54,12 @@ pub mod shape {
     use super::*;
 
     ensogl::define_shape_system! {
-        (style:Style, selection:f32) {
+        (style:Style, selection:f32, bg_color:Vector4 ) {
             use ensogl_theme::vars::graph_editor::node as node_theme;
 
-            let bg_color        = style.get_color(node_theme::background::color);
-            let selection_color = style.get_color(node_theme::selection::color);
-            let _selection_size = style.get_number_or(node_theme::selection::size,8.0);
+            let bg_color        = Var::<color::Rgba>::from(bg_color);
+            let selection_color = style.get_color(ensogl_theme::vars::graph_editor::node::selection::color);
+            let _selection_size = style.get_number_or(ensogl_theme::vars::graph_editor::node::selection::size,8.0);
 
             let border_size_f = 16.0;
 
@@ -64,7 +69,7 @@ pub mod shape {
             let height = height - NODE_SHAPE_PADDING.px() * 2.0;
             let radius = NODE_SHAPE_RADIUS.px();
             let shape  = Rect((&width,&height)).corners_radius(radius);
-            let shape  = shape.fill(color::Rgba::from(bg_color));
+            let shape  = shape.fill(bg_color);
 
 
             // === Shadow ===
@@ -141,12 +146,15 @@ ensogl::define_endpoints! {
         set_expression      (Expression),
         set_expression_type ((ast::Id,Option<Type>)),
         set_visualization   (Option<visualization::Definition>),
+        set_dimmed          (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press (),
-        expression (Text)
+        expression (Text),
+        skip       (bool),
+        freeze     (bool),
     }
 }
 
@@ -190,7 +198,10 @@ pub struct NodeModel {
     pub drag_area      : component::ShapeView<drag_area::Shape>,
     pub ports          : port::Manager,
     pub visualization  : visualization::Container,
+    pub action_bar     : action_bar::ActionBar,
     pub output_ports   : OutputPorts,
+
+    main_color         : ColorAnimation,
 }
 
 
@@ -205,6 +216,7 @@ impl NodeModel {
         let main_logger = Logger::sub(&logger,"main_area");
         let drag_logger = Logger::sub(&logger,"drag_area");
         let main_area   = component::ShapeView::<shape::Shape>::new(&main_logger,scene);
+        let main_color  = ColorAnimation::new(app);
         let drag_area   = component::ShapeView::<drag_area::Shape>::new(&drag_logger,scene);
         edge::sort_hack_2(scene);
 
@@ -234,6 +246,9 @@ impl NodeModel {
         });
         display_object.add_child(&ports);
 
+        let action_bar = action_bar::ActionBar::new(&app);
+        display_object.add_child(&action_bar);
+        action_bar.frp.show_icons();
 
         // TODO: Determine number of output ports based on node semantics.
         let output_ports = OutputPorts::new(&scene);
@@ -241,7 +256,7 @@ impl NodeModel {
 
         let app = app.clone_ref();
         Self {app,display_object,logger,main_area,drag_area,output_ports,ports
-             ,visualization} . init()
+             ,visualization,action_bar,main_color} . init()
     }
 
     fn init(self) -> Self {
@@ -278,6 +293,11 @@ impl NodeModel {
         self.output_ports.mod_position(|t| t.x = width/2.0);
         self.output_ports.mod_position(|t| t.y = height/2.0);
 
+        self.action_bar.mod_position(|t| {
+            t.x = width/2.0 + CORNER_RADIUS;
+            t.y = height + ACTION_BAR_HEIGHT;
+        });
+        self.action_bar.frp.set_size(Vector2::new(width,ACTION_BAR_HEIGHT));
     }
 
     pub fn visualization(&self) -> &visualization::Container {
@@ -294,6 +314,10 @@ impl Node {
         let model     = Rc::new(NodeModel::new(app,registry));
         let selection = Animation::<f32>::new(network);
 
+        let color_animation = ColorAnimation::new(&app);
+        let style           = StyleWatch::new(&app.display.scene().style_sheet);
+
+        let actions         = &model.action_bar.frp;
         frp::extend! { network
             eval  selection.value ((v) model.main_area.shape.selection.set(*v));
             eval_ inputs.select   (selection.set_target_value(1.0));
@@ -317,7 +341,48 @@ impl Node {
             eval_ model.drag_area.events.mouse_out  (model.ports.unhover());
 
             out.source.expression <+ model.ports.frp.expression.map(|t|t.clone_ref());
+
+            eval actions.action_visbility ((visible){
+                model.visualization.frp.set_visibility.emit(visible);
+            });
+
+            out.source.skip   <+ actions.action_skip;
+            out.source.freeze <+ actions.action_freeze;
+
+
+            // === Color Handling ===
+
+            background_color <- inputs.set_dimmed.map(f!([model,style](should_dim) {
+                model.ports.frp.set_dimmed.emit(*should_dim);
+                let background_color_path = ensogl_theme::vars::graph_editor::node::background::color;
+                if *should_dim {
+                   style.get_color_dim(background_color_path)
+                 } else {
+                   style.get_color(background_color_path)
+                 }
+            }));
+
+            eval background_color ((color)  color_animation.set_target(color) );
+
+            eval color_animation.value ([model](color) {
+                let color:color::Rgba = color.into();
+                model.main_area.shape.bg_color.set(color.into())
+            });
+
+
+            // === Action Bar ===
+
+            eval_ model.main_area.events.mouse_over  ( actions.show_icons() );
+            eval_ model.main_area.events.mouse_out   ( actions.hide_icons() );
+            eval_ model.drag_area.events.mouse_over  ( actions.show_icons() );
+            eval_ model.drag_area.events.mouse_out   ( actions.hide_icons() );
+
+            is_hovered <- model.ports.frp.hover.map(|item| item.is_some() );
+            eval is_hovered ((hovered) actions.icon_visibility(hovered) );
         }
+
+        model.action_bar.frp.hide_icons.emit(());
+        frp.set_dimmed.emit(false);
 
         Self {frp,model}
     }

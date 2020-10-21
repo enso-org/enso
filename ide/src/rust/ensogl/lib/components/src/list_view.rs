@@ -1,7 +1,11 @@
-//! Select List Component
-use crate::prelude::*;
+//! ListView EnsoGL Component.
+//!
+//! ListView a displayed list of entries with possibility of selecting one and "choosing" by
+//! clicking or pressing enter - similar to the HTML `<select>`.
 
-use crate::entry;
+pub mod entry;
+
+use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application;
@@ -211,11 +215,11 @@ ensogl_core::define_endpoints! {
         /// Deselect all entries.
         deselect_entries(),
 
-        resize           (Vector2<f32>),
-        scroll_jump      (f32),
-        set_entries      (entry::AnyModelProvider),
-        select_entry     (entry::Id),
-        chose_entry      (entry::Id),
+        resize       (Vector2<f32>),
+        scroll_jump  (f32),
+        set_entries  (entry::AnyModelProvider),
+        select_entry (entry::Id),
+        chose_entry  (entry::Id),
     }
 
     Output {

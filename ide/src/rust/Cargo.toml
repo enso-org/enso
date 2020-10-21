@@ -5,7 +5,7 @@ members = [
     "ensogl",
     "ensogl/example",
     "ensogl/lib/core",
-    "ensogl/lib/list-view",
+    "ensogl/lib/components",
     "ensogl/lib/theme",
     "ensogl/lib/text/embedded-fonts",
     "ensogl/lib/text/msdf-sys",

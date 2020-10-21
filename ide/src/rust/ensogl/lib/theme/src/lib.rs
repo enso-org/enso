@@ -111,7 +111,10 @@ define_theme! { dark
     graph_editor {
         node {
             background {
-                color = color::Lcha::new(0.2,0.013,0.18,1.0)
+                color = color::Lcha::new(0.2,0.013,0.18,1.0);
+                variant {
+                    dimmed = color::Lcha::new(0.15,0.013,0.18,1.0)
+                }
             }
             shadow {
                 color        = color::Lcha::new(0.0,0.0,0.0,0.20);
@@ -125,8 +128,19 @@ define_theme! { dark
             text {
                 color             = color::Lcha::new(1.0,0.0,0.0,0.7);
                 missing_arg_color = color::Lcha::new(1.0,0.0,0.0,0.3);
+                variant {
+                    dimmed = color::Lcha::new(0.25,0.013,0.18,1.0)
+                }
                 selection {
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
+                }
+            }
+            actions {
+                icon {
+                    color = color::Lcha::new(1.0,0.0,0.0,0.7);
+                    variant {
+                        dimmed = color::Lcha::new(0.4,0.00,0.0,1.0)
+                    }
                 }
             }
         }
@@ -223,6 +237,17 @@ define_theme! { dark
             }
         }
     }
+    shadow {
+        color        = color::Lcha::new(0.0,0.0,0.0,0.20);
+        fading_color = color::Lcha::new(0.0,0.0,0.0,0.0);
+        exponent     = 2.0
+    }
+    colors {
+        dimming {
+            lightness_factor = 0.8;
+            chroma_factor    = 0.2
+        }
+    }
 }
 
 define_default_theme! { light
@@ -242,7 +267,10 @@ define_default_theme! { light
     graph_editor {
         node {
             background {
-                color = color::Lcha::new(0.98,0.013,0.18,1.0)
+                color = color::Lcha::new(0.98,0.013,0.18,1.0);
+                variant {
+                    dimmed = color::Lcha::new(0.98,0.013,0.18,1.0)
+                }
             }
             shadow {
                 color        = color::Lcha::new(0.0,0.0,0.0,0.20);
@@ -256,8 +284,19 @@ define_default_theme! { light
             text {
                 color             = color::Lcha::new(0.0,0.0,0.0,0.7);
                 missing_arg_color = color::Lcha::new(0.0,0.0,0.0,0.3);
+                variant {
+                    dimmed = color::Lcha::new(0.7,0.0,0.0,0.7)
+                }
                 selection {
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
+                }
+            }
+            actions {
+                icon {
+                    color = color::Lcha::new(0.0,0.0,0.0,0.7);
+                    variant {
+                        dimmed = color::Lcha::new(0.7,0.0,0.0,0.7)
+                    }
                 }
             }
         }
@@ -352,6 +391,12 @@ define_default_theme! { light
                     color = color::Lcha::new(0.7,0.0,0.125,0.7)
                 }
             }
+        }
+    }
+    colors {
+        dimming {
+            lightness_factor = 1.1;
+            chroma_factor    = 0.2
         }
     }
 }

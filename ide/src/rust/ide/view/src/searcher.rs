@@ -12,10 +12,10 @@ use ensogl::application;
 use ensogl::application::{Application, shortcut};
 use ensogl::display;
 use ensogl::gui::component::Animation;
-use ensogl_gui_list_view as list_view;
-use ensogl_gui_list_view::ListView;
+use ensogl_gui_components::list_view;
+use ensogl_gui_components::list_view::ListView;
 
-pub use ensogl_gui_list_view::entry;
+pub use ensogl_gui_components::list_view::entry;
 
 
 
@@ -201,7 +201,7 @@ impl View {
 
             eval height.value ((h)  model.set_height(*h));
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));
-            eval frp.hide     ((()) height.set_target_value(-list_view::component::SHADOW_PX));
+            eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
 
             is_selected         <- model.list.selected_entry.map(|e| e.is_some());
             displayed_doc       <- model.list.selected_entry.map(f!((id) model.documentation_for_entry(*id)));

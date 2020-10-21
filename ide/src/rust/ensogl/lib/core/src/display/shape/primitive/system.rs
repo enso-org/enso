@@ -5,19 +5,15 @@ use crate::prelude::*;
 
 use super::def;
 
-use crate::control::callback;
-use crate::display;
-use crate::data::color;
-use crate::display::shape::primitive::shader;
-use crate::display::symbol::geometry::SpriteSystem;
-use crate::display::symbol::geometry::Sprite;
-use crate::display::symbol::material;
-use crate::display::symbol::material::Material;
 use crate::display::scene::Scene;
-use crate::display::style;
-use crate::display::style::data::DataMatch;
-use crate::system::gpu::types::*;
+use crate::display::shape::primitive::shader;
+use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::SpriteSystem;
+use crate::display::symbol::material::Material;
+use crate::display::symbol::material;
+use crate::display;
 use crate::system::gpu::data::buffer::item::Storable;
+use crate::system::gpu::types::*;
 
 
 
@@ -159,70 +155,6 @@ pub trait ShapeOps {
 impl<T:Shape> ShapeOps for T {
     fn is_this_target(&self, target:display::scene::Target) -> bool {
         self.sprites().iter().any(|s| s.is_this_target(target))
-    }
-}
-
-
-
-// ==================
-// === StyleWatch ===
-// ==================
-
-/// Style watch utility. It's reference is passed to shapes defined with the `define_shape_system`
-/// macro. Whenever a style sheet value is accessed, the value reference is being remembered and
-/// tracked. Whenever it changes, the `callback` runs. The callback should trigger shape redraw.
-#[derive(Clone,CloneRef,Derivative)]
-#[derivative(Debug)]
-pub struct StyleWatch {
-    sheet    : style::Sheet,
-    vars     : Rc<RefCell<Vec<style::Var>>>,
-    handles  : Rc<RefCell<Vec<callback::Handle>>>,
-    #[derivative(Debug="ignore")]
-    callback : Rc<RefCell<Box<dyn Fn()>>>,
-}
-
-impl StyleWatch {
-    /// Constructor.
-    #[allow(trivial_casts)]
-    pub fn new(sheet:&style::Sheet) -> Self {
-        let sheet    = sheet.clone_ref();
-        let vars     = default();
-        let handles  = default();
-        let callback = Rc::new(RefCell::new(Box::new(||{}) as Box<dyn Fn()>));
-        Self {sheet,vars,handles,callback}
-    }
-
-    /// Resets the state of style manager. Should be used on each new shape definition. It is
-    /// called automatically when used by `define_shape_system`.
-    pub fn reset(&self) {
-        *self.vars.borrow_mut()    = default();
-        *self.handles.borrow_mut() = default();
-    }
-
-    /// Queries style sheet value for a value.
-    pub fn get(&self, path:&str) -> Option<style::Data> {
-        let var      = self.sheet.var(path);
-        let value    = var.value();
-        let callback = self.callback.clone_ref();
-        var.on_change(move |_:&Option<style::Data>| (callback.borrow())());
-        self.vars.borrow_mut().push(var);
-        value
-    }
-
-    /// Sets the callback which will be used when dependent styles change.
-    pub fn set_on_style_change<F:'static+Fn()>(&self, callback:F) {
-        *self.callback.borrow_mut() = Box::new(callback);
-    }
-
-    /// Queries style sheet color, if not found fallbacks to red.
-    pub fn get_color(&self, path:&str) -> color::Lcha {
-        let fallback = color::Rgba::new(1.0,0.0,0.0,1.0).into();
-        self.get(path).color().unwrap_or_else(|| fallback)
-    }
-
-    /// Queries style sheet number value, if not found gets fallback.
-    pub fn get_number_or(&self, path:&str, fallback:f32) -> f32 {
-        self.get(path).number().unwrap_or(fallback)
     }
 }
 

@@ -12,7 +12,7 @@ use ensogl::display::shape::BottomHalfPlane;
 use ensogl::display::shape::Circle;
 use ensogl::display::shape::PixelDistance;
 use ensogl::display::shape::Pixels;
-use ensogl::display::shape::primitive::system::StyleWatch;
+use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::Rect;
 use ensogl::display::shape::Var;
 use ensogl::display::shape::primitive::def::class::ShapeOps;

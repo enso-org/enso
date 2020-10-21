@@ -8,15 +8,15 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-frp             = { version = "0.1.0", path = "../../lib/frp"                  }
-enso-logger          = { version = "0.1.2"                                          }
-enso-prelude         = { version = "0.1.4"                                          }
-enso-shapely         = { version = "0.1.1"                                          }
-ensogl-core          = { version = "0.1.0", path = "../../ensogl/lib/core"          }
-ensogl-gui-list-view = { version = "0.1.0", path = "../lib/list-view"               }
-ensogl-text          = { version = "0.1.0", path = "../../ensogl/lib/text"          }
-ensogl-text-msdf-sys = { version = "0.1.0", path = "../../ensogl/lib/text/msdf-sys" }
-ensogl-theme         = { version = "0.1.0", path = "../../ensogl/lib/theme"         }
+enso-frp              = { version = "0.1.0", path = "../../lib/frp"                  }
+enso-logger           = { version = "0.1.2"                                          }
+enso-prelude          = { version = "0.1.4"                                          }
+enso-shapely          = { version = "0.1.1"                                          }
+ensogl-core           = { version = "0.1.0", path = "../../ensogl/lib/core"          }
+ensogl-gui-components = { version = "0.1.0", path = "../../ensogl/lib/components"    }
+ensogl-text           = { version = "0.1.0", path = "../../ensogl/lib/text"          }
+ensogl-text-msdf-sys  = { version = "0.1.0", path = "../../ensogl/lib/text/msdf-sys" }
+ensogl-theme          = { version = "0.1.0", path = "../../ensogl/lib/theme"         }
 
 wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
 nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }

@@ -9,7 +9,7 @@ use ensogl_core::display::shape::*;
 use ensogl_core::data::color;
 use ensogl_core::gui;
 use ensogl_text_msdf_sys::run_once_initialized;
-use ensogl_gui_list_view as list_view;
+use ensogl_gui_components::list_view;
 use logger::enabled::Logger;
 use wasm_bindgen::prelude::*;
 use ensogl_core::display::Scene;

@@ -39,6 +39,13 @@ pub fn Color<D>(data:D) -> Color<D> {
     Color {data}
 }
 
+impl<D> Color<D> {
+    /// Return the color with an added alpha channel.
+    pub fn with_alpha(self, alpha:f32) -> Color<Alpha<D>> {
+        Color(Alpha{ alpha, opaque: self })
+    }
+}
+
 
 // === Deref ===
 
