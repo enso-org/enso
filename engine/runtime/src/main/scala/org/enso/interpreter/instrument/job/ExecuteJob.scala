@@ -6,8 +6,7 @@ import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.polyglot.runtime.Runtime.Api
 
-/**
-  * A job responsible for executing a call stack for the provided context.
+/** A job responsible for executing a call stack for the provided context.
   *
   * @param contextId an identifier of a context to execute
   * @param stack a call stack to execute

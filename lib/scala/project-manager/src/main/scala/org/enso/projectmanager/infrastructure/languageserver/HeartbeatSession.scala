@@ -22,8 +22,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * Implements one ping-pong session.
+/** Implements one ping-pong session.
   *
   * @param socket a server socket
   * @param timeout a session timeout
@@ -149,18 +148,15 @@ class HeartbeatSession(
 
 object HeartbeatSession {
 
-  /**
-    * Signals heartbeat timeout.
+  /** Signals heartbeat timeout.
     */
   case object HeartbeatTimeout
 
-  /**
-    * Signals socket closure timeout.
+  /** Signals socket closure timeout.
     */
   case object SocketClosureTimeout
 
-  /**
-    * Creates a configuration object used to create a [[LanguageServerSupervisor]].
+  /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
     *
     * @param socket a server socket
     * @param timeout a session timeout

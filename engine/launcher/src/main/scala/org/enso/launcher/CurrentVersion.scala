@@ -4,8 +4,7 @@ import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
 import com.typesafe.scalalogging.Logger
 
-/**
-  * Helper object that allows to get the current launcher version.
+/** Helper object that allows to get the current launcher version.
   *
   * In development-mode it allows to override the returned version for testing
   * purposes.
@@ -16,13 +15,11 @@ object CurrentVersion {
     throw new IllegalStateException("Cannot parse the built-in version.")
   }
 
-  /**
-    * Version of the launcher.
+  /** Version of the launcher.
     */
   def version: SemVer = currentVersion
 
-  /**
-    * Override launcher version with the provided one.
+  /** Override launcher version with the provided one.
     *
     * Internal helper method used for testing. It should be called before any
     * calls to [[version]].

@@ -4,24 +4,21 @@ import io.circe.Decoder
 
 import scala.util.Try
 
-/**
-  * Describes a release available in a [[FileStorageFallbackReleaseProvider]].
+/** Describes a release available in a [[FileStorageFallbackReleaseProvider]].
   *
   * That release description can be used to create a concrete
   * [[FallbackRelease]] by adding the release provider specific information.
   */
 case class ReleaseDescription(tag: String, assetNames: Seq[String])
 
-/**
-  * Contains the list of releases available in a
+/** Contains the list of releases available in a
   * [[FileStorageFallbackReleaseProvider]].
   */
 case class ReleaseList(releases: Seq[ReleaseDescription])
 
 object ReleaseList {
 
-  /**
-    * Defines a part of the URL scheme of the fallback mechanism - the name of
+  /** Defines a part of the URL scheme of the fallback mechanism - the name of
     * the file describing the contents of all available releases.
     *
     * That must *never* be changed to ensure that all older launcher versions
@@ -35,8 +32,7 @@ object ReleaseList {
     val assets   = "assets"
   }
 
-  /**
-    * [[Decoder]] instance for [[ReleaseDescription]].
+  /** [[Decoder]] instance for [[ReleaseDescription]].
     *
     * It should always remain backwards compatible, since the fallback mechanism
     * must work for all released launcher versions.
@@ -48,8 +44,7 @@ object ReleaseList {
     } yield ReleaseDescription(tag, assets)
   }
 
-  /**
-    * [[Decoder]] instance for [[ReleaseList]].
+  /** [[Decoder]] instance for [[ReleaseList]].
     *
     * It should always remain backwards compatible, since the fallback mechanism
     * must work for all released launcher versions.

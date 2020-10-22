@@ -13,7 +13,7 @@ class FunctionBindingTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: PassGroup = passes.getPrecursors(FunctionBinding).get
+  val precursorPasses: PassGroup    = passes.getPrecursors(FunctionBinding).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =

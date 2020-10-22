@@ -5,8 +5,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.collection.mutable
 
-/**
-  * Represents executable piece of enso program.
+/** Represents executable piece of enso program.
   *
   * @param contextId an identifier of a context to execute
   * @param stack a call stack that must be executed

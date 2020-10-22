@@ -4,8 +4,7 @@ import java.util.UUID
 
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 
-/**
-  * A descriptor used to start up a Language Server.
+/** A descriptor used to start up a Language Server.
   *
   * @param name a name of the LS
   * @param rootId a content root id

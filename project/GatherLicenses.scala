@@ -15,8 +15,7 @@ import src.main.scala.licenses.{DependencySummary, DistributionDescription}
 import scala.collection.JavaConverters._
 import scala.sys.process._
 
-/**
-  * The task and configuration for automatically gathering license information.
+/** The task and configuration for automatically gathering license information.
   */
 object GatherLicenses {
   val distributions = taskKey[Seq[DistributionDescription]](
@@ -27,8 +26,7 @@ object GatherLicenses {
     settingKey[Set[String]]("The ivy configurations we consider in the review.")
   private val stateFileName = "report-state"
 
-  /**
-    * The task that performs the whole license gathering process.
+  /** The task that performs the whole license gathering process.
     */
   lazy val run = Def.task {
     val log        = state.value.log
@@ -184,8 +182,7 @@ object GatherLicenses {
   case class LegalReviewException(string: String)
       extends RuntimeException(string)
 
-  /**
-    * Launches a server that allows to easily review the generated report.
+  /** Launches a server that allows to easily review the generated report.
     *
     * Requires `npm` to be on the system PATH.
     */
@@ -196,8 +193,7 @@ object GatherLicenses {
       .exitValue()
   }
 
-  /**
-    * A task that prints which sub-projects use a dependency and what
+  /** A task that prints which sub-projects use a dependency and what
     * dependencies use it (so that one can track where dependencies come from).
     */
   lazy val analyzeDependency = Def.inputTask {

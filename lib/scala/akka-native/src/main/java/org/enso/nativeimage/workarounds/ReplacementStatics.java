@@ -14,12 +14,11 @@ final class ReplacementStatics {
   /**
    * Implements a "release fence" without using an unsupported {@link java.lang.invoke.MethodHandle}
    * like the original one.
-   * <p>
-   * Instead, uses {@link sun.misc.Unsafe#storeFence()} under the hood.
+   *
+   * <p>Instead, uses {@link sun.misc.Unsafe#storeFence()} under the hood.
    */
   @Substitute
   public static void releaseFence() {
     Unsafe.unsafeInstance().storeFence();
   }
 }
-

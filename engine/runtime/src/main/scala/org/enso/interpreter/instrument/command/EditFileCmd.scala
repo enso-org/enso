@@ -6,15 +6,13 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that performs edition of a file.
+/** A command that performs edition of a file.
   *
   * @param request a request for editing
   */
 class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
 
-  /**
-    * Executes a request.
+  /** Executes a request.
     *
     * @param ctx contains suppliers of services to perform a request
     */
@@ -41,9 +39,8 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
-      .map {
-        case (contextId, stack) =>
-          new ExecuteJob(contextId, stack, Seq(), sendMethodCallUpdates = false)
+      .map { case (contextId, stack) =>
+        new ExecuteJob(contextId, stack, Seq(), sendMethodCallUpdates = false)
       }
   }
 

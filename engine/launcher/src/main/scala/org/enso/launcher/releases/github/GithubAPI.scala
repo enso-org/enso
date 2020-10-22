@@ -16,29 +16,25 @@ import org.enso.launcher.releases.ReleaseProviderException
 
 import scala.util.{Success, Try}
 
-/**
-  * Contains functions used to query the GitHubAPI endpoints.
+/** Contains functions used to query the GitHubAPI endpoints.
   */
 object GithubAPI {
 
-  /**
-    * Represents a GitHub repository.
+  /** Represents a GitHub repository.
     *
     * @param owner owner of the repository
     * @param name name of the repository
     */
   case class Repository(owner: String, name: String)
 
-  /**
-    * Represents a GitHub release.
+  /** Represents a GitHub release.
     *
     * @param tag tag associated with the release
     * @param assets sequence of assets present in this release
     */
   case class Release(tag: String, assets: Seq[Asset])
 
-  /**
-    * Represents an asset available in a [[Release]]
+  /** Represents an asset available in a [[Release]]
     *
     * @param name filename of that asset
     * @param url URL that can be used to download this asset
@@ -46,8 +42,7 @@ object GithubAPI {
     */
   case class Asset(name: String, url: String, size: Long)
 
-  /**
-    * Returns a list of all releases in the repository.
+  /** Returns a list of all releases in the repository.
     *
     * It fetches all available pages of releases, to make sure all releases are
     * included. This is necessary, because the GitHub API does not guarantee
@@ -98,8 +93,7 @@ object GithubAPI {
     listAllPages(1)
   }
 
-  /**
-    * Fetches release metadata for the release associated with the given tag.
+  /** Fetches release metadata for the release associated with the given tag.
     */
   def getRelease(repo: Repository, tag: String): TaskProgress[Release] = {
     val uri = projectURI(repo) / "releases" / "tags" / tag
@@ -120,8 +114,7 @@ object GithubAPI {
       )
   }
 
-  /**
-    * A helper function that detecte a rate-limit error and tries to make a more
+  /** A helper function that detecte a rate-limit error and tries to make a more
     * friendly user message.
     *
     * If the rate-limit is hit, an error message is returned by the API which is
@@ -146,8 +139,7 @@ object GithubAPI {
     }
   }
 
-  /**
-    * Fetches an asset as text.
+  /** Fetches an asset as text.
     *
     * Returns a [[TaskProgress]] that will return the asset contents as a
     * [[String]] on success.
@@ -161,8 +153,7 @@ object GithubAPI {
     HTTPDownload.fetchString(request, Some(asset.size)).map(_.content)
   }
 
-  /**
-    * Downloads the asset to the provided `destination`.
+  /** Downloads the asset to the provided `destination`.
     *
     * The returned [[TaskProgress]] succeeds iff the download was successful.
     */

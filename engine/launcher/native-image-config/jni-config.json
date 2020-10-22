@@ -2,8 +2,14 @@
   {
     "name": "java.lang.ClassLoader",
     "methods": [
-      { "name": "getPlatformClassLoader", "parameterTypes": [] },
-      { "name": "loadClass", "parameterTypes": ["java.lang.String"] }
+      {
+        "name": "getPlatformClassLoader",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadClass",
+        "parameterTypes": ["java.lang.String"]
+      }
     ]
   },
   {

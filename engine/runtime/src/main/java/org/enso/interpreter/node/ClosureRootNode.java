@@ -52,8 +52,7 @@ public class ClosureRootNode extends EnsoRootNode {
       ExpressionNode body,
       SourceSection section,
       String name) {
-    return new ClosureRootNode(
-        language, localScope, moduleScope, body, section, name);
+    return new ClosureRootNode(language, localScope, moduleScope, body, section, name);
   }
 
   /**

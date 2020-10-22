@@ -3,15 +3,13 @@ import org.enso.loggingservice.LogLevel
 
 import scala.io.AnsiColor
 
-/**
-  * Renders log messages in the same way as [[DefaultLogMessageRenderer]] but
+/** Renders log messages in the same way as [[DefaultLogMessageRenderer]] but
   * adds ANSI escape codes to display the log level in color.
   */
 class ANSIColorsMessageRenderer(printExceptions: Boolean)
     extends DefaultLogMessageRenderer(printExceptions) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def renderLevel(logLevel: LogLevel): String = {
     val color = logLevel match {

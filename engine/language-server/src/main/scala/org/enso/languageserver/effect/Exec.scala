@@ -8,21 +8,18 @@ import zio.blocking.blocking
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * Abstract entity that executes effects `F`.
+/** Abstract entity that executes effects `F`.
   */
 trait Exec[-F[_, _]] {
 
-  /**
-    * Execute Zio effect.
+  /** Execute Zio effect.
     *
     * @param op effect to execute
     * @return a future containing either a failure or a result
     */
   def exec[E, A](op: F[E, A]): Future[Either[E, A]]
 
-  /**
-    * Execute Zio effect with timeout.
+  /** Execute Zio effect with timeout.
     *
     * @param timeout execution timeout
     * @param op effect to execute
@@ -33,23 +30,20 @@ trait Exec[-F[_, _]] {
     op: F[E, A]
   ): Future[Either[E, A]]
 
-  /**
-    * Execute long running task in background.
+  /** Execute long running task in background.
     *
     * @param op effect to execute
     */
   def exec_[E, A](op: F[E, A]): Unit
 }
 
-/**
-  * Executor of Zio effects.
+/** Executor of Zio effects.
   *
   * @param runtime zio runtime
   */
 case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
 
-  /**
-    * Execute Zio effect.
+  /** Execute Zio effect.
     *
     * @param op effect to execute
     * @return a future containing either a failure or a result
@@ -65,8 +59,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     promise.future
   }
 
-  /**
-    * Execute Zio effect with timeout.
+  /** Execute Zio effect with timeout.
     *
     * @param timeout execution timeout
     * @param op effect to execute
@@ -91,8 +84,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     promise.future
   }
 
-  /**
-    * Execute long running task in background.
+  /** Execute long running task in background.
     *
     * @param op effect to execute
     */

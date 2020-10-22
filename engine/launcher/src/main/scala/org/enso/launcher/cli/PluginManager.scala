@@ -9,14 +9,12 @@ import org.enso.launcher.{Environment, FileSystem}
 import scala.sys.process._
 import scala.util.Try
 
-/**
-  * Implements an [[arguments.PluginManager]] using the given
+/** Implements an [[arguments.PluginManager]] using the given
   * [[Environment]].
   */
 class PluginManager(env: Environment) extends arguments.PluginManager {
 
-  /**
-    * Checks if the provided name represents a valid plugin and tries to run it.
+  /** Checks if the provided name represents a valid plugin and tries to run it.
     *
     * @param name name of the plugin
     * @param args arguments that should be passed to it
@@ -36,16 +34,14 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
         )
     }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def hasPlugin(name: String): Boolean = findPlugin(name).isDefined
 
   private val pluginPrefix           = "enso-"
   private val synopsisOption: String = "--synopsis"
 
-  /**
-    * Traverses all directories in the system PATH, looking for executable files
+  /** Traverses all directories in the system PATH, looking for executable files
     * which names start with `enso-`. A valid plugin must support a `synopsis`
     * option, i.e. running `enso-foo --synopsis` should return a short
     * description of the plugin and return with exit code 0 for the plugin to be
@@ -65,13 +61,11 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
     } yield CommandHelp(pluginName, description.synopsis)
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def pluginsNames(): Seq[String] = pluginsHelp().map(_.name)
 
-  /**
-    * A short description of a plugin consisting of its command name and
+  /** A short description of a plugin consisting of its command name and
     * synopsis.
     */
   case class PluginDescription(executableName: String, synopsis: String)
@@ -80,8 +74,7 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
     : collection.mutable.HashMap[String, Option[PluginDescription]] =
     collection.mutable.HashMap.empty
 
-  /**
-    * Checks if the plugin with the given name is installed and valid.
+  /** Checks if the plugin with the given name is installed and valid.
     *
     * It tries to execute it (checking various command extensions depending on
     * the OS) and check if it returns a synopsis.
@@ -121,8 +114,7 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
     None
   }
 
-  /**
-    * Returns a sequence of possible commands a plugin with the given name may
+  /** Returns a sequence of possible commands a plugin with the given name may
     * be called by.
     */
   private def pluginCommandsForName(name: String): Seq[String] =
@@ -144,8 +136,7 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
   }
 }
 
-/**
-  * Default implementation of the [[PluginManager]] using the default
+/** Default implementation of the [[PluginManager]] using the default
   * [[Environment]].
   */
 object PluginManager extends PluginManager(Environment)

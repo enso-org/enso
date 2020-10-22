@@ -4,8 +4,7 @@ import java.util.logging.{Handler, Level, LogRecord}
 
 import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
 
-/**
-  * A [[Handler]] implementation that allows to use the logging service as a
+/** A [[Handler]] implementation that allows to use the logging service as a
   * backend for [[java.util.logging]].
   */
 class JavaLoggingLogHandler(
@@ -13,8 +12,7 @@ class JavaLoggingLogHandler(
   connection: LoggerConnection
 ) extends Handler {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def publish(record: LogRecord): Unit = {
     val level = levelMapping(record.getLevel)
@@ -30,35 +28,30 @@ class JavaLoggingLogHandler(
     }
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def flush(): Unit = {}
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def close(): Unit = {}
 }
 
 object JavaLoggingLogHandler {
 
-  /**
-    * Creates a [[Handler]] with the provided mapping from Java's log levels to
+  /** Creates a [[Handler]] with the provided mapping from Java's log levels to
     * our log levels.
     */
   def create(mapping: Level => LogLevel): JavaLoggingLogHandler =
     new JavaLoggingLogHandler(mapping, LoggingServiceManager.Connection)
 
-  /**
-    * Determines what is the smallest Java level that is still debug and not
+  /** Determines what is the smallest Java level that is still debug and not
     * trace.
     */
   private val defaultLevelDebugCutOff =
     Seq(Level.FINE.intValue, Level.CONFIG.intValue).min
 
-  /**
-    * Default mapping of Java log levels to our log levels based
+  /** Default mapping of Java log levels to our log levels based
     */
   def defaultLevelMapping(javaLevel: Level): LogLevel = {
     val level = javaLevel.intValue
@@ -70,8 +63,7 @@ object JavaLoggingLogHandler {
     else LogLevel.Trace
   }
 
-  /**
-    * Approximate-inverse of [[defaultLevelMapping]] that returns a Java log
+  /** Approximate-inverse of [[defaultLevelMapping]] that returns a Java log
     * level corresponding to the given log level.
     */
   def getJavaLogLevelFor(logLevel: LogLevel): Level =

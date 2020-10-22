@@ -18,8 +18,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `project/open` commands.
+/** A request handler for `project/open` commands.
   *
   * @param clientId the requester id
   * @param service a project service
@@ -81,8 +80,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
 
 object ProjectOpenHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ProjectOpenHandler]].
+  /** Creates a configuration object used to create a [[ProjectOpenHandler]].
     *
     * @param clientId the requester id
     * @param service a project service

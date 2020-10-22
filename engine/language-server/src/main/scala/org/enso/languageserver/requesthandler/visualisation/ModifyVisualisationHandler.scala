@@ -14,8 +14,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `executionContext/modifyVisualisation` commands.
+/** A request handler for `executionContext/modifyVisualisation` commands.
   *
   * @param clientId an unique identifier of the client
   * @param timeout request timeout
@@ -70,8 +69,7 @@ class ModifyVisualisationHandler(
 
 object ModifyVisualisationHandler {
 
-  /**
-    * Creates configuration object used to create a [[ModifyVisualisationHandler]].
+  /** Creates configuration object used to create a [[ModifyVisualisationHandler]].
     *
     * @param clientId an unique identifier of the client
     * @param timeout request timeout

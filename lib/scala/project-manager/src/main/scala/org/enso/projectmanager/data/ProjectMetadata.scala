@@ -3,8 +3,7 @@ package org.enso.projectmanager.data
 import java.time.OffsetDateTime
 import java.util.UUID
 
-/**
-  * Contains project metadata.
+/** Contains project metadata.
   *
   * @param name the name of the project
   * @param id the project id

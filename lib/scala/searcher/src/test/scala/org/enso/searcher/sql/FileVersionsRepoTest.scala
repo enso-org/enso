@@ -117,8 +117,8 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       val input   = Seq(file1 -> digest1, file2 -> digest2)
       val action =
         for {
-          _ <- repo.setVersion(file1, digest0)
-          _ <- repo.updateVersions(input)
+          _  <- repo.setVersion(file1, digest0)
+          _  <- repo.updateVersions(input)
           v1 <- repo.getVersion(file1)
           v2 <- repo.getVersion(file2)
         } yield (v1, v2)

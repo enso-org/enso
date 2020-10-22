@@ -75,17 +75,16 @@ private[cli] object CLIOutputInternal {
     val commonSuffixLength     = wrapLength - commmonPrefixLength
     val additionalLinesPadding = " " * commmonPrefixLength
 
-    rows.flatMap {
-      case (prefix, suffix) =>
-        val prefixPadded  = rightPad(prefix, commmonPrefixLength)
-        val wrappedSuffix = wrapLine(suffix, commonSuffixLength)
-        val firstLine =
-          if (prefix.length >= commmonPrefixLength)
-            Seq(prefix, additionalLinesPadding + wrappedSuffix.head)
-          else
-            Seq(prefixPadded + wrappedSuffix.head)
-        val restLines = wrappedSuffix.tail.map(additionalLinesPadding + _)
-        firstLine ++ restLines
+    rows.flatMap { case (prefix, suffix) =>
+      val prefixPadded  = rightPad(prefix, commmonPrefixLength)
+      val wrappedSuffix = wrapLine(suffix, commonSuffixLength)
+      val firstLine =
+        if (prefix.length >= commmonPrefixLength)
+          Seq(prefix, additionalLinesPadding + wrappedSuffix.head)
+        else
+          Seq(prefixPadded + wrappedSuffix.head)
+      val restLines = wrappedSuffix.tail.map(additionalLinesPadding + _)
+      firstLine ++ restLines
     }
   }
 

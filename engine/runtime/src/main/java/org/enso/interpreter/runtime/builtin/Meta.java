@@ -18,7 +18,6 @@ public class Meta {
     AtomConstructor meta = new AtomConstructor("Meta", scope).initializeFields();
     scope.registerConstructor(meta);
 
-
     scope.registerMethod(
         meta, "is_unresolved_symbol", IsUnresolvedSymbolMethodGen.makeFunction(language));
     scope.registerMethod(
@@ -39,7 +38,6 @@ public class Meta {
         meta, "get_constructor_fields", GetConstructorFieldNamesMethodGen.makeFunction(language));
     scope.registerMethod(meta, "new_atom", NewAtomInstanceMethodGen.makeFunction(language));
 
-
     scope.registerMethod(meta, "is_atom", IsAtomMethodGen.makeFunction(language));
     scope.registerMethod(meta, "get_atom_fields", GetAtomFieldsMethodGen.makeFunction(language));
     scope.registerMethod(
@@ -48,7 +46,8 @@ public class Meta {
     scope.registerMethod(meta, "is_error", IsErrorMethodGen.makeFunction(language));
 
     scope.registerMethod(meta, "is_polyglot", IsPolyglotMethodGen.makeFunction(language));
-    scope.registerMethod(meta, "get_polyglot_language", GetPolyglotLanguageMethodGen.makeFunction(language));
+    scope.registerMethod(
+        meta, "get_polyglot_language", GetPolyglotLanguageMethodGen.makeFunction(language));
 
     scope.registerMethod(meta, "is_same_object", IsSameObjectMethodGen.makeFunction(language));
   }

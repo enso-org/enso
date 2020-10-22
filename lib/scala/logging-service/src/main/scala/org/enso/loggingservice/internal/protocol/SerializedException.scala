@@ -3,8 +3,7 @@ package org.enso.loggingservice.internal.protocol
 import io.circe.syntax._
 import io.circe._
 
-/**
-  * Represents a language-agnostic exception that can be sent over the WebSocket
+/** Represents a language-agnostic exception that can be sent over the WebSocket
   * connection.
   *
   * @param name name of the exception, corresponds to the qualified class name
@@ -24,8 +23,7 @@ case class SerializedException(
 
 object SerializedException {
 
-  /**
-    * Creates a [[SerializedException]] with a cause.
+  /** Creates a [[SerializedException]] with a cause.
     */
   def apply(
     name: String,
@@ -40,8 +38,7 @@ object SerializedException {
       cause      = Some(cause)
     )
 
-  /**
-    * Creates a [[SerializedException]] without a cause.
+  /** Creates a [[SerializedException]] without a cause.
     */
   def apply(
     name: String,
@@ -55,14 +52,12 @@ object SerializedException {
       cause      = None
     )
 
-  /**
-    * Creates a [[SerializedException]] from a [[Throwable]].
+  /** Creates a [[SerializedException]] from a [[Throwable]].
     */
   def apply(throwable: Throwable): SerializedException =
     fromException(throwable)
 
-  /**
-    * Encodes a JVM [[Throwable]] as [[SerializedException]].
+  /** Encodes a JVM [[Throwable]] as [[SerializedException]].
     */
   def fromException(throwable: Throwable): SerializedException = {
     val clazz = throwable.getClass
@@ -77,8 +72,7 @@ object SerializedException {
     )
   }
 
-  /**
-    * Regular expression used to parse the stack trace elements format used by
+  /** Regular expression used to parse the stack trace elements format used by
     * [[StackTraceElement#toString]].
     *
     * It assumes that the stack trace element has form `element(location)`, for
@@ -91,8 +85,7 @@ object SerializedException {
     */
   private val stackTraceRegex = "(.*)\\((.*)\\)".r
 
-  /**
-    * Encodes a [[StackTraceElement]] as [[TraceElement]].
+  /** Encodes a [[StackTraceElement]] as [[TraceElement]].
     */
   private def encodeStackTraceElement(
     stackTraceElement: StackTraceElement
@@ -116,8 +109,7 @@ object SerializedException {
     }
   }
 
-  /**
-    * Represents an element of a stack trace attached to the
+  /** Represents an element of a stack trace attached to the
     * [[SerializedException]].
     *
     * @param element name of the stack location; for example, in Java this is
@@ -138,13 +130,11 @@ object SerializedException {
     }
   }
 
-  /**
-    * [[Encoder]] instance for [[SerializedException]].
+  /** [[Encoder]] instance for [[SerializedException]].
     */
   implicit val encoder: Encoder[SerializedException] = encodeException
 
-  /**
-    * Encodes a [[SerializedException]] as its JSON representation.
+  /** Encodes a [[SerializedException]] as its JSON representation.
     */
   private def encodeException(exception: SerializedException): Json = {
     val base = JsonObject(
@@ -163,13 +153,11 @@ object SerializedException {
     result.asJson
   }
 
-  /**
-    * [[Decoder]] instance for [[SerializedException]].
+  /** [[Decoder]] instance for [[SerializedException]].
     */
   implicit def decoder: Decoder[SerializedException] = decodeException
 
-  /**
-    * Tries to decode a [[SerializedException]] from its JSON representation.
+  /** Tries to decode a [[SerializedException]] from its JSON representation.
     */
   private def decodeException(
     json: HCursor
@@ -188,8 +176,7 @@ object SerializedException {
     )
   }
 
-  /**
-    * [[Encoder]] instance for [[TraceElement]].
+  /** [[Encoder]] instance for [[TraceElement]].
     */
   implicit val traceEncoder: Encoder[TraceElement] = { traceElement =>
     Json.obj(
@@ -198,8 +185,7 @@ object SerializedException {
     )
   }
 
-  /**
-    * [[Decoder]] instance for [[TraceElement]].
+  /** [[Decoder]] instance for [[TraceElement]].
     */
   implicit val traceDecoder: Decoder[TraceElement] = { json =>
     for {

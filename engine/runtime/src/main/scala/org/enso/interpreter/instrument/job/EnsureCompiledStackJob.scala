@@ -10,8 +10,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.jdk.OptionConverters._
 
-/**
-  * Ensures that all files on the provided stack are compiled.
+/** Ensures that all files on the provided stack are compiled.
   *
   * @param stack a call stack
   */
@@ -54,8 +53,7 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
 
 object EnsureCompiledStackJob {
 
-  /**
-    * Extracts files to compile from a call stack.
+  /** Extracts files to compile from a call stack.
     *
     * @param stack a call stack
     * @return a list of files to compile

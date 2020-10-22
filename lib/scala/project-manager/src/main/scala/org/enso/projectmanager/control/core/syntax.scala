@@ -2,8 +2,7 @@ package org.enso.projectmanager.control.core
 
 object syntax {
 
-  /**
-    * Implicit conversion to [[CovariantFlatMapOps]]
+  /** Implicit conversion to [[CovariantFlatMapOps]]
     *
     * @param fa an effect
     * @return
@@ -12,16 +11,14 @@ object syntax {
     fa: F[E, A]
   ): CovariantFlatMapOps[F, E, A] = new CovariantFlatMapOps[F, E, A](fa)
 
-  /**
-    * Implicit conversion to [[ApplicativeOps]].
+  /** Implicit conversion to [[ApplicativeOps]].
     */
   implicit def toApplicativeOps[F[+_, +_]: Applicative, E, A](
     fa: F[E, A]
   ): ApplicativeOps[F, E, A] =
     new ApplicativeOps[F, E, A](fa)
 
-  /**
-    * Implicit conversion to [[ApplicativeFunctionOps]].
+  /** Implicit conversion to [[ApplicativeFunctionOps]].
     */
   implicit def toApplicativeFunctionOps[F[+_, +_]: Applicative, E, A, B](
     ff: F[E, A => B]

@@ -5,13 +5,11 @@ import java.nio.file.Path
 import org.enso.cli.TaskProgress
 import org.enso.launcher.components.RuntimeVersion
 
-/**
-  * Interface for a service providing runtime releases.
+/** Interface for a service providing runtime releases.
   */
 trait RuntimeReleaseProvider {
 
-  /**
-    * Determines filename of the package that should be downloaded from the
+  /** Determines filename of the package that should be downloaded from the
     * release for a given version.
     *
     * The result of this function may be system specific (the package name may
@@ -19,8 +17,7 @@ trait RuntimeReleaseProvider {
     */
   def packageFileName(version: RuntimeVersion): String
 
-  /**
-    * Downloads a package for the given version to the provided location.
+  /** Downloads a package for the given version to the provided location.
     * @param version runtime version to download
     * @param destination name of the file that will be created to contain the
     *                    downloaded package

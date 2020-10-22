@@ -9,15 +9,13 @@ import org.enso.loggingservice.internal.protocol.{
   WSLogMessage
 }
 
-/**
-  * Renders the log message using the default format, including attached
+/** Renders the log message using the default format, including attached
   * exceptions if [[printExceptions]] is set.
   */
 class DefaultLogMessageRenderer(printExceptions: Boolean)
     extends LogMessageRenderer {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def render(logMessage: WSLogMessage): String = {
     val level     = renderLevel(logMessage.level)
@@ -29,16 +27,14 @@ class DefaultLogMessageRenderer(printExceptions: Boolean)
 
   private val timestampZone = ZoneOffset.UTC
 
-  /**
-    * Renders the timestamp.
+  /** Renders the timestamp.
     */
   def renderTimestamp(timestamp: Instant): String =
     ZonedDateTime
       .ofInstant(timestamp, timestampZone)
       .format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
 
-  /**
-    * Adds attached exception's stack trace (if available) to the log if
+  /** Adds attached exception's stack trace (if available) to the log if
     * printing stack traces is enabled.
     */
   def addException(
@@ -51,8 +47,7 @@ class DefaultLogMessageRenderer(printExceptions: Boolean)
       case _ => message
     }
 
-  /**
-    * Renders an exception with its strack trace.
+  /** Renders an exception with its strack trace.
     */
   def renderException(exception: SerializedException): String = {
     val head = s"${exception.name}: ${exception.message}"
@@ -65,8 +60,7 @@ class DefaultLogMessageRenderer(printExceptions: Boolean)
     head + trace.map("\n" + _).mkString + cause
   }
 
-  /**
-    * Renders a log level.
+  /** Renders a log level.
     */
   def renderLevel(logLevel: LogLevel): String =
     logLevel match {

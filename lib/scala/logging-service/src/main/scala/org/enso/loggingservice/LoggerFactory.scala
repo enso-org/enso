@@ -2,13 +2,11 @@ package org.enso.loggingservice
 
 import org.slf4j.{ILoggerFactory, Logger => SLF4JLogger}
 
-/**
-  * A [[ILoggerFactory]] instance for the SLF4J backend.
+/** A [[ILoggerFactory]] instance for the SLF4J backend.
   */
 class LoggerFactory extends ILoggerFactory {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def getLogger(name: String): SLF4JLogger = {
     loggers.getOrElseUpdate(

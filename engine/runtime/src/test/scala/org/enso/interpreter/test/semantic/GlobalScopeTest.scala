@@ -1,13 +1,13 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class GlobalScopeTest extends InterpreterTest {
 
   override def subject: String = "Functions"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "use values from the global scope in their bodies" in {

@@ -5,8 +5,7 @@ import scala.sys.process._
 
 object BuildInfo {
 
-  /**
-    * Writes build-time information to a Scala object that can be used by the
+  /** Writes build-time information to a Scala object that can be used by the
     * components.
     *
     * If the `ENSO_RELEASE_MODE` environment variable is set to `true`, will set
@@ -59,8 +58,7 @@ object BuildInfo {
   private def isReleaseMode: Boolean =
     if (sys.env.get("ENSO_RELEASE_MODE").contains("true")) true else false
 
-  /**
-    * Information regarding the Git repository that was used in the build.
+  /** Information regarding the Git repository that was used in the build.
     *
     * @param ref if available, name of the branch that was checked out; if a
     *            branch is not available, but the current commit is tagged, name
@@ -113,8 +111,7 @@ object BuildInfo {
         None
     }
 
-  /**
-    * Fallback instance of [[GitInformation]] that can be used if the build is
+  /** Fallback instance of [[GitInformation]] that can be used if the build is
     * outside of a repository or the git information cannot be obtained for
     * other reasons.
     */

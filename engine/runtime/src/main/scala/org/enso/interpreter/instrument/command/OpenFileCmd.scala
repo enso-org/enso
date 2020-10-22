@@ -5,8 +5,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that opens a file.
+/** A command that opens a file.
   *
   * @param request a request for a service
   */

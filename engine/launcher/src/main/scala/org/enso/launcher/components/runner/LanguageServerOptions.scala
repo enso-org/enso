@@ -3,8 +3,7 @@ package org.enso.launcher.components.runner
 import java.nio.file.Path
 import java.util.UUID
 
-/**
-  * Options that are passed to the language server.
+/** Options that are passed to the language server.
   *
   * @param rootId an id of content root
   * @param path a path to the content root

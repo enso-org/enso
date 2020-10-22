@@ -7,16 +7,14 @@ import com.typesafe.scalalogging.Logger
 
 import scala.util.Try
 
-/**
-  * Gathers some helper methods querying the system environment.
+/** Gathers some helper methods querying the system environment.
   *
   * The default implementations should be used most of the time, but it is a
   * trait so that the functions can be overridden in tests.
   */
 trait Environment {
 
-  /**
-    * Returns a list of system-dependent plugin extensions.
+  /** Returns a list of system-dependent plugin extensions.
     *
     * By default, on Unix plugins should have no extensions. On Windows, `.exe`
     * `.bat` and `.cmd` are supported.
@@ -26,8 +24,7 @@ trait Environment {
       Seq(".exe", ".bat", ".cmd")
     else Seq()
 
-  /**
-    * Returns a list of directories that can be ignored when traversing the
+  /** Returns a list of directories that can be ignored when traversing the
     * system PATH looking for plugins.
     *
     * These could be system directories that should not contain plguins anyway,
@@ -36,8 +33,7 @@ trait Environment {
   def getIgnoredPathDirectories: Seq[Path] =
     if (OS.isWindows) Seq(Path.of("C:\\Windows")) else Seq()
 
-  /**
-    * Queries the system environment for the given variable that should
+  /** Queries the system environment for the given variable that should
     * represent a valid filesystem path.
     *
     * If it is not defined or is not a valid path, returns None.
@@ -58,16 +54,14 @@ trait Environment {
     getEnvVar(key).flatMap(parsePathWithWarning)
   }
 
-  /**
-    * Returns the system PATH, if available.
+  /** Returns the system PATH, if available.
     */
   def getSystemPath: Seq[Path] =
     getEnvVar("PATH")
       .map(_.split(File.pathSeparatorChar).toSeq.flatMap(safeParsePath))
       .getOrElse(Seq())
 
-  /**
-    * Returns the location of the HOME directory on Unix systems.
+  /** Returns the location of the HOME directory on Unix systems.
     *
     * Should not be called on Windows, as the concept of HOME should be handled
     * differently there.
@@ -88,8 +82,7 @@ trait Environment {
     }
   }
 
-  /**
-    * Returns the location of the local application data directory
+  /** Returns the location of the local application data directory
     * (`%LocalAppData%`) on Windows.
     *
     * Should not be called on platforms other than Windows, as this concept is
@@ -111,8 +104,7 @@ trait Environment {
     }
   }
 
-  /**
-    * Queries the system environment for the given variable.
+  /** Queries the system environment for the given variable.
     *
     * If it is not defined or empty, returns None.
     */
@@ -122,8 +114,7 @@ trait Environment {
     else Some(value)
   }
 
-  /**
-    * Tries to parse a path string and returns Some(path) on success.
+  /** Tries to parse a path string and returns Some(path) on success.
     *
     * We prefer silent failures here (returning None and skipping that entry),
     * as we don't want to fail the whole command if the PATH contains some
@@ -132,8 +123,7 @@ trait Environment {
   private def safeParsePath(str: String): Option[Path] =
     Try(Path.of(str)).toOption
 
-  /**
-    * Returns the path to the running program.
+  /** Returns the path to the running program.
     *
     * It is intended for usage in native binary builds, where it returns the
     * path to the binary executable that is running. When running on the JVM,
@@ -143,13 +133,11 @@ trait Environment {
   def getPathToRunningExecutable: Path
 }
 
-/**
-  * The default [[Environment]] implementation.
+/** The default [[Environment]] implementation.
   */
 object Environment extends Environment {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def getPathToRunningExecutable: Path =
     executablePathOverride.getOrElse(executablePath)
@@ -169,8 +157,7 @@ object Environment extends Environment {
 
   private var executablePathOverride: Option[Path] = None
 
-  /**
-    * Overrides the return value of [[getPathToRunningExecutable]] with the
+  /** Overrides the return value of [[getPathToRunningExecutable]] with the
     * provided path.
     *
     * Internal method used for testing. It should be called as early as

@@ -3,71 +3,59 @@ package org.enso.launcher
 import com.typesafe.scalalogging.Logger
 import io.circe.{Decoder, DecodingFailure}
 
-/**
-  * Represents one of the supported platforms (operating systems).
+/** Represents one of the supported platforms (operating systems).
   */
 sealed trait OS {
 
-  /**
-    * Name of this operating system as included in the configuration.
+  /** Name of this operating system as included in the configuration.
     */
   def configName: String
 
-  /**
-    * Checks if the provided `os.name` matches this operating system.
+  /** Checks if the provided `os.name` matches this operating system.
     */
   def matches(osName: String): Boolean = osName.toLowerCase.contains(configName)
 }
 
-/**
-  * Gathers helper functions useful for dealing with platform-specific
+/** Gathers helper functions useful for dealing with platform-specific
   * behaviour.
   */
 object OS {
 
   private val logger = Logger[OS.type]
 
-  /**
-    * Represents the Linux operating system.
+  /** Represents the Linux operating system.
     */
   case object Linux extends OS {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def configName: String = "linux"
   }
 
-  /**
-    * Represents the macOS operating system.
+  /** Represents the macOS operating system.
     */
   case object MacOS extends OS {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def configName: String = "macos"
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def matches(osName: String): Boolean =
       osName.toLowerCase.contains("mac")
   }
 
-  /**
-    * Represents the Windows operating system.
+  /** Represents the Windows operating system.
     */
   case object Windows extends OS {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def configName: String = "windows"
   }
 
-  /**
-    * Checks if the application is being run on Windows.
+  /** Checks if the application is being run on Windows.
     */
   def isWindows: Boolean =
     operatingSystem == OS.Windows
@@ -75,8 +63,7 @@ object OS {
   def isUNIX: Boolean =
     operatingSystem == OS.Linux || operatingSystem == OS.MacOS
 
-  /**
-    * Returns which [[OS]] this program is running on.
+  /** Returns which [[OS]] this program is running on.
     */
   lazy val operatingSystem: OS = detectOS
 
@@ -124,8 +111,7 @@ object OS {
     }
   }
 
-  /**
-    * Name of the architecture that the program is running on.
+  /** Name of the architecture that the program is running on.
     *
     * Currently the Launcher Native Image builds only support amd64
     * architecture, so it is hardcoded here. In the future, more architectures
@@ -138,15 +124,13 @@ object OS {
     */
   val architecture: String = "amd64"
 
-  /**
-    * Wraps the base executable name with an optional platform-dependent
+  /** Wraps the base executable name with an optional platform-dependent
     * extension.
     */
   def executableName(baseName: String): String =
     if (isWindows) baseName + ".exe" else baseName
 
-  /**
-    * A [[Decoder]] instance allowing to parse the OS name from JSON and YAML
+  /** A [[Decoder]] instance allowing to parse the OS name from JSON and YAML
     * configuration.
     */
   implicit val decoder: Decoder[OS] = { json =>

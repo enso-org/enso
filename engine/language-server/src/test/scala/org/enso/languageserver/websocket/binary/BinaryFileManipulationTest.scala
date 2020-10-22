@@ -28,7 +28,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
   "A WriteFileCommand" must {
 
-    "persist binary contents of a file" taggedAs(Flaky) in {
+    "persist binary contents of a file" taggedAs Flaky in {
       //given
       val requestId = UUID.randomUUID()
       val filename  = "foo.bin"

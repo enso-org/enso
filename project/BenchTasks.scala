@@ -1,9 +1,8 @@
 package org.enso.build
 
-import sbt.{Tags, inputKey, taskKey}
+import sbt.{inputKey, taskKey, Tags}
 
-/**
-  * Defines benchmarking related task keys.
+/** Defines benchmarking related task keys.
   */
 object BenchTasks {
   lazy val Exclusive = Tags.Tag("Exclusive")

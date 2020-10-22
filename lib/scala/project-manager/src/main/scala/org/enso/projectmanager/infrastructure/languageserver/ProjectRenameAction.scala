@@ -30,8 +30,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * An action that encapsulates a request-reply flow responsible for refactoring
+/** An action that encapsulates a request-reply flow responsible for refactoring
   * project name in a running language server.
   *
   * @param replyTo a recipient of a reply
@@ -200,18 +199,15 @@ class ProjectRenameAction(
 
 object ProjectRenameAction {
 
-  /**
-    * Signals an action timeout.
+  /** Signals an action timeout.
     */
   case object ActionTimeout
 
-  /**
-    * Signals a socket closure timeout.
+  /** Signals a socket closure timeout.
     */
   case object SocketClosureTimeout
 
-  /**
-    * Creates a configuration object used to create a [[ProjectRenameAction]].
+  /** Creates a configuration object used to create a [[ProjectRenameAction]].
     *
     * @param replyTo a recipient of a reply
     * @param socket a server socket

@@ -11,35 +11,30 @@ import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
 import scala.concurrent.Future
 
-/**
-  * Manages the logging service.
+/** Manages the logging service.
   */
 object LoggingServiceManager {
   private val messageQueue           = new BlockingConsumerMessageQueue()
   private var currentLevel: LogLevel = LogLevel.Trace
 
-  /**
-    * The default [[LoggerConnection]] that should be used by all backends which
+  /** The default [[LoggerConnection]] that should be used by all backends which
     * want to use the logging service.
     */
   object Connection extends LoggerConnection {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def send(message: InternalLogMessage): Unit =
       messageQueue.send(Left(message))
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def logLevel: LogLevel = currentLevel
   }
 
   private var currentService: Option[Service] = None
 
-  /**
-    * Sets up the logging service, but in a separate thread to avoid stalling
+  /** Sets up the logging service, but in a separate thread to avoid stalling
     * the application.
     *
     * The returned [[InitializationResult]] depends on the mode.
@@ -58,8 +53,7 @@ object LoggingServiceManager {
     Future(doSetup(mode, logLevel))
   }
 
-  /**
-    * Shuts down the logging service if it was initialized or runs
+  /** Shuts down the logging service if it was initialized or runs
     * [[handlePendingMessages]] to handle logs that would be dropped due to the
     * logging service never being initialized.
     *
@@ -85,8 +79,7 @@ object LoggingServiceManager {
 
   Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))
 
-  /**
-    * Terminates the currently running logging service (if any) and replaces it
+  /** Terminates the currently running logging service (if any) and replaces it
     * with a fallback logging service.
     *
     * Can be used if the currently logging service fails after initialization
@@ -110,16 +103,14 @@ object LoggingServiceManager {
     }
   }
 
-  /**
-    * Removes any pending logs (so that [[handlePendingMessages]] will not print
+  /** Removes any pending logs (so that [[handlePendingMessages]] will not print
     * them).
     *
     * An internal method that is only used by [[TestLogger]].
     */
   def dropPendingLogs(): Unit = messageQueue.drain(LogLevel.Off)
 
-  /**
-    * Prints any messages that have been buffered but have not been logged yet
+  /** Prints any messages that have been buffered but have not been logged yet
     * due to no loggers being active.
     */
   private def handlePendingMessages(): Unit = {

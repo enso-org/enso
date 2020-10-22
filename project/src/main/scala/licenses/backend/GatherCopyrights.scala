@@ -6,8 +6,7 @@ import src.main.scala.licenses.{Attachment, CopyrightMention, FilesHelper}
 
 import scala.util.control.NonFatal
 
-/**
-  * The algorithm for gathering any copyright notices inside of source files.
+/** The algorithm for gathering any copyright notices inside of source files.
   *
   * It reads all text files and gathers any lines that contain the word
   * copyright - it may introduce some false positives but these can be manually
@@ -19,8 +18,7 @@ import scala.util.control.NonFatal
   */
 object GatherCopyrights extends AttachmentGatherer {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def run(root: Path): Seq[Attachment] = {
     val allCopyrights = FilesHelper.walk(root) { path =>
@@ -31,13 +29,12 @@ object GatherCopyrights extends AttachmentGatherer {
           lines
             .filter(l => mayBeCopyright(l._1))
             .map { case (str, idx) => (str, findContext(lines)(idx)) }
-            .map {
-              case (line, context) =>
-                CopyrightMention.from(
-                  CopyrightMention.cleanup(line),
-                  Seq(context),
-                  Seq(relativePath)
-                )
+            .map { case (line, context) =>
+              CopyrightMention.from(
+                CopyrightMention.cleanup(line),
+                Seq(context),
+                Seq(relativePath)
+              )
             }
         } catch {
           case NonFatal(e) =>
@@ -58,14 +55,12 @@ object GatherCopyrights extends AttachmentGatherer {
     )
   }
 
-  /**
-    * Decides if the line may contain a copyright.
+  /** Decides if the line may contain a copyright.
     */
   private def mayBeCopyright(line: String): Boolean =
     line.toLowerCase.contains("copyright")
 
-  /**
-    * Finds context of the given line.
+  /** Finds context of the given line.
     *
     * If the selected line seems to be a part of a block comment, the context
     * becomes the whole comment, otherwise it just includes 2 lines before and

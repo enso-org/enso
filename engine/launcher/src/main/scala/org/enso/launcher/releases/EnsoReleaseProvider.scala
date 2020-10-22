@@ -4,8 +4,7 @@ import org.enso.launcher.OS
 
 import scala.util.{Failure, Success, Try}
 
-/**
-  * A helper class that implements the shared logic of engine and launcher
+/** A helper class that implements the shared logic of engine and launcher
   * releases which handles listing releases excluding broken ones.
   *
   * @param simpleReleaseProvider a base release provided that provides the raw
@@ -18,8 +17,7 @@ abstract class EnsoReleaseProvider[ReleaseType](
 ) extends ReleaseProvider[ReleaseType] {
   protected val tagPrefix = "enso-"
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def findLatestVersion(): Try[SemVer] =
     fetchAllValidVersions().flatMap { versions =>
@@ -28,8 +26,7 @@ abstract class EnsoReleaseProvider[ReleaseType](
       }
     }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fetchAllValidVersions(): Try[Seq[SemVer]] =
     simpleReleaseProvider.listReleases().map { releases =>
@@ -42,8 +39,7 @@ abstract class EnsoReleaseProvider[ReleaseType](
 
 object EnsoReleaseProvider {
 
-  /**
-    * Returns a full system-dependent package name for a component with a given
+  /** Returns a full system-dependent package name for a component with a given
     * name and version.
     *
     * The package name can depend on the current OS and its architecture.

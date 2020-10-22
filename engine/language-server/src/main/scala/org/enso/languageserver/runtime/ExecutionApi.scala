@@ -7,8 +7,7 @@ import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnostic
 
-/**
-  * The execution JSON RPC API provided by the language server.
+/** The execution JSON RPC API provided by the language server.
   *
   * @see [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
   */

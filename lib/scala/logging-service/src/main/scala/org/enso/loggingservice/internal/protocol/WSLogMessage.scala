@@ -7,8 +7,7 @@ import io.circe.{Decoder, Encoder, JsonObject}
 import org.enso.loggingservice.LogLevel
 import org.enso.loggingservice.internal.BaseLogMessage
 
-/**
-  * The encoded log message that can be sent over the WebSocket connection or
+/** The encoded log message that can be sent over the WebSocket connection or
   * passed to a printer.
   *
   * @param level log level
@@ -34,8 +33,7 @@ object WSLogMessage {
     val Exception = "exception"
   }
 
-  /**
-    * [[Encoder]] instance for [[WSLogMessage]].
+  /** [[Encoder]] instance for [[WSLogMessage]].
     */
   implicit val encoder: Encoder[WSLogMessage] = { message =>
     val base = JsonObject(
@@ -55,8 +53,7 @@ object WSLogMessage {
     result.asJson
   }
 
-  /**
-    * [[Decoder]] instance for [[WSLogMessage]].
+  /** [[Decoder]] instance for [[WSLogMessage]].
     */
   implicit val decoder: Decoder[WSLogMessage] = { json =>
     for {

@@ -8,8 +8,7 @@ import org.enso.languageserver.runtime.RuntimeConnector.Destroy
 import org.enso.polyglot.runtime.Runtime
 import org.graalvm.polyglot.io.MessageEndpoint
 
-/**
-  * An actor managing a connection to Enso's runtime server.
+/** An actor managing a connection to Enso's runtime server.
   */
 class RuntimeConnector
     extends Actor
@@ -25,8 +24,7 @@ class RuntimeConnector
     case _ => stash()
   }
 
-  /**
-    * Performs communication between runtime and language server.
+  /** Performs communication between runtime and language server.
     * Requests are sent from language server to runtime,
     * responses are forwarded from runtime to the sender.
     *
@@ -55,28 +53,24 @@ class RuntimeConnector
 
 object RuntimeConnector {
 
-  /**
-    * Protocol message to pass the runtime connection to the actor.
+  /** Protocol message to pass the runtime connection to the actor.
     *
     * @param engineConnection the open runtime connection.
     */
   case class Initialize(engineConnection: MessageEndpoint)
 
-  /**
-    * Protocol message to inform the actor about the connection being closed.
+  /** Protocol message to inform the actor about the connection being closed.
     */
   case object Destroy
 
-  /**
-    * Helper for creating instances of the [[RuntimeConnector]] actor.
+  /** Helper for creating instances of the [[RuntimeConnector]] actor.
     *
     * @return a [[Props]] instance for the newly created actor.
     */
   def props: Props =
     Props(new RuntimeConnector)
 
-  /**
-    * Endpoint implementation used to handle connections with the runtime.
+  /** Endpoint implementation used to handle connections with the runtime.
     *
     * @param actor the actor ref to pass received messages to.
     * @param peerEndpoint the runtime server's connection end.

@@ -6,8 +6,7 @@ object CLIOutput {
   val terminalWidth: Int          = 80
   val minimumColumnWrapWidth: Int = 50
 
-  /**
-    * Aligns tables and wraps all text to [[terminalWidth]] (with some
+  /** Aligns tables and wraps all text to [[terminalWidth]] (with some
     * exceptions).
     *
     * A table is a continuous sequence of lines containing the `\t` character.
@@ -32,21 +31,20 @@ object CLIOutput {
     val lines    = splitLinesPreservingTrailing(text)
     val entities = CLIOutputInternal.groupTables(lines)
     val wrapped: Seq[String] = entities flatMap {
-        case CLIOutputInternal.TextLine(line) =>
-          CLIOutputInternal.wrapLine(line, terminalWidth).toList
-        case CLIOutputInternal.TextTable(rows) =>
-          CLIOutputInternal.alignAndWrapTable(
-            rows,
-            terminalWidth,
-            minimumColumnWrapWidth,
-            minimumTableWidth = minTableWidth.getOrElse(2)
-          )
-      }
+      case CLIOutputInternal.TextLine(line) =>
+        CLIOutputInternal.wrapLine(line, terminalWidth).toList
+      case CLIOutputInternal.TextTable(rows) =>
+        CLIOutputInternal.alignAndWrapTable(
+          rows,
+          terminalWidth,
+          minimumColumnWrapWidth,
+          minimumTableWidth = minTableWidth.getOrElse(2)
+        )
+    }
     joinLines(wrapped)
   }
 
-  /**
-    * Prints the provided text to stdout, first aligning and wrapping it as
+  /** Prints the provided text to stdout, first aligning and wrapping it as
     * described in [[alignAndWrap]].
     */
   def println(text: String): Unit = {
@@ -61,8 +59,7 @@ object CLIOutput {
     )
   }
 
-  /**
-    * Prints out the given question and asks the user to confirm the action by
+  /** Prints out the given question and asks the user to confirm the action by
     * typing 'y' or 'n'.
     *
     * Also handles uppercase variants. An empty line defaults to the default
@@ -90,26 +87,22 @@ object CLIOutput {
     }
   }
 
-  /**
-    * A type for [[askQuestion]] which specifies how to display the possible
+  /** A type for [[askQuestion]] which specifies how to display the possible
     * answers.
     */
   trait Answer {
 
-    /**
-      * The key that is associated with this answer. Should be a single
+    /** The key that is associated with this answer. Should be a single
       * character.
       */
     def key: String
 
-    /**
-      * A short description of this answer.
+    /** A short description of this answer.
       */
     def description: String
   }
 
-  /**
-    * Asks the user to choose one of the possible answers.
+  /** Asks the user to choose one of the possible answers.
     *
     * The first answer in the provided sequence is treated as the default and it
     * is returned if the user inputs an empty line. If the user inputs a
@@ -144,13 +137,11 @@ object CLIOutput {
       }
   }
 
-  /**
-    * Default indentation used for printing lists.
+  /** Default indentation used for printing lists.
     */
   val indent: String = "    "
 
-  /**
-    * Splits the text into lines, preserving trailing newlines by adding empty
+  /** Splits the text into lines, preserving trailing newlines by adding empty
     * lines.
     */
   private def splitLinesPreservingTrailing(string: String): Seq[String] = {

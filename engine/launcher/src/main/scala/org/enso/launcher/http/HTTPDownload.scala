@@ -15,13 +15,11 @@ import org.enso.cli.{TaskProgress, TaskProgressImplementation}
 
 import scala.concurrent.Future
 
-/**
-  * Represents a HTTP header.
+/** Represents a HTTP header.
   */
 case class Header(name: String, value: String) {
 
-  /**
-    * Checks if this header instance corresponds to a `headerName`.
+  /** Checks if this header instance corresponds to a `headerName`.
     *
     * The check is case-insensitive.
     */
@@ -29,8 +27,7 @@ case class Header(name: String, value: String) {
     name.toLowerCase == headerName.toLowerCase
 }
 
-/**
-  * Contains the response contents as a string alongside with the headers
+/** Contains the response contents as a string alongside with the headers
   * included in the response.
   *
   * @param content the response decoded as a string
@@ -38,19 +35,16 @@ case class Header(name: String, value: String) {
   */
 case class APIResponse(content: String, headers: Seq[Header])
 
-/**
-  * Contains utility functions for fetching data using the HTTP(S) protocol.
+/** Contains utility functions for fetching data using the HTTP(S) protocol.
   */
 object HTTPDownload {
   private val logger = Logger[HTTPDownload.type]
 
-  /**
-    * Determines how many redirects are taken until an error is thrown.
+  /** Determines how many redirects are taken until an error is thrown.
     */
   val maximumRedirects: Int = 20
 
-  /**
-    * Fetches the `request` and tries to decode is as a [[String]].
+  /** Fetches the `request` and tries to decode is as a [[String]].
     *
     * The request is executed in a separate thread. A [[TaskProgress]] instance
     * is returned immediately which can be used to track progress of the
@@ -88,8 +82,7 @@ object HTTPDownload {
     )
   }
 
-  /**
-    * Downloads the `request` and saves the response in the file pointed by the
+  /** Downloads the `request` and saves the response in the file pointed by the
     * `destination`.
     *
     * The request is executed in a separate thread. A [[TaskProgress]] instance
@@ -133,8 +126,7 @@ object HTTPDownload {
     )
   }
 
-  /**
-    * Starts the request and returns a [[TaskProgress]] that can be used to
+  /** Starts the request and returns a [[TaskProgress]] that can be used to
     * track download progress and get the result.
     *
     * @tparam A type of the result returned by `sink`

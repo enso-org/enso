@@ -34,16 +34,14 @@ class LauncherUpgrader(
 
   private val logger = Logger[LauncherUpgrader]
 
-  /**
-    * Queries the release provider for the latest available valid launcher
+  /** Queries the release provider for the latest available valid launcher
     * version.
     */
   def latestVersion(): Try[SemVer] = {
     releaseProvider.findLatestVersion()
   }
 
-  /**
-    * Performs an upgrade to the `targetVersion`.
+  /** Performs an upgrade to the `targetVersion`.
     *
     * The upgrade may first temporarily install versions older than the target
     * if the upgrade cannot be performed directly from the current version.
@@ -93,8 +91,7 @@ class LauncherUpgrader(
     }
   }
 
-  /**
-    * Cleans up temporary and old launcher executables.
+  /** Cleans up temporary and old launcher executables.
     *
     * Some executables may fail to be cleaned the first time, if other launcher
     * instances are still running. To ensure that old executables are cleaned,
@@ -121,8 +118,7 @@ class LauncherUpgrader(
     }
   }
 
-  /**
-    * Continues a multi-step upgrade.
+  /** Continues a multi-step upgrade.
     *
     * Called by [[InternalOpts]] when the upgrade continuation is requested by
     * [[runNextUpgradeStep]].
@@ -135,8 +131,7 @@ class LauncherUpgrader(
       performStepByStepUpgrade(release)
   }
 
-  /**
-    * Run the next step of the upgrade using the newly extracted newer launcher
+  /** Run the next step of the upgrade using the newly extracted newer launcher
     * version.
     *
     * @param temporaryExecutable path to the new, temporary launcher executable
@@ -160,16 +155,14 @@ class LauncherUpgrader(
 
   private def showProgress = !globalCLIOptions.hideProgress
 
-  /**
-    * Path to the original launcher executable.
+  /** Path to the original launcher executable.
     */
   private val originalExecutable =
     originalExecutablePath.getOrElse(
       distributionManager.env.getPathToRunningExecutable
     )
 
-  /**
-    * Performs a step-by-step recursive upgrade.
+  /** Performs a step-by-step recursive upgrade.
     *
     * Finds a next version that can be directly upgraded to and is newer enough
     * to allow to upgrade to new versions, extracts it and runs it telling it to
@@ -235,8 +228,7 @@ class LauncherUpgrader(
     else nextVersionToUpgradeTo(nextRelease, availableVersions)
   }
 
-  /**
-    * Extracts just the launcher executable from the archive.
+  /** Extracts just the launcher executable from the archive.
     *
     * @param archivePath path to the archive
     * @param executablePath path where to put the extracted executable
@@ -336,8 +328,7 @@ class LauncherUpgrader(
     }
   }
 
-  /**
-    * Replaces the current launcher executable with a new one.
+  /** Replaces the current launcher executable with a new one.
     *
     * On UNIX systems, it just removes the old one and moves the new one in its
     * place.
@@ -365,8 +356,7 @@ class LauncherUpgrader(
 
 object LauncherUpgrader {
 
-  /**
-    * Creates a [[LauncherUpgrader]] using the default [[DistributionManager]]
+  /** Creates a [[LauncherUpgrader]] using the default [[DistributionManager]]
     * and release providers.
     *
     * Should be run late enough so that the testing repository override can be
@@ -390,8 +380,7 @@ object LauncherUpgrader {
       originalExecutablePath
     )
 
-  /**
-    * Wraps an action and intercepts the [[LauncherUpgradeRequiredError]]
+  /** Wraps an action and intercepts the [[LauncherUpgradeRequiredError]]
     * offering to upgrade the launcher and re-run the command with the newer
     * version.
     *

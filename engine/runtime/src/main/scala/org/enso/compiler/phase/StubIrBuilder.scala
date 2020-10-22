@@ -9,15 +9,13 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.jdk.CollectionConverters._
 
-/**
-  * Builds an IR stub. This is useful for source-less modules (such as
+/** Builds an IR stub. This is useful for source-less modules (such as
   * [[org.enso.interpreter.runtime.builtin.Builtins]]). Having a stub IR
   * guarantees that other modules can compile against it.
   */
 object StubIrBuilder {
 
-  /**
-    * Build the stub IR for a given module.
+  /** Build the stub IR for a given module.
     * @param module the module to build IR for.
     * @return the built stub IR.
     */
@@ -27,9 +25,8 @@ object StubIrBuilder {
     val conses    = scope.getConstructors.asScala
     val consNames = conses.keys.map(_.toLowerCase()).toSet
     val definedConstructors: List[BindingsMap.Cons] =
-      conses.toList.map {
-        case (name, cons) =>
-          BindingsMap.Cons(name, cons.getArity)
+      conses.toList.map { case (name, cons) =>
+        BindingsMap.Cons(name, cons.getArity)
       }
     val moduleMethods = Option(scope.getMethods.get(scope.getAssociatedType))
       .map(methods =>
@@ -42,8 +39,8 @@ object StubIrBuilder {
     val polyglot = scope.getPolyglotSymbols.asScala.keys.toList
       .map(BindingsMap.PolyglotSymbol)
     val exportedBindings = definedConstructors.map(c =>
-        (c.name.toLowerCase, List(ResolvedConstructor(module, c)))
-      ) ++ moduleMethods.map(m => (m.name, List(ResolvedMethod(module, m))))
+      (c.name.toLowerCase, List(ResolvedConstructor(module, c)))
+    ) ++ moduleMethods.map(m => (m.name, List(ResolvedMethod(module, m))))
     val meta = BindingsMap(
       definedConstructors,
       polyglot,

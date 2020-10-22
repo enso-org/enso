@@ -105,8 +105,7 @@ object OffsetZip {
 //// AbsolutePosition //////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/**
-  * Represents an expression's absolute positioning in a source file.
+/** Represents an expression's absolute positioning in a source file.
   * @param start the inclusive, 0-indexed position of the beginning
   *              of the expression
   * @param end the exclusive, 0-indexed position of the end of
@@ -929,8 +928,8 @@ object Shape extends ShapeImplicit {
         t => R + t.head + t.body
       implicit def ozip[T: HasSpan]: OffsetZip[Segment, T] =
         t => {
-          t.copy(body = OffsetZip(t.body).map {
-            case (i, s) => s.map((i + Size(t.head.span), _))
+          t.copy(body = OffsetZip(t.body).map { case (i, s) =>
+            s.map((i + Size(t.head.span), _))
           })
         }
       implicit def span[T: HasSpan]: HasSpan[Segment[T]] =
@@ -1603,8 +1602,8 @@ object AST {
       var asts = List[(Index, AST)](Index.Start -> t)
       while (asts.nonEmpty) {
         val (off, ast) = asts.head
-        val children = ast.zipWithOffset().toList.map {
-          case (o, ast) => (o + off.asSize, ast)
+        val children = ast.zipWithOffset().toList.map { case (o, ast) =>
+          (o + off.asSize, ast)
         }
         if (ast.id.nonEmpty)
           ids +:= Span(off, ast) -> ast.id.get

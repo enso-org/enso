@@ -23,8 +23,7 @@ import scala.annotation.nowarn
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
-/**
-  * A server [[Service]] which handles both messages incoming from a WebSocket
+/** A server [[Service]] which handles both messages incoming from a WebSocket
   * connection and local log messages.
   *
   * @param interface interface to bind to
@@ -45,13 +44,11 @@ class Server(
 ) extends Local(logLevel, queue, printers)
     with ServiceWithActorSystem {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override protected def actorSystemName: String = "logging-service-server"
 
-  /**
-    * Immediately starts processing local messages and returns a [[Future]] that
+  /** Immediately starts processing local messages and returns a [[Future]] that
     * will complete once the server has been started.
     */
   def start(): Future[Unit] = {
@@ -59,8 +56,7 @@ class Server(
     startWebSocketServer()
   }
 
-  /**
-    * Starts the WebSocket server.
+  /** Starts the WebSocket server.
     */
   private def startWebSocketServer(): Future[Unit] = {
     val requestHandler: HttpRequest => HttpResponse = {
@@ -92,8 +88,7 @@ class Server(
       }
   }
 
-  /**
-    * Returns the binding that describes how to connect to the started server.
+  /** Returns the binding that describes how to connect to the started server.
     *
     * This method can only be called after the future returned from [[start]]
     * has completed.
@@ -110,8 +105,7 @@ class Server(
 
   private var bindingOption: Option[Http.ServerBinding] = None
 
-  /**
-    * Creates a separate message processor for each connection.
+  /** Creates a separate message processor for each connection.
     *
     * Each connection will only report the first invalid message, all further
     * invalid messages are silently ignored.
@@ -143,8 +137,7 @@ class Server(
   private def decodeMessage(message: String): Either[Error, WSLogMessage] =
     parser.parse(message).flatMap(_.as[WSLogMessage])
 
-  /**
-    * Shuts down the server.
+  /** Shuts down the server.
     */
   override protected def terminateUser(): Future[_] = {
     bindingOption match {
@@ -157,8 +150,7 @@ class Server(
 
 object Server {
 
-  /**
-    * Waits for the [[Server]] to start up and returns it or throws an exception
+  /** Waits for the [[Server]] to start up and returns it or throws an exception
     * on setup failure.
     *
     * @param interface interface to bind to

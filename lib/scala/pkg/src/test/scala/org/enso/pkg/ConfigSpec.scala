@@ -17,14 +17,13 @@ class ConfigSpec
         "unknown-key" -> Json.fromString("value")
       )
 
-      inside(original.as[Config]) {
-        case Right(config) =>
-          val serialized = Config.encoder(config)
-          serialized.asObject
-            .value("unknown-key")
-            .value
-            .asString
-            .value shouldEqual "value"
+      inside(original.as[Config]) { case Right(config) =>
+        val serialized = Config.encoder(config)
+        serialized.asObject
+          .value("unknown-key")
+          .value
+          .asString
+          .value shouldEqual "value"
       }
     }
 

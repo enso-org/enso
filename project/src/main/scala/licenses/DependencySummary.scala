@@ -7,87 +7,73 @@ import src.main.scala.licenses.report.{
   WithWarnings
 }
 
-/**
-  * Contains a sequence of dependencies and any attachments found.
+/** Contains a sequence of dependencies and any attachments found.
   */
 case class DependencySummary(
   dependencies: Seq[(DependencyInformation, Seq[Attachment])]
 )
 
-/**
-  * Review status of the [[Attachment]].
+/** Review status of the [[Attachment]].
   */
 sealed trait AttachmentStatus {
 
-  /**
-    * Determines if the attachment with this status should be included in the
+  /** Determines if the attachment with this status should be included in the
     * final package.
     */
   def included: Boolean
 }
 object AttachmentStatus {
 
-  /**
-    * Indicates that the attachment should be kept.
+  /** Indicates that the attachment should be kept.
     */
   case object Keep extends AttachmentStatus {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def included: Boolean = true
   }
 
-  /**
-    * Indicates that the copyright mention should be kept, but its whole context
+  /** Indicates that the copyright mention should be kept, but its whole context
     * should be used instead of its content.
     *
     * Only valid for [[CopyrightMention]].
     */
   case object KeepWithContext extends AttachmentStatus {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def included: Boolean = true
   }
 
-  /**
-    * Indicates that the attachment should be ignored.
+  /** Indicates that the attachment should be ignored.
     */
   case object Ignore extends AttachmentStatus {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def included: Boolean = false
   }
 
-  /**
-    * Indicates that the attachment has been added manually.
+  /** Indicates that the attachment has been added manually.
     */
   case object Added extends AttachmentStatus {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def included: Boolean = true
   }
 
-  /**
-    * Indicates that the attachment was not yet reviewed.
+  /** Indicates that the attachment was not yet reviewed.
     */
   case object NotReviewed extends AttachmentStatus {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def included: Boolean = false
   }
 }
 
-/**
-  * Gathers information related to a dependency after the review.
+/** Gathers information related to a dependency after the review.
   *
   * @param information original [[DependencyInformation]]
   * @param licenseReview review status of the dependency's main license
@@ -103,8 +89,7 @@ case class ReviewedDependency(
   copyrights: Seq[(CopyrightMention, AttachmentStatus)]
 )
 
-/**
-  * Summarizes the dependency review.
+/** Summarizes the dependency review.
   *
   *  The reviewed version of [[DependencySummary]].
   *
@@ -119,8 +104,7 @@ case class ReviewedSummary(
   additionalFiles: Seq[AttachedFile]
 ) {
 
-  /**
-    * Returns a license-like file that is among attached files that are included
+  /** Returns a license-like file that is among attached files that are included
     * (if such file exists).
     */
   def includedLicense(dependency: ReviewedDependency): Option[AttachedFile] =
@@ -136,8 +120,7 @@ case class ReviewedSummary(
 
 object ReviewedSummary {
 
-  /**
-    * Returns a list of warnings that indicate missing reviews or other issues.
+  /** Returns a list of warnings that indicate missing reviews or other issues.
     */
   def warnAboutMissingReviews(summary: ReviewedSummary): WithWarnings[Unit] = {
     val warnings = summary.dependencies.flatMap { dep =>

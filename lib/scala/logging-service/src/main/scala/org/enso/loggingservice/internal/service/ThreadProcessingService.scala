@@ -9,41 +9,35 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.util.control.NonFatal
 
-/**
-  * A mix-in for implementing services that process messages from a
+/** A mix-in for implementing services that process messages from a
   * [[BlockingConsumerMessageQueue]] in a separate thread.
   */
 trait ThreadProcessingService extends Service {
 
-  /**
-    * The queue that is the source of messages.
+  /** The queue that is the source of messages.
     */
   protected def queue: BlockingConsumerMessageQueue
 
-  /**
-    * Log level used for filtering messages from the queue.
+  /** Log level used for filtering messages from the queue.
     * @return
     */
   protected def logLevel: LogLevel
 
-  /**
-    * Logic responsible for processing each message from [[queue]].
+  /** Logic responsible for processing each message from [[queue]].
     *
     * This function is guaranteed to be called synchronously from a single
     * thread.
     */
   protected def processMessage(message: WSLogMessage): Unit
 
-  /**
-    * Called after the message processing thread has been stopped, can be used
+  /** Called after the message processing thread has been stopped, can be used
     * to finish termination.
     */
   protected def afterShutdown(): Unit
 
   private var queueThread: Option[Thread] = None
 
-  /**
-    * Starts the thread processing messages from [[queue]].
+  /** Starts the thread processing messages from [[queue]].
     */
   protected def startQueueProcessor(): Unit = {
     if (queueThread.isDefined) {
@@ -57,8 +51,7 @@ trait ThreadProcessingService extends Service {
     thread.start()
   }
 
-  /**
-    * The runner filters out internal messages that have disabled log levels,
+  /** The runner filters out internal messages that have disabled log levels,
     * but passes through all external messages (as their log level is set
     * independently and can be lower).
     */
@@ -80,8 +73,7 @@ trait ThreadProcessingService extends Service {
     }
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   abstract override def terminate(): Unit = {
     super.terminate()

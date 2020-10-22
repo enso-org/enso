@@ -8,27 +8,23 @@ import org.enso.languageserver.boot.LifecycleComponent.{
 
 import scala.concurrent.Future
 
-/**
-  * An abstraction for components that can be started and stopped.
+/** An abstraction for components that can be started and stopped.
   */
 trait LifecycleComponent {
 
-  /**
-    * Starts asynchronously a server.
+  /** Starts asynchronously a server.
     *
     * @return a notice that the server started successfully
     */
   def start(): Future[ComponentStarted.type]
 
-  /**
-    * Stops asynchronously a server.
+  /** Stops asynchronously a server.
     *
     * @return a notice that the server stopped successfully
     */
   def stop(): Future[ComponentStopped.type]
 
-  /**
-    * Restarts asynchronously a server.
+  /** Restarts asynchronously a server.
     *
     * @return a notice that the server restarted successfully
     */
@@ -38,18 +34,15 @@ trait LifecycleComponent {
 
 object LifecycleComponent {
 
-  /**
-    * Signals that component was started.
+  /** Signals that component was started.
     */
   case object ComponentStarted
 
-  /**
-    * Signals that component was stopped.
+  /** Signals that component was stopped.
     */
   case object ComponentStopped
 
-  /**
-    * Signals that component was restarted.
+  /** Signals that component was restarted.
     */
   case object ComponentRestarted
 

@@ -24,8 +24,7 @@ import org.enso.searcher.SuggestionsRepo
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-/**
-  * EventListener listens event stream for the notifications from the runtime
+/** EventListener listens event stream for the notifications from the runtime
   * and send updates to the client. The listener is created per context, and
   * only handles the notifications with the given `contextId`.
   *
@@ -122,9 +121,8 @@ final class ContextEventsListener(
           val methodPointerToSuggestion =
             methodPointers
               .zip(suggestionIds)
-              .collect {
-                case (ptr, Some(suggestionId)) =>
-                  ptr -> suggestionId
+              .collect { case (ptr, Some(suggestionId)) =>
+                ptr -> suggestionId
               }
               .toMap
           val valueUpdates = expressionUpdates.map { update =>
@@ -155,8 +153,7 @@ final class ContextEventsListener(
     case RunExpressionUpdates if expressionUpdates.isEmpty =>
   }
 
-  /**
-    * Convert the runtime failure message to the context registry protocol
+  /** Convert the runtime failure message to the context registry protocol
     * representation.
     *
     * @param error the error message
@@ -170,8 +167,7 @@ final class ContextEventsListener(
       error.file.flatMap(config.findRelativePath)
     )
 
-  /**
-    * Convert the runtime diagnostic message to the context registry protocol
+  /** Convert the runtime diagnostic message to the context registry protocol
     * representation.
     *
     * @param diagnostic the diagnostic message
@@ -188,8 +184,7 @@ final class ContextEventsListener(
       diagnostic.stack.map(toStackTraceElement)
     )
 
-  /**
-    * Convert the runtime diagnostic type to the context registry protocol
+  /** Convert the runtime diagnostic type to the context registry protocol
     * representation.
     *
     * @param kind the diagnostic type
@@ -203,8 +198,7 @@ final class ContextEventsListener(
       case Api.DiagnosticType.Warning() => ExecutionDiagnosticKind.Warning
     }
 
-  /**
-    * Convert the runtime stack trace element to the context registry protocol
+  /** Convert the runtime stack trace element to the context registry protocol
     * representation.
     *
     * @param element the runtime stack trace element
@@ -225,8 +219,7 @@ object ContextEventsListener {
   /** The action to process the expression updates. */
   case object RunExpressionUpdates
 
-  /**
-    * Creates a configuration object used to create a [[ContextEventsListener]].
+  /** Creates a configuration object used to create a [[ContextEventsListener]].
     *
     * @param config the language server configuration
     * @param repo the suggestions repo

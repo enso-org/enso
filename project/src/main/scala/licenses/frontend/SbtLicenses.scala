@@ -16,13 +16,11 @@ import src.main.scala.licenses.{
 
 import scala.collection.JavaConverters._
 
-/**
-  * Defines the algorithm for discovering dependency metadata.
+/** Defines the algorithm for discovering dependency metadata.
   */
 object SbtLicenses {
 
-  /**
-    * Defines configurations that are deemed relevant for dependency discovery.
+  /** Defines configurations that are deemed relevant for dependency discovery.
     *
     * Currently we only analyse Compile dependencies as these are the ones that
     * get packaged.
@@ -34,8 +32,7 @@ object SbtLicenses {
     */
   val relevantConfigurations = Seq(Compile)
 
-  /**
-    * Analyzes the provided [[SBTDistributionComponent]]s collecting their
+  /** Analyzes the provided [[SBTDistributionComponent]]s collecting their
     * unique dependencies and issuing any warnings.
     *
     * @param components description of SBT components included in the
@@ -112,16 +109,14 @@ object SbtLicenses {
     (relevantDeps, missingWarnings ++ unexpectedWarnings ++ reportsWarnings)
   }
 
-  /**
-    * Returns a project URL if it is defined for the dependency or None.
+  /** Returns a project URL if it is defined for the dependency or None.
     */
   private def tryFindingUrl(dependency: Dependency): Option[String] =
     Option(dependency.ivyNode.getDescriptor).flatMap(descriptor =>
       Option(descriptor.getHomePage)
     )
 
-  /**
-    * Creates a [[SourceAccess]] instance that unpacks the source files from a
+  /** Creates a [[SourceAccess]] instance that unpacks the source files from a
     * JAR archive into a temporary directory.
     *
     * It removes the temporary directory after the analysis is finished.
@@ -135,15 +130,13 @@ object SbtLicenses {
         }
     }
 
-  /**
-    * Returns a sequence of [[SourceAccess]] instances that give access to any
+  /** Returns a sequence of [[SourceAccess]] instances that give access to any
     * sources JARs that are available with the dependency.
     */
   private def findSources(dependency: Dependency): Seq[SourceAccess] =
     dependency.sourcesJARPaths.map(createSourceAccessFromJAR)
 
-  /**
-    * Wraps information related to a dependency.
+  /** Wraps information related to a dependency.
     *
     * @param depLicense information on the license
     * @param ivyNode Ivy node that can be used to find metadata
@@ -155,8 +148,7 @@ object SbtLicenses {
     sourcesJARPaths: Seq[Path]
   )
 
-  /**
-    * Returns [[DepModuleInfo]] for an [[IvyNode]] if it is defined, or None.
+  /** Returns [[DepModuleInfo]] for an [[IvyNode]] if it is defined, or None.
     */
   def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
     for {

@@ -13,14 +13,12 @@ import org.enso.launcher.releases.{
 
 import scala.util.Try
 
-/**
-  * Wraps a generic [[SimpleReleaseProvider]] to provide launcher releases.
+/** Wraps a generic [[SimpleReleaseProvider]] to provide launcher releases.
   */
 class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends EnsoReleaseProvider[LauncherRelease](releaseProvider) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fetchRelease(version: SemVer): Try[LauncherRelease] = {
     val tag = tagPrefix + version.toString

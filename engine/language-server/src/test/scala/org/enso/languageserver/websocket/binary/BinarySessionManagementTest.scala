@@ -20,7 +20,7 @@ class BinarySessionManagementTest extends BaseBinaryServerTest with FlakySpec {
 
   "Session Init cmd" must {
 
-    "return empty SessionInitResponse" taggedAs(Flaky) in {
+    "return empty SessionInitResponse" taggedAs Flaky in {
       //given
       val client           = newWsClient()
       val clientId         = UUID.randomUUID()

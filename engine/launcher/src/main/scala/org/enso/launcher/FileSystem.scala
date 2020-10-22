@@ -17,16 +17,14 @@ import scala.jdk.StreamConverters._
 import scala.util.Using
 import com.typesafe.scalalogging.Logger
 
-/**
-  * Gathers some helper methods that are used for interaction with the
+/** Gathers some helper methods that are used for interaction with the
   * filesystem.
   */
 object FileSystem {
 
   private val logger = Logger[FileSystem.type]
 
-  /**
-    * Returns a sequence of files in the given directory (without traversing it
+  /** Returns a sequence of files in the given directory (without traversing it
     * recursively).
     *
     * If the directory does not exist, returns an empty sequence.
@@ -35,28 +33,24 @@ object FileSystem {
     if (!Files.exists(dir)) Seq()
     else Using(Files.list(dir))(_.toScala(Factory.arrayFactory).toSeq).get
 
-  /**
-    * Writes a String to a file at the given `path`, creating the file if
+  /** Writes a String to a file at the given `path`, creating the file if
     * necessary.
     */
   def writeTextFile(path: Path, content: String): Unit = {
     Using(new PrintWriter(path.toFile)) { writer => writer.write(content) }.get
   }
 
-  /**
-    * Copies a directory recursively.
+  /** Copies a directory recursively.
     */
   def copyDirectory(source: Path, destination: Path): Unit =
     FileUtils.copyDirectory(source.toFile, destination.toFile)
 
-  /**
-    * Copies a file, overwriting the destination if it already existed.
+  /** Copies a file, overwriting the destination if it already existed.
     */
   def copyFile(source: Path, destination: Path): Unit =
     FileUtils.copyFile(source.toFile, destination.toFile)
 
-  /**
-    * Checks if the given `file` is executable and tries to fix it if it is not.
+  /** Checks if the given `file` is executable and tries to fix it if it is not.
     */
   def ensureIsExecutable(file: Path): Unit = {
     if (!Files.isExecutable(file)) {
@@ -79,8 +73,7 @@ object FileSystem {
     }
   }
 
-  /**
-    * Parses POSIX file permissions stored in a binary format into a set of Java
+  /** Parses POSIX file permissions stored in a binary format into a set of Java
     * enumerations corresponding to these permissions.
     */
   def decodePOSIXPermissions(mode: Int): java.util.Set[PosixFilePermission] = {
@@ -124,8 +117,7 @@ object FileSystem {
     res
   }
 
-  /**
-    * Runs the `action` with a parameter representing a temporary directory
+  /** Runs the `action` with a parameter representing a temporary directory
     * created for it.
     *
     * The temporary directory is removed afterwards.
@@ -146,21 +138,18 @@ object FileSystem {
     }
   }
 
-  /**
-    * Removes a directory recursively.
+  /** Removes a directory recursively.
     */
   def removeDirectory(dir: Path): Unit =
     FileUtils.deleteDirectory(dir.toFile)
 
-  /**
-    * Removes a directory recursively, does not fail if it does not exist.
+  /** Removes a directory recursively, does not fail if it does not exist.
     */
   def removeDirectoryIfExists(dir: Path): Unit =
     if (Files.exists(dir))
       FileUtils.deleteDirectory(dir.toFile)
 
-  /**
-    * Removes a directory only if it is empty.
+  /** Removes a directory only if it is empty.
     *
     * Returned value indicates if the directory has been removed.
     */
@@ -173,23 +162,20 @@ object FileSystem {
         false
     }
 
-  /**
-    * Removes a file, if it exists, does not fail if it does not exist.
+  /** Removes a file, if it exists, does not fail if it does not exist.
     */
   def removeFileIfExists(path: Path): Unit =
     if (Files.exists(path))
       Files.delete(path)
 
-  /**
-    * Registers the directory to be removed when the program exits normally.
+  /** Registers the directory to be removed when the program exits normally.
     *
     * The directory is only removed if it is empty.
     */
   def removeEmptyDirectoryOnExit(dir: Path): Unit =
     dir.toFile.deleteOnExit()
 
-  /**
-    * Checks if the directory contains any entries.
+  /** Checks if the directory contains any entries.
     */
   def isDirectoryEmpty(dir: Path): Boolean = {
     def hasEntries =
@@ -197,8 +183,7 @@ object FileSystem {
     Files.isDirectory(dir) && !hasEntries
   }
 
-  /**
-    * Tries to move a directory from `source` to `destination` atomically.
+  /** Tries to move a directory from `source` to `destination` atomically.
     *
     * May not be actually atomic.
     */
@@ -207,8 +192,7 @@ object FileSystem {
     Files.move(source, destination, StandardCopyOption.ATOMIC_MOVE)
   }
 
-  /**
-    * Syntax allowing to write nested paths in a more readable and concise way.
+  /** Syntax allowing to write nested paths in a more readable and concise way.
     */
   implicit class PathSyntax(val path: Path) extends AnyVal {
     def /(other: String): Path = path.resolve(other)

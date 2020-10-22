@@ -14,14 +14,12 @@ import org.enso.launcher.releases.{
 
 import scala.util.{Failure, Try}
 
-/**
-  * Wraps a generic [[SimpleReleaseProvider]] to provide engine releases.
+/** Wraps a generic [[SimpleReleaseProvider]] to provide engine releases.
   */
 class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends EnsoReleaseProvider[EngineRelease](releaseProvider) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   def fetchRelease(version: SemVer): Try[EngineRelease] = {
     val tag = tagPrefix + version.toString

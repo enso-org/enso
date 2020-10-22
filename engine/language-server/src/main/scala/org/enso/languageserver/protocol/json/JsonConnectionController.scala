@@ -61,8 +61,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration._
 
-/**
-  * An actor handling communications between a single client and the language
+/** An actor handling communications between a single client and the language
   * server.
   *
   * @param connectionId the internal connection id.
@@ -309,8 +308,7 @@ class JsonConnectionController(
 
 object JsonConnectionController {
 
-  /**
-    * Creates a configuration object used to create a [[JsonConnectionController]].
+  /** Creates a configuration object used to create a [[JsonConnectionController]].
     *
     * @param connectionId the internal connection id.
     * @param bufferRegistry a router that dispatches text editing requests

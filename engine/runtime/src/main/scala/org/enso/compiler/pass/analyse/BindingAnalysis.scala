@@ -12,8 +12,7 @@ import org.enso.compiler.pass.desugar.{
 }
 import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
 
-/**
-  * Recognizes all defined bindings in the current module and constructs
+/** Recognizes all defined bindings in the current module and constructs
   * a mapping data structure that can later be used for symbol resolution.
   */
 case object BindingAnalysis extends IRPass {
@@ -53,24 +52,23 @@ case object BindingAnalysis extends IRPass {
         BindingsMap.PolyglotSymbol(poly.getVisibleName)
     }
     val moduleMethods = ir.bindings
-      .collect {
-        case method: IR.Module.Scope.Definition.Method.Explicit =>
-          val ref = method.methodReference
-          ref.typePointer match {
-            case IR.Name.Qualified(List(), _, _, _) => Some(ref.methodName.name)
-            case IR.Name.Qualified(List(n), _, _, _) =>
-              val shadowed = definedConstructors.exists(_.name == n.name)
-              if (!shadowed && n.name == moduleContext.module.getName.item)
-                Some(ref.methodName.name)
-              else None
-            case IR.Name.Here(_, _, _) => Some(ref.methodName.name)
-            case IR.Name.Literal(n, _, _, _, _) =>
-              val shadowed = definedConstructors.exists(_.name == n)
-              if (!shadowed && n == moduleContext.module.getName.item)
-                Some(ref.methodName.name)
-              else None
-            case _ => None
-          }
+      .collect { case method: IR.Module.Scope.Definition.Method.Explicit =>
+        val ref = method.methodReference
+        ref.typePointer match {
+          case IR.Name.Qualified(List(), _, _, _) => Some(ref.methodName.name)
+          case IR.Name.Qualified(List(n), _, _, _) =>
+            val shadowed = definedConstructors.exists(_.name == n.name)
+            if (!shadowed && n.name == moduleContext.module.getName.item)
+              Some(ref.methodName.name)
+            else None
+          case IR.Name.Here(_, _, _) => Some(ref.methodName.name)
+          case IR.Name.Literal(n, _, _, _, _) =>
+            val shadowed = definedConstructors.exists(_.name == n)
+            if (!shadowed && n == moduleContext.module.getName.item)
+              Some(ref.methodName.name)
+            else None
+          case _ => None
+        }
       }
       .flatten
       .map(BindingsMap.ModuleMethod)

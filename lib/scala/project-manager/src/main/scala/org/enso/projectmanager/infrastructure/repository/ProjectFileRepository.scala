@@ -27,8 +27,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.{Project, ProjectMetadata}
 
-/**
-  * File based implementation of the project repository.
+/** File based implementation of the project repository.
   *
   * @param storageConfig a storage config
   * @param clock a clock
@@ -61,8 +60,8 @@ class ProjectFileRepository[
     fileSystem
       .list(storageConfig.userProjectsPath)
       .map(_.filter(_.isDirectory))
-      .recover {
-        case FileNotFound | NotDirectory => Nil
+      .recover { case FileNotFound | NotDirectory =>
+        Nil
       }
       .mapError(th => StorageFailure(th.toString))
       .flatMap(s => Traverse[List].traverse(s)(tryLoadProject).map(_.flatten))
@@ -150,7 +149,7 @@ class ProjectFileRepository[
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)

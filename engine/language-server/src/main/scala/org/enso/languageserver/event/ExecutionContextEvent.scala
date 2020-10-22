@@ -4,13 +4,11 @@ import java.util.UUID
 
 import org.enso.languageserver.data.ClientId
 
-/**
-  * Base trait for all execution context events.
+/** Base trait for all execution context events.
   */
 sealed trait ExecutionContextEvent extends Event
 
-/**
-  * Notifies the Language Server about a new execution context.
+/** Notifies the Language Server about a new execution context.
   *
   * @param contextId the id of newly created context
   * @param owner the id of the owner of the context
@@ -18,8 +16,7 @@ sealed trait ExecutionContextEvent extends Event
 case class ExecutionContextCreated(contextId: UUID, owner: ClientId)
     extends ExecutionContextEvent
 
-/**
-  * Notifies the Language Server about a termination of an execution context.
+/** Notifies the Language Server about a termination of an execution context.
   *
   * @param contextId the id of terminated context
   * @param owner the id of the owner of the context

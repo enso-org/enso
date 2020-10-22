@@ -156,8 +156,8 @@ case object IgnoredBindings extends IRPass {
     function match {
       case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
         val argIsIgnore = args.map(isIgnoreArg)
-        val newArgs = args.zip(argIsIgnore).map {
-          case (arg, isIgnore) => genNewArg(arg, isIgnore, supply)
+        val newArgs = args.zip(argIsIgnore).map { case (arg, isIgnore) =>
+          genNewArg(arg, isIgnore, supply)
         }
 
         lam.copy(

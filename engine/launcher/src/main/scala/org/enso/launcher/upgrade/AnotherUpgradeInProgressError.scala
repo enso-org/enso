@@ -1,7 +1,6 @@
 package org.enso.launcher.upgrade
 
-/**
-  * Error thrown when trying to upgrade, but another upgrade is in progress and
+/** Error thrown when trying to upgrade, but another upgrade is in progress and
   * this one cannot continue.
   */
 case class AnotherUpgradeInProgressError()
@@ -9,8 +8,7 @@ case class AnotherUpgradeInProgressError()
       "Another upgrade is in progress. Please wait for it to finish."
     ) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = getMessage
 }

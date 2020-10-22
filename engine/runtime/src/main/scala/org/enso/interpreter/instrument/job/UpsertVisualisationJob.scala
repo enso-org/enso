@@ -17,8 +17,7 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import scala.util.control.NonFatal
 
-/**
-  * A job that upserts a visualisation.
+/** A job that upserts a visualisation.
   *
   * @param requestId maybe a request id
   * @param visualisationId an identifier of visualisation
@@ -134,18 +133,15 @@ class UpsertVisualisationJob(
 
 object UpsertVisualisationJob {
 
-  /**
-    * Base trait for evaluation failures.
+  /** Base trait for evaluation failures.
     */
   sealed trait EvalFailure
 
-  /**
-    * Signals that a module cannot be found.
+  /** Signals that a module cannot be found.
     */
   case object ModuleNotFound extends EvalFailure
 
-  /**
-    * Signals that an evaluation of an expression failed.
+  /** Signals that an evaluation of an expression failed.
     *
     * @param msg the textual reason of a failure
     */

@@ -1,9 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
-  InterpreterTest,
   InterpreterContext,
-  InterpreterException
+  InterpreterException,
+  InterpreterTest
 }
 import org.enso.polyglot.RuntimeOptions
 import org.graalvm.polyglot.Context
@@ -14,8 +14,8 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
   override def contextModifiers: Context#Builder => Context#Builder =
     _.option(RuntimeOptions.STRICT_ERRORS, "true")
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "be reported and abort execution" in {

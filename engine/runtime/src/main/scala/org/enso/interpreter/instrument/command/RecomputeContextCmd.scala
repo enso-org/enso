@@ -8,8 +8,7 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that forces a recomputation of the current position.
+/** A command that forces a recomputation of the current position.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service

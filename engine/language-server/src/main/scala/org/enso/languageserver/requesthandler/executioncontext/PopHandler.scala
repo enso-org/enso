@@ -14,8 +14,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `executionContext/push` commands.
+/** A request handler for `executionContext/push` commands.
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
@@ -66,8 +65,7 @@ class PopHandler(
 
 object PopHandler {
 
-  /**
-    * Creates configuration object used to create a [[PopHandler]].
+  /** Creates configuration object used to create a [[PopHandler]].
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.

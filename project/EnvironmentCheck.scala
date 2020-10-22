@@ -64,8 +64,7 @@ object EnvironmentCheck {
     graalOk && javaOk
   }
 
-  /**
-    * Runs `rustc --version` to ensure that it is properly installed and
+  /** Runs `rustc --version` to ensure that it is properly installed and
     * checks if the reported version is consistent with expectations.
     *
     * @param expectedVersion rust version that is expected to be installed,
@@ -92,8 +91,7 @@ object EnvironmentCheck {
     }
   }
 
-  /**
-    * Augments a state transition to do a Rust and GraalVM version check.
+  /** Augments a state transition to do a Rust and GraalVM version check.
     *
     * @param graalVersion the GraalVM version that should be used for
     *                     building this project

@@ -11,8 +11,7 @@ import org.enso.polyglot.debugger.protocol.{
 
 object ResponseFactory {
 
-  /**
-    * Creates EvaluationSuccess inside a [[FlatBufferBuilder]].
+  /** Creates EvaluationSuccess inside a [[FlatBufferBuilder]].
     *
     * @param result result of evaluation
     * @param builder a class that helps build a FlatBuffer representation of
@@ -27,8 +26,7 @@ object ResponseFactory {
     EvaluationSuccess.createEvaluationSuccess(builder, resultOffset)
   }
 
-  /**
-    * Creates EvaluationFailure inside a [[FlatBufferBuilder]].
+  /** Creates EvaluationFailure inside a [[FlatBufferBuilder]].
     *
     * @param exception exception that caused evaluation failure
     * @param builder a class that helps build a FlatBuffer representation of
@@ -43,8 +41,7 @@ object ResponseFactory {
     EvaluationFailure.createEvaluationFailure(builder, excpetionOffset)
   }
 
-  /**
-    * Creates ListBindingsResult inside a [[FlatBufferBuilder]].
+  /** Creates ListBindingsResult inside a [[FlatBufferBuilder]].
     *
     * @param bindings mapping of names to bound values
     * @param builder a class that helps build a FlatBuffer representation of
@@ -61,23 +58,22 @@ object ResponseFactory {
     ListBindingsResult.createListBindingsResult(builder, bindingsOffset)
   }
 
-  /**
-    * Creates SessionStartNotification inside a [[FlatBufferBuilder]].
+  /** Creates SessionStartNotification inside a [[FlatBufferBuilder]].
     *
     * @param builder a class that helps build a FlatBuffer representation of
     *                complex objects
     * @return an offset pointing to the FlatBuffer representation of the
     *         created object
     */
-  def createSessionStartNotification()(
-    implicit builder: FlatBufferBuilder
+  def createSessionStartNotification()(implicit
+    builder: FlatBufferBuilder
   ): Int = {
     SessionStartNotification.startSessionStartNotification(builder)
     SessionStartNotification.endSessionStartNotification(builder)
   }
 
-  private def createBinding(name: String, value: Object)(
-    implicit builder: FlatBufferBuilder
+  private def createBinding(name: String, value: Object)(implicit
+    builder: FlatBufferBuilder
   ): Int = {
     val nameOffset  = builder.createString(name)
     val valueOffset = ObjectRepresentationFactory.create(value)

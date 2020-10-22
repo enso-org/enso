@@ -96,6 +96,7 @@ bench-report.xml
 
 .editorconfig
 .bloop/
+.bsp/
 
 #################
 ## Build Cache ##

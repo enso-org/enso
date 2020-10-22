@@ -74,8 +74,7 @@ object GenerateFlatbuffers {
    * only happen if the file has been edited during compilation).
    */
 
-  /**
-    * Runs flatc to ensure that it is properly installed and checks if the
+  /** Runs flatc to ensure that it is properly installed and checks if the
     * reported version is consistent with expectations.
     *
     * @param expectedVersion flatc version that is expected to be installed,
@@ -143,8 +142,7 @@ object GenerateFlatbuffers {
     }
   }
 
-  /**
-    * Runs flatc to discover what sources will be generated.
+  /** Runs flatc to discover what sources will be generated.
     * flatc will fail if there are errors in the files, as this is the first
     * time it is run on the files, the errors are captured and reported
     * (see Note [flatc Error Reporting]).

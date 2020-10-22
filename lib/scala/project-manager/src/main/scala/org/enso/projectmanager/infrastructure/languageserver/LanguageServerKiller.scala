@@ -19,8 +19,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * An actor that shuts all running language servers. It orchestrates all
+/** An actor that shuts all running language servers. It orchestrates all
   * language server controllers to shut down gracefully servers. When it is not
   * possible it kills all controller actors.
   *
@@ -36,23 +35,22 @@ class LanguageServerKiller(
 
   import context.dispatcher
 
-  override def receive: Receive = {
-    case KillThemAll =>
-      if (controllers.isEmpty) {
-        sender() ! AllServersKilled
-        context.stop(self)
-      } else {
-        log.info("Killing all servers")
-        controllers.foreach(context.watch)
-        controllers.foreach(_ ! ShutDownServer)
-        val cancellable =
-          context.system.scheduler.scheduleOnce(
-            shutdownTimeout,
-            self,
-            KillTimeout
-          )
-        context.become(killing(controllers.toSet, cancellable, sender()))
-      }
+  override def receive: Receive = { case KillThemAll =>
+    if (controllers.isEmpty) {
+      sender() ! AllServersKilled
+      context.stop(self)
+    } else {
+      log.info("Killing all servers")
+      controllers.foreach(context.watch)
+      controllers.foreach(_ ! ShutDownServer)
+      val cancellable =
+        context.system.scheduler.scheduleOnce(
+          shutdownTimeout,
+          self,
+          KillTimeout
+        )
+      context.become(killing(controllers.toSet, cancellable, sender()))
+    }
   }
 
   private def killing(
@@ -82,8 +80,7 @@ object LanguageServerKiller {
 
   private case object KillTimeout
 
-  /**
-    * Creates configuration object used to create a [[LanguageServerKiller]].
+  /** Creates configuration object used to create a [[LanguageServerKiller]].
     *
     * @param controllers running controllers
     * @param shutdownTimeout a shutdown timeout

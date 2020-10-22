@@ -12,16 +12,14 @@ import scala.util.{Failure, Try, Using}
 
 object CouldNotCreateDirectory extends Exception
 
-/**
-  * Represents a source file with known qualified name.
+/** Represents a source file with known qualified name.
   *
   * @param qualifiedName the qualified name of this file
   * @param file the location of this file
   */
 case class SourceFile[F](qualifiedName: QualifiedName, file: F)
 
-/**
-  * Represents an Enso package stored on the hard drive.
+/** Represents an Enso package stored on the hard drive.
   *
   * @param root the root directory of this package
   * @param config the metadata contained in the package configuration
@@ -39,8 +37,7 @@ case class Package[F](
   val thumbFile   = root.getChild(Package.thumbFileName)
   val polyglotDir = root.getChild(Package.polyglotExtensionsDirName)
 
-  /**
-    * Sets the package name.
+  /** Sets the package name.
     *
     * @param newName the new package name
     * @return a package with the updated name
@@ -48,8 +45,7 @@ case class Package[F](
   def setPackageName(newName: String): Package[F] =
     this.copy(config = config.copy(name = newName))
 
-  /**
-    * Stores the package metadata on the hard drive. If the package does not exist,
+  /** Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
     */
   def save(): Unit = {
@@ -58,8 +54,7 @@ case class Package[F](
     saveConfig()
   }
 
-  /**
-    * Creates the package directory structure.
+  /** Creates the package directory structure.
     */
   def createDirectories(): Unit = {
     val created = Try(root.createDirectories()).map(_ => true).getOrElse(false)
@@ -67,8 +62,7 @@ case class Package[F](
     createSourceDir()
   }
 
-  /**
-    * Changes the package name.
+  /** Changes the package name.
     *
     * @param newName the new package name
     * @return The package object with changed name. The old package is not
@@ -76,8 +70,7 @@ case class Package[F](
     */
   def rename(newName: String): Package[F] = updateConfig(_.copy(name = newName))
 
-  /**
-    * Updates the package config.
+  /** Updates the package config.
     *
     * The changes are automatically saved to the filesystem.
     *
@@ -91,8 +84,7 @@ case class Package[F](
     newPkg
   }
 
-  /**
-    * Creates the sources directory and populates it with a dummy Main file.
+  /** Creates the sources directory and populates it with a dummy Main file.
     */
   def createSourceDir(): Unit = {
     Try(sourceDir.createDirectories()).getOrElse(throw CouldNotCreateDirectory)
@@ -103,8 +95,7 @@ case class Package[F](
     mainCodeSrc.close()
   }
 
-  /**
-    * Saves the config metadata into the package configuration file.
+  /** Saves the config metadata into the package configuration file.
     */
   def saveConfig(): Unit = {
     val writer = configFile.newBufferedWriter
@@ -112,8 +103,7 @@ case class Package[F](
     writer.close()
   }
 
-  /**
-    * Gets the location of the package's Main file.
+  /** Gets the location of the package's Main file.
     *
     * @return the location of the Main file.
     */
@@ -121,21 +111,18 @@ case class Package[F](
     sourceDir.getChild(Package.mainFileName)
   }
 
-  /**
-    * Checks if the package has a thumbnail file.
+  /** Checks if the package has a thumbnail file.
     *
     * @return `true` if the thumbnail file exists, `false` otherwise.
     */
   def hasThumb: Boolean = thumbFile.exists
 
-  /**
-    * Returns the name of this package.
+  /** Returns the name of this package.
     * @return the name of this package.
     */
   def name: String = config.name
 
-  /**
-    * Parses a file path into a qualified module name belonging to this
+  /** Parses a file path into a qualified module name belonging to this
     * package.
     *
     * @param file the source file path to translate into a qualified name.
@@ -148,8 +135,7 @@ case class Package[F](
     QualifiedName(name :: dirSegments, fileNameWithoutExtension)
   }
 
-  /**
-    * Lists the source files in this package.
+  /** Lists the source files in this package.
     *
     * @return the list of all source files in this package, together with their qualified names.
     */
@@ -162,8 +148,7 @@ case class Package[F](
     sources.map { path => SourceFile(moduleNameForFile(path), path) }
   }
 
-  /**
-    * Lists contents of the polyglot extensions directory for a given language.
+  /** Lists contents of the polyglot extensions directory for a given language.
     *
     * @param languageName the language to list extenstions for
     * @return a list of files and directories contained in the relevant
@@ -179,16 +164,14 @@ case class Package[F](
   }
 }
 
-/**
-  * A class responsible for creating and parsing package structures.
+/** A class responsible for creating and parsing package structures.
   * @param fileSystem the file system to use.
   * @tparam F the type of paths used by `fileSystem`.
   */
 class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   import FileSystem.Syntax
 
-  /**
-    * Creates a new Package in a given location and with config file.
+  /** Creates a new Package in a given location and with config file.
     *
     * @param root the root location of the package.
     * @param config the config for the new package.
@@ -203,8 +186,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     pkg
   }
 
-  /**
-    * Creates a new Package in a given location and with given name. Leaves all the other config fields blank.
+  /** Creates a new Package in a given location and with given name. Leaves all the other config fields blank.
     *
     * @param root  the root location of the package.
     * @param name the name for the new package.
@@ -231,8 +213,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     create(root, config)
   }
 
-  /**
-    * Tries to parse package structure from a given root location.
+  /** Tries to parse package structure from a given root location.
     *
     * @param root the root location to get package info from.
     * @return `Some(pkg)` if the location represents a package, `None`
@@ -241,8 +222,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def fromDirectory(root: F): Option[Package[F]] =
     loadPackage(root).toOption
 
-  /**
-    * Loads the package structure at the given root location and reports any
+  /** Loads the package structure at the given root location and reports any
     * errors.
     *
     * @param root the root location to get package info from.
@@ -291,8 +271,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     }
   }
 
-  /**
-    * Tries to parse package structure from a given root location or creates a new package if it fails.
+  /** Tries to parse package structure from a given root location or creates a new package if it fails.
     *
     * @param root the package root location.
     * @return the package object for the package found or created in the root location.
@@ -302,8 +281,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     existing.getOrElse(create(root, generateName(root)))
   }
 
-  /**
-    * Checks if a character is allowed in a project name.
+  /** Checks if a character is allowed in a project name.
     *
     * @param char the char to validate
     * @return `true` if it's allowed, `false` otherwise
@@ -312,8 +290,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     char.isLetterOrDigit || char == '_'
   }
 
-  /**
-    * Takes a name containing letters, digits, and `_` characters and makes it
+  /** Takes a name containing letters, digits, and `_` characters and makes it
     * a proper `Upper_Snake_Case` name.
     *
     * @param string the input string
@@ -324,27 +301,25 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     val chars       = string.toList
     val charPairs   = (beginMarker :: chars).zip(chars)
     charPairs
-      .map {
-        case (previous, current) =>
-          if (previous == beginMarker) {
-            current.toString
-          } else if (previous.isLower && current.isUpper) {
-            s"_$current"
-          } else if (previous.isLetter && current.isDigit) {
-            s"_$current"
-          } else if (previous == '_' && current == '_') {
-            ""
-          } else if (previous.isDigit && current.isLetter) {
-            s"_${current.toUpper}"
-          } else {
-            current.toString
-          }
+      .map { case (previous, current) =>
+        if (previous == beginMarker) {
+          current.toString
+        } else if (previous.isLower && current.isUpper) {
+          s"_$current"
+        } else if (previous.isLetter && current.isDigit) {
+          s"_$current"
+        } else if (previous == '_' && current == '_') {
+          ""
+        } else if (previous.isDigit && current.isLetter) {
+          s"_${current.toUpper}"
+        } else {
+          current.toString
+        }
       }
       .mkString("")
   }
 
-  /**
-    * Transforms the given string into a valid package name (i.e. a CamelCased identifier).
+  /** Transforms the given string into a valid package name (i.e. a CamelCased identifier).
     *
     * @param name the original name.
     * @return the transformed name conforming to the specification.
@@ -357,8 +332,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     toUpperSnakeCase(onlyAlphanumeric)
   }
 
-  /**
-    * Generates a name for the package, by normalizing the last segment of its root path.
+  /** Generates a name for the package, by normalizing the last segment of its root path.
     *
     * @param file the root location of the package.
     * @return the generated package name.
@@ -372,33 +346,28 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
 object PackageManager {
   val Default = new PackageManager[File]()(FileSystem.Default)
 
-  /**
-    * A general exception indicating that a package cannot be loaded.
+  /** A general exception indicating that a package cannot be loaded.
     */
   class PackageLoadingException(message: String, cause: Throwable)
       extends RuntimeException(message, cause) {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def toString: String = message
   }
 
-  /**
-    * The error indicating that the requested package does not exist.
+  /** The error indicating that the requested package does not exist.
     */
   case class PackageNotFound()
       extends PackageLoadingException(s"The package file does not exist.", null)
 
-  /**
-    * The error indicating that the package exists, but cannot be loaded.
+  /** The error indicating that the package exists, but cannot be loaded.
     */
   case class PackageLoadingFailure(message: String, cause: Throwable)
       extends PackageLoadingException(message, cause)
 }
 
-/**
-  * A companion object for static methods on the [[Package]] class.
+/** A companion object for static methods on the [[Package]] class.
   */
 object Package {
   val fileExtension             = "enso"

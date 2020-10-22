@@ -14,8 +14,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `executionContext/recompute` commands.
+/** A request handler for `executionContext/recompute` commands.
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
@@ -36,9 +35,9 @@ class RecomputeHandler(
 
   private def requestStage: Receive = {
     case Request(
-        ExecutionContextRecompute,
-        id,
-        params: ExecutionContextRecompute.Params
+          ExecutionContextRecompute,
+          id,
+          params: ExecutionContextRecompute.Params
         ) =>
       contextRegistry ! RecomputeContextRequest(
         session,
@@ -74,8 +73,7 @@ class RecomputeHandler(
 
 object RecomputeHandler {
 
-  /**
-    * Creates configuration object used to create a [[RecomputeHandler]].
+  /** Creates configuration object used to create a [[RecomputeHandler]].
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.

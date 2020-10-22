@@ -16,8 +16,7 @@ import scala.io.Source
 import scala.sys.process._
 import scala.util.{Success, Try, Using}
 
-/**
-  * A release provider that creates fake releases from the specified files.
+/** A release provider that creates fake releases from the specified files.
   *
   * @param releasesRoot path to the directory containing subdirectories for each
   *                     release
@@ -34,8 +33,7 @@ case class FakeReleaseProvider(
       .listDirectory(releasesRoot)
       .map(FakeRelease(_, copyIntoArchiveRoot, shouldWaitForAssets))
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def releaseForTag(tag: String): Try[Release] =
     releases
@@ -43,14 +41,12 @@ case class FakeReleaseProvider(
       .toRight(ReleaseProviderException(s"Release $tag does not exist."))
       .toTry
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def listReleases(): Try[Seq[Release]] = Success(releases)
 }
 
-/**
-  * The release created by [[FakeReleaseProvider]].
+/** The release created by [[FakeReleaseProvider]].
   *
   * @param path path to the release root, each file or directory inside of it
   *             represents a [[FakeAsset]]
@@ -62,13 +58,11 @@ case class FakeRelease(
   shouldWaitForAssets: Boolean
 ) extends Release {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def tag: String = path.getFileName.toString
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def assets: Seq[Asset] = {
     val pathsToCopy = copyIntoArchiveRoot.map(path.resolve)
@@ -78,8 +72,7 @@ case class FakeRelease(
   }
 }
 
-/**
-  * Represents an asset of the [[FakeRelease]].
+/** Represents an asset of the [[FakeRelease]].
   *
   * If it is a file, 'downloading' it just copies it to the destination.
   * Fetching it reads it as text.
@@ -96,13 +89,11 @@ case class FakeAsset(
   shouldWaitForAssets: Boolean
 ) extends Asset {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fileName: String = source.getFileName.toString
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def downloadTo(path: Path): TaskProgress[Unit] = {
     maybeWaitForAsset()
@@ -116,8 +107,7 @@ case class FakeAsset(
     }
   }
 
-  /**
-    * If [[shouldWaitForAssets]] is set, acquires a shared lock on the asset.
+  /** If [[shouldWaitForAssets]] is set, acquires a shared lock on the asset.
     *
     * The test runner may grab an exclusive lock on an asset as a way to
     * synchronize actions (this download will wait until such exclusive lock is
@@ -182,8 +172,7 @@ case class FakeAsset(
   private def copyNormalFile(destination: Path): Unit =
     FileSystem.copyFile(source, destination)
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fetchAsText(): TaskProgress[String] =
     if (Files.isDirectory(source))

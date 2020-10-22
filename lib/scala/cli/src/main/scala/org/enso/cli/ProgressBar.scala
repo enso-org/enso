@@ -4,13 +4,11 @@ import java.util.concurrent.LinkedTransferQueue
 
 import scala.util.Try
 
-/**
-  * Allows to display a progress bar in a terminal.
+/** Allows to display a progress bar in a terminal.
   */
 object ProgressBar {
 
-  /**
-    * Displays a progressbar tracking progress of the provided task and waits
+  /** Displays a progressbar tracking progress of the provided task and waits
     * for its completion.
     *
     * The progress bar is displayed as long as the task is in progress. The

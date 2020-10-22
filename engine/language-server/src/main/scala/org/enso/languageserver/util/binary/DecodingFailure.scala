@@ -1,24 +1,20 @@
 package org.enso.languageserver.util.binary
 
-/**
-  * Base trait signaling decoding failure.
+/** Base trait signaling decoding failure.
   */
 sealed trait DecodingFailure
 
 object DecodingFailure {
 
-  /**
-    * Signals an empty payload in the byte stream.
+  /** Signals an empty payload in the byte stream.
     */
   case object EmptyPayload extends DecodingFailure
 
-  /**
-    * Signals that data is corrupted.
+  /** Signals that data is corrupted.
     */
   case object DataCorrupted extends DecodingFailure
 
-  /**
-    * Represents an undefined decoding failure.
+  /** Represents an undefined decoding failure.
     *
     * @param throwable a throwable
     */

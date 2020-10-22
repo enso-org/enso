@@ -6,8 +6,7 @@ import scala.util.Try
 
 object ModuleNameBuilder {
 
-  /**
-    * Build the module name from the file path.
+  /** Build the module name from the file path.
     *
     * @param projectName the project name
     * @param root the project root directory
@@ -20,8 +19,7 @@ object ModuleNameBuilder {
     }
   }
 
-  /**
-    * Extract segments related to the module from the file path.
+  /** Extract segments related to the module from the file path.
     *
     * @param root the project root directory
     * @param file the module file path
@@ -40,8 +38,7 @@ object ModuleNameBuilder {
       }
   }
 
-  /**
-    * Get the module name from the file path.
+  /** Get the module name from the file path.
     *
     * @param file the module file path
     * @return the module name
@@ -51,8 +48,7 @@ object ModuleNameBuilder {
     fileName.substring(0, fileName.lastIndexOf('.'))
   }
 
-  /**
-    * Convert the list of segments to a module name.
+  /** Convert the list of segments to a module name.
     *
     * @param segments the list of segments
     * @return the fully qualified module name

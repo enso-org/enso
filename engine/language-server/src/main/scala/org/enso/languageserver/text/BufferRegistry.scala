@@ -26,8 +26,7 @@ import org.enso.searcher.FileVersionsRepo
 
 import scala.concurrent.Future
 
-/**
-  * An actor that routes request regarding text editing to the right buffer.
+/** An actor that routes request regarding text editing to the right buffer.
   * It creates a buffer actor, if a buffer doesn't exists.
   *
   * == Implementation ==
@@ -140,8 +139,7 @@ class BufferRegistry(
 
 object BufferRegistry {
 
-  /**
-    * Creates a configuration object used to create a [[BufferRegistry]]
+  /** Creates a configuration object used to create a [[BufferRegistry]]
     *
     * @param versionsRepo a repo containing versions of indexed files
     * @param fileManager a file manager actor

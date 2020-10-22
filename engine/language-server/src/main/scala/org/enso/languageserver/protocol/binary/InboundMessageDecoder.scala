@@ -10,12 +10,11 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 }
 import org.enso.languageserver.util.binary.{BinaryDecoder, DecodingFailure}
 
-/**
-  * A decoder for an [[InboundMessage]].
+/** A decoder for an [[InboundMessage]].
   */
 object InboundMessageDecoder extends BinaryDecoder[InboundMessage] {
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def decode(
     bytes: ByteBuffer
   ): Either[DecodingFailure, InboundMessage] =

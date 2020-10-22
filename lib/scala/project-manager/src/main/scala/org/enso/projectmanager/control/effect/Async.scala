@@ -3,15 +3,13 @@ package org.enso.projectmanager.control.effect
 import scala.concurrent.Future
 import scala.util.Either
 
-/**
-  * A class for asynchronous effects that do not block threads.
+/** A class for asynchronous effects that do not block threads.
   *
   * @tparam F an effectful context
   */
 trait Async[F[+_, +_]] {
 
-  /**
-    * Imports an asynchronous side-effect into a pure `F` value.
+  /** Imports an asynchronous side-effect into a pure `F` value.
     *
     * @param register is a function that should be called with a
     *                 callback for signaling the result once it is ready
@@ -21,8 +19,7 @@ trait Async[F[+_, +_]] {
     */
   def async[E, A](register: (Either[E, A] => Unit) => Unit): F[E, A]
 
-  /**
-    * Converts side-effecting future into a pure `F` value.
+  /** Converts side-effecting future into a pure `F` value.
     *
     * @param thunk a thunk that starts asynchronous computations
     * @tparam A a returned type

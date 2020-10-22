@@ -25,13 +25,11 @@ import zio.interop.catz.core._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
-/**
-  * Project manager runner containing the main method.
+/** Project manager runner containing the main method.
   */
 object ProjectManager extends App with LazyLogging {
 
-  /**
-    * A configuration of the project manager.
+  /** A configuration of the project manager.
     */
   val config: ProjectManagerConfig =
     ConfigSource
@@ -50,14 +48,12 @@ object ProjectManager extends App with LazyLogging {
       th => logger.error("An expected error occurred", th)
     )
 
-  /**
-    * ZIO runtime.
+  /** ZIO runtime.
     */
   implicit val runtime =
     Runtime(Globals.zioEnvironment, new ZioPlatform(computeExecutionContext))
 
-  /**
-    * Main process starting up the server.
+  /** Main process starting up the server.
     */
   lazy val mainProcess: ZIO[ZEnv, IOException, Unit] = {
     val mainModule =
@@ -110,8 +106,7 @@ object ProjectManager extends App with LazyLogging {
     }
   }
 
-  /**
-    * The main function of the application, which will be passed the command-line
+  /** The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
   def runOpts(options: CommandLine): ZIO[ZEnv, Nothing, ExitCode] = {

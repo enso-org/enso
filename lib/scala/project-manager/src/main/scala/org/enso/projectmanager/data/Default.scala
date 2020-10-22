@@ -1,14 +1,12 @@
 package org.enso.projectmanager.data
 
-/**
-  * A class for types with a default value.
+/** A class for types with a default value.
   *
   * @tparam A a type parameter
   */
 trait Default[A] {
 
-  /**
-    * A default value.
+  /** A default value.
     */
   val value: A
 

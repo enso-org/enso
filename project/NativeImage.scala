@@ -9,14 +9,12 @@ import scala.sys.process._
 
 object NativeImage {
 
-  /**
-    * Specifies whether the build executable should include debug symbols. Should
+  /** Specifies whether the build executable should include debug symbols. Should
     * be set to false for production builds. May work only on Linux.
     */
   private val includeDebugInfo: Boolean = false
 
-  /**
-    * Creates a task that builds a native image for the current project.
+  /** Creates a task that builds a native image for the current project.
     *
     * @param artifactName name of the artifact to create
     * @param staticOnLinux specifies whether to link statically (applies only
@@ -100,8 +98,7 @@ object NativeImage {
       }
       .dependsOn(Compile / compile)
 
-  /**
-    * Creates a task which watches for changes of any compiled files or
+  /** Creates a task which watches for changes of any compiled files or
     * dependencies and triggers a rebuild if and only if there are any changes.
     *
     * @param actualBuild reference to the task doing the actual Native Image
@@ -153,8 +150,7 @@ object NativeImage {
       }
     }
 
-  /**
-    * [[File]] representing the artifact called `name` built with the Native
+  /** [[File]] representing the artifact called `name` built with the Native
     * Image.
     */
   def artifactFile(name: String): File =
@@ -165,8 +161,7 @@ object NativeImage {
     "https://github.com/gradinac/musl-bundle-example/releases/download/" +
     "v1.0/musl.tar.gz"
 
-  /**
-    * Ensures that the `musl` bundle is installed.
+  /** Ensures that the `musl` bundle is installed.
     *
     * Checks for existence of its directory and if it does not exist, downloads
     * and extracts the bundle. After extracting it does the required
@@ -242,8 +237,7 @@ object NativeImage {
     binaryLocation.toPath.toAbsolutePath.normalize
   }
 
-  /**
-    * Replaces paths in `musl-gcc.specs` with absolute paths to the bundle.
+  /** Replaces paths in `musl-gcc.specs` with absolute paths to the bundle.
     *
     * The paths in `musl-gcc.specs` start with `/build/bundle` which is not a
     * valid path by default. Instead, these prefixes are replaced with an
@@ -259,8 +253,7 @@ object NativeImage {
     IO.write(specs, replaced)
   }
 
-  /**
-    * Creates a simple shell script called `musl-gcc` which calls the original
+  /** Creates a simple shell script called `musl-gcc` which calls the original
     * `gcc` and ensures the bundle's configuration (`musl-gcc.specs`) is loaded.
     */
   private def createGCCWrapper(bundleLocation: File): Unit = {

@@ -160,16 +160,15 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       val query = Suggestions
         .filter { row =>
           calls
-            .map {
-              case (module, selfType, name) =>
-                row.module === module && row.selfType === selfType && row.name === name
+            .map { case (module, selfType, name) =>
+              row.module === module && row.selfType === selfType && row.name === name
             }
             .reduce(_ || _)
         }
         .map(row => (row.id, row.module, row.selfType, row.name))
       query.result.map { tuples =>
-        val result = tuples.map {
-          case (id, module, selfType, name) => (module, selfType, name) -> id
+        val result = tuples.map { case (id, module, selfType, name) =>
+          (module, selfType, name) -> id
         }.toMap
         calls.map(result.get)
       }
@@ -235,9 +234,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     val (suggestionRow, args) = toSuggestionRow(suggestion)
     val query = for {
       id <- Suggestions.returning(Suggestions.map(_.id)) += suggestionRow
-      _ <- Arguments ++= args.zipWithIndex.map {
-          case (argument, ix) => toArgumentRow(id, ix, argument)
-        }
+      _ <- Arguments ++= args.zipWithIndex.map { case (argument, ix) =>
+        toArgumentRow(id, ix, argument)
+      }
       _ <- incrementVersionQuery
     } yield id
     query.asTry.map {
@@ -443,28 +442,26 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     position: Option[Suggestion.Position]
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
-      .filterOpt(module) {
-        case (row, value) =>
-          row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
+      .filterOpt(module) { case (row, value) =>
+        row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
-      .filterOpt(selfType) {
-        case (row, value) => row.selfType === value
+      .filterOpt(selfType) { case (row, value) =>
+        row.selfType === value
       }
-      .filterOpt(returnType) {
-        case (row, value) => row.returnType === value
+      .filterOpt(returnType) { case (row, value) =>
+        row.returnType === value
       }
-      .filterOpt(kinds) {
-        case (row, value) => row.kind inSet value.map(SuggestionKind(_))
+      .filterOpt(kinds) { case (row, value) =>
+        row.kind inSet value.map(SuggestionKind(_))
       }
-      .filterOpt(position) {
-        case (row, value) =>
-          (row.scopeStartLine === ScopeColumn.EMPTY) ||
-          (
-            row.scopeStartLine <= value.line &&
-            row.scopeStartOffset <= value.character &&
-            row.scopeEndLine >= value.line &&
-            row.scopeEndOffset >= value.character
-          )
+      .filterOpt(position) { case (row, value) =>
+        (row.scopeStartLine === ScopeColumn.EMPTY) ||
+        (
+          row.scopeStartLine <= value.line &&
+          row.scopeStartOffset <= value.character &&
+          row.scopeEndLine >= value.line &&
+          row.scopeEndOffset >= value.character
+        )
       }
   }
 

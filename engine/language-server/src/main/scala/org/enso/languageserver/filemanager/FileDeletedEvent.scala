@@ -2,8 +2,7 @@ package org.enso.languageserver.filemanager
 
 import org.enso.languageserver.event.Event
 
-/**
-  * A notification about successful file deletion action
+/** A notification about successful file deletion action
   *
   * @param file the deleted file
   */

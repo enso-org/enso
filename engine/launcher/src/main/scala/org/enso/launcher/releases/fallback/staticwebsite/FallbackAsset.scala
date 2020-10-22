@@ -5,8 +5,7 @@ import java.nio.file.Path
 import org.enso.cli.TaskProgress
 import org.enso.launcher.releases.Asset
 
-/**
-  * An [[Asset]] provided by [[FallbackRelease]].
+/** An [[Asset]] provided by [[FallbackRelease]].
   *
   * @param fileName filename of the asset
   * @param storage reference to the [[FileStorage]] associated with the
@@ -21,14 +20,12 @@ case class FallbackAsset(
   releaseRoot: Seq[String]
 ) extends Asset {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def downloadTo(path: Path): TaskProgress[Unit] =
     storage.download(storagePath, destination = path)
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fetchAsText(): TaskProgress[String] =
     storage.fetchString(storagePath)

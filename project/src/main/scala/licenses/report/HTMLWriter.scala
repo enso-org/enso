@@ -5,16 +5,14 @@ import java.nio.file.Files
 
 import sbt.File
 
-/**
-  * Allows to create very simple HTML reports.
+/** Allows to create very simple HTML reports.
   *
   * @param bufferedWriter writer to which the generated code will be written
   */
 class HTMLWriter(bufferedWriter: BufferedWriter) {
   val writer = new PrintWriter(bufferedWriter)
 
-  /**
-    * Writes the header containing basic styles and scripts for the reports.
+  /** Writes the header containing basic styles and scripts for the reports.
     *
     * @param title the page title
     */
@@ -48,23 +46,20 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
     writer.println(heading)
   }
 
-  /**
-    * A helper class that allows to manage columns in a table row.
+  /** A helper class that allows to manage columns in a table row.
     *
     * @param columns expected columns count
     */
   class RowWriter(columns: Int) {
     var added = 0
 
-    /**
-      * A helper function that adds a column just containing plain text.
+    /** A helper function that adds a column just containing plain text.
       */
     def addColumn(text: String): Unit = {
       addColumn(writeText(text))
     }
 
-    /**
-      * Adds a cell in the next column that will contain anything that is
+    /** Adds a cell in the next column that will contain anything that is
       * written when executing the `writeAction`.
       */
     def addColumn(writeAction: => Unit): Unit = {
@@ -74,8 +69,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
       added += 1
     }
 
-    /**
-      * Finishes the current row and ensures that all expected columns have been
+    /** Finishes the current row and ensures that all expected columns have been
       * added.
       */
     def finish(): Unit = {
@@ -84,8 +78,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
     }
   }
 
-  /**
-    * Writes a HTML table based on the provided descriptiom.
+  /** Writes a HTML table based on the provided descriptiom.
     *
     * @param headers sequence of header names for each column
     * @param rows sequence of functions that will be called to create rows of
@@ -112,8 +105,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
     writer.println("</table>")
   }
 
-  /**
-    * Writes an unordered list.
+  /** Writes an unordered list.
     *
     * @param elements sequence of functions that will be called to write each of
     *                 the list's elements; everything written inside of each
@@ -129,8 +121,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
     writer.println("</ul>")
   }
 
-  /**
-    * Writes a link.
+  /** Writes a link.
     *
     * @param text link text
     * @param url link target
@@ -138,34 +129,29 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
   def writeLink(text: String, url: String): Unit =
     writer.println(s"""<a href="$url">$text</a>""")
 
-  /**
-    * Writes a H1 heading.
+  /** Writes a H1 heading.
     */
   def writeHeading(heading: String): Unit =
     writer.println(s"<h1>$heading</h1>")
 
-  /**
-    * Writes a H2 heading.
+  /** Writes a H2 heading.
     */
   def writeSubHeading(heading: String): Unit =
     writer.println(s"<h2>$heading</h2>")
 
-  /**
-    * Writes a paragraph of styled text.
+  /** Writes a paragraph of styled text.
     */
   def writeParagraph(text: String, styles: Style*): Unit =
     writer.println(s"""<p style="${styles.mkString(";")}">$text</p>""")
 
-  /**
-    * Writes plain (but potentially styled) text.
+  /** Writes plain (but potentially styled) text.
     */
   def writeText(text: String, styles: Style*): Unit =
     if (styles.nonEmpty)
       writer.println(s"""<span style="${styles.mkString(";")}">$text</span>""")
     else writer.println(text)
 
-  /**
-    * Writes a collapsible entry that by default just displays the `title`, but
+  /** Writes a collapsible entry that by default just displays the `title`, but
     * expands when clicked to show the `content`.
     */
   def writeCollapsible(
@@ -181,8 +167,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
                       |</div></div>""".stripMargin)
   }
 
-  /**
-    * Writes an empty element that can be overridden by an injected script.
+  /** Writes an empty element that can be overridden by an injected script.
     *
     * Parameters names and values need to be properly escaped to fit for HTML.
     */
@@ -191,23 +176,21 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
     params: (String, String)*
   ): String = {
     val mappedParams = params
-      .map {
-        case (name, value) => s"""data-$name="$value" """
+      .map { case (name, value) =>
+        s"""data-$name="$value" """
       }
       .mkString(" ")
     s"""<span class="$className" $mappedParams></span>
        |""".stripMargin
   }
 
-  /**
-    * Escapes a string that may contain HTML markup to not be rendered but
+  /** Escapes a string that may contain HTML markup to not be rendered but
     * displayed as normal text.
     */
   def escape(string: String): String =
     string.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-  /**
-    * Finishes writing the document and closes the output.
+  /** Finishes writing the document and closes the output.
     */
   def close(): Unit = {
     writer.println("</body></html>")
@@ -217,50 +200,43 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
 
 object HTMLWriter {
 
-  /**
-    * Creates an [[HTMLWriter]] that writes its output to a [[File]] (creating
+  /** Creates an [[HTMLWriter]] that writes its output to a [[File]] (creating
     * it or overwriting if it exists).
     */
   def toFile(destination: File): HTMLWriter =
     new HTMLWriter(Files.newBufferedWriter(destination.toPath))
 }
 
-/**
-  * Styles that can be used to make text stand out.
+/** Styles that can be used to make text stand out.
   */
 sealed trait Style
 object Style {
 
-  /**
-    * Makes the text bold.
+  /** Makes the text bold.
     */
   case object Bold extends Style {
     override def toString: String = "font-weight:bold"
   }
 
-  /**
-    * Makes the text red.
+  /** Makes the text red.
     */
   case object Red extends Style {
     override def toString: String = "color:red"
   }
 
-  /**
-    * Makes the text gray.
+  /** Makes the text gray.
     */
   case object Gray extends Style {
     override def toString: String = "color:gray"
   }
 
-  /**
-    * Makes the text green.
+  /** Makes the text green.
     */
   case object Green extends Style {
     override def toString: String = "color:green"
   }
 
-  /**
-    * Makes the text black.
+  /** Makes the text black.
     */
   case object Black extends Style {
     override def toString: String = "color:black"

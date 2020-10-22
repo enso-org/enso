@@ -2,8 +2,7 @@ package org.enso.cli.internal
 
 object NeedlemanWunsch {
 
-  /**
-    * Computes the similarity score between two words using the Needleman-Wunsch
+  /** Computes the similarity score between two words using the Needleman-Wunsch
     * algorithm, as described at
     * https://en.wikipedia.org/wiki/Needleman%E2%80%93Wunsch_algorithm
     *
@@ -62,12 +61,10 @@ object NeedlemanWunsch {
     def computePositions(
       rows: Seq[(Double, String)]
     ): Seq[(Char, (Double, Double))] =
-      rows.zipWithIndex flatMap {
-        case ((paddingLeft, chars), row) =>
-          chars.zipWithIndex map {
-            case (char, col) =>
-              char -> ((paddingLeft + col, 0.0 + row))
-          }
+      rows.zipWithIndex flatMap { case ((paddingLeft, chars), row) =>
+        chars.zipWithIndex map { case (char, col) =>
+          char -> ((paddingLeft + col, 0.0 + row))
+        }
       }
 
     val tuples: Seq[(Char, (Double, Double))] =
@@ -76,8 +73,7 @@ object NeedlemanWunsch {
     Map.from(tuples)
   }
 
-  /**
-    * Approximates distance between two keys on a QWERTY keyboard. If a provided
+  /** Approximates distance between two keys on a QWERTY keyboard. If a provided
     * character is not contained in the set of basic keys, None is returned.
     */
   def keyboardDistance(from: Char, to: Char): Option[Double] =

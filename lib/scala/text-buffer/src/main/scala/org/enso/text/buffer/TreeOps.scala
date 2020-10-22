@@ -1,7 +1,6 @@
 package org.enso.text.buffer
 
-/**
-  * Encodes element-level operation on a tree.
+/** Encodes element-level operation on a tree.
   *
   * @tparam I the type of indices.
   * @tparam C the type of leaf nodes contents.
@@ -9,13 +8,11 @@ package org.enso.text.buffer
   */
 trait ElemOps[I, C, M] extends RangeOps[I, C, M] {
 
-  /**
-    * the type of elements associated with this interpretation of indexing.
+  /** the type of elements associated with this interpretation of indexing.
     */
   type Elem
 
-  /**
-    * Gets an element at `index` from the `container`.
+  /** Gets an element at `index` from the `container`.
     *
     * @param container the container to look up index in.
     * @param index the index look up.
@@ -23,8 +20,7 @@ trait ElemOps[I, C, M] extends RangeOps[I, C, M] {
     */
   def get(container: C, index: I): Elem
 
-  /**
-    * Bounds check for the index.
+  /** Bounds check for the index.
     *
     * @param index the index to check.
     * @param measure the size of the container according to specific measure.
@@ -33,8 +29,7 @@ trait ElemOps[I, C, M] extends RangeOps[I, C, M] {
   def contains(index: I, measure: M): Boolean
 }
 
-/**
-  * Encodes slicing operations on a container with respect to a specific
+/** Encodes slicing operations on a container with respect to a specific
   * measure.
   * @tparam I the type of indices.
   * @tparam C the type of leaf nodes contents.
@@ -42,8 +37,7 @@ trait ElemOps[I, C, M] extends RangeOps[I, C, M] {
   */
 trait RangeOps[I, C, M] {
 
-  /**
-    * Is the offset strictly before the end of a container of a given measure?
+  /** Is the offset strictly before the end of a container of a given measure?
     * e.g. if measure is the length of an array, this operation would be just
     * `offset < measure`.
     *
@@ -53,8 +47,7 @@ trait RangeOps[I, C, M] {
     */
   def isOffsetBeforeEnd(offset: I, measure: M): Boolean
 
-  /**
-    * Is the offset strictly after the beginning of a container of a given
+  /** Is the offset strictly after the beginning of a container of a given
     * measure?
     * e.g. if measure is the length of an array, this operation would be just
     * `offset > 0`.
@@ -66,8 +59,7 @@ trait RangeOps[I, C, M] {
     */
   def isOffsetAfterBegin(offset: I, measure: M): Boolean
 
-  /**
-    * Moves the offset by a given measure. I.e. if we have a container
+  /** Moves the offset by a given measure. I.e. if we have a container
     * `c = c1 ++ c2`, where `c1` and `c2` have measures `m1` and `m2`
     * respectively and an offset `off` inside `c`, then `shiftLeft(off, m1)`
     * would be the offset of `off` inside `c2` alone.
@@ -78,8 +70,7 @@ trait RangeOps[I, C, M] {
     */
   def shiftLeft(offset: I, measure: M): I
 
-  /**
-    * Takes `len` elements from the start of `container`.
+  /** Takes `len` elements from the start of `container`.
     *
     * @param container the container to take the prefix of.
     * @param len the length of the prefix.
@@ -87,8 +78,7 @@ trait RangeOps[I, C, M] {
     */
   def take(container: C, len: I): C
 
-  /**
-    * Drops `len` elements from the start of `container`.
+  /** Drops `len` elements from the start of `container`.
     *
     * @param container the container to take the suffix of.
     * @param len the length of the dropped prefix.
@@ -98,8 +88,7 @@ trait RangeOps[I, C, M] {
   def drop(container: C, len: I): C
 }
 
-/**
-  * Encodes the act of measuring a container with respect to a specific
+/** Encodes the act of measuring a container with respect to a specific
   * measure.
   *
   * @tparam C the type of measured containers.
@@ -107,27 +96,23 @@ trait RangeOps[I, C, M] {
   */
 trait Measurable[C, M] {
 
-  /**
-    * Measures a container with respect to measure `M`.
+  /** Measures a container with respect to measure `M`.
     * @param container the container to measure.
     * @return the measure of the container.
     */
   def measure(container: C): M
 }
 
-/**
-  * The tree shape constants, used to regulate the depth and width of B-Trees.
+/** The tree shape constants, used to regulate the depth and width of B-Trees.
   */
 trait TreeShape {
 
-  /**
-    * The maximum number of children a node can have.
+  /** The maximum number of children a node can have.
     * @return the max number of children.
     */
   val maxChildren: Int
 
-  /**
-    * The minimum number of children a node can have.
+  /** The minimum number of children a node can have.
     * For the tree invariants to be possible to maintain, it must be true that
     * `maxChildren + 1 >= 2 * minChildren`.
     * In practice it does not really make sense to choose a smaller value here.

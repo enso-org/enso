@@ -2,13 +2,11 @@ package org.enso.syntax.text
 
 import scala.annotation.tailrec
 
-/**
-  * Useful debugging tools for the parser AST.
+/** Useful debugging tools for the parser AST.
   */
 object Debug {
 
-  /**
-    * Pretty prints the parser AST string representation in a more readable
+  /** Pretty prints the parser AST string representation in a more readable
     * format.
     *
     * @param str the string representation of the parser AST
@@ -54,12 +52,13 @@ object Debug {
               }
 
             case ')' => go(ind - 1, ss, s2 :: newline(ind - 1) :: out)
-            case ',' => if (ss.startsWith(" ")) {
-              go(ind, ss.drop(1), newline(ind) :: s2 :: out)
-            } else {
-              go(ind, ss, newline(ind) :: s2 :: out)
-            }
-            case _   => go(ind, ss, s2 :: out)
+            case ',' =>
+              if (ss.startsWith(" ")) {
+                go(ind, ss.drop(1), newline(ind) :: s2 :: out)
+              } else {
+                go(ind, ss, newline(ind) :: s2 :: out)
+              }
+            case _ => go(ind, ss, s2 :: out)
           }
       }
     }

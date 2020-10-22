@@ -13,8 +13,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivat
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.util.UnhandledLogging
 
-/**
-  * The ShutdownHookActivator is responsible for receiving asynchronously
+/** The ShutdownHookActivator is responsible for receiving asynchronously
   * [[ProjectClosed]] events and invoking all shutdown hooks for the closed
   * project.
   */
@@ -56,21 +55,18 @@ class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
 
 object ShutdownHookActivator {
 
-  /**
-    * A command used to register a project shutdown hook.
+  /** A command used to register a project shutdown hook.
     */
   case class RegisterShutdownHook[F[+_, +_]](
     projectId: UUID,
     hook: ShutdownHook[F]
   )
 
-  /**
-    * Requests an activator if there are pending shutdown hooks.
+  /** Requests an activator if there are pending shutdown hooks.
     */
   case object ArePendingShutdownHooks
 
-  /**
-    * Creates a configuration object used to create a [[ShutdownHookActivator]].
+  /** Creates a configuration object used to create a [[ShutdownHookActivator]].
     *
     * @return a configuration object
     */

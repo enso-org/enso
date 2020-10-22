@@ -8,8 +8,7 @@ import src.main.scala.licenses._
 
 import scala.util.control.NonFatal
 
-/**
-  * Reads settings from the `root` to add review statuses to discovered
+/** Reads settings from the `root` to add review statuses to discovered
   * attachments and add any additional attachments coming from the settings.
   *
   * The review settings consist of the following files or directories (all are
@@ -69,8 +68,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     val defaultAndCustomLicense = "default-and-custom-license"
   }
 
-  /**
-    * Runs the review process, returning a [[ReviewedDependency]] which includes
+  /** Runs the review process, returning a [[ReviewedDependency]] which includes
     * information from the [[DependencySummary]] enriched with review statuses.
     */
   def run(): WithWarnings[ReviewedSummary] =
@@ -88,8 +86,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       _ <- warnAboutMissingDependencies(existingPackages)
     } yield summary
 
-  /**
-    * Returns a list of warnings for dependencies whose configuration has been
+  /** Returns a list of warnings for dependencies whose configuration has been
     * detected but which have not been detected.
     *
     * This may be used to detect dependencies that have been removed after an
@@ -110,14 +107,12 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     WithWarnings.justWarnings(warnings)
   }
 
-  /**
-    * Finds a header defined in the settings or
+  /** Finds a header defined in the settings or
     */
   private def findHeader(): String =
     readFile(root / Paths.noticeHeader).getOrElse(Review.defaultHeader)
 
-  /**
-    * Reads files from the provided directory as [[AttachedFile]].
+  /** Reads files from the provided directory as [[AttachedFile]].
     */
   private def findAdditionalFiles(dir: File): Seq[AttachedFile] =
     listFiles(dir).map { f =>
@@ -130,8 +125,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         AttachedFile.read(f.toPath, Some(dir.toPath))
     }
 
-  /**
-    * Splits the sequence of attachments into sequences of files and copyrights.
+  /** Splits the sequence of attachments into sequences of files and copyrights.
     */
   private def splitAttachments(
     attachments: Seq[Attachment]
@@ -141,8 +135,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     (notices, copyrights)
   }
 
-  /**
-    * Returns only such copyrights that are not included in one of the
+  /** Returns only such copyrights that are not included in one of the
     * discovered files.
     */
   private def removeCopyrightsIncludedInNotices(
@@ -158,8 +151,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     copyrights.filter(shouldKeepCopyright)
   }
 
-  /**
-    * Returns the review status of the license and any attachments associated
+  /** Returns the review status of the license and any attachments associated
     * with the dependency.
     */
   private def reviewDependency(
@@ -185,8 +177,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     )
   }
 
-  /**
-    * Enriches the file attachments with their review status.
+  /** Enriches the file attachments with their review status.
     */
   private def reviewFiles(
     packageRoot: File,
@@ -209,8 +200,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     }
   }
 
-  /**
-    * Returns any additional file attachments that are manually added in the
+  /** Returns any additional file attachments that are manually added in the
     * review.
     */
   private def addFiles(
@@ -219,8 +209,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     findAdditionalFiles(packageRoot / Paths.filesAdd)
       .map((_, AttachmentStatus.Added))
 
-  /**
-    * Enriches the copyright attachments with their review status.
+  /** Enriches the copyright attachments with their review status.
     */
   private def reviewCopyrights(
     packageRoot: File,
@@ -248,8 +237,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     }
   }
 
-  /**
-    * Returns any additional copyright attachments that are manually added in
+  /** Returns any additional copyright attachments that are manually added in
     * the review.
     */
   private def addCopyrights(
@@ -267,8 +255,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       )
       .toSeq
 
-  /**
-    * Checks review status of the license associated with the given dependency.
+  /** Checks review status of the license associated with the given dependency.
     */
   private def reviewLicense(
     packageRoot: File,
@@ -312,8 +299,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
           .getOrElse(WithWarnings(LicenseReview.NotReviewed))
     }
 
-  /**
-    * Reads the file as lines.
+  /** Reads the file as lines.
     *
     * Returns an empty sequence if the file cannot be read.
     */
@@ -321,8 +307,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     try { IO.readLines(file).map(_.strip).filter(_.nonEmpty) }
     catch { case NonFatal(_) => Seq() }
 
-  /**
-    * Reads the file as lines and reports any lines that were not expected to be
+  /** Reads the file as lines and reports any lines that were not expected to be
     * found.
     */
   private def readExpectedLines(
@@ -341,8 +326,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     WithWarnings(lines, warnings)
   }
 
-  /**
-    * Reads the file as a [[String]].
+  /** Reads the file as a [[String]].
     *
     * Returns None if the file cannot be read.
     */
@@ -350,8 +334,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     try { Some(IO.read(file)) }
     catch { case NonFatal(_) => None }
 
-  /**
-    * Returns a sequence of files contained in a directory.
+  /** Returns a sequence of files contained in a directory.
     *
     * If the directory does not exist or otherwise cannot be queried, returns an
     * empty sequence.
@@ -364,16 +347,14 @@ case class Review(root: File, dependencySummary: DependencySummary) {
 
 object Review {
 
-  /**
-    * Normalizes a name so that it can be used as a filename.
+  /** Normalizes a name so that it can be used as a filename.
     */
   def normalizeName(string: String): String = {
     val charsToReplace = " /:;,"
     charsToReplace.foldLeft(string)((str, char) => str.replace(char, '_'))
   }
 
-  /**
-    * Default NOTICE header.
+  /** Default NOTICE header.
     */
   val defaultHeader: String = {
     val yearStart   = 2020

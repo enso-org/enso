@@ -41,8 +41,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-/**
-  * A main module containing all components of the server.
+/** A main module containing all components of the server.
   *
   * @param serverConfig configuration for the language server
   */

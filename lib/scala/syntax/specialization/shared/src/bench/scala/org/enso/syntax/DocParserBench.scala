@@ -55,8 +55,8 @@ object DocParserBench extends Bench.OfflineRegressionReport {
 
   def run(str: String): Result[Doc] = DocParser.run(str)
   performance of "DocParser" in {
-    tests.foreach {
-      case (name, gen) => measure method name in (using(gen) in run)
+    tests.foreach { case (name, gen) =>
+      measure method name in (using(gen) in run)
     }
   }
 }

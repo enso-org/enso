@@ -139,9 +139,8 @@ class SerializationTest extends AnyWordSpec with Matchers with EitherValue {
 
       bindingsRepr.size shouldEqual bindings.size
       assert(
-        bindings forall {
-          case (name: String, value: Object) =>
-            objectRepresentationIsConsistent(value, bindingsRepr(name))
+        bindings forall { case (name: String, value: Object) =>
+          objectRepresentationIsConsistent(value, bindingsRepr(name))
         },
         "bindings representations should be consistent"
       )

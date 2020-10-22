@@ -1,17 +1,17 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
-  InterpreterTest,
   InterpreterContext,
-  InterpreterException
+  InterpreterException,
+  InterpreterTest
 }
 
 class ConstructorsTest extends InterpreterTest {
 
   override def subject: String = "Constructors & Pattern Matching"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
     "dispatch to the proper match branch" in {
       val patternMatchingCode =

@@ -7,8 +7,7 @@ import org.enso.cli.CLIOutput
 import org.enso.cli.internal._
 import org.enso.cli.internal.opts._
 
-/**
-  * Represents a set of options (flags, parameters, arguments) and the logic
+/** Represents a set of options (flags, parameters, arguments) and the logic
   * that converts all of them into a value of type A.
   *
   * Opts instances are allowed to use internal mutable state for parsing. They
@@ -16,29 +15,24 @@ import org.enso.cli.internal.opts._
   */
 trait Opts[+A] {
 
-  /**
-    * Maps flag names to callbacks that are run for that flag.
+  /** Maps flag names to callbacks that are run for that flag.
     */
   private[cli] def flags: Map[String, () => Unit]
 
-  /**
-    * Maps parameter names to callbacks that are run for that parameter.
+  /** Maps parameter names to callbacks that are run for that parameter.
     */
   private[cli] def parameters: Map[String, String => Unit]
 
-  /**
-    * Maps prefixes to callbacks that are run for a prefixed parameter with that
+  /** Maps prefixes to callbacks that are run for a prefixed parameter with that
     * prefix.
     */
   private[cli] def prefixedParameters: Map[String, (String, String) => Unit]
 
-  /**
-    * Specifies if this set of options can take another argument.
+  /** Specifies if this set of options can take another argument.
     */
   private[cli] def wantsArgument(): Boolean
 
-  /**
-    * A callback for arguments.
+  /** A callback for arguments.
     *
     * Should not be called if [[wantsArgument]] returns false.
     *
@@ -54,20 +48,17 @@ trait Opts[+A] {
     suppressUnexpectedArgument: Boolean
   ): ParserContinuation
 
-  /**
-    * An optional callback for additional arguments. If it is provided, all
+  /** An optional callback for additional arguments. If it is provided, all
     * arguments following `--` are passed to it.
     */
   private[cli] def additionalArguments: Option[Seq[String] => Unit]
 
-  /**
-    * A reset callback that should reset all internal state. Allows to reuse an
+  /** A reset callback that should reset all internal state. Allows to reuse an
     * Opts instance several times.
     */
   private[cli] def reset(): Unit
 
-  /**
-    * Called at the end of parsing to obtain the result.
+  /** Called at the end of parsing to obtain the result.
     *
     * Any errors accumulated throughout parsing should be returned here. This is
     * the right moment to do final validation (for example, detecting missing
@@ -75,62 +66,52 @@ trait Opts[+A] {
     */
   private[cli] def result(commandPrefix: Seq[String]): Either[OptsParseError, A]
 
-  /**
-    * Lists options that should be printed in the usage [[commandLines]].
+  /** Lists options that should be printed in the usage [[commandLines]].
     */
   private[cli] def usageOptions: Seq[String]
 
-  /**
-    * Names of required arguments, for printing in the usage [[commandLines]].
+  /** Names of required arguments, for printing in the usage [[commandLines]].
     */
   private[cli] def requiredArguments: Seq[String]
 
-  /**
-    * Names of optional arguments, for printing in the usage [[commandLines]].
+  /** Names of optional arguments, for printing in the usage [[commandLines]].
     */
   private[cli] def optionalArguments: Seq[String]
 
-  /**
-    * Name of a trailing arguments set, for printing in the usage
+  /** Name of a trailing arguments set, for printing in the usage
     * [[commandLines]].
     */
   private[cli] def trailingArguments: Option[String]
 
-  /**
-    * Lists all available options by their name and format.
+  /** Lists all available options by their name and format.
     *
     * Used for displaying suggestions when an unknown option is provided. Can
     * contain, for example `("setting", "--setting VALUE")`.
     */
   private[cli] def gatherOptions: Seq[(String, String)]
 
-  /**
-    * Lists all available prefixed parameters by their name and format.
+  /** Lists all available prefixed parameters by their name and format.
     *
     * Used for displaying suggestions when an unknown prefix is provided. Can
     * contain, for example `("jvm", "--jvm.KEY VALUE")`.
     */
   private[cli] def gatherPrefixedParameters: Seq[(String, String)]
 
-  /**
-    * Lists all available options with their help messages to be displayed in
+  /** Lists all available options with their help messages to be displayed in
     * the help.
     */
   def availableOptionsHelp(): Seq[String]
 
-  /**
-    * Lists all available prefixed parameters with their help messages to be
+  /** Lists all available prefixed parameters with their help messages to be
     * displayed in the help.
     */
   def availablePrefixedParametersHelp(): Seq[String]
 
-  /**
-    * Lists additional help messages that are displayed at the end of the help.
+  /** Lists additional help messages that are displayed at the end of the help.
     */
   def additionalHelp(): Seq[String]
 
-  /**
-    * A helper function that displays an options command line based on the
+  /** A helper function that displays an options command line based on the
     * definition of [[usageOptions]].
     *
     * It does not include any arguments, but only parameters and flags.
@@ -151,8 +132,7 @@ trait Opts[+A] {
     otherOptions + usageOptions.map(" " + _).mkString
   }
 
-  /**
-    * A helper function that gathers all options and arguments definitions, to
+  /** A helper function that gathers all options and arguments definitions, to
     * display a command line for showing in the usage section of the help.
     *
     * @return a non-empty list of available usages of this option set. Multiple
@@ -177,8 +157,7 @@ trait Opts[+A] {
     NonEmptyList.one(sb.toString().stripLeading())
   }
 
-  /**
-    * Generates explanations of parameters to be included in the help message.
+  /** Generates explanations of parameters to be included in the help message.
     */
   def helpExplanations(): String = {
     val options =
@@ -198,8 +177,7 @@ trait Opts[+A] {
     optionsHelp + prefixedHelp + additionalText
   }
 
-  /**
-    * Generates a help text for the command, including usage, available options
+  /** Generates a help text for the command, including usage, available options
     * and any additional help lines.
     *
     * @param commandPrefix list of command names that should prefix the
@@ -219,15 +197,13 @@ trait Opts[+A] {
     usage + helpExplanations().stripTrailing()
   }
 
-  /**
-    * Renders text explaining how to display the help.
+  /** Renders text explaining how to display the help.
     */
   def shortHelp(commandPrefix: Seq[String]): String =
     s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
 }
 
-/**
-  * The external Opts API is inspired by https://github.com/bkirwi/decline but
+/** The external Opts API is inspired by https://github.com/bkirwi/decline but
   * it is simplified in some places and extended in others to allow for the
   * features that we need. The internal implementation differs a lot, as the
   * main priority of its design was providing the best possible error messages.
@@ -259,8 +235,7 @@ trait Opts[+A] {
 object Opts {
   object implicits {
 
-    /**
-      * A [[Semigroupal]] instance for combining multiple options sets.
+    /** A [[Semigroupal]] instance for combining multiple options sets.
       *
       * The combined set of options parses options from both sets and returns a
       * tuple of results of both sets if both have succeeded. Unordered options
@@ -278,8 +253,7 @@ object Opts {
         new OptsProduct(fa, fb)
     }
 
-    /**
-      * A [[Functor]] instance that allows to map over option sets to process
+    /** A [[Functor]] instance that allows to map over option sets to process
       * their values.
       *
       * The mapping is done eagerly, and it is possible that the result of
@@ -295,8 +269,7 @@ object Opts {
 
     implicit class WithDefaultSyntax[A](val opts: Opts[Option[A]]) {
 
-      /**
-        * Adds a default value that is returned if the result was None, turning
+      /** Adds a default value that is returned if the result was None, turning
         * `Opts[Option[A]]` into `Opts[A]`.
         */
       def withDefault(defaultValue: => A): Opts[A] =
@@ -305,8 +278,7 @@ object Opts {
 
     implicit class HiddenSyntax[A](val opts: Opts[A]) {
 
-      /**
-        * Makes options from this Opts instance hidden in any help messages. Can
+      /** Makes options from this Opts instance hidden in any help messages. Can
         * be used for internal configuration.
         */
       def hidden: Opts[A] = new HiddenOpts(opts)
@@ -314,8 +286,7 @@ object Opts {
 
     implicit class MapWithErrorsSyntax[A](val opts: Opts[A]) {
 
-      /**
-        * Allows to map an Opts instance in a way that may result in an error.
+      /** Allows to map an Opts instance in a way that may result in an error.
         *
         * If `f` returns a [[Left]], a parse error is reported. Otherwise,
         * proceeds as `map` would with the result of `Right`.
@@ -327,8 +298,7 @@ object Opts {
 
   import implicits._
 
-  /**
-    * An option that accepts a single (required) positional argument and returns
+  /** An option that accepts a single (required) positional argument and returns
     * its value.
     *
     * Fails if an argument is not provided.
@@ -345,8 +315,7 @@ object Opts {
   ): Opts[A] =
     new PositionalArgument[A](metavar, if (help.isEmpty) None else Some(help))
 
-  /**
-    * An option that accepts a single optional positional argument and returns
+  /** An option that accepts a single optional positional argument and returns
     * an [[Option]] containing its value, if it was provided.
     *
     * @param metavar the name of the argument used in help
@@ -364,8 +333,7 @@ object Opts {
       if (help.isEmpty) None else Some(help)
     )
 
-  /**
-    * An option that accepts an arbitrary amount of arguments and returns a
+  /** An option that accepts an arbitrary amount of arguments and returns a
     * (possibly empty) list of parsed arguments.
     *
     * @param metavar the name of the argument used in help
@@ -380,8 +348,7 @@ object Opts {
   ): Opts[Seq[A]] =
     new TrailingArguments[A](metavar, if (help.isEmpty) None else Some(help))
 
-  /**
-    * A flag that returns a [[Boolean]] value indicating if it was provided in
+  /** A flag that returns a [[Boolean]] value indicating if it was provided in
     * the command line.
     *
     * Returns true if `--name` is included in the command line.
@@ -394,8 +361,7 @@ object Opts {
   def flag(name: String, help: String, showInUsage: Boolean): Opts[Boolean] =
     new Flag(name, None, help, showInUsage)
 
-  /**
-    * A flag with a short alternative that returns a [[Boolean]] value
+  /** A flag with a short alternative that returns a [[Boolean]] value
     * indicating if it was provided in the command line.
     *
     * Returns true if `--name` or `-s` (where `s` is the short argument) is
@@ -418,8 +384,7 @@ object Opts {
   ): Opts[Boolean] =
     new Flag(name, Some(short), help, showInUsage)
 
-  /**
-    * A (required) parameter that tries to parse its value as type A.
+  /** A (required) parameter that tries to parse its value as type A.
     *
     * If a required parameter is not provided, an error is reported.
     *
@@ -438,8 +403,7 @@ object Opts {
     help: String
   ): Opts[A] = new Parameter[A](name, metavar, help)
 
-  /**
-    * An optional parameter that tries to parse its value as type A. It returns
+  /** An optional parameter that tries to parse its value as type A. It returns
     * an [[Option]] that is defined if the parameter was provided.
     *
     * @param name name of the parameter
@@ -459,8 +423,7 @@ object Opts {
   ): Opts[Option[A]] =
     new OptionalParameter[A](name, metavar, help, showInUsage)
 
-  /**
-    * An optional parameter with multiple aliases.
+  /** An optional parameter with multiple aliases.
     *
     * Returns a value if it is present for exactly one of the aliases or none if
     * no alias is present. If values are present for mulitple aliases, raises a
@@ -514,8 +477,7 @@ object Opts {
     }
   }
 
-  /**
-    * An option that accepts an arbitrary amount of parameters with a fixed
+  /** An option that accepts an arbitrary amount of parameters with a fixed
     * prefix and returns a sequence of tuples that contain a suffix and a
     * (string) value.
     *
@@ -541,8 +503,7 @@ object Opts {
       if (help.isEmpty) None else Some(help)
     )
 
-  /**
-    * An option that accepts an arbitrary amount of unspecified additional
+  /** An option that accepts an arbitrary amount of unspecified additional
     * arguments and options (flags or parameters included). Any values following
     * a `--` are passed this option.
     *
@@ -554,8 +515,7 @@ object Opts {
   def additionalArguments(help: String = ""): Opts[Seq[String]] =
     new AdditionalArguments(help)
 
-  /**
-    * An option that allows to create subcommands. It accepts a single argument
+  /** An option that allows to create subcommands. It accepts a single argument
     * which should be the name of the command that is chosen. Any parameters
     * following that argument are parsed according to the logic defined for the
     * selected command.
@@ -575,21 +535,18 @@ object Opts {
     new SubcommandOpt[A](nonEmptyCommands)
   }
 
-  /**
-    * A helper option that does no parsing and simply returns the provided
+  /** A helper option that does no parsing and simply returns the provided
     * value.
     */
   def pure[A](a: A): Opts[A] = new OptsPure[A](a)
 
-  /**
-    * Turns a sequence of options into a single option that returns results of
+  /** Turns a sequence of options into a single option that returns results of
     * these options, if all of them parsed successfully.
     */
   def sequence[A](opts: Seq[Opts[A]]): Opts[Seq[A]] =
     sequence(opts.toList).map(_.toSeq)
 
-  /**
-    * Turns a list of options into a single option that returns results of
+  /** Turns a list of options into a single option that returns results of
     * these options, if all of them parsed successfully.
     */
   def sequence[A](opts: List[Opts[A]]): Opts[List[A]] =

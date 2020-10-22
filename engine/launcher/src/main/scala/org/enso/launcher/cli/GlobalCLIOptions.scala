@@ -5,8 +5,7 @@ import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.launcher.cli.GlobalCLIOptions.InternalOptions
 import org.enso.loggingservice.LogLevel
 
-/**
-  * Gathers settings set by the global CLI options.
+/** Gathers settings set by the global CLI options.
   *
   * @param autoConfirm if this flag is set, the program should not ask the user
   *                    any questions but proceed with the default values, that
@@ -33,8 +32,7 @@ object GlobalCLIOptions {
   val USE_JSON      = "json"
   val COLOR_MODE    = "color"
 
-  /**
-    * Internal options that are remembered to pass them to launcher child
+  /** Internal options that are remembered to pass them to launcher child
     * processes.
     */
   case class InternalOptions(
@@ -42,8 +40,7 @@ object GlobalCLIOptions {
     loggerConnectUri: Option[Uri]
   ) {
 
-    /**
-      * Creates command line options that can be passed to a launcher process to
+    /** Creates command line options that can be passed to a launcher process to
       * set the same options.
       */
     def toOptions: Seq[String] = {
@@ -60,8 +57,7 @@ object GlobalCLIOptions {
   val LOG_LEVEL      = "launcher-log-level"
   val CONNECT_LOGGER = "internal-connect-logger"
 
-  /**
-    * Converts the [[GlobalCLIOptions]] to a sequence of arguments that can be
+  /** Converts the [[GlobalCLIOptions]] to a sequence of arguments that can be
     * added to a launcher invocation to set the same options.
     */
   def toOptions(config: GlobalCLIOptions): Seq[String] = {
@@ -74,24 +70,20 @@ object GlobalCLIOptions {
   }
 }
 
-/**
-  * Describes possible modes of color display in console output.
+/** Describes possible modes of color display in console output.
   */
 sealed trait ColorMode
 object ColorMode {
 
-  /**
-    * Never use color escape sequences in the output.
+  /** Never use color escape sequences in the output.
     */
   case object Never extends ColorMode
 
-  /**
-    * Enable color output if it seems to be supported.
+  /** Enable color output if it seems to be supported.
     */
   case object Auto extends ColorMode
 
-  /**
-    * Always use escape sequences in the output, even if the program thinks they
+  /** Always use escape sequences in the output, even if the program thinks they
     * are unsupported.
     *
     * May be useful if output is piped to other programs that know how to handle
@@ -99,8 +91,7 @@ object ColorMode {
     */
   case object Always extends ColorMode
 
-  /**
-    * [[Argument]] instance used to parse [[ColorMode]] from CLI.
+  /** [[Argument]] instance used to parse [[ColorMode]] from CLI.
     */
   implicit val argument: Argument[ColorMode] = {
     case "never"  => Right(Never)
@@ -115,8 +106,7 @@ object ColorMode {
       )
   }
 
-  /**
-    * Creates command line options that can be passed to a launcher process to
+  /** Creates command line options that can be passed to a launcher process to
     * inherit our color mode.
     */
   def toOptions(colorMode: ColorMode): Seq[String] = {

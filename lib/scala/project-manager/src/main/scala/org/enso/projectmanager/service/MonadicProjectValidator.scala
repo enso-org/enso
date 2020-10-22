@@ -7,11 +7,10 @@ import org.enso.projectmanager.service.ValidationFailure.{
   NameContainsForbiddenCharacter
 }
 
-/**
-  * MTL implementation of the project validator.
+/** MTL implementation of the project validator.
   */
-class MonadicProjectValidator[F[_, _]](
-  implicit M: MonadError[F[ValidationFailure, *], ValidationFailure]
+class MonadicProjectValidator[F[_, _]](implicit
+  M: MonadError[F[ValidationFailure, *], ValidationFailure]
 ) extends ProjectValidator[F] {
 
   import M._
@@ -20,8 +19,7 @@ class MonadicProjectValidator[F[_, _]](
     char.isLetterOrDigit || char == '_' || char == '-'
   }
 
-  /**
-    * Validates a project name.
+  /** Validates a project name.
     *
     * @param name the project name
     * @return either validation failure or success

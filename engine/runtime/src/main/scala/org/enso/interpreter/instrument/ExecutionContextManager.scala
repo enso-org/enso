@@ -9,16 +9,14 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 
 import scala.collection.mutable.Stack
 
-/**
-  * Storage for active execution contexts.
+/** Storage for active execution contexts.
   */
 class ExecutionContextManager {
 
   private var contexts: Map[ContextId, ExecutionContextState] =
     Map().withDefaultValue(ExecutionContextState.empty)
 
-  /**
-    * Creates a new context with a given id.
+  /** Creates a new context with a given id.
     *
     * @param id the context id.
     */
@@ -27,8 +25,7 @@ class ExecutionContextManager {
       contexts += id -> ExecutionContextState.empty
     }
 
-  /**
-    * Destroys a context with a given id.
+  /** Destroys a context with a given id.
     * @param id the context id.
     */
   def destroy(id: ContextId): Unit =
@@ -36,8 +33,7 @@ class ExecutionContextManager {
       contexts -= id
     }
 
-  /**
-    * Gets a context with a given id.
+  /** Gets a context with a given id.
     *
     * @param id the context id.
     * @return the context with the given id, if exists.
@@ -49,8 +45,7 @@ class ExecutionContextManager {
       } yield id
     }
 
-  /**
-    * Gets a stack for a given context id.
+  /** Gets a stack for a given context id.
     *
     * @param id the context id.
     * @return the stack.
@@ -60,8 +55,7 @@ class ExecutionContextManager {
       contexts(id).stack
     }
 
-  /**
-    * Gets all execution contexts.
+  /** Gets all execution contexts.
     *
     * @return all currently available execution contexsts.
     */
@@ -70,8 +64,7 @@ class ExecutionContextManager {
       contexts.view.mapValues(_.stack)
     }
 
-  /**
-    * If the context exists, push the item on the stack.
+  /** If the context exists, push the item on the stack.
     *
     * @param id the context id.
     * @param item stack item.
@@ -84,8 +77,7 @@ class ExecutionContextManager {
       } yield state.stack.push(InstrumentFrame(item))
     }
 
-  /**
-    * If the context exists and stack not empty, pop the item from the stack.
+  /** If the context exists and stack not empty, pop the item from the stack.
     *
     * @param id the context id.
     * @return stack frame or None if the stack is empty or not exists.
@@ -98,8 +90,7 @@ class ExecutionContextManager {
       } yield state.stack.pop()
     }
 
-  /**
-    * Tests if a context specified by its id is stored by the manager.
+  /** Tests if a context specified by its id is stored by the manager.
     *
     * @param contextId the identifier of the execution context
     * @return true if the context is stored or false otherwise
@@ -109,8 +100,7 @@ class ExecutionContextManager {
       contexts.contains(contextId)
     }
 
-  /**
-    * Upserts a visualisation for the specified context.
+  /** Upserts a visualisation for the specified context.
     *
     * @param contextId the identifier of the execution context
     * @param visualisation the visualisation to upsert
@@ -124,8 +114,7 @@ class ExecutionContextManager {
       state.visualisations.upsert(visualisation)
     }
 
-  /**
-    * Returns a visualisation with the provided id.
+  /** Returns a visualisation with the provided id.
     *
     * @param contextId the identifier of the execution context
     * @param visualisationId the identifier of visualisation
@@ -142,8 +131,7 @@ class ExecutionContextManager {
       } yield visualisation
     }
 
-  /**
-    * Finds all visualisations attached to an expression.
+  /** Finds all visualisations attached to an expression.
     *
     * @param contextId the identifier of the execution context
     * @param expressionId the unique identifier of the expression
@@ -160,8 +148,7 @@ class ExecutionContextManager {
       } yield visualisation
     }
 
-  /**
-    * Removes a visualisation from the holder.
+  /** Removes a visualisation from the holder.
     *
     * @param contextId the identifier of the execution context
     * @param visualisationId the visualisation identifier

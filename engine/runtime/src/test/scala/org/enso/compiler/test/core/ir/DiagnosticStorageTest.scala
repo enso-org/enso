@@ -92,8 +92,8 @@ class DiagnosticStorageTest extends CompilerTest {
         )
       )
 
-      diagnostics.collect {
-        case e: IR.Error.Syntax => e
+      diagnostics.collect { case e: IR.Error.Syntax =>
+        e
       } shouldEqual Seq(err)
     }
 

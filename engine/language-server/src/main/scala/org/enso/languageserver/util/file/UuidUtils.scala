@@ -6,8 +6,7 @@ import org.enso.languageserver.protocol.binary.EnsoUUID
 
 object UuidUtils {
 
-  /**
-    * Converts an [[EnsoUUID]] to a JVM [[UUID]].
+  /** Converts an [[EnsoUUID]] to a JVM [[UUID]].
     *
     * @param uuid a flatbuffers representation of uuid
     * @return [[UUID]]

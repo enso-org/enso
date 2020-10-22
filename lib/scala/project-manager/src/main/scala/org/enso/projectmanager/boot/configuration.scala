@@ -6,8 +6,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object configuration {
 
-  /**
-    * A configuration object for properties of the Project Manager.
+  /** A configuration object for properties of the Project Manager.
     *
     * @param server a JSON RPC server configuration
     */
@@ -20,16 +19,14 @@ object configuration {
     supervision: SupervisionConfig
   )
 
-  /**
-    * A configuration object for properties of the JSON RPC server.
+  /** A configuration object for properties of the JSON RPC server.
     *
     * @param host an address that the server listen on
     * @param port a port that the server listen on
     */
   case class ServerConfig(host: String, port: Int)
 
-  /**
-    * A configuration object for properties of project storage.
+  /** A configuration object for properties of project storage.
     *
     * @param projectsRoot a project root
     * @param userProjectsPath a user project root
@@ -44,8 +41,7 @@ object configuration {
     projectMetadataFileName: String
   )
 
-  /**
-    * A configuration object for timeout properties.
+  /** A configuration object for timeout properties.
     *
     * @param ioTimeout a timeout for IO operations
     * @param requestTimeout a timeout for JSON RPC request timeout
@@ -58,8 +54,7 @@ object configuration {
     socketCloseTimeout: FiniteDuration
   )
 
-  /**
-    * A configuration object for networking.
+  /** A configuration object for networking.
     *
     * @param interface an interface to listen to
     * @param minPort min port for the LS
@@ -67,8 +62,7 @@ object configuration {
     */
   case class NetworkConfig(interface: String, minPort: Int, maxPort: Int)
 
-  /**
-    * A configuration object for bootloader properties.
+  /** A configuration object for bootloader properties.
     *
     * @param numberOfRetries how many times a bootloader should try to boot the LS
     * @param delayBetweenRetry delays between retries
@@ -78,8 +72,7 @@ object configuration {
     delayBetweenRetry: FiniteDuration
   )
 
-  /**
-    * A configuration object for supervisor properties.
+  /** A configuration object for supervisor properties.
     *
     * @param initialDelay a time that the supervisor wait before starts
     *                     monitoring

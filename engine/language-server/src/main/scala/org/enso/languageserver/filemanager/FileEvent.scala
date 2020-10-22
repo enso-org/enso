@@ -4,8 +4,7 @@ import java.io.File
 
 import enumeratum._
 
-/**
-  * A representation of filesystem event.
+/** A representation of filesystem event.
   *
   * @param path path to the file system object
   * @param kind type of file system event
@@ -14,8 +13,7 @@ case class FileEvent(path: Path, kind: FileEventKind)
 
 object FileEvent {
 
-  /**
-    * Conversion from file system event.
+  /** Conversion from file system event.
     *
     * @param root a project root
     * @param base a watched path
@@ -33,32 +31,27 @@ object FileEvent {
     )
 }
 
-/**
-  * Type of a file event.
+/** Type of a file event.
   */
 sealed trait FileEventKind extends EnumEntry
 
 object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {
 
-  /**
-    * Event type indicating file creation.
+  /** Event type indicating file creation.
     */
   case object Added extends FileEventKind
 
-  /**
-    * Event type indicating file deletion.
+  /** Event type indicating file deletion.
     */
   case object Removed extends FileEventKind
 
-  /**
-    * Event type indicating file modification.
+  /** Event type indicating file modification.
     */
   case object Modified extends FileEventKind
 
   override val values = findValues
 
-  /**
-    * Create [[FileEventKind]] from [[WatcherAdapter.EventType]].
+  /** Create [[FileEventKind]] from [[WatcherAdapter.EventType]].
     *
     * @param eventType file system event type
     * @return file event kind

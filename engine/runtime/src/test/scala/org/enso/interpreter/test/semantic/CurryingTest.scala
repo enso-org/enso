@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class CurryingTest extends InterpreterTest {
   override def subject: String = "Functions"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "allow partial application" in {

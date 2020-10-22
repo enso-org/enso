@@ -13,8 +13,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `search/getSuggestionsDatabaseVersion` command.
+/** A request handler for `search/getSuggestionsDatabaseVersion` command.
   *
   * @param timeout request timeout
   * @param suggestionsHandler a reference to the suggestions handler
@@ -70,8 +69,7 @@ class GetSuggestionsDatabaseVersionHandler(
 
 object GetSuggestionsDatabaseVersionHandler {
 
-  /**
-    * Creates configuration object used to create a
+  /** Creates configuration object used to create a
     * [[GetSuggestionsDatabaseVersionHandler]].
     *
     * @param timeout request timeout

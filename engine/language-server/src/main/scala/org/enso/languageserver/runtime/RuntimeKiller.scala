@@ -11,8 +11,7 @@ import org.graalvm.polyglot.Context
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
-/**
-  * An actor that shuts the runtime down. It implements a routine responsible
+/** An actor that shuts the runtime down. It implements a routine responsible
   * for disposing of runtime resources and closing the Truffle context in a
   * resilient manner.
   *
@@ -28,17 +27,16 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
 
   override def receive: Receive = idle()
 
-  private def idle(): Receive = {
-    case ShutDownRuntime =>
-      log.info("Shutting down the runtime server")
-      runtimeConnector ! Api.Request(
-        UUID.randomUUID(),
-        Api.ShutDownRuntimeServer()
-      )
-      val cancellable =
-        context.system.scheduler
-          .scheduleOnce(5.seconds, self, ResourceDisposalTimeout)
-      context.become(shuttingDownRuntimeServer(sender(), cancellable))
+  private def idle(): Receive = { case ShutDownRuntime =>
+    log.info("Shutting down the runtime server")
+    runtimeConnector ! Api.Request(
+      UUID.randomUUID(),
+      Api.ShutDownRuntimeServer()
+    )
+    val cancellable =
+      context.system.scheduler
+        .scheduleOnce(5.seconds, self, ResourceDisposalTimeout)
+    context.become(shuttingDownRuntimeServer(sender(), cancellable))
   }
 
   private def shuttingDownRuntimeServer(
@@ -54,9 +52,11 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
       shutDownTruffle(replyTo)
   }
 
-  private def shuttingDownTruffle(replyTo: ActorRef, retryCount: Int): Receive = {
-    case TryToStopTruffle =>
-      shutDownTruffle(replyTo, retryCount)
+  private def shuttingDownTruffle(
+    replyTo: ActorRef,
+    retryCount: Int
+  ): Receive = { case TryToStopTruffle =>
+    shutDownTruffle(replyTo, retryCount)
   }
 
   private def shutDownTruffle(replyTo: ActorRef, retryCount: Int = 0): Unit = {
@@ -83,28 +83,23 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
 
 object RuntimeKiller {
 
-  /**
-    * Number of retries to close a Truffle context.
+  /** Number of retries to close a Truffle context.
     */
   val MaxRetries = 3
 
-  /**
-    * A command that starts shutting down the Runtime server.
+  /** A command that starts shutting down the Runtime server.
     */
   case object ShutDownRuntime
 
-  /**
-    * A base trait for ADT of a shutdown result.
+  /** A base trait for ADT of a shutdown result.
     */
   sealed trait RuntimeShutdownResult
 
-  /**
-    * Signals that the Runtime stopped gracefully.
+  /** Signals that the Runtime stopped gracefully.
     */
   case object RuntimeGracefullyStopped extends RuntimeShutdownResult
 
-  /**
-    * Signals that it is impossible to shut the runtime down.
+  /** Signals that it is impossible to shut the runtime down.
     */
   case object RuntimeNotStopped extends RuntimeShutdownResult
 
@@ -112,8 +107,7 @@ object RuntimeKiller {
 
   private case object TryToStopTruffle
 
-  /**
-    * Creates configuration object used to create a [[RuntimeKiller]].
+  /** Creates configuration object used to create a [[RuntimeKiller]].
     *
     * @param runtimeConnector a proxy to the runtime
     * @param truffleContext a Truffle context

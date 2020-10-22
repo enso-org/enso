@@ -20,8 +20,7 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
 
-/**
-  * A helper class that prepares settings for running Enso components and
+/** A helper class that prepares settings for running Enso components and
   * converts these settings to actual commands that launch the component inside
   * of a JVM.
   */
@@ -33,8 +32,7 @@ class Runner(
   loggerConnection: Future[Option[Uri]]
 ) {
 
-  /**
-    * The current working directory that is a starting point when checking if
+  /** The current working directory that is a starting point when checking if
     * the command is launched inside of a project.
     *
     * Can be overridden in tests.
@@ -64,8 +62,7 @@ class Runner(
       RunSettings(version, arguments, connectLoggerIfAvailable = false)
     }
 
-  /**
-    * Creates [[RunSettings]] for launching the REPL.
+  /** Creates [[RunSettings]] for launching the REPL.
     *
     * See [[org.enso.launcher.Launcher.runRepl]] for more details.
     */
@@ -105,8 +102,7 @@ class Runner(
       )
     }
 
-  /**
-    * Creates [[RunSettings]] for running Enso projects or scripts.
+  /** Creates [[RunSettings]] for running Enso projects or scripts.
     *
     * See [[org.enso.launcher.Launcher.runRun]] for more details.
     */
@@ -166,8 +162,7 @@ class Runner(
       )
     }
 
-  /**
-    * Creates [[RunSettings]] for launching the Language Server.
+  /** Creates [[RunSettings]] for launching the Language Server.
     *
     * See [[org.enso.launcher.Launcher.runLanguageServer]] for more details.
     */
@@ -204,8 +199,7 @@ class Runner(
       )
     }
 
-  /**
-    * Creates [[RunSettings]] for querying the currently selected engine
+  /** Creates [[RunSettings]] for querying the currently selected engine
     * version.
     *
     * If the current working directory is inside of a project, the engine
@@ -242,8 +236,7 @@ class Runner(
 
   final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
 
-  /**
-    * Runs an action giving it a command that can be used to launch the
+  /** Runs an action giving it a command that can be used to launch the
     * component.
     *
     * While the action is executed, it is guaranteed that the component
@@ -312,8 +305,7 @@ class Runner(
     }
   }
 
-  /**
-    * Represents a way of launching the JVM.
+  /** Represents a way of launching the JVM.
     *
     * Stores the name of the `java` executable to run and a possible JAVA_HOME
     * environment variable override.
@@ -323,13 +315,11 @@ class Runner(
     javaHomeOverride: Option[String]
   )
 
-  /**
-    * The [[JavaCommand]] representing the system-configured JVM.
+  /** The [[JavaCommand]] representing the system-configured JVM.
     */
   private def systemJavaCommand: JavaCommand = JavaCommand("java", None)
 
-  /**
-    * The [[JavaCommand]] representing a managed [[Runtime]].
+  /** The [[JavaCommand]] representing a managed [[Runtime]].
     */
   private def javaCommandForRuntime(runtime: Runtime): JavaCommand =
     JavaCommand(
@@ -338,8 +328,7 @@ class Runner(
         Some(runtime.javaHome.toAbsolutePath.normalize.toString)
     )
 
-  /**
-    * Returns arguments that should be added to a launched component to connect
+  /** Returns arguments that should be added to a launched component to connect
     * it to launcher's logging service.
     *
     * It waits until the logging service has been set up and should be called as

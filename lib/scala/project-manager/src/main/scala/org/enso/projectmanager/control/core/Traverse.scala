@@ -1,12 +1,10 @@
 package org.enso.projectmanager.control.core
 
-/**
-  * A traversal over a structure with effects.
+/** A traversal over a structure with effects.
   */
 trait Traverse[G[_]] {
 
-  /**
-    * Applies the function `f` to each element of the collection.
+  /** Applies the function `f` to each element of the collection.
     *
     * @param s a collection of elements
     * @param f the mapping function

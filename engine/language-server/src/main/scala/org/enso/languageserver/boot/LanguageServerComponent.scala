@@ -18,8 +18,7 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-/**
-  * A lifecycle component used to start and stop a Language Server.
+/** A lifecycle component used to start and stop a Language Server.
   *
   * @param config a LS config
   */
@@ -124,16 +123,15 @@ class LanguageServerComponent(config: LanguageServerConfig)
       _ <- start()
     } yield ComponentRestarted
 
-  private val logError: PartialFunction[Throwable, Unit] = {
-    case th => logger.error("An error occurred during stopping server", th)
+  private val logError: PartialFunction[Throwable, Unit] = { case th =>
+    logger.error("An error occurred during stopping server", th)
   }
 
 }
 
 object LanguageServerComponent {
 
-  /**
-    * A running server context.
+  /** A running server context.
     *
     * @param mainModule a main module containing all components of the server
     * @param jsonBinding a http binding for rpc protocol

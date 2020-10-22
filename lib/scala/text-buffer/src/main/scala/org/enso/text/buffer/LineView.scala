@@ -1,30 +1,26 @@
 package org.enso.text.buffer
 
-/**
-  * Exposes a line-based API for the rope.
+/** Exposes a line-based API for the rope.
   *
   * @param rope the underlying rope.
   */
 case class LineView(rope: Rope) {
 
-  /**
-    * Takes a prefix of the rope of the given length.
+  /** Takes a prefix of the rope of the given length.
     *
     * @param len the length of the prefix to take.
     * @return a prefix of `this` containing `len` lines.
     */
   def take(len: Int): Rope = rope.takeWith(len, LineView.Ops)
 
-  /**
-    * Takes a suffix of the rope by removing the first `len` lines.
+  /** Takes a suffix of the rope by removing the first `len` lines.
     *
     * @param len the number of lines to remove.
     * @return the suffix consisting of the remaining lines.
     */
   def drop(len: Int): Rope = rope.dropWith(len, LineView.Ops)
 
-  /**
-    * Splits the rope into two parts at a given offset.
+  /** Splits the rope into two parts at a given offset.
     *
     * @param offset the number of lines in the first part.
     * @return a sub-rope containing `offset` lines and a sub-rope
@@ -32,8 +28,7 @@ case class LineView(rope: Rope) {
     */
   def splitAt(offset: Int): (Rope, Rope) = rope.splitWith(offset, LineView.Ops)
 
-  /**
-    * Gets the number of lines in this rope.
+  /** Gets the number of lines in this rope.
     *
     * @return the length of this rope.
     */
@@ -46,7 +41,7 @@ object LineView {
       index: Int,
       measure: StringMeasure
     ): Boolean =
-      (index < measure.fullLines || (index == measure.fullLines && !measure.endsInNewLine))
+      index < measure.fullLines || (index == measure.fullLines && !measure.endsInNewLine)
 
     override def isOffsetAfterBegin(
       index: Int,
