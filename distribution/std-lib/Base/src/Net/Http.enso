@@ -98,12 +98,50 @@ type Http
         res = this.internal_http_client.send [req, body_handler]
         Response.response res
 
+    ## Send a PUT request with form encoded as
+       "application/x-www-form-urlencoded".
+
+       > Example
+         Send a PUT request with form.
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             Http.new.put_form "http://httpbin.org/put" form
+
+       > Example
+         Configure http client and send a PUT request.
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             http = Http.new . with_basic_auth "user" "pass"
+             http.put_form "http://httpbin.org/put" form
+    put_form : To_Uri -> To_Form -> Vector -> Response
+    put_form addr form (headers = []) =
+        builder = HttpRequest.newBuilder []
+        builder.uri [addr.to_uri.internal_uri]
+        builder.header [Header.application_x_www_form_urlencoded.name, Header.application_x_www_form_urlencoded.value]
+        body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
+        body_publisher = body_publishers.ofString [form.to_form.url_encode]
+        builder.PUT [body_publisher]
+        headers.map h-> builder.header [h.name, h.value]
+        req = builder.build []
+        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
+        res = this.internal_http_client.send [req, body_handler]
+        Response.response res
+
     ## Send a PUT request with body encoded as "application/json".
 
        > Example
          Send a PUT request with json data.
              Http.new.put_json "http://httpbin.org/post" "{\"key\": \"val\"}"
     put_json : Uri.To_Uri -> Any -> Response
+        builder = HttpRequest.newBuilder []
+        builder.uri [addr.to_uri.internal_uri]
+        builder.header [Header.application_json.name, Header.application_json.value]
+        body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
+        body_publisher = body_publishers.ofString [json]
+        builder.PUT [body_publisher]
+        headers.map h-> builder.header [h.name, h.value]
+        req = builder.build []
+        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
+        res = this.internal_http_client.send [req, body_handler]
+        Response.response res
 
     ## Create a DELETE request.
     delete : Uri.To_Uri -> Response
