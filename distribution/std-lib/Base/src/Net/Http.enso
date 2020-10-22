@@ -79,11 +79,24 @@ type Http
         Response.response res
 
     ## Send a POST request with body encoded as "application/json".
+       TODO: [DB] fix when JSON is implemented.
 
        > Example
          Send a POST request with json data.
              Http.new.post_json "http://httpbin.org/post" "{\"key\": \"val\"}"
-    post_json : Uri.To_Uri -> Any -> Response
+    post_json : To_Uri -> Text -> Vector -> Response
+    post_json addr json (headers = []) =
+        builder = HttpRequest.newBuilder []
+        builder.uri [addr.to_uri.internal_uri]
+        builder.header [Header.application_json.name, Header.application_json.value]
+        body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
+        body_publisher = body_publishers.ofString [json]
+        builder.POST [body_publisher]
+        headers.map h-> builder.header [h.name, h.value]
+        req = builder.build []
+        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
+        res = this.internal_http_client.send [req, body_handler]
+        Response.response res
 
     ## Send a PUT request with body encoded as "application/json".
 
