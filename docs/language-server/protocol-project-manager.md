@@ -43,8 +43,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`logging-service/get-endpoint`](#logging-serviceget-endpoint)
 - [Language Server Management](#language-server-management)
 - [Errors](#errors-13)
-  - [`ComponentInstallationError`](#componentinstallationerror)
   - [`MissingComponentError`](#missingcomponenterror)
+  - [`ComponentInstallationError`](#componentinstallationerror)
+  - [`ComponentUninstallationError`](#componentuninstallationerror)
   - [`ProjectNameValidationError`](#projectnamevalidationerror)
   - [`ProjectDataStoreError`](#projectdatastoreerror)
   - [`ProjectExistsError`](#projectexistserror)
@@ -55,6 +56,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror)
   - [`ProjectCloseError`](#projectcloseerror)
   - [`LanguageServerError`](#languageservererror)
+  - [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror)
+  - [`LoggingServiceUnavailable`](#loggingserviceunavailable)
 
 <!-- /MarkdownTOC -->
 
@@ -106,7 +109,12 @@ missing components and re-attempt the action.
 ```typescript
 interface ProjectOpenRequest {
   projectId: UUID;
-  installMissingComponents?: bool; // If not provided, defaults to false.
+
+  /** Specifies whether to install missing components.
+   *
+   * If not provided, defaults to false.
+   */
+  installMissingComponents?: bool;
 }
 ```
 
@@ -206,17 +214,6 @@ interface ProjectListResponse {
 
 This message requests the creation of a new project.
 
-Possible values for `version` are: a semver version string identifying an Enso
-engine version, `default` to use the current default or `latest-installed` to
-use the most recent version that is installed on the system.
-
-> TODO [RW] discuss: Do we also want a 'latest-available' that would check the
-> repository for newer versions? While we are at it, as the version needs to be
-> specified somehow, we may want to be able to query all available version
-> strings from the repository? To allow users to choose a version for their new
-> project, besides just `engine/list` which only lists currently installed
-> versions.
-
 To create a project, an engine version associated with it needs to be installed.
 If `installMissingComponents` is set, this action will install any missing
 components, otherwise, an error will be reported if a component is missing.
@@ -230,11 +227,33 @@ components, otherwise, an error will be reported if a component is missing.
 
 ```typescript
 interface ProjectCreateRequest {
+  /** Name of the project to create. */
   name: String;
+
+  /** Enso Engine version to use for the project.
+   *
+   * Possible values are:
+   * - a semver version string identifying an Enso engine version,
+   * - `default` to use the current default
+   * - `latest-installed` to use the most recent version that is installed on
+   *   the system.
+   */
   version: String;
-  installMissingComponents?: bool; // If not provided, defaults to false.
+
+  /** Specifies whether to install missing components.
+   *
+   * If not provided, defaults to false.
+   */
+  installMissingComponents?: bool;
 }
 ```
+
+> TODO [RW] discuss: Do we also want a 'latest-available' that would check the
+> repository for newer versions? While we are at it, as the version needs to be
+> specified somehow, we may want to be able to query all available version
+> strings from the repository? To allow users to choose a version for their new
+> project, besides just `engine/list` which only lists currently installed
+> versions.
 
 #### Result
 
@@ -360,7 +379,10 @@ TBC
 
 ### `task/started`
 
-TODO
+Indicates that a long running task has been started.
+
+Currently only used when missing components are being installed to show
+installation progress.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -370,12 +392,15 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface TaskStartNotification {
+  taskId: UUID;
+  taskName: String;
+}
 ```
 
 ### `task/progress-update`
 
-TODO
+Indicates a progress update for a specific task.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -385,12 +410,27 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface TaskUpdateNotification {
+  taskId: UUID;
+
+  /** Optional message explaining current status of the task. */
+  message?: String;
+
+  /** Indicates amount of progress, for example: count of processed bytes. */
+  done: Int;
+
+  /** Indicates total expected progress.
+   *
+   * May be missing, as it is not always known, for example when downloading a
+   * file of unknown size or waiting on a lock.
+   */
+  total?: Int;
+}
 ```
 
 ### `task/finished`
 
-TODO
+Indicates that a task has been finished, either successfully or with an error.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -400,14 +440,30 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+type TaskFinishNotification =
+  | TaskFinishedSuccessfullyNotification
+  | TaskFailedNotification;
+
+interface TaskFinishedSuccessfullyNotification {
+  taskId: UUID;
+
+  /** Optional message informing about task completion. */
+  message?: String;
+}
+
+interface TaskFailedNotification {
+  taskId: UUID;
+
+  /** Message explaining the encountered error. */
+  message: String;
+}
 ```
 
 ## Components Management
 
 ### `engine/list`
 
-TODO
+Lists engine versions currently installed.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -417,13 +473,16 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface EngineVersionListRequest {}
 ```
 
 #### Result
 
 ```typescript
-interface ProjectListSampleResponse {}
+interface EngineVersionListResponse {
+  /** List of semver strings identifying engine versions. */
+  versions: [String];
+}
 ```
 
 #### Errors
@@ -432,7 +491,7 @@ TBC
 
 ### `engine/uninstall`
 
-TODO
+Requests to uninstall the specified engine version.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -442,24 +501,28 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface EngineUnistallRequest {
+  /** Semver string of engine version that should be uninstalled. */
+  version: String;
+}
 ```
 
 #### Result
 
 ```typescript
-interface ProjectListSampleResponse {}
+interface EngineUninstallationSuccess {}
 ```
 
 #### Errors
 
-TBC
+- [`ComponentUninstallationError`](#componentuninstallationerror) to signal that
+  the component could not have been uninstalled.
 
 ## Configuration Management
 
 ### `global-config/get`
 
-TODO
+Gets a value from the global config.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -469,22 +532,31 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface GlobalConfigGetRequest {
+  key: String;
+}
 ```
 
 #### Result
 
 ```typescript
-interface ProjectListSampleResponse {}
+interface GlobalConfigGetResponse {
+  /** The value set in the config.
+   *
+   * The field may be missing if the requested value is not set in the config.
+   */
+  value?: String;
+}
 ```
 
 #### Errors
 
-TBC
+- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
+  that the configuration file could not be accessed.
 
 ### `global-config/set`
 
-TODO
+Sets a value in the global config.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -494,22 +566,26 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface GlobalConfigSetRequest {
+  key: String;
+  value: String;
+}
 ```
 
 #### Result
 
 ```typescript
-interface ProjectListSampleResponse {}
+null;
 ```
 
 #### Errors
 
-TBC
+- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
+  that the configuration file could not be accessed.
 
 ### `global-config/delete`
 
-TODO
+Deletes a value from the global config.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -519,24 +595,27 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface GlobalConfigDeleteRequest {
+  key: String;
+}
 ```
 
 #### Result
 
 ```typescript
-interface ProjectListSampleResponse {}
+null;
 ```
 
 #### Errors
 
-TBC
+- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
+  that the configuration file could not be accessed.
 
 ## Logging Service
 
 ### `logging-service/get-endpoint`
 
-TODO
+Requests the endpoint for connecting to the logging service.
 
 > TODO [RW] discuss: This approach assumes that the project manager always
 > starts the logging service. It makes sense as it needs to log its boot, but we
@@ -552,18 +631,21 @@ TODO
 #### Parameters
 
 ```typescript
-interface ProjectListSampleRequest {}
+interface LoggingServiceEndpointRequest {}
 ```
 
 #### Result
 
 ```typescript
-interface ProjectListSampleResponse {}
+interface LoggingServiceEndpointResponse {
+  uri: String;
+}
 ```
 
 #### Errors
 
-TBC
+- [`LoggingServiceUnavailable`][#loggingserviceunavailable] to signal that the
+  logging service is unavailable.
 
 ## Language Server Management
 
@@ -583,18 +665,6 @@ restart is attempted.
 The project manager component has its own set of errors. This section is not a
 complete specification and will be updated as new errors are added.
 
-### `ComponentInstallationError`
-
-Signals that installation of a missing component has been attempted but it has
-failed.
-
-```typescript
-"error" : {
-  "code" : 4020,
-  "message" : "A problem occurred when trying to find the release: Cannot find release `enso-1.2.3-not-published`.""
-}
-```
-
 ### `MissingComponentError`
 
 Signals that a component required to complete the action was missing, but the
@@ -602,8 +672,31 @@ action did not ask for it to be automatically installed.
 
 ```typescript
 "error" : {
-  "code" : 4021,
+  "code" : 4020,
   "message" : "Engine 1.2.3 is required to complete the action but it is not installed."
+}
+```
+
+### `ComponentInstallationError`
+
+Signals that installation of a missing component has been attempted but it has
+failed.
+
+```typescript
+"error" : {
+  "code" : 4021,
+  "message" : "A problem occurred when trying to find the release: Cannot find release `enso-1.2.3-not-published`."
+}
+```
+
+### `ComponentUninstallationError`
+
+Signals that uninstallation of a component has failed.
+
+```typescript
+"error" : {
+  "code" : 4022,
+  "message" : "The requested engine version is not installed."
 }
 ```
 
@@ -714,5 +807,27 @@ Signals generic language server errors.
 "error" : {
   "code" : 4010,
   "message" : "The language server is unresponsive"
+}
+```
+
+### `GlobalConfigurationAccessError`
+
+Signals that the global configuration file could not be accessed or parsed.
+
+```typescript
+"error" : {
+  "code" : 4011,
+  "message" : "The global configuration file is malformed."
+}
+```
+
+### `LoggingServiceUnavailable`
+
+Signals that the logging service is not available.
+
+```typescript
+"error" : {
+  "code" : 4012,
+  "message" : "The logging service has failed to boot."
 }
 ```
