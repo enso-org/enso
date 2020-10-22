@@ -41,12 +41,8 @@ type Http
              http.get "https://httpbin.org/basic-auth/user/pass"
     get : To_Uri -> Vector -> Response
     get addr (headers = []) =
-        builder = HttpRequest.newBuilder [] . uri [addr.to_uri.internal_uri]
-        headers.map h-> builder.header [h.name, h.value]
-        req = builder.build []
-        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
-        res = this.internal_http_client.send [req, body_handler]
-        Response.response res
+        req = Request.get addr headers
+        this.request req
 
     ## Send a HEAD request
     head : Uri.To_Uri -> Response
@@ -210,24 +206,6 @@ type Http
 
     ## Get proxy setting.
     proxy : Proxy
-
-    # Builder
-
-    ## Set basic_auth setting.
-
-       > Example
-         Create client with basic_auth setting.
-             Http.new . with_basic_auth "user" "pass"
-    with_basic_auth : Text -> Text -> Http
-
-    ## Set connection timeout.
-    with_timeout : Duration -> Config
-
-    ## Set follow_redirects setting.
-    with_follow_redirects : Boolean -> Config
-
-    ## Set proxy setting.
-    with_proxy : Proxy -> Config
 
 new : Duration -> Auth -> Boolean -> Proxy -> Http
 new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy_addr = Proxy.System) =

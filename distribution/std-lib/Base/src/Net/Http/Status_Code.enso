@@ -2,18 +2,14 @@ from Base import all
 
 type Status_Code
 
-    ## Continue 100
-    type Continue
+    ## Status code.
+    type Status_Code code
 
-    ## Switching Protocols 101
-    type Switching_Protocols
+continue : Status_Code
+continue = Status_Code 100
 
-    ## OK 200
-    type OK
+switching_protocols : Status_Code
+switching_protocols = Status_Code 101
 
-    ## Get integer code.
-    code : Integer
-    code = case this of
-        Continue -> 100
-        Switching_Protocols -> 101
-        OK -> 200
+ok : Status_Code
+ok = Status_Code 200

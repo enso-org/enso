@@ -1,0 +1,14 @@
+from Base import all
+
+import Base.Test
+import Base.Net.Http
+import Base.Net.Http.Header
+import Base.Net.Http.Request
+import Base.Net.Http.Status_Code
+import Base.Net.Uri
+
+spec =
+    describe "Http" <|
+        it "should send get request" <|
+            res = Http.new.get "http://localhost:8080/get"
+            res.code.should_equal Status_Code.ok

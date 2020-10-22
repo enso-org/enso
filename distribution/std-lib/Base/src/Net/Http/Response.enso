@@ -1,16 +1,18 @@
 from Base import all
 
 import Base.Net.Http.Response.Body
+import Base.Net.Http.Status_Code
 
 type Response
 
-    type Response internal_response
+    type Response internal_http_response
 
     headers : Vector
 
     header : Text -> Text
 
     body : Body
-    body = Body.body (Vector (this.internal_response.body []))
+    body = Body.body (Vector (this.internal_http_response.body []))
 
-    status : Status
+    code : Status_Code
+    code = Status_Code.status_code (this.internal_http_response.statusCode [])
