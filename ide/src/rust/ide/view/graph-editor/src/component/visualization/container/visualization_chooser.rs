@@ -9,6 +9,7 @@
 use crate::prelude::*;
 
 use crate::component::visualization;
+use crate::data::EnsoType;
 
 use enso_frp as frp;
 use enso_frp;
@@ -25,7 +26,6 @@ use ensogl_gui_components::drop_down_menu;
 
 ensogl::define_endpoints! {
     Input {
-        set_entries         (Vec<visualization::Path>),
         set_icon_size       (Vector2),
         set_icon_padding    (Vector2),
         hide_selection_menu (),
@@ -39,6 +39,7 @@ ensogl::define_endpoints! {
         chosen_entry  (Option<visualization::Path>),
         mouse_over    (),
         mouse_out     (),
+        entries       (Rc<Vec<visualization::Path>>)
     }
 }
 
@@ -48,18 +49,23 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone,Debug)]
+#[derive(Clone,CloneRef,Debug)]
 struct Model {
-    selection_menu             : drop_down_menu::DropDownMenu,
-    visualization_alternatives : RefCell<Vec<visualization::Path>>,
+    selection_menu : drop_down_menu::DropDownMenu,
+    registry       : visualization::Registry,
 }
 
 impl Model {
-    pub fn new(app:&Application) -> Self {
-        let visualization_alternatives = default();
-        let selection_menu             = drop_down_menu::DropDownMenu::new(&app);
+    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
+        let selection_menu = drop_down_menu::DropDownMenu::new(&app);
+        Self{selection_menu,registry}
+    }
 
-        Self{visualization_alternatives,selection_menu}
+    pub fn entries(&self) -> Vec <visualization::Path> {
+        // TODO[ao]: The returned visualizations should take the current type on node into account.
+        //           See https://github.com/enso-org/ide/issues/837
+        let definitions_iter = self.registry.valid_sources(&EnsoType::any()).into_iter();
+        definitions_iter.map(|d| d.signature.path).collect_vec()
     }
 }
 
@@ -78,14 +84,14 @@ impl display::Object for Model {
 /// UI entity that shows a button that opens a list of visualisations that can be sel:ected from.
 #[derive(Clone,CloneRef,Debug)]
 pub struct VisualizationChooser {
-        model : Rc<Model>,
+        model : Model,
     pub frp   : Frp,
 }
 
 impl VisualizationChooser {
-    pub fn new(app:&Application) -> Self {
+    pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         let frp   = Frp::new_network();
-        let model = Rc::new(Model::new(app));
+        let model = Model::new(app,registry);
         Self {frp,model}.init()
     }
 
@@ -100,23 +106,27 @@ impl VisualizationChooser {
 
             // === Input Processing ===
 
-            eval frp.input.set_entries ([model,menu](alternatives) {
-                model.visualization_alternatives.replace(alternatives.clone());
-                let alternatives:list_view::entry::AnyModelProvider  = alternatives.clone().into();
-                menu.set_entries.emit(alternatives);
-            });
+            eval  frp.set_icon_size ((size) menu.set_icon_size.emit(size) );
+            eval  frp.set_icon_padding ((size) menu.set_icon_padding.emit(size) );
+            eval_ frp.hide_selection_menu ( menu.hide_selection_menu.emit(()) );
+            eval  frp.set_menu_offset_y ((offset) menu.set_menu_offset_y.emit(offset) );
 
-            eval frp.set_icon_size ((size) menu.set_icon_size.emit(size) );
-            eval frp.set_icon_padding ((size) menu.set_icon_padding.emit(size) );
-            eval frp.hide_selection_menu ((size) menu.hide_selection_menu.emit(size) );
-            eval frp.set_menu_offset_y ((offset) menu.set_menu_offset_y.emit(offset) );
+            set_selected_ix <= frp.input.set_selected.map2(&frp.output.entries,|selected,entries|
+                selected.as_ref().map(|s| entries.iter().position(|item| item == s))
+            );
+            eval set_selected_ix ((ix) menu.set_selected.emit(ix));
 
-            eval frp.input.set_selected ([model,menu](selected) {
-                if let Some(selected) = selected {
-                   let ix = model.visualization_alternatives.borrow().iter().position(|item| item == selected);
-                   menu.set_selected.emit(ix);
-                }
-            });
+
+            // === Showing Entries ===
+
+
+            frp.source.entries <+ menu.menu_visible.gate(&menu.menu_visible).map(f_!([model] {
+                let entries  = Rc::new(model.entries());
+                let provider = list_view::entry::AnyModelProvider::from(entries.clone_ref());
+                model.selection_menu.set_entries(provider);
+                entries
+            }));
+
 
             // === Output Processing ===
 
@@ -125,11 +135,9 @@ impl VisualizationChooser {
             frp.source.menu_closed  <+ menu.menu_closed;
             frp.source.menu_visible <+ menu.menu_visible;
 
-            selected_path <- model.selection_menu.frp.chosen_entry.map(f!([model](entry_id)({
-                entry_id.map(|entry_id| {
-                    model.visualization_alternatives.borrow().get(entry_id).cloned()
-                }).flatten()
-            })));
+            selected_path <- model.selection_menu.frp.chosen_entry.map2(&frp.output.entries,
+                |entry_id,entries| entry_id.map(|entry_id| entries.get(entry_id).cloned()).flatten()
+            );
 
             frp.source.chosen_entry <+ selected_path;
         }

@@ -310,7 +310,6 @@ impl<Host> Model<Host> {
     fn hide(&self, host:&Host) {
         self.hide_removed_children(host);
         if self.visible.get() {
-            self.logger.info("Hiding.");
             self.visible.set(false);
             self.callbacks.on_hide(host);
             self.children.borrow().iter().for_each(|child| {
