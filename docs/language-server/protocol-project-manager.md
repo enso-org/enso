@@ -495,6 +495,39 @@ interface EngineVersionListResponse {
 
 TBC
 
+### `engine/install`
+
+Requests to install the specified engine version. If that version is already
+installed, does nothing.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface EngineInstallRequest {
+  /** Semver string of engine version that should be installed. */
+  version: String;
+}
+```
+
+#### Result
+
+```typescript
+interface EngineInstallationSuccess {}
+```
+
+#### Errors
+
+- [`ComponentInstallationError`](#componentinstallationerror) to signal that the
+  installation of a missing component has failed.
+- [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
+  that the requested engine version requires a more recent project manager, so
+  an upgrade has to be performed before continuing.
+
 ### `engine/uninstall`
 
 Requests to uninstall the specified engine version.
@@ -507,7 +540,7 @@ Requests to uninstall the specified engine version.
 #### Parameters
 
 ```typescript
-interface EngineUnistallRequest {
+interface EngineUninstallRequest {
   /** Semver string of engine version that should be uninstalled. */
   version: String;
 }
