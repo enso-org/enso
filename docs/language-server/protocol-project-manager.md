@@ -139,6 +139,9 @@ interface ProjectOpenResult {
   `installMissingComponents` was set to `true`).
 - [`ComponentInstallationError`](#componentinstallationerror) to signal that the
   installation of a missing component has failed.
+- [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
+  that the requested engine version requires a more recent project manager, so
+  an upgrade has to be performed before continuing.
 
 ### `project/close`
 
@@ -276,6 +279,9 @@ interface ProjectOpenResponse {
   `installMissingComponents` was set to `true`).
 - [`ComponentInstallationError`](#componentinstallationerror) to signal that the
   installation of a missing component has failed.
+- [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
+  that the requested engine version requires a more recent project manager, so
+  an upgrade has to be performed before continuing.
 
 ### `project/rename`
 
@@ -697,6 +703,19 @@ Signals that uninstallation of a component has failed.
 "error" : {
   "code" : 4022,
   "message" : "The requested engine version is not installed."
+}
+```
+
+### `ProjectManagerUpgradeRequired`
+
+Signals that installation of a missing compoment has been attempted, but the
+required engine version requires a newer version of project manager than what is
+currently running.
+
+```typescript
+"error" : {
+  "code" : 4023,
+  "message" : "Project manager 1.2.3 is required to install the requested engine. Please upgrade."
 }
 ```
 
