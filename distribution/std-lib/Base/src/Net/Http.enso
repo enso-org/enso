@@ -5,6 +5,7 @@ import Base.Net.Http.Auth
 import Base.Net.Http.Request
 import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Http.Response
+import Base.System.File
 import Base.Time.Duration
 import Base.Time.Time
 
