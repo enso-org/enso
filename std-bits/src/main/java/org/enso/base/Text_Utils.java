@@ -66,6 +66,20 @@ public class Text_Utils {
   }
 
   /**
+   * Checks whether two strings are equal up to Unicode canonicalization ignoring case
+   * considerations.
+   *
+   * @param str1 the first string
+   * @param str2 the second string
+   * @return the result of comparison
+   */
+  public static boolean equals_ignore_case(String str1, String str2) {
+    return Normalizer2.getNFDInstance()
+        .normalize(str1)
+        .equalsIgnoreCase(Normalizer2.getNFDInstance().normalize(str2));
+  }
+
+  /**
    * Converts an array of codepoints into a string.
    *
    * @param codepoints the codepoints to convert

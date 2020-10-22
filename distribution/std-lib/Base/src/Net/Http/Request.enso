@@ -1,59 +1,73 @@
 from Base import all
+import Base.Vector
 import Base.Net.Uri
 import Base.Net.Http.Form
+import Base.Net.Http.Header
 import Base.Net.Http.Method
 import Base.Net.Http.Request.Body as Request_Body
 import Base.System.File
 
+polyglot java import org.enso.base.Text_Utils
+
 type Request
 
-    type Request internal_request
-
-    ## Get method.
-    method : Method
-
-    ## Get request Uri.
-    uri : Uri
-
-    ## Get request headers.
-       Return the vector of head
-    headers : Vector
-
-    ## Get request body.
-    body : Request_Body
+    type Request method uri headers body
 
     ## Set header.
     with_header : Text -> Text -> Request
+    with_header key val =
+       new_header = Header.header key val
+       update_header p h = case p of
+           Pair acc True -> Pair (acc + [h]) True
+           Pair acc False ->
+               if Text_Utils.equals_ignore_case [h.name, key] then Pair (acc + [new_header]) True else Pair (acc + [h]) False
+       new_headers = case this.headers.fold (Pair [] False) update_header of
+           Pair acc True -> acc
+           Pair acc False -> acc + [new_header]
+       Request this.method this.uri new_headers this.body
 
     ## Set headers.
     with_headers : [Header] -> Request
+    with_headers new_headers =
+        update_header req new_header = req.with_header new_header.name new_header.value
+        new_headers.fold this update_header
 
     ## Set body.
     with_body : Request_Body -> Request
+    with_body new_body = Request this.method this.uri this.headers new_body
 
     ## Set body encoded as "application/json".
-    with_json : Any -> Request
+    with_json : Text -> Request
 
     ## Set body as vector of parts encoded as
        "application/x-www-form-urlencoded".
-    with_form : Form.To_Form -> Request
+    with_form : To_Form -> Request
 
 # Request constructors
 
-new : Method -> Uri.To_Uri -> Request
+new : Method -> To_Uri -> Vector -> Request
+new method addr (headers = []) = Request method addr.to_uri headers Request_Body.empty
 
-options : Uri.To_Uri -> Request
+options : To_Uri Vector -> Request
+options addr (headers = []) = here.new Method.OPTIONS addr.to_uri headers
 
-get : Uri.To_Uri -> Request
+get : To_Uri -> Vector -> Request
+get addr (headers = []) = here.new Method.GET addr.to_uri headers
 
-head : Uri.To_Uri -> Request
+head : To_Uri -> Vector -> Request
+head addr (headers = []) = here.new Method.HEAD addr.to_uri headers
 
-post : Uri.To_Uri -> Request
+post : To_Uri -> Vector -> Request
+post addr (headers = []) = here.new Method.POST addr.to_uri headers
 
-put : Uri.To_Uri -> Request
+put : To_Uri -> Vector -> Request
+put addr (headers = []) = here.new Method.PUT addr.to_uri headers
 
-delete : Uri.To_Uri -> Request
+delete : To_Uri -> Vector -> Request
+delete addr (headers = []) = here.new Method.DELETE addr.to_uri headers
 
-trace : Uri.To_Uri -> Request
+trace : To_Uri -> Vector -> Request
+trace addr (headers = []) = here.new Method.TRACE addr.to_uri headers
 
-connect : Uri.To_Uri -> Request
+connect : To_Uri -> Vector -> Request
+connect addr (headers = []) = here.new Method.CONNECT addr.to_uri headers

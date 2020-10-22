@@ -57,6 +57,13 @@ type Uri
     ## Get unescaped fragment part of this Uri.
     raw_fragment : Text
 
+    to_text : Text
+    to_text = this.internal_uri.toString []
+
+    ## Check Uri equality.
+    == : Uri -> Boolean
+    == that = this.internal_uri.equals [that.internal_uri]
+
 ## Parse Uri from text.
 parse : Text -> Uri
 parse text = Uri (Java_URI.create [text])

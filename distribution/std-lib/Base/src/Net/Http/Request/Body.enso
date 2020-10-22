@@ -3,7 +3,11 @@ import Base.System.File
 
 type Body
 
-    type Input_Stream internal_input_stream
+    type Empty
+    type Body_Form form
+    type Body_Text text
+    type Body_File file
+    type Body_Bytes bytes
 
 # Constructors
 

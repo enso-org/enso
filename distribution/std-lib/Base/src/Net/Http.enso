@@ -185,10 +185,15 @@ type Http
              http.request req
     request : Request -> Response
     request req =
+        body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
+        body_publisher = body_publishers.noBody []
         builder = HttpRequest.newBuilder []
-        req = builder.build []
+        builder.method [req.method.to_text, body_publisher]
+        builder.uri [req.uri.internal_uri]
+        req.headers.map h-> builder.header [h.name, h.value]
+        http_request = builder.build []
         body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
-        res = this.internal_http_client.send [req, body_handler]
+        res = this.internal_http_client.send [http_request, body_handler]
         Response.response res
 
 

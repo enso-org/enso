@@ -17,3 +17,9 @@ application_x_www_form_urlencoded = here.content_type "application/x-www-form-ur
 
 application_json : Header
 application_json = here.content_type "application/json"
+
+accept : Text -> Header
+accept text = Header "Accept" text
+
+accept_all : Header
+accept_all = here.accept "*/*"

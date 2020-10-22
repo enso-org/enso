@@ -1,0 +1,35 @@
+from Base import all
+
+import Base.Test
+import Base.Net.Http.Header
+import Base.Net.Http.Method
+import Base.Net.Http.Request
+import Base.Net.Uri
+
+spec =
+    test_uri = Uri.parse "https://httpbin.org/post"
+    test_headers = [Header.application_json, Header.header "X-Foo-Id" "0123456789"]
+    describe "Request" <|
+        it "should get method" <|
+            req = Request.new Method.POST test_uri
+            req.method.should_equal Method.POST
+        it "should get uri" <|
+            req = Request.new Method.GET test_uri
+            req.uri.should_equal test_uri
+        it "should get headers" <|
+            req = Request.new Method.GET test_uri test_headers
+            req.headers.should_equal test_headers
+        it "should add header" <|
+            new_header = Header.header "Accept" "*/*"
+            req = Request.new Method.GET test_uri test_headers . with_header new_header.name new_header.value
+            req.headers.should_equal (test_headers + [new_header])
+        it "should update header" <|
+            req = Request.new Method.GET test_uri test_headers . with_header "X-Foo-Id" "42"
+            req.headers.should_equal [Header.application_json, Header.header "X-Foo-Id" "42"]
+        it "should add headers" <|
+            req = Request.new Method.GET test_uri . with_headers test_headers
+            req.headers.should_equal test_headers
+        it "should update headers" <|
+            new_headers = [Header.multipart_form_data, Header.accept_all]
+            req = Request.new Method.GET test_uri test_headers . with_headers new_headers
+            req.headers.should_equal [Header.multipart_form_data, test_headers.at 1, Header.accept_all]
