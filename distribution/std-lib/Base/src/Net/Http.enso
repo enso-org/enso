@@ -70,7 +70,7 @@ type Http
         builder.uri [addr.to_uri.internal_uri]
         builder.header [Header.application_x_www_form_urlencoded.name, Header.application_x_www_form_urlencoded.value]
         body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
-        body_publisher = body_publishers.ofString [form.to_form.to_text_url]
+        body_publisher = body_publishers.ofString [form.to_form.url_encode]
         builder.POST [body_publisher]
         headers.map h-> builder.header [h.name, h.value]
         req = builder.build []

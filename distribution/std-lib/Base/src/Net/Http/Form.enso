@@ -1,6 +1,9 @@
 from Base import all
 import Base.Vector
 
+polyglot java import java.net.URLEncoder
+polyglot java import java.nio.charset.StandardCharsets
+
 type To_Form
 
     type To_Form internal_form
@@ -19,15 +22,15 @@ type Form
     to_form : Form
     to_form = this
 
-    to_text_url : Text
-    to_text_url = this.form_parts.map to_text_url . join "&"
+    url_encode : Text
+    url_encode = this.form_parts.map url_encode . join "&"
 
 type Part
 
     type Part key value
 
-    to_text_url : Text
-    to_text_url = this.key + "=" + this.value.to_text_url
+    url_encode : Text
+    url_encode = this.key.url_encode + "=" + this.value.url_encode
 
 type Part_Value
 
@@ -35,10 +38,12 @@ type Part_Value
 
     type Part_File part_file
 
-    to_text_url : Text
-    to_text_url = case this of
-        Part_Text text -> text
-        Part_File file -> file.path
+    url_encode : Text
+    url_encode =
+        text = case this of
+            Part_Text text -> text
+            Part_File file -> file.path
+        text.url_encode
 
 ## Create Form data from Parts
 new : Vector -> Form
@@ -51,3 +56,6 @@ text_field key val = Part key (Part_Text val)
 
 file_field : Text -> Text -> Part
 file_field key file = Part key (Part_File file)
+
+Text.url_encode : Text
+Text.url_encode = URLEncoder.encode [this, Polyglot.get_member StandardCharsets "UTF_8"]
