@@ -951,9 +951,10 @@ impl GraphEditorModelWithNetwork {
                 action_freeze.emit((node_id,*is_frozen));
             });
 
-            eval node.view.frp.skip ([node,action_skip](is_skipped) {
+            let set_node_dimmed = &node.frp.set_dimmed;
+            eval node.view.frp.skip ([set_node_dimmed,action_skip](is_skipped) {
                 action_skip.emit((node_id,*is_skipped));
-                node.frp.set_dimmed.emit(is_skipped);
+                set_node_dimmed.emit(is_skipped);
             });
         }
 
