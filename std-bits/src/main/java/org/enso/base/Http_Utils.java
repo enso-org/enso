@@ -27,8 +27,4 @@ public class Http_Utils {
     return new BasicAuthenticator(user, password);
   }
 
-  public static byte[] byte_array(int lenght) {
-    return new byte[lenght];
-  }
-
 }

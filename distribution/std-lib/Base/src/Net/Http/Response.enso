@@ -11,6 +11,6 @@ type Response
     header : Text -> Text
 
     body : Body
-    body = Body.body (this.internal_response.body [])
+    body = Body.body (Vector (this.internal_response.body []))
 
     status : Status

@@ -36,12 +36,13 @@ type Http
          Authenticated GET request.
              http = Http.new . with_basic_auth "user" "pass"
              http.get "https://httpbin.org/basic-auth/user/pass"
-    get : Uri.To_Uri -> Response
-    get link =
-        req = HttpRequest.newBuilder [] . uri [link.to_uri.internal_uri] . build []
-        body_handlers = Polyglot.get_member HttpResponse "BodyHandlers"
-        body_stream = body_handlers.ofInputStream []
-        res = this.internal_http_client.send [req, body_stream]
+    get : To_Uri -> Vector -> Response
+    get addr (headers = []) =
+        builder = HttpRequest.newBuilder [] . uri [addr.to_uri.internal_uri]
+        headers.map h-> builder.header [h.name, h.value]
+        req = builder.build []
+        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
+        res = this.internal_http_client.send [req, body_handler]
         Response.response res
 
     ## Send a HEAD request
