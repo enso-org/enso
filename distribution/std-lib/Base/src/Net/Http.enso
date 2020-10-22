@@ -184,6 +184,13 @@ type Http
              http = Http.new (timeout = 30.seconds) (proxy = Proxy.new "proxy.example.com:80")
              http.request req
     request : Request -> Response
+    request req =
+        builder = HttpRequest.newBuilder []
+        req = builder.build []
+        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
+        res = this.internal_http_client.send [req, body_handler]
+        Response.response res
+
 
     # Settings
 

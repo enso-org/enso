@@ -7,7 +7,7 @@ import Base.System.File
 
 type Request
 
-    type Request
+    type Request internal_request
 
     ## Get method.
     method : Method
