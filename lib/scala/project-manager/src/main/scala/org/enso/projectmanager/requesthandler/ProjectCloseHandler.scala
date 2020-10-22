@@ -17,8 +17,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `project/close` commands.
+/** A request handler for `project/close` commands.
   *
   * @param clientId the requester id
   * @param service a project service
@@ -78,8 +77,7 @@ class ProjectCloseHandler[F[+_, +_]: Exec](
 
 object ProjectCloseHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ProjectCloseHandler]].
+  /** Creates a configuration object used to create a [[ProjectCloseHandler]].
     *
     * @param clientId the requester id
     * @param service a project service

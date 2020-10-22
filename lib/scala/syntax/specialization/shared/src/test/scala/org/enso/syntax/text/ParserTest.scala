@@ -220,11 +220,11 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
   "\"\"\" \n\n X\n\n Y" ?= Text.Raw(1, 0, line(" X", 0), line(" Y", 0))
   "a \"\"\"\n\n\n X\n\n Y" ?= "a" $_ Text.Raw(
-      0,
-      1,
-      line("X", 0, 0),
-      line("Y", 0)
-    )
+    0,
+    1,
+    line("X", 0, 0),
+    line("Y", 0)
+  )
 
   //// Escapes ////
 
@@ -258,16 +258,16 @@ class ParserTest extends AnyFlatSpec with Matchers {
   }
 
   "say \n  '''\n  Hello\n  `World`\npal" ??= Module(
-      OptLine(
-        "say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))
-      ),
-      OptLine("pal")
-    )
+    OptLine(
+      "say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))
+    ),
+    OptLine("pal")
+  )
 
   "say '''\n  Hello\n  `World`\npal" ??= Module(
-      OptLine("say" $_ Text(0, 2, line("Hello"), line(expr("World")))),
-      OptLine("pal")
-    )
+    OptLine("say" $_ Text(0, 2, line("Hello"), line(expr("World")))),
+    OptLine("pal")
+  )
 
 ////  //  // Comments
 //////    expr("#"              , Comment)
@@ -375,13 +375,13 @@ class ParserTest extends AnyFlatSpec with Matchers {
 //  )
 //
   "if a then b" ?= Mixfix(
-      List1[AST.Ident]("if", "then"),
-      List1[AST]("a", "b")
-    )
+    List1[AST.Ident]("if", "then"),
+    List1[AST]("a", "b")
+  )
   "if a then b else c" ?= Mixfix(
-      List1[AST.Ident]("if", "then", "else"),
-      List1[AST]("a", "b", "c")
-    )
+    List1[AST.Ident]("if", "then", "else"),
+    List1[AST]("a", "b", "c")
+  )
 
   "if a"          ?= amb_if_("a": AST)
   "(if a) b"      ?= Group(amb_if_("a": AST)) $_ "b"

@@ -7,8 +7,7 @@ import org.enso.loggingservice.LogLevel
 
 object Arguments {
 
-  /**
-    * [[Argument]] instance that tries to parse the String as a [[SemVer]]
+  /** [[Argument]] instance that tries to parse the String as a [[SemVer]]
     * version string.
     */
   implicit val semverArgument: Argument[SemVer] = (string: String) =>

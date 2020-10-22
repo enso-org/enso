@@ -204,21 +204,22 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       inserted should contain theSameElementsAs removed
     }
 
-    "remove all suggestions by empty module" taggedAs Retry in withRepo { repo =>
-      val action = for {
-        (_, idsIns) <- repo.insertAll(
-          Seq(
-            suggestion.atom,
-            suggestion.method,
-            suggestion.function,
-            suggestion.local
+    "remove all suggestions by empty module" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          (_, idsIns) <- repo.insertAll(
+            Seq(
+              suggestion.atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
           )
-        )
-        (_, idsRem) <- repo.removeAllByModule(Seq())
-      } yield (idsIns.flatten, idsRem)
+          (_, idsRem) <- repo.removeAllByModule(Seq())
+        } yield (idsIns.flatten, idsRem)
 
-      val (_, removed) = Await.result(action, Timeout)
-      removed.isEmpty shouldBe true
+        val (_, removed) = Await.result(action, Timeout)
+        removed.isEmpty shouldBe true
     }
 
     "remove all suggestions" taggedAs Retry in withRepo { repo =>

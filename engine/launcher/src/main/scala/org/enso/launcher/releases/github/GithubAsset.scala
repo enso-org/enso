@@ -7,19 +7,16 @@ import org.enso.launcher.releases.Asset
 
 case class GithubAsset(asset: GithubAPI.Asset) extends Asset {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fileName: String = asset.name
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def downloadTo(path: Path): TaskProgress[Unit] =
     GithubAPI.downloadAsset(asset, path)
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fetchAsText(): TaskProgress[String] =
     GithubAPI.fetchTextAsset(asset)

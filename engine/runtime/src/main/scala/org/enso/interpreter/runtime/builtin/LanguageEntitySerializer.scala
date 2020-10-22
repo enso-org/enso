@@ -4,14 +4,12 @@ import com.oracle.truffle.api.interop.InteropLibrary
 import io.circe.Json
 import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
 
-/**
-  * Helper for JSON-serializing runtime entities of the language.
+/** Helper for JSON-serializing runtime entities of the language.
   */
 object LanguageEntitySerializer {
   private val interopLibrary: InteropLibrary = InteropLibrary.getUncached()
 
-  /**
-    * Serializes a language entity into a JSON string. Returns null JSON for
+  /** Serializes a language entity into a JSON string. Returns null JSON for
     * unexpected entities.
     *
     * @param obj any object representing an Enso language entity.
@@ -21,7 +19,7 @@ object LanguageEntitySerializer {
   final def serialize(obj: Object): String = toJson(obj).noSpaces
 
   private def toJson(obj: Any): Json = obj match {
-    case l: Long   => Json.fromLong(l)
+    case l: Long => Json.fromLong(l)
     case cons: AtomConstructor =>
       Json.obj("type" -> Json.fromString(cons.getName), "fields" -> Json.arr())
     case atom: Atom =>

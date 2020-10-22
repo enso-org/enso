@@ -17,8 +17,7 @@ import org.enso.loggingservice.{LogLevel, LoggingServiceManager}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
-/**
-  * A client [[Service]] that passes incoming log messages to a server.
+/** A client [[Service]] that passes incoming log messages to a server.
   *
   * @param serverUri uri of the server to connect to
   * @param queue log message queue
@@ -31,13 +30,11 @@ class Client(
 ) extends ThreadProcessingService
     with ServiceWithActorSystem {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override protected def actorSystemName: String = "logging-service-client"
 
-  /**
-    * Starts the client service by trying to connect to the server.
+  /** Starts the client service by trying to connect to the server.
     *
     * Returns a future that is completed once the connection has been
     * established.
@@ -75,8 +72,7 @@ class Client(
   private var webSocketQueue: Option[SourceQueueWithComplete[Message]] = None
   private var closedConnection: Option[Future[Done]]                   = None
 
-  /**
-    * Tries to send the log message to the server by appending it to the queue
+  /** Tries to send the log message to the server by appending it to the queue
     * of outgoing messages.
     *
     * It waits for the offer to complete for a long time to handle the case in
@@ -112,8 +108,7 @@ class Client(
 
   @volatile private var shuttingDown: Boolean = false
 
-  /**
-    * If the remote server closes the connection, notifies the logging service
+  /** If the remote server closes the connection, notifies the logging service
     * to start the fallback logger.
     */
   private def onDisconnected(): Unit = {
@@ -125,8 +120,7 @@ class Client(
     }
   }
 
-  /**
-    * Closes the connection.
+  /** Closes the connection.
     */
   override protected def terminateUser(): Future[_] = {
     shuttingDown = true
@@ -142,8 +136,7 @@ class Client(
     }
   }
 
-  /**
-    * No additional actions are performed after the thread has been shut down as
+  /** No additional actions are performed after the thread has been shut down as
     * termination happens in [[terminateUser()]].
     */
   override protected def afterShutdown(): Unit = {}
@@ -151,8 +144,7 @@ class Client(
 
 object Client {
 
-  /**
-    * Waits for the [[Client]] to start up and returns it or throws an exception
+  /** Waits for the [[Client]] to start up and returns it or throws an exception
     * on setup failure.
     *
     * @param serverUri uri of the server to connect to

@@ -35,12 +35,12 @@ public abstract class PrintErrNode extends Node {
 
   @Specialization
   Stateful doPrintText(
-          VirtualFrame frame,
-          Object state,
-          Object self,
-          Text message,
-          @CachedContext(Language.class) Context ctx,
-          @Cached("build()") ToJavaStringNode toJavaStringNode) {
+      VirtualFrame frame,
+      Object state,
+      Object self,
+      Text message,
+      @CachedContext(Language.class) Context ctx,
+      @Cached("build()") ToJavaStringNode toJavaStringNode) {
     print(ctx.getErr(), toJavaStringNode.execute(message));
     return new Stateful(state, ctx.getUnit().newInstance());
   }
@@ -71,9 +71,9 @@ public abstract class PrintErrNode extends Node {
 
   InvokeCallableNode buildInvokeCallableNode() {
     return InvokeCallableNode.build(
-            new CallArgumentInfo[] {new CallArgumentInfo()},
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+        new CallArgumentInfo[] {new CallArgumentInfo()},
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   UnresolvedSymbol buildSymbol(Context ctx) {

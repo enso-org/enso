@@ -1,13 +1,13 @@
 package org.enso.std.test
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class JsonSerializationTest extends InterpreterTest {
 
   override def subject = "Automatic JSON serialization"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "support strings" in {
@@ -34,7 +34,9 @@ class JsonSerializationTest extends InterpreterTest {
           |
           |main = X 123 "foo" Unit . json_serialize
           |""".stripMargin
-      eval(code) shouldEqual """{"type":"X","fields":[123,"foo",{"type":"Unit","fields":[]}]}"""
+      eval(
+        code
+      ) shouldEqual """{"type":"X","fields":[123,"foo",{"type":"Unit","fields":[]}]}"""
     }
 
     "support functions" in {

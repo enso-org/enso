@@ -64,18 +64,17 @@ class ProjectRenameActionSpec
 
   it should "reply with an error when renaming fails" in new TestCtx {
     //given
-    fakeServer.withBehaviour {
-      case RenameRequestMatcher(requestId, _, _) =>
-        ReplyWith(
-          s"""{
-             |  "jsonrpc": "2.0",
-             |  "id": "$requestId",
-             |  "error": {
-             |    "code": 100,
-             |    "message": "Test"
-             |  }
-             |}""".stripMargin
-        )
+    fakeServer.withBehaviour { case RenameRequestMatcher(requestId, _, _) =>
+      ReplyWith(
+        s"""{
+           |  "jsonrpc": "2.0",
+           |  "id": "$requestId",
+           |  "error": {
+           |    "code": 100,
+           |    "message": "Test"
+           |  }
+           |}""".stripMargin
+      )
 
     }
     //when

@@ -4,8 +4,7 @@ import org.enso.launcher.releases.{Release, SimpleReleaseProvider}
 
 import scala.util.{Failure, Try}
 
-/**
-  * Extends a base release provider with a fallback method.
+/** Extends a base release provider with a fallback method.
   *
   * If the `baseProvider` fails, the fallback method is checked for availability
   * and if it is available, it tries to recover. If the fallback method is
@@ -16,8 +15,7 @@ class SimpleReleaseProviderWithFallback(
   fallbackProvider: FallbackReleaseProvider
 ) extends SimpleReleaseProvider {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def releaseForTag(tag: String): Try[Release] =
     baseProvider.releaseForTag(tag).recoverWith { error =>
@@ -26,8 +24,7 @@ class SimpleReleaseProviderWithFallback(
       else Failure(error)
     }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def listReleases(): Try[Seq[Release]] =
     baseProvider.listReleases().recoverWith { error =>

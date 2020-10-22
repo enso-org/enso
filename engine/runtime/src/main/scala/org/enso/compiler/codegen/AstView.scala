@@ -660,9 +660,9 @@ object AstView {
             val consPath = segments.dropRight(1)
             val maybeVar = segments.last
 
-            val isValid = consPath.collect {
-                case a @ AST.Ident.Cons(_) => a
-              }.length == consPath.length
+            val isValid = consPath.collect { case a @ AST.Ident.Cons(_) =>
+              a
+            }.length == consPath.length
 
             if (isValid) {
               maybeVar match {

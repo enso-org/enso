@@ -28,8 +28,7 @@ class ComponentsManagerTest
     with FakeEnvironment
     with DropLogs {
 
-  /**
-    * Creates the [[DistributionManager]], [[ComponentsManager]] and an
+  /** Creates the [[DistributionManager]], [[ComponentsManager]] and an
     * [[Environment]] for use in the tests.
     *
     * Should be called separately for each test case, as the components use
@@ -75,15 +74,13 @@ class ComponentsManagerTest
     (distributionManager, componentsManager, env)
   }
 
-  /**
-    * Returns just the [[ComponentsManager]].
+  /** Returns just the [[ComponentsManager]].
     *
     * See [[makeManagers]] for details.
     */
   def makeComponentsManager(): ComponentsManager = makeManagers()._2
 
-  /**
-    * Creates a new project using the default package manager.
+  /** Creates a new project using the default package manager.
     */
   def newProject(name: String, path: Path, version: SemVer): Unit = {
     PackageManager.Default.create(

@@ -5,8 +5,7 @@ import java.util.concurrent.{Semaphore, TimeUnit}
 import org.scalatest.exceptions.TestFailedException
 import scala.jdk.CollectionConverters._
 
-/**
-  * A helper class that can be used to synchronize actions between multiple
+/** A helper class that can be used to synchronize actions between multiple
   * threads to create interleaving scenarios useful in testing concurrent
   * interaction.
   *
@@ -15,16 +14,14 @@ import scala.jdk.CollectionConverters._
   */
 class TestSynchronizer {
 
-  /**
-    * If enabled, prints additional debug messages describing when events are
+  /** If enabled, prints additional debug messages describing when events are
     * signalled or waited for.
     *
     * Can be enabled to aid with debugging, but should be disabled by default.
     */
   val enableDebugOutput: Boolean = false
 
-  /**
-    * Executes the `action` in a separate thread with the given `name`
+  /** Executes the `action` in a separate thread with the given `name`
     */
   def startThread(name: String)(action: => Unit): Unit = {
     val thread = new Thread(() => action, name)
@@ -33,8 +30,7 @@ class TestSynchronizer {
     thread.start()
   }
 
-  /**
-    * Waits for a signal indicating that an event with the specified name has
+  /** Waits for a signal indicating that an event with the specified name has
     * happened.
     *
     * Will return immediately if the event has happened prior to calling that
@@ -59,8 +55,7 @@ class TestSynchronizer {
     }
   }
 
-  /**
-    * Signals that an event has happened.
+  /** Signals that an event has happened.
     *
     * Will wake up the thread waiting for it. Only one waiting thread is woken
     * up, so if multiple threads wait for the same event, it must be signalled
@@ -75,13 +70,11 @@ class TestSynchronizer {
     getSemaphore(event).release()
   }
 
-  /**
-    * Timeout used by [[waitFor]].
+  /** Timeout used by [[waitFor]].
     */
   val timeOutSeconds: Long = 20
 
-  /**
-    * Reports that the event has happened now.
+  /** Reports that the event has happened now.
     *
     * Can be used to test for order of events. Independent of [[waitFor]] and
     * [[signal]].
@@ -94,8 +87,7 @@ class TestSynchronizer {
     reports.add(event)
   }
 
-  /**
-    * Returns names of events reported using [[report]] in the order that they
+  /** Returns names of events reported using [[report]] in the order that they
     * were reported.
     *
     * Should only be called *after* [[join]].
@@ -113,8 +105,7 @@ class TestSynchronizer {
     hadException = true
   }
 
-  /**
-    * Waits for all threads started with [[startThread]] to finish execution.
+  /** Waits for all threads started with [[startThread]] to finish execution.
     *
     * Reports any exceptions thrown inside of the threads or if any of the
     * threads has timed out.

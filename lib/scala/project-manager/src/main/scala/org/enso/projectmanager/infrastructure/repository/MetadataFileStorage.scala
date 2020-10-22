@@ -24,8 +24,7 @@ import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.{ProjectKind, ProjectMetadata}
 import shapeless.{Coproduct, Inl, Inr}
 
-/**
-  * File based implementation of the project metadata storage.
+/** File based implementation of the project metadata storage.
   *
   * @param directory a project directory
   * @param storageConfig a storage config

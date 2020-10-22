@@ -1,7 +1,6 @@
 package org.enso.nativeimage.workarounds
 
-/**
-  * Gives access to an instance of [[sun.misc.Unsafe]] which contains low-level
+/** Gives access to an instance of [[sun.misc.Unsafe]] which contains low-level
   * functions that are used to replace the ones that cause problems in the
   * Native Image build.
   *
@@ -10,8 +9,7 @@ package org.enso.nativeimage.workarounds
   */
 object Unsafe {
 
-  /**
-    * Instance of the [[sun.misc.Unsafe]] acquired using reflection that allows
+  /** Instance of the [[sun.misc.Unsafe]] acquired using reflection that allows
     * to run the unsafe functions needed by the workaround.
     */
   val unsafeInstance: sun.misc.Unsafe = {

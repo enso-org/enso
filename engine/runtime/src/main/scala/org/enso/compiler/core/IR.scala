@@ -154,33 +154,28 @@ object IR {
   /** The type of external identifiers */
   type ExternalId = AST.ID
 
-  /**
-    * Couples a location with a possible source identifier.
+  /** Couples a location with a possible source identifier.
     *
     * @param location the code location.
     * @param id the identifier for the location.
     */
   case class IdentifiedLocation(location: Location, id: Option[AST.ID]) {
 
-    /**
-      * @return the character index of the start of this source location.
+    /** @return the character index of the start of this source location.
       */
     def start: Int = location.start
 
-    /**
-      * @return the character index of the end of this source location.
+    /** @return the character index of the end of this source location.
       */
     def end: Int = location.end
 
-    /**
-      * @return the length in characters of this location.
+    /** @return the length in characters of this location.
       */
     def length: Int = location.length
   }
   object IdentifiedLocation {
 
-    /**
-      * Utility constructor, building a location without an ID.
+    /** Utility constructor, building a location without an ID.
       *
       * @param location the code location.
       * @return an [[IdentifiedLocation]] corresponding to the input location.
@@ -520,16 +515,14 @@ object IR {
           }
         }
 
-        /**
-          * Gets the name of the module visible in the importing scope,
+        /** Gets the name of the module visible in the importing scope,
           * either the original name or the rename.
           *
           * @return the name of this export visible in code
           */
         def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
 
-        /**
-          * Checks whether the export statement allows use of the given
+        /** Checks whether the export statement allows use of the given
           * exported name.
           *
           * Note that it does not verify if the name is actually exported
@@ -682,16 +675,14 @@ object IR {
             }
           }
 
-          /**
-            * Gets the name of the module visible in this scope, either the
+          /** Gets the name of the module visible in this scope, either the
             * original name or the rename.
             *
             * @return the name of this import visible in code
             */
           def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
 
-          /**
-            * Checks whether the import statement allows use of the given
+          /** Checks whether the import statement allows use of the given
             * exported name.
             *
             * Note that it does not verify if the name is actually exported
@@ -1610,8 +1601,7 @@ object IR {
 
       override def showCode(indent: Int): String = value
 
-      /**
-        * Checks whether the literal represents a fractional value.
+      /** Checks whether the literal represents a fractional value.
         *
         * @return `true` if the value is fractional, `false` otherwise.
         */
@@ -4907,8 +4897,7 @@ object IR {
       }
     }
 
-    /**
-      * A dummy pattern used for storing documentation comments between branches
+    /** A dummy pattern used for storing documentation comments between branches
       * in a pattern match.
       *
       * To store a documentation comment next to a branch, a dummy branch is
@@ -5179,8 +5168,7 @@ object IR {
   /** A representation of various kinds of diagnostic in the IR. */
   sealed trait Diagnostic {
 
-    /**
-      * @return a human-readable description of this error condition.
+    /** @return a human-readable description of this error condition.
       */
     def message: String
 
@@ -5272,8 +5260,7 @@ object IR {
       }
     }
 
-    /**
-      * A warning about a `@Tail_Call` annotation placed in a non-tail
+    /** A warning about a `@Tail_Call` annotation placed in a non-tail
       * position.
       * @param location the location of the annotated application
       */
@@ -5417,8 +5404,7 @@ object IR {
 
     object Resolution {
 
-      /**
-        * A representation of a symbol resolution error.
+      /** A representation of a symbol resolution error.
         */
       sealed trait Reason {
         def explain(originalName: IR.Name): String
@@ -5430,16 +5416,14 @@ object IR {
           " importing the default definition from the Base.Vector module."
       }
 
-      /**
-        * An error coming from an unknown annotation name.
+      /** An error coming from an unknown annotation name.
         */
       case object UnknownAnnotation extends Reason {
         override def explain(originalName: Name): String =
           s"The annotation ${originalName.name} is not defined."
       }
 
-      /**
-        * An error coming from a tail call annotation placed in a syntactically
+      /** An error coming from a tail call annotation placed in a syntactically
         * incorrect position.
         */
       case object UnexpectedTailCallAnnotation extends Reason {
@@ -5448,8 +5432,7 @@ object IR {
           s"used with function applications."
       }
 
-      /**
-        * An error coming from an unexpected occurence of a polyglot symbol.
+      /** An error coming from an unexpected occurence of a polyglot symbol.
         *
         * @param context the description of a context in which the error
         *                happened.
@@ -5460,8 +5443,7 @@ object IR {
           s"but polyglot symbols are not allowed in $context."
       }
 
-      /**
-        * An error coming from an unexpected occurence of a static method.
+      /** An error coming from an unexpected occurence of a static method.
         *
         * @param context the description of a context in which the error
         *                happened.
@@ -5472,16 +5454,14 @@ object IR {
           s"but methods are not allowed in $context."
       }
 
-      /**
-        * An error coming from name resolver.
+      /** An error coming from name resolver.
         *
         * @param err the original error.
         */
       case class ResolverError(err: BindingsMap.ResolutionError)
           extends Reason {
 
-        /**
-          * Provides a human-readable explanation of the error.
+        /** Provides a human-readable explanation of the error.
           * @param originalName the original unresolved name.
           * @return a human-readable message.
           */
@@ -5584,20 +5564,17 @@ object IR {
 
     object Pattern {
 
-      /**
-        * A representation of the reason the pattern is erroneous.
+      /** A representation of the reason the pattern is erroneous.
         */
       sealed trait Reason {
 
-        /**
-          * Provides a human-readable explanation of the error.
+        /** Provides a human-readable explanation of the error.
           * @return
           */
         def explain: String
       }
 
-      /**
-        * A reason for pattern failing due to wrong arity.
+      /** A reason for pattern failing due to wrong arity.
         *
         * @param consName the constructor name.
         * @param expected expected field count.
@@ -5692,13 +5669,11 @@ object IR {
     }
     object Syntax {
 
-      /**
-        * A common type for all syntax errors expected by the language.
+      /** A common type for all syntax errors expected by the language.
         */
       sealed trait Reason {
 
-        /**
-          * @return a human-readable description of the error.
+        /** @return a human-readable description of the error.
           */
         def explanation: String
       }

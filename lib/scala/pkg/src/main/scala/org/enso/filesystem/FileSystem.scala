@@ -5,16 +5,14 @@ import java.io.{BufferedReader, BufferedWriter, File, IOException}
 import java.nio.file.Files
 import java.util.stream
 
-/**
-  * A generic specification of file operations based on an abstract notion
+/** A generic specification of file operations based on an abstract notion
   * of a path.
   *
   * @tparam F the path type of this implementation.
   */
 trait FileSystem[F] {
 
-  /**
-    * Gets a child path of the given path.
+  /** Gets a child path of the given path.
     *
     * @param parent the parent path.
     * @param childName the child name.
@@ -22,32 +20,28 @@ trait FileSystem[F] {
     */
   def getChild(parent: F, childName: String): F
 
-  /**
-    * Gets a parent of the given path.
+  /** Gets a parent of the given path.
     *
     * @param path the path to process.
     * @return `path`'s parent.
     */
   def getParent(path: F): F
 
-  /**
-    * Checks if a file specified by given path actually exists.
+  /** Checks if a file specified by given path actually exists.
     *
     * @param file the path to check.
     * @return `true` if file exists, `false` otherwise.
     */
   def exists(file: F): Boolean
 
-  /**
-    * Creates a new directory and all non-existent parent directories.
+  /** Creates a new directory and all non-existent parent directories.
     *
     * @param file the directory to create.
     */
   @throws[IOException]
   def createDirectories(file: F): Unit
 
-  /**
-    * Returns a relative path from `parent` to `child`
+  /** Returns a relative path from `parent` to `child`
     *
     * @param parent the parent dir.
     * @param child the child dir.
@@ -55,24 +49,21 @@ trait FileSystem[F] {
     */
   def relativize(parent: F, child: F): F
 
-  /**
-    * Returns a collection of all segments of the given path.
+  /** Returns a collection of all segments of the given path.
     *
     * @param file the path to get segments of.
     * @return the `file`'s segments.
     */
   def getSegments(file: F): java.lang.Iterable[String]
 
-  /**
-    * Gets the name of the given file.
+  /** Gets the name of the given file.
     *
     * @param file
     * @return
     */
   def getName(file: F): String
 
-  /**
-    * Creates a new buffered writer for the given file.
+  /** Creates a new buffered writer for the given file.
     *
     * @param file the file to open.
     * @return a buffered writer for `file`.
@@ -80,8 +71,7 @@ trait FileSystem[F] {
   @throws[IOException]
   def newBufferedWriter(file: F): BufferedWriter
 
-  /**
-    * Creates a new buffered reader for the given file.
+  /** Creates a new buffered reader for the given file.
     *
     * @param file the file to open.
     * @return a buffered reader for `file`.
@@ -89,8 +79,7 @@ trait FileSystem[F] {
   @throws[IOException]
   def newBufferedReader(file: F): BufferedReader
 
-  /**
-    * Lists all entries in the given directory.
+  /** Lists all entries in the given directory.
     *
     * @param file the directory to list.
     * @return a collection of all entries in `file`.
@@ -98,8 +87,7 @@ trait FileSystem[F] {
   @throws[IOException]
   def list(file: F): java.util.stream.Stream[F]
 
-  /**
-    * Lists all files in the given directory, recursively.
+  /** Lists all files in the given directory, recursively.
     *
     * @param file the directory to traverse.
     * @return all files in the `file`'s subtree.
@@ -107,16 +95,14 @@ trait FileSystem[F] {
   @throws[IOException]
   def walk(file: F): java.util.stream.Stream[F]
 
-  /**
-    * Checks if the file is a directory.
+  /** Checks if the file is a directory.
     *
     * @param file the file to check.
     * @return `true` if `file` is a directory, false otherwise.
     */
   def isDirectory(file: F): Boolean
 
-  /**
-    * Checks if the file is a regular file.
+  /** Checks if the file is a regular file.
     *
     * @param file the file to check.
     * @return `true` if `file` is regular, false otherwise.
@@ -127,8 +113,7 @@ trait FileSystem[F] {
 
 object FileSystem {
 
-  /**
-    * Exposes [[FileSystem]] operations through method call syntax.
+  /** Exposes [[FileSystem]] operations through method call syntax.
     * All methods have the same semantics as the corresponding [[FileSystem]]
     * methods.
     */
@@ -160,8 +145,7 @@ object FileSystem {
     def isRegularFile: Boolean = fs.isRegularFile(file)
   }
 
-  /**
-    * A [[File]] based implementation of [[FileSystem]].
+  /** A [[File]] based implementation of [[FileSystem]].
     */
   object Default extends FileSystem[File] {
     override def getChild(parent: File, childName: String): File =

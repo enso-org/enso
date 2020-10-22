@@ -32,8 +32,7 @@ import org.enso.projectmanager.service.ValidationFailure.{
   NameContainsForbiddenCharacter
 }
 
-/**
-  * Implementation of business logic for project management.
+/** Implementation of business logic for project management.
   *
   * @param validator a project validator
   * @param repo a project repository
@@ -138,8 +137,8 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         oldPackage,
         newPackage
       )
-      .recover {
-        case ProjectNotOpened => ()
+      .recover { case ProjectNotOpened =>
+        ()
       }
       .mapError {
         case ProjectNotOpened => ProjectNotOpen //impossible

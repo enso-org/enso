@@ -10,8 +10,7 @@ import shapeless._
 
 package object repository {
 
-  /**
-    * Polymorphic function converting [[org.enso.projectmanager.infrastructure.file.FileStorage]]
+  /** Polymorphic function converting [[org.enso.projectmanager.infrastructure.file.FileStorage]]
     * failures to [[ProjectRepositoryFailure]]
     */
   object convertFileStorageFailure extends Poly1 {

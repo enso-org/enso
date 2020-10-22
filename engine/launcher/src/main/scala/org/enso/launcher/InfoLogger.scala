@@ -3,8 +3,7 @@ package org.enso.launcher
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
 
-/**
-  * Handles displaying of user-facing information.
+/** Handles displaying of user-facing information.
   *
   * Info-level messages are used to communicate with the user. They are handled
   * in a special way, so that they are displayed to the user regardless of
@@ -14,8 +13,7 @@ object InfoLogger {
 
   private val logger = Logger("launcher")
 
-  /**
-    * Prints an info level message.
+  /** Prints an info level message.
     *
     * If the default logger is set-up to display info-messages, they are send to
     * the logger, otherwise they are printed to stdout.

@@ -47,16 +47,14 @@ class FileStorageFallbackReleaseProviderSpec
 
     "fail with IllegalStateException if it is queried but unavailable" in {
       val provider = makeProvider(Provider.Unavailable)
-      inside(provider.listReleases()) {
-        case Failure(exception) =>
-          exception shouldBe an[IllegalStateException]
-          exception.getMessage should include("provider is unavailable")
+      inside(provider.listReleases()) { case Failure(exception) =>
+        exception shouldBe an[IllegalStateException]
+        exception.getMessage should include("provider is unavailable")
       }
 
-      inside(provider.releaseForTag("tag")) {
-        case Failure(exception) =>
-          exception shouldBe an[IllegalStateException]
-          exception.getMessage should include("provider is unavailable")
+      inside(provider.releaseForTag("tag")) { case Failure(exception) =>
+        exception shouldBe an[IllegalStateException]
+        exception.getMessage should include("provider is unavailable")
       }
     }
 

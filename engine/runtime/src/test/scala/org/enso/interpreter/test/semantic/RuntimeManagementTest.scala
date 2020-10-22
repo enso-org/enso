@@ -62,8 +62,7 @@ class RuntimeManagementTest extends InterpreterTest {
       runTest()
     }
 
-    /**
-      * Don't use this in production code, ever.
+    /** Don't use this in production code, ever.
       */
     def forceGC(): Unit = {
       var obj = new Object

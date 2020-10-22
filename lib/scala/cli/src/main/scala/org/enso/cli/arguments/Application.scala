@@ -4,8 +4,7 @@ import cats.data.NonEmptyList
 import org.enso.cli.internal.Parser
 import org.enso.cli.internal.opts.TopLevelCommandsOpt
 
-/**
-  * Represents a CLI application with multiple commands.
+/** Represents a CLI application with multiple commands.
   *
   * The top-level options can be used to parse global configuration that is
   * passed to all commands. It can also be used to override behavior (to execute
@@ -58,15 +57,13 @@ class Application[Config](
       helpHeader
     )
 
-  /**
-    * A helper overload that accepts the array as provided to the main function.
+  /** A helper overload that accepts the array as provided to the main function.
     */
   def run(
     args: Array[String]
   ): Either[List[String], Int] = run(args.toSeq)
 
-  /**
-    * Runs the application logic. Parses the top level options and depending on
+  /** Runs the application logic. Parses the top level options and depending on
     * its result, possibly runs a command or a plugin.
     *
     * If a plugin is run, this function does not return (the application exits
@@ -109,8 +106,7 @@ class Application[Config](
     finalResult.toErrorList
   }
 
-  /**
-    * Generates a help text summarizing the usage of the application and listing
+  /** Generates a help text summarizing the usage of the application and listing
     * available commands and top-level options.
     */
   def renderHelp(): String = combinedOpts.topLevelHelp(Seq(commandName))
@@ -118,8 +114,7 @@ class Application[Config](
 
 object Application {
 
-  /**
-    * Helper constructor for [[Application]].
+  /** Helper constructor for [[Application]].
     *
     * @param commandName default name of the application for use in commands
     * @param prettyName pretty name of the application for use in text
@@ -150,8 +145,7 @@ object Application {
       Some(pluginManager)
     )
 
-  /**
-    * Helper constructor for [[Application]].
+  /** Helper constructor for [[Application]].
     *
     * Creates an application without plugin support.
     *
@@ -181,8 +175,7 @@ object Application {
       None
     )
 
-  /**
-    * Helper constructor for [[Application]].
+  /** Helper constructor for [[Application]].
     *
     * Creates an application without any top-level options and without plugin
     * support.

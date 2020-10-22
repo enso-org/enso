@@ -18,8 +18,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `capability/acquire` commands.
+/** A request handler for `capability/acquire` commands.
   *
   * @param capabilityRouter a router that dispatches capability requests
   * @param timeout a request timeout
@@ -80,8 +79,7 @@ class AcquireCapabilityHandler(
 
 object AcquireCapabilityHandler {
 
-  /**
-    * Creates a configuration object used to create a [[AcquireCapabilityHandler]]
+  /** Creates a configuration object used to create a [[AcquireCapabilityHandler]]
     *
     * @param capabilityRouter a router that dispatches capability requests
     * @param requestTimeout a request timeout

@@ -3,15 +3,13 @@ package org.enso.launcher
 import java.nio.file.{Files, Path}
 import org.enso.launcher.FileSystem.PathSyntax
 
-/**
-  * A test-suite mixin that adds helper functions that create a fake environment
+/** A test-suite mixin that adds helper functions that create a fake environment
   * which points to an Enso installation inside the temporary directory
   * generated for the test.
   */
 trait FakeEnvironment { self: WithTemporaryDirectory =>
 
-  /**
-    * Returns a fake path to the Enso executable that is inside the temporary
+  /** Returns a fake path to the Enso executable that is inside the temporary
     * directory for the test.
     *
     * @param portable specifies whether the distribution should be marked as
@@ -26,8 +24,7 @@ trait FakeEnvironment { self: WithTemporaryDirectory =>
     fakeBin / "enso"
   }
 
-  /**
-    * Returns an [[Environment]] instance that overrides the `ENSO_*`
+  /** Returns an [[Environment]] instance that overrides the `ENSO_*`
     * directories to be inside the temporary directory for the test.
     *
     * Additionall environment overrides may be passed that will also be added to

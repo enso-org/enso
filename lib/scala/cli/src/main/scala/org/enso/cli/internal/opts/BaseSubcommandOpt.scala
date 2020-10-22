@@ -4,46 +4,39 @@ import cats.data.NonEmptyList
 import org.enso.cli.arguments.{Command, Opts}
 import org.enso.cli.internal.ParserContinuation
 
-/**
-  * Implements common logic for options that can take a command and modify their
+/** Implements common logic for options that can take a command and modify their
   * further parsing behavior based on that command.
   * @tparam A returned type
   * @tparam B type returned by the commands
   */
 trait BaseSubcommandOpt[A, B] extends Opts[A] {
 
-  /**
-    * Lists all available commands.
+  /** Lists all available commands.
     */
   def availableSubcommands: NonEmptyList[Command[B]]
 
-  /**
-    * Handles an unknown command.
+  /** Handles an unknown command.
     *
     * Executed when a command is given that does not match any of
     * [[availableSubcommands]].
     */
   def handleUnknownCommand(command: String): ParserContinuation
 
-  /**
-    * The command that has been selected, if any.
+  /** The command that has been selected, if any.
     *
     * If no command was selected, is set to None.
     */
   var selectedCommand: Option[Command[B]] = None
 
-  /**
-    * List of errors reported when parsing this set of options.
+  /** List of errors reported when parsing this set of options.
     */
   var errors: List[String] = Nil
 
-  /**
-    * Adds an error that will be reported when getting the result.
+  /** Adds an error that will be reported when getting the result.
     */
   def addError(error: String): Unit = errors ::= error
 
-  /**
-    * Extends a command prefix from the call with the currently selected command
+  /** Extends a command prefix from the call with the currently selected command
     * (if a command is selected).
     */
   def extendPrefix(commandPrefix: Seq[String]): Seq[String] =
@@ -111,28 +104,24 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
     errors          = Nil
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def availableOptionsHelp(): Seq[String] =
     availableSubcommands.toList.flatMap(_.opts.availableOptionsHelp()).distinct
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def availablePrefixedParametersHelp(): Seq[String] =
     availableSubcommands.toList
       .flatMap(_.opts.availablePrefixedParametersHelp())
       .distinct
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def additionalHelp(): Seq[String] =
     availableSubcommands.toList.flatMap(_.opts.additionalHelp()).distinct
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def commandLines(
     alwaysIncludeOtherOptions: Boolean = false
@@ -148,8 +137,7 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
     availableSubcommands.flatMap(prefixedCommandLines)
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def shortHelp(commandPrefix: Seq[String]): String =
     super.shortHelp(extendPrefix(commandPrefix))

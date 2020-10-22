@@ -181,12 +181,12 @@ object Doc {
         val htmlStyle    = HTML.`style` := "inline-block"
         val elemsHTML    = elems.toList.map(elem => elem.html)
         val btnAction = onclick :=
-            s"""var code = document.getElementById("$uniqueIDCode");
-               |var btn = document.getElementById("$uniqueIDBtn").firstChild;
-               |btn.data = btn.data == "Show" ? "Hide" : "Show";
-               |code.style.display = code.style.display ==
-               |"inline-block" ? "none" : "inline-block";""".stripMargin
-              .replaceAll("\n", "")
+          s"""var code = document.getElementById("$uniqueIDCode");
+             |var btn = document.getElementById("$uniqueIDBtn").firstChild;
+             |btn.data = btn.data == "Show" ? "Hide" : "Show";
+             |code.style.display = code.style.display ==
+             |"inline-block" ? "none" : "inline-block";""".stripMargin
+            .replaceAll("\n", "")
         val btn = HTML.button(btnAction)(htmlIdBtn)("Show")
         if (isInGui) {
           Seq(HTML.div(htmlCls())(htmlStyle)(elemsHTML))
@@ -278,12 +278,12 @@ object Doc {
     final case class List(indent: Int, typ: List.Type, elems: List1[Elem])
         extends Elem {
       val repr: Repr.Builder = R + indent + typ.marker + elems.head + elems.tail
-          .map {
-            case elem @ (_: Elem.Invalid) => R + Newline + elem
-            case elem @ (_: List)         => R + Newline + elem
-            case elem =>
-              R + Newline + indent + typ.marker + elem
-          }
+        .map {
+          case elem @ (_: Elem.Invalid) => R + Newline + elem
+          case elem @ (_: List)         => R + Newline + elem
+          case elem =>
+            R + Newline + indent + typ.marker + elem
+        }
 
       val html: HTML = {
         val elemsHTML = elems.toList.map {
@@ -478,8 +478,8 @@ object Doc {
   final case class Body(elems: List1[Section]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr: Repr.Builder = R + newLn + elems.head + elems.tail.map(
-        R + newLn + _
-      )
+      R + newLn + _
+    )
     val html: HTML = Seq(
       HTML.div(htmlCls())(elems.toList.map(_.html))
     )

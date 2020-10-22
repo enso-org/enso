@@ -4,15 +4,13 @@ import zio.ZEnv
 
 import scala.concurrent.Future
 
-/**
-  * An executor type class for purely functional effects.
+/** An executor type class for purely functional effects.
   *
   * @tparam F a monadic context
   */
 trait Exec[F[_, _]] {
 
-  /**
-    * Executes effectful operation.
+  /** Executes effectful operation.
     *
     * @param op an effect
     * @tparam E error type

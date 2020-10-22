@@ -8,6 +8,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 public class ToTextNode extends Node {
   Text t = Text.create("True");
   Text f = Text.create("False");
+
   Text execute(boolean _this) {
     return _this ? t : f;
   }

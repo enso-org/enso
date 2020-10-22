@@ -4,15 +4,13 @@ import com.typesafe.scalalogging.Logger
 
 import scala.util.Using
 
-/**
-  * Uses a [[LockManager]] implementation to synchronize access to [[Resource]].
+/** Uses a [[LockManager]] implementation to synchronize access to [[Resource]].
   */
 class ResourceManager(lockManager: LockManager) {
 
   private val logger = Logger[ResourceManager]
 
-  /**
-    * Runs the `action` while holding a lock (of `lockType`) for the `resource`.
+  /** Runs the `action` while holding a lock (of `lockType`) for the `resource`.
     *
     * If the lock cannot be acquired immediately, the `waitingAction` is
     * executed. It can be used to notify the user.
@@ -35,8 +33,7 @@ class ResourceManager(lockManager: LockManager) {
       )
     } { _ => action }.get
 
-  /**
-    * Runs the `action` while holding multiple locks for a sequence of
+  /** Runs the `action` while holding multiple locks for a sequence of
     * resources.
     */
   def withResources[R](resources: (Resource, LockType)*)(action: => R): R =
@@ -49,8 +46,7 @@ class ResourceManager(lockManager: LockManager) {
 
   var mainLock: Option[Lock] = None
 
-  /**
-    * Initializes the [[MainLock]].
+  /** Initializes the [[MainLock]].
     */
   def initializeMainLock(): Unit = {
     val lock =
@@ -62,8 +58,7 @@ class ResourceManager(lockManager: LockManager) {
     mainLock = Some(lock)
   }
 
-  /**
-    * Exception that is thrown when the main lock is held exclusively.
+  /** Exception that is thrown when the main lock is held exclusively.
     *
     * This situation means that the current distribution is being installed or
     * uninstalled, so it should not be used in the meantime and the application
@@ -72,8 +67,7 @@ class ResourceManager(lockManager: LockManager) {
   case class DistributionIsModifiedError(message: String)
       extends RuntimeException(message)
 
-  /**
-    * Acquires an exclusive main lock (first releasing the shared lock),
+  /** Acquires an exclusive main lock (first releasing the shared lock),
     * ensuring that no other processes using this distribution can be running in
     * parallel.
     *
@@ -96,8 +90,7 @@ class ResourceManager(lockManager: LockManager) {
     mainLock = Some(lock)
   }
 
-  /**
-    * Releases the main lock.
+  /** Releases the main lock.
     *
     * Should be called just before the program terminates. It is not an error to
     * skip it, as the operating system should unlock all resources after the
@@ -113,8 +106,7 @@ class ResourceManager(lockManager: LockManager) {
       case None =>
     }
 
-  /**
-    * Runs the provided `action` if an exclusive lock can be immediately
+  /** Runs the provided `action` if an exclusive lock can be immediately
     * acquired for the temporary directory, i.e. the directory is not used by
     * anyone.
     *
@@ -135,8 +127,7 @@ class ResourceManager(lockManager: LockManager) {
 
   private var temporaryDirectoryLock: Option[Lock] = None
 
-  /**
-    * Marks the temporary directory as in use.
+  /** Marks the temporary directory as in use.
     *
     * This lock does not have to be released as it will be automatically
     * released when the program terminates.
@@ -150,8 +141,7 @@ class ResourceManager(lockManager: LockManager) {
     temporaryDirectoryLock = Some(lock)
   }
 
-  /**
-    * Releases the lock for the temporary directory.
+  /** Releases the lock for the temporary directory.
     *
     * Used by the uninstaller as part of releasing all locks to ensure that the
     * locks directory can be removed.
@@ -164,8 +154,7 @@ class ResourceManager(lockManager: LockManager) {
       case None =>
     }
 
-  /**
-    * This resource is acquired whenever the temporary directory is first
+  /** This resource is acquired whenever the temporary directory is first
     * accessed.
     *
     * It ensures that installations running in parallel will not remove each
@@ -180,8 +169,7 @@ class ResourceManager(lockManager: LockManager) {
       "conflicts. It should not take a long time."
   }
 
-  /**
-    * The main lock that is held by all launcher processes.
+  /** The main lock that is held by all launcher processes.
     *
     * It is used to ensure that no other processes are running when the
     * distribution is being installed or uninstalled.

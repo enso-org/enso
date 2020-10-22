@@ -23,8 +23,7 @@ import zio._
 
 import scala.concurrent.Await
 
-/**
-  * Starts [[WatcherAdapter]], handles errors, converts and sends
+/** Starts [[WatcherAdapter]], handles errors, converts and sends
   * events to the client.
   *
   * @param config configuration
@@ -55,33 +54,32 @@ final class PathWatcher(
 
   override def receive: Receive = uninitializedStage
 
-  private def uninitializedStage: Receive = {
-    case WatchPath(path, clients) =>
-      val pathToWatchResult = config
-        .findContentRoot(path.rootId)
-        .map(path.toFile(_))
-      val result: BlockingIO[FileSystemFailure, Unit] =
-        for {
-          pathToWatch <- IO.fromEither(pathToWatchResult)
-          _           <- validatePath(pathToWatch)
-          watcher     <- IO.fromEither(buildWatcher(pathToWatch))
-          _           <- IO.fromEither(startWatcher(watcher))
-        } yield ()
+  private def uninitializedStage: Receive = { case WatchPath(path, clients) =>
+    val pathToWatchResult = config
+      .findContentRoot(path.rootId)
+      .map(path.toFile(_))
+    val result: BlockingIO[FileSystemFailure, Unit] =
+      for {
+        pathToWatch <- IO.fromEither(pathToWatchResult)
+        _           <- validatePath(pathToWatch)
+        watcher     <- IO.fromEither(buildWatcher(pathToWatch))
+        _           <- IO.fromEither(startWatcher(watcher))
+      } yield ()
 
-      exec
-        .exec(result)
-        .map {
-          case Right(()) => CapabilityAcquired
-          case Left(err) => CapabilityAcquisitionFileSystemFailure(err)
-        }
-        .pipeTo(sender())
-
-      pathToWatchResult match {
-        case Right(root) =>
-          context.become(initializedStage(root, path, clients))
-        case Left(_) =>
-          context.stop(self)
+    exec
+      .exec(result)
+      .map {
+        case Right(()) => CapabilityAcquired
+        case Left(err) => CapabilityAcquisitionFileSystemFailure(err)
       }
+      .pipeTo(sender())
+
+    pathToWatchResult match {
+      case Right(root) =>
+        context.become(initializedStage(root, path, clients))
+      case Left(_) =>
+        context.stop(self)
+    }
   }
 
   private def initializedStage(
@@ -178,8 +176,7 @@ final class PathWatcher(
 
 object PathWatcher {
 
-  /**
-    * Counter for unsuccessful file watcher restarts.
+  /** Counter for unsuccessful file watcher restarts.
     *
     * @param maxRestarts maximum restart attempts
     */
@@ -187,33 +184,28 @@ object PathWatcher {
 
     private var restartCount: Int = 0
 
-    /**
-      * Return current restart count.
+    /** Return current restart count.
       */
     def count: Int =
       restartCount
 
-    /**
-      * Increment restart count.
+    /** Increment restart count.
       */
     def inc(): Unit =
       restartCount += 1
 
-    /**
-      * Reset restart count.
+    /** Reset restart count.
       */
     def reset(): Unit =
       restartCount = 0
 
-    /**
-      * Return true if we hit the maximum number of restarts.
+    /** Return true if we hit the maximum number of restarts.
       */
     def canRestart: Boolean =
       restartCount < maxRestarts
   }
 
-  /**
-    * Creates a configuration object used to create a [[PathWatcher]].
+  /** Creates a configuration object used to create a [[PathWatcher]].
     *
     * @param config configuration
     * @param fs file system

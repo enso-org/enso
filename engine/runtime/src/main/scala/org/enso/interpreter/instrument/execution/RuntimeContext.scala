@@ -4,8 +4,7 @@ import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.{Endpoint, ExecutionContextManager}
 import org.enso.interpreter.service.ExecutionService
 
-/**
-  * Contains suppliers of services that provide application specific
+/** Contains suppliers of services that provide application specific
   * functionality.
   *
   * @param executionService a service allowing externally-triggered code

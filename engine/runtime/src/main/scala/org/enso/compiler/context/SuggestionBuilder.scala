@@ -60,14 +60,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               typePtr.getMetadata(MethodDefinitions).flatMap(buildSelfType)
             selfTypeOpt.foreach { selfType =>
               acc += buildMethod(
-                  body.getExternalId,
-                  module,
-                  methodName,
-                  selfType,
-                  args,
-                  doc,
-                  typeSignature
-                )
+                body.getExternalId,
+                module,
+                methodName,
+                selfType,
+                args,
+                doc,
+                typeSignature
+              )
             }
             scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
@@ -80,34 +80,34 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               ) if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildFunction(
-                body.getExternalId,
-                module,
-                name,
-                args,
-                scope.location.get,
-                typeSignature
-              )
+              body.getExternalId,
+              module,
+              name,
+              args,
+              scope.location.get,
+              typeSignature
+            )
             scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildLocal(
-                expr.getExternalId,
-                module,
-                name.name,
-                scope.location.get,
-                typeSignature
-              )
+              expr.getExternalId,
+              module,
+              name.name,
+              scope.location.get,
+              typeSignature
+            )
             scopes += Scope(expr.children, expr.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
             acc += buildAtom(
-                module,
-                name.name,
-                arguments,
-                doc
-              )
+              module,
+              name.name,
+              arguments,
+              doc
+            )
             go(scope, scopes, acc)
           case _ =>
             go(scope, scopes, acc)

@@ -1,13 +1,11 @@
 package org.enso.launcher.config
 
-/**
-  * Indicates that the config is invalid.
+/** Indicates that the config is invalid.
   */
 case class InvalidConfigError(message: String, cause: Throwable)
     extends RuntimeException(message, cause) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = message
 }

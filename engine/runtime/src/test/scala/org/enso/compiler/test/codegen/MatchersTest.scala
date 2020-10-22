@@ -18,8 +18,8 @@ class MatchersTest extends CompilerTest with Inside {
     def toSimpleAst: AST = {
       val ast = source.toAst
 
-      inside(ast) {
-        case Module(List1(line, _)) => line.elem.get
+      inside(ast) { case Module(List1(line, _)) =>
+        line.elem.get
       }
     }
   }
@@ -49,12 +49,10 @@ class MatchersTest extends CompilerTest with Inside {
 
     "peel-off exactly one paren" in {
       val twoParens = "((x))".toSimpleAst
-      inside(twoParens) {
-        case AstView.Parensed(oneParen) =>
-          inside(oneParen) {
-            case AstView.Parensed(zeroParens) =>
-              zeroParens should not be group
-          }
+      inside(twoParens) { case AstView.Parensed(oneParen) =>
+        inside(oneParen) { case AstView.Parensed(zeroParens) =>
+          zeroParens should not be group
+        }
       }
     }
   }
@@ -70,13 +68,11 @@ class MatchersTest extends CompilerTest with Inside {
 
     "peel-off at-most one paren" in {
       val twoParens = "((x))".toSimpleAst
-      inside(twoParens) {
-        case AstView.MaybeParensed(oneParen) =>
-          oneParen shouldBe group
-          inside(oneParen) {
-            case AstView.MaybeParensed(zeroParens) =>
-              zeroParens should not be group
-          }
+      inside(twoParens) { case AstView.MaybeParensed(oneParen) =>
+        oneParen shouldBe group
+        inside(oneParen) { case AstView.MaybeParensed(zeroParens) =>
+          zeroParens should not be group
+        }
       }
     }
   }
@@ -95,9 +91,8 @@ class MatchersTest extends CompilerTest with Inside {
 
     "peel-off all parens" in {
       val twoParens = "((x))".toSimpleAst
-      inside(twoParens) {
-        case AstView.ManyParensed(zeroParens) =>
-          zeroParens should not be group
+      inside(twoParens) { case AstView.ManyParensed(zeroParens) =>
+        zeroParens should not be group
       }
     }
   }
@@ -113,9 +108,8 @@ class MatchersTest extends CompilerTest with Inside {
 
     "peel-off all parens" in {
       val twoParens = "((x))".toSimpleAst
-      inside(twoParens) {
-        case AstView.MaybeManyParensed(zeroParens) =>
-          zeroParens.shape should not be group
+      inside(twoParens) { case AstView.MaybeManyParensed(zeroParens) =>
+        zeroParens.shape should not be group
       }
     }
   }

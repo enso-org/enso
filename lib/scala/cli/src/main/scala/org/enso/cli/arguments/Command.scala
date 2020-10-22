@@ -1,7 +1,6 @@
 package org.enso.cli.arguments
 
-/**
-  * Represents a top-level command in the CLI.
+/** Represents a top-level command in the CLI.
   *
   * @param name name of the command
   * @param comment a help comment displayed in the commands help text
@@ -17,8 +16,7 @@ case class Command[A](
   related: Seq[String]
 ) {
 
-  /**
-    * Returns a top-level help entry for the application help text. It includes
+  /** Returns a top-level help entry for the application help text. It includes
     * a short description of the command.
     */
   def topLevelHelp: CommandHelp = CommandHelp(name, comment)
@@ -26,8 +24,7 @@ case class Command[A](
 
 object Command {
 
-  /**
-    * Utility constructor for creating commands.
+  /** Utility constructor for creating commands.
     *
     * Allows for the following syntax
     * {{{
@@ -42,8 +39,7 @@ object Command {
     opts: Opts[A]
   ): Command[A] = new Command(name, comment, opts, related)
 
-  /**
-    * A helper function that creates a mapping of related command names from a
+  /** A helper function that creates a mapping of related command names from a
     * list of commands. The mapping maps related command names to the original
     * commands that they should point to.
     */
@@ -51,8 +47,7 @@ object Command {
     Map.from(commands.flatMap(cmd => cmd.related.map(_ -> cmd.name)))
   }
 
-  /**
-    * Creates a message that is displayed when a related command is executed. It
+  /** Creates a message that is displayed when a related command is executed. It
     * points the user to the original command instead and informs them on usage.
     *
     * @param name name of the entered, unkown command

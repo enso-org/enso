@@ -45,13 +45,13 @@ public class Number {
     scope.registerMethod(
         smallInteger,
         "-",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.SubtractMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.SubtractMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         "*",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         "^",
@@ -60,8 +60,8 @@ public class Number {
     scope.registerMethod(
         smallInteger,
         "/",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.DivideMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.DivideMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         "div",
@@ -75,8 +75,8 @@ public class Number {
     scope.registerMethod(
         smallInteger,
         "negate",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.NegateMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.NegateMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         "abs",
@@ -85,13 +85,13 @@ public class Number {
     scope.registerMethod(
         smallInteger,
         "==",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.EqualsMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.EqualsMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         ">",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.GreaterMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         ">=",
@@ -105,13 +105,13 @@ public class Number {
     scope.registerMethod(
         smallInteger,
         "<=",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.LessOrEqualMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.LessOrEqualMethodGen
+            .makeFunction(language));
     scope.registerMethod(
         smallInteger,
         "to_decimal",
-        org.enso.interpreter.node.expression.builtin.number.smallInteger.ToDecimalMethodGen.makeFunction(
-            language));
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.ToDecimalMethodGen
+            .makeFunction(language));
   }
 
   private void registerBigIntegerMethods(Language language, ModuleScope scope) {

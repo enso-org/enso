@@ -3,8 +3,7 @@ import sbt._
 
 object FixInstrumentsGeneration {
 
-  /**
-    * This task detects any changes in source files of Instruments and forces
+  /** This task detects any changes in source files of Instruments and forces
     * recompilation of all instruments on any change. This is to ensure that the
     * Annotation Processor registers all of the instruments.
     *
@@ -44,8 +43,7 @@ object FixInstrumentsGeneration {
     }
   }
 
-  /**
-    * This task detects if just a subset of the Instruments has been recompiled
+  /** This task detects if just a subset of the Instruments has been recompiled
     * (right now we did not find a way of detecting this before compilation). If
     * the Instrumentation state is detected to be inconsistent, current
     * compilation is aborted and classfiles are deleted to ensure that when

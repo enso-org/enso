@@ -7,14 +7,12 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.annotation.tailrec
 
-/**
-  * A message queue that can be consumed by a thread in a loop with a limited
+/** A message queue that can be consumed by a thread in a loop with a limited
   * buffer.
   */
 class BlockingConsumerMessageQueue(bufferSize: Int = 5000) {
 
-  /**
-    * Enqueues the `message` to be sent and returns immediately.
+  /** Enqueues the `message` to be sent and returns immediately.
     *
     * If any underlying buffers are full, they may be removed and a warning will
     * be issued.
@@ -27,8 +25,7 @@ class BlockingConsumerMessageQueue(bufferSize: Int = 5000) {
     }
   }
 
-  /**
-    * Returns next message in the queue, skipping messages that should be
+  /** Returns next message in the queue, skipping messages that should be
     * ignored and waiting if no messages are currently available.
     *
     * The distinction between internal and external messages is that internal
@@ -45,8 +42,7 @@ class BlockingConsumerMessageQueue(bufferSize: Int = 5000) {
     else nextMessage(internalLogLevel)
   }
 
-  /**
-    * Returns all currently enqueued messages, skipping ones that should be
+  /** Returns all currently enqueued messages, skipping ones that should be
     * ignored.
     *
     * See [[nextMessage]] for explanation which messages are ignored.
@@ -62,8 +58,7 @@ class BlockingConsumerMessageQueue(bufferSize: Int = 5000) {
       .map(_._1)
   }
 
-  /**
-    * All external messages are relevant, but internal messages relevancy depends
+  /** All external messages are relevant, but internal messages relevancy depends
     * on its log level.
     */
   private def isMessageRelevant(
@@ -71,8 +66,7 @@ class BlockingConsumerMessageQueue(bufferSize: Int = 5000) {
   )(message: WSLogMessage, internal: Boolean): Boolean =
     !internal || internalLogLevel.shouldLog(message.level)
 
-  /**
-    * Returns the encoded message and a boolean value indicating if it was
+  /** Returns the encoded message and a boolean value indicating if it was
     * internal.
     */
   private def encodeMessage(

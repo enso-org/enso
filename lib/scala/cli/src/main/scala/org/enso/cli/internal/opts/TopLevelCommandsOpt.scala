@@ -7,8 +7,7 @@ import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
 import org.enso.cli.internal.{Parser, ParserContinuation}
 
-/**
-  * Implements the entry point of options parsing for an [[Application]].
+/** Implements the entry point of options parsing for an [[Application]].
   *
   * @param toplevelOpts top-level options that define a global configuration
   *                     and can override commands
@@ -29,19 +28,16 @@ class TopLevelCommandsOpt[A, B](
   private def helpOpt: Opts[Boolean] =
     Opts.flag("help", 'h', "Print this help message.", showInUsage = true)
 
-  /**
-    * Top-level options extended with an option for requesting help.
+  /** Top-level options extended with an option for requesting help.
     */
   private val toplevelWithHelp =
     implicitly[Semigroupal[Opts]].product(toplevelOpts, helpOpt)
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def availableSubcommands: NonEmptyList[Command[B => Int]] = commands
 
-  /**
-    * Handles an unknown command.
+  /** Handles an unknown command.
     *
     * First tries to find a plugin with the given name and if it finds it,
     * parsing is stopped to invoke that plugin. Otherwise it just reports an
@@ -86,8 +82,7 @@ class TopLevelCommandsOpt[A, B](
     result.addErrors(errors.reverse)
   }
 
-  /**
-    * Renders the help text, depending on if a command has been selected or not.
+  /** Renders the help text, depending on if a command has been selected or not.
     *
     * If no commands were selected, renders the top-level help text. Otherwise,
     * renders the help text for the selected command.
@@ -100,8 +95,7 @@ class TopLevelCommandsOpt[A, B](
         topLevelHelp(commandPrefix)
     }
 
-  /**
-    * Generates a help text for an unknown command, including, if available,
+  /** Generates a help text for an unknown command, including, if available,
     * suggestions of similar commands.
     *
     * @param typo the unrecognized command name
@@ -158,27 +152,23 @@ class TopLevelCommandsOpt[A, B](
     toplevelWithHelp.reset()
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def availableOptionsHelp(): Seq[String] =
     super.availableOptionsHelp() ++ toplevelWithHelp.availableOptionsHelp()
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def availablePrefixedParametersHelp(): Seq[String] =
     super.availablePrefixedParametersHelp() ++
     toplevelWithHelp.availablePrefixedParametersHelp()
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def additionalHelp(): Seq[String] =
     super.additionalHelp() ++ toplevelWithHelp.additionalHelp()
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def commandLines(
     alwaysIncludeOtherOptions: Boolean = false
@@ -188,8 +178,7 @@ class TopLevelCommandsOpt[A, B](
     super.commandLines(alwaysIncludeOtherOptions = include)
   }
 
-  /**
-    * Renders help text for the specific command.
+  /** Renders help text for the specific command.
     */
   def commandHelp(command: Command[_], commandPrefix: Seq[String]): String = {
     val applicationName = commandPrefix.head
@@ -198,8 +187,7 @@ class TopLevelCommandsOpt[A, B](
     command.comment + "\n" + mergedOpts.help(Seq(applicationName, command.name))
   }
 
-  /**
-    * Renders the part of the top-level help text listing the available
+  /** Renders the part of the top-level help text listing the available
     * commands.
     */
   def availableCommands(): String = {
@@ -210,8 +198,7 @@ class TopLevelCommandsOpt[A, B](
     "Available commands:\n" + commandDescriptions
   }
 
-  /**
-    * Renders top-level help.
+  /** Renders top-level help.
     */
   def topLevelHelp(commandPrefix: Seq[String]): String = {
     val usageOptions = toplevelWithHelp

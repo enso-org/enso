@@ -3,7 +3,12 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.{Cons, Resolution, ResolvedConstructor, ResolvedModule}
+import org.enso.compiler.data.BindingsMap.{
+  Cons,
+  Resolution,
+  ResolvedConstructor,
+  ResolvedModule
+}
 import org.enso.compiler.pass.resolve.UppercaseNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.phase.ExportsResolution
@@ -21,7 +26,9 @@ class UppercaseNamesTest extends CompilerTest {
   val passes = new Passes
 
   val group1 = passes.moduleDiscoveryPasses
-  val group2 = new PassGroup(passes.functionBodyPasses.passes.takeWhile(_ != UppercaseNames))
+  val group2 = new PassGroup(
+    passes.functionBodyPasses.passes.takeWhile(_ != UppercaseNames)
+  )
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
@@ -49,7 +56,7 @@ class UppercaseNamesTest extends CompilerTest {
   "Method definition resolution" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
-    val code  = """
+    val code         = """
                  |main =
                  |    x1 = My_Cons 1 2 3
                  |    x2 = Constant
@@ -65,12 +72,12 @@ class UppercaseNamesTest extends CompilerTest {
                  |add_one x = x + 1
                  |
                  |""".stripMargin
-    val parsed = code.toIrModule
+    val parsed       = code.toIrModule
     val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
     ctx.module.unsafeSetIr(moduleMapped)
     new ExportsResolution().run(List(ctx.module))
     val allPrecursors = passManager.runPassesOnModule(moduleMapped, ctx, group2)
-    val ir = allPrecursors.analyse
+    val ir            = allPrecursors.analyse
 
     val bodyExprs = ir
       .bindings(0)

@@ -40,8 +40,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
     FileSystem.writeTextFile(runtimeBundle / "jvm.txt", "")
   }
 
-  /**
-    * Checks if the file does not exist, retrying `retry` times with a 200ms
+  /** Checks if the file does not exist, retrying `retry` times with a 200ms
     * delay between retries.
     *
     * Useful to check if the file was removed, but the removal action is not

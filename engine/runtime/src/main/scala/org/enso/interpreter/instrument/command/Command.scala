@@ -6,14 +6,12 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * Base command trait that encapsulates a function request. Uses
+/** Base command trait that encapsulates a function request. Uses
   * [[RuntimeContext]] to perform a request.
   */
 abstract class Command(maybeRequestId: Option[RequestId]) {
 
-  /**
-    * Executes a request.
+  /** Executes a request.
     *
     * @param ctx contains suppliers of services to perform a request
     */

@@ -69,8 +69,7 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
   override def additionalHelp(): Seq[String] =
     lhs.additionalHelp() ++ rhs.additionalHelp()
 
-  /**
-    * A helper function that gathers all options and arguments definitions, to
+  /** A helper function that gathers all options and arguments definitions, to
     * display a command line for showing in the usage section of the help.
     *
     * This variant is special to ensure proper handling of subcommands.

@@ -4,8 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
-/**
-  * Desugars imports and exports mentioning only the project name to refer
+/** Desugars imports and exports mentioning only the project name to refer
   * to the `Main` module of the mentioned project instead.
   */
 case object MainImportAndExport extends IRPass {

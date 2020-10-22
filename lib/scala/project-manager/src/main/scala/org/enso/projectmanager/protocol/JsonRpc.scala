@@ -6,8 +6,7 @@ import org.enso.projectmanager.protocol.ProjectManagementApi._
 
 object JsonRpc {
 
-  /**
-    * A description of supported JSON RPC messages.
+  /** A description of supported JSON RPC messages.
     */
   lazy val protocol: Protocol =
     Protocol.empty

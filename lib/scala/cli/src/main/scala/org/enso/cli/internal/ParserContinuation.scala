@@ -1,21 +1,18 @@
 package org.enso.cli.internal
 
-/**
-  * Specifies parser behaviour after parsing a plain token.
+/** Specifies parser behaviour after parsing a plain token.
   */
 sealed trait ParserContinuation
 
 object ParserContinuation {
 
-  /**
-    * Specifies to continue parsing.
+  /** Specifies to continue parsing.
     *
     * This variant is returned most of the time in the usual parsing flow.
     */
   case object ContinueNormally extends ParserContinuation
 
-  /**
-    * Specifies to stop parsing and return partial results.
+  /** Specifies to stop parsing and return partial results.
     *
     * This can be used to abstain from handling further errors. For example, if
     * a command name is misspelled, any further parameters would be reported as
@@ -24,8 +21,7 @@ object ParserContinuation {
     */
   case object Stop extends ParserContinuation
 
-  /**
-    * Specifies that the parser should stop parsing immediately, gather the
+  /** Specifies that the parser should stop parsing immediately, gather the
     * partial results and finish by returning a closure that will call the
     * provided `continuation`.
     *

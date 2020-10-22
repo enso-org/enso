@@ -2,8 +2,7 @@ package org.enso.languageserver.runtime
 
 import org.enso.languageserver.runtime.ExecutionApi.ExpressionId
 
-/**
-  * An update containing information about expression.
+/** An update containing information about expression.
   *
   * @param expressionId the id of updated expression
   * @param `type` the updated type of expression

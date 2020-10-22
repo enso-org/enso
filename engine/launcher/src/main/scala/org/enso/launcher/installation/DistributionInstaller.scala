@@ -17,8 +17,7 @@ import org.enso.launcher.{FileSystem, InfoLogger, OS}
 
 import scala.util.control.NonFatal
 
-/**
-  * Allows to locally [[install]] a portable distribution.
+/** Allows to locally [[install]] a portable distribution.
   *
   * @param manager a distribution manager instance which defines locations for
   *                the source portable distribution and the installation
@@ -43,8 +42,7 @@ class DistributionInstaller(
   final private val installed = manager.LocallyInstalledDirectories
   private val env             = manager.env
 
-  /**
-    * Names of additional files that are not essential to running the
+  /** Names of additional files that are not essential to running the
     * distribution, but should be copied over to the data root if possible.
     *
     * These files are assumed to be located at the data root.
@@ -57,8 +55,7 @@ class DistributionInstaller(
   private val runtimesDirectory =
     installed.dataDirectory / manager.RUNTIMES_DIRECTORY
 
-  /**
-    * Installs the distribution under configured location.
+  /** Installs the distribution under configured location.
     *
     * Unless [[autoConfirm]] is true, asks the user to confirm the action after
     * printing where it plans to install itself.
@@ -98,8 +95,7 @@ class DistributionInstaller(
   private val currentLauncherPath   = env.getPathToRunningExecutable
   private val installedLauncherPath = installed.binaryExecutable
 
-  /**
-    * Prepares for the installation.
+  /** Prepares for the installation.
     *
     * Finds and reports possible conflicts, and asks the user if they want to
     * proceed (unless [[autoConfirm]] is set, in which case it only reports
@@ -195,8 +191,7 @@ class DistributionInstaller(
     InstallationSettings(bundleAction, removeInstaller)
   }
 
-  /**
-    * Checks if system PATH includes the directory that the binary will be
+  /** Checks if system PATH includes the directory that the binary will be
     * installed into.
     */
   private def isBinOnSystemPath: Boolean = {
@@ -204,8 +199,7 @@ class DistributionInstaller(
     paths.contains(installed.binDirectory)
   }
 
-  /**
-    * Copies the binary into the destination directory and ensures that it is
+  /** Copies the binary into the destination directory and ensures that it is
     * executable.
     */
   private def installBinary(): Unit = {
@@ -218,8 +212,7 @@ class DistributionInstaller(
     logger.debug("Binary installed.")
   }
 
-  /**
-    * Creates the basic directory structure and copies documentation files if
+  /** Creates the basic directory structure and copies documentation files if
     * present.
     */
   private def createDirectoryStructure(): Unit = {
@@ -241,8 +234,7 @@ class DistributionInstaller(
     }
   }
 
-  /**
-    * Copies non-essential files like README etc.
+  /** Copies non-essential files like README etc.
     *
     * Failure to find/copy one of these is reported as a warning, but does not
     * stop the installation.
@@ -280,8 +272,7 @@ class DistributionInstaller(
     }
   }
 
-  /**
-    * Finds bundles included in the portable package.
+  /** Finds bundles included in the portable package.
     *
     * @return a tuple containing sequences of runtime and engine bundles
     */
@@ -298,8 +289,7 @@ class DistributionInstaller(
     (runtimes, engines)
   }
 
-  /**
-    * Checks if any bundles are available and depending on selected settings,
+  /** Checks if any bundles are available and depending on selected settings,
     * decides how to proceed with the bundles.
     *
     * May ask the user interactively, unless this is prohibited.
@@ -335,8 +325,7 @@ class DistributionInstaller(
       IgnoreBundles
     }
 
-  /**
-    * Copies (and possibly removes the originals) bundled engine and runtime
+  /** Copies (and possibly removes the originals) bundled engine and runtime
     * components.
     */
   private def installBundles(bundleAction: BundleAction): Unit = {
@@ -380,8 +369,7 @@ class DistributionInstaller(
     }
   }
 
-  /**
-    * Decides if the installer should be removed if the installation succeeds.
+  /** Decides if the installer should be removed if the installation succeeds.
     */
   private def decideIfInstallerShouldBeRemoved(): Boolean = {
     def askForRemoval(): Boolean =
@@ -398,8 +386,7 @@ class DistributionInstaller(
     } else false
   }
 
-  /**
-    * If the user wants to, removes the installer.
+  /** If the user wants to, removes the installer.
     */
   private def removeInstaller(): Nothing = {
     if (OS.isWindows) {
@@ -416,8 +403,7 @@ class DistributionInstaller(
 
 object DistributionInstaller {
 
-  /**
-    * Creates a [[DistributionInstaller]] using the default managers.
+  /** Creates a [[DistributionInstaller]] using the default managers.
     */
   def default(
     globalCLIOptions: GlobalCLIOptions,
@@ -432,101 +418,83 @@ object DistributionInstaller {
       bundleActionOption = bundleActionOption
     )
 
-  /**
-    * Defines the set of possible actions to take when installing the bundled
+  /** Defines the set of possible actions to take when installing the bundled
     * components.
     */
   trait BundleAction extends CLIOutput.Answer {
 
-    /**
-      * Specifies whether this action requires copying the bundles to the
+    /** Specifies whether this action requires copying the bundles to the
       * installed location.
       */
     def copy: Boolean
 
-    /**
-      * Specifies whether this action requires to remove the original bundle
+    /** Specifies whether this action requires to remove the original bundle
       * files afterwards.
       */
     def delete: Boolean
   }
 
-  /**
-    * The bundle action that will copy the bundles and keep the ones in the
+  /** The bundle action that will copy the bundles and keep the ones in the
     * original location too.
     */
   case object CopyBundles extends BundleAction {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def key: String = "c"
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def description: String = "copy bundles"
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def copy: Boolean = true
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def delete: Boolean = false
   }
 
-  /**
-    * The bundle action that will copy the bundles and remove the ones at the
+  /** The bundle action that will copy the bundles and remove the ones at the
     * original location on success.
     */
   case object MoveBundles extends BundleAction {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def key: String = "m"
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def description: String = "move bundles"
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def copy: Boolean = true
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def delete: Boolean = true
   }
 
-  /**
-    * The bundle action that ignores the bundles.
+  /** The bundle action that ignores the bundles.
     */
   case object IgnoreBundles extends BundleAction {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def key: String = "i"
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def description: String = "ignore bundles"
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def copy: Boolean = false
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     def delete: Boolean = false
   }

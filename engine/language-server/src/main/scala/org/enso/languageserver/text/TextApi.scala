@@ -4,8 +4,7 @@ import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
-/**
-  * The text editing JSON RPC API provided by the language server.
+/** The text editing JSON RPC API provided by the language server.
   * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
   * for message specifications.
   */

@@ -13,13 +13,11 @@ import src.main.scala.licenses.{
 
 import scala.annotation.tailrec
 
-/**
-  * Defines writing the notices package for distribution.
+/** Defines writing the notices package for distribution.
   */
 object PackageNotices {
 
-  /**
-    * Creates the notices package based on the `summary` in `destination`.
+  /** Creates the notices package based on the `summary` in `destination`.
     *
     * The `destination` directory is cleaned before creating the new notices.
     *
@@ -119,8 +117,8 @@ object PackageNotices {
 
       if (copyrights.nonEmpty) {
         val compiledCopyrights = copyrights
-          .map {
-            case (m, s) => renderCopyright(m, s)
+          .map { case (m, s) =>
+            renderCopyright(m, s)
           }
           .mkString("\n\n")
         val freeName = findFreeName(packageRoot, gatheredNoticesFilename)
@@ -131,14 +129,12 @@ object PackageNotices {
     IO.write(destination / "NOTICE", mainNotice.toString() + "\n")
   }
 
-  /**
-    * Name of the generated file that contains concatenated copyright notices that were found in the
+  /** Name of the generated file that contains concatenated copyright notices that were found in the
     * project.
     */
   val gatheredNoticesFilename = "NOTICES"
 
-  /**
-    * Finds a filename that is not taken.
+  /** Finds a filename that is not taken.
     *
     * First tries the `name` and adds increasing numerical suffixes if the
     * previous names were taken.
@@ -151,8 +147,7 @@ object PackageNotices {
     else file
   }
 
-  /**
-    * Writes attached files to the given directory.
+  /** Writes attached files to the given directory.
     */
   def writeFiles(root: File, files: Seq[AttachedFile]): Unit = {
     for (attachedFile <- files) {

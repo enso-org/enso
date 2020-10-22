@@ -4,13 +4,11 @@ import java.nio.file.Path
 
 import sbt.IO
 
-/**
-  * Represents a licensing information related to a dependency.
+/** Represents a licensing information related to a dependency.
   */
 sealed trait Attachment
 
-/**
-  * Represents a file attached to the dependency's sources.
+/** Represents a file attached to the dependency's sources.
   *
   * This may be a license file, a copyright notice, a credits file etc.
   */
@@ -20,22 +18,19 @@ case class AttachedFile(
   origin: Option[String] = None
 ) extends Attachment {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = {
     val originRepr = origin.map(o => s", origin = $o")
     s"AttachedFile($path, ...$originRepr)"
   }
 
-  /**
-    * Name of the file.
+  /** Name of the file.
     */
   def fileName: String = path.getFileName
 }
 
-/**
-  * Represents a copyright mention extracted from a file.
+/** Represents a copyright mention extracted from a file.
   *
   * The copyright mention may come from comments in the source code, for
   * example.
@@ -54,16 +49,14 @@ case class CopyrightMention(
   origins: Seq[PortablePath]
 ) extends Attachment {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = s"CopyrightMention('$content')"
 }
 
 object CopyrightMention {
 
-  /**
-    * Creates a [[CopyrightMention]] converting `origins` to [[PortablePath]].
+  /** Creates a [[CopyrightMention]] converting `origins` to [[PortablePath]].
     */
   def from(
     content: String,
@@ -72,8 +65,7 @@ object CopyrightMention {
   ): CopyrightMention =
     CopyrightMention(content, contexts, origins.map(PortablePath(_)))
 
-  /**
-    * Creates a [[CopyrightMention]] with no origins.
+  /** Creates a [[CopyrightMention]] with no origins.
     */
   def apply(
     content: String,
@@ -81,8 +73,7 @@ object CopyrightMention {
   ): CopyrightMention =
     CopyrightMention(content, contexts, Seq.empty[PortablePath])
 
-  /**
-    * Transforms the sequence of copyright mentions by merging ones that have
+  /** Transforms the sequence of copyright mentions by merging ones that have
     * equal content.
     */
   def mergeByContent(copyrights: Seq[CopyrightMention]): Seq[CopyrightMention] =
@@ -91,8 +82,7 @@ object CopyrightMention {
       .map({ case (_, equal) => mergeEqual(equal) })
       .toSeq
 
-  /**
-    * Transforms the sequence of copyright mentions by merging ones that have
+  /** Transforms the sequence of copyright mentions by merging ones that have
     * equal context.
     *
     * This may be useful as a single comment block may contain multiple mentions
@@ -106,16 +96,14 @@ object CopyrightMention {
     copyrights: Seq[CopyrightMention]
   ): Seq[CopyrightMention] = {
     val (eligible, rest) = copyrights.partition(_.contexts.size == 1)
-    val merged = eligible.groupBy(c => c.contexts.head).map {
-      case (_, equal) =>
-        val ref = findBestRepresentative(equal)
-        ref.copy(origins = equal.flatMap(_.origins).distinct)
+    val merged = eligible.groupBy(c => c.contexts.head).map { case (_, equal) =>
+      val ref = findBestRepresentative(equal)
+      ref.copy(origins = equal.flatMap(_.origins).distinct)
     }
     (merged ++ rest).toSeq
   }
 
-  /**
-    * Returns the best representative to use as content of the merged set of
+  /** Returns the best representative to use as content of the merged set of
     * copyrights that share a context.
     *
     * Usually, mentions that start with the word 'copyright' are most
@@ -132,8 +120,7 @@ object CopyrightMention {
       .getOrElse(copyrights.head)
   }
 
-  /**
-    * Merges multiple copyright mentions that have equal content.
+  /** Merges multiple copyright mentions that have equal content.
     *
     * Their contexts and origins are concatenated (ignoring duplicates).
     */
@@ -152,8 +139,7 @@ object CopyrightMention {
     )
   }
 
-  /**
-    * Strips comment-related characters from the prefix and whitespace from
+  /** Strips comment-related characters from the prefix and whitespace from
     * suffix of the copyright line.
     */
   def cleanup(string: String): String = {
@@ -166,8 +152,7 @@ object CopyrightMention {
 
 object AttachedFile {
 
-  /**
-    * Reads a file at the given path into an [[AttachedFile]].
+  /** Reads a file at the given path into an [[AttachedFile]].
     *
     * If `relativizeTo` is provided, the path included in the resulting
     * [[AttachedFile]] is relative to the one provided.

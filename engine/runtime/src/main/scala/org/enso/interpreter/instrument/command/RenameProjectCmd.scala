@@ -10,8 +10,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that orchestrates renaming of a project name.
+/** A command that orchestrates renaming of a project name.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -45,8 +44,7 @@ class RenameProjectCmd(
       }
     }
 
-  /**
-    * Update module name of method pointers in the stack.
+  /** Update module name of method pointers in the stack.
     *
     * @param projectName the new project name
     * @param stack the exeution stack

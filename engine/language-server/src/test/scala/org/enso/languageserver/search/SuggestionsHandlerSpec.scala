@@ -182,7 +182,8 @@ class SuggestionsHandlerSpec
 
     "search entries by empty search query" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, inserted) = Await.result(repo.insertAll(Suggestions.all), Timeout)
+        val (_, inserted) =
+          Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Foo", "Main.enso"),
           position   = Position(0, 0),
@@ -191,12 +192,12 @@ class SuggestionsHandlerSpec
           tags       = None
         )
 
-      expectMsg(
-        SearchProtocol.CompletionResult(
-          4L,
-          Seq(inserted(0).get, inserted(1).get)
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            4L,
+            Seq(inserted(0).get, inserted(1).get)
+          )
         )
-      )
     }
 
     "search entries by self type" taggedAs Retry in withDb {

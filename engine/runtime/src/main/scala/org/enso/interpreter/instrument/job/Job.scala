@@ -4,8 +4,7 @@ import java.util.UUID
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
 
-/**
-  * A fine-grained request for a runtime server service. Uses [[RuntimeContext]]
+/** A fine-grained request for a runtime server service. Uses [[RuntimeContext]]
   * to perform a request.
   *
   * @param contextIds affected executions contexts' ids
@@ -19,8 +18,7 @@ abstract class Job[+A](
   val mayInterruptIfRunning: Boolean
 ) {
 
-  /**
-    * Executes a job.
+  /** Executes a job.
     *
     * @param ctx contains suppliers of services to perform a request
     */

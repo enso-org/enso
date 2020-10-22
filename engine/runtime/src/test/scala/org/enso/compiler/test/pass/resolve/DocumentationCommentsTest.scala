@@ -65,8 +65,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     buildInlineContext()
   }
 
-  /**
-    * Gets documentation metadata from a node.
+  /** Gets documentation metadata from a node.
     * Throws an exception if missing.
     *
     * @param ir the ir to get the doc from.
@@ -254,29 +253,24 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       inside(ir.bindings(1)) {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           getDoc(method) shouldEqual " a method"
-          inside(method.body) {
-            case lambda: IR.Function.Lambda =>
-              inside(lambda.body) {
-                case block: IR.Expression.Block =>
-                  getDoc(block.expressions(0)) shouldEqual " a statement"
-                  getDoc(block.returnValue) shouldEqual " the return"
-              }
+          inside(method.body) { case lambda: IR.Function.Lambda =>
+            inside(lambda.body) { case block: IR.Expression.Block =>
+              getDoc(block.expressions(0)) shouldEqual " a statement"
+              getDoc(block.returnValue) shouldEqual " the return"
+            }
           }
       }
 
       inside(ir.bindings(2)) {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
-          inside(method.body) {
-            case lambda: IR.Function.Lambda =>
-              inside(lambda.body) {
-                case block: IR.Expression.Block =>
-                  inside(block.returnValue) {
-                    case caseExpr: IR.Case.Expr =>
-                      caseExpr.branches should have length 2
-                      getDoc(caseExpr.branches(0)) shouldEqual " case 1"
-                      getDoc(caseExpr.branches(1)) shouldEqual " catchall"
-                  }
+          inside(method.body) { case lambda: IR.Function.Lambda =>
+            inside(lambda.body) { case block: IR.Expression.Block =>
+              inside(block.returnValue) { case caseExpr: IR.Case.Expr =>
+                caseExpr.branches should have length 2
+                getDoc(caseExpr.branches(0)) shouldEqual " case 1"
+                getDoc(caseExpr.branches(1)) shouldEqual " catchall"
               }
+            }
           }
       }
     }

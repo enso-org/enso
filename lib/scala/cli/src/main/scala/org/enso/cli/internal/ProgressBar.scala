@@ -1,19 +1,16 @@
 package org.enso.cli.internal
 
-/**
-  * Allows to display a progress bar in a terminal.
+/** Allows to display a progress bar in a terminal.
   */
 class ProgressBar {
 
-  /**
-    * Begins drawing the progressbar.
+  /** Begins drawing the progressbar.
     */
   def start(): Unit = {
     drawProgressBar(0, "")
   }
 
-  /**
-    * Updates the progressbar with a percentage.
+  /** Updates the progressbar with a percentage.
     */
   def updateProgress(percentage: Float): Unit = {
     drawProgressBar(
@@ -22,15 +19,13 @@ class ProgressBar {
     )
   }
 
-  /**
-    * Clears the progressbar.
+  /** Clears the progressbar.
     */
   def hide(): Unit = {
     print("\r" + " " * (paddingLength + 2) + "\r")
   }
 
-  /**
-    * Displays a next step of animation indicating progress of a task with an
+  /** Displays a next step of animation indicating progress of a task with an
     * unknown total.
     */
   def showUnknownProgress(): Unit = {

@@ -12,23 +12,20 @@ import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
 
-/**
-  * A message endpoint implementation used by the
+/** A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
   */
 class Endpoint(handler: Handler) extends MessageEndpoint {
 
   var client: MessageEndpoint = _
 
-  /**
-    * Sets the client end of the connection, after it has been established.
+  /** Sets the client end of the connection, after it has been established.
     *
     * @param ep the client endpoint.
     */
   def setClient(ep: MessageEndpoint): Unit = client = ep
 
-  /**
-    * Sends a response to the connected client.
+  /** Sends a response to the connected client.
     *
     * @param msg the message to send.
     */
@@ -47,8 +44,7 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
   override def sendClose(): Unit = {}
 }
 
-/**
-  * A message handler, dispatching behaviors based on messages received
+/** A message handler, dispatching behaviors based on messages received
   * from an instance of [[Endpoint]].
   */
 final class Handler {
@@ -59,8 +55,7 @@ final class Handler {
   var truffleContext: TruffleContext     = _
   var commandProcessor: CommandProcessor = _
 
-  /**
-    * Initializes the handler with relevant Truffle objects, allowing it to
+  /** Initializes the handler with relevant Truffle objects, allowing it to
     * perform code execution.
     *
     * @param service the language execution service instance.
@@ -83,8 +78,7 @@ final class Handler {
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
   }
 
-  /**
-    * Handles a message received from the client.
+  /** Handles a message received from the client.
     *
     * @param request the message to handle.
     */

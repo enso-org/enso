@@ -5,8 +5,7 @@ import org.enso.cli.{CLIOutput, Spelling}
 
 object Parser {
 
-  /**
-    * Parses an option set.
+  /** Parses an option set.
     *
     * @param opts the option set that defines the parsing logic
     * @param tokens the sequence of tokens to parse
@@ -28,8 +27,7 @@ object Parser {
       parseErrors = error :: parseErrors
     }
 
-    /**
-      * Flag used to avoid issuing an 'unexpected argument' error if it was
+    /** Flag used to avoid issuing an 'unexpected argument' error if it was
       * preceded by a potential parameter.
       *
       * It is used because if we find an unknown parameter, we do not know if it
@@ -207,8 +205,7 @@ object Parser {
   private val mistypedLongParam      = """-([\w-.]+)""".r
   private val mistypedParamWithValue = """-([\w-.]+)=(.*)""".r
 
-  /**
-    * Converts a sequence of arguments into a sequence of tokens and additional
+  /** Converts a sequence of arguments into a sequence of tokens and additional
     * arguments.
     *
     * All arguments are converted into tokens until a `--` argument is
@@ -232,8 +229,7 @@ object Parser {
     (localArgs.map(toToken), rest)
   }
 
-  /**
-    * The inverse of [[tokenize]]. Used when the tokens have to be parsed to an
+  /** The inverse of [[tokenize]]. Used when the tokens have to be parsed to an
     * external plugin.
     */
   def untokenize(tokens: Seq[Token]): Seq[String] =

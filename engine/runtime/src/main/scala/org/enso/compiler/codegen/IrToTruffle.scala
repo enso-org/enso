@@ -179,37 +179,36 @@ class IrToTruffle(
 
     atomConstructors
       .zip(atomDefs)
-      .foreach {
-        case (atomCons, atomDefn) =>
-          val scopeInfo = atomDefn
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No root scope on an atom definition."
-            )
-            .unsafeAs[AliasAnalysis.Info.Scope.Root]
-
-          val dataflowInfo = atomDefn.unsafeGetMetadata(
-            DataflowAnalysis,
-            "No dataflow information associated with an atom."
+      .foreach { case (atomCons, atomDefn) =>
+        val scopeInfo = atomDefn
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "No root scope on an atom definition."
           )
+          .unsafeAs[AliasAnalysis.Info.Scope.Root]
 
-          val argFactory =
-            new DefinitionArgumentProcessor(
-              scope = new LocalScope(
-                None,
-                scopeInfo.graph,
-                scopeInfo.graph.rootScope,
-                dataflowInfo
-              )
+        val dataflowInfo = atomDefn.unsafeGetMetadata(
+          DataflowAnalysis,
+          "No dataflow information associated with an atom."
+        )
+
+        val argFactory =
+          new DefinitionArgumentProcessor(
+            scope = new LocalScope(
+              None,
+              scopeInfo.graph,
+              scopeInfo.graph.rootScope,
+              dataflowInfo
             )
-          val argDefs =
-            new Array[ArgumentDefinition](atomDefn.arguments.size)
+          )
+        val argDefs =
+          new Array[ArgumentDefinition](atomDefn.arguments.size)
 
-          for (idx <- atomDefn.arguments.indices) {
-            argDefs(idx) = argFactory.run(atomDefn.arguments(idx), idx)
-          }
+        for (idx <- atomDefn.arguments.indices) {
+          argDefs(idx) = argFactory.run(atomDefn.arguments(idx), idx)
+        }
 
-          atomCons.initializeFields(argDefs: _*)
+        atomCons.initializeFields(argDefs: _*)
       }
 
     // Register the method definitions in scope
@@ -228,58 +227,56 @@ class IrToTruffle(
       val consOpt =
         methodDef.methodReference.typePointer
           .getMetadata(MethodDefinitions)
-          .map {
-            res =>
-              res.target match {
-                case BindingsMap.ResolvedModule(module) =>
-                  module.getScope.getAssociatedType
-                case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                  definitionModule.getScope.getConstructors.get(cons.name)
-                case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                  throw new CompilerError(
-                    "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-                  )
-                case _: BindingsMap.ResolvedMethod =>
-                  throw new CompilerError(
-                    "Impossible here, should be caught by MethodDefinitions pass."
-                  )
-              }
+          .map { res =>
+            res.target match {
+              case BindingsMap.ResolvedModule(module) =>
+                module.getScope.getAssociatedType
+              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+                definitionModule.getScope.getConstructors.get(cons.name)
+              case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                throw new CompilerError(
+                  "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                )
+              case _: BindingsMap.ResolvedMethod =>
+                throw new CompilerError(
+                  "Impossible here, should be caught by MethodDefinitions pass."
+                )
+            }
           }
 
-      consOpt.foreach {
-        cons =>
-          val expressionProcessor = new ExpressionProcessor(
-            cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
-            scopeInfo.graph,
-            scopeInfo.graph.rootScope,
-            dataflowInfo
-          )
+      consOpt.foreach { cons =>
+        val expressionProcessor = new ExpressionProcessor(
+          cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+          scopeInfo.graph,
+          scopeInfo.graph.rootScope,
+          dataflowInfo
+        )
 
-          val function = methodDef.body match {
-            case fn: IR.Function =>
-              val (body, arguments) =
-                expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
-              val rootNode = MethodRootNode.build(
-                language,
-                expressionProcessor.scope,
-                moduleScope,
-                body,
-                makeSection(methodDef.location),
-                cons,
-                methodDef.methodName.name
-              )
-              val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-              new RuntimeFunction(
-                callTarget,
-                null,
-                new FunctionSchema(arguments: _*)
-              )
-            case _ =>
-              throw new CompilerError(
-                "Method bodies must be functions at the point of codegen."
-              )
-          }
-          moduleScope.registerMethod(cons, methodDef.methodName.name, function)
+        val function = methodDef.body match {
+          case fn: IR.Function =>
+            val (body, arguments) =
+              expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+            val rootNode = MethodRootNode.build(
+              language,
+              expressionProcessor.scope,
+              moduleScope,
+              body,
+              makeSection(methodDef.location),
+              cons,
+              methodDef.methodName.name
+            )
+            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+            new RuntimeFunction(
+              callTarget,
+              null,
+              new FunctionSchema(arguments: _*)
+            )
+          case _ =>
+            throw new CompilerError(
+              "Method bodies must be functions at the point of codegen."
+            )
+        }
+        moduleScope.registerMethod(cons, methodDef.methodName.name, function)
       }
 
     })
@@ -380,40 +377,39 @@ class IrToTruffle(
       BindingAnalysis,
       "No binding analysis at the point of codegen."
     )
-    bindingsMap.exportedSymbols.foreach {
-      case (name, List(resolution)) =>
-        if (resolution.module != moduleScope.getModule) {
-          resolution match {
-            case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-              val runtimeCons =
-                definitionModule.getScope.getConstructors.get(cons.name)
-              val fun = mkConsGetter(runtimeCons)
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
-                name,
-                fun
-              )
-            case BindingsMap.ResolvedModule(module) =>
-              val runtimeCons =
-                module.getScope.getAssociatedType
-              val fun = mkConsGetter(runtimeCons)
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
-                name,
-                fun
-              )
-            case BindingsMap.ResolvedMethod(module, method) =>
-              val fun = module.getScope.getMethods
-                .get(module.getScope.getAssociatedType)
-                .get(method.name)
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
-                name,
-                fun
-              )
-            case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-          }
+    bindingsMap.exportedSymbols.foreach { case (name, List(resolution)) =>
+      if (resolution.module != moduleScope.getModule) {
+        resolution match {
+          case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+            val runtimeCons =
+              definitionModule.getScope.getConstructors.get(cons.name)
+            val fun = mkConsGetter(runtimeCons)
+            moduleScope.registerMethod(
+              moduleScope.getAssociatedType,
+              name,
+              fun
+            )
+          case BindingsMap.ResolvedModule(module) =>
+            val runtimeCons =
+              module.getScope.getAssociatedType
+            val fun = mkConsGetter(runtimeCons)
+            moduleScope.registerMethod(
+              moduleScope.getAssociatedType,
+              name,
+              fun
+            )
+          case BindingsMap.ResolvedMethod(module, method) =>
+            val fun = module.getScope.getMethods
+              .get(module.getScope.getAssociatedType)
+              .get(method.name)
+            moduleScope.registerMethod(
+              moduleScope.getAssociatedType,
+              name,
+              fun
+            )
+          case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
         }
+      }
     }
   }
 
@@ -590,8 +586,8 @@ class IrToTruffle(
 
           if (allCasesValid) {
             val cases = maybeCases
-              .collect {
-                case Right(x) => x
+              .collect { case Right(x) =>
+                x
               }
               .toArray[BranchNode]
 
@@ -602,8 +598,8 @@ class IrToTruffle(
             )
             setLocation(matchExpr, location)
           } else {
-            val invalidBranches = maybeCases.collect {
-              case Left(x) => x
+            val invalidBranches = maybeCases.collect { case Left(x) =>
+              x
             }
 
             val message = invalidBranches.map(_.message).mkString(", ")
@@ -912,8 +908,7 @@ class IrToTruffle(
           setLocation(TextLiteralNode.build(text), location)
       }
 
-    /**
-      * Generates a runtime implementation for compile error nodes.
+    /** Generates a runtime implementation for compile error nodes.
       *
       * @param error the IR representing a compile error.
       * @return a runtime node representing the error.
@@ -965,8 +960,7 @@ class IrToTruffle(
       setLocation(ErrorNode.build(payload), error.location)
     }
 
-    /**
-      * Processes function arguments, generates arguments reads and creates
+    /** Processes function arguments, generates arguments reads and creates
       * a node to represent the whole method body.
       *
       * @param arguments the argument definitions
@@ -1178,8 +1172,8 @@ class IrToTruffle(
             .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
           val shouldSuspend = value match {
-            case _: IR.Name => false
-            case _: IR.Literal.Text => false
+            case _: IR.Name           => false
+            case _: IR.Literal.Text   => false
             case _: IR.Literal.Number => false
             case _ =>
               shouldBeSuspended.getOrElse(

@@ -7,8 +7,7 @@ import com.typesafe.scalalogging.Logger
 
 import scala.util.control.NonFatal
 
-/**
-  * [[LockManager]] using file-based locks.
+/** [[LockManager]] using file-based locks.
   *
   * This is the [[LockManager]] that should be used in production as it is able
   * to synchronize locks between different processes.
@@ -24,13 +23,11 @@ import scala.util.control.NonFatal
   */
 abstract class FileLockManager extends LockManager {
 
-  /**
-    * Specifies the directory in which lockfiles should be created.
+  /** Specifies the directory in which lockfiles should be created.
     */
   def locksRoot: Path
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val channel = openChannel(resourceName)
@@ -43,8 +40,7 @@ abstract class FileLockManager extends LockManager {
     }
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def tryAcquireLock(
     resourceName: String,

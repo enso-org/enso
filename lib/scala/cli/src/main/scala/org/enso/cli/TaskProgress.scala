@@ -4,21 +4,18 @@ import java.util.concurrent.LinkedTransferQueue
 
 import scala.util.{Failure, Try}
 
-/**
-  * Clients can implement this trait to get progress updates.
+/** Clients can implement this trait to get progress updates.
   */
 trait ProgressListener[A] {
   def progressUpdate(done: Long, total: Option[Long]): Unit
   def done(result: Try[A]):                            Unit
 }
 
-/**
-  * Represents a long-running background task.
+/** Represents a long-running background task.
   */
 trait TaskProgress[A] {
 
-  /**
-    * Adds a progress listener to this task.
+  /** Adds a progress listener to this task.
     *
     * Even if the task is already finished, the [[ProgressListener.done]]
     * method should be fired with the result. This way, `done` is fired
@@ -27,8 +24,7 @@ trait TaskProgress[A] {
     */
   def addProgressListener(listener: ProgressListener[A]): Unit
 
-  /**
-    * Blocks and waits for the completion of the task.
+  /** Blocks and waits for the completion of the task.
     *
     * Optionally displays a progress bar in the terminal. Returns a [[Try]]
     * value that wraps the result.
@@ -39,8 +35,7 @@ trait TaskProgress[A] {
     if (showProgress) ProgressBar.waitWithProgress(this)
     else TaskProgress.waitForTask(this)
 
-  /**
-    * Alters the task by transforming its result with a function `f` that may
+  /** Alters the task by transforming its result with a function `f` that may
     * fail.
     *
     * The progress of applying `f` is not monitored - it is meant for functions
@@ -54,8 +49,7 @@ trait TaskProgress[A] {
   def flatMap[B](f: A => Try[B]): TaskProgress[B] =
     new MappedTask(this, f)
 
-  /**
-    * Alters the task by transforming its result with a function `f`.
+  /** Alters the task by transforming its result with a function `f`.
     *
     * The progress of applying `f` is not monitored - it is meant for functions
     * that do not take a very long time in comparison with the base task.
@@ -73,8 +67,7 @@ trait TaskProgress[A] {
 
 object TaskProgress {
 
-  /**
-    * Creates a task that fails immediately.
+  /** Creates a task that fails immediately.
     *
     * Useful for reporting early errors (before a background thread has even
     * been started for the task).
@@ -91,8 +84,7 @@ object TaskProgress {
       }
     }
 
-  /**
-    * Blocks and waits for the task to complete.
+  /** Blocks and waits for the task to complete.
     */
   def waitForTask[A](task: TaskProgress[A]): Try[A] = {
     val queue = new LinkedTransferQueue[Try[A]]()
@@ -106,8 +98,7 @@ object TaskProgress {
   }
 }
 
-/**
-  * Transforms the result of the `source` task with `f`.
+/** Transforms the result of the `source` task with `f`.
   *
   * Used internally by [[TaskProgress.flatMap]].
   */
@@ -124,8 +115,7 @@ private class MappedTask[A, B](source: TaskProgress[A], f: A => Try[B])
     })
 }
 
-/**
-  * A simple implementation of [[TaskProgress]] that can be used to report
+/** A simple implementation of [[TaskProgress]] that can be used to report
   * progress updates and mark completion of a task.
   */
 class TaskProgressImplementation[A] extends TaskProgress[A] {
@@ -146,8 +136,7 @@ class TaskProgressImplementation[A] extends TaskProgress[A] {
     }
   }
 
-  /**
-    * Marks the completion of this task.
+  /** Marks the completion of this task.
     *
     * All registered listeners are immediately notified. Any listeners added
     * later will also be notified as soon as they are added.
@@ -168,8 +157,7 @@ class TaskProgressImplementation[A] extends TaskProgress[A] {
     }
   }
 
-  /**
-    * Report a progress update to all registered listeners.
+  /** Report a progress update to all registered listeners.
     *
     * This operation is not synchronized, as it is not a problem if a just added
     * listener does not get the latest progress update.

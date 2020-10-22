@@ -18,8 +18,7 @@ import org.enso.launcher.{FileSystem, InfoLogger, OS}
 
 import scala.util.control.NonFatal
 
-/**
-  * Allows to [[uninstall]] an installed distribution.
+/** Allows to [[uninstall]] an installed distribution.
   *
   * @param manager a distribution manager instance which defines locations for
   *                the distribution that will be uninstalled
@@ -32,8 +31,7 @@ class DistributionUninstaller(
   private val autoConfirm = globalCLIOptions.autoConfirm
   private val logger      = Logger[DistributionUninstaller]
 
-  /**
-    * Uninstalls a locally installed (non-portable) distribution.
+  /** Uninstalls a locally installed (non-portable) distribution.
     *
     * Removes the launcher executable and the ENSO_DATA_DIRECTORY and
     * ENSO_CONFIG_DIRECTORY directories (unless they contain unexpected files).
@@ -56,8 +54,7 @@ class DistributionUninstaller(
     else uninstallUNIX()
   }
 
-  /**
-    * Uninstall strategy for OSes that can remove running executables.
+  /** Uninstall strategy for OSes that can remove running executables.
     *
     * Simply removes each component, starting with the ones that can potentially
     * be nested (as config and the binary can be inside of the data directory
@@ -70,8 +67,7 @@ class DistributionUninstaller(
     InfoLogger.info("Successfully uninstalled the distribution.")
   }
 
-  /**
-    * Uninstall strategy for Windows, where it is not possible to remove a
+  /** Uninstall strategy for Windows, where it is not possible to remove a
     * running executable.
     *
     * The executable has to be removed last as the program must terminate to do
@@ -95,8 +91,7 @@ class DistributionUninstaller(
     )
   }
 
-  /**
-    * Checks if the launcher is running in portable mode and terminates
+  /** Checks if the launcher is running in portable mode and terminates
     * execution if it does.
     *
     * It prints an explanation that uninstall can only be used with non-portable
@@ -117,8 +112,7 @@ class DistributionUninstaller(
     }
   }
 
-  /**
-    * Prints an explanation of what will be uninstalled and which directories
+  /** Prints an explanation of what will be uninstalled and which directories
     * will be removed and asks the user if they want to proceed.
     */
   private def askConfirmation(): Unit = {
@@ -142,8 +136,7 @@ class DistributionUninstaller(
     }
   }
 
-  /**
-    * True if the currently running executable is inside of the data root.
+  /** True if the currently running executable is inside of the data root.
     *
     * This is checked, because on Windows this will make removing data root more
     * complicated.
@@ -155,8 +148,7 @@ class DistributionUninstaller(
     binaryPath.startsWith(dataPath)
   }
 
-  /**
-    * Removes the configuration file and the ENSO_CONFIG_DIRECTORY if it does
+  /** Removes the configuration file and the ENSO_CONFIG_DIRECTORY if it does
     * not contain any other files (or if the user agreed to remove them too).
     */
   private def uninstallConfig(): Unit = {
@@ -173,13 +165,11 @@ class DistributionUninstaller(
     FileSystem.removeDirectoryIfEmpty(manager.paths.config)
   }
 
-  /**
-    * Files that are expected to be inside of the data root.
+  /** Files that are expected to be inside of the data root.
     */
   private val knownDataFiles = Seq("README.md", "NOTICE")
 
-  /**
-    * Directories that are expected to be inside of the data root, except for
+  /** Directories that are expected to be inside of the data root, except for
     * the locks directory which is handled separately.
     */
   private val knownDataDirectories =
@@ -187,8 +177,7 @@ class DistributionUninstaller(
       manager.LocallyInstalledDirectories.possibleDirectoriesInsideDataDirectory
     ) - manager.LOCK_DIRECTORY
 
-  /**
-    * Removes all files contained in the ENSO_DATA_DIRECTORY and possibly the
+  /** Removes all files contained in the ENSO_DATA_DIRECTORY and possibly the
     * directory itself.
     *
     * If `deferDataRootRemoval` is set, the directory itself is not removed
@@ -244,9 +233,9 @@ class DistributionUninstaller(
 
     val ignoredFiles = if (deferDataRootRemoval) Set("bin") else Set()
     val remainingFiles = FileSystem
-        .listDirectory(dataRoot)
-        .map(_.getFileName.toString)
-        .toSet -- ignoredFiles
+      .listDirectory(dataRoot)
+      .map(_.getFileName.toString)
+      .toSet -- ignoredFiles
     if (remainingFiles.nonEmpty) {
       handleRemainingFiles(
         manager.LocallyInstalledDirectories.ENSO_DATA_DIRECTORY,
@@ -260,8 +249,7 @@ class DistributionUninstaller(
     }
   }
 
-  /**
-    * Common logic for handling unexpected files in ENSO_DATA_DIRECTORY and
+  /** Common logic for handling unexpected files in ENSO_DATA_DIRECTORY and
     * ENSO_CONFIG_DIRECTORY.
     *
     * It asks the user if they want to remove these files unless `auto-confirm`
@@ -302,8 +290,7 @@ class DistributionUninstaller(
       }
     }
 
-  /**
-    * Uninstalls the executable on platforms that allow for removing running
+  /** Uninstalls the executable on platforms that allow for removing running
     * files.
     *
     * Simply removes the file.
@@ -312,8 +299,7 @@ class DistributionUninstaller(
     FileSystem.removeFileIfExists(manager.env.getPathToRunningExecutable)
   }
 
-  /**
-    * Moves the current launcher executable, so other processes cannot start it
+  /** Moves the current launcher executable, so other processes cannot start it
     * while uninstallation is in progress.
     *
     * It will be removed at the last stage of the uninstallation.
@@ -328,8 +314,7 @@ class DistributionUninstaller(
     newPath
   }
 
-  /**
-    * Uninstalls the executable on Windows where it is impossible to remove an
+  /** Uninstalls the executable on Windows where it is impossible to remove an
     * executable that is running.
     *
     * Uses a workaround implemented in [[InternalOpts]]. Has to be run at the
@@ -355,8 +340,7 @@ class DistributionUninstaller(
 
 object DistributionUninstaller {
 
-  /**
-    * Creates a default [[DistributionUninstaller]] using the default managers
+  /** Creates a default [[DistributionUninstaller]] using the default managers
     * and the provided CLI options.
     */
   def default(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =

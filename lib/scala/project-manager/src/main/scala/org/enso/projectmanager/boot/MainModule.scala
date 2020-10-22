@@ -30,8 +30,7 @@ import org.enso.projectmanager.service.{
 
 import scala.concurrent.ExecutionContext
 
-/**
-  * A main module containing all components of the project manager.
+/** A main module containing all components of the project manager.
   */
 class MainModule[
   F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Applicative: Async

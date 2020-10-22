@@ -69,8 +69,8 @@ case object TypeFunctions extends IRPass {
     ir: IR.Expression,
     @unused inlineContext: InlineContext
   ): IR.Expression =
-    ir.transformExpressions {
-      case a => resolveExpression(a)
+    ir.transformExpressions { case a =>
+      resolveExpression(a)
     }
 
   // === Pass Internals =======================================================
@@ -94,13 +94,12 @@ case object TypeFunctions extends IRPass {
     * @return `expr`, with any typing functions resolved
     */
   def resolveExpression(expr: IR.Expression): IR.Expression = {
-    expr.transformExpressions {
-      case app: IR.Application =>
-        val result = resolveApplication(app)
-        app
-          .getMetadata(DocumentationComments)
-          .map(doc => result.updateMetadata(DocumentationComments -->> doc))
-          .getOrElse(result)
+    expr.transformExpressions { case app: IR.Application =>
+      val result = resolveApplication(app)
+      app
+        .getMetadata(DocumentationComments)
+        .map(doc => result.updateMetadata(DocumentationComments -->> doc))
+        .getOrElse(result)
     }
   }
 

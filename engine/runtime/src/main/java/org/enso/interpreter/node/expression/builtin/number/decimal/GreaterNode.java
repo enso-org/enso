@@ -34,7 +34,6 @@ public abstract class GreaterNode extends Node {
 
   @Fallback
   boolean doOther(double _this, Object that) {
-         throw new TypeError("Unexpected type provided for argument `that` in Decimal.>", this);
-
+    throw new TypeError("Unexpected type provided for argument `that` in Decimal.>", this);
   }
 }

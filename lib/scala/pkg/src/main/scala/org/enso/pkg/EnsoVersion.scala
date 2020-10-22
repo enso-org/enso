@@ -4,13 +4,11 @@ import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import nl.gn0s1s.bump.SemVer
 
-/**
-  * Represents the engine version that is associated with a project.
+/** Represents the engine version that is associated with a project.
   */
 sealed trait EnsoVersion
 
-/**
-  * Represents `default` Enso version.
+/** Represents `default` Enso version.
   *
   * If `enso-version` is set to `default`, the locally default Enso engine
   * version is used for the project.
@@ -18,27 +16,23 @@ sealed trait EnsoVersion
 case object DefaultEnsoVersion extends EnsoVersion {
   private val defaultEnsoVersion = "default"
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = defaultEnsoVersion
 }
 
-/**
-  * An exact semantic versioning string.
+/** An exact semantic versioning string.
   */
 case class SemVerEnsoVersion(version: SemVer) extends EnsoVersion {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = version.toString
 }
 
 object EnsoVersion {
 
-  /**
-    * [[Decoder]] instance allowing to parse [[EnsoVersion]].
+  /** [[Decoder]] instance allowing to parse [[EnsoVersion]].
     */
   implicit val decoder: Decoder[EnsoVersion] = { json =>
     json.as[String].flatMap { string =>
@@ -57,8 +51,7 @@ object EnsoVersion {
     }
   }
 
-  /**
-    * [[Encoder]] instance allowing to convert [[EnsoVersion]] to JSON or YAML.
+  /** [[Encoder]] instance allowing to convert [[EnsoVersion]] to JSON or YAML.
     */
   implicit val encoder: Encoder[EnsoVersion] = { version =>
     version.toString.asJson

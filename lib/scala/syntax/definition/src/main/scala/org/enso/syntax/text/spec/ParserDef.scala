@@ -748,7 +748,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
           case Some(line) => line.toOptional +: current.lines.reverse
         }
         val line :: lines = (current.emptyLines
-            .map(AST.Block.Line(None, _)): List[AST.Block.OptLine]) ++ body
+          .map(AST.Block.Line(None, _)): List[AST.Block.OptLine]) ++ body
         val module = AST.Module(line, lines)
         result.current = Some(module)
         logger.endGroup()

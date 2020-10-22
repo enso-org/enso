@@ -5,8 +5,7 @@ import io.circe.{Decoder, Encoder, Json}
 import scala.annotation.unused
 import scala.reflect.ClassTag
 
-/**
-  * Represents valid JSON RPC request ids.
+/** Represents valid JSON RPC request ids.
   */
 sealed trait Id
 
@@ -27,8 +26,7 @@ object Id {
     .or(Decoder[Int].map(Number).widen[Id])
 }
 
-/**
-  * An object that can be used as params or result for a protocol message that
+/** An object that can be used as params or result for a protocol message that
   * does not need params or result.
   */
 case object Unused {
@@ -40,8 +38,7 @@ case object Unused {
   }
 }
 
-/**
-  * A typeclass implemented by all protocol messages that have params.
+/** A typeclass implemented by all protocol messages that have params.
   * Declares the type of params associated with a given method.
   */
 trait HasParams[M <: Method] {
@@ -51,8 +48,7 @@ object HasParams {
   type Aux[M <: Method, P] = HasParams[M] { type Params = P }
 }
 
-/**
-  * A typeclass implemented by all protocol messages that have results.
+/** A typeclass implemented by all protocol messages that have results.
   * Declares the type of result associated with a given method.
   */
 trait HasResult[M <: Method] {
@@ -62,14 +58,12 @@ object HasResult {
   type Aux[M <: Method, Res] = HasResult[M] { type Result = Res }
 }
 
-/**
-  * A superclass for supported API methods.
+/** A superclass for supported API methods.
   * @param name the method name.
   */
 abstract class Method(val name: String)
 
-/**
-  * The basic JSON RPC request type.
+/** The basic JSON RPC request type.
   */
 case class Request[+M <: Method, +Params](
   method: M,
@@ -77,15 +71,13 @@ case class Request[+M <: Method, +Params](
   params: Params
 )(implicit @unused ev: HasParams.Aux[M, Params])
 
-/**
-  * The basic JSON RPC notification type.
+/** The basic JSON RPC notification type.
   */
 case class Notification[+M <: Method, +Params](method: M, params: Params)(
   implicit @unused ev: HasParams.Aux[M, Params]
 )
 
-/**
-  * The basic JSON RPC successful response type.
+/** The basic JSON RPC successful response type.
   */
 case class ResponseResult[+M <: Method, +Result](
   method: M,
@@ -93,20 +85,17 @@ case class ResponseResult[+M <: Method, +Result](
   data: Result
 )(implicit @unused ev: HasResult.Aux[M, Result])
 
-/**
-  * The basic JSON RPC error response type.
+/** The basic JSON RPC error response type.
   */
 case class ResponseError(id: Option[Id], error: Error)
 
-/**
-  * A basic error type for responses.
+/** A basic error type for responses.
   * @param code the error code.
   * @param message the error message.
   */
 abstract class Error(val code: Int, val message: String)
 
-/**
-  * Builtin error types, defined by JSON RPC.
+/** Builtin error types, defined by JSON RPC.
   */
 object Errors {
   case object ParseError     extends Error(-32700, "Parse error")
@@ -122,8 +111,7 @@ object Protocol {
   private case class InexhaustivePayloadsSerializerError(payload: Any)
       extends Exception
 
-  /**
-    * Creates an empty (no messages) instance of protocol.
+  /** Creates an empty (no messages) instance of protocol.
     * @return an empty instance of protocol.
     */
   def empty =
@@ -138,17 +126,15 @@ object Protocol {
     )
 }
 
-/**
-  * A type-safe wrapper for a JSON params decoder, allowing to construct valid
+/** A type-safe wrapper for a JSON params decoder, allowing to construct valid
   * [[Request]] and [[Notification]] objects.
   */
-class ParamsDecoder[+M <: Method, +Params](method: M)(
-  implicit ev: HasParams.Aux[M, Params],
+class ParamsDecoder[+M <: Method, +Params](method: M)(implicit
+  ev: HasParams.Aux[M, Params],
   decoder: Decoder[Params]
 ) {
 
-  /**
-    * Decodes given params into a request of this decoder's method.
+  /** Decodes given params into a request of this decoder's method.
     * @param id the request id.
     * @param params the request params.
     * @return an instance of request with the params decoded, if valid.
@@ -156,8 +142,7 @@ class ParamsDecoder[+M <: Method, +Params](method: M)(
   def buildRequest(id: Id, params: Json): Option[Request[M, Params]] =
     decoder.decodeJson(params).toOption.map(Request(method, id, _))
 
-  /**
-    * Decodes given params into a notification of this decoder's method.
+  /** Decodes given params into a notification of this decoder's method.
     * @param params the notification params.
     * @return an instance of notification with the params decoded, if valid.
     */
@@ -165,16 +150,14 @@ class ParamsDecoder[+M <: Method, +Params](method: M)(
     decoder.decodeJson(params).toOption.map(Notification(method, _))
 }
 
-/**
-  * A type-safe wrapper for a JSON results decoder.
+/** A type-safe wrapper for a JSON results decoder.
   */
-class ResultDecoder[+M <: Method, +Result](method: M)(
-  implicit ev: HasResult.Aux[M, Result],
+class ResultDecoder[+M <: Method, +Result](method: M)(implicit
+  ev: HasResult.Aux[M, Result],
   decoder: Decoder[Result]
 ) {
 
-  /**
-    * Builds a response for this decoder's method from JSON result.
+  /** Builds a response for this decoder's method from JSON result.
     * @param id the request id.
     * @param result the JSON encoded result payload.
     * @return an instance of response with the given result, if valid.
@@ -183,8 +166,7 @@ class ResultDecoder[+M <: Method, +Result](method: M)(
     decoder.decodeJson(result).toOption.map(ResponseResult(method, id, _))
 }
 
-/**
-  * A description containing all the supported methods and ways of serializing
+/** A description containing all the supported methods and ways of serializing
   * their params and results.
   *
   * @param methods all the supported methods.
@@ -212,16 +194,14 @@ case class Protocol(
   private val methodsMap: Map[String, Method] =
     methods.map(tag => (tag.name, tag)).toMap
 
-  /**
-    * Resolves a method by name.
+  /** Resolves a method by name.
     *
     * @param name the method name.
     * @return an object representing the method, if exists.
     */
   def resolveMethod(name: String): Option[Method] = methodsMap.get(name)
 
-  /**
-    * Looks up a params decoder for a given method.
+  /** Looks up a params decoder for a given method.
     *
     * @param method the method to lookup decoder for.
     * @return the params decoder, if found.
@@ -231,8 +211,7 @@ case class Protocol(
   ): Option[ParamsDecoder[Method, Any]] =
     paramsDecoders.get(method)
 
-  /**
-    * Looks up a result decoder for a given method.
+  /** Looks up a result decoder for a given method.
     *
     * @param method the method to lookup decoder for.
     * @return the result decoder, if found.
@@ -240,8 +219,7 @@ case class Protocol(
   def getResultDecoder(method: Method): Option[ResultDecoder[Method, Any]] =
     resultDecoders.get(method)
 
-  /**
-    * Looks up a proper error object by error code.
+  /** Looks up a proper error object by error code.
     *
     * @param code the error code to look up.
     * @return the corresponding custom error object, if exists.
@@ -249,8 +227,7 @@ case class Protocol(
   def resolveError(code: Int): Option[Error] =
     builtinErrors.get(code).orElse(customErrors.get(code))
 
-  /**
-    * Adds a request method to this protocol.
+  /** Adds a request method to this protocol.
     *
     * @param method the method to add.
     * @tparam M the method's type.
@@ -262,8 +239,8 @@ case class Protocol(
     M <: Method,
     Params: ClassTag,
     Result: ClassTag
-  ](method: M)(
-    implicit paramsEv: HasParams.Aux[M, Params],
+  ](method: M)(implicit
+    paramsEv: HasParams.Aux[M, Params],
     resultEv: HasResult.Aux[M, Result],
     paramsEncoder: Encoder[Params],
     paramsDecoder: Decoder[Params],
@@ -271,11 +248,9 @@ case class Protocol(
     resultDecoder: Decoder[Result]
   ): Protocol =
     copy(
-      methods = methods + method,
-      paramsDecoders =
-        paramsDecoders + (method -> new ParamsDecoder(method)),
-      resultDecoders =
-        resultDecoders + (method -> new ResultDecoder(method)),
+      methods        = methods + method,
+      paramsDecoders = paramsDecoders + (method -> new ParamsDecoder(method)),
+      resultDecoders = resultDecoders + (method -> new ResultDecoder(method)),
       payloadsEncoder = {
         case params: Params => paramsEncoder(params)
         case result: Result => resultEncoder(result)
@@ -283,8 +258,7 @@ case class Protocol(
       }
     )
 
-  /**
-    * Adds a notification method to this protocol.
+  /** Adds a notification method to this protocol.
     *
     * @param method the method to add.
     * @tparam M the method's type.
@@ -294,23 +268,21 @@ case class Protocol(
   def registerNotification[
     M <: Method,
     Params: ClassTag
-  ](method: M)(
-    implicit paramsEv: HasParams.Aux[M, Params],
+  ](method: M)(implicit
+    paramsEv: HasParams.Aux[M, Params],
     paramsEncoder: Encoder[Params],
     paramsDecoder: Decoder[Params]
   ): Protocol =
     copy(
-      methods = methods + method,
-      paramsDecoders =
-        paramsDecoders + (method -> new ParamsDecoder(method)),
+      methods        = methods + method,
+      paramsDecoders = paramsDecoders + (method -> new ParamsDecoder(method)),
       payloadsEncoder = {
         case params: Params => paramsEncoder(params)
         case other          => payloadsEncoder(other)
       }
     )
 
-  /**
-    * Adds a new error code to this protocol.
+  /** Adds a new error code to this protocol.
     * @param error the error to add.
     * @return a new [[Protocol]], recognizing `error` code.
     */

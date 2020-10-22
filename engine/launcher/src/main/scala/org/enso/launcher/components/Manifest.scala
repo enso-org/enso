@@ -12,8 +12,7 @@ import org.enso.pkg.SemVerJson._
 
 import scala.util.{Failure, Try, Using}
 
-/**
-  * Contains release metadata read from the manifest file that is attached to
+/** Contains release metadata read from the manifest file that is attached to
   * each release.
   *
   * @param minimumLauncherVersion The minimum required version of the launcher
@@ -35,8 +34,7 @@ case class Manifest(
   brokenMark: Boolean
 ) {
 
-  /**
-    * Returns a [[RuntimeVersion]] which encapsulates all version information
+  /** Returns a [[RuntimeVersion]] which encapsulates all version information
     * needed to find the runtime required for this release.
     */
   def runtimeVersion: RuntimeVersion =
@@ -48,13 +46,11 @@ case class Manifest(
 
 object Manifest {
 
-  /**
-    * Defines the name under which the manifest is included in the releases.
+  /** Defines the name under which the manifest is included in the releases.
     */
   val DEFAULT_MANIFEST_NAME = "manifest.yaml"
 
-  /**
-    * Context used to substitute context-dependent variables in an JVM option.
+  /** Context used to substitute context-dependent variables in an JVM option.
     *
     * The context depends on what engine is being run on the JVM.
     *
@@ -63,8 +59,7 @@ object Manifest {
     */
   case class JVMOptionsContext(enginePackagePath: Path)
 
-  /**
-    * Represents an option that is added to the JVM running an engine.
+  /** Represents an option that is added to the JVM running an engine.
     *
     * @param value option value, possibly containing variables that will be
     *              substituted
@@ -73,15 +68,13 @@ object Manifest {
     */
   case class JVMOption(value: String, osRestriction: Option[OS]) {
 
-    /**
-      * Checks if the option applies on the operating system that is currently
+    /** Checks if the option applies on the operating system that is currently
       * running.
       */
     def isRelevant: Boolean =
       osRestriction.isEmpty || osRestriction.contains(OS.operatingSystem)
 
-    /**
-      * Substitutes any variables based on the provided `context`.
+    /** Substitutes any variables based on the provided `context`.
       */
     def substitute(context: JVMOptionsContext): String =
       value.replace(
@@ -96,8 +89,7 @@ object Manifest {
       val value = "value"
     }
 
-    /**
-      * [[Decoder]] instance that allows to parse the [[JVMOption]] from the
+    /** [[Decoder]] instance that allows to parse the [[JVMOption]] from the
       * YAML manifest.
       */
     implicit val decoder: Decoder[JVMOption] = { json =>
@@ -113,8 +105,7 @@ object Manifest {
     }
   }
 
-  /**
-    * Tries to load the manifest at the given path.
+  /** Tries to load the manifest at the given path.
     *
     * Returns None if the manifest could not be opened or could not be parsed.
     */
@@ -128,8 +119,7 @@ object Manifest {
       Failure(ManifestLoadingError.fromThrowable(error))
     }
 
-  /**
-    * Parses the manifest from a string containing a YAML definition.
+  /** Parses the manifest from a string containing a YAML definition.
     *
     * Returns None if the definition cannot be parsed.
     */
@@ -143,22 +133,19 @@ object Manifest {
       }
   }
 
-  /**
-    * Indicates an error that prevented loading the engine manifest.
+  /** Indicates an error that prevented loading the engine manifest.
     */
   case class ManifestLoadingError(message: String, cause: Throwable)
       extends RuntimeException(message, cause) {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def toString: String = message
   }
 
   object ManifestLoadingError {
 
-    /**
-      * Creates a [[ManifestLoadingError]] by wrapping another [[Throwable]].
+    /** Creates a [[ManifestLoadingError]] by wrapping another [[Throwable]].
       *
       * Special logic is used for [[io.circe.Error]] to display the error
       * summary in a human-readable way.

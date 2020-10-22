@@ -4,8 +4,7 @@ import java.util.UUID
 
 import scala.concurrent.ExecutionContext
 
-/**
-  *  The config of the running Language Server instance.
+/**  The config of the running Language Server instance.
   *
   * @param interface a interface that the server listen to
   * @param rpcPort a rpc port that the server listen to

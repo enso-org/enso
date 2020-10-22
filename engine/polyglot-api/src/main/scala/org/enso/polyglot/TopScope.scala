@@ -2,8 +2,7 @@ package org.enso.polyglot
 
 import org.graalvm.polyglot.Value
 
-/**
-  * Represents the top scope of Enso execution context
+/** Represents the top scope of Enso execution context
   *
   * @param value the polyglot value of this scope
   */
@@ -18,8 +17,7 @@ class TopScope(private val value: Value) {
   def getModule(name: String): Module =
     new Module(value.invokeMember(GET_MODULE, name))
 
-  /**
-    * Creates a new, unregistered module.
+  /** Creates a new, unregistered module.
     *
     * The returned module is not accessible through [[getModule()]].
     *

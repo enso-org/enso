@@ -9,8 +9,7 @@ import org.enso.loggingservice.internal.protocol.{
   WSLogMessage
 }
 
-/**
-  * The internal log message that is used for local logging.
+/** The internal log message that is used for local logging.
   *
   * @param level log level
   * @param timestamp timestamp indicating when the message was created
@@ -26,8 +25,7 @@ case class InternalLogMessage(
   exception: Option[Throwable]
 ) extends BaseLogMessage[Throwable] {
 
-  /**
-    * Converts to [[WSLogMessage]] by serializing the attached exception.
+  /** Converts to [[WSLogMessage]] by serializing the attached exception.
     */
   def toLogMessage: WSLogMessage =
     WSLogMessage(
@@ -41,8 +39,7 @@ case class InternalLogMessage(
 
 object InternalLogMessage {
 
-  /**
-    * Creates a log message with the timestamp set to the current instant.
+  /** Creates a log message with the timestamp set to the current instant.
     */
   def apply(
     level: LogLevel,

@@ -22,8 +22,7 @@ import org.enso.launcher.installation.{
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.loggingservice.LogLevel
 
-/**
-  * Defines the CLI commands and options for the program.
+/** Defines the CLI commands and options for the program.
   *
   * Each command is parametrized with a config that describes global CLI options
   * set at the top-level and returns an integer which determines the programs
@@ -571,8 +570,7 @@ object LauncherApplication {
     }
   }
 
-  /**
-    * Application initializer that is run after handling of the internal
+  /** Application initializer that is run after handling of the internal
     * options.
     */
   private def initializeApp(): Unit = {

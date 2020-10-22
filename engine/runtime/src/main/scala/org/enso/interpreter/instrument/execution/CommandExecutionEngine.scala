@@ -13,8 +13,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
-/**
-  * This component schedules the execution of commands. It keep a queue of
+/** This component schedules the execution of commands. It keep a queue of
   * pending commands and activates command execution in FIFO order.
   *
   * @param interpreterContext suppliers of services that provide interpreter

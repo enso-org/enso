@@ -20,8 +20,7 @@ import org.enso.languageserver.util.file.PathUtils
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for [[WriteFileCommand]].
+/** A request handler for [[WriteFileCommand]].
   *
   * @param requestTimeout a request timeout
   * @param fileManager a file system manager actor
@@ -39,18 +38,17 @@ class WriteBinaryFileHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = {
-    case msg: InboundMessage =>
-      val payload =
-        msg.payload(new WriteFileCommand).asInstanceOf[WriteFileCommand]
-      val path     = PathUtils.convertBinaryPath(payload.path())
-      val bytes    = payload.contentsAsByteBuffer()
-      val contents = Array.fill[Byte](bytes.remaining())(0)
-      bytes.get(contents)
-      fileManager ! FileManagerProtocol.WriteBinaryFile(path, contents)
-      val cancellable = context.system.scheduler
-        .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(msg.messageId(), cancellable))
+  private def requestStage: Receive = { case msg: InboundMessage =>
+    val payload =
+      msg.payload(new WriteFileCommand).asInstanceOf[WriteFileCommand]
+    val path     = PathUtils.convertBinaryPath(payload.path())
+    val bytes    = payload.contentsAsByteBuffer()
+    val contents = Array.fill[Byte](bytes.remaining())(0)
+    bytes.get(contents)
+    fileManager ! FileManagerProtocol.WriteBinaryFile(path, contents)
+    val cancellable = context.system.scheduler
+      .scheduleOnce(requestTimeout, self, RequestTimeout)
+    context.become(responseStage(msg.messageId(), cancellable))
   }
 
   private def responseStage(
@@ -92,8 +90,7 @@ class WriteBinaryFileHandler(
 
 object WriteBinaryFileHandler {
 
-  /**
-    * Creates a configuration object used to create a [[WriteBinaryFileHandler]]
+  /** Creates a configuration object used to create a [[WriteBinaryFileHandler]]
     *
     * @param timeout a request timeout
     * @param fileManager a file system manager actor

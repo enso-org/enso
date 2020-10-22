@@ -11,8 +11,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookRunner.
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.util.UnhandledLogging
 
-/**
-  * An actor that invokes a shutdown hook.
+/** An actor that invokes a shutdown hook.
   *
   * @param projectId a project id for which a hook is invoked
   * @param hooks a hook to invoke
@@ -30,11 +29,10 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
     self ! Run
   }
 
-  override def receive: Receive = {
-    case Run =>
-      log.info(s"Firing shutdown hooks for project with id=$projectId")
-      Exec[F].exec { traverse(hooks) { _.execute() } } pipeTo self
-      context.become(running)
+  override def receive: Receive = { case Run =>
+    log.info(s"Firing shutdown hooks for project with id=$projectId")
+    Exec[F].exec { traverse(hooks) { _.execute() } } pipeTo self
+    context.become(running)
   }
 
   private def running: Receive = {
@@ -53,8 +51,8 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
   private def traverse[A, B](
     fa: List[A]
   )(f: A => F[Nothing, B]): F[Nothing, List[B]] =
-    fa.foldLeft(CovariantFlatMap[F].pure(List.empty[B])) {
-      case (tail, hook) => map2(f(hook), tail)(_ :: _)
+    fa.foldLeft(CovariantFlatMap[F].pure(List.empty[B])) { case (tail, hook) =>
+      map2(f(hook), tail)(_ :: _)
     }
 
   private def map2[A, B, C](fa: F[Nothing, A], fb: F[Nothing, B])(
@@ -71,8 +69,7 @@ object ShutdownHookRunner {
 
   private case object Run
 
-  /**
-    * Creates a configuration object used to create a [[ShutdownHookRunner]].
+  /** Creates a configuration object used to create a [[ShutdownHookRunner]].
     *
     * @param projectId a project id for which a hook is invoked
     * @param hooks a hook to invoke

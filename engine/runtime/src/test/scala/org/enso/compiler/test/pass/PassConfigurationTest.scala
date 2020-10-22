@@ -15,7 +15,7 @@ class PassConfigurationTest extends CompilerTest {
     override type Metadata = IRPass.Metadata.Empty
     override type Config   = Configuration1
 
-    override val precursorPasses: Seq[IRPass] = List()
+    override val precursorPasses: Seq[IRPass]   = List()
     override val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
@@ -37,7 +37,7 @@ class PassConfigurationTest extends CompilerTest {
     override type Metadata = IRPass.Metadata.Empty
     override type Config   = Configuration2
 
-    override val precursorPasses: Seq[IRPass] = List()
+    override val precursorPasses: Seq[IRPass]   = List()
     override val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
@@ -61,9 +61,9 @@ class PassConfigurationTest extends CompilerTest {
     "allow adding configuration pairs" in {
       val config = PassConfiguration()
 
-      val pass = TestPass1
+      val pass       = TestPass1
       val passConfig = TestPass1.Configuration1()
-      val depPair = pass -->> passConfig
+      val depPair    = pass -->> passConfig
 
       config.update(depPair)
       config.get(pass) shouldEqual Some(passConfig)

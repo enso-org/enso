@@ -2,8 +2,7 @@ package org.enso.launcher.releases.fallback.staticwebsite
 
 import org.enso.launcher.releases.{Asset, Release}
 
-/**
-  * A [[Release]] provided by the [[FileStorageFallbackReleaseProvider]].
+/** A [[Release]] provided by the [[FileStorageFallbackReleaseProvider]].
   *
   * @param tag tag identifying the release
   * @param assetNames filenames of assets included in the release
@@ -18,8 +17,7 @@ case class FallbackRelease(
   root: Seq[String]
 ) extends Release {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def assets: Seq[Asset] =
     assetNames.map(name => FallbackAsset(name, storage, root))
@@ -27,8 +25,7 @@ case class FallbackRelease(
 
 object FallbackRelease {
 
-  /**
-    * Creates a [[FallbackRelease]] from a [[ReleaseDescription]], a
+  /** Creates a [[FallbackRelease]] from a [[ReleaseDescription]], a
     * [[FileStorage]] and a path representing the root of the releases
     * directory in that storage.
     */

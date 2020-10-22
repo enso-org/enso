@@ -86,15 +86,16 @@ class AnnotationsTest extends CompilerTest {
         .asInstanceOf[IR.Error.Resolution]
         .reason shouldEqual IR.Error.Resolution.UnexpectedTailCallAnnotation
 
-      val correct = items
-        .returnValue
+      val correct = items.returnValue
         .asInstanceOf[IR.Application.Prefix]
         .arguments(0)
         .value
         .asInstanceOf[IR.Application.Prefix]
       correct.function.asInstanceOf[IR.Name].name shouldEqual "bar"
       correct.arguments.length shouldEqual 1
-      correct.getMetadata(Annotations) should contain(Annotations.TailCallAnnotated)
+      correct.getMetadata(Annotations) should contain(
+        Annotations.TailCallAnnotated
+      )
     }
   }
 }

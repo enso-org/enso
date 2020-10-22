@@ -6,8 +6,7 @@ import org.enso.launcher.releases.fallback.FallbackReleaseProvider
 
 import scala.util.Try
 
-/**
-  * Implements a fallback release provider which queries a simple static web
+/** Implements a fallback release provider which queries a simple static web
   * storage.
   *
   * This provider can use for example AWS S3 as its backend.
@@ -35,19 +34,16 @@ class StaticWebsiteFallbackReleaseProvider(
   private val provider =
     new FileStorageFallbackReleaseProvider(storage, releasesDirectory)
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def isEnabled: Boolean = provider.isEnabled
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def releaseForTag(tag: String): Try[Release] =
     provider.releaseForTag(tag)
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def listReleases(): Try[Seq[Release]] = provider.listReleases()
 }

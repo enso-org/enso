@@ -4,7 +4,6 @@ import org.enso.ast.Ast
 
 import scala.annotation.unused
 
-
 /** This is the Enso language parser.
   *
   * It is a wrapper of parser written in Rust that uses JNI to efficiently
@@ -20,16 +19,17 @@ import scala.annotation.unused
   * is going to fail at runtime with `UnsatisfiedLinkingError`.
   */
 class Parser private () {
-  /**  Parses a content of a single source file. */
+
+  /** Parses a content of a single source file. */
   @native def parseStr(@unused input: String): Ast.AnyAst
 
-  /**  Parses a single source file. */
+  /** Parses a single source file. */
   @native def parseFile(@unused filename: String): Ast.AnyAst
 
-  /**  Parses a content of a single source file into a stream of tokens. */
+  /** Parses a content of a single source file into a stream of tokens. */
   @native def lexStr(@unused input: String): Ast.AnyAst
 
-  /**  Parses a single source file into a stream of tokens. */
+  /** Parses a single source file into a stream of tokens. */
   @native def lexFile(@unused filename: String): Ast.AnyAst
 }
 

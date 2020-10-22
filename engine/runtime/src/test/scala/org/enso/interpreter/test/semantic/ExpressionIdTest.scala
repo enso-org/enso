@@ -1,16 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{
-  InterpreterTest,
-  InterpreterContext,
-  Metadata
-}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest, Metadata}
 
 class ExpressionIdTest extends InterpreterTest {
   override def subject: String = "Expression IDs"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
     "be correct in simple arithmetic expressions" in
     withIdsInstrumenter { instrumenter =>

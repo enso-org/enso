@@ -3,8 +3,7 @@ package org.enso.languageserver.filemanager
 import java.io.File
 import java.time.OffsetDateTime
 
-/**
-  * A representation of the attributes of a file.
+/** A representation of the attributes of a file.
   *
   * @param creationTime creation time
   * @param lastAccessTime last access time
@@ -25,8 +24,7 @@ case class FileAttributes(
 
 object FileAttributes {
 
-  /**
-    * Create attributes from filesystem attributes [[FileSystemApi.Attributes]].
+  /** Create attributes from filesystem attributes [[FileSystemApi.Attributes]].
     *
     * @param root a root path
     * @param path a path to the file system object

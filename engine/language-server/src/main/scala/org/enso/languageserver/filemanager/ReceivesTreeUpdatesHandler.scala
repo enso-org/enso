@@ -14,8 +14,7 @@ import org.enso.languageserver.data.{
 import org.enso.languageserver.effect._
 import org.enso.languageserver.util.UnhandledLogging
 
-/**
-  * Handles `receivesTreeUpdates` capabilities acquisition and release.
+/** Handles `receivesTreeUpdates` capabilities acquisition and release.
   *
   * == Implementation ==
   *
@@ -64,8 +63,8 @@ final class ReceivesTreeUpdatesHandler(
 
   private def withStore(store: Store): Receive = {
     case AcquireCapability(
-        client,
-        CapabilityRegistration(ReceivesTreeUpdates(path))
+          client,
+          CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
       store.getWatcher(path) match {
         case Some(watcher) =>
@@ -83,8 +82,8 @@ final class ReceivesTreeUpdatesHandler(
       }
 
     case ReleaseCapability(
-        client,
-        CapabilityRegistration(ReceivesTreeUpdates(path))
+          client,
+          CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
       store.getWatcher(path) match {
         case Some(watcher) =>
@@ -100,15 +99,13 @@ final class ReceivesTreeUpdatesHandler(
 
 object ReceivesTreeUpdatesHandler {
 
-  /**
-    * Internal state of a [[ReceivesTreeUpdatesHandler]].
+  /** Internal state of a [[ReceivesTreeUpdatesHandler]].
     *
     * @param watchers mappings of a path watcher with a path
     */
   case class Store(watchers: Map[Path, ActorRef]) {
 
-    /**
-      * Returns watcher associated with the provided path.
+    /** Returns watcher associated with the provided path.
       *
       * @param path watched path
       * @return optional watcher associated with this path
@@ -116,8 +113,7 @@ object ReceivesTreeUpdatesHandler {
     def getWatcher(path: Path): Option[ActorRef] =
       watchers.get(path)
 
-    /**
-      * Add new watcher with the path to the store.
+    /** Add new watcher with the path to the store.
       *
       * @param watcher path watcher
       * @param path watched path
@@ -126,8 +122,7 @@ object ReceivesTreeUpdatesHandler {
     def addWatcher(watcher: ActorRef, path: Path): Store =
       copy(watchers = watchers + (path -> watcher))
 
-    /**
-      * Remove watcher from the store.
+    /** Remove watcher from the store.
       *
       * @param watcher path watcher
       * @return updated store
@@ -142,8 +137,7 @@ object ReceivesTreeUpdatesHandler {
       new Store(Map())
   }
 
-  /**
-    * Creates a configuration object used to create a
+  /** Creates a configuration object used to create a
     * [[ReceivesTreeUpdatesHandler]].
     *
     * @param config configuration

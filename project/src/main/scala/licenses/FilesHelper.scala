@@ -7,8 +7,7 @@ import scala.collection.JavaConverters._
 
 object FilesHelper {
 
-  /**
-    * A helper method that recursively traverses the directory structure at
+  /** A helper method that recursively traverses the directory structure at
     * `root` and collects results of calling `action` on each encountered entry.
     *
     * The action is called for all kinds of entries that are encountered.

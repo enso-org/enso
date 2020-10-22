@@ -14,8 +14,7 @@ import org.enso.interpreter.runtime.Module
 
 import scala.collection.mutable
 
-/**
-  * An exception signaling a loop in the export statements.
+/** An exception signaling a loop in the export statements.
   * @param modules the modules forming the cycle.
   */
 case class ExportCycleException(modules: List[Module])
@@ -142,21 +141,19 @@ class ExportsResolution {
       val allExported = explicitlyExported ++ transitivelyExported
       val unified = allExported
         .groupBy(_.module)
-        .map {
-          case (mod, items) =>
-            val name = items.collectFirst {
-              case ExportedModule(_, Some(n), _) => n
-            }
-            val itemsUnion = SymbolRestriction.Union(items.map(_.symbols))
-            ExportedModule(mod, name, itemsUnion)
+        .map { case (mod, items) =>
+          val name = items.collectFirst { case ExportedModule(_, Some(n), _) =>
+            n
+          }
+          val itemsUnion = SymbolRestriction.Union(items.map(_.symbols))
+          ExportedModule(mod, name, itemsUnion)
         }
         .toList
       exports(node.module) = unified
     }
-    exports.foreach {
-      case (module, exports) =>
-        getBindings(module).resolvedExports =
-          exports.map(ex => ex.copy(symbols = ex.symbols.optimize))
+    exports.foreach { case (module, exports) =>
+      getBindings(module).resolvedExports =
+        exports.map(ex => ex.copy(symbols = ex.symbols.optimize))
     }
   }
 
@@ -191,14 +188,13 @@ class ExportsResolution {
         ownPolyglotBindings,
         exportedModules,
         reExportedSymbols
-      ).flatten.groupBy(_._1).map {
-        case (m, names) => (m, names.flatMap(_._2).distinct)
+      ).flatten.groupBy(_._1).map { case (m, names) =>
+        (m, names.flatMap(_._2).distinct)
       }
     }
   }
 
-  /**
-    * Performs exports resolution on a selected set of modules.
+  /** Performs exports resolution on a selected set of modules.
     *
     * The exports graph is validated and stored in the individual modules,
     * allowing further use.

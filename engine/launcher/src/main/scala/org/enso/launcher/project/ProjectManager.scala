@@ -7,8 +7,7 @@ import org.enso.pkg.PackageManager
 
 import scala.util.{Failure, Try}
 
-/**
-  * A helper class for project management.
+/** A helper class for project management.
   *
   * It allows to create new project, open existing ones or traverse the
   * directory tree to find a project based on a path inside it.
@@ -17,8 +16,7 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
 
   private val packageManager = PackageManager.Default
 
-  /**
-    * Tries to load the project at the provided `path`.
+  /** Tries to load the project at the provided `path`.
     */
   def loadProject(path: Path): Try[Project] =
     packageManager
@@ -26,8 +24,7 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
       .map(new Project(_, globalConfigurationManager))
       .recoverWith(error => Failure(ProjectLoadingError(path, error)))
 
-  /**
-    * Traverses the directory tree looking for a project in one of the ancestors
+  /** Traverses the directory tree looking for a project in one of the ancestors
     * of the provided `path`.
     *
     * If a package file is missing in a directory, its ancestors are searched

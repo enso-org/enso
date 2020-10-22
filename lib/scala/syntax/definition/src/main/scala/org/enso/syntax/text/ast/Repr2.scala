@@ -154,10 +154,13 @@ object Repr {
     implicit val monoidForBuilder: Monoid[Builder] = new Monoid[Builder] {
       def empty: Builder = Empty()
       def combine(l: Builder, r: Builder): Builder =
-        Builder(l.span + r.span, (bldr: StringBuilder) => {
-          l.buildMe(bldr)
-          r.buildMe(bldr)
-        })
+        Builder(
+          l.span + r.span,
+          (bldr: StringBuilder) => {
+            l.buildMe(bldr)
+            r.buildMe(bldr)
+          }
+        )
     }
 
     def Empty()                     = Builder(0, identity(_): Unit)

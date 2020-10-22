@@ -7,38 +7,32 @@ import org.enso.cli.arguments.Argument
 import org.enso.launcher.cli.Arguments._
 import org.enso.pkg.SemVerJson._
 
-/**
-  * Default version that is used when launching Enso outside of projects and
+/** Default version that is used when launching Enso outside of projects and
   * when creating new projects.
   */
 sealed trait DefaultVersion
 object DefaultVersion {
 
-  /**
-    * Defaults to the latest installed version, or if no versions are installed,
+  /** Defaults to the latest installed version, or if no versions are installed,
     * to the latest available release.
     */
   case object LatestInstalled extends DefaultVersion {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def toString: String = "latest-installed"
   }
 
-  /**
-    * Defaults to a specified version.
+  /** Defaults to a specified version.
     */
   case class Exact(version: SemVer) extends DefaultVersion {
 
-    /**
-      * @inheritdoc
+    /** @inheritdoc
       */
     override def toString: String = version.toString
   }
 
-  /**
-    * [[Encoder]] instance for [[DefaultVersion]].
+  /** [[Encoder]] instance for [[DefaultVersion]].
     */
   implicit val encoder: Encoder[DefaultVersion] = {
     case LatestInstalled =>
@@ -47,8 +41,7 @@ object DefaultVersion {
       version.asJson
   }
 
-  /**
-    * [[Decoder]] instance for [[DefaultVersion]].
+  /** [[Decoder]] instance for [[DefaultVersion]].
     */
   implicit val decoder: Decoder[DefaultVersion] = { json =>
     if (json.value.isNull) Right(LatestInstalled)
@@ -58,8 +51,7 @@ object DefaultVersion {
       } yield Exact(version)
   }
 
-  /**
-    * [[Argument]] instance for [[DefaultVersion]].
+  /** [[Argument]] instance for [[DefaultVersion]].
     */
   implicit val argument: Argument[DefaultVersion] = { string =>
     if (string == LatestInstalled.toString) Right(LatestInstalled)

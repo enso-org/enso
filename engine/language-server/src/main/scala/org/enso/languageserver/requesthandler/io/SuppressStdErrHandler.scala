@@ -7,8 +7,7 @@ import org.enso.languageserver.io.InputOutputApi.SuppressStandardError
 import org.enso.languageserver.io.InputOutputProtocol
 import org.enso.languageserver.util.UnhandledLogging
 
-/**
-  * A request handler for `io/suppressStandardError` commands.
+/** A request handler for `io/suppressStandardError` commands.
   *
   * @param stdErrController an output redirection controller
   * @param clientId a client requesting redirection
@@ -29,8 +28,7 @@ class SuppressStdErrHandler(stdErrController: ActorRef, clientId: ClientId)
 
 object SuppressStdErrHandler {
 
-  /**
-    *Creates a configuration object used to create a [[SuppressStdErrHandler]].
+  /** Creates a configuration object used to create a [[SuppressStdErrHandler]].
     *
     * @param stdErrController an output redirection controller
     * @param clientId a client requesting redirection

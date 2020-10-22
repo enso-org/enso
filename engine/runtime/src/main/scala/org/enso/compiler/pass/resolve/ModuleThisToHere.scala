@@ -7,8 +7,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedModule
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 
-/**
-  * Performs a substitution of `this` to `here` in methods defined on the
+/** Performs a substitution of `this` to `here` in methods defined on the
   * current module.
   *
   * In module-level methods, both names are semantically equivalent, but `here`

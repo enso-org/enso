@@ -13,8 +13,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
         .getModule(Builtins.MODULE_NAME)
     val nil  = builtins.getConstructor("Nil")
     val cons = builtins.getConstructor("Cons")
-    1L.to(length).foldLeft(nil.newInstance()) {
-      case (tail, el) => cons.newInstance(el.asInstanceOf[Object], tail)
+    1L.to(length).foldLeft(nil.newInstance()) { case (tail, el) =>
+      cons.newInstance(el.asInstanceOf[Object], tail)
     }
   }
   val millionElementList = buildInputList(million)

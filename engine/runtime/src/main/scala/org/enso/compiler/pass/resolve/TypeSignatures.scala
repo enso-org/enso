@@ -74,62 +74,62 @@ case object TypeSignatures extends IRPass {
     var lastSignature: Option[IR.Type.Ascription] = None
 
     val newBindings: List[IR.Module.Scope.Definition] = mod.bindings.flatMap {
-        case sig: IR.Type.Ascription =>
-          val res = lastSignature match {
-            case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
-            case None         => None
-          }
+      case sig: IR.Type.Ascription =>
+        val res = lastSignature match {
+          case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
+          case None         => None
+        }
 
-          lastSignature = Some(sig)
-          res
-        case meth: IR.Module.Scope.Definition.Method =>
-          val newMethod = meth.mapExpressions(resolveExpression)
-          val res = lastSignature match {
-            case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
-              val methodRef = meth.methodReference
-              val newMethodWithDoc = asc
-                .getMetadata(DocumentationComments)
-                .map(doc =>
-                  newMethod.updateMetadata(DocumentationComments -->> doc)
-                )
-                .getOrElse(newMethod)
+        lastSignature = Some(sig)
+        res
+      case meth: IR.Module.Scope.Definition.Method =>
+        val newMethod = meth.mapExpressions(resolveExpression)
+        val res = lastSignature match {
+          case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
+            val methodRef = meth.methodReference
+            val newMethodWithDoc = asc
+              .getMetadata(DocumentationComments)
+              .map(doc =>
+                newMethod.updateMetadata(DocumentationComments -->> doc)
+              )
+              .getOrElse(newMethod)
 
-              typed match {
-                case ref: IR.Name.MethodReference =>
-                  if (ref isSameReferenceAs methodRef) {
-                    Some(
-                      newMethodWithDoc.updateMetadata(this -->> Signature(sig))
-                    )
-                  } else {
-                    List(
-                      IR.Error.Unexpected.TypeSignature(asc),
-                      newMethodWithDoc
-                    )
-                  }
-                case _ =>
-                  List(IR.Error.Unexpected.TypeSignature(asc), newMethodWithDoc)
-              }
-            case None => Some(newMethod)
-          }
+            typed match {
+              case ref: IR.Name.MethodReference =>
+                if (ref isSameReferenceAs methodRef) {
+                  Some(
+                    newMethodWithDoc.updateMetadata(this -->> Signature(sig))
+                  )
+                } else {
+                  List(
+                    IR.Error.Unexpected.TypeSignature(asc),
+                    newMethodWithDoc
+                  )
+                }
+              case _ =>
+                List(IR.Error.Unexpected.TypeSignature(asc), newMethodWithDoc)
+            }
+          case None => Some(newMethod)
+        }
 
-          lastSignature = None
-          res
-        case atom: IR.Module.Scope.Definition.Atom =>
-          Some(atom.mapExpressions(resolveExpression))
-        case err: IR.Error => Some(err)
-        case _: IR.Module.Scope.Definition.Type =>
-          throw new CompilerError(
-            "Complex type definitions should not be present during type " +
-            "signature resolution."
-          )
-        case _: IR.Comment.Documentation =>
-          throw new CompilerError(
-            "Documentation comments should not be present during type " +
-            "signature resolution."
-          )
-      } ::: lastSignature
-        .map(asc => IR.Error.Unexpected.TypeSignature(asc))
-        .toList
+        lastSignature = None
+        res
+      case atom: IR.Module.Scope.Definition.Atom =>
+        Some(atom.mapExpressions(resolveExpression))
+      case err: IR.Error => Some(err)
+      case _: IR.Module.Scope.Definition.Type =>
+        throw new CompilerError(
+          "Complex type definitions should not be present during type " +
+          "signature resolution."
+        )
+      case _: IR.Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation comments should not be present during type " +
+          "signature resolution."
+        )
+    } ::: lastSignature
+      .map(asc => IR.Error.Unexpected.TypeSignature(asc))
+      .toList
 
     mod.copy(
       bindings = newBindings
@@ -170,51 +170,51 @@ case object TypeSignatures extends IRPass {
       block.expressions :+ block.returnValue
 
     val newExpressions = allBlockExpressions.flatMap {
-        case sig: IR.Type.Ascription =>
-          val res = lastSignature match {
-            case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
-            case None         => None
-          }
+      case sig: IR.Type.Ascription =>
+        val res = lastSignature match {
+          case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
+          case None         => None
+        }
 
-          lastSignature = Some(sig)
-          res
-        case binding: IR.Expression.Binding =>
-          val newBinding = binding.mapExpressions(resolveExpression)
-          val res = lastSignature match {
-            case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
-              val name = binding.name
-              val newBindingWithDoc = asc
-                .getMetadata(DocumentationComments)
-                .map(doc =>
-                  newBinding.updateMetadata(DocumentationComments -->> doc)
-                )
-                .getOrElse(newBinding)
+        lastSignature = Some(sig)
+        res
+      case binding: IR.Expression.Binding =>
+        val newBinding = binding.mapExpressions(resolveExpression)
+        val res = lastSignature match {
+          case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
+            val name = binding.name
+            val newBindingWithDoc = asc
+              .getMetadata(DocumentationComments)
+              .map(doc =>
+                newBinding.updateMetadata(DocumentationComments -->> doc)
+              )
+              .getOrElse(newBinding)
 
-              typed match {
-                case typedName: IR.Name =>
-                  if (typedName.name == name.name) {
-                    Some(
-                      newBindingWithDoc.updateMetadata(this -->> Signature(sig))
-                    )
-                  } else {
-                    List(
-                      IR.Error.Unexpected.TypeSignature(asc),
-                      newBindingWithDoc
-                    )
-                  }
-                case _ =>
+            typed match {
+              case typedName: IR.Name =>
+                if (typedName.name == name.name) {
+                  Some(
+                    newBindingWithDoc.updateMetadata(this -->> Signature(sig))
+                  )
+                } else {
                   List(
                     IR.Error.Unexpected.TypeSignature(asc),
                     newBindingWithDoc
                   )
-              }
-            case None => Some(newBinding)
-          }
+                }
+              case _ =>
+                List(
+                  IR.Error.Unexpected.TypeSignature(asc),
+                  newBindingWithDoc
+                )
+            }
+          case None => Some(newBinding)
+        }
 
-          lastSignature = None
-          res
-        case a => Some(resolveExpression(a))
-      } ::: lastSignature.map(IR.Error.Unexpected.TypeSignature(_)).toList
+        lastSignature = None
+        res
+      case a => Some(resolveExpression(a))
+    } ::: lastSignature.map(IR.Error.Unexpected.TypeSignature(_)).toList
 
     block.copy(
       expressions = newExpressions.init,

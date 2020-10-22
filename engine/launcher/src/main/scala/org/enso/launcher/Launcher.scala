@@ -25,8 +25,7 @@ import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.loggingservice.LogLevel
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
-/**
-  * Implements launcher commands that are run from CLI and can be affected by
+/** Implements launcher commands that are run from CLI and can be affected by
   * the global CLI options.
   *
   * @param cliOptions the global CLI options to use for the commands
@@ -49,8 +48,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val upgrader = LauncherUpgrader.default(cliOptions)
   upgrader.runCleanup(isStartup = true)
 
-  /**
-    * Creates a new project with the given `name` in the given `path`.
+  /** Creates a new project with the given `name` in the given `path`.
     *
     * If `path` is not set, the project is created in a directory called `name`
     * in the current directory.
@@ -100,8 +98,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     exitCode
   }
 
-  /**
-    * Prints a list of installed engines.
+  /** Prints a list of installed engines.
     */
   def listEngines(): Int = {
     for (engine <- componentsManager.listInstalledEngines()) {
@@ -111,8 +108,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Prints a list of installed runtimes.
+  /** Prints a list of installed runtimes.
     */
   def listRuntimes(): Int = {
     for (runtime <- componentsManager.listInstalledRuntimes()) {
@@ -128,8 +124,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Prints a summary of installed components and their dependencies.
+  /** Prints a summary of installed components and their dependencies.
     */
   def listSummary(): Int = {
     for (engine <- componentsManager.listInstalledEngines()) {
@@ -143,8 +138,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Installs the specified engine `version`.
+  /** Installs the specified engine `version`.
     *
     * Also installs the required runtime if it wasn't already installed.
     */
@@ -158,8 +152,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Installs the latest available version of the engine.
+  /** Installs the latest available version of the engine.
     *
     * Also installs the required runtime if it wasn't already installed.
     */
@@ -169,8 +162,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     installEngine(latest)
   }
 
-  /**
-    * Uninstalls the specified engine `version`.
+  /** Uninstalls the specified engine `version`.
     *
     * If a runtime is not used by any engines anymore, it is also removed.
     */
@@ -180,8 +172,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Runs the Enso REPL.
+  /** Runs the Enso REPL.
     *
     * If ran outside of a project, uses the default configured version. If run
     * inside a project or provided with an explicit projectPath, the Enso
@@ -217,8 +208,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     exitCode
   }
 
-  /**
-    * Runs an Enso script or project.
+  /** Runs an Enso script or project.
     *
     * If ran inside a project without a path, or with a path pointing to a
     * project, runs that project. If the provided path points to a file, that
@@ -254,8 +244,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     exitCode
   }
 
-  /**
-    * Runs the Language Server.
+  /** Runs the Language Server.
     *
     * Unless overridden, uses the Enso version associated with the project
     * located at `options.path`.
@@ -295,8 +284,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     exitCode
   }
 
-  /**
-    * Updates the global configuration.
+  /** Updates the global configuration.
     *
     * If `value` is an empty string, the `key` is removed from the configuration
     * (if it exists). If `value` is non-empty the key is added or updated in the
@@ -320,8 +308,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Prints the value of `key` from the global configuration.
+  /** Prints the value of `key` from the global configuration.
     *
     * If the `key` is not set in the config, sets exit code to 1 and prints a
     * warning.
@@ -337,8 +324,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     }
   }
 
-  /**
-    * Sets the default Enso version.
+  /** Sets the default Enso version.
     */
   def setDefaultVersion(defaultVersion: DefaultVersion): Int = {
     configurationManager.updateConfig { config =>
@@ -358,16 +344,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Prints the default Enso version.
+  /** Prints the default Enso version.
     */
   def printDefaultVersion(): Int = {
     println(configurationManager.defaultVersion)
     0
   }
 
-  /**
-    * Installs the Enso distribution.
+  /** Installs the Enso distribution.
     */
   def installDistribution(
     doNotRemoveOldLauncher: Boolean,
@@ -383,16 +367,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
-  /**
-    * Uninstalls the Enso distribution.
+  /** Uninstalls the Enso distribution.
     */
   def uninstallDistribution(): Int = {
     DistributionUninstaller.default(cliOptions).uninstall()
     0
   }
 
-  /**
-    * Displays the version string of the launcher.
+  /** Displays the version string of the launcher.
     *
     * @param hideEngineVersion if set, does not look for installed engines to
     *                          display the current version; this can be used to
@@ -449,8 +431,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     )
   }
 
-  /**
-    * Performs a self-upgrade.
+  /** Performs a self-upgrade.
     *
     * If a `version` is specified, installs that version. If the version is
     * older than the current one, a downgrade is performed. If no `version` is
@@ -480,14 +461,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   }
 }
 
-/**
-  * Gathers launcher commands which do not depend on the global CLI options.
+/** Gathers launcher commands which do not depend on the global CLI options.
   */
 object Launcher {
   private val workingDirectory: Path = Path.of(".")
 
-  /**
-    * Checks if the launcher is running in portable mode and exits if it is not.
+  /** Checks if the launcher is running in portable mode and exits if it is not.
     */
   def ensurePortable(): Unit = {
     if (!DistributionManager.isRunningPortable) {

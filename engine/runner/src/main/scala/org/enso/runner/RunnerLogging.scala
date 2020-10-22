@@ -8,13 +8,11 @@ import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
-/**
-  * Manages setting up the logging service within the runner.
+/** Manages setting up the logging service within the runner.
   */
 object RunnerLogging {
 
-  /**
-    * Sets up the runner's logging service.
+  /** Sets up the runner's logging service.
     *
     * If `connectionUri` is provided it tries to connect to a logging service
     * server and pass logs to it. If it is not provided, or the connection could
@@ -64,8 +62,7 @@ object RunnerLogging {
 
   private val logger = Logger[RunnerLogging.type]
 
-  /**
-    * Shuts down the logging service gracefully.
+  /** Shuts down the logging service gracefully.
     */
   def tearDown(): Unit =
     LoggingServiceManager.tearDown()

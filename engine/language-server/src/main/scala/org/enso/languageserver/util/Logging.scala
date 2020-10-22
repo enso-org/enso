@@ -84,8 +84,7 @@ object Logging {
 
   private val ROOT_LOGGER = "org.enso"
 
-  /**
-    * Set log level for the application root logger.
+  /** Set log level for the application root logger.
     *
     * @param level the log level
     * @return the new log level

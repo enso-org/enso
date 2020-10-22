@@ -8,8 +8,7 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.io.AnsiColor
 
-/**
-  * Prints the log messages to the standard error output with ANSI escape codes
+/** Prints the log messages to the standard error output with ANSI escape codes
   * that allow to display log levels in color.
   *
   * @param printExceptions specifies if attached exceptions should be printed
@@ -18,16 +17,14 @@ class StderrPrinterWithColors private (printExceptions: Boolean)
     extends Printer {
   private val renderer = new ANSIColorsMessageRenderer(printExceptions)
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def print(message: WSLogMessage): Unit = {
     val lines = renderer.render(message)
     System.err.println(lines)
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def shutdown(): Unit = {
     System.err.print(AnsiColor.RESET)
@@ -37,8 +34,7 @@ class StderrPrinterWithColors private (printExceptions: Boolean)
 
 object StderrPrinterWithColors {
 
-  /**
-    * Returns a color-supporting printer if color output is available in the
+  /** Returns a color-supporting printer if color output is available in the
     * console.
     */
   def colorPrinterIfAvailable(printExceptions: Boolean): Printer =
@@ -46,8 +42,7 @@ object StderrPrinterWithColors {
       new StderrPrinterWithColors(printExceptions)
     else new StderrPrinter(printExceptions)
 
-  /**
-    * Returns a color-supporting printer regardless of if color output is
+  /** Returns a color-supporting printer regardless of if color output is
     * available.
     *
     * Color output may be used even if it is unavailable in cases where the

@@ -2,8 +2,7 @@ package org.enso.text.buffer
 
 import cats.Monoid
 
-/**
-  * The measure used for storing strings in the b-tree.
+/** The measure used for storing strings in the b-tree.
   *
   * @param utf16Size number of characters.
   * @param utf32Size number of code points.
@@ -17,8 +16,7 @@ case class StringMeasure(
   endsInNewLine: Boolean
 ) {
 
-  /**
-    * Number of lines measured, including the possibly non-terminated last line.
+  /** Number of lines measured, including the possibly non-terminated last line.
     *
     * @return the number of lines.
     */
@@ -38,8 +36,7 @@ object StringMeasure {
   }
 }
 
-/**
-  * Represents a string using a tree.
+/** Represents a string using a tree.
   *
   * Provides fast indexing operations by lines, characters and code points,
   * as well as fast concatenation.
@@ -53,16 +50,14 @@ object StringMeasure {
 case class Rope(root: Node[String, StringMeasure]) {
   import Rope._
 
-  /**
-    * Concates another rope at the end of this one.
+  /** Concates another rope at the end of this one.
     *
     * @param that the rope to add at the end.
     * @return the result of concatenating the two ropes.
     */
   def ++(that: Rope): Rope = Rope(this.root ++ that.root)
 
-  /**
-    * Converts this rope to a String.
+  /** Converts this rope to a String.
     *
     * @return a String with this rope's contents
     */
@@ -95,22 +90,19 @@ case class Rope(root: Node[String, StringMeasure]) {
     elemOps: ElemOps[Int, String, StringMeasure]
   ): elemOps.Elem = root.get(index, elemOps)
 
-  /**
-    * Returns a code points based view of this rope.
+  /** Returns a code points based view of this rope.
     *
     * @return a code points view for this rope.
     */
   def codePoints: CodePointView = CodePointView(this)
 
-  /**
-    *  Returns a characters view of this rope.
+  /**  Returns a characters view of this rope.
     *
     * @return a characters view for this rope.
     */
   def characters: CharView = CharView(this)
 
-  /**
-    * Returns a lines view of this rope.
+  /** Returns a lines view of this rope.
     *
     * @return a lines view of this rope.
     */
@@ -135,8 +127,7 @@ object Rope {
       )
     }
 
-  /**
-    * Creates a new Rope from a given string.
+  /** Creates a new Rope from a given string.
     *
     * @param str a string to convert into a rope.
     * @return a rope with the same contents as `str`
@@ -147,8 +138,7 @@ object Rope {
     Rope(Node.mergeTrees(nodes))
   }
 
-  /**
-    * Creates an empty rope.
+  /** Creates an empty rope.
     *
     * @return an empty rope.
     */

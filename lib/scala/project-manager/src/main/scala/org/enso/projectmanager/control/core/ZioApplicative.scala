@@ -2,8 +2,7 @@ package org.enso.projectmanager.control.core
 
 import zio.ZIO
 
-/**
-  * An instance of [[Applicative]] class for ZIO.
+/** An instance of [[Applicative]] class for ZIO.
   */
 private[core] class ZioApplicative[R] extends Applicative[ZIO[R, +*, +*]] {
 

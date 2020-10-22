@@ -15,8 +15,7 @@ import org.enso.syntax.text.Shape.Block.Line
 //// Doc Parser ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/**
-  * This is the class used to invoke Documentation Parser.
+/** This is the class used to invoke Documentation Parser.
   *
   * It is used to create structured documentation from the blocks of commented
   * text created by the main Enso parser.
@@ -29,8 +28,7 @@ class DocParser {
   private val engine = newEngine()
   private val errMsg = "Internal Documentation Parser Error"
 
-  /**
-    * Used to match result of [[run]] function to possibly retrieve Doc
+  /** Used to match result of [[run]] function to possibly retrieve Doc
     *
     * @param input - input string to Doc Parser
     * @return - If it was able to retrieve Doc, then retrieved data, else
@@ -42,8 +40,7 @@ class DocParser {
       case _                      => throw new Exception(errMsg)
     }
 
-  /**
-    * Used to initialize Doc Parser with input string to get parsed Doc
+  /** Used to initialize Doc Parser with input string to get parsed Doc
     *
     * @param input - input string to Doc Parser
     * @return - unmatched result possibly containing Doc
@@ -55,8 +52,7 @@ object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
-  /**
-    * Doc Parser running methods, as described above, in class [[DocParser]]
+  /** Doc Parser running methods, as described above, in class [[DocParser]]
     */
   def runMatched(input: String): Doc  = new DocParser().runMatched(input)
   def run(input: String): Result[Doc] = new DocParser().run(input)
@@ -66,8 +62,7 @@ object DocParser {
 //// Doc Parser Runner /////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/**
-  * This is Doc Parser Runner.
+/** This is Doc Parser Runner.
   *
   * Essentially it binds together Enso Parser with Doc Parser.
   * When Parser finishes its job it invokes runner with AST created by it after
@@ -80,8 +75,7 @@ object DocParserRunner {
   //////////////////////////////////////////////////////////////////////////////
   //// Created Doc's in right places with appropriate AST //////////////////////
   //////////////////////////////////////////////////////////////////////////////
-  /**
-    * This function invokes the documentation parser on every instance of
+  /** This function invokes the documentation parser on every instance of
     * [[AST.Comment]].
     *
     * It matches on [[AST.Module]] or [[AST.Def]] in order to traverse
@@ -107,8 +101,7 @@ object DocParserRunner {
     }
   }
 
-  /**
-    * This is a helper function for [[createDocs]] to traverse through
+  /** This is a helper function for [[createDocs]] to traverse through
     * [[AST.Module]] and create Docs from comments with appropriate [[AST]]
     */
   def createDocsFromModule(m: AST.Module): AST.Module = {
@@ -118,8 +111,7 @@ object DocParserRunner {
     AST.Module(transformedLines)
   }
 
-  /**
-    * This is a helper function for [[createDocs]] to traverse through
+  /** This is a helper function for [[createDocs]] to traverse through
     * [[AST.Def]] and create Docs from comments inside [[AST.Def]] with
     * appropriate [[AST]]
     */
@@ -139,8 +131,7 @@ object DocParserRunner {
     AST.Def(name, args, Some(body))
   }
 
-  /**
-    * This is a helper function for creating docs with AST.
+  /** This is a helper function for creating docs with AST.
     * Essentially it traverses through lines and tries to find a pattern on them
     *
     * @param lines - AST lines
@@ -188,8 +179,7 @@ object DocParserRunner {
       case Nil => Nil
     }
 
-  /**
-    * Creates Docs from comments found in parsed data
+  /** Creates Docs from comments found in parsed data
     *
     * @param comment - comment found in AST
     * @return - Documentation
@@ -199,8 +189,7 @@ object DocParserRunner {
     DocParser.runMatched(in)
   }
 
-  /**
-    * Function for creating documented lines in [[attachDocToSubsequentAST]]
+  /** Function for creating documented lines in [[attachDocToSubsequentAST]]
     * method with [[AST.App.Infix]] as Documented AST
     *
     * @param com - comment found in AST
@@ -222,8 +211,7 @@ object DocParserRunner {
     docLine :: attachDocToSubsequentAST(rest)
   }
 
-  /**
-    * Function for creating documented lines in [[attachDocToSubsequentAST]]
+  /** Function for creating documented lines in [[attachDocToSubsequentAST]]
     * method with [[AST.Def]] as Documented AST
     *
     * @param com - comment found in AST
@@ -244,8 +232,7 @@ object DocParserRunner {
     docLine :: attachDocToSubsequentAST(rest)
   }
 
-  /**
-    * Function for creating documented lines in [[attachDocToSubsequentAST]]
+  /** Function for creating documented lines in [[attachDocToSubsequentAST]]
     * method
     *
     * @param comment - comment found in AST
@@ -270,16 +257,14 @@ object DocParserRunner {
 //// Doc Parser HTML Generator /////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/**
-  * This is Doc Parser HTML Generator.
+/** This is Doc Parser HTML Generator.
   *
   * Essentially it enables Doc Parser to create pretty HTML files from
   * documented code.
   */
 object DocParserHTMLGenerator {
 
-  /**
-    * This method is used for generation of HTML files from parsed and
+  /** This method is used for generation of HTML files from parsed and
     * reformatted [[AST.Documented]]
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
@@ -300,8 +285,7 @@ object DocParserHTMLGenerator {
     new String
   }
 
-  /**
-    * Function to generate HTML File from pure doc comment w/o connection to AST
+  /** Function to generate HTML File from pure doc comment w/o connection to AST
     *
     * @param doc - Doc from Doc Parser
     * @return - HTML Code from Doc
@@ -314,8 +298,7 @@ object DocParserHTMLGenerator {
   //// HTML Rendering of Documentation /////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /**
-    * Used to create HTML files from Doc with or without title after Doc Parser
+  /** Used to create HTML files from Doc with or without title after Doc Parser
     * Runner finished it's job
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
@@ -334,8 +317,7 @@ object DocParserHTMLGenerator {
   }
   case class htmlFile(code: TypedTag[String], name: String)
 
-  /**
-    * Function invoked by [[onHTMLRendering]] to render HTML File
+  /** Function invoked by [[onHTMLRendering]] to render HTML File
     *
     * @param ast - AST from Parser
     * @param doc - Doc from Doc Parser
@@ -348,8 +330,7 @@ object DocParserHTMLGenerator {
     HTML.html(createHTMLHead(title), HTML.body(documentation))
   }
 
-  /**
-    * This function is used to get HTML content of Doc and try to render AST,
+  /** This function is used to get HTML content of Doc and try to render AST,
     * by finding if it also contains Documented to retrieve Doc and it's AST,
     * or simply call show() method on other element of AST.
     *
@@ -392,8 +373,7 @@ object DocParserHTMLGenerator {
     }
   }
 
-  /**
-    * This case class is used to hold HTML-rendered AST
+  /** This case class is used to hold HTML-rendered AST
     *
     * @param header - header of AST - name of module/method with parameters
     * @param body - body of AST - All of AST's documented submodules/methods
@@ -411,8 +391,7 @@ object DocParserHTMLGenerator {
       new astHtmlRepr(HTML.div(), None)
   }
 
-  /**
-    * Function invoked by [[DocumentedToHtml]] to create HTML from AST in
+  /** Function invoked by [[DocumentedToHtml]] to create HTML from AST in
     * [[AST.Documented]] on every matching element
     *
     * @param ast - AST
@@ -435,8 +414,7 @@ object DocParserHTMLGenerator {
     }
   }
 
-  /**
-    * Helper function for [[createHTMLFromAST]] to generate appropriate code
+  /** Helper function for [[createHTMLFromAST]] to generate appropriate code
     * from [[AST.Def]] with traversing through body and creating HTML code
     * on elements in it
     *
@@ -467,8 +445,7 @@ object DocParserHTMLGenerator {
     astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
   }
 
-  /**
-    * Helper function for [[createHTMLFromAST]] to generate appropriate code
+  /** Helper function for [[createHTMLFromAST]] to generate appropriate code
     * from [[AST.Def]] when it doesn't contain anything in it's body
     *
     * @param name - Def Name
@@ -483,8 +460,7 @@ object DocParserHTMLGenerator {
     HTML.div(cls)(createDefTitle(name, args))
   }
 
-  /**
-    * Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
+  /** Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
     * to generate [[AST.Def]] title form it's name and args
     *
     * @param name - Def Name
@@ -505,8 +481,7 @@ object DocParserHTMLGenerator {
     HTML.a(pageHref)(innerDiv)
   }
 
-  /**
-    * Helper function for [[createHTMLFromAST]] to generate appropriate HTML
+  /** Helper function for [[createHTMLFromAST]] to generate appropriate HTML
     * code from [[AST.App.Infix]]
     *
     * @param infix - AST Infix
@@ -515,14 +490,13 @@ object DocParserHTMLGenerator {
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
     val cls = HTML.`class` := "Infix"
     val pageHref = HTML.`href` := infix.larg
-          .show()
-          .replaceAll(" ", "_") + ".html"
+      .show()
+      .replaceAll(" ", "_") + ".html"
     val innerDiv = HTML.div(cls)(infix.larg.show())
     HTML.a(pageHref)(innerDiv)
   }
 
-  /**
-    * Helper function for [[createDefWithBody]] to traverse through body's lines
+  /** Helper function for [[createDefWithBody]] to traverse through body's lines
     * and try to generate HTML code from [[AST.Documented]] parts of it. It also
     * tries to find nested [[AST.Def]] and [[AST.App.Infix]] inside of body
     *
@@ -551,8 +525,7 @@ object DocParserHTMLGenerator {
         }
     }
 
-  /**
-    * Function invoked by [[DocumentedToHtml]] to create HTML.Head part of file
+  /** Function invoked by [[DocumentedToHtml]] to create HTML.Head part of file
     *
     * @param title - HTML page title
     * @return - HTML Head Code

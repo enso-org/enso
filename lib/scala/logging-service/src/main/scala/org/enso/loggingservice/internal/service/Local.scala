@@ -5,8 +5,7 @@ import org.enso.loggingservice.internal.BlockingConsumerMessageQueue
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.printers.Printer
 
-/**
-  * A local [[Service]] that handles all log messages locally.
+/** A local [[Service]] that handles all log messages locally.
   *
   * @param logLevel log level used to filter messages
   * @param queue log message queue
@@ -18,14 +17,12 @@ case class Local(
   printers: Seq[Printer]
 ) extends ThreadProcessingService {
 
-  /**
-    * Passes each message to all printers.
+  /** Passes each message to all printers.
     */
   override protected def processMessage(message: WSLogMessage): Unit =
     printers.foreach(_.print(message))
 
-  /**
-    * Shuts down the printers.
+  /** Shuts down the printers.
     */
   override protected def afterShutdown(): Unit = {
     printers.foreach(_.shutdown())
@@ -34,8 +31,7 @@ case class Local(
 
 object Local {
 
-  /**
-    * Starts the [[Local]] service and returns it.
+  /** Starts the [[Local]] service and returns it.
     *
     * @param logLevel log level used to filter messages
     * @param queue log message queue

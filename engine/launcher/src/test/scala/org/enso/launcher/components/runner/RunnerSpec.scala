@@ -148,7 +148,7 @@ class RunnerSpec extends ComponentsManagerTest {
       runSettings.version shouldEqual defaultEngineVersion
       runSettings.runnerArguments should (contain("arg") and contain("--flag"))
       runSettings.runnerArguments.mkString(" ") should
-      (include("--repl") and not include (s"--in-project"))
+      (include("--repl") and not include s"--in-project")
     }
 
     "run repl in project context" in {

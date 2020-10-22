@@ -12,8 +12,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `text/closeFile` commands.
+/** A request handler for `text/closeFile` commands.
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
@@ -63,8 +62,7 @@ class CloseFileHandler(
 
 object CloseFileHandler {
 
-  /**
-    * Creates a configuration object used to create a [[CloseFileHandler]]
+  /** Creates a configuration object used to create a [[CloseFileHandler]]
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout

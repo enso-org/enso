@@ -1,13 +1,13 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class LambdaShorthandArgsTest extends InterpreterTest {
 
   override def subject = "Lambda shorthand arguments"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
     "work for simple applications" in {
       val code =

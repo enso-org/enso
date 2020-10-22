@@ -8,8 +8,7 @@ import org.enso.languageserver.requesthandler.RequestTimeout
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `heartbeat/ping` commands.
+/** A request handler for `heartbeat/ping` commands.
   *
   * @param subsystems a list of monitored subsystems
   * @param timeout a request timeout
@@ -63,8 +62,7 @@ class PingHandler(
 
 object PingHandler {
 
-  /**
-    * Creates a configuration object used to create a [[PingHandler]]
+  /** Creates a configuration object used to create a [[PingHandler]]
     *
     * @param subsystems a list of monitored subsystems
     * @param timeout a request timeout

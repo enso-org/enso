@@ -7,8 +7,7 @@ import java.util.concurrent.locks.{
   Lock => JLock
 }
 
-/**
-  * A [[LockManager]] that creates process-local locks.
+/** A [[LockManager]] that creates process-local locks.
   *
   * The locks are not visible by other processes, so this manager is not useful
   * for synchronizing multiple processes. It can be used to test concurrency
@@ -20,8 +19,7 @@ import java.util.concurrent.locks.{
   */
 class TestLocalLockManager extends LockManager {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val lock   = getLock(resourceName, lockType)
@@ -34,8 +32,7 @@ class TestLocalLockManager extends LockManager {
     WrapLock(lock)
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def tryAcquireLock(
     resourceName: String,

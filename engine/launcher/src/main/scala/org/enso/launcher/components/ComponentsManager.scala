@@ -26,8 +26,7 @@ import org.enso.launcher.{FileSystem, InfoLogger}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
 
-/**
-  * Manages runtime and engine components.
+/** Manages runtime and engine components.
   *
   * Allows to find, list, install and uninstall components.
   *
@@ -49,16 +48,14 @@ class ComponentsManager(
   private val showProgress = !cliOptions.hideProgress
   private val logger       = Logger[ComponentsManager]
 
-  /**
-    * Tries to find runtime for the provided engine.
+  /** Tries to find runtime for the provided engine.
     *
     * Returns None if the runtime is missing.
     */
   def findRuntime(engine: Engine): Option[Runtime] =
     findRuntime(engine.manifest.runtimeVersion)
 
-  /**
-    * Finds an installed runtime with the given `version`.
+  /** Finds an installed runtime with the given `version`.
     *
     * Returns None if that version is not installed.
     */
@@ -70,25 +67,23 @@ class ComponentsManager(
       //  corrupted, in #1052 offer to repair the broken installation
       loadGraalRuntime(path)
         .map(Some(_))
-        .recoverWith {
-          case e: Exception =>
-            Failure(
-              UnrecognizedComponentError(
-                s"The runtime $version is already installed, but cannot be " +
-                s"loaded due to $e. Until the launcher gets an auto-repair " +
-                s"feature, please try reinstalling the runtime by " +
-                s"uninstalling all engines that use it and installing them " +
-                s"again, or manually removing `$path`.",
-                e
-              )
+        .recoverWith { case e: Exception =>
+          Failure(
+            UnrecognizedComponentError(
+              s"The runtime $version is already installed, but cannot be " +
+              s"loaded due to $e. Until the launcher gets an auto-repair " +
+              s"feature, please try reinstalling the runtime by " +
+              s"uninstalling all engines that use it and installing them " +
+              s"again, or manually removing `$path`.",
+              e
             )
+          )
         }
         .get
     } else None
   }
 
-  /**
-    * Executes the provided action with a requested engine version.
+  /** Executes the provided action with a requested engine version.
     *
     * The engine is locked with a shared lock, so it is guaranteed that it will
     * not be uninstalled while the action is being executed.
@@ -119,8 +114,7 @@ class ComponentsManager(
     }
   }
 
-  /**
-    * Executes the provided action with a requested engine version and its
+  /** Executes the provided action with a requested engine version and its
     * corresponding runtime.
     *
     * The components are locked with a shared lock, so it is guaranteed that
@@ -167,8 +161,7 @@ class ComponentsManager(
     }
   }
 
-  /**
-    * Returns the runtime needed for the given engine, trying to install it if
+  /** Returns the runtime needed for the given engine, trying to install it if
     * it is missing.
     *
     * @param engine the engine for which the runtime is requested
@@ -209,8 +202,7 @@ class ComponentsManager(
         }
     }
 
-  /**
-    * Finds an installed engine with the given `version` and reports any errors.
+  /** Finds an installed engine with the given `version` and reports any errors.
     */
   private def getEngine(version: SemVer): Try[Engine] = {
     val name = engineNameForVersion(version)
@@ -222,8 +214,7 @@ class ComponentsManager(
     } else Failure(ComponentMissingError(s"Engine $version is not installed."))
   }
 
-  /**
-    * Finds an engine with the given `version` or returns None if it is not
+  /** Finds an engine with the given `version` or returns None if it is not
     * installed.
     *
     * Any other errors regarding loading the engine are thrown.
@@ -257,8 +248,7 @@ class ComponentsManager(
       }
       .get
 
-  /**
-    * Returns the engine needed with the given version, trying to install it if
+  /** Returns the engine needed with the given version, trying to install it if
     * it is missing.
     *
     * @param version the requested engine version
@@ -300,14 +290,12 @@ class ComponentsManager(
         }
     }
 
-  /**
-    * Finds installed engines that use the given `runtime`.
+  /** Finds installed engines that use the given `runtime`.
     */
   def findEnginesUsingRuntime(runtime: Runtime): Seq[Engine] =
     listInstalledEngines().filter(_.manifest.runtimeVersion == runtime.version)
 
-  /**
-    * Lists all installed runtimes.
+  /** Lists all installed runtimes.
     */
   def listInstalledRuntimes(): Seq[Runtime] =
     FileSystem
@@ -315,8 +303,7 @@ class ComponentsManager(
       .map(path => (path, loadGraalRuntime(path)))
       .flatMap(handleErrorsAsWarnings[Runtime]("A runtime"))
 
-  /**
-    * Lists all installed engines.
+  /** Lists all installed engines.
     * @return
     */
   def listInstalledEngines(): Seq[Engine] = {
@@ -326,8 +313,7 @@ class ComponentsManager(
       .flatMap(handleErrorsAsWarnings[Engine]("An engine"))
   }
 
-  /**
-    * A helper function that is used when listing components.
+  /** A helper function that is used when listing components.
     *
     * A component error is non-fatal in context of listing, so it is issued as a
     * warning and the component is treated as non-existent in the list.
@@ -345,15 +331,13 @@ class ComponentsManager(
       case (_, Success(value)) => Seq(value)
     }
 
-  /**
-    * Finds the latest released version of the engine, by asking the
+  /** Finds the latest released version of the engine, by asking the
     * [[engineReleaseProvider]].
     */
   def fetchLatestEngineVersion(): SemVer =
     engineReleaseProvider.findLatestVersion().get
 
-  /**
-    * Uninstalls the engine with the provided `version` (if it was installed).
+  /** Uninstalls the engine with the provided `version` (if it was installed).
     */
   def uninstallEngine(version: SemVer): Unit =
     resourceManager.withResources(
@@ -370,8 +354,7 @@ class ComponentsManager(
       cleanupRuntimes()
     }
 
-  /**
-    * Installs the engine with the provided version.
+  /** Installs the engine with the provided version.
     *
     * Used internally by [[findOrInstallEngine]]. Does not check if the engine
     * is already installed.
@@ -490,8 +473,7 @@ class ComponentsManager(
           )
         }
 
-        /**
-          * Finalizes the installation.
+        /** Finalizes the installation.
           *
           * Has to be called with an acquired lock for the runtime. If
           * `wasJustInstalled` is true, the lock must be exclusive and it the
@@ -525,8 +507,7 @@ class ComponentsManager(
 
         val runtimeVersion = temporaryEngine.graalRuntimeVersion
 
-        /**
-          * Tries to finalize the installation assuming that the runtime was
+        /** Tries to finalize the installation assuming that the runtime was
           * installed and without acquiring an unnecessary exclusive lock.
           */
         def getEngineIfRuntimeIsInstalled: Option[Engine] =
@@ -539,8 +520,7 @@ class ComponentsManager(
             }
           }
 
-        /**
-          * Finalizes the installation, installing the runtime if necessary.
+        /** Finalizes the installation, installing the runtime if necessary.
           * This variant acquires an exclusive lock on the runtime (but it
           * should generally be called only if the runtime was not installed).
           */
@@ -565,20 +545,17 @@ class ComponentsManager(
     }
   }
 
-  /**
-    * Returns name of the directory containing the engine of that version.
+  /** Returns name of the directory containing the engine of that version.
     */
   private def engineNameForVersion(version: SemVer): String =
     version.toString
 
-  /**
-    * Returns name of the directory containing the runtime of that version.
+  /** Returns name of the directory containing the runtime of that version.
     */
   private def runtimeNameForVersion(version: RuntimeVersion): String =
     s"graalvm-ce-java${version.java}-${version.graal}"
 
-  /**
-    * Loads the GraalVM runtime definition.
+  /** Loads the GraalVM runtime definition.
     */
   private def loadGraalRuntime(path: Path): Try[Runtime] = {
     val name = path.getFileName.toString
@@ -593,8 +570,7 @@ class ComponentsManager(
     } yield runtime
   }
 
-  /**
-    * Gets the runtime version from its name.
+  /** Gets the runtime version from its name.
     */
   private def parseGraalRuntimeVersionString(
     name: String
@@ -619,8 +595,7 @@ class ComponentsManager(
     }
   }
 
-  /**
-    * Loads the engine definition.
+  /** Loads the engine definition.
     */
   private def loadEngine(path: Path): Try[Engine] =
     for {
@@ -630,8 +605,7 @@ class ComponentsManager(
       _ <- engine.ensureValid()
     } yield engine
 
-  /**
-    * Gets the engine version from its path.
+  /** Gets the engine version from its path.
     */
   private def parseEngineVersion(path: Path): Try[SemVer] = {
     val name = path.getFileName.toString
@@ -644,8 +618,7 @@ class ComponentsManager(
       .toTry
   }
 
-  /**
-    * Loads the engine manifest, checking if that release is compatible with the
+  /** Loads the engine manifest, checking if that release is compatible with the
     * currently running launcher.
     */
   private def loadAndCheckEngineManifest(path: Path): Try[Manifest] = {
@@ -661,8 +634,7 @@ class ComponentsManager(
     }
   }
 
-  /**
-    * Installs the runtime with the provided version.
+  /** Installs the runtime with the provided version.
     *
     * Does not check if the runtime is already installed.
     *
@@ -740,8 +712,7 @@ class ComponentsManager(
   private def graalDirectoryForVersion(version: RuntimeVersion): Path =
     Path.of(s"graalvm-ce-java${version.java}-${version.graal}")
 
-  /**
-    * Removes runtimes that are not used by any installed engines.
+  /** Removes runtimes that are not used by any installed engines.
     *
     * The caller must hold [[Resource.AddOrRemoveComponents]] exclusively.
     */
@@ -757,8 +728,7 @@ class ComponentsManager(
     }
   }
 
-  /**
-    * Tries to remove a component in a safe way.
+  /** Tries to remove a component in a safe way.
     *
     * The component is moved (hopefully atomically) to temporary directory next
     * to the actual components directories and only then it is removed from
@@ -843,8 +813,7 @@ class ComponentsManager(
 
 object ComponentsManager {
 
-  /**
-    * Creates a [[ComponentsManager]] using the default [[DistributionManager]]
+  /** Creates a [[ComponentsManager]] using the default [[DistributionManager]]
     * and release providers.
     *
     * @param globalCLIOptions options from the CLI setting verbosity of the

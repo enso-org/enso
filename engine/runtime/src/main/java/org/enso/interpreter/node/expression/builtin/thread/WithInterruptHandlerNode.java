@@ -19,7 +19,10 @@ public class WithInterruptHandlerNode extends Node {
   private @Child ThunkExecutorNode handlerExecutorNode = ThunkExecutorNode.build();
 
   Stateful execute(
-      @MonadicState Object state, Object _this, @Suspend Object action, @Suspend Object interrupt_handler) {
+      @MonadicState Object state,
+      Object _this,
+      @Suspend Object action,
+      @Suspend Object interrupt_handler) {
     try {
       return actExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (ThreadInterruptedException e) {

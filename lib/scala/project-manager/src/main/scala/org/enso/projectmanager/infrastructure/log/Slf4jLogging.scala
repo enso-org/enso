@@ -2,8 +2,7 @@ package org.enso.projectmanager.infrastructure.log
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.control.effect.Sync
 
-/**
-  * Slf4j logging interpreter.
+/** Slf4j logging interpreter.
   */
 class Slf4jLogging[F[+_, +_]: Sync] extends Logging[F] with LazyLogging {
 

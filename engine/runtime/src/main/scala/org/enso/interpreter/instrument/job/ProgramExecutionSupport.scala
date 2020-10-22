@@ -43,14 +43,12 @@ import org.enso.text.editing.model
 import scala.jdk.OptionConverters._
 import scala.jdk.CollectionConverters._
 
-/**
-  * Provides support for executing Enso code. Adds convenient methods to
+/** Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
   */
 trait ProgramExecutionSupport {
 
-  /**
-    * Runs an Enso program.
+  /** Runs an Enso program.
     *
     * @param executionFrame an execution frame
     * @param callStack a call stack
@@ -141,8 +139,7 @@ trait ProgramExecutionSupport {
     }
   }
 
-  /**
-    * Runs an Enso program.
+  /** Runs an Enso program.
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
@@ -248,8 +245,7 @@ trait ProgramExecutionSupport {
     )
   }
 
-  /**
-    * Convert the runtime exception to the corresponding API error messages.
+  /** Convert the runtime exception to the corresponding API error messages.
     *
     * @param t the exception
     * @param ctx the runtime context
@@ -300,8 +296,7 @@ trait ProgramExecutionSupport {
     }
   }
 
-  /**
-    * Create a stack trace of a guest language from a java exception.
+  /** Create a stack trace of a guest language from a java exception.
     *
     * @param throwable the exception
     * @param ctx the runtime context
@@ -316,8 +311,7 @@ trait ProgramExecutionSupport {
       .map(toStackElement)
       .toVector
 
-  /**
-    * Convert from the truffle stack element to the runtime API representation.
+  /** Convert from the truffle stack element to the runtime API representation.
     *
     * @param element the trufle stack trace element
     * @param ctx the runtime context
@@ -451,8 +445,7 @@ trait ProgramExecutionSupport {
       call.getFunctionName
     )
 
-  /**
-    * Convert truffle source section to the range of text.
+  /** Convert truffle source section to the range of text.
     *
     * @param section the source section
     * @return the correponding range in the text file
@@ -463,8 +456,7 @@ trait ProgramExecutionSupport {
       model.Position(section.getEndLine - 1, section.getEndColumn)
     )
 
-  /**
-    * Find source file path by the module name.
+  /** Find source file path by the module name.
     *
     * @param module the module name
     * @param ctx the runtime context

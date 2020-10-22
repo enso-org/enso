@@ -71,8 +71,8 @@ case object ShadowedPatternFields extends IRPass {
     ir: IR.Expression,
     @unused inlineContext: InlineContext
   ): IR.Expression = {
-    ir.transformExpressions {
-      case x => lintExpression(x)
+    ir.transformExpressions { case x =>
+      lintExpression(x)
     }
   }
 
@@ -86,8 +86,8 @@ case object ShadowedPatternFields extends IRPass {
   def lintExpression(
     expression: IR.Expression
   ): IR.Expression = {
-    expression.transformExpressions {
-      case cse: IR.Case => lintCase(cse)
+    expression.transformExpressions { case cse: IR.Case =>
+      lintCase(cse)
     }
   }
 

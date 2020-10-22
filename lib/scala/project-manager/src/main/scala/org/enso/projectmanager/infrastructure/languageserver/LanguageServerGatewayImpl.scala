@@ -20,8 +20,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivat
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.model.Project
 
-/**
-  * It is a proxy to actor based language subsystem. It a bridge between
+/** It is a proxy to actor based language subsystem. It a bridge between
   * actor interface and pure functional effects.
   *
   * @param registry a lang. server registry

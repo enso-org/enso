@@ -11,13 +11,11 @@ import org.enso.polyglot.debugger.{
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
-/**
-  * Utility class for creating Graal polyglot contexts.
+/** Utility class for creating Graal polyglot contexts.
   */
 class ContextFactory {
 
-  /**
-    * Creates a new Graal polyglot context.
+  /** Creates a new Graal polyglot context.
     *
     * @param packagesPath Enso packages path
     * @param in the input stream for standard in

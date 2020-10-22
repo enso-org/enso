@@ -3,15 +3,13 @@ package org.enso.projectmanager.control.effect
 import shapeless.=:!=
 import zio.ZIO
 
-/**
-  * A class for effectful computations which may fail.
+/** A class for effectful computations which may fail.
   *
   * @tparam F a monadic context
   */
 trait ErrorChannel[F[+_, +_]] {
 
-  /**
-    * Recovers from an error matched by recovery function.
+  /** Recovers from an error matched by recovery function.
     *
     * @param fa an effectful computation
     * @param recovery a recovery function
@@ -21,8 +19,7 @@ trait ErrorChannel[F[+_, +_]] {
     recovery: PartialFunction[E, B]
   ): F[E, B]
 
-  /**
-    * Recovers from an error by executing effectful computation.
+  /** Recovers from an error by executing effectful computation.
     *
     * @param fa an effectful computation
     * @param recovery a recovery function
@@ -32,8 +29,7 @@ trait ErrorChannel[F[+_, +_]] {
     recovery: PartialFunction[E, F[E1, B]]
   ): F[E1, B]
 
-  /**
-    * Recovers from an error by mapping it to fallback computations.
+  /** Recovers from an error by mapping it to fallback computations.
     *
     * @param fa an effectful computation
     * @param fallback a fallback function
@@ -42,35 +38,31 @@ trait ErrorChannel[F[+_, +_]] {
     fallback: E => F[E1, B]
   ): F[E1, B]
 
-  /**
-    * Lifts either to the [[F]] monadic context
+  /** Lifts either to the [[F]] monadic context
     *
     * @param either the either to lift
     * @return
     */
   def liftEither[E, A](either: Either[E, A]): F[E, A]
 
-  /**
-    * Maps error using the specified function/
+  /** Maps error using the specified function/
     *
     * @param fa an effectful computation
     * @param f a mapping function
     * @return
     */
-  def mapError[E, A, E1](fa: F[E, A])(f: E => E1)(
-    implicit ev: E =:!= Nothing
+  def mapError[E, A, E1](fa: F[E, A])(f: E => E1)(implicit
+    ev: E =:!= Nothing
   ): F[E1, A]
 
-  /**
-    * Returns an effect that models failure with the specified error.
+  /** Returns an effect that models failure with the specified error.
     *
     * @param error a returned error
     * @return
     */
   def fail[E](error: => E): F[E, Nothing]
 
-  /**
-    * Runs `cleanUp` effect if error is matched by partial function.
+  /** Runs `cleanUp` effect if error is matched by partial function.
     *
     * @param fa an effectful computation
     * @param cleanUp a cleanup function
@@ -80,8 +72,7 @@ trait ErrorChannel[F[+_, +_]] {
     cleanUp: PartialFunction[E, F[Nothing, Unit]]
   ): F[E, A]
 
-  /**
-    * Runs `cleanUp` effect if effectful computation died due to exception.
+  /** Runs `cleanUp` effect if effectful computation died due to exception.
     *
     * @param fa an effectful computation
     * @param cleanUp a cleanup function

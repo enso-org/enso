@@ -22,8 +22,7 @@ import org.enso.syntax.text.ast.text.Escape.Unicode
 import scala.annotation.tailrec
 import scala.util.control.Breaks.{break, breakable}
 
-/**
-  * This file contains the functionality that translates from the parser's
+/** This file contains the functionality that translates from the parser's
   * [[AST]] type to the internal representation used by the compiler.
   *
   * The current internal representation is [[IR]].
@@ -108,8 +107,8 @@ object AstToIr {
             )
         }
 
-        val exports = presentBlocks.collect {
-          case AST.Export.any(export) => translateExport(export)
+        val exports = presentBlocks.collect { case AST.Export.any(export) =>
+          translateExport(export)
         }
 
         val nonImportBlocks = presentBlocks.filter {
@@ -167,8 +166,8 @@ object AstToIr {
         }
 
         val methodRef = if (targetPath.nonEmpty) {
-          val pathSegments = targetPath.collect {
-            case AST.Ident.Cons.any(c) => c
+          val pathSegments = targetPath.collect { case AST.Ident.Cons.any(c) =>
+            c
           }
           val pathNames = pathSegments.map(buildName)
 
@@ -592,8 +591,7 @@ object AstToIr {
     err.map(Left(_)).getOrElse(Right(bldr.toString))
   }
 
-  /**
-    * Translates a sequence literal into its [[IR]] counterpart.
+  /** Translates a sequence literal into its [[IR]] counterpart.
     * @param literal the literal to translate
     * @return the [[IR]] representation of `literal`
     */

@@ -4,8 +4,7 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, JsonObject}
 import org.enso.pkg.Contact
 
-/**
-  * Global user configuration.
+/** Global user configuration.
   *
   * Specifies default values for new projects and possibly other properties. Can
   * handle unknown keys which can be used for configuration of plugins.
@@ -25,8 +24,7 @@ case class GlobalConfig(
   original: JsonObject
 ) {
 
-  /**
-    * Returns a [[Contact]] for the default author if at least one of the name
+  /** Returns a [[Contact]] for the default author if at least one of the name
     * and email is set.
     *
     * If both name and email are not set, returns None.
@@ -38,8 +36,7 @@ case class GlobalConfig(
 
 object GlobalConfig {
 
-  /**
-    * The default configuration used when the configuration file does not exist.
+  /** The default configuration used when the configuration file does not exist.
     */
   val Default: GlobalConfig =
     GlobalConfig(
@@ -49,8 +46,7 @@ object GlobalConfig {
       original       = JsonObject()
     )
 
-  /**
-    * Field names used when serializing the configuration.
+  /** Field names used when serializing the configuration.
     */
   object Fields {
     val DefaultVersion = "default.enso-version"
@@ -58,8 +54,7 @@ object GlobalConfig {
     val AuthorEmail    = "author.email"
   }
 
-  /**
-    * [[Decoder]] instance for [[GlobalConfig]].
+  /** [[Decoder]] instance for [[GlobalConfig]].
     */
   implicit val decoder: Decoder[GlobalConfig] = { json =>
     for {
@@ -77,8 +72,7 @@ object GlobalConfig {
     )
   }
 
-  /**
-    * [[Encoder]] instance for [[GlobalConfig]].
+  /** [[Encoder]] instance for [[GlobalConfig]].
     */
   implicit val encoder: Encoder[GlobalConfig] = { config =>
     val base = config.original.asJson

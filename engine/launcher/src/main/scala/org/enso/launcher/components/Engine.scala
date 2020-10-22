@@ -7,8 +7,7 @@ import org.enso.launcher.FileSystem.PathSyntax
 
 import scala.util.{Failure, Success, Try}
 
-/**
-  * Represents an engine component.
+/** Represents an engine component.
   *
   * @param version version of the component
   * @param path path to the component
@@ -16,37 +15,31 @@ import scala.util.{Failure, Success, Try}
   */
 case class Engine(version: SemVer, path: Path, manifest: Manifest) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = {
     val broken = if (isMarkedBroken) " (marked as broken)" else ""
     s"Enso Engine $version$broken"
   }
 
-  /**
-    * The runtime version that is associated with this engine and should be used
+  /** The runtime version that is associated with this engine and should be used
     * for running it.
     */
   def graalRuntimeVersion: RuntimeVersion = manifest.runtimeVersion
 
-  /**
-    * A set of JVM options that should be added when running this engine.
+  /** A set of JVM options that should be added when running this engine.
     */
   def defaultJVMOptions: Seq[Manifest.JVMOption] = manifest.jvmOptions
 
-  /**
-    * Path to the runner JAR.
+  /** Path to the runner JAR.
     */
   def runnerPath: Path = path / "component" / "runner.jar"
 
-  /**
-    * Path to the runtime JAR.
+  /** Path to the runtime JAR.
     */
   def runtimePath: Path = path / "component" / "runtime.jar"
 
-  /**
-    * Checks if the installation is not corrupted and reports any issues as
+  /** Checks if the installation is not corrupted and reports any issues as
     * failures.
     */
   def ensureValid(): Try[Unit] =
@@ -66,8 +59,7 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
       )
     else Success(())
 
-  /**
-    * Returns if the engine release was marked as broken when it was being
+  /** Returns if the engine release was marked as broken when it was being
     * installed.
     *
     * Releases marked as broken are not considered when looking for the latest

@@ -8,13 +8,11 @@ import org.enso.cli.{CLIOutput, Spelling}
 class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
     extends BaseSubcommandOpt[A, A] {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def availableSubcommands: NonEmptyList[Command[A]] = subcommands
 
-  /**
-    * A flag that can be set to indicate that a command was provided, but it was
+  /** A flag that can be set to indicate that a command was provided, but it was
     * invalid.
     *
     * It is used for error reporting to differentiate invalid commands from
@@ -22,8 +20,7 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
     */
   private var commandProvidedButInvalid: Boolean = false
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def handleUnknownCommand(command: String): ParserContinuation = {
     val similar =

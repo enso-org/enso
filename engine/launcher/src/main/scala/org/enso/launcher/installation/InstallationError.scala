@@ -1,7 +1,6 @@
 package org.enso.launcher.installation
 
-/**
-  * Indicates an installation failure.
+/** Indicates an installation failure.
   *
   * Possibly installation being manually cancelled.
   */

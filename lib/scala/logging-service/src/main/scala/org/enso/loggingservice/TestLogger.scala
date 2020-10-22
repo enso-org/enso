@@ -2,20 +2,17 @@ package org.enso.loggingservice
 
 import org.enso.loggingservice.printers.TestPrinter
 
-/**
-  * A helper object for handling logs in tests.
+/** A helper object for handling logs in tests.
   */
 object TestLogger {
 
-  /**
-    * A log message returned by [[gatherLogs]].
+  /** A log message returned by [[gatherLogs]].
     *
     * It contains the loglevel and message, but ignores attached exceptions.
     */
   case class TestLogMessage(logLevel: LogLevel, message: String)
 
-  /**
-    * Gathers logs logged during execution of `action`.
+  /** Gathers logs logged during execution of `action`.
     *
     * This method should be used only inside of tests. Any tests using it should
     * be ran with `parallelExecution` set to false, as global logger state has
@@ -34,8 +31,7 @@ object TestLogger {
     printer.getLoggedMessages
   }
 
-  /**
-    * Drops any logs that are pending due to the logging service not being set
+  /** Drops any logs that are pending due to the logging service not being set
     * up.
     *
     * This method should be used only inside of tests. Any tests using it should

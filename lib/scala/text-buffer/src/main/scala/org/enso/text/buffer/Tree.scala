@@ -2,16 +2,14 @@ package org.enso.text.buffer
 
 import cats.Monoid
 
-/**
-  * A super class of nodes stored in the tree.
+/** A super class of nodes stored in the tree.
   *
   * @tparam C the container for leaf elements.
   * @tparam M the monoid used for sizing subtrees.
   */
 sealed trait NodeVal[C, M] {
 
-  /**
-    * Iterates through all leaves, passing their contents to the specified
+  /** Iterates through all leaves, passing their contents to the specified
     * consumer function.
     *
     * @param f the consumer function.
@@ -19,8 +17,7 @@ sealed trait NodeVal[C, M] {
   def foreach(f: C => Unit): Unit
 }
 
-/**
-  * An empty leaf of the tree.
+/** An empty leaf of the tree.
   *
   * @tparam C the container for leaf elements.
   * @tparam M the monoid used for sizing subtrees.
@@ -29,8 +26,7 @@ case class Empty[C, M]() extends NodeVal[C, M] {
   override def foreach(f: C => Unit): Unit = ()
 }
 
-/**
-  * An internal node of the tree, storing children nodes.
+/** An internal node of the tree, storing children nodes.
   *
   * @param children the children nodes.
   * @tparam C the container for leaf elements.
@@ -43,8 +39,7 @@ case class Internal[C, M](
     children.foreach(_.value.foreach(f))
 }
 
-/**
-  * A leaf node, storing a collection of type `C`.
+/** A leaf node, storing a collection of type `C`.
   *
   * @param elements the collection stored in this leaf.
   * @tparam C the container for leaf elements.
@@ -56,8 +51,7 @@ case class Leaf[C, M](
   override def foreach(f: C => Unit): Unit = f(elements)
 }
 
-/**
-  * A B-Tree node.
+/** A B-Tree node.
   *
   * A node must satisfy the following invariants to be considered valid:
   * 1. All leaves appear at the same depth (i.e. for each node, the height of
@@ -98,8 +92,7 @@ case class Node[C, M](
       case Empty()            => false
     }
 
-  /**
-    * Concatenates two trees, attaching `that` after `this`, ensuring the
+  /** Concatenates two trees, attaching `that` after `this`, ensuring the
     * result is a valid node.
     *
     * @param that the node to attach at the end of `this`.
@@ -166,8 +159,7 @@ case class Node[C, M](
     }
   }
 
-  /**
-    * Constructs a subtree consisting of an initial subset of elements.
+  /** Constructs a subtree consisting of an initial subset of elements.
     *
     * @param offset the length of the subsequence to construct.
     * @param measureOps operations to interpret this tree's measure.
@@ -181,8 +173,8 @@ case class Node[C, M](
   def take[I](
     offset: I,
     measureOps: RangeOps[I, C, M]
-  )(
-    implicit measureMonoid: Monoid[M],
+  )(implicit
+    measureMonoid: Monoid[M],
     measurable: Measurable[C, M],
     treeShape: TreeShape
   ): Node[C, M] = {
@@ -202,8 +194,7 @@ case class Node[C, M](
     }
   }
 
-  /**
-    * Constructs a subtree by removing the first `offset` elements.
+  /** Constructs a subtree by removing the first `offset` elements.
     *
     * @param offset the number of elements to drop.
     * @param measureOps operations to interpret this tree's measure.
@@ -217,8 +208,8 @@ case class Node[C, M](
   def drop[I](
     offset: I,
     measureOps: RangeOps[I, C, M]
-  )(
-    implicit measureMonoid: Monoid[M],
+  )(implicit
+    measureMonoid: Monoid[M],
     measurable: Measurable[C, M],
     treeShape: TreeShape
   ): Node[C, M] = {
@@ -261,8 +252,7 @@ case class Node[C, M](
     }
   }
 
-  /**
-    * Splits the tree into 2 subtrees, semantically equivalent to
+  /** Splits the tree into 2 subtrees, semantically equivalent to
     * `(this.take(offset, measureOps), this.drop(offset, measureOps)`.
     *
     * @param offset the number of elements to take and drop.
@@ -276,8 +266,8 @@ case class Node[C, M](
   def splitAt[I](
     offset: I,
     measureOps: RangeOps[I, C, M]
-  )(
-    implicit measureMonoid: Monoid[M],
+  )(implicit
+    measureMonoid: Monoid[M],
     measurable: Measurable[C, M],
     treeShape: TreeShape
   ): (Node[C, M], Node[C, M]) = {
@@ -303,8 +293,7 @@ case class Node[C, M](
     }
   }
 
-  /**
-    * Gets an element at a specified index.
+  /** Gets an element at a specified index.
     *
     * @param index the index to get an element at.
     * @param elemOps interpretation of indexes and elements in this tree type.
@@ -336,8 +325,7 @@ case class Node[C, M](
 
 object Node {
 
-  /**
-    * Creates a new leaf node with provided elements.
+  /** Creates a new leaf node with provided elements.
     *
     * @param elems the elements to store.
     * @param measurable the operations for measuring the collection.
@@ -348,8 +336,7 @@ object Node {
   def apply[C, M](elems: C)(implicit measurable: Measurable[C, M]): Node[C, M] =
     Node(0, measurable.measure(elems), Leaf[C, M](elems))
 
-  /**
-    * An unsafe operation, creating a node with given children, without
+  /** An unsafe operation, creating a node with given children, without
     * checking the invariants. Should only be used if the invariants are
     * checked externally.
     *
@@ -366,8 +353,7 @@ object Node {
     Node(height, size, Internal(children))
   }
 
-  /**
-    * An unsafe operation, creating a new node from two collections of children.
+  /** An unsafe operation, creating a new node from two collections of children.
     * It does check the size invariants, but height invariants must be checked
     * externally.
     *
@@ -394,16 +380,14 @@ object Node {
     }
   }
 
-  /**
-    * Creates an empty tree.
+  /** Creates an empty tree.
     *
     * @return an empty tree.
     */
   def empty[C, M](implicit measureMonoid: Monoid[M]): Node[C, M] =
     Node(0, measureMonoid.empty, Empty())
 
-  /**
-    * A safe operation for concatenating multliple valid trees into one.
+  /** A safe operation for concatenating multliple valid trees into one.
     *
     * @param nodes the nodes to merge into a tree.
     * @return a new tree representing a concatenation of all the supplied

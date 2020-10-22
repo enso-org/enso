@@ -6,7 +6,10 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.event.ClientEvent.{ClientConnected, ClientDisconnected}
+import org.enso.projectmanager.event.ClientEvent.{
+  ClientConnected,
+  ClientDisconnected
+}
 import org.enso.projectmanager.protocol.ProjectManagementApi._
 import org.enso.projectmanager.requesthandler._
 import org.enso.projectmanager.service.ProjectServiceApi
@@ -15,8 +18,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 import scala.annotation.unused
 import scala.concurrent.duration._
 
-/**
-  * An actor handling communications between a single client and the project
+/** An actor handling communications between a single client and the project
   * manager.
   *
   * @param clientId the internal client id.
@@ -68,7 +70,7 @@ class ClientController[F[+_, +_]: Exec](
       context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 
-    case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
+    case r @ Request(method, _, _) if requestHandlers.contains(method) =>
       val handler = context.actorOf(
         requestHandlers(method),
         s"request-handler-$method-${UUID.randomUUID()}"
@@ -79,8 +81,7 @@ class ClientController[F[+_, +_]: Exec](
 
 object ClientController {
 
-  /**
-    * Creates a configuration object used to create a [[ClientController]].
+  /** Creates a configuration object used to create a [[ClientController]].
     *
     * @param clientId the internal client id.
     * @return a configuration object

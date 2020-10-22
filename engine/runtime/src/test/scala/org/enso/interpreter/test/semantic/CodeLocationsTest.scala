@@ -16,8 +16,8 @@ class CodeLocationsTest extends InterpreterTest {
     var off = 0
     code.linesIterator.toList.foreach { line =>
       val chars: List[Any] = line.toList.map { c =>
-          s" ${if (c == ' ') '_' else c} "
-        } :+ '↵'
+        s" ${if (c == ' ') '_' else c} "
+      } :+ '↵'
       val ixes = off.until(off + chars.length).map { i =>
         if (i.toString.length == 1) s" $i " else s"$i "
       }

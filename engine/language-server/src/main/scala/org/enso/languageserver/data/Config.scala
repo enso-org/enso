@@ -13,8 +13,7 @@ import org.enso.languageserver.filemanager.{
 import scala.concurrent.duration._
 import scala.util.Try
 
-/**
-  * Configuration of the path watcher.
+/** Configuration of the path watcher.
   *
   * @param timeout path watcher operations timeout
   * @param restartTimeout timeout before watcher is restarted on error
@@ -29,8 +28,7 @@ case class PathWatcherConfig(
 
 object PathWatcherConfig {
 
-  /**
-    * Default path watcher config.
+  /** Default path watcher config.
     */
   def apply(): PathWatcherConfig =
     PathWatcherConfig(
@@ -40,8 +38,7 @@ object PathWatcherConfig {
     )
 }
 
-/**
-  * Configuration of the file manager.
+/** Configuration of the file manager.
   *
   * @param timeout IO operation timeout
   * @param parallelism number of processes working with the file system
@@ -50,8 +47,7 @@ case class FileManagerConfig(timeout: FiniteDuration, parallelism: Int)
 
 object FileManagerConfig {
 
-  /**
-    * Default file manager config.
+  /** Default file manager config.
     *
     * @param timeout IO operation timeout
     */
@@ -62,8 +58,7 @@ object FileManagerConfig {
     )
 }
 
-/**
-  * Configuration of the execution context.
+/** Configuration of the execution context.
   *
   * @param requestTimeout timeout of requests to the engine
   */
@@ -71,8 +66,7 @@ case class ExecutionContextConfig(requestTimeout: FiniteDuration)
 
 object ExecutionContextConfig {
 
-  /**
-    * Default execution context config.
+  /** Default execution context config.
     */
   def apply(): ExecutionContextConfig =
     ExecutionContextConfig(
@@ -80,8 +74,7 @@ object ExecutionContextConfig {
     )
 }
 
-/**
-  * Configuration of directories for storing internal files.
+/** Configuration of directories for storing internal files.
   *
   * @param root the root directory path
   */
@@ -103,8 +96,7 @@ object DirectoriesConfig {
   val DataDirectory: String           = ".enso"
   val SuggestionsDatabaseFile: String = "suggestions.db"
 
-  /**
-    * Create default data directory config
+  /** Create default data directory config
     *
     * @param root the root directory path
     * @return default data directory config
@@ -113,8 +105,7 @@ object DirectoriesConfig {
     new DirectoriesConfig(new File(root))
 }
 
-/**
-  * The config of the running Language Server instance.
+/** The config of the running Language Server instance.
   *
   * @param contentRoots a mapping between content root id and absolute path to
   * the content root
@@ -137,13 +128,12 @@ case class Config(
       .toRight(ContentRootNotFound)
 
   def findRelativePath(path: File): Option[Path] =
-    contentRoots.view.flatMap {
-      case (id, root) =>
-        if (path.toPath.startsWith(root.toPath)) {
-          Some(Path(id, root.toPath.relativize(path.toPath)))
-        } else {
-          None
-        }
+    contentRoots.view.flatMap { case (id, root) =>
+      if (path.toPath.startsWith(root.toPath)) {
+        Some(Path(id, root.toPath.relativize(path.toPath)))
+      } else {
+        None
+      }
     }.headOption
 
 }

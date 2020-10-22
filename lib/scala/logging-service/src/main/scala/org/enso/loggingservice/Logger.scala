@@ -6,8 +6,7 @@ import org.slf4j.{Logger => SLF4JLogger, Marker}
 
 import scala.annotation.unused
 
-/**
-  * A [[SLF4JLogger]] instance for the SLF4J backend which passes all log
+/** A [[SLF4JLogger]] instance for the SLF4J backend which passes all log
   * messages to a [[LoggerConnection]].
   *
   * @param name name of the logger

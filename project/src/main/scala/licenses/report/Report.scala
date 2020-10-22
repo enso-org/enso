@@ -6,8 +6,7 @@ import java.util.Base64
 import sbt.{File, IO}
 import src.main.scala.licenses._
 
-/**
-  * Allows to write a report summarizing current status of the review.
+/** Allows to write a report summarizing current status of the review.
   *
   * The report lists all dependencies and status of found attachments.
   *
@@ -16,8 +15,7 @@ import src.main.scala.licenses._
   */
 object Report {
 
-  /**
-    * Writes the report in HTML format.
+  /** Writes the report in HTML format.
     *
     * @param description description of the distribution
     * @param summary reviewed summary of findings
@@ -71,8 +69,7 @@ object Report {
     }
   }
 
-  /**
-    * Renders [[AttachmentStatus]] as HTML that will show the status name and a
+  /** Renders [[AttachmentStatus]] as HTML that will show the status name and a
     * color associated with it.
     */
   private def renderStatus(attachmentStatus: AttachmentStatus): String = {
@@ -86,8 +83,7 @@ object Report {
     s"""<span style="$style">$attachmentStatus</span>"""
   }
 
-  /**
-    * Renders a message about similarity of the file to a selected license file.
+  /** Renders a message about similarity of the file to a selected license file.
     *
     * If the filename is license-like, the file is compared with the selected
     * license (if any). If the file differs from the selected license and is
@@ -119,8 +115,7 @@ object Report {
     } else ""
   }
 
-  /**
-    * Writes a table containing summary of dependencies and their gathered
+  /** Writes a table containing summary of dependencies and their gathered
     * copyright information.
     */
   private def writeDependencySummary(
@@ -208,24 +203,23 @@ object Report {
             rowWriter.addColumn {
               if (files.isEmpty) writer.writeText("No attached files.")
               else
-                writer.writeList(files.map {
-                  case (file, status) =>
-                    () =>
-                      val injection = writer.makeInjectionHandler(
-                        "file-ui",
-                        "package"  -> dep.information.packageName,
-                        "filename" -> file.path.toString,
-                        "status"   -> status.toString
-                      )
-                      val origin = file.origin
-                        .map(origin => s" (Found at $origin)")
-                        .getOrElse("")
-                      writer.writeCollapsible(
-                        s"${file.fileName} (${renderStatus(status)})$origin " +
-                        s"${renderSimilarity(defaultLicense, file, status)}",
-                        injection +
-                        writer.escape(file.content)
-                      )
+                writer.writeList(files.map { case (file, status) =>
+                  () =>
+                    val injection = writer.makeInjectionHandler(
+                      "file-ui",
+                      "package"  -> dep.information.packageName,
+                      "filename" -> file.path.toString,
+                      "status"   -> status.toString
+                    )
+                    val origin = file.origin
+                      .map(origin => s" (Found at $origin)")
+                      .getOrElse("")
+                    writer.writeCollapsible(
+                      s"${file.fileName} (${renderStatus(status)})$origin " +
+                      s"${renderSimilarity(defaultLicense, file, status)}",
+                      injection +
+                      writer.escape(file.content)
+                    )
                 })
             }
             rowWriter.addColumn {

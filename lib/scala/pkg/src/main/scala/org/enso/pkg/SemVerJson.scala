@@ -6,8 +6,7 @@ import nl.gn0s1s.bump.SemVer
 
 object SemVerJson {
 
-  /**
-    * [[Decoder]] instance allowing to parse semantic versioning strings.
+  /** [[Decoder]] instance allowing to parse semantic versioning strings.
     */
   implicit val semverDecoder: Decoder[SemVer] = { json =>
     for {
@@ -21,8 +20,7 @@ object SemVerJson {
     } yield version
   }
 
-  /**
-    * [[Encoder]] instance allowing to serialize semantic versioning strings.
+  /** [[Encoder]] instance allowing to serialize semantic versioning strings.
     */
   implicit val semverEncoder: Encoder[SemVer] = _.toString.asJson
 }

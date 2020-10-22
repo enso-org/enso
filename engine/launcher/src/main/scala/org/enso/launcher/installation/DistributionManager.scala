@@ -10,8 +10,7 @@ import org.enso.launcher.{Environment, FileSystem, InfoLogger, OS}
 import scala.util.Try
 import scala.util.control.NonFatal
 
-/**
-  * Gathers filesystem paths used by the launcher.
+/** Gathers filesystem paths used by the launcher.
   *
   * @param dataRoot the root of the data directory; for a portable distribution
   *                 this is the root of the distribution, for a locally
@@ -45,8 +44,7 @@ case class DistributionPaths(
   resourceManager: ResourceManager
 ) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String =
     s"""DistributionPaths(
@@ -64,8 +62,7 @@ case class DistributionPaths(
   }
 }
 
-/**
-  * A helper class that detects if a portable or installed distribution is run
+/** A helper class that detects if a portable or installed distribution is run
   * and encapsulates management of paths to components of the distribution.
   */
 class DistributionManager(
@@ -74,8 +71,7 @@ class DistributionManager(
 ) {
   private val logger = Logger[DistributionManager]
 
-  /**
-    * Specifies whether the launcher has been run as a portable distribution or
+  /** Specifies whether the launcher has been run as a portable distribution or
     * it is a locally installed distribution.
     */
   lazy val isRunningPortable: Boolean = {
@@ -107,8 +103,7 @@ class DistributionManager(
     portable
   }
 
-  /**
-    * Determines paths that should be used by the launcher.
+  /** Determines paths that should be used by the launcher.
     */
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
@@ -161,8 +156,7 @@ class DistributionManager(
       )
     }
 
-  /**
-    * Tries to clean the temporary files directory.
+  /** Tries to clean the temporary files directory.
     *
     * It should be run at startup whenever the program wants to run clean-up.
     * Currently it is run when installation-related operations are taking place.
@@ -186,8 +180,7 @@ class DistributionManager(
     }
   }
 
-  /**
-    * Removes unused lockfiles.
+  /** Removes unused lockfiles.
     */
   def tryCleaningUnusedLockfiles(): Unit = {
     val lockfiles = FileSystem.listDirectory(paths.locks)
@@ -201,8 +194,7 @@ class DistributionManager(
     }
   }
 
-  /**
-    * A helper for managing directories of the non-portable installation.
+  /** A helper for managing directories of the non-portable installation.
     *
     * It returns paths of the non-portable installation even if the launcher is
     * running in portable mode, so that this helper can be used by the installer
@@ -225,8 +217,7 @@ class DistributionManager(
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
     private val WINDOWS_ENSO_DIRECTORY = "enso"
 
-    /**
-      * Data directory for an installed distribution.
+    /** Data directory for an installed distribution.
       */
     def dataDirectory: Path =
       env
@@ -248,8 +239,7 @@ class DistributionManager(
         }
         .toAbsolutePath
 
-    /**
-      * Returns names of directories that may be located inside of the data
+    /** Returns names of directories that may be located inside of the data
       * directory.
       */
     def possibleDirectoriesInsideDataDirectory: Seq[String] =
@@ -261,8 +251,7 @@ class DistributionManager(
         "components-licences"
       )
 
-    /**
-      * Config directory for an installed distribution.
+    /** Config directory for an installed distribution.
       */
     def configDirectory: Path =
       env
@@ -284,8 +273,7 @@ class DistributionManager(
         }
         .toAbsolutePath
 
-    /**
-      * The directory where the launcher binary will be placed for an installed
+    /** The directory where the launcher binary will be placed for an installed
       * distribution.
       */
     def binDirectory: Path =
@@ -307,8 +295,7 @@ class DistributionManager(
         }
         .toAbsolutePath
 
-    /**
-      * The directory where runtime-synchronization files are stored.
+    /** The directory where runtime-synchronization files are stored.
       */
     def runtimeDirectory: Path =
       env
@@ -324,8 +311,7 @@ class DistributionManager(
           }
         }
 
-    /**
-      * The directory for storing logs.
+    /** The directory for storing logs.
       */
     def logDirectory: Path =
       env
@@ -347,16 +333,14 @@ class DistributionManager(
     private def executableName: String =
       OS.executableName("enso")
 
-    /**
-      * The path where the binary executable of the installed distribution
+    /** The path where the binary executable of the installed distribution
       * should be placed by default.
       */
     def binaryExecutable: Path = {
       binDirectory / executableName
     }
 
-    /**
-      * The safe version of [[dataDirectory]] which returns None if the
+    /** The safe version of [[dataDirectory]] which returns None if the
       * directory cannot be determined.
       *
       * Should be used in places where not being able to determine the data
@@ -365,8 +349,7 @@ class DistributionManager(
     def safeDataDirectory: Option[Path] =
       Try(dataDirectory).toOption
 
-    /**
-      * Determines whether a locally installed distribution exists on the
+    /** Determines whether a locally installed distribution exists on the
       * system.
       */
     def installedDistributionExists: Boolean =
@@ -374,8 +357,7 @@ class DistributionManager(
   }
 }
 
-/**
-  * A default DistributionManager using the default environment.
+/** A default DistributionManager using the default environment.
   */
 object DistributionManager
     extends DistributionManager(Environment, DefaultResourceManager)

@@ -107,7 +107,6 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         else DBIO.successful(None)
     } yield !versionsEquals
 
-
   /** The query to update the versions in batch.
     *
     * @param versions files with corresponding digests

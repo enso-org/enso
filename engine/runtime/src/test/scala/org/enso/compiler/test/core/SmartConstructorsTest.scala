@@ -1236,7 +1236,9 @@ class SmartConstructorsTest extends CompilerTest {
       Node.New.ForeignCodeLiteral("lambda x: x + 1", dummyLocation)
 
     val foreignDefinition =
-      Node.New.ForeignDefinition(language, code, dummyLocation).getOrElse(fail())
+      Node.New
+        .ForeignDefinition(language, code, dummyLocation)
+        .getOrElse(fail())
 
     "have valid fields" in {
       foreignDefinition.location shouldEqual dummyLocation

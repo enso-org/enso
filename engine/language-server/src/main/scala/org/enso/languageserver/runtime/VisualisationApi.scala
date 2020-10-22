@@ -4,8 +4,7 @@ import java.util.UUID
 
 import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
-/**
-  * The visualisation JSON RPC API provided by the language server.
+/** The visualisation JSON RPC API provided by the language server.
   *
   * @see [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
   */

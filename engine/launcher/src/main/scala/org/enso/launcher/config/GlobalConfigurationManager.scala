@@ -13,8 +13,7 @@ import org.enso.launcher.installation.DistributionManager
 
 import scala.util.{Failure, Success, Try, Using}
 
-/**
-  * Manages the global configuration of the distribution which includes the
+/** Manages the global configuration of the distribution which includes the
   * default engine version and default project metadata used for new projects.
   */
 class GlobalConfigurationManager(
@@ -24,8 +23,7 @@ class GlobalConfigurationManager(
 
   private val logger = Logger[GlobalConfigurationManager]
 
-  /**
-    * Returns the default Enso version that should be used when running Enso
+  /** Returns the default Enso version that should be used when running Enso
     * outside a project and when creating a new project.
     *
     * The default can be set by `enso default <version>`. If the default is not
@@ -53,15 +51,13 @@ class GlobalConfigurationManager(
         }
     }
 
-  /**
-    * Location of the global configuration file.
+  /** Location of the global configuration file.
     * @return
     */
   def configLocation: Path =
     distributionManager.paths.config / GlobalConfigurationManager.globalConfigName
 
-  /**
-    * Loads the current global configuration.
+  /** Loads the current global configuration.
     *
     * If the configuration file does not exist, the default config is returned.
     * If it exists but cannot be loaded, an exception is thrown.
@@ -69,26 +65,23 @@ class GlobalConfigurationManager(
   def getConfig: GlobalConfig =
     GlobalConfigurationManager
       .readConfig(configLocation)
-      .recoverWith {
-        case _: NoSuchFileException =>
-          logger.debug(
-            s"Global config (at ${configLocation.toAbsolutePath} not found, " +
-            s"falling back to defaults."
-          )
-          Success(GlobalConfig.Default)
+      .recoverWith { case _: NoSuchFileException =>
+        logger.debug(
+          s"Global config (at ${configLocation.toAbsolutePath} not found, " +
+          s"falling back to defaults."
+        )
+        Success(GlobalConfig.Default)
       }
       .get
 
-  /**
-    * Applies `update` to the current config and saves the returned value.
+  /** Applies `update` to the current config and saves the returned value.
     */
   def updateConfig(update: GlobalConfig => GlobalConfig): Unit = {
     val updated = update(getConfig)
     GlobalConfigurationManager.writeConfig(configLocation, updated).get
   }
 
-  /**
-    * Sets `key` to the raw JSON `value` in the config.
+  /** Sets `key` to the raw JSON `value` in the config.
     *
     * If changing that setting would result in the config becoming unreadable
     * (because an invalid value has been set for a known field), the config is
@@ -98,20 +91,18 @@ class GlobalConfigurationManager(
     val updated = GlobalConfig.encoder(getConfig).asObject.get.add(key, value)
     GlobalConfigurationManager
       .writeConfigRaw(configLocation, updated.asJson)
-      .recoverWith {
-        case e: InvalidConfigError =>
-          Failure(
-            InvalidConfigError(
-              s"Invalid value for key `$key`. Config changes were not saved.",
-              e
-            )
+      .recoverWith { case e: InvalidConfigError =>
+        Failure(
+          InvalidConfigError(
+            s"Invalid value for key `$key`. Config changes were not saved.",
+            e
           )
+        )
       }
       .get
   }
 
-  /**
-    * Removes the `key` from the config.
+  /** Removes the `key` from the config.
     *
     * If removing that setting would result in the config becoming unreadable,
     * the config is not saved and an exception is thrown.
@@ -124,13 +115,11 @@ class GlobalConfigurationManager(
 
 object GlobalConfigurationManager {
 
-  /**
-    * Name of the main global configuration file.
+  /** Name of the main global configuration file.
     */
   val globalConfigName: String = "global-config.yaml"
 
-  /**
-    * Tries to read the global config from the given `path`.
+  /** Tries to read the global config from the given `path`.
     */
   def readConfig(path: Path): Try[GlobalConfig] =
     Using(Files.newBufferedReader(path)) { reader =>
@@ -140,14 +129,12 @@ object GlobalConfigurationManager {
       } yield config
     }.flatMap(_.toTry)
 
-  /**
-    * Tries to write the provided `config` to the given `path`.
+  /** Tries to write the provided `config` to the given `path`.
     */
   def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
     writeConfigRaw(path, GlobalConfig.encoder(config))
 
-  /**
-    * Tries to write the config from a raw JSON value to the given `path`.
+  /** Tries to write the config from a raw JSON value to the given `path`.
     *
     * The config will not be saved if it is invalid, instead an exception is
     * thrown.
