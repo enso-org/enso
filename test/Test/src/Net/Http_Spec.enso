@@ -2,8 +2,11 @@ from Base import all
 
 import Base.Test
 import Base.Net.Http
+import Base.Net.Http.Auth
+import Base.Net.Http.Form
 import Base.Net.Http.Header
 import Base.Net.Http.Request
+import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Http.Status_Code
 import Base.Net.Uri
 
@@ -11,4 +14,20 @@ spec =
     describe "Http" <|
         it "should send get request" <|
             res = Http.new.get "http://localhost:8080/get"
+            res.code.should_equal Status_Code.ok
+        it "should send authenticated get request" <|
+            basic_auth = Auth.Basic_Auth "user" "pass"
+            res = Http.new (auth = basic_auth) . get "http://localhost:8080/basic-auth/user/pass"
+            res.code.should_equal Status_Code.ok
+        it "should post empty body" <|
+            body_empty = Request_Body.Empty
+            res = Http.new.post "http://localhost:8080/post" body_empty
+            res.code.should_equal Status_Code.ok
+        it "should post text body" <|
+            body_text = Request_Body.Text "Hello World!"
+            res = Http.new.post "http://localhost:8080/post" body_text
+            res.code.should_equal Status_Code.ok
+        it "should post form text" <|
+            form_parts = [Form.text_field "key" "val"]
+            res = Http.new.post_form "http://localhost:8080/post" form_parts
             res.code.should_equal Status_Code.ok

@@ -4,10 +4,10 @@ import Base.System.File
 type Body
 
     type Empty
-    type Body_Form form
-    type Body_Text text
-    type Body_File file
-    type Body_Bytes bytes
+    type Text text
+    type Form form
+    type File file
+    type Bytes bytes
 
 # Constructors
 

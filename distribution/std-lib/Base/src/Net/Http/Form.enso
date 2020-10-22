@@ -16,14 +16,14 @@ Vector.Vector.to_form = Form this
 
 type Form
 
-    type Form form_parts
+    type Form parts
 
     ## Implement To_Form.to_form
     to_form : Form
     to_form = this
 
     url_encode : Text
-    url_encode = this.form_parts.map url_encode . join "&"
+    url_encode = this.parts.map url_encode . join "&"
 
 type Part
 

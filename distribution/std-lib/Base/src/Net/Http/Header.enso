@@ -4,22 +4,27 @@ type Header
 
     type Header name value
 
-content_type : Text -> Header
-content_type text = Header "Content-Type" text
-
-# Common headers
-
-multipart_form_data : Header
-multipart_form_data = here.content_type "multipart/form-data"
-
-application_x_www_form_urlencoded : Header
-application_x_www_form_urlencoded = here.content_type "application/x-www-form-urlencoded"
-
-application_json : Header
-application_json = here.content_type "application/json"
+# Accept
 
 accept : Text -> Header
 accept text = Header "Accept" text
 
 accept_all : Header
 accept_all = here.accept "*/*"
+
+# Content-Type
+
+content_type : Text -> Header
+content_type text = Header "Content-Type" text
+
+application_json : Header
+application_json = here.content_type "application/json"
+
+application_x_www_form_urlencoded : Header
+application_x_www_form_urlencoded = here.content_type "application/x-www-form-urlencoded"
+
+multipart_form_data : Header
+multipart_form_data = here.content_type "multipart/form-data"
+
+text_plain : Header
+text_plain = here.content_type "text/plain"

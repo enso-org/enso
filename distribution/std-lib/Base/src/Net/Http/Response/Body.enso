@@ -12,6 +12,7 @@ type Body
     to_json : Any
     to_json = this.text
 
+    ## Write response body to a file.
     to_file : File -> File
     to_file path =
         path.write_bytes this.bytes
