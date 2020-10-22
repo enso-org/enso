@@ -10,7 +10,10 @@ content_type text = Header "Content-Type" text
 # Common headers
 
 multipart_form_data : Header
-multipart_form_data = this.content_type "multipart/form-data"
+multipart_form_data = here.content_type "multipart/form-data"
+
+application_x_www_form_urlencoded : Header
+application_x_www_form_urlencoded = here.content_type "application/x-www-form-urlencoded"
 
 application_json : Header
-application_json = this.content_type "application/json"
+application_json = here.content_type "application/json"

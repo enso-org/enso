@@ -1,4 +1,5 @@
 from Base import all
+import Base.Vector
 
 type To_Form
 
@@ -8,25 +9,36 @@ type To_Form
     to_form = internal_form
 
 ## Implement To_Form for vector
-Vector.to_form = Form this
+Vector.Vector.to_form = Form this
 
 type Form
 
-    type From form_parts
+    type Form form_parts
 
     ## Implement To_Form.to_form
     to_form : Form
     to_form = this
 
+    to_text_url : Text
+    to_text_url = this.form_parts.map to_text_url . join "&"
+
 type Part
 
     type Part key value
+
+    to_text_url : Text
+    to_text_url = this.key + "=" + this.value.to_text_url
 
 type Part_Value
 
     type Part_Text part_text
 
     type Part_File part_file
+
+    to_text_url : Text
+    to_text_url = case this of
+        Part_Text text -> text
+        Part_File file -> file.path
 
 ## Create Form data from Parts
 new : Vector -> Form
