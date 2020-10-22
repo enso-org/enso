@@ -158,13 +158,6 @@ impl Model {
         self.content.borrow().as_ref()?.get(id?)
     }
 
-    fn get_content_item_count(&self) -> usize {
-        match self.content.borrow().as_ref() {
-            Some(content) => content.entry_count(),
-            None          => 0,
-        }
-    }
-
     /// Transform index of an element visible in the menu, to the index of the all the objects,
     /// accounting for the removal of the selected item.
     ///
@@ -196,6 +189,11 @@ impl display::Object for Model {
 pub struct DropDownMenu {
         model : Rc<Model>,
     pub frp   : Frp,
+}
+
+impl Deref for DropDownMenu {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target { &self.frp }
 }
 
 impl DropDownMenu {
@@ -272,40 +270,42 @@ impl DropDownMenu {
             hide_menu <- source::<()>();
             show_menu <- source::<()>();
 
-            eval_ hide_menu ([model,frp,menu_height]{
-                model.selection_menu.deselect_entries.emit(());
-                frp.source.menu_visible.emit(false);
-                frp.source.menu_closed.emit(());
-                /// The following line is a workaround for #815.
-                /// If we end at 0.0 the `ListView` will still display the first
-                /// content item. This avoids the slowdown close to 0.0, so we can
-                /// manually remove the `ListView` from the scene at 0.0.
-                /// See #815
-                menu_height.set_target_value(-20.0);
-            });
+            eval_ hide_menu (model.selection_menu.deselect_entries.emit(()));
+            eval_ show_menu (model.show_selection_menu());
 
-             eval_ show_menu ([frp,model,menu_height]{
-                let item_count    = model.get_content_item_count();
-                let line_height   = list_view::entry::HEIGHT;
-                let target_height = line_height * item_count as f32;
-                model.show_selection_menu();
-                menu_height.set_target_value(target_height);
-                frp.source.menu_visible.emit(true);
-            });
+            frp.source.menu_visible <+ hide_menu.constant(false);
+            frp.source.menu_visible <+ show_menu.constant(true);
+            frp.source.menu_closed  <+ hide_menu;
+
+            target_height <- all_with(&frp.output.menu_visible,&model.selection_menu.frp.set_entries,
+                f!([](visible,entries) {
+                    if *visible {
+                        let item_count  = entries.entry_count();
+                        let line_height = list_view::entry::HEIGHT;
+                        line_height * item_count as f32
+                    } else {
+                        // TODO[mm]: The following line is a workaround for #815.
+                        //           If we end at 0.0 the `ListView` will still display the first
+                        //           content item. This avoids the slowdown close to 0.0, so we can
+                        //           manually remove the `ListView` from the scene at 0.0.
+                        //           See #815
+                        -20.0
+                    }
+                })
+            );
+            eval target_height ((h) menu_height.set_target_value(*h));
 
 
             // === Selection ===
 
-            eval model.selection_menu.chosen_entry([frp,hide_menu,model](entry_id) {
-                hide_menu.emit(());
-                let unmasked_id = model.get_unmasked_index(*entry_id);
-                if let Some(unmasked_id) = unmasked_id {
-                    frp.source.chosen_entry.emit(unmasked_id);
-                    frp.input.set_selected(unmasked_id);
-                };
-            });
+            eval_ model.selection_menu.chosen_entry (hide_menu.emit(()));
+            chosen_entry_unmasked <- model.selection_menu.chosen_entry.map(f!((entry_id)
+                model.get_unmasked_index(*entry_id))
+            );
+            frp.source.chosen_entry <+ chosen_entry_unmasked;
+            set_selected            <- any(frp.input.set_selected, chosen_entry_unmasked);
 
-            eval frp.input.set_selected([model](entry_id) {
+            eval set_selected([model](entry_id) {
                 if let Some(entry_id) = entry_id {
                     if let Some(content) = model.content.borrow().as_ref() {
                         // We get an external item index, so we operate on all items, thus we

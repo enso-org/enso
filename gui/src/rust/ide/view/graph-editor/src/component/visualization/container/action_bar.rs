@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use crate::component::node;
-use crate::component::visualization::container::visualization_chooser;
+use crate::component::visualization::container::visualization_chooser::VisualizationChooser;
 use crate::component::visualization;
 
 use enso_frp as frp;
@@ -79,7 +79,6 @@ ensogl::define_endpoints! {
         set_size                       (Vector2),
         show_icons                     (),
         hide_icons                     (),
-        set_visualization_alternatives (Vec<visualization::Path>),
         set_selected_visualization     (Option<visualization::Path>),
     }
 
@@ -99,19 +98,19 @@ ensogl::define_endpoints! {
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
     hover_area            : component::ShapeView<hover_area::Shape>,
-    visualization_chooser : visualization_chooser::VisualizationChooser,
+    visualization_chooser : VisualizationChooser,
     background            : component::ShapeView<background::Shape>,
     display_object        : display::object::Instance,
     size                  : Rc<Cell<Vector2>>,
 }
 
 impl Model {
-    fn new(app:&Application) -> Self {
+    fn new(app:&Application, vis_registry:visualization::Registry) -> Self {
         let scene                 = app.display.scene();
         let logger                = Logger::new("ActionBarModel");
         let background            = component::ShapeView::new(&logger,scene);
         let hover_area            = component::ShapeView::new(&logger,scene);
-        let visualization_chooser = visualization_chooser::VisualizationChooser::new(&app);
+        let visualization_chooser = VisualizationChooser::new(&app,vis_registry);
 
         let display_object        = display::object::Instance::new(&logger);
         let size                  = default();
@@ -149,6 +148,7 @@ impl Model {
     }
 
     fn hide(&self) {
+        println!("Hiding");
         self.visualization_chooser.unset_parent();
         self.background.unset_parent();
         self.visualization_chooser.frp.hide_selection_menu.emit(());
@@ -187,8 +187,8 @@ pub struct ActionBar {
 impl ActionBar {
 
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
-        let model = Rc::new(Model::new(app));
+    pub fn new(app:&Application, vis_registry:visualization::Registry) -> Self {
+        let model = Rc::new(Model::new(app,vis_registry));
         let frp   = Frp::new_network();
         ActionBar {model,frp}.init_frp()
     }
@@ -209,10 +209,6 @@ impl ActionBar {
             eval  frp.set_size ((size) model.set_size(*size));
             eval_ frp.hide_icons ( model.hide() );
             eval_ frp.show_icons ( model.show() );
-
-            eval frp.input.set_visualization_alternatives ((entries){
-                visualization_chooser.input.set_entries.emit(entries);
-            });
 
             eval frp.input.set_selected_visualization ((vis){
                 visualization_chooser.input.set_selected.emit(vis);
