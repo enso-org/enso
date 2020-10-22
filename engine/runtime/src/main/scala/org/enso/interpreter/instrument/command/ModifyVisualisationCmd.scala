@@ -21,7 +21,7 @@ class ModifyVisualisationCmd(
   request: Api.ModifyVisualisation
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext

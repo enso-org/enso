@@ -32,7 +32,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(FileUtils.write(file, content, "UTF-8"))
       .mapError(errorHandling)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def writeBinary(
     file: File,
     contents: Array[Byte]
@@ -49,7 +49,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(FileUtils.readFileToString(file, "UTF-8"))
       .mapError(errorHandling)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def readBinary(
     file: File
   ): BlockingIO[FileSystemFailure, Array[Byte]] =

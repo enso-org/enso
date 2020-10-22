@@ -63,11 +63,11 @@ class AkkaBasedWebSocketConnection(address: String)(implicit
 
   private val flow = Flow.fromSinkAndSource(sink, source)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def attachListener(listener: ActorRef): Unit =
     receiver ! Listen(listener)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   def connect(): Unit = {
     val (future, _) =
       Http()
@@ -87,10 +87,10 @@ class AkkaBasedWebSocketConnection(address: String)(implicit
     ()
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   def send(message: String): Unit = outboundChannel ! message
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   def disconnect(): Unit = outboundChannel ! CloseWebSocket
 
 }

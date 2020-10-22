@@ -56,7 +56,7 @@ class OutputRedirectionController(
       context.become(running(subscribers - session.clientId))
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def update(output: Array[Byte]): Unit =
     self ! CharOutputAppended(new String(output))
 

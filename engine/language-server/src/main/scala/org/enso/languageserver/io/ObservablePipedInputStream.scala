@@ -30,7 +30,7 @@ class ObservablePipedInputStream(sink: ObservableOutputStream)
 
   private var buffer: ByteString = ByteString.empty
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def read(): Int = lock.synchronized {
     waitForBuffer()
     val byte = buffer.head
@@ -39,10 +39,10 @@ class ObservablePipedInputStream(sink: ObservableOutputStream)
     byte.toInt
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def read(array: Array[Byte]): Int = read(array, 0, array.length)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def read(array: Array[Byte], off: Int, len: Int): Int =
     lock.synchronized {
       waitForBuffer()
@@ -60,12 +60,12 @@ class ObservablePipedInputStream(sink: ObservableOutputStream)
       lock.wait()
     }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def available(): Int = lock.synchronized {
     buffer.length
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def update(output: Array[Byte]): Unit = lock.synchronized {
     buffer = ByteString.createBuilder
       .append(buffer)

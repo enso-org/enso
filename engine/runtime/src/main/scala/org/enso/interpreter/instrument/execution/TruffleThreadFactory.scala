@@ -15,7 +15,7 @@ class TruffleThreadFactory(context: Context, prefix: String)
 
   private val counter = new AtomicInteger(0)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def newThread(r: Runnable): Thread = {
     val thread = context.createThread(r)
     thread.setName(s"$prefix-${counter.incrementAndGet()}")

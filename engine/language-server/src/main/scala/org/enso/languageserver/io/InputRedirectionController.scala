@@ -77,7 +77,7 @@ class InputRedirectionController(
       }
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def update(event: InputStreamEvent): Unit = { self ! event }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {

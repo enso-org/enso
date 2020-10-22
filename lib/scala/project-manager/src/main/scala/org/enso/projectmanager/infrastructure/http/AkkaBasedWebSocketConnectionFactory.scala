@@ -7,7 +7,7 @@ import org.enso.projectmanager.data.Socket
 class AkkaBasedWebSocketConnectionFactory(implicit system: ActorSystem)
     extends WebSocketConnectionFactory {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def createConnection(socket: Socket): WebSocketConnection =
     new AkkaBasedWebSocketConnection(s"ws://${socket.host}:${socket.port}")
 

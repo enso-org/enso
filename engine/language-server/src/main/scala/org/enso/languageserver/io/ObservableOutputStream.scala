@@ -14,19 +14,19 @@ class ObservableOutputStream extends OutputStream {
 
   private var observers = Set.empty[OutputObserver]
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def write(byte: Int): Unit = lock.synchronized {
     notify(Array[Byte](byte.toByte))
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def write(bytes: Array[Byte]): Unit = lock.synchronized {
     if (bytes.length > 0) {
       notify(bytes)
     }
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def write(bytes: Array[Byte], off: Int, len: Int): Unit =
     lock.synchronized {
       if (len > 0) {

@@ -12,7 +12,7 @@ class BinaryConnectionControllerFactory(fileManager: ActorRef)(implicit
   system: ActorSystem
 ) extends ConnectionControllerFactory {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def createController(clientIp: RemoteAddress.IP): ActorRef = {
     system.actorOf(Props(new BinaryConnectionController(clientIp, fileManager)))
   }

@@ -149,7 +149,7 @@ class ProjectFileRepository[
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)

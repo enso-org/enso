@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 class CloseFileCmd(request: Api.CloseFileNotification) extends Command(None) {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
