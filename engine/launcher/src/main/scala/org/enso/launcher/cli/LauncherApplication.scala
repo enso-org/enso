@@ -10,16 +10,14 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
+import org.enso.componentmanager.DistributionManager
 import org.enso.launcher.Launcher
 import org.enso.launcher.cli.Arguments._
 import org.enso.launcher.components.runner.LanguageServerOptions
 import org.enso.launcher.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
-import org.enso.launcher.installation.{
-  DistributionInstaller,
-  DistributionManager
-}
-import org.enso.launcher.locking.DefaultResourceManager
+import org.enso.launcher.installation.DistributionInstaller
+import org.enso.componentmanager.locking.DefaultResourceManager
 import org.enso.loggingservice.LogLevel
 
 /** Defines the CLI commands and options for the program.

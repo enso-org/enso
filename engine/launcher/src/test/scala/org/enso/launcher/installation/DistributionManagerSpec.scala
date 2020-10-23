@@ -2,9 +2,9 @@ package org.enso.launcher.installation
 
 import java.nio.file.Path
 
-import org.enso.componentmanager.Environment
+import org.enso.componentmanager.{DistributionManager, Environment}
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.launcher.locking.TestLocalResourceManager
+import org.enso.launcher.locktest.TestLocalResourceManager
 import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

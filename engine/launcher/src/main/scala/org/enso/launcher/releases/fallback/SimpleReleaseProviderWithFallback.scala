@@ -1,6 +1,6 @@
 package org.enso.launcher.releases.fallback
 
-import org.enso.launcher.releases.{Release, SimpleReleaseProvider}
+import org.enso.componentmanager.releases.{Release, SimpleReleaseProvider}
 
 import scala.util.{Failure, Try}
 

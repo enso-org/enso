@@ -5,9 +5,9 @@ import java.nio.file.Path
 import org.enso.componentmanager.FileSystem
 import org.enso.launcher.TestHelpers
 import org.enso.launcher.releases.fallback.staticwebsite.FileStorageFallbackReleaseProvider
-import org.scalatest.{Inside, OptionValues}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{Inside, OptionValues}
 
 import scala.util.Failure
 

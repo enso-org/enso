@@ -7,12 +7,11 @@ import cats.implicits._
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._
-import org.enso.componentmanager.{Environment, FileSystem, OS}
+import org.enso.componentmanager.{CurrentVersion, Environment, FileSystem, OS}
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher.cli.Arguments._
-import org.enso.launcher.releases.EnsoRepository
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.launcher.CurrentVersion
+import org.enso.launcher.releases.EnsoRepository
 
 /** Implements internal options that the launcher may use when running another
   * instance of itself.

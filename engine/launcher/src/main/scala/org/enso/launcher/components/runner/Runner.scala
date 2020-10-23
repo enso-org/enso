@@ -5,13 +5,10 @@ import java.nio.file.{Files, Path}
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.Environment
-import org.enso.launcher.components.{
-  ComponentsManager,
-  Engine,
-  Manifest,
-  Runtime
-}
+import org.enso.componentmanager.{components, Environment}
+import org.enso.componentmanager.components.Engine
+import org.enso.componentmanager.components.Manifest.JVMOptionsContext
+import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
@@ -266,7 +263,7 @@ class Runner(
         s"-D$name=$value"
       }
 
-      val context = Manifest.JVMOptionsContext(enginePackagePath = engine.path)
+      val context = JVMOptionsContext(enginePackagePath = engine.path)
 
       val manifestOptions =
         engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
@@ -319,9 +316,9 @@ class Runner(
     */
   private def systemJavaCommand: JavaCommand = JavaCommand("java", None)
 
-  /** The [[JavaCommand]] representing a managed [[Runtime]].
+  /** The [[JavaCommand]] representing a managed [[components.Runtime]].
     */
-  private def javaCommandForRuntime(runtime: Runtime): JavaCommand =
+  private def javaCommandForRuntime(runtime: components.Runtime): JavaCommand =
     JavaCommand(
       executableName = runtime.javaExecutable.toAbsolutePath.normalize.toString,
       javaHomeOverride =
@@ -345,7 +342,7 @@ class Runner(
         Await.result(loggerConnection, 3.seconds)
       } catch {
         case exception: TimeoutException =>
-          Logger[Runtime].warn(
+          Logger[components.Runtime].warn(
             "The logger has not been set up within the 3 second time limit, " +
             "the launched component will be started but it will not be " +
             "connected to the logging service.",

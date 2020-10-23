@@ -7,9 +7,9 @@ import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
 import io.circe.{yaml, Json}
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.DistributionManager
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher.components.ComponentsManager
-import org.enso.launcher.installation.DistributionManager
 
 import scala.util.{Failure, Success, Try, Using}
 

@@ -1,10 +1,10 @@
 package org.enso.launcher.project
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.DistributionManager
 import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.config.GlobalConfigurationManager
-import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.locking.TestLocalResourceManager
+import org.enso.launcher.locktest.TestLocalResourceManager
 import org.enso.pkg.Contact
 import org.scalatest.{Inside, OptionValues}
 

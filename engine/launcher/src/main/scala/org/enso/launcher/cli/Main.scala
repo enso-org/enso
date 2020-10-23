@@ -2,7 +2,7 @@ package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
-import org.enso.launcher.locking.DefaultResourceManager
+import org.enso.componentmanager.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
 
 /** Defines the entry point for the launcher.

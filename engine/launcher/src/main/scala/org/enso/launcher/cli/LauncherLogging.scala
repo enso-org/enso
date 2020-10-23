@@ -2,7 +2,7 @@ package org.enso.launcher.cli
 
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
-import org.enso.launcher.installation.DistributionManager
+import org.enso.componentmanager.DistributionManager
 import org.enso.loggingservice.printers.{
   FileOutputPrinter,
   Printer,

@@ -7,7 +7,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.{FileSystem, OS}
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher._
-import org.enso.launcher.locking.{FileLockManager, LockType}
+import org.enso.componentmanager.locking.{FileLockManager, LockType}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 

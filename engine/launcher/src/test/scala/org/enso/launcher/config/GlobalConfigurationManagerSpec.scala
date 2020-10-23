@@ -2,9 +2,9 @@ package org.enso.launcher.config
 
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.DistributionManager
 import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
-import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.locking.TestLocalResourceManager
+import org.enso.launcher.locktest.TestLocalResourceManager
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

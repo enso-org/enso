@@ -5,21 +5,26 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
-import org.enso.componentmanager.{FileSystem, OS}
+import org.enso.componentmanager.{
+  CurrentVersion,
+  DistributionManager,
+  FileSystem,
+  OS
+}
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.componentmanager.archive.Archive
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
-import org.enso.launcher.components.LauncherUpgradeRequiredError
-import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.locking.{
+import org.enso.componentmanager.locking.{
   DefaultResourceManager,
   LockType,
   Resource,
   ResourceManager
 }
 import org.enso.launcher.releases.launcher.LauncherRelease
-import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
-import org.enso.launcher.{CurrentVersion, InfoLogger}
+import org.enso.componentmanager.releases.ReleaseProvider
+import org.enso.launcher.releases.EnsoRepository
+import org.enso.launcher.InfoLogger
+import org.enso.launcher.components.LauncherUpgradeRequiredError
 import org.enso.logger.LoggerSyntax
 
 import scala.util.Try

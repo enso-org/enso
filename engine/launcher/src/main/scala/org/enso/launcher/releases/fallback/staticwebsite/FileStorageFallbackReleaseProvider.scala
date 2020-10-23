@@ -1,7 +1,7 @@
 package org.enso.launcher.releases.fallback.staticwebsite
 
 import org.enso.launcher.releases.fallback.FallbackReleaseProvider
-import org.enso.launcher.releases.{Release, ReleaseProviderException}
+import org.enso.componentmanager.releases.{Release, ReleaseProviderException}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}

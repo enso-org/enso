@@ -1,6 +1,8 @@
 package org.enso.launcher.components
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.components
+import org.enso.componentmanager.components.RuntimeVersion
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.loggingservice.{LogLevel, TestLogger}
 
@@ -39,8 +41,8 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
         Set(SemVer(0, 0, 0), SemVer(0, 0, 1), SemVer(0, 0, 1, Some("pre")))
       val runtimeVersions =
         Set(
-          RuntimeVersion(SemVer(1, 0, 0), "11"),
-          RuntimeVersion(SemVer(2, 0, 0), "11")
+          components.RuntimeVersion(SemVer(1, 0, 0), "11"),
+          components.RuntimeVersion(SemVer(2, 0, 0), "11")
         )
       engineVersions.map(
         componentsManager.findOrInstallEngine(_, complain = false)
@@ -57,7 +59,7 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
 
       val runtime2 =
         componentsManager
-          .findRuntime(RuntimeVersion(SemVer(2, 0, 0), "11"))
+          .findRuntime(components.RuntimeVersion(SemVer(2, 0, 0), "11"))
           .value
       componentsManager.findEnginesUsingRuntime(runtime2) should have length 2
     }
@@ -132,7 +134,7 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
       engines2.map(_.version) should not contain version2
       val runtimes2 = componentsManager.listInstalledRuntimes()
       runtimes2 should have length 1
-      runtimes2.map(_.version).head shouldEqual RuntimeVersion(
+      runtimes2.map(_.version).head shouldEqual components.RuntimeVersion(
         SemVer(1, 0, 0),
         "11"
       )

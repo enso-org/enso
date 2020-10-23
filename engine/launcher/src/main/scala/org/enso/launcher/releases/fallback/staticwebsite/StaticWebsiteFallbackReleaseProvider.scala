@@ -1,7 +1,7 @@
 package org.enso.launcher.releases.fallback.staticwebsite
 
-import org.enso.launcher.http.URIBuilder
-import org.enso.launcher.releases.Release
+import org.enso.componentmanager.http.URIBuilder
+import org.enso.componentmanager.releases.Release
 import org.enso.launcher.releases.fallback.FallbackReleaseProvider
 
 import scala.util.Try
