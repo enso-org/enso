@@ -38,10 +38,16 @@ type Request
 
     ## Set body encoded as "application/json".
     with_json : Text -> Request
+    with_json json_body =
+        new_body = Request_Body.Json json_body
+        Request this.method this.uri this.headers new_body . with_headers [Header.application_json]
 
     ## Set body as vector of parts encoded as
        "application/x-www-form-urlencoded".
     with_form : To_Form -> Request
+    with_form parts =
+        new_body = Request_Body.Form parts.to_form
+        Request this.method this.uri this.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
 
 # Request constructors
 

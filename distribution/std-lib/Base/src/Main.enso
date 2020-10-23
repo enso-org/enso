@@ -71,6 +71,7 @@ type Math
 Math.pi : Decimal
 Math.pi = 3.141592653589793
 
+## A pair of elements.
 type Pair
 
     type Pair fst snd

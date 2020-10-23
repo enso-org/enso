@@ -1,20 +1,11 @@
 from Base import all
-import Base.System.File
 
+## The HTTP request body.
 type Body
 
     type Empty
     type Text text
+    type Json json
     type Form form
     type File file
     type Bytes bytes
-
-# Constructors
-
-from_parts : Vector -> Body
-
-from_text : Text -> Body
-
-from_file : File -> Body
-
-from_bytes : Vector -> Body

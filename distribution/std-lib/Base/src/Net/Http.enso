@@ -24,20 +24,25 @@ type Http
 
     type Http internal_http_client
 
-    # Methods
-
     ## Send an OPTIONS request.
-    options : Uri.To_Uri -> Response
+
+       > Example
+         Send an OPTIONS request.
+             Http.new.options "http://httpbin.org"
+    options : To_Uri -> Vector -> Response
+    options addr (headers = []) =
+        req = Request.options addr headers
+        this.request req
 
     ## Send a GET request.
 
        > Example
          Send a GET request.
-             Http.new . get "http://httpbin.org/get"
+             Http.new.get "http://httpbin.org/get"
 
        > Example
-         Authenticated GET request.
-             http = Http.new . with_basic_auth "user" "pass"
+         Authenticated GET request (note the use of TLS).
+             http = Http.new (auth = Auth.Basic_Auth "user" "pass")
              http.get "https://httpbin.org/basic-auth/user/pass"
     get : To_Uri -> Vector -> Response
     get addr (headers = []) =
@@ -45,7 +50,15 @@ type Http
         this.request req
 
     ## Send a HEAD request.
+
+       > Example
+         Send a HEAD request.
+             res = Http.new.head "http://httpbin.org"
+             IO.println res.headers
     head : To_Uri -> Vector -> Response
+    head addr (headers = []) =
+        req = Request.head addr headers
+        this.request req
 
     ## Send a POST request.
     post : To_Uri -> Request_Body -> Vector -> Respoonse
@@ -55,7 +68,7 @@ type Http
 
     ## Send a POST request with the form. By default it will be encoded as
        "application/x-www-form-urlencoded". To encode the form as
-       "multipart/form-data", add the appropriate header.
+       "multipart/form-data" add the appropriate header.
 
        > Example
          Send a POST request with form.
@@ -65,39 +78,32 @@ type Http
        > Example
          Send a POST request with form encoded as "multipart/form-data".
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             Http.new.post_form "http://httpbin.org/post" form Header.multipart_form_data
+             Http.new.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
 
        > Example
          Configure http client and send a POST request.
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             http = Http.new . with_basic_auth "user" "pass"
+             http = Http.new (timeout = 30.seconds)
              http.post_form "http://httpbin.org/post" form
     post_form : To_Uri -> To_Form -> Vector -> Response
     post_form addr parts (headers = []) =
-        new_headers = [Header.application_x_www_form_urlencoded] + headers
-        req = Request.post addr (Request_Body.Form parts.to_form) headers . with_headers new_headers
-
+        new_headers = [Header.application_x_www_form_urlencoded]
+        req = Request.post addr (Request_Body.Form parts.to_form) new_headers . with_headers headers
         this.request req
 
-    ## Send a POST request with body encoded as "application/json".
+    ## Send a POST request with body with content-type "application/json".
        TODO: [DB] fix when JSON is implemented.
 
        > Example
          Send a POST request with json data.
-             Http.new.post_json "http://httpbin.org/post" "{\"key\": \"val\"}"
+             json = '''
+                 {"key":"val"}
+             Http.new.post_json "http://httpbin.org/post" json
     post_json : To_Uri -> Text -> Vector -> Response
-    post_json addr json (headers = []) =
-        builder = HttpRequest.newBuilder []
-        builder.uri [addr.to_uri.internal_uri]
-        builder.header [Header.application_json.name, Header.application_json.value]
-        body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
-        body_publisher = body_publishers.ofString [json]
-        builder.POST [body_publisher]
-        headers.map h-> builder.header [h.name, h.value]
-        req = builder.build []
-        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
-        res = this.internal_http_client.send [req, body_handler]
-        Response.response res
+    post_json addr body_json (headers = []) =
+        new_headers = [Header.application_json]
+        req = Request.post addr (Request_Body.Json body_json) headers . with_headers new_headers
+        this.request req
 
     ## Send a PUT request.
     put : To_Uri -> Request_Body -> Vector -> Respoonse
@@ -105,66 +111,36 @@ type Http
         req = Request.put addr body headers
         this.request req
 
-    ## Send a PUT request with form encoded as
-       "application/x-www-form-urlencoded".
-
-       > Example
-         Send a PUT request with form.
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             Http.new.put_form "http://httpbin.org/put" form
-
-       > Example
-         Configure http client and send a PUT request.
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             http = Http.new . with_basic_auth "user" "pass"
-             http.put_form "http://httpbin.org/put" form
-    put_form : To_Uri -> To_Form -> Vector -> Response
-    put_form addr form (headers = []) =
-        builder = HttpRequest.newBuilder []
-        builder.uri [addr.to_uri.internal_uri]
-        builder.header [Header.application_x_www_form_urlencoded.name, Header.application_x_www_form_urlencoded.value]
-        body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
-        body_publisher = body_publishers.ofString [form.to_form.url_encode]
-        builder.PUT [body_publisher]
-        headers.map h-> builder.header [h.name, h.value]
-        req = builder.build []
-        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
-        res = this.internal_http_client.send [req, body_handler]
-        Response.response res
-
-    ## Send a PUT request with body encoded as "application/json".
+    ## Send a PUT request with body with content-type "application/json".
 
        > Example
          Send a PUT request with json data.
-             Http.new.put_json "http://httpbin.org/post" "{\"key\": \"val\"}"
-    put_json : Uri.To_Uri -> Any -> Response
-        builder = HttpRequest.newBuilder []
-        builder.uri [addr.to_uri.internal_uri]
-        builder.header [Header.application_json.name, Header.application_json.value]
-        body_publishers = Polyglot.get_member HttpRequest "BodyPublishers"
-        body_publisher = body_publishers.ofString [json]
-        builder.PUT [body_publisher]
-        headers.map h-> builder.header [h.name, h.value]
-        req = builder.build []
-        body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
-        res = this.internal_http_client.send [req, body_handler]
-        Response.response res
+             json = '''
+                 {"key":"val"}
+             Http.new.put_json "http://httpbin.org/put" json
+    put_json : To_Uri -> Text -> Vector -> Response
+    put_json addr body_json (headers = []) =
+        new_headers = [Header.application_json]
+        req = Request.put addr (Request_Body.Json body_json) headers . with_headers new_headers
+        this.request req
 
     ## Create a DELETE request.
-    delete : Uri.To_Uri -> Response
 
-    ## Create a TRACE request.
-    trace : Uri.To_Uri -> Response
-
-    ## Create a CONECT request.
-    connect : Uri.To_Uri -> Response
+       > Example
+         Send a DELETE request.
+             Http.new.delete "http://httpbin.org/delete"
+    delete : To_Uri -> Vector -> Response
+    delete addr (headers = []) =
+        req = Request.delete addr headers
+        this.request req
 
     ## Create a request
 
        > Example
          Send a GET request with headers.
              req = Request.new Method.GET "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
-             Http.new . request req
+             res =Http.new.request req
+             res.body
 
        > Example
          Open a connection and send a POST request.
@@ -203,6 +179,9 @@ type Http
             Request_Body.Text text ->
                 builder.header [Header.text_plain.name, Header.text_plain.value]
                 Pair req (body_publishers.ofString [text])
+            Request_Body.Json json ->
+                builder.header [Header.application_json.name, Header.application_json.value]
+                Pair req (body_publishers.ofString [json])
             Request_Body.Form form ->
                 add_multipart form =
                     body_builder = Http_Utils.multipart_body_builder []
