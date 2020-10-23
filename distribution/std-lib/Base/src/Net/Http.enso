@@ -207,21 +207,6 @@ type Http
         http_request = builder.build []
         body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
         Response.response (this.internal_http_client.send [http_request, body_handler])
-
-    # Settings
-
-    ## Get connection timeout settng.
-    timeout : Duration
-
-    ## Get authentication settings.
-    auth : Auth
-
-    ## Get follow_redirects setting.
-    follow_redirects : Boolean
-
-    ## Get proxy setting.
-    proxy : Proxy
-
 new : Duration -> Auth -> Boolean -> Proxy -> Http
 new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy_addr = Proxy.System) =
     builder = HttpClient.newBuilder []
