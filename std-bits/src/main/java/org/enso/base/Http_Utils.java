@@ -1,5 +1,7 @@
 package org.enso.base;
 
+import org.enso.base.net.http.MultipartBodyBuilder;
+
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 import java.net.http.HttpHeaders;
@@ -28,14 +30,23 @@ public class Http_Utils {
   }
 
   /**
-   * Create an authenticator for http basic auth.
+   * Create the authenticator for http basic auth.
    *
    * @param user the user name.
    * @param password the password.
-   * @return a new basic authenticator.
+   * @return the new basic authenticator.
    */
   public static Authenticator basic_authenticator(String user, String password) {
     return new BasicAuthenticator(user, password);
+  }
+
+  /**
+   * Create the builder for a multipart form data.
+   *
+   * @return the multipart form builder.
+   */
+  public static MultipartBodyBuilder multipart_body_builder() {
+    return new MultipartBodyBuilder();
   }
 
   /**

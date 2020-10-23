@@ -23,8 +23,10 @@ application_json = here.content_type "application/json"
 application_x_www_form_urlencoded : Header
 application_x_www_form_urlencoded = here.content_type "application/x-www-form-urlencoded"
 
-multipart_form_data : Header
-multipart_form_data = here.content_type "multipart/form-data"
+multipart_form_data : Text -> Header
+multipart_form_data (boundary = "") =
+    if boundary == "" then here.content_type "multipart/form-data" else
+        here.content_type ("multipart/form-data; boundary=" + boundary)
 
 text_plain : Header
 text_plain = here.content_type "text/plain"

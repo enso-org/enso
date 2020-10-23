@@ -42,7 +42,7 @@ type Part_Value
     url_encode =
         text = case this of
             Part_Text text -> text
-            Part_File file -> file.path
+            Part_File file -> file.read
         text.url_encode
 
 ## Create Form data from Parts

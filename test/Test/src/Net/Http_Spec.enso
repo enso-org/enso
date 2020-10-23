@@ -9,6 +9,7 @@ import Base.Net.Http.Request
 import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Http.Status_Code
 import Base.Net.Uri
+import Base.System.File
 
 spec =
     describe "Http" <|
@@ -30,4 +31,14 @@ spec =
         it "should post form text" <|
             form_parts = [Form.text_field "key" "val"]
             res = Http.new.post_form "http://localhost:8080/post" form_parts
+            res.code.should_equal Status_Code.ok
+        it "should post form file" <|
+            test_file = Enso_Project.data / "sample.txt"
+            form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
+            res = Http.new.post_form "http://localhost:8080/post" form_parts
+            res.code.should_equal Status_Code.ok
+        it "should post form multipart" <|
+            test_file = Enso_Project.data / "sample.txt"
+            form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
+            res = Http.new.post_form "http://localhost:8080/post" form_parts [Header.multipart_form_data]
             res.code.should_equal Status_Code.ok
