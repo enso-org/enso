@@ -74,7 +74,7 @@ Math.pi = 3.141592653589793
 ## A pair of elements.
 type Pair
 
-    type Pair fst snd
+    type Pair first second
 
 ## Generic equality of arbitrary values.
 Any.== : Any -> Boolean
