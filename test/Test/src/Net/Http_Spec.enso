@@ -8,11 +8,27 @@ import Base.Net.Http.Header
 import Base.Net.Http.Request
 import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Http.Status_Code
+import Base.Net.Proxy
 import Base.Net.Uri
 import Base.System.File
+import Base.Time.Duration
 
 spec =
     describe "Http" <|
+        it "should create HTTP client with timeout setting" <|
+            http = Http.new (timeout = 30.seconds)
+            http.timeout.should_equal 30.seconds
+        it "should create HTTP client with auth setting" <|
+            basic_auth = Auth.Basic_Auth "user" "pass"
+            http = Http.new (auth = basic_auth)
+            http.auth.should_equal basic_auth
+        it "should create HTTP client with follow_redirects setting" <|
+            http = Http.new (follow_redirects = False)
+            http.follow_redirects.should_equal_false
+        it "should create HTTP client with proxy setting" <|
+            proxy_setting = Proxy.Proxy_Addr "example.com" 80
+            http = Http.new (proxy = proxy_setting)
+            http.proxy.should_equal proxy_setting
         it "should send OPTIONS request" <|
             res = Http.new.options "http://localhost:8080"
             res.code.should_equal Status_Code.ok

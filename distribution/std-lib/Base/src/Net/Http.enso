@@ -22,7 +22,7 @@ polyglot java import org.enso.base.Http_Utils
 
 type Http
 
-    type Http internal_http_client
+    type Http timeout auth follow_redirects proxy
 
     ## Send an OPTIONS request.
 
@@ -139,14 +139,14 @@ type Http
        > Example
          Send a GET request with headers.
              req = Request.new Method.GET "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
-             res =Http.new.request req
+             res = Http.new.request req
              res.body
 
        > Example
-         Open a connection and send a POST request.
-                 req = Request.post "http://httpbin.org/post" . with_body [Request.Part "key" "value"] . with_header "X-Trace-Id" "123456789"
-                 res = http.new.request req
-                 res.code
+         Open a connection and send a POST request with form.
+             req = Request.post "http://httpbin.org/post" . with_form [Form.text_field "key" "value"] . with_header "X-Trace-Id" "123456789"
+             res = http.new.request req
+             res.code
 
        > Example
          Send a POST request with urlencoded form data.
@@ -207,32 +207,38 @@ type Http
         http_request = builder.build []
         body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
         Response.response (this.internal_http_client.send [http_request, body_handler])
-new : Duration -> Auth -> Boolean -> Proxy -> Http
-new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy_addr = Proxy.System) =
-    builder = HttpClient.newBuilder []
-    # timeout
-    if timeout.is_date then Error.throw Time.time_error "Connection timeout does not support date intervals" else builder.connectTimeout [timeout.internal_duration]
-    # auth
-    case auth of
-        Auth.Basic_Auth user pass -> builder.authenticator [Http_Utils.basic_authenticator [user, pass]]
-        Auth.None -> Unit
-    # redirect
-    redirect = Polyglot.get_member HttpClient "Redirect"
-    redirect_policy = case follow_redirects of
-        True -> case auth of
-            Auth.None -> Polyglot.get_member redirect "ALWAYS"
-            _ -> Polyglot.get_member redirect "NORMAL"
-        False -> Polyglot.get_member redirect "NEVER"
-    builder.followRedirects [redirect_policy]
-    # proxy
-    case proxy_addr of
-        Proxy.Proxy_Addr proxy_host proxy_port ->
-            proxy_selector = ProxySelector.of [InetSocketAddress.new [proxy_host, proxy_port].to_array]
-            builder.proxy [proxy_selector]
-        Proxy.System ->
-            proxy_selector = ProxySelector.getDefault []
-            builder.proxy [proxy_selector]
-        Proxy.None ->
-            Unit
 
-    Http (builder.build [])
+    ## Build an HTTP client.
+    internal_http_client : HttpClient
+    internal_http_client =
+        builder = HttpClient.newBuilder []
+        # timeout
+        if this.timeout.is_date then Error.throw (Time.time_error "Connection timeout does not support date intervals") else builder.connectTimeout [this.timeout.internal_duration]
+        # auth
+        case this.auth of
+            Auth.Basic_Auth user pass -> builder.authenticator [Http_Utils.basic_authenticator [user, pass]]
+            Auth.None -> Unit
+        # redirect
+        redirect = Polyglot.get_member HttpClient "Redirect"
+        redirect_policy = case this.follow_redirects of
+            True -> case this.auth of
+                Auth.None -> Polyglot.get_member redirect "ALWAYS"
+                _ -> Polyglot.get_member redirect "NORMAL"
+            False -> Polyglot.get_member redirect "NEVER"
+        builder.followRedirects [redirect_policy]
+        # proxy
+        case this.proxy of
+            Proxy.Proxy_Addr proxy_host proxy_port ->
+                proxy_selector = ProxySelector.of [InetSocketAddress.new [proxy_host, proxy_port].to_array]
+                Polyglot.invoke builder "proxy" [proxy_selector].to_array
+            Proxy.System ->
+                proxy_selector = ProxySelector.getDefault []
+                Polyglot.invoke builder "proxy" [proxy_selector].to_array
+            Proxy.None ->
+                Unit
+        # build http client
+        builder.build []
+
+new : Duration -> Auth -> Boolean -> Proxy -> Http
+new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.System) =
+    Http timeout auth follow_redirects proxy
