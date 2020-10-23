@@ -2,6 +2,7 @@ package org.enso.base;
 
 import org.enso.base.net.http.BasicAuthenticator;
 import org.enso.base.net.http.MultipartBodyBuilder;
+import org.enso.base.net.http.UrlencodedBodyBuilder;
 
 import java.net.Authenticator;
 import java.net.http.HttpHeaders;
@@ -32,6 +33,14 @@ public class Http_Utils {
     return new MultipartBodyBuilder();
   }
 
+  /**
+   * Create the builder for an url-encoded form data.
+   *
+   * @return the url-encoded form builder.
+   */
+  public static UrlencodedBodyBuilder urlencoded_body_builder() {
+    return new UrlencodedBodyBuilder();
+  }
   /**
    * Get HTTP response headers as a list of map entries.
    *

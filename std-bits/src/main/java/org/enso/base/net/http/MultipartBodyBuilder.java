@@ -12,12 +12,13 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Supplier;
 
+/** A builder for a multipart form data. */
 public class MultipartBodyBuilder {
   private final List<PartsSpecification> partsSpecificationList = new ArrayList<>();
   private final String boundary = UUID.randomUUID().toString();
 
   /**
-   * Create the http multipart body publisher.
+   * Create HTTP body publisher for a multipart form data.
    *
    * @return the body publisher.
    */
@@ -34,7 +35,7 @@ public class MultipartBodyBuilder {
    *
    * @return the multipart boundary string.
    */
-  public String getBoundary() {
+  public String get_boundary() {
     return boundary;
   }
 
@@ -107,7 +108,7 @@ public class MultipartBodyBuilder {
       FINAL_BOUNDARY
     }
 
-    PartsSpecification.TYPE type;
+    TYPE type;
     String name;
     String value;
     Path path;

@@ -1,19 +1,17 @@
 from Base import all
 import Base.Vector
 
-polyglot java import java.net.URLEncoder
-polyglot java import java.nio.charset.StandardCharsets
-
 type To_Form
 
-    type To_Form internal_form
+    type To_Form internal_to_form
 
     to_form : Form
-    to_form = internal_form
+    to_form = this.internal_to_form
 
 ## Implement To_Form for vector
 Vector.Vector.to_form = Form this
 
+## The HTTP form containing a vector of parts.
 type Form
 
     type Form parts
@@ -22,28 +20,17 @@ type Form
     to_form : Form
     to_form = this
 
-    url_encode : Text
-    url_encode = this.parts.map url_encode . join "&"
-
+## The key-value element of the form.
 type Part
 
     type Part key value
 
-    url_encode : Text
-    url_encode = this.key.url_encode + "=" + this.value.url_encode
-
+## The value of the form element.
 type Part_Value
 
     type Part_Text part_text
 
     type Part_File part_file
-
-    url_encode : Text
-    url_encode =
-        text = case this of
-            Part_Text text -> text
-            Part_File file -> file.read
-        text.url_encode
 
 ## Create Form data from Parts
 new : Vector -> Form
@@ -51,11 +38,10 @@ new parts = Form parts
 
 # Helpers for creating different parts of the form.
 
+## Create a text field of a Form.
 text_field : Text -> Text -> Part
 text_field key val = Part key (Part_Text val)
 
+## Create a file field of a Form.
 file_field : Text -> Text -> Part
 file_field key file = Part key (Part_File file)
-
-Text.url_encode : Text
-Text.url_encode = URLEncoder.encode [this, Polyglot.get_member StandardCharsets "UTF_8"]
