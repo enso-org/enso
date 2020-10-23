@@ -44,6 +44,12 @@ type Http
          Authenticated GET request (note the use of TLS).
              http = Http.new (auth = Auth.Basic_Auth "user" "pass")
              http.get "https://httpbin.org/basic-auth/user/pass"
+
+       > Example
+         Download a file.
+             out_file = File.new "/tmp/out.bin"
+             res = Http.new.get "http://httpbin.org/bytes/1024"
+             res.body.to_file out_file
     get : To_Uri -> Vector -> Response
     get addr (headers = []) =
         req = Request.get addr headers

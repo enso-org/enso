@@ -1,8 +1,14 @@
 from Base import all
 
+polyglot java import org.enso.base.Text_Utils
+
 type Header
 
     type Header name value
+
+    ## Header equality.
+    == : Header -> Boolean
+    == that = Text_Utils.equals_ignore_case [this.name, that.name] && this.value==that.value
 
 ## Create a new Header.
 new : Text -> Text -> Header

@@ -3,8 +3,10 @@ import Base.System.File
 
 type Body
 
+    ## Response body
     type Body bytes
 
+    ## Convert response body to text.
     to_text : Text
     to_text = Text.from_utf_8 this.bytes
 
