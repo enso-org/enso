@@ -12,7 +12,7 @@ type Body
 
     # TODO [DB] return JSON when it's implemented.
     to_json : Any
-    to_json = this.text
+    to_json = this.to_text
 
     ## Write response body to a file.
     to_file : File -> File
