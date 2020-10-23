@@ -1,9 +1,11 @@
 from Base import all
 
 import Base.Test
+import Base.Net.Http.Form
 import Base.Net.Http.Header
 import Base.Net.Http.Method
 import Base.Net.Http.Request
+import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Uri
 
 spec =
@@ -33,3 +35,14 @@ spec =
             new_headers = [Header.multipart_form_data, Header.accept_all]
             req = Request.new Method.GET test_uri test_headers . with_headers new_headers
             req.headers.should_equal [Header.multipart_form_data, test_headers.at 1, Header.accept_all]
+        it "should set json body" <|
+            json = '''
+                {"key":"val"}
+            req = Request.new Method.GET test_uri . with_json json
+            req.body.should_equal (Request_Body.Json json)
+            req.headers.should_equal [Header.application_json]
+        it "should set form body" <|
+            body_form = [Form.text_field "key" "val"]
+            req = Request.new Method.GET test_uri . with_form body_form
+            req.body.should_equal (Request_Body.Form body_form.to_form)
+            req.headers.should_equal [Header.application_x_www_form_urlencoded]
