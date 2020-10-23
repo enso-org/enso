@@ -6,7 +6,8 @@ import java.nio.file.Path
 import cats.Show
 import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{CurrentVersion, OS}
+import org.enso.componentmanager.OS
+import org.enso.launcher.CurrentVersion
 import org.enso.launcher.components.Manifest.JVMOption
 import org.enso.pkg.SemVerJson._
 

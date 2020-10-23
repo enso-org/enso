@@ -5,6 +5,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.Environment
 import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
 import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.components.runner.{

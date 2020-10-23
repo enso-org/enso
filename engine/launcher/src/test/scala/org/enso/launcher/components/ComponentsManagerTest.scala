@@ -3,18 +3,14 @@ package org.enso.launcher.components
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.Environment
 import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.locking.TestLocalResourceManager
 import org.enso.launcher.releases.engine.EngineReleaseProvider
 import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.releases.testing.FakeReleaseProvider
-import org.enso.launcher.{
-  DropLogs,
-  Environment,
-  FakeEnvironment,
-  WithTemporaryDirectory
-}
+import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers

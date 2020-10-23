@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path}
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.componentmanager.{FileSystem, OS}
+import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.installation.DistributionInstaller.{
@@ -13,7 +14,7 @@ import org.enso.launcher.installation.DistributionInstaller.{
   MoveBundles
 }
 import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
-import org.enso.launcher.{FileSystem, InfoLogger, OS}
+import org.enso.launcher.InfoLogger
 
 import scala.util.control.NonFatal
 

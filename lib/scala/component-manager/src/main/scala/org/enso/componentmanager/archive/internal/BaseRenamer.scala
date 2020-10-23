@@ -1,4 +1,4 @@
-package org.enso.launcher.archive.internal
+package org.enso.componentmanager.archive.internal
 
 import java.nio.file.Path
 

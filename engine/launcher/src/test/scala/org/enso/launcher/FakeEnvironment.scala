@@ -1,7 +1,9 @@
 package org.enso.launcher
 
 import java.nio.file.{Files, Path}
-import org.enso.launcher.FileSystem.PathSyntax
+
+import org.enso.componentmanager.{Environment, FileSystem}
+import org.enso.componentmanager.FileSystem.PathSyntax
 
 /** A test-suite mixin that adds helper functions that create a fake environment
   * which points to an Enso installation inside the temporary directory

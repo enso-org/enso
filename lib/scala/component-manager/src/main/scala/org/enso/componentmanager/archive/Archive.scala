@@ -1,4 +1,4 @@
-package org.enso.launcher.archive
+package org.enso.componentmanager.archive
 
 import java.io.BufferedInputStream
 import java.nio.file.{Files, Path}
@@ -19,9 +19,9 @@ import org.apache.commons.compress.archivers.zip.{
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.IOUtils
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
-import org.enso.launcher.archive.internal.{ArchiveIterator, BaseRenamer}
-import org.enso.launcher.internal.ReadProgress
-import org.enso.launcher.{FileSystem, OS}
+import org.enso.componentmanager.OS
+import org.enso.componentmanager.archive.internal.{ArchiveIterator, BaseRenamer}
+import org.enso.componentmanager.internal.ReadProgress
 
 import scala.util.{Try, Using}
 
@@ -190,7 +190,7 @@ object Archive {
                 if (OS.isUNIX) {
                   getMode(entry) match {
                     case Some(mode) =>
-                      val permissions = FileSystem.decodePOSIXPermissions(mode)
+                      val permissions = POSIXPermissions.decode(mode)
                       Files.setPosixFilePermissions(
                         destinationPath,
                         permissions

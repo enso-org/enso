@@ -1,21 +1,22 @@
-package org.enso.launcher
+package org.enso.componentmanager.archive
 
 import java.nio.file.attribute.PosixFilePermissions
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
 import scala.jdk.CollectionConverters._
 
-class FileSystemSpec extends AnyWordSpec with Matchers {
-  "decodePOSIXPermissions" should {
-    def assertPair(octal: String, textual: String): Unit = {
-      val mode      = Integer.parseInt(octal, 8)
-      val decoded   = FileSystem.decodePOSIXPermissions(mode)
-      val reference = PosixFilePermissions.fromString(textual)
-      decoded.asScala.toSet shouldEqual reference.asScala.toSet
-    }
-
+class POSIXPermissionsSpec extends AnyWordSpec with Matchers {
+  "POSIXPermissions" should {
     "decode permissions correctly" in {
+      def assertPair(octal: String, textual: String): Unit = {
+        val mode      = Integer.parseInt(octal, 8)
+        val decoded   = POSIXPermissions.decode(mode)
+        val reference = PosixFilePermissions.fromString(textual)
+        decoded.asScala.toSet shouldEqual reference.asScala.toSet
+      }
+
       assertPair("000", "---------")
       assertPair("111", "--x--x--x")
       assertPair("222", "-w--w--w-")

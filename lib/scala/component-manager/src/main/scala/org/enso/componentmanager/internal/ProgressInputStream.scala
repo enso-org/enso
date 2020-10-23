@@ -1,4 +1,4 @@
-package org.enso.launcher.internal
+package org.enso.componentmanager.internal
 
 import java.io.InputStream
 

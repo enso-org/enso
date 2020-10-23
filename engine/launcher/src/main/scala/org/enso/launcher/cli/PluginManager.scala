@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path}
 
 import org.enso.cli.arguments
 import org.enso.cli.arguments.CommandHelp
-import org.enso.launcher.{Environment, FileSystem}
+import org.enso.componentmanager.{Environment, FileSystem}
 
 import scala.sys.process._
 import scala.util.Try

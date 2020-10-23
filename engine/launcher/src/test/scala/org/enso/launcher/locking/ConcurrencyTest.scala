@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.componentmanager.FileSystem
+import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
 import org.enso.launcher.components.{ComponentsManager, RuntimeVersion}
 import org.enso.launcher.installation.DistributionManager
@@ -15,7 +16,6 @@ import org.enso.launcher.{
   components,
   DropLogs,
   FakeEnvironment,
-  FileSystem,
   WithTemporaryDirectory
 }
 import org.scalatest.BeforeAndAfterEach

@@ -1131,9 +1131,34 @@ lazy val launcher = project
     parallelExecution in Test := false
   )
   .dependsOn(cli)
+  .dependsOn(`component-manager`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
+
+lazy val `component-manager` = project
+  .in(file("lib/scala/component-manager"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+      "org.typelevel"              %% "cats-core"        % catsVersion,
+      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
+      "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+      "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+      akkaHttp,
+      akkaSLF4J
+    )
+  )
+  .dependsOn(pkg)
+  .dependsOn(`logging-service`)
+  .dependsOn(
+    cli // TODO [RW] this is temporary, TaskProgress should get its own module
+  )
+  .dependsOn(
+    `version-output` // TODO [RW] may want to get rid of this if possible
+  )
 
 val `std-lib-root`          = file("distribution/std-lib/")
 val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"

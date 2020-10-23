@@ -3,6 +3,7 @@ package org.enso.launcher.releases.testing
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import org.enso.cli.{ProgressListener, TaskProgress}
+import org.enso.componentmanager.{FileSystem, OS}
 import org.enso.launcher.locking.{DefaultFileLockManager, LockType}
 import org.enso.launcher.releases.{
   Asset,
@@ -10,7 +11,6 @@ import org.enso.launcher.releases.{
   ReleaseProviderException,
   SimpleReleaseProvider
 }
-import org.enso.launcher.{FileSystem, OS}
 
 import scala.io.Source
 import scala.sys.process._

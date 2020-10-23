@@ -3,7 +3,8 @@ package org.enso.launcher.releases.fallback
 import java.nio.file.Path
 
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
-import org.enso.launcher.{FileSystem, TestHelpers}
+import org.enso.componentmanager.FileSystem
+import org.enso.launcher.TestHelpers
 import org.enso.launcher.releases.fallback.staticwebsite.FileStorage
 
 import scala.util.Try

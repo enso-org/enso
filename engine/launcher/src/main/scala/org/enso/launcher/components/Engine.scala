@@ -3,7 +3,7 @@ package org.enso.launcher.components
 import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.componentmanager.FileSystem.PathSyntax
 
 import scala.util.{Failure, Success, Try}
 

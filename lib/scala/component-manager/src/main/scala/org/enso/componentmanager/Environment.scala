@@ -1,4 +1,4 @@
-package org.enso.launcher
+package org.enso.componentmanager
 
 import java.io.File
 import java.nio.file.Path
@@ -163,7 +163,8 @@ object Environment extends Environment {
     * Internal method used for testing. It should be called as early as
     * possible, before [[getPathToRunningExecutable]] is called.
     */
-  def internalOverrideExecutableLocation(newLocation: Path): Unit =
+  def internalOverrideExecutableLocation(newLocation: Path): Unit = {
+    // TODO [RW] for now I just add dependency on buildinfo, may want to revisit this
     if (buildinfo.Info.isRelease)
       throw new IllegalStateException(
         "Internal testing function internalOverrideExecutableLocation used " +
@@ -173,4 +174,5 @@ object Environment extends Environment {
       Logger("TEST").debug(s"Overriding location to $newLocation.")
       executablePathOverride = Some(newLocation)
     }
+  }
 }

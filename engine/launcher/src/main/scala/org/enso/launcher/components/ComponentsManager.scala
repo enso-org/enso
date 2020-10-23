@@ -5,8 +5,9 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
-import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.archive.Archive
+import org.enso.componentmanager.FileSystem
+import org.enso.componentmanager.FileSystem.PathSyntax
+import org.enso.componentmanager.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.locking.{
@@ -21,7 +22,7 @@ import org.enso.launcher.releases.runtime.{
   RuntimeReleaseProvider
 }
 import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
-import org.enso.launcher.{FileSystem, InfoLogger}
+import org.enso.launcher.InfoLogger
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}

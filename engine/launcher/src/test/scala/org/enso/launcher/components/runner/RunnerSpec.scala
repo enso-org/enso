@@ -5,7 +5,7 @@ import java.util.UUID
 
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager

@@ -3,7 +3,7 @@ package org.enso.launcher.releases.runtime
 import java.nio.file.Path
 
 import org.enso.cli.TaskProgress
-import org.enso.launcher.OS
+import org.enso.componentmanager.OS
 import org.enso.launcher.components.RuntimeVersion
 import org.enso.launcher.releases.github.GithubReleaseProvider
 import org.enso.launcher.releases.{

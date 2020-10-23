@@ -1,9 +1,9 @@
-package org.enso.launcher.archive
+package org.enso.componentmanager.archive
 
 import java.io.FileInputStream
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.internal.ProgressInputStream
+import org.enso.componentmanager.internal.ProgressInputStream
 
 /** A helper that allows to create a [[ProgressInputStream]] for a file located
   * at the given path.

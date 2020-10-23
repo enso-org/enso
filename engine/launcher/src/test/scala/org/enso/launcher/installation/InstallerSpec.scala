@@ -2,7 +2,8 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.componentmanager.{FileSystem, OS}
+import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher._
 
 class InstallerSpec extends NativeTest with WithTemporaryDirectory {

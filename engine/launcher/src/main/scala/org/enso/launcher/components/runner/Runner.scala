@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.Environment
+import org.enso.componentmanager.Environment
 import org.enso.launcher.components.{
   ComponentsManager,
   Engine,

@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path, StandardCopyOption}
 
 import io.circe.parser
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.componentmanager.{FileSystem, OS}
+import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher._
 import org.enso.launcher.locking.{FileLockManager, LockType}
 import org.scalatest.exceptions.TestFailedException
