@@ -11,6 +11,10 @@ import Test.List_Spec
 import Test.Number_Spec
 import Test.Process_Spec
 import Test.Vector.Spec as Vector_Spec
+import Test.Net.Http_Spec
+import Test.Net.Uri_Spec
+import Test.Net.Http.Header_Spec
+import Test.Net.Http.Request_Spec
 import Test.Numbers.Spec as Numbers_Spec
 import Test.Text.Spec as Text_Spec
 import Test.Time.Spec as Time_Spec
@@ -31,3 +35,7 @@ main = Test.Suite.runMain <|
     Time_Spec.spec
     File_Spec.spec
     Meta_Spec.spec
+    Uri_Spec.spec
+    Header_Spec.spec
+    Request_Spec.spec
+    Http_Spec.spec
