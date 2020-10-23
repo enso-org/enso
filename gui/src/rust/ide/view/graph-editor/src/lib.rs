@@ -898,10 +898,8 @@ impl GraphEditorModelWithNetwork {
     , pointer_style   : &frp::Source<cursor::Style>
     , output_press    : &frp::Source<EdgeTarget>
     , input_press     : &frp::Source<EdgeTarget>
-    , expression_set  : &frp::Source<(NodeId,String)>
     , edit_mode_ready : &frp::Stream<bool>
-    , action_freeze   : &frp::Source<(NodeId,bool)>
-    , action_skip     : &frp::Source<(NodeId,bool)>
+    , output          : &FrpOutputsSource
     ) -> NodeId {
         let view    = component::Node::new(&self.app,self.visualizations.clone_ref());
         let node    = Node::new(view);
@@ -942,20 +940,32 @@ impl GraphEditorModelWithNetwork {
                 model.frp.hover_node_output.emit(None)
             );
 
-            eval node.frp.expression((t) expression_set.emit((node_id,t.into())));
+            eval node.frp.expression((t) output.node_expression_set.emit((node_id,t.into())));
 
 
             // === Actions ===
 
             eval node.view.frp.freeze ((is_frozen) {
-                action_freeze.emit((node_id,*is_frozen));
+                output.node_action_freeze.emit((node_id,*is_frozen));
             });
 
             let set_node_dimmed = &node.frp.set_dimmed;
-            eval node.view.frp.skip ([set_node_dimmed,action_skip](is_skipped) {
-                action_skip.emit((node_id,*is_skipped));
+            eval node.view.frp.skip ([set_node_dimmed,output](is_skipped) {
+                output.node_action_skip.emit((node_id,*is_skipped));
                 set_node_dimmed.emit(is_skipped);
             });
+
+
+            // === Visualizations ===
+
+            let vis_visible    =  node.model.visualization.frp.set_visibility.clone_ref();
+            let vis_fullscreen =  node.model.visualization.frp.enable_fullscreen.clone_ref();
+            vis_enabled        <- vis_visible.gate(&vis_visible);
+            vis_disabled       <- vis_visible.gate_not(&vis_visible);
+
+            output.visualization_enabled           <+ vis_enabled.constant(node_id);
+            output.visualization_disabled          <+ vis_disabled.constant(node_id);
+            output.visualization_enable_fullscreen <+ vis_fullscreen.constant(node_id);
         }
 
         self.nodes.insert(node_id,node);
@@ -1992,15 +2002,9 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
     add_node           <- any (inputs.add_node,add_node_at_cursor);
 
-    node_action_freeze <- source::<(NodeId,bool)>();
-    node_action_skip   <- source::<(NodeId,bool)>();
-    out.source.node_action_freeze <+ node_action_freeze;
-    out.source.node_action_skip   <+ node_action_skip;
-
-    new_node <- add_node.map(f_!([model,node_pointer_style,edit_mode,node_action_freeze,
-                                  node_action_skip] {
-        model.new_node(&node_pointer_style,&node_output_touch.down,&node_input_touch.down,
-                       &node_expression_set,&edit_mode,&node_action_freeze,&node_action_skip)
+    new_node <- add_node.map(f_!([model,node_pointer_style,edit_mode,out] {
+        model.new_node(&node_pointer_style,&node_output_touch.down,&node_input_touch.down
+            ,&edit_mode,&out.source)
     }));
     out.source.node_added <+ new_node;
 
@@ -2363,10 +2367,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     viz_preview_disable  <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
     viz_fullscreen_on    <= viz_d_press_ev.map(f_!(model.last_selected_node()));
 
-    out.source.visualization_enabled  <+ viz_enable;
-    out.source.visualization_disabled <+ viz_disable;
-    out.source.visualization_disabled <+ viz_preview_disable;
-    out.source.visualization_enable_fullscreen <+ viz_fullscreen_on;
+    eval viz_enable          ((id) model.enable_visualization(id));
+    eval viz_disable         ((id) model.disable_visualization(id));
+    eval viz_preview_disable ((id) model.disable_visualization(id));
+    eval viz_fullscreen_on   ((id) model.enable_visualization_fullscreen(id));
 
 
     // === Register Visualization ===
@@ -2401,9 +2405,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // TODO[ao] This one action is triggered by input frp node event instead of output, because
     //  the output emits the string and we need the expression with span-trees here.
     eval inputs.set_node_expression     (((id,expr)) model.set_node_expression(id,expr));
-    eval out.visualization_enabled  ((id) model.enable_visualization(id));
-    eval out.visualization_disabled ((id) model.disable_visualization(id));
-    eval out.visualization_enable_fullscreen ((id) model.enable_visualization_fullscreen(id));
+
 
 
     // === Edge discovery ===
