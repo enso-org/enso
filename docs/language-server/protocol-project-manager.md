@@ -136,7 +136,7 @@ interface ProjectOpenResult {
 - [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
 - [`MissingComponentError`](#missingcomponenterror) to signal that the component
   required to open the project was missing (only in case
-  `installMissingComponents` was set to `true`).
+  `installMissingComponents` was set to `false`).
 - [`ComponentInstallationError`](#componentinstallationerror) to signal that the
   installation of a missing component has failed.
 - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
@@ -240,8 +240,10 @@ interface ProjectCreateRequest {
    * - `default` to use the current default
    * - `latest-installed` to use the most recent version that is installed on
    *   the system.
+   *
+   * The field is optional - if it is missing, it is treated as `default`.
    */
-  version: String;
+  version?: String;
 
   /** Specifies whether to install missing components.
    *
@@ -256,7 +258,8 @@ interface ProjectCreateRequest {
 > specified somehow, we may want to be able to query all available version
 > strings from the repository? To allow users to choose a version for their new
 > project, besides just `engine/list` which only lists currently installed
-> versions.
+> versions. Or since the engine versions can be queried, we may want to get rid
+> of `latest-installed`.
 
 #### Result
 
@@ -276,7 +279,7 @@ interface ProjectOpenResponse {
   exists.
 - [`MissingComponentError`](#missingcomponenterror) to signal that the component
   required to create the project was missing (only in case
-  `installMissingComponents` was set to `true`).
+  `installMissingComponents` was set to `false`).
 - [`ComponentInstallationError`](#componentinstallationerror) to signal that the
   installation of a missing component has failed.
 - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
@@ -383,12 +386,43 @@ TBC
 
 ## Action Progress Reporting
 
+Some actions, especially those related to installation of new components may
+take a long time (for example because big packages need to be downloaded).
+
+The protocol includes notifications tied to such actions that can be used to
+display progress bars.
+
+Each task has a lifecycle of being initialized with a `task/started`
+notification (which contains a UUID that identifies that task), being updated
+with `task/progress-update` and finalized with `task/finished`. `task/finished`
+may include an error (but please note that regardless of the task-related error,
+the error will also be reported for the original request associated with the
+task, for example as `ComponentInstallationError` returned for the
+`project/open` request that triggered the installation).
+
+Tasks are sent while an operation is being processed and a single operation may
+consist of several (sub)tasks.
+
+For example, when opening a project the flow may be following:
+
+- `project/open` request sent to the server
+- notification `task/started` (downloading the archive)
+- multiple notifications `task/progress-update` related to that task
+- notification `task/finished`
+- notification `task/started` (extracting the archive)
+- multiple notifications `task/progress-update` related to that task
+- notification `task/finished`
+- reply to the original `project/open` request
+
+All task progress updates happen within the response/request flow (up to a
+possible reordering of messages).
+
 ### `task/started`
 
 Indicates that a long running task has been started.
 
-Currently only used when missing components are being installed to show
-installation progress.
+Currently only used when components are being installed to show installation
+progress.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -399,8 +433,25 @@ installation progress.
 
 ```typescript
 interface TaskStartNotification {
+  /** Unique identifier of the task, used to correlate progress updates and the
+   * finished notification.
+   */
   taskId: UUID;
-  taskName: String;
+
+  /** Name of the operation this task is related to, for example
+   * `project/open`.
+   */
+  relatedOperation: String;
+
+  /** Unit in which progress of this task is measured. */
+  unit: "bytes" | "other";
+
+  /** Indicates total expected progress.
+   *
+   * May be missing, as it is not always known, for example when downloading a
+   * file of unknown size or waiting on a lock.
+   */
+  total?: Int;
 }
 ```
 
@@ -424,13 +475,6 @@ interface TaskUpdateNotification {
 
   /** Indicates amount of progress, for example: count of processed bytes. */
   done: Int;
-
-  /** Indicates total expected progress.
-   *
-   * May be missing, as it is not always known, for example when downloading a
-   * file of unknown size or waiting on a lock.
-   */
-  total?: Int;
 }
 ```
 
@@ -624,7 +668,7 @@ null;
 
 ### `global-config/delete`
 
-Deletes a value from the global config.
+Deletes a value from the global config, or does nothing if it did not exist.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -704,6 +748,9 @@ restart is attempted.
 The project manager component has its own set of errors. This section is not a
 complete specification and will be updated as new errors are added.
 
+Besides the required `code` and `message` fields, the errors may have a `data`
+field which can store additional error-specific payload.
+
 ### `MissingComponentError`
 
 Signals that a component required to complete the action was missing, but the
@@ -745,10 +792,17 @@ Signals that installation of a missing compoment has been attempted, but the
 required engine version requires a newer version of project manager than what is
 currently running.
 
+This error type includes the optional `data` field which is an object with a
+field `minimumRequiredVersion` that is a semver string of the project manager
+version that is required to complete the related action.
+
 ```typescript
 "error" : {
   "code" : 4023,
-  "message" : "Project manager 1.2.3 is required to install the requested engine. Please upgrade."
+  "message" : "Project manager 1.2.3 is required to install the requested engine. Please upgrade.",
+  "data": {
+    "minimumRequiredVersion": "1.2.3"
+  }
 }
 ```
 

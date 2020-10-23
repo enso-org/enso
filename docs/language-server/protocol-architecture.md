@@ -128,6 +128,8 @@ interface with the runtime.
 
 ## Textual Protocol
 
+> This section is partially out of date.
+
 The protocol refers to the communication format that all of the above services
 speak between each other and to the GUI. This protocol is not specialised only
 to language server operations, as instead it needs to work for all of the
