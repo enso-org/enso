@@ -14,7 +14,7 @@ type Response
     headers : Vector
     headers =
         header_entries = Vector.vector (Http_Utils.get_headers [this.internal_http_response.headers []])
-        header_entries.map e-> Header.header (e.getKey []) (e.getValue [])
+        header_entries.map e-> Header.new (e.getKey []) (e.getValue [])
 
     body : Response_Body
     body = Response_Body.body (Vector.vector (this.internal_http_response.body []))

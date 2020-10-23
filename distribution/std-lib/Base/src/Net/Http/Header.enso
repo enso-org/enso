@@ -4,6 +4,10 @@ type Header
 
     type Header name value
 
+## Create a new Header.
+new : Text -> Text -> Header
+new name value = Header name value
+
 # Accept
 
 accept : Text -> Header

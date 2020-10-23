@@ -16,7 +16,7 @@ type Request
     ## Set header.
     with_header : Text -> Text -> Request
     with_header key val =
-       new_header = Header.header key val
+       new_header = Header.new key val
        update_header p h = case p of
            Pair acc True -> Pair (acc + [h]) True
            Pair acc False ->
