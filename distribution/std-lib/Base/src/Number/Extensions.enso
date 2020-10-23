@@ -91,3 +91,7 @@ Number.min that = if this < that then this else that
 ## Returns the larger value of `this` and `that`.
 Number.max : Number -> Number
 Number.max that = if this > that then this else that
+
+## Number to JSON conversion.
+Number.to_json : Json.Number
+Number.to_json = Json.Number this

@@ -206,6 +206,10 @@ type Vector
         len = min this.length that.length
         Vector.new len i-> function (this.at i) (that.at i)
 
+    ## Vector to JSON conversion.
+    to_json : Json.Array
+    to_json = Json.Array (this.map to_json)
+
 
 ## A builder type for Enso vectors.
 

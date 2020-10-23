@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.array;
+package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;

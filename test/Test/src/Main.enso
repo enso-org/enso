@@ -9,6 +9,7 @@ import Test.Semantic.Meta_Spec
 
 import Test.List_Spec
 import Test.Data.Map_Spec
+import Test.Data.Json_Spec
 import Test.Number_Spec
 import Test.Process_Spec
 import Test.Vector.Spec as Vector_Spec
@@ -33,3 +34,4 @@ main = Test.Suite.runMain <|
     File_Spec.spec
     Meta_Spec.spec
     Map_Spec.spec
+    Json_Spec.spec

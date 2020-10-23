@@ -1,12 +1,12 @@
 package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.array.*;
+import org.enso.interpreter.node.expression.builtin.mutable.*;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Container for builtin array-related types and functions. */
-public class Array {
+public class Mutable {
   private final AtomConstructor array;
 
   /**
@@ -15,7 +15,7 @@ public class Array {
    * @param language the current language instance.
    * @param scope the scope for builtin methods.
    */
-  public Array(Language language, ModuleScope scope) {
+  public Mutable(Language language, ModuleScope scope) {
     array = new AtomConstructor("Array", scope).initializeFields();
     scope.registerConstructor(array);
     scope.registerMethod(array, "empty", EmptyMethodGen.makeFunction(language));
@@ -28,6 +28,12 @@ public class Array {
     scope.registerMethod(array, "to_array", ToArrayMethodGen.makeFunction(language));
     scope.registerMethod(array, "at", GetAtMethodGen.makeFunction(language));
     scope.registerMethod(array, "set_at", SetAtMethodGen.makeFunction(language));
+
+    AtomConstructor ref = new AtomConstructor("Ref", scope).initializeFields();
+    scope.registerConstructor(ref);
+    scope.registerMethod(ref, "new", NewRefMethodGen.makeFunction(language));
+    scope.registerMethod(ref, "get", GetRefMethodGen.makeFunction(language));
+    scope.registerMethod(ref, "put", PutRefMethodGen.makeFunction(language));
   }
 
   /** @return the Array constructor. */
