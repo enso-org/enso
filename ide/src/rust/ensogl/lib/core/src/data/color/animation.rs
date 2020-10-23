@@ -179,7 +179,7 @@ impl ColorAnimation {
     pub fn new(_app:&Application) -> Self {
         let initialized = default();
         let frp         = Frp::new_network();
-        let value       = frp.output.value.clone_ref().into();
+        let value       = frp.value.clone_ref().into();
         let lch         = Animation::<Lch>::new(&frp.network);
         let alpha       = Animation::<f32>::new(&frp.network);
 
