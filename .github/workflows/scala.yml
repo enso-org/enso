@@ -59,10 +59,9 @@ jobs:
           Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
           -UdpIPv6
       - name: Prepare Engine Test Environment
-        shell: bash
         run: |
           go get -u github.com/ahmetb/go-httpbin/cmd/httpbin
-          echo $GOPATH
+          env
           $GOPATH/bin/httpbin -host :8080 &
       - name: Check Engine Test Environment
         shell: bash
