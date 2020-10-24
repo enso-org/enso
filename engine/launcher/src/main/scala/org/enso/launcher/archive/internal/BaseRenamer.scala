@@ -2,8 +2,7 @@ package org.enso.launcher.archive.internal
 
 import java.nio.file.Path
 
-/**
-  * Acts as a function that renames the base of the provided paths to the
+/** Acts as a function that renames the base of the provided paths to the
   * `newBase`.
   *
   * It changes the first component of the provided paths to the provided
@@ -16,8 +15,7 @@ import java.nio.file.Path
 class BaseRenamer(newBase: Path) extends (Path => Path) {
   var lastRoot: Option[Path] = None
 
-  /**
-    * Changes the path by renaming its base component.
+  /** Changes the path by renaming its base component.
     */
   override def apply(path: Path): Path = {
     if (path.getNameCount < 1) {

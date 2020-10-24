@@ -8,8 +8,7 @@ import org.enso.interpreter.runtime.Module
 
 import scala.collection.mutable
 
-/**
-  * Runs imports resolution. Starts from a given module and then recursively
+/** Runs imports resolution. Starts from a given module and then recursively
   * collects all modules that are reachable from it.
   *
   * Each of the reachable modules will be parsed and will have imported modules
@@ -21,8 +20,7 @@ import scala.collection.mutable
   */
 class ImportResolver(compiler: Compiler) {
 
-  /**
-    * Runs the import mapping logic.
+  /** Runs the import mapping logic.
     *
     * @param module the entry-point module.
     * @return a list of all modules that need to be compiled in order to run

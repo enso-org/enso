@@ -11,8 +11,7 @@ import org.enso.languageserver.search.SearchProtocol.{
 
 object SearchFailureMapper {
 
-  /**
-    * Maps [[SearchFailure]] into JSON RPC error.
+  /** Maps [[SearchFailure]] into JSON RPC error.
     *
     * @param searchError the search specific failure
     * @return JSON RPC error

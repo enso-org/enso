@@ -17,8 +17,7 @@ import scala.concurrent.TimeoutException
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 
-/**
-  * Contains helper methods for creating tests that need to run the native
+/** Contains helper methods for creating tests that need to run the native
   * launcher binary.
   */
 trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
@@ -26,8 +25,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
   override val timeLimit: Span               = 60.seconds
   override val defaultTestSignaler: Signaler = _.interrupt()
 
-  /**
-    * A result of running the native launcher binary.
+  /** A result of running the native launcher binary.
     *
     * @param exitCode the returned exit code
     * @param stdout contents of the standard output stream
@@ -46,20 +44,17 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       )
   }
 
-  /**
-    * A scalatest Matcher that allows to write expressions like
+  /** A scalatest Matcher that allows to write expressions like
     * `run should returnSuccess`.
     */
   def returnSuccess: RunSuccessMatcher.type = RunSuccessMatcher
 
-  /**
-    * Specifies if the current OS is Windows.
+  /** Specifies if the current OS is Windows.
     */
   val isWindows: Boolean =
     System.getProperty("os.name").toLowerCase().contains("windows")
 
-  /**
-    * Runs the native launcher binary with the specified arguments and captures
+  /** Runs the native launcher binary with the specified arguments and captures
     * its output.
     *
     * @param args arguments to forward to the launcher
@@ -82,8 +77,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     )
   }
 
-  /**
-    * Runs the native launcher binary located at `pathToLauncher` with the
+  /** Runs the native launcher binary located at `pathToLauncher` with the
     * specified arguments and captures its output.
     *
     * @param pathToLauncher path to the launcher executable to run
@@ -105,16 +99,14 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     run(Seq(pathToLauncher.toAbsolutePath.toString) ++ args, extraEnv.toSeq)
   }
 
-  /**
-    * Returns the expected location of the launcher binary compiled by the
+  /** Returns the expected location of the launcher binary compiled by the
     * Native Image. This binary can be copied into various places to test its
     * functionality.
     */
   def baseLauncherLocation: Path =
     Path.of(".").resolve(OS.executableName("enso"))
 
-  /**
-    * Creates a copy of the tested launcher binary at the specified location.
+  /** Creates a copy of the tested launcher binary at the specified location.
     *
     * It waits a 100ms delay after creating the copy to ensure that the copy can
     * be called right away after calling this function. It is not absolutely
@@ -132,8 +124,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     Thread.sleep(100)
   }
 
-  /**
-    * Runs the native launcher binary with the specified arguments and captures
+  /** Runs the native launcher binary with the specified arguments and captures
     * its output.
     *
     * @param args arguments to forward to the launcher
@@ -151,8 +142,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     )
   }
 
-  /**
-    * Starts the provided `command`.
+  /** Starts the provided `command`.
     *
     * `extraEnv` may be provided to extend the environment. Care must be taken
     * on Windows where environment variables are (mostly) case-insensitive.
@@ -244,8 +234,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     outThread.start()
     errThread.start()
 
-    /**
-      * Waits for a message on the stderr to appear.
+    /** Waits for a message on the stderr to appear.
       */
     def waitForMessageOnErrorStream(
       message: String,
@@ -270,8 +259,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       }
     }
 
-    /**
-      * Starts printing the stdout and stderr of the started process to the
+    /** Starts printing the stdout and stderr of the started process to the
       * stdout with prefixes to indicate that these messages come from another
       * process.
       *
@@ -298,15 +286,13 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
       )
     }
 
-    /**
-      * Tries to kill the process immediately.
+    /** Tries to kill the process immediately.
       */
     def kill(): Unit = {
       process.destroyForcibly()
     }
 
-    /**
-      * Waits for the process to finish and returns its [[RunResult]].
+    /** Waits for the process to finish and returns its [[RunResult]].
       *
       * If `waitForDescendants` is set, tries to wait for descendants of the
       * launched process to finish too. Especially important on Windows where
@@ -357,8 +343,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     }
   }
 
-  /**
-    * Runs the provided `command`.
+  /** Runs the provided `command`.
     *
     * `extraEnv` may be provided to extend the environment. Care must be taken
     * on Windows where environment variables are (mostly) case-insensitive.

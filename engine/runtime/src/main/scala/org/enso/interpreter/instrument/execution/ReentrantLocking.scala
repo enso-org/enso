@@ -4,8 +4,7 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.locks.{Lock, ReentrantLock, ReentrantReadWriteLock}
 
-/**
-  * Provides locking capabilities for the runtime server. Ir uses reentrant
+/** Provides locking capabilities for the runtime server. Ir uses reentrant
   * locks.
   */
 class ReentrantLocking extends Locking {
@@ -35,7 +34,7 @@ class ReentrantLocking extends Locking {
     }
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def removeContextLock(contextId: UUID): Unit = {
     contextMapLock.lock()
     try {
@@ -60,7 +59,7 @@ class ReentrantLocking extends Locking {
     }
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def removeFileLock(file: File): Unit = {
     fileMapLock.lock()
     try {
@@ -70,35 +69,35 @@ class ReentrantLocking extends Locking {
     }
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def acquireWriteCompilationLock(): Unit =
     compilationLock.writeLock().lockInterruptibly()
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def releaseWriteCompilationLock(): Unit =
     compilationLock.writeLock().unlock()
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def acquireReadCompilationLock(): Unit =
     compilationLock.readLock().lockInterruptibly()
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def releaseReadCompilationLock(): Unit =
     compilationLock.readLock().unlock()
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def acquireContextLock(contextId: UUID): Unit =
     getContextLock(contextId).lockInterruptibly()
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def releaseContextLock(contextId: UUID): Unit =
     getContextLock(contextId).unlock()
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def acquireFileLock(file: File): Unit =
     getFileLock(file).lockInterruptibly()
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def releaseFileLock(file: File): Unit = getFileLock(file).unlock()
 
 }

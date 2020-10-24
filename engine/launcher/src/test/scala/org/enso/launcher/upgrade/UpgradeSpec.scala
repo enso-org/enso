@@ -18,37 +18,32 @@ class UpgradeSpec
     with BeforeAndAfterAll
     with OptionValues {
 
-  /**
-    * Location of the fake releases root.
+  /** Location of the fake releases root.
     */
   private val fakeReleaseRoot = Path
-      .of(
-        getClass
-          .getResource("/org/enso/launcher/components/fake-releases")
-          .toURI
-      ) / "launcher"
+    .of(
+      getClass
+        .getResource("/org/enso/launcher/components/fake-releases")
+        .toURI
+    ) / "launcher"
 
-  /**
-    * Location of built Rust artifacts.
+  /** Location of built Rust artifacts.
     */
   private val rustBuildRoot = Path.of("./target/rust/debug/")
 
-  /**
-    * Location of the actual launcher executable that is wrapped by the shims.
+  /** Location of the actual launcher executable that is wrapped by the shims.
     */
   private val realLauncherLocation =
     Path.of(".").resolve(OS.executableName("enso")).toAbsolutePath.normalize
 
-  /**
-    * Path to a launcher shim that pretends to be `version`.
+  /** Path to a launcher shim that pretends to be `version`.
     */
   private def builtLauncherBinary(version: SemVer): Path = {
     val simplifiedVersion = version.toString.replaceAll("[.-]", "")
     rustBuildRoot / OS.executableName(s"launcher_$simplifiedVersion")
   }
 
-  /**
-    * Copies a launcher shim into the fake release directory.
+  /** Copies a launcher shim into the fake release directory.
     */
   private def prepareLauncherBinary(version: SemVer): Unit = {
     val os          = OS.operatingSystem.configName
@@ -74,8 +69,7 @@ class UpgradeSpec
     prepareLauncherBinary(SemVer(0, 0, 4))
   }
 
-  /**
-    * Prepares a launcher distribution in the temporary test location.
+  /** Prepares a launcher distribution in the temporary test location.
     *
     * If `launcherVersion` is not provided, the default one is used.
     *
@@ -104,14 +98,12 @@ class UpgradeSpec
     Thread.sleep(100)
   }
 
-  /**
-    * Path to the launcher executable in the temporary distribution.
+  /** Path to the launcher executable in the temporary distribution.
     */
   private def launcherPath =
     getTestDirectory / "enso" / "bin" / OS.executableName("enso")
 
-  /**
-    * Runs `enso version` to inspect the version reported by the launcher.
+  /** Runs `enso version` to inspect the version reported by the launcher.
     * @return the reported version
     */
   private def checkVersion(): SemVer = {
@@ -129,8 +121,7 @@ class UpgradeSpec
     SemVer(version.asObject.value.apply("version").value.asString.value).value
   }
 
-  /**
-    * Runs the launcher in the temporary distribution.
+  /** Runs the launcher in the temporary distribution.
     *
     * @param args arguments for the launcher
     * @param extraEnv environment variable overrides
@@ -141,8 +132,7 @@ class UpgradeSpec
     extraEnv: Map[String, String] = Map.empty
   ): RunResult = startLauncher(args, extraEnv).join(timeoutSeconds = 20)
 
-  /**
-    * Starts the launcher in the temporary distribution.
+  /** Starts the launcher in the temporary distribution.
     *
     * @param args arguments for the launcher
     * @param extraEnv environment variable overrides

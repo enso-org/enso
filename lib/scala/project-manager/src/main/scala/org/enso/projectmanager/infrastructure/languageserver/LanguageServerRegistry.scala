@@ -21,8 +21,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.util.UnhandledLogging
 
-/**
-  * An actor that routes request regarding lang. server lifecycle to the
+/** An actor that routes request regarding lang. server lifecycle to the
   * right controller that manages the server.
   * It creates a controller actor, if a server doesn't exists.
   *
@@ -105,15 +104,13 @@ class LanguageServerRegistry(
 
 object LanguageServerRegistry {
 
-  /**
-    * A notification informing that a server has shut down.
+  /** A notification informing that a server has shut down.
     *
     * @param projectId a project id
     */
   case class ServerShutDown(projectId: UUID)
 
-  /**
-    *  Creates a configuration object used to create a [[LanguageServerRegistry]].
+  /**  Creates a configuration object used to create a [[LanguageServerRegistry]].
     *
     * @param networkConfig a net config
     * @param bootloaderConfig a bootloader config

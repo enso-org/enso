@@ -4,8 +4,7 @@ import org.enso.cli.internal.NeedlemanWunsch
 
 object Spelling {
 
-  /**
-    * Selects closest matches to a potentially mistyped name.
+  /** Selects closest matches to a potentially mistyped name.
     *
     * @param typo the unknown name that the user typed
     * @param possibleWords a sequence of words that were expected
@@ -17,8 +16,7 @@ object Spelling {
   ): Seq[String] =
     selectClosestMatchesWithMetadata(typo, possibleWords.map((_, ()))).map(_._1)
 
-  /**
-    * Selects closest matches to a potentially mistyped name, returning not only
+  /** Selects closest matches to a potentially mistyped name, returning not only
     * the matches but any metadata that was passed with them. May be useful for
     * including additional text in the match suggestions.
     *
@@ -48,14 +46,12 @@ object Spelling {
       top.map(_._2)
     }
 
-  /**
-    * A threshold for the Needleman-Wunsch similarity score. Any matches above
+  /** A threshold for the Needleman-Wunsch similarity score. Any matches above
     * that threshold are not considered.
     */
   private val maxScoreThreshold: Double = 10.0
 
-  /**
-    * The limit of how many suggestions should be displayed at most.
+  /** The limit of how many suggestions should be displayed at most.
     */
   private val topSuggestionsLimit = 3
 }

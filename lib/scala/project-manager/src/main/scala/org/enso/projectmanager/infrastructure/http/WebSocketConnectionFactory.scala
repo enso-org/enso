@@ -2,13 +2,11 @@ package org.enso.projectmanager.infrastructure.http
 
 import org.enso.projectmanager.data.Socket
 
-/**
-  * Abstract connection factory.
+/** Abstract connection factory.
   */
 trait WebSocketConnectionFactory {
 
-  /**
-    * Creates web socket connection.
+  /** Creates web socket connection.
     *
     * @param socket a server address
     * @return a connection

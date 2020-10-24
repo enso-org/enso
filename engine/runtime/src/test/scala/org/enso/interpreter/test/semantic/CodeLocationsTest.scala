@@ -16,8 +16,8 @@ class CodeLocationsTest extends InterpreterTest {
     var off = 0
     code.linesIterator.toList.foreach { line =>
       val chars: List[Any] = line.toList.map { c =>
-          s" ${if (c == ' ') '_' else c} "
-        } :+ '↵'
+        s" ${if (c == ' ') '_' else c} "
+      } :+ '↵'
       val ixes = off.until(off + chars.length).map { i =>
         if (i.toString.length == 1) s" $i " else s"$i "
       }
@@ -279,7 +279,6 @@ class CodeLocationsTest extends InterpreterTest {
         instrumenter.assertNodeExists(55, 67, classOf[CaseNode])
         instrumenter.assertNodeExists(60, 1, classOf[ReadLocalVariableNode])
         instrumenter.assertNodeExists(103, 3, classOf[IntegerLiteralNode])
-        instrumenter.assertNodeExists(73, 33, classOf[CreateFunctionNode])
 
         eval(code) shouldEqual 100
     }

@@ -1,7 +1,6 @@
 package org.enso.projectmanager.infrastructure.log
 
-/**
-  * A pure functional logging facility.
+/** A pure functional logging facility.
   *
   * @tparam F a monadic context
   */

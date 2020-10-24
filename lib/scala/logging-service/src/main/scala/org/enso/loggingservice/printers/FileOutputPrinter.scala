@@ -8,8 +8,7 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 import org.enso.loggingservice.internal.DefaultLogMessageRenderer
 import org.enso.loggingservice.internal.protocol.WSLogMessage
 
-/**
-  * Creates a new file in [[logDirectory]] and writes incoming log messages to
+/** Creates a new file in [[logDirectory]] and writes incoming log messages to
   * this file.
   *
   * @param logDirectory the directory to create the logfile in
@@ -22,24 +21,21 @@ class FileOutputPrinter(logDirectory: Path, printExceptions: Boolean)
   private val renderer = new DefaultLogMessageRenderer(printExceptions)
   private val writer   = initializeWriter()
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def print(message: WSLogMessage): Unit = {
     val lines = renderer.render(message)
     writer.println(lines)
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def shutdown(): Unit = {
     writer.flush()
     writer.close()
   }
 
-  /**
-    * Opens the log file for writing.
+  /** Opens the log file for writing.
     */
   private def initializeWriter(): PrintWriter = {
     val logPath = logDirectory.resolve(makeLogFilename())
@@ -53,8 +49,7 @@ class FileOutputPrinter(logDirectory: Path, printExceptions: Boolean)
     )
   }
 
-  /**
-    * Creates a log filename that is created based on the current timestamp.
+  /** Creates a log filename that is created based on the current timestamp.
     */
   private def makeLogFilename(): String = {
     val timestampZone = ZoneId.of("UTC")
@@ -67,8 +62,7 @@ class FileOutputPrinter(logDirectory: Path, printExceptions: Boolean)
 
 object FileOutputPrinter {
 
-  /**
-    * Creates a new [[FileOutputPrinter]].
+  /** Creates a new [[FileOutputPrinter]].
     */
   def create(
     logDirectory: Path,

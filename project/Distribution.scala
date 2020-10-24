@@ -15,8 +15,7 @@ import scala.reflect.macros.blackbox
 
 object Distribution {
 
-  /**
-    * Creates a [[DistributionDescription]].
+  /** Creates a [[DistributionDescription]].
     */
   def apply(
     name: String,
@@ -25,15 +24,13 @@ object Distribution {
   ): DistributionDescription =
     DistributionDescription(name, packageDestination, sbtComponents)
 
-  /**
-    * A macro that creates [[SBTDistributionComponent]] descriptions from a list
+  /** A macro that creates [[SBTDistributionComponent]] descriptions from a list
     * of project references.
     */
   def sbtProjects(projects: Project*): Seq[SBTDistributionComponent] =
     macro sbtProjectsImpl
 
-  /**
-    * Implementation of the [[sbtProjects]] macro.
+  /** Implementation of the [[sbtProjects]] macro.
     *
     * It triggers execution of the tasks that are used to get information from
     * SBT on each project.
@@ -47,11 +44,12 @@ object Distribution {
         reify {
           val deliberatelyTriggerAndIgnore = (p.splice / update).value
 
+          val configs   = GatherLicenses.licenseConfigurations.value
           val ivyMod    = (p.splice / ivyModule).value
           val overrides = (p.splice / licenseOverrides).value.lift
           val report = license.LicenseReport.makeReport(
             ivyMod,
-            GatherLicenses.licenseConfigurations.value,
+            configs,
             (p.splice / licenseSelection).value,
             overrides,
             (p.splice / streams).value.log
@@ -59,7 +57,6 @@ object Distribution {
           SBTDistributionComponent(
             p.splice.id,
             report,
-            ivyMod,
             (p.splice / updateClassifiers).value
           )
         }

@@ -14,8 +14,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants
 
-/**
-  * Resolves and desugars referent name occurences in non-pattern contexts.
+/** Resolves and desugars referent name occurences in non-pattern contexts.
   *
   * 1. Attaches resolution metadata to encountered constructors, modules,
   *    and polygot symbols.

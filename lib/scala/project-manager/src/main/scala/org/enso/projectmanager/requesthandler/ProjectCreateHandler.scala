@@ -17,8 +17,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `project/create` commands.
+/** A request handler for `project/create` commands.
   *
   * @param service a project service
   * @param requestTimeout a request timeout
@@ -78,8 +77,7 @@ class ProjectCreateHandler[F[+_, +_]: Exec](
 
 object ProjectCreateHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ProjectCreateHandler]].
+  /** Creates a configuration object used to create a [[ProjectCreateHandler]].
     *
     * @param service a project service
     * @param requestTimeout a request timeout

@@ -2,8 +2,7 @@ package org.enso.text.editing
 
 object model {
 
-  /**
-    * A representation of a position in a text file.
+  /** A representation of a position in a text file.
     *
     * @param line a line position in a document (zero-based).
     * @param character a character offset
@@ -25,16 +24,14 @@ object model {
 
   }
 
-  /**
-    * A representation of a range of text in a text file.
+  /** A representation of a range of text in a text file.
     *
     * @param start the range's start position
     * @param end the range's end position
     */
   case class Range(start: Position, end: Position)
 
-  /**
-    * A representation of a change to a text file at a given position
+  /** A representation of a change to a text file at a given position
     *
     * @param range a range of text in a text file
     * @param text a change to a text file

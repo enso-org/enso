@@ -13,8 +13,7 @@ import org.enso.languageserver.protocol.json.ErrorApi
 
 object FileSystemFailureMapper {
 
-  /**
-    * Maps [[FileSystemFailure]] into JSON RPC error.
+  /** Maps [[FileSystemFailure]] into JSON RPC error.
     *
     * @param fileSystemFailure file system specific failure
     * @return JSON RPC error

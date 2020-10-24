@@ -1,7 +1,6 @@
 package org.enso.loggingservice.internal
 
-/**
-  * An internal logger used for reporting errors within the logging service
+/** An internal logger used for reporting errors within the logging service
   * itself.
   *
   * As the logging service cannot be used to report its own errors (because a
@@ -10,8 +9,7 @@ package org.enso.loggingservice.internal
   */
 object InternalLogger {
 
-  /**
-    * Reports an internal logging service error with the given message.
+  /** Reports an internal logging service error with the given message.
     */
   def error(message: String): Unit = {
     System.err.println(s"[internal-logger-error] $message")

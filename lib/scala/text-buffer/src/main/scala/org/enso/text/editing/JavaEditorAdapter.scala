@@ -7,14 +7,12 @@ import org.enso.text.editing.model.TextEdit
 
 import scala.jdk.CollectionConverters._
 
-/**
-  * A convenience class for using the text editor logic from Java code.
+/** A convenience class for using the text editor logic from Java code.
   */
 object JavaEditorAdapter {
   implicit private val editor: TextEditor[Rope] = RopeTextEditor
 
-  /**
-    * Applies a series of edits to a given text.
+  /** Applies a series of edits to a given text.
     *
     * @param rope the initial text.
     * @param edits the edits to apply.

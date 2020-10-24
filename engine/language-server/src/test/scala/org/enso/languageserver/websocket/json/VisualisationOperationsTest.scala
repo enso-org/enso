@@ -38,8 +38,12 @@ class VisualisationOperationsTest extends BaseServerTest {
       val requestId =
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
-              requestId,
-              Api.AttachVisualisation(`visualisationId`, `expressionId`, config)
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  config
+                )
               ) =>
             config.expression shouldBe visualisationConfig.expression
             config.visualisationModule shouldBe visualisationConfig.visualisationModule
@@ -113,12 +117,12 @@ class VisualisationOperationsTest extends BaseServerTest {
       val requestId =
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
-              requestId,
-              Api.DetachVisualisation(
-                `contextId`,
-                `visualisationId`,
-                `expressionId`
-              )
+                requestId,
+                Api.DetachVisualisation(
+                  `contextId`,
+                  `visualisationId`,
+                  `expressionId`
+                )
               ) =>
             requestId
 
@@ -191,8 +195,8 @@ class VisualisationOperationsTest extends BaseServerTest {
       val requestId =
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
-              requestId,
-              Api.ModifyVisualisation(`visualisationId`, config)
+                requestId,
+                Api.ModifyVisualisation(`visualisationId`, config)
               ) =>
             config.expression shouldBe visualisationConfig.expression
             config.visualisationModule shouldBe visualisationConfig.visualisationModule

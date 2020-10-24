@@ -74,14 +74,7 @@ public abstract class IndirectCurryNode extends Node {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         Stateful result =
-            doCall(
-                function,
-                callerInfo,
-                state,
-                arguments,
-                isTail,
-                directCall,
-                loopingCall);
+            doCall(function, callerInfo, state, arguments, isTail, directCall, loopingCall);
         if (defaultsExecutionMode.isExecute() && TypesGen.isFunction(result.getValue())) {
           return oversaturatedCallableNode.execute(
               result.getValue(),

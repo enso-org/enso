@@ -3,8 +3,7 @@ package org.enso.projectmanager.model
 import java.time.OffsetDateTime
 import java.util.UUID
 
-/**
-  * Project metadata entity.
+/** Project metadata entity.
   *
   * @param id a project id
   * @param kind a project kind
@@ -20,8 +19,7 @@ case class ProjectMetadata(
 
 object ProjectMetadata {
 
-  /**
-    * Create an instance from the project entity.
+  /** Create an instance from the project entity.
     *
     * @param project the project entity
     * @return the project metadata

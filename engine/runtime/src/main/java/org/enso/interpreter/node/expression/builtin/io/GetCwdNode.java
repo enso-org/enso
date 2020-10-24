@@ -15,8 +15,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(
     type = "Prim_Io",
     name = "get_cwd",
-    description =
-        "A file corresponding to the current working directory.")
+    description = "A file corresponding to the current working directory.")
 public abstract class GetCwdNode extends Node {
   static GetCwdNode build() {
     return GetCwdNodeGen.create();
@@ -25,9 +24,7 @@ public abstract class GetCwdNode extends Node {
   abstract Object execute(Object _this);
 
   @Specialization
-  Object doExecute(
-      Object _this,
-      @CachedContext(Language.class) Context ctx) {
+  Object doExecute(Object _this, @CachedContext(Language.class) Context ctx) {
     TruffleFile file = ctx.getEnvironment().getCurrentWorkingDirectory();
     EnsoFile ensoFile = new EnsoFile(file);
     return ctx.getEnvironment().asGuestValue(ensoFile);

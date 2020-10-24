@@ -74,9 +74,8 @@ case object OverloadsResolution extends IRPass {
           .Method(method.typeName, method.methodName, method.location)
       } else {
         val currentMethods = seenMethods(method.typeName.name)
-        seenMethods =
-          seenMethods + (method.typeName.name ->
-          (currentMethods + method.methodName.name))
+        seenMethods = seenMethods + (method.typeName.name ->
+        (currentMethods + method.methodName.name))
 
         method
       }

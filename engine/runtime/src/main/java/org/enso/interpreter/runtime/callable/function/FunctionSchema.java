@@ -75,9 +75,7 @@ public class FunctionSchema {
    * @param callerFrameAccess the declaration of need to access the caller frame from the function
    * @param argumentInfos Definition site arguments information
    */
-  public FunctionSchema(
-      CallerFrameAccess callerFrameAccess,
-      ArgumentDefinition... argumentInfos) {
+  public FunctionSchema(CallerFrameAccess callerFrameAccess, ArgumentDefinition... argumentInfos) {
     this(
         callerFrameAccess,
         argumentInfos,

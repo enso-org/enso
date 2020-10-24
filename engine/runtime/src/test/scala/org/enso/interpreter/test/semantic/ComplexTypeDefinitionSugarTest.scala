@@ -1,13 +1,13 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class ComplexTypeDefinitionSugarTest extends InterpreterTest {
 
   override def subject: String = "Complex type definitions"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "work properly with simple method definitions" in {

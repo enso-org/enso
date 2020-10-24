@@ -17,7 +17,9 @@ public abstract class MultiplyNode extends Node {
   }
 
   @Specialization
-  double doDouble(double _this, double that) { return _this * that;}
+  double doDouble(double _this, double that) {
+    return _this * that;
+  }
 
   @Specialization
   double doLong(double _this, long that) {

@@ -2,8 +2,7 @@ package org.enso.launcher.project
 
 import java.nio.file.Path
 
-/**
-  * Indicates that it was impossible to load the project at a specified path.
+/** Indicates that it was impossible to load the project at a specified path.
   */
 case class ProjectLoadingError(path: Path, cause: Throwable)
     extends RuntimeException(
@@ -11,8 +10,7 @@ case class ProjectLoadingError(path: Path, cause: Throwable)
       cause
     ) {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def toString: String = getMessage
 }

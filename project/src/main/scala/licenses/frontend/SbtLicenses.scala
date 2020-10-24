@@ -2,9 +2,7 @@ package src.main.scala.licenses.frontend
 
 import java.nio.file.Path
 
-import com.typesafe.sbt.license.SbtCompat.IvySbt
-import com.typesafe.sbt.license.{DepLicense, DepModuleInfo, LicenseReport}
-import org.apache.ivy.core.report.ResolveReport
+import com.typesafe.sbt.license.{DepLicense, DepModuleInfo}
 import org.apache.ivy.core.resolve.IvyNode
 import sbt.Compile
 import sbt.internal.util.ManagedLogger
@@ -18,13 +16,11 @@ import src.main.scala.licenses.{
 
 import scala.collection.JavaConverters._
 
-/**
-  * Defines the algorithm for discovering dependency metadata.
+/** Defines the algorithm for discovering dependency metadata.
   */
 object SbtLicenses {
 
-  /**
-    * Defines configurations that are deemed relevant for dependency discovery.
+  /** Defines configurations that are deemed relevant for dependency discovery.
     *
     * Currently we only analyse Compile dependencies as these are the ones that
     * get packaged.
@@ -36,8 +32,7 @@ object SbtLicenses {
     */
   val relevantConfigurations = Seq(Compile)
 
-  /**
-    * Analyzes the provided [[SBTDistributionComponent]]s collecting their
+  /** Analyzes the provided [[SBTDistributionComponent]]s collecting their
     * unique dependencies and issuing any warnings.
     *
     * @param components description of SBT components included in the
@@ -52,7 +47,7 @@ object SbtLicenses {
   ): (Seq[DependencyInformation], Seq[String]) = {
     val results: Seq[(Seq[Dependency], Vector[Path], Seq[String])] =
       components.map { component =>
-        val report = resolveIvy(component.ivyModule, log)
+        val report = component.licenseReport.orig
         val ivyDeps =
           report.getDependencies.asScala.map(_.asInstanceOf[IvyNode])
         val sourceArtifacts = component.classifiedArtifactsReport
@@ -114,32 +109,14 @@ object SbtLicenses {
     (relevantDeps, missingWarnings ++ unexpectedWarnings ++ reportsWarnings)
   }
 
-  /**
-    * Uses the [[LicenseReport]] plugin to resolve the dependencies of the Ivy
-    * module of an SBT component.
-    *
-    * Returns the resolved report or throws an exception if any errors were
-    * encountered.
-    */
-  private def resolveIvy(
-    ivyModule: IvySbt#Module,
-    log: ManagedLogger
-  ): ResolveReport = {
-    val (report, err) = LicenseReport.resolve(ivyModule, log)
-    err.foreach(throw _)
-    report
-  }
-
-  /**
-    * Returns a project URL if it is defined for the dependency or None.
+  /** Returns a project URL if it is defined for the dependency or None.
     */
   private def tryFindingUrl(dependency: Dependency): Option[String] =
     Option(dependency.ivyNode.getDescriptor).flatMap(descriptor =>
       Option(descriptor.getHomePage)
     )
 
-  /**
-    * Creates a [[SourceAccess]] instance that unpacks the source files from a
+  /** Creates a [[SourceAccess]] instance that unpacks the source files from a
     * JAR archive into a temporary directory.
     *
     * It removes the temporary directory after the analysis is finished.
@@ -153,15 +130,13 @@ object SbtLicenses {
         }
     }
 
-  /**
-    * Returns a sequence of [[SourceAccess]] instances that give access to any
+  /** Returns a sequence of [[SourceAccess]] instances that give access to any
     * sources JARs that are available with the dependency.
     */
   private def findSources(dependency: Dependency): Seq[SourceAccess] =
     dependency.sourcesJARPaths.map(createSourceAccessFromJAR)
 
-  /**
-    * Wraps information related to a dependency.
+  /** Wraps information related to a dependency.
     *
     * @param depLicense information on the license
     * @param ivyNode Ivy node that can be used to find metadata
@@ -173,10 +148,9 @@ object SbtLicenses {
     sourcesJARPaths: Seq[Path]
   )
 
-  /**
-    * Returns [[DepModuleInfo]] for an [[IvyNode]] if it is defined, or None.
+  /** Returns [[DepModuleInfo]] for an [[IvyNode]] if it is defined, or None.
     */
-  private def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
+  def safeModuleInfo(dep: IvyNode): Option[DepModuleInfo] =
     for {
       moduleId       <- Option(dep.getModuleId)
       moduleRevision <- Option(dep.getModuleRevision)

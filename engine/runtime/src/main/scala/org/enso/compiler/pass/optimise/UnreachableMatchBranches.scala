@@ -84,8 +84,8 @@ case object UnreachableMatchBranches extends IRPass {
     ir: IR.Expression,
     @unused inlineContext: InlineContext
   ): IR.Expression = {
-    ir.transformExpressions {
-      case x => optimizeExpression(x)
+    ir.transformExpressions { case x =>
+      optimizeExpression(x)
     }
   }
 
@@ -98,8 +98,8 @@ case object UnreachableMatchBranches extends IRPass {
     * @return `expression` with unreachable case branches removed
     */
   def optimizeExpression(expression: IR.Expression): IR.Expression = {
-    expression.transformExpressions {
-      case cse: IR.Case => optimizeCase(cse)
+    expression.transformExpressions { case cse: IR.Case =>
+      optimizeCase(cse)
     }
   }
 

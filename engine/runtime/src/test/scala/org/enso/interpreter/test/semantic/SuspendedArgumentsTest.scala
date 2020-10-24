@@ -5,8 +5,8 @@ import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 class SuspendedArgumentsTest extends InterpreterTest {
   override def subject = "Suspended arguments"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "work in basic expressions" in {

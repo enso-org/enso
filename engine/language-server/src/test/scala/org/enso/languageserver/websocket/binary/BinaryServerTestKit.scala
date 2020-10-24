@@ -80,12 +80,18 @@ abstract class BinaryServerTestKit
       .map { frame: ByteBuffer => BinaryMessage(ByteString(frame)) }
 
     private val sink: Sink[Message, NotUsed] = Flow[Message]
-      .collect {
-        case BinaryMessage.Strict(data) => data.asByteBuffer
+      .collect { case BinaryMessage.Strict(data) =>
+        data.asByteBuffer
       }
-      .to(Sink.actorRef[ByteBuffer](outActor.ref, PoisonPill, { _: Any =>
-        PoisonPill
-      }))
+      .to(
+        Sink.actorRef[ByteBuffer](
+          outActor.ref,
+          PoisonPill,
+          { _: Any =>
+            PoisonPill
+          }
+        )
+      )
 
     private val flow = Flow.fromSinkAndSource(sink, source)
 

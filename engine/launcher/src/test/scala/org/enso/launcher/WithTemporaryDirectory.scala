@@ -6,35 +6,30 @@ import java.io.{File, IOException}
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterEach, Suite}
 
-/**
-  * Creates a separate temporary directory for each test.
+/** Creates a separate temporary directory for each test.
   */
 trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
   private var testDirectory: Path = _
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def beforeEach(): Unit = {
     super.beforeEach()
     prepareTemporaryDirectory()
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def afterEach(): Unit = {
     super.afterEach()
     robustDeleteDirectory(testDirectory.toFile)
   }
 
-  /**
-    * Returns the temporary directory for this test.
+  /** Returns the temporary directory for this test.
     */
   def getTestDirectory: Path = testDirectory.toAbsolutePath.normalize
 
-  /**
-    * Tries to remove the directory, retrying every 100ms for 3 seconds.
+  /** Tries to remove the directory, retrying every 100ms for 3 seconds.
     *
     * This is used because there may be some lag between the test finalizing and
     * the filesystem allowing to remove the files (especially on Windows,
@@ -63,8 +58,7 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
     testDirectory = Files.createTempDirectory("enso-test")
   }
 
-  /**
-    * Overrides the temporary directory with a fresh one so that the test can be
+  /** Overrides the temporary directory with a fresh one so that the test can be
     * safely retried.
     *
     * Without this, retried tests re-use the directory which may cause problems.

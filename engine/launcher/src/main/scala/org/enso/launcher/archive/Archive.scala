@@ -25,8 +25,7 @@ import org.enso.launcher.{FileSystem, OS}
 
 import scala.util.{Try, Using}
 
-/**
-  * Contains utilities related to the extraction of various archive file
+/** Contains utilities related to the extraction of various archive file
   * formats.
   *
   * Currently it supports extracting ZIP files and gzipped TAR archives.
@@ -35,8 +34,7 @@ object Archive {
 
   private val logger = Logger[Archive.type]
 
-  /**
-    * Extracts the archive at `archivePath` to `destinationDirectory`.
+  /** Extracts the archive at `archivePath` to `destinationDirectory`.
     *
     * Behaves in the same way as the other [[extractArchive]] overload, but it
     * tries to determine the archive format automatically based on the filename.
@@ -73,8 +71,7 @@ object Archive {
     }
   }
 
-  /**
-    * Extracts the archive at `archivePath` to `destinationDirectory`.
+  /** Extracts the archive at `archivePath` to `destinationDirectory`.
     *
     * The extraction is run in a background thread, the function returns
     * immediately with a [[TaskProgress]] instance that can be used to track
@@ -113,8 +110,7 @@ object Archive {
     }
   }
 
-  /**
-    * Iterates over entries of the archive at `archivePath`.
+  /** Iterates over entries of the archive at `archivePath`.
     *
     * The iteration is run in a background thread, the function returns
     * immediately with a [[TaskProgress]] instance that can be used to track
@@ -143,8 +139,7 @@ object Archive {
     }
   }
 
-  /**
-    * Iterates over entries of the archive at `archivePath`.
+  /** Iterates over entries of the archive at `archivePath`.
     *
     * The iteration is run in a background thread, the function returns
     * immediately with a [[TaskProgress]] instance that can be used to track
@@ -239,8 +234,7 @@ object Archive {
     taskProgress
   }
 
-  /**
-    * Tries to get the POSIX file permissions associated with that `entry`.
+  /** Tries to get the POSIX file permissions associated with that `entry`.
     */
   private def getMode(entry: ApacheArchiveEntry): Option[Int] =
     entry match {
@@ -254,8 +248,7 @@ object Archive {
         None
     }
 
-  /**
-    * Opens the archive at `path` and executes the provided action.
+  /** Opens the archive at `path` and executes the provided action.
     *
     * The action is given an [[ArchiveInputStream]] that can be used to read
     * from the archive and a [[ReadProgress]] instance which indicates how many
@@ -286,8 +279,7 @@ object Archive {
     }
   }
 
-  /**
-    * Parses the name of the entry inside of the archive into a relative path.
+  /** Parses the name of the entry inside of the archive into a relative path.
     *
     * The specification does not restrict entry names to valid paths, but
     * empirical testing shows that paths in the archives we need to support are

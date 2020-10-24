@@ -3,8 +3,7 @@ package org.enso.projectmanager.infrastructure.http
 import akka.actor.{Actor, ActorRef}
 import org.enso.projectmanager.infrastructure.http.FanOutReceiver.Listen
 
-/**
-  * A fan-out receiver that delivers messages to multiple listeners.
+/** A fan-out receiver that delivers messages to multiple listeners.
   */
 class FanOutReceiver extends Actor {
 
@@ -19,8 +18,7 @@ class FanOutReceiver extends Actor {
 
 object FanOutReceiver {
 
-  /**
-    * An attach listener command.
+  /** An attach listener command.
     *
     * @param listener a listener to attach
     */

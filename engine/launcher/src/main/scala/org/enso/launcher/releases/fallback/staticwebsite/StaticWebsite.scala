@@ -5,15 +5,13 @@ import java.nio.file.Path
 import org.enso.cli.TaskProgress
 import org.enso.launcher.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
 
-/**
-  * Provides [[FileStorage]] backed by a static HTTPS website.
+/** Provides [[FileStorage]] backed by a static HTTPS website.
   *
   * @param root [[URIBuilder]] for the website's storage root
   */
 case class StaticWebsite(root: URIBuilder) extends FileStorage {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def download(
     path: Seq[String],
@@ -21,8 +19,7 @@ case class StaticWebsite(root: URIBuilder) extends FileStorage {
   ): TaskProgress[Unit] =
     HTTPDownload.download(makeGETRequest(path), destination).map(_ => ())
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def fetchString(path: Seq[String]): TaskProgress[String] =
     HTTPDownload.fetchString(makeGETRequest(path)).map(_.content)

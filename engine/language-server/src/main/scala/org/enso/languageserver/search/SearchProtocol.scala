@@ -193,8 +193,7 @@ object SearchProtocol {
       }
   }
 
-  /**
-    * The entry in the suggestions database.
+  /** The entry in the suggestions database.
     *
     * @param id the suggestion id
     * @param suggestion the suggestion
@@ -203,8 +202,7 @@ object SearchProtocol {
 
   object SuggestionDatabaseEntry {
 
-    /**
-      * Create the database entry from the polyglot suggestion entry.
+    /** Create the database entry from the polyglot suggestion entry.
       *
       * @param entry the suggestion entry
       * @return the database entry

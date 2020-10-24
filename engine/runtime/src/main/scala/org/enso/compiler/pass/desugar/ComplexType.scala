@@ -102,11 +102,11 @@ case object ComplexType extends IRPass {
   def desugarComplexType(
     typ: IR.Module.Scope.Definition.Type
   ): List[IR.Module.Scope.Definition] = {
-    val atomDefs = typ.body.collect {
-      case d: IR.Module.Scope.Definition.Atom => d
+    val atomDefs = typ.body.collect { case d: IR.Module.Scope.Definition.Atom =>
+      d
     }
-    val atomIncludes = typ.body.collect {
-      case n: IR.Name => n
+    val atomIncludes = typ.body.collect { case n: IR.Name =>
+      n
     }
     val namesToDefineMethodsOn = atomIncludes ++ atomDefs.map(_.name)
 

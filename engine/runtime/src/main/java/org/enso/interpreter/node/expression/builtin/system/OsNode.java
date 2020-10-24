@@ -5,10 +5,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(
-    type = "System",
-    name = "os",
-    description = "Get the type of operating system.")
+@BuiltinMethod(type = "System", name = "os", description = "Get the type of operating system.")
 public final class OsNode extends Node {
 
   private final Text LINUX = Text.create("linux");

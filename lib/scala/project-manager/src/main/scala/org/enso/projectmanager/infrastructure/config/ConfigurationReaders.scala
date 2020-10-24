@@ -4,8 +4,7 @@ import java.io.File
 
 import pureconfig.ConfigReader
 
-/**
-  * Custom ConfigReaders which allow for reading custom types
+/** Custom ConfigReaders which allow for reading custom types
   * from configuration.
   */
 object ConfigurationReaders {

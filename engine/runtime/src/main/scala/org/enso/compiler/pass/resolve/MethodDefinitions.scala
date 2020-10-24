@@ -13,8 +13,7 @@ import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies
 }
 
-/**
-  * Resolves the correct `this` argument type for methods definitions
+/** Resolves the correct `this` argument type for methods definitions
   * and stores the resolution in the method's metadata.
   */
 case object MethodDefinitions extends IRPass {

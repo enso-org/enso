@@ -10,8 +10,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivat
 import org.enso.projectmanager.util.UnhandledLogging
 import scala.concurrent.duration._
 
-/**
-  * An actor that waits until all shutdown hooks will be fired.
+/** An actor that waits until all shutdown hooks will be fired.
   *
   * @param shutdownHookActivator a reference to an activator
   */
@@ -22,10 +21,9 @@ class ShutdownHookActivationWatcher(shutdownHookActivator: ActorRef)
 
   import context.dispatcher
 
-  override def receive: Receive = {
-    case Watch =>
-      shutdownHookActivator ! ArePendingShutdownHooks
-      context.become(waitingForReply(sender()))
+  override def receive: Receive = { case Watch =>
+    shutdownHookActivator ! ArePendingShutdownHooks
+    context.become(waitingForReply(sender()))
   }
 
   private def waitingForReply(client: ActorRef): Receive = {
@@ -38,30 +36,26 @@ class ShutdownHookActivationWatcher(shutdownHookActivator: ActorRef)
       context.stop(self)
   }
 
-  private def sleeping(client: ActorRef): Receive = {
-    case WakeUp =>
-      shutdownHookActivator ! ArePendingShutdownHooks
-      context.become(waitingForReply(client))
+  private def sleeping(client: ActorRef): Receive = { case WakeUp =>
+    shutdownHookActivator ! ArePendingShutdownHooks
+    context.become(waitingForReply(client))
   }
 
 }
 
 object ShutdownHookActivationWatcher {
 
-  /**
-    * A command that starts watching for a completion of shutdown hooks.
+  /** A command that starts watching for a completion of shutdown hooks.
     */
   case object Watch
 
-  /**
-    * Signals that all shutdown hooks are completed.
+  /** Signals that all shutdown hooks are completed.
     */
   case object AllShutdownHooksFired
 
   private case object WakeUp
 
-  /**
-    * Creates a configuration object used to create a
+  /** Creates a configuration object used to create a
     * [[ShutdownHookActivationWatcher]].
     *
     * @param shutdownHookActivator a reference to an activator

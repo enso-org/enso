@@ -6,8 +6,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import syntax._
 
-/**
-  * Java-backed pure semaphore implementation.
+/** Java-backed pure semaphore implementation.
   *
   * @param permits
   * @tparam F a monadic context
@@ -18,15 +17,15 @@ class JvmSemaphore[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
 
   private val semaphore = new concurrent.Semaphore(permits, true)
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def acquire(): F[Nothing, Unit] =
     Sync[F].effect(semaphore.acquire())
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def release(): F[Nothing, Unit] =
     Sync[F].effect(semaphore.release())
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def withPermit[E, A](criticalSection: F[E, A]): F[E, A] =
     for {
       _      <- acquire()

@@ -32,8 +32,7 @@ import org.enso.projectmanager.service.ValidationFailure.{
   NameContainsForbiddenCharacter
 }
 
-/**
-  * Implementation of business logic for project management.
+/** Implementation of business logic for project management.
   *
   * @param validator a project validator
   * @param repo a project repository
@@ -53,7 +52,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
 
   import E._
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def createUserProject(
     name: String
   ): F[ProjectServiceFailure, UUID] = {
@@ -71,7 +70,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     // format: on
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def deleteUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
@@ -96,7 +95,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       .isRunning(projectId)
       .mapError(_ => ProjectOperationTimeout)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def renameProject(
     projectId: UUID,
     name: String
@@ -138,8 +137,8 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         oldPackage,
         newPackage
       )
-      .recover {
-        case ProjectNotOpened => ()
+      .recover { case ProjectNotOpened =>
+        ()
       }
       .mapError {
         case ProjectNotOpened => ProjectNotOpen //impossible
@@ -167,7 +166,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         case Some(_) => CovariantFlatMap[F].pure(())
       }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def openProject(
     clientId: UUID,
     projectId: UUID
@@ -206,7 +205,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
           )
       }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def closeProject(
     clientId: UUID,
     projectId: UUID
@@ -222,7 +221,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     }
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def listProjects(
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =

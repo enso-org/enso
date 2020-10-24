@@ -200,7 +200,10 @@ class CoreTest extends CompilerTest {
 
     "be able to contain complex structures" in {
       val bindingRef =
-        Utility.ListOps.at(list, 0).getOrElse(fail()).unsafeAs[NodeShape.Binding]
+        Utility.ListOps
+          .at(list, 0)
+          .getOrElse(fail())
+          .unsafeAs[NodeShape.Binding]
 
       bindingRef shouldEqual myBinding
 

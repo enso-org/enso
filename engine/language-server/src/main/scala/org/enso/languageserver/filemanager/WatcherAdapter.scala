@@ -5,8 +5,7 @@ import java.nio.file.Path
 import io.methvin.watcher._
 import zio._
 
-/**
-  * Watches the root with subdirectories and executes callback on file event.
+/** Watches the root with subdirectories and executes callback on file event.
   *
   * @param root directory to watch
   * @param eventCallback callback that fires on the file system events
@@ -26,20 +25,17 @@ final class WatcherAdapter(
     .listener(this)
     .build()
 
-  /**
-    * Start watcher.
+  /** Start watcher.
     */
   def start(): IO[Throwable, Unit] =
     IO(watcher.watch())
 
-  /**
-    * Stop watcher.
+  /** Stop watcher.
     */
   def stop(): IO[Throwable, Unit] =
     IO(watcher.close())
 
-  /**
-    * A callback executed by `DirectoryWatcher` on file system event.
+  /** A callback executed by `DirectoryWatcher` on file system event.
     */
   override def onEvent(event: DirectoryChangeEvent): Unit = {
     WatcherEvent
@@ -54,15 +50,13 @@ final class WatcherAdapter(
 
 object WatcherAdapter {
 
-  /**
-    * Type of a file event.
+  /** Type of a file event.
     */
   sealed trait EventType
 
   private object EventType {
 
-    /**
-      * Creates [[EventType]] from file system event type.
+    /** Creates [[EventType]] from file system event type.
       *
       * @param eventType file system event type
       * @return watcher event type
@@ -76,23 +70,19 @@ object WatcherAdapter {
       }
   }
 
-  /**
-    * Event type indicating file creation.
+  /** Event type indicating file creation.
     */
   case object EventTypeCreate extends EventType
 
-  /**
-    * Event type indicating file modification.
+  /** Event type indicating file modification.
     */
   case object EventTypeModify extends EventType
 
-  /**
-    * Event type indicating file deletion.
+  /** Event type indicating file deletion.
     */
   case object EventTypeDelete extends EventType
 
-  /**
-    * Object representing file system event.
+  /** Object representing file system event.
     *
     * @param path path to the file system object
     * @param eventType event type
@@ -101,8 +91,7 @@ object WatcherAdapter {
 
   object WatcherEvent {
 
-    /**
-      * Conversion form file system event to [[WatcherEvent]]
+    /** Conversion form file system event to [[WatcherEvent]]
       *
       * @param event file system event
       * @return watcher event
@@ -113,8 +102,7 @@ object WatcherAdapter {
         .map(WatcherEvent(event.path(), _))
   }
 
-  /**
-    * Object representing en error.
+  /** Object representing en error.
     *
     * @param exception an error
     */

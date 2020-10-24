@@ -12,8 +12,7 @@ import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.FileStorage._
 import shapeless.{:+:, CNil, _}
 
-/**
-  * ZIO implementation of [[FileStorage]]. It uses circe [[Encoder]] and
+/** ZIO implementation of [[FileStorage]]. It uses circe [[Encoder]] and
   * [[Decoder]] to encode/decode objects.
   *
   * @param path a path to a file that stores serialized object
@@ -28,8 +27,7 @@ class JsonFileStorage[
   fileSystem: FileSystem[F]
 ) extends FileStorage[A, F] {
 
-  /**
-    * Loads the serialized object from the file.
+  /** Loads the serialized object from the file.
     *
     * @return either [[LoadFailure]] or the object
     */
@@ -50,8 +48,7 @@ class JsonFileStorage[
     }
   }
 
-  /**
-    * Persists the provided object on the disk.
+  /** Persists the provided object on the disk.
     *
     * @param data a data object
     * @return either [[FileSystemFailure]] or success
@@ -59,8 +56,7 @@ class JsonFileStorage[
   override def persist(data: A): F[FileSystemFailure, Unit] =
     fileSystem.overwriteFile(path, data.asJson.spaces2)
 
-  /**
-    * Atomically modifies persisted object using function `f`.
+  /** Atomically modifies persisted object using function `f`.
     *
     * @param f the update function that takes the current version of the object
     *          loaded from the disk and returns a tuple containing the new

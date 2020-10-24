@@ -3,13 +3,11 @@ package org.enso.text.editing
 import cats.implicits._
 import org.enso.text.editing.model.TextEdit
 
-/**
-  * A validator of [[TextEdit]] object.
+/** A validator of [[TextEdit]] object.
   */
 object TextEditValidator {
 
-  /**
-    * Validates [[TextEdit]] object against the provided buffer.
+  /** Validates [[TextEdit]] object against the provided buffer.
     *
     * @param buffer a text buffer
     * @param textEdit a change to the buffer

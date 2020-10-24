@@ -7,8 +7,7 @@ import org.enso.languageserver.io.InputOutputApi.SuppressStandardOutput
 import org.enso.languageserver.io.InputOutputProtocol
 import org.enso.languageserver.util.UnhandledLogging
 
-/**
-  * A request handler for `io/suppressStandardOutput` commands.
+/** A request handler for `io/suppressStandardOutput` commands.
   *
   * @param stdOutController an output redirection controller
   * @param clientId a client requesting redirection
@@ -28,8 +27,7 @@ class SuppressStdOutHandler(stdOutController: ActorRef, clientId: ClientId)
 
 object SuppressStdOutHandler {
 
-  /**
-    * Creates a configuration object used to create a [[SuppressStdOutHandler]].
+  /** Creates a configuration object used to create a [[SuppressStdOutHandler]].
     *
     * @param stdOutController an output redirection controller
     * @param clientId a client requesting redirection

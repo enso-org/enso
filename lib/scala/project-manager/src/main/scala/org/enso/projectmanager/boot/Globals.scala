@@ -7,8 +7,7 @@ import zio.console.Console
 import zio.random.Random
 import zio.system.System
 
-/**
-  * Constants manager for app constants.
+/** Constants manager for app constants.
   */
 object Globals {
 

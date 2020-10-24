@@ -11,8 +11,7 @@ import zio.blocking.effectBlocking
 
 import scala.collection.mutable
 
-/**
-  * File manipulation facility.
+/** File manipulation facility.
   *
   * @tparam F represents target monad
   */
@@ -20,8 +19,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
 
   import FileSystemApi._
 
-  /**
-    * Writes textual content to a file.
+  /** Writes textual content to a file.
     *
     * @param file path to the file
     * @param content a textual content of the file
@@ -34,7 +32,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(FileUtils.write(file, content, "UTF-8"))
       .mapError(errorHandling)
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def writeBinary(
     file: File,
     contents: Array[Byte]
@@ -42,8 +40,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(FileUtils.writeByteArrayToFile(file, contents))
       .mapError(errorHandling)
 
-  /**
-    * Reads the contents of a textual file.
+  /** Reads the contents of a textual file.
     *
     * @param file path to the file
     * @return either [[FileSystemFailure]] or the content of a file as a String
@@ -52,15 +49,14 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(FileUtils.readFileToString(file, "UTF-8"))
       .mapError(errorHandling)
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def readBinary(
     file: File
   ): BlockingIO[FileSystemFailure, Array[Byte]] =
     effectBlocking(FileUtils.readFileToByteArray(file))
       .mapError(errorHandling)
 
-  /**
-    * Deletes the specified file or directory recursively.
+  /** Deletes the specified file or directory recursively.
     *
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or Unit
@@ -74,8 +70,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       }
     }.mapError(errorHandling)
 
-  /**
-    * Creates an empty file with parent directory.
+  /** Creates an empty file with parent directory.
     *
     * @param file path to the file
     * @return
@@ -90,8 +85,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(file.createNewFile(): Unit)
       .mapError(errorHandling)
 
-  /**
-    * Creates a directory, including any necessary but nonexistent parent
+  /** Creates a directory, including any necessary but nonexistent parent
     * directories.
     *
     * @param file path to the file
@@ -103,8 +97,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(FileUtils.forceMkdir(file))
       .mapError(errorHandling)
 
-  /**
-    * Copy a file or directory recursively.
+  /** Copy a file or directory recursively.
     *
     * @param from a path to the source
     * @param to a path to the destination. If from is a file, then to
@@ -127,8 +120,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       }.mapError(errorHandling)
     }
 
-  /**
-    * Move a file or directory recursively
+  /** Move a file or directory recursively
     *
     * @param from a path to the source
     * @param to a path to the destination
@@ -146,8 +138,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       }
     }.mapError(errorHandling)
 
-  /**
-    * Checks if the specified file exists.
+  /** Checks if the specified file exists.
     *
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or file existence flag
@@ -156,8 +147,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(Files.exists(file.toPath))
       .mapError(errorHandling)
 
-  /**
-    * List contents of a given path.
+  /** List contents of a given path.
     *
     * @param path to the file system object
     * @return either [[FileSystemFailure]] or list of entries
@@ -181,8 +171,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       IO.fail(FileNotFound)
     }
 
-  /**
-    * Returns tree of a given path.
+  /** Returns tree of a given path.
     *
     * @param path to the file system object
     * @param depth maximum depth of a directory tree
@@ -214,8 +203,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     }
   }
 
-  /**
-    * Returns attributes of a given path.
+  /** Returns attributes of a given path.
     *
     * @param path to the file system object
     * @return either [[FileSystemFailure]] or file attributes
@@ -247,8 +235,7 @@ object FileSystem {
 
   import FileSystemApi._
 
-  /**
-    * Represent a depth limit when recursively traversing a directory.
+  /** Represent a depth limit when recursively traversing a directory.
     */
   sealed private trait Depth {
 
@@ -281,8 +268,7 @@ object FileSystem {
       UnlimitedDepth
   }
 
-  /**
-    * Represents subdirectory in the tree algorithm.
+  /** Represents subdirectory in the tree algorithm.
     *
     * @param entry subdir entry
     * @param level subdir depth level
@@ -294,8 +280,7 @@ object FileSystem {
     visited: Vector[SymbolicLinkEntry]
   )
 
-  /**
-    * Read an entry without following the symlinks.
+  /** Read an entry without following the symlinks.
     */
   private def readEntry(path: Path): Entry = {
     if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
@@ -314,8 +299,7 @@ object FileSystem {
     }
   }
 
-  /**
-    * Read the target of a symlink.
+  /** Read the target of a symlink.
     */
   private def readSymbolicLink(path: Path): Entry = {
     if (Files.isRegularFile(path)) {
@@ -327,8 +311,7 @@ object FileSystem {
     }
   }
 
-  /**
-    * Returns the entries of the provided path. Symlinks are not resolved.
+  /** Returns the entries of the provided path. Symlinks are not resolved.
     *
     * @param path to the directory
     * @return list of entries
@@ -344,8 +327,7 @@ object FileSystem {
       .sortBy(_.path)
   }
 
-  /**
-    * Makes BFS traversal and updates provided directory [[DirectoryEntry]].
+  /** Makes BFS traversal and updates provided directory [[DirectoryEntry]].
     * Symlinks are resolved. Returned [[SymbolicLinkEntry]] indicates a loop.
     *
     * @param directory current directory

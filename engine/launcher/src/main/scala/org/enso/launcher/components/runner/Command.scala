@@ -5,8 +5,7 @@ import com.typesafe.scalalogging.Logger
 import scala.sys.process.Process
 import scala.util.{Failure, Try}
 
-/**
-  * Represents information required to run a system command.
+/** Represents information required to run a system command.
   *
   * @param command the command and its arguments that should be executed
   * @param extraEnv environment variables that should be overridden
@@ -14,8 +13,7 @@ import scala.util.{Failure, Try}
 case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
   private val logger = Logger[Command]
 
-  /**
-    * Runs the command and returns its exit code.
+  /** Runs the command and returns its exit code.
     *
     * May return an exception if it is impossible to run the command (for
     * example due to insufficient permissions or nonexistent executable).
@@ -32,8 +30,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
       process.waitFor()
     }
 
-  /**
-    * Runs the command and returns its standard output as [[String]].
+  /** Runs the command and returns its standard output as [[String]].
     *
     * The standard error is printed to the console.
     *
@@ -47,8 +44,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
       processBuilder.!!
     }
 
-  /**
-    * Runs the provided action and wraps any errors into a [[Failure]]
+  /** Runs the provided action and wraps any errors into a [[Failure]]
     * containing a [[RunnerError]].
     */
   private def wrapError[R](action: => R): Try[R] =
@@ -61,8 +57,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
       )
     )
 
-  /**
-    * A textual representation of the command in a format that can be copied in
+  /** A textual representation of the command in a format that can be copied in
     * to a terminal and executed.
     */
   override def toString: String = {

@@ -3,8 +3,7 @@ package org.enso.languageserver.text
 import org.enso.languageserver.filemanager.Path
 import org.enso.text.editing.model.TextEdit
 
-/**
-  * A representation of a batch of edits to a file, versioned.
+/** A representation of a batch of edits to a file, versioned.
   *
   * @param path a path of a file
   * @param edits a series of edits to a file

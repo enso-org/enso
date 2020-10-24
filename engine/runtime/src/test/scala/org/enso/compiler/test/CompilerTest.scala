@@ -213,8 +213,7 @@ trait CompilerRunner {
     }
   }
 
-  /**
-    * Builds a module context with a mocked module for testing purposes.
+  /** Builds a module context with a mocked module for testing purposes.
     *
     * @param moduleName the name of the test module.
     * @param freshNameSupply the fresh name supply to use in tests.
@@ -233,8 +232,7 @@ trait CompilerRunner {
     )
   }
 
-  /**
-    * Builds an inline context with a mocked module for testing purposes.
+  /** Builds an inline context with a mocked module for testing purposes.
     *
     * @param localScope the local scope for variable resolution.
     * @param isInTailPosition whether the expression is being evaluated in

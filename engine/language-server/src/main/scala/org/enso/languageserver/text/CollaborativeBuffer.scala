@@ -41,8 +41,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-/**
-  * An actor enabling multiple users edit collaboratively a file.
+/** An actor enabling multiple users edit collaboratively a file.
   *
   * @param bufferPath a path to a file
   * @param versionsRepo a repo containing versions of indexed files
@@ -73,11 +72,10 @@ class CollaborativeBuffer(
 
   override def receive: Receive = uninitialized
 
-  private def uninitialized: Receive = {
-    case OpenFile(client, path) =>
-      context.system.eventStream.publish(BufferOpened(path))
-      log.info(s"Buffer opened for $path [client:${client.clientId}]")
-      readFile(client, path)
+  private def uninitialized: Receive = { case OpenFile(client, path) =>
+    context.system.eventStream.publish(BufferOpened(path))
+    log.info(s"Buffer opened for $path [client:${client.clientId}]")
+    readFile(client, path)
   }
 
   private def waitingForFileContent(
@@ -409,8 +407,7 @@ object CollaborativeBuffer {
 
   case object IOTimeout
 
-  /**
-    * Creates a configuration object used to create a [[CollaborativeBuffer]]
+  /** Creates a configuration object used to create a [[CollaborativeBuffer]]
     *
     * @param bufferPath a path to a file
     * @param versionsRepo a repo containing versions of indexed files

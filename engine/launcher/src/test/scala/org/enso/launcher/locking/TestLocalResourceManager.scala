@@ -2,8 +2,7 @@ package org.enso.launcher.locking
 
 object TestLocalResourceManager {
 
-  /**
-    * Creates a [[ResourceManager]] that manages resource access between threads
+  /** Creates a [[ResourceManager]] that manages resource access between threads
     * of a single process.
     *
     * The resource locks are not visible by other processes, so this manager is

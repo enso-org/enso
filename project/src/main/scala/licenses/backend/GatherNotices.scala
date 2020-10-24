@@ -2,10 +2,9 @@ package src.main.scala.licenses.backend
 
 import java.nio.file.{Files, Path}
 
-import src.main.scala.licenses.{AttachedFile, Attachment}
+import src.main.scala.licenses.{AttachedFile, Attachment, FilesHelper}
 
-/**
-  * The algorithm for gathering any copyright-related files found in the
+/** The algorithm for gathering any copyright-related files found in the
   * sources.
   *
   * It gathers any files whose name contains one of the keywords from
@@ -13,19 +12,17 @@ import src.main.scala.licenses.{AttachedFile, Attachment}
   */
 object GatherNotices extends AttachmentGatherer {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def run(root: Path): Seq[Attachment] = {
-    AttachmentGatherer.walk(root) { path =>
+    FilesHelper.walk(root) { path =>
       if (Files.isRegularFile(path) && mayBeRelevant(path)) {
         Seq(AttachedFile.read(path, Some(root)))
       } else Seq()
     }
   }
 
-  /**
-    * Decides if the path may be relevant and should be included in the result.
+  /** Decides if the path may be relevant and should be included in the result.
     */
   def mayBeRelevant(fileName: String): Boolean = {
     val extension = {
@@ -41,14 +38,12 @@ object GatherNotices extends AttachmentGatherer {
     }
   }
 
-  /**
-    * Decides if the filename is relevant and should be included in the result.
+  /** Decides if the filename is relevant and should be included in the result.
     */
   def mayBeRelevant(path: Path): Boolean =
     mayBeRelevant(path.getFileName.toString.toLowerCase)
 
-  /**
-    * File extensions that are ignored.
+  /** File extensions that are ignored.
     *
     * Source files are ignored because they are scanned for copyright notices by
     * [[GatherCopyrights]], they are not likely to constitute separate copyright
@@ -56,8 +51,7 @@ object GatherNotices extends AttachmentGatherer {
     */
   private val ignoredExtensions = Seq("scala", "java")
 
-  /**
-    * File name keywords that indicate that a file should be included.
+  /** File name keywords that indicate that a file should be included.
     */
   val possibleNames =
     Seq(

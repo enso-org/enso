@@ -7,24 +7,20 @@ import org.enso.loggingservice.internal.InternalLogger
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
-/**
-  * A mix-in for implementing services that use an Akka [[ActorSystem]].
+/** A mix-in for implementing services that use an Akka [[ActorSystem]].
   */
 trait ServiceWithActorSystem extends Service {
 
-  /**
-    * Name to use for the [[ActorSystem]].
+  /** Name to use for the [[ActorSystem]].
     */
   protected def actorSystemName: String
 
-  /**
-    * The [[ActorSystem]] that can be used by the service.
+  /** The [[ActorSystem]] that can be used by the service.
     */
   implicit protected val actorSystem: ActorSystem =
     initializeActorSystemForLoggingService(actorSystemName)
 
-  /**
-    * Initializes an [[ActorSystem]], overriding the default logging settings.
+  /** Initializes an [[ActorSystem]], overriding the default logging settings.
     *
     * The Actor System responsible for the logging service cannot use the
     * default configured logger, because this logger is likely to be the one
@@ -59,8 +55,7 @@ trait ServiceWithActorSystem extends Service {
     )
   }
 
-  /**
-    * Called before terminating the [[ActorSystem]], can be used to handle any
+  /** Called before terminating the [[ActorSystem]], can be used to handle any
     * actions that should happen before it is terminated.
     *
     * The actor system will wait with its termination until the returned future
@@ -68,8 +63,7 @@ trait ServiceWithActorSystem extends Service {
     */
   protected def terminateUser(): Future[_]
 
-  /**
-    * Waits for up to 3 seconds for the [[terminateUser]] and [[ActorSystem]]
+  /** Waits for up to 3 seconds for the [[terminateUser]] and [[ActorSystem]]
     * termination, then handles any other termination logic.
     */
   abstract override def terminate(): Unit = {

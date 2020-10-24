@@ -13,5 +13,4 @@ public class ModuleNotFoundForFileException extends ModuleNotFoundException {
   public ModuleNotFoundForFileException(File path) {
     super("Module not found for file " + path + ".");
   }
-
 }

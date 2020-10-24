@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ManagedResource;
+import org.enso.interpreter.runtime.data.Ref;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -41,7 +42,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
   Array.class,
   EnsoBigInteger.class,
   ManagedResource.class,
-  ModuleScope.class
+  ModuleScope.class,
+  Ref.class
 })
 public class Types {
 

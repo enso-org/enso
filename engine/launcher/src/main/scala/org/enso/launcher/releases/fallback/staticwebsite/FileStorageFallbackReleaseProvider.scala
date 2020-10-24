@@ -6,8 +6,7 @@ import org.enso.launcher.releases.{Release, ReleaseProviderException}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-/**
-  * Implements a fallback release provider which queries a simple file
+/** Implements a fallback release provider which queries a simple file
   * [[storage]].
   *
   * It has the following requirements:
@@ -28,13 +27,11 @@ class FileStorageFallbackReleaseProvider(
   releasesDirectory: String
 ) extends FallbackReleaseProvider {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def isEnabled: Boolean = isEnabledCached
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def releaseForTag(tag: String): Try[Release] =
     if (!isEnabled) {
@@ -53,8 +50,7 @@ class FileStorageFallbackReleaseProvider(
           )
       }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def listReleases(): Try[Seq[Release]] =
     if (!isEnabled) {

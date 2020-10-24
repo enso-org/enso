@@ -3,8 +3,7 @@ package org.enso.launcher.http
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model._
 
-/**
-  * A simple immutable builder for HTTP requests.
+/** A simple immutable builder for HTTP requests.
   *
   * It contains very limited functionality that is needed by the APIs used in
   * the launcher. It can be easily extended if necessary.
@@ -14,13 +13,11 @@ case class HTTPRequestBuilder private (
   headers: Vector[(String, String)]
 ) {
 
-  /**
-    * Builds a GET request with the specified settings.
+  /** Builds a GET request with the specified settings.
     */
   def GET: HTTPRequest = build(HttpMethods.GET)
 
-  /**
-    * Adds an additional header that will be included in the request.
+  /** Adds an additional header that will be included in the request.
     *
     * @param name name of the header
     * @param value the header value
@@ -31,17 +28,16 @@ case class HTTPRequestBuilder private (
   private def build(
     method: HttpMethod
   ): HTTPRequest = {
-    val httpHeaders = headers.map {
-      case (name, value) =>
-        HttpHeader.parse(name, value) match {
-          case ParsingResult.Ok(header, errors) if errors.isEmpty =>
-            header
-          case havingErrors =>
-            throw new IllegalStateException(
-              s"Internal error: " +
-              s"Invalid value for header $name: ${havingErrors.errors}."
-            )
-        }
+    val httpHeaders = headers.map { case (name, value) =>
+      HttpHeader.parse(name, value) match {
+        case ParsingResult.Ok(header, errors) if errors.isEmpty =>
+          header
+        case havingErrors =>
+          throw new IllegalStateException(
+            s"Internal error: " +
+            s"Invalid value for header $name: ${havingErrors.errors}."
+          )
+      }
     }
     HTTPRequest(HttpRequest(method = method, uri = uri, headers = httpHeaders))
   }
@@ -49,14 +45,12 @@ case class HTTPRequestBuilder private (
 
 object HTTPRequestBuilder {
 
-  /**
-    * Creates a request builder that will send the request for the given URI.
+  /** Creates a request builder that will send the request for the given URI.
     */
   def fromURI(uri: Uri): HTTPRequestBuilder =
     new HTTPRequestBuilder(uri, Vector.empty)
 
-  /**
-    * Tries to parse the URI provided as a [[String]] and returns a request
+  /** Tries to parse the URI provided as a [[String]] and returns a request
     * builder that will send the request to the given `uri`.
     */
   def fromURIString(uri: String): HTTPRequestBuilder =

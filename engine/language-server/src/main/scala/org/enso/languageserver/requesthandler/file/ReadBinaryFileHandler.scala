@@ -20,8 +20,7 @@ import org.enso.languageserver.util.file.PathUtils
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for [[ReadFileCommand]].
+/** A request handler for [[ReadFileCommand]].
   *
   * @param requestTimeout a request timeout
   * @param fileManager a file system manager actor
@@ -39,15 +38,14 @@ class ReadBinaryFileHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = {
-    case msg: InboundMessage =>
-      val payload =
-        msg.payload(new ReadFileCommand).asInstanceOf[ReadFileCommand]
-      val path = PathUtils.convertBinaryPath(payload.path())
-      fileManager ! FileManagerProtocol.ReadBinaryFile(path)
-      val cancellable = context.system.scheduler
-        .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(msg.messageId(), cancellable))
+  private def requestStage: Receive = { case msg: InboundMessage =>
+    val payload =
+      msg.payload(new ReadFileCommand).asInstanceOf[ReadFileCommand]
+    val path = PathUtils.convertBinaryPath(payload.path())
+    fileManager ! FileManagerProtocol.ReadBinaryFile(path)
+    val cancellable = context.system.scheduler
+      .scheduleOnce(requestTimeout, self, RequestTimeout)
+    context.become(responseStage(msg.messageId(), cancellable))
   }
 
   private def responseStage(
@@ -90,8 +88,7 @@ class ReadBinaryFileHandler(
 
 object ReadBinaryFileHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ReadBinaryFileHandler]]
+  /** Creates a configuration object used to create a [[ReadBinaryFileHandler]]
     *
     * @param timeout a request timeout
     * @param fileManager a file system manager actor

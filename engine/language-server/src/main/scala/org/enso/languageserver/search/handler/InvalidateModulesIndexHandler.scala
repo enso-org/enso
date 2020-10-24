@@ -11,8 +11,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for invalidate modules index command.
+/** A request handler for invalidate modules index command.
   *
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
@@ -61,8 +60,7 @@ final class InvalidateModulesIndexHandler(
 
 object InvalidateModulesIndexHandler {
 
-  /**
-    * Creates a configuration object used to create [[InvalidateModulesIndexHandler]].
+  /** Creates a configuration object used to create [[InvalidateModulesIndexHandler]].
     *
     * @param timeout request timeout
     * @param runtime reference to the runtime conector

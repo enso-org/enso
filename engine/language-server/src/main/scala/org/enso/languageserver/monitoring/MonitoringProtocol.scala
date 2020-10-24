@@ -2,13 +2,11 @@ package org.enso.languageserver.monitoring
 
 object MonitoringProtocol {
 
-  /**
-    * A ping command.
+  /** A ping command.
     */
   case object Ping
 
-  /**
-    * A pong reply.
+  /** A pong reply.
     */
   case object Pong
 

@@ -19,8 +19,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `project/list` commands.
+/** A request handler for `project/list` commands.
   *
   * @param clientId the requester id
   * @param service a project service
@@ -72,8 +71,8 @@ class ProjectListHandler[F[+_, +_]: Exec](
       context.stop(self)
 
     case Right(list: List[_]) =>
-      val metadata = list.collect {
-        case meta: ProjectMetadata => meta
+      val metadata = list.collect { case meta: ProjectMetadata =>
+        meta
       }
 
       replyTo ! ResponseResult(
@@ -89,8 +88,7 @@ class ProjectListHandler[F[+_, +_]: Exec](
 
 object ProjectListHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ProjectListHandler]].
+  /** Creates a configuration object used to create a [[ProjectListHandler]].
     *
     * @param clientId the requester id
     * @param service a project service

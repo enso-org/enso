@@ -20,8 +20,7 @@ import scala.collection.concurrent.TrieMap
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
-/**
-  * A job that ensures that specified files are compiled.
+/** A job that ensures that specified files are compiled.
   *
   * @param files a files to compile
   */
@@ -45,8 +44,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
   }
 
-  /**
-    * Run the scheduled compilation and invalidation logic, and send the
+  /** Run the scheduled compilation and invalidation logic, and send the
     * suggestion updates.
     *
     * @param modules the list of modules to compile.
@@ -68,8 +66,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       }
   }
 
-  /**
-    * Compile the imported modules and send the suggestion updates.
+  /** Compile the imported modules and send the suggestion updates.
     *
     * @param modules the list of modules to analyze.
     * @param ctx the runtime context
@@ -91,8 +88,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
   }
 
-  /**
-    * Compile all modules in the scope and send the extracted suggestions.
+  /** Compile all modules in the scope and send the extracted suggestions.
     *
     * @param ctx the runtime context
     */
@@ -225,8 +221,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
   }
 
-  /**
-    * Extract compilation diagnostics from the module and send the diagnostic
+  /** Extract compilation diagnostics from the module and send the diagnostic
     * updates.
     *
     * @param module the module to analyze
@@ -253,8 +248,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     getCompilationStatus(diagnostics)
   }
 
-  /**
-    * Create Api diagnostic message from the `IR` node.
+  /** Create Api diagnostic message from the `IR` node.
     *
     * @param kind the diagnostic type
     * @param module the module to analyze
@@ -287,8 +281,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     )
   }
 
-  /**
-    * Compile the module.
+  /** Compile the module.
     *
     * @param module the module to compile.
     * @param ctx the runtime context
@@ -309,8 +302,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     compilationResult
   }
 
-  /**
-    * Apply pending edits to the file.
+  /** Apply pending edits to the file.
     *
     * @param file the file to apply edits to
     * @param ctx the runtime context
@@ -332,8 +324,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
   }
 
-  /**
-    * Create cache invalidation commands after applying the edits.
+  /** Create cache invalidation commands after applying the edits.
     *
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
@@ -365,8 +356,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     )
   }
 
-  /**
-    * Run the invalidation commands.
+  /** Run the invalidation commands.
     *
     * @param invalidationCommands the invalidation command to run
     * @param ctx the runtime context
@@ -381,8 +371,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       }
   }
 
-  /**
-    * Send notification about module updates.
+  /** Send notification about module updates.
     *
     * @param payload the module update
     * @param ctx the runtime context
@@ -394,8 +383,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
 
-  /**
-    * Send notification about the compilation status.
+  /** Send notification about the compilation status.
     *
     * @param diagnostics the list of diagnostic messages returned by the
     * compiler
@@ -412,8 +400,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       }
     }
 
-  /**
-    * Send notification about the compilation status.
+  /** Send notification about the compilation status.
     *
     * @param failure the execution failure
     * @param ctx the runtime context
@@ -479,8 +466,7 @@ object EnsureCompiledJob {
       case None    => Some(edits)
     }
 
-  /**
-    * Create a job ensuring that files are compiled.
+  /** Create a job ensuring that files are compiled.
     *
     * @param files the list of files to compile
     * @return a new job
@@ -489,8 +475,7 @@ object EnsureCompiledJob {
     new EnsureCompiledJob(files)
   }
 
-  /**
-    * Create a job ensuring that files are compiled after applying the edits.
+  /** Create a job ensuring that files are compiled after applying the edits.
     *
     * @param file a file to compile
     * @param edits the list of edits to apply
@@ -501,8 +486,7 @@ object EnsureCompiledJob {
     EnsureCompiledJob(List(file))
   }
 
-  /**
-    * Create a job ensuring that modules are compiled.
+  /** Create a job ensuring that modules are compiled.
     *
     * @param modules a list of modules to compile
     * @return a new job

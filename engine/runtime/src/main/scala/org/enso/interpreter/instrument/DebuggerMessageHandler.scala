@@ -9,22 +9,19 @@ import org.graalvm.polyglot.io.MessageEndpoint
 
 import scala.jdk.CollectionConverters._
 
-/**
-  * Helper class that handles communication with Debugger client and delegates
+/** Helper class that handles communication with Debugger client and delegates
   * request to the execution event node of the ReplDebuggerInstrument.
   */
 class DebuggerMessageHandler extends MessageEndpoint {
   private var client: MessageEndpoint = _
 
-  /**
-    * Sets the client end of the connection, after it has been established.
+  /** Sets the client end of the connection, after it has been established.
     *
     * @param ep the client endpoint.
     */
   def setClient(ep: MessageEndpoint): Unit = client = ep
 
-  /**
-    * Checks if a client has been registered.
+  /** Checks if a client has been registered.
     *
     * @return a boolean value indicating whether a client is registered
     */
@@ -56,8 +53,7 @@ class DebuggerMessageHandler extends MessageEndpoint {
   private def currentExecutionNode: Option[ReplExecutionEventNode] =
     executionNodeStack.headOption
 
-  /**
-    * Starts a REPL session by sending a message to the client.
+  /** Starts a REPL session by sending a message to the client.
     *
     * @param executionNode execution node used for instrumenting the session
     */
@@ -66,8 +62,7 @@ class DebuggerMessageHandler extends MessageEndpoint {
     sendToClient(Debugger.createSessionStartNotification())
   }
 
-  /**
-    * A helper function that cleans up the current session and terminates it.
+  /** A helper function that cleans up the current session and terminates it.
     *
     * @return never returns as control is passed to the interpreter
     */
@@ -113,8 +108,7 @@ class DebuggerMessageHandler extends MessageEndpoint {
 
 object DebuggerMessageHandler {
 
-  /**
-    * Converts the attached Truffle stack trace into StackTraceElements that are
+  /** Converts the attached Truffle stack trace into StackTraceElements that are
     * attached to the exception, so that they are preserved by serialization.
     *
     * The language stack trace is attached to the last exception in the

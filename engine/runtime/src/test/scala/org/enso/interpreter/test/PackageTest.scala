@@ -9,7 +9,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
-  val output     = new ByteArrayOutputStream()
+  val output = new ByteArrayOutputStream()
 
   def evalTestProject(name: String): Value = {
     val pkgPath =

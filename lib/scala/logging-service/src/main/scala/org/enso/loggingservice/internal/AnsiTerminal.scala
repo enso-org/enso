@@ -3,13 +3,11 @@ package org.enso.loggingservice.internal
 import com.typesafe.scalalogging.Logger
 import org.graalvm.nativeimage.ImageInfo
 
-/**
-  * Handles VT-compatible color output in the terminal.
+/** Handles VT-compatible color output in the terminal.
   */
 object AnsiTerminal {
 
-  /**
-    * Tries enabling ANSI colors in terminal output and returns true if it
+  /** Tries enabling ANSI colors in terminal output and returns true if it
     * succeeded.
     *
     * We assume that ANSI colors are supported by default on UNIX platforms. On
@@ -38,13 +36,11 @@ object AnsiTerminal {
   private def isWindows: Boolean =
     System.getProperty("os.name").toLowerCase.contains("win")
 
-  /**
-    * Checks if output of this program may be piped.
+  /** Checks if output of this program may be piped.
     */
   def isLikelyPiped: Boolean = System.console() == null
 
-  /**
-    * Checks if the output is connected to a terminal that can handle color
+  /** Checks if the output is connected to a terminal that can handle color
     * output.
     *
     * On Windows, this function also enables color output, so any code that

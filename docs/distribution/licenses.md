@@ -91,23 +91,23 @@ our distribution and usage scheme. Licenses are reviewed per-distribution, as
 for example the binary distribution of the launcher may impose different
 requirements than distribution of the engine as JARs.
 
+If an indirect dependency is found with a problematic license, the
+`analyzeDependency` command may prove helpful. Running `analyzeDependency <arg>`
+will search for all dependencies containing `<arg>` in their name and list in
+which projects they show up and which packages depend on them directly. This
+latter functionality can be used to track down the direct dependency that
+brought the indirect one.
+
 After the review is done, the `enso/gatherLicenses` should be re-run again to
 generate the updated packages that are included in the distribution. Before a PR
 is merged, it should be ensure that there are no warnings in the generation. The
 packages are located in separate subdirectories of the `distribution` directory
 for each artifact.
 
-> This may possibly be automated in the next PR that includes the current legal
-> review. The generating task could write a file indicating if there were any
-> warnings and containing a hash of the dependency list. The build job on CI
-> could then run a task `verifyLegalReview` which would check if there are no
-> warnings and if the review is up to date (by comparing the hash of the
-> dependency list at the time of the review with the current one).
-
-> TODO [RW] currently the auto-generated notice packages are not included in the
-> built artifacts. That is because the legal review settings have not yet been
-> prepared. Once that is done, the CI should be modified accordingly. This will
-> be updated in the next PR.
+The CI can check if the legal review is up-to-date by running
+`sbt enso / verifyLegalReview`. This task will fail if any dependencies have
+changed making parts of the review obsolete or if the review contains any
+warnings.
 
 ### Review
 
@@ -146,8 +146,15 @@ The review can be performed manually by modifying the settings inside of the
           be carefully checked.
           - Most of the time, that file should be marked as kept and the default
             license ignored.
-          - To ignore the default license, create an empty file `custom-license`
-            inside the directory belonging to the relevant package.
+          - To ignore the default license, create a file `custom-license` inside
+            the directory belonging to the relevant package containing a single
+            line indicating the filename of the custom license that is included
+            in attached files.
+        - Sometimes the dependency does contain files called `LICENSE` or
+          similar which are additional licenses or which just contain an URL of
+          an actual license. In that case we may want to keep these files but
+          still point to the default license file. To indicate this intention,
+          create an empty file called `default-and-custom-license`.
    2. Review which files to include
       - You can click on a filename to display its contents.
       - We want to include any NOTICE files that contain copyright notices or
@@ -164,6 +171,10 @@ The review can be performed manually by modifying the settings inside of the
         copyright notice or if there is exactly one context associated with the
         line, you can click 'Keep as context' to add this whole context to the
         notice.
+      - If you cannot keep a notice with context because it appears in multiple
+        contexts or need to slightly modify it, the standard approach is to
+        'Ignore' that notice and add the correct one manually, as described
+        below.
    4. Add missing information
       - You can manually add additional copyright notices by adding them to a
         file `copyright-add` inside the directory belonging to the relevant
@@ -187,6 +198,73 @@ closing its window, you should re-generate the report using
 `enso/gatherLicenses` or just open it using `enso/openLegalReviewReport` which
 will refresh it automatically.
 
+#### Additional Manual Considerations
+
+The Scala Library notice contains the following mention:
+
+```
+This software includes projects with other licenses -- see `doc/LICENSE.md`.
+```
+
+The licenses contained in the `doc` directory in Scala's GitHub are most likely
+relevant for the Scala Compiler and not the Standard Library that is relevant
+for us, but we include them for safety. When switching to a newer Scala version,
+these files should be updated if there were any changes to them.
+
+Moreover `NOTICE` files for `scala-parser-combinators` and `scala-java8-compat`
+have been manually copied from their GitHub repositories. They should also be
+updated as necessary.
+
+Additionally, the Linux version of the launcher is statically linked with the
+`musl` implementation of libc which also uses `zlib`, so these two components
+are also added and described manually. If they are ever updated, the notices
+should be revisited.
+
+`CREDITS` for modules `com.fasterxml.jackson` mentioned in their NOTICES were
+manually scraped from GitHub where possible.
+
+Missing licenses were manually added for some dependencies - these are
+dependencies whose legal-review configurations contains a license file in
+`files-add`. They may need to be manually updated when updating.
+
+#### Warnings
+
+All warnings should be carefully reviewed and most of them will fail the CI.
+However, there are some warnings that may be ignored.
+
+Below we list the warnings that show up currently and their explanations:
+
+- `Could not find sources for com.google.guava # listenablefuture # 9999.0-empty-to-avoid-conflict-with-guava`
+  - This warning is due to the fact that this is a dummy artifact that does not
+    contain any sources. We added a special note in its legal config that refers
+    to the original `guava` module, so the warning can be safely discarded.
+- `Found a source .../.cache/coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/modules/scala-collection-compat_2.13/2.1.1/scala-collection-compat_2.13-2.1.1-sources.jar that does not belong to any known dependencies, perhaps the algorithm needs updating?`
+  - This is a bit unexpected - the engine does depend on
+    `scala-collection-compat # 2.0.0` (used by `slick`), but here for some
+    reason we find sources for version `2.1.1` (the sources for `2.0.0` are
+    available too). We could not figure out this issue for now, but it is not a
+    problem for the legal review, because the engine distribution does include
+    all necessary information for the version it actually uses (`2.0.0`).
+
+#### Updating Dependencies
+
+As described above, some information has been gathered manually and as such it
+should be verified if it is up-to-date when a dependency is updated.
+
+Moreover, when a dependency version is changed, its directory name will change,
+making old legal review settings obsolete. But many of these settings may be
+still relevant. So to take advantage of that, the old directory should be
+manually renamed to the new name and any obsolete files or copyrights should be
+removed from the settings (they will be indicated by the tool as warnings).
+
+Some Scala dependencies include the current Scala minor version in their names.
+When upgrading to a newer Scala release, these names will become outdated, but a
+lot of this configuration may still be relevant. The same trick should be used
+as above - the old directories should be renamed accordingly to fit the new
+Scala version. Given that this affects a lot of dependencies, a special tool
+could be written that will automatically rename all the directories (but it can
+also be achieved using shell commands).
+
 #### Review Configuration
 
 The review state is driven by configuration files located in
@@ -203,6 +281,8 @@ The subdirectory for each artifact may contain the following entries:
   the files should be named with the normalized license name and they should
   contain a path to that license's file (the path should be relative to the
   repository root)
+- `.report.state` - an automatically generated file that can be used to check if
+  the report is up-to-date
 - and for each dependency, a subdirectory named as its `packageName` with
   following entries:
   - `files-add` - directory that may contain additional files that should be
@@ -213,7 +293,13 @@ The subdirectory for each artifact may contain the following entries:
     sources that should not be included
   - `custom-license` - a file that indicates that the dependency should not
     point to the default license, but it should contain a custom one within its
-    files
+    files; it should contain a single line with this custom license's filename
+  - `default-and-custom-license` - a file that indicates that the dependency
+    should point to the default license, but it also contains additional
+    license-like files that should be kept too; it disables checking if the
+    attached license-like files are equal to the default license or not, so it
+    should be used very carefully; at most one of `default-and-custom-license`
+    and `custom-license` should exist for each dependency
   - `copyright-keep` - copyright lines that should be included in the notice
     summary for the package
   - `copyright-keep-context` - copyright lines that should be included

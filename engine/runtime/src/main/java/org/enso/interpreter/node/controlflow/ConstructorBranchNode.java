@@ -1,11 +1,16 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import org.enso.compiler.Compiler;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
@@ -13,19 +18,19 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
 @NodeInfo(shortName = "ConstructorMatch")
 public abstract class ConstructorBranchNode extends BranchNode {
   private final AtomConstructor matcher;
-  private @Child ExpressionNode branch;
-  private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
+  private @Child DirectCallNode callNode;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  ConstructorBranchNode(AtomConstructor matcher, CreateFunctionNode branch) {
+  ConstructorBranchNode(AtomConstructor matcher, RootCallTarget branch) {
     this.matcher = matcher;
-    this.branch = branch;
+    this.callNode = DirectCallNode.create(branch);
   }
 
   /**
@@ -35,7 +40,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static ConstructorBranchNode build(AtomConstructor matcher, CreateFunctionNode branch) {
+  public static ConstructorBranchNode build(AtomConstructor matcher, RootCallTarget branch) {
     return ConstructorBranchNodeGen.create(matcher, branch);
   }
 
@@ -46,17 +51,19 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * all the atom's fields as arguments.
    *
    * @param frame the stack frame in which to execute
+   * @param state current monadic state
    * @param target the atom to destructure
    */
   @Specialization
-  public void doAtom(VirtualFrame frame, Atom target) {
-    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+  public void doAtom(VirtualFrame frame, Object state, Atom target) {
     if (profile.profile(matcher == target.getConstructor())) {
-      Function function = TypesGen.asFunction(branch.executeGeneric(frame));
-
       // Note [Caller Info For Case Branches]
-      throw new BranchSelectedException(
-          executeCallNode.executeCall(function, null, state, target.getFields()));
+      Stateful result =
+          (Stateful)
+              callNode.call(
+                  Function.ArgumentsHelper.buildArguments(
+                      frame.materialize(), state, target.getFields()));
+      throw new BranchSelectedException(result);
     }
   }
 
@@ -67,7 +74,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @param target the object to execute on
    */
   @Fallback
-  public void doFallback(VirtualFrame frame, Object target) {}
+  public void doFallback(VirtualFrame frame, Object state, Object target) {}
 
   /* Note [Caller Info For Case Branches]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

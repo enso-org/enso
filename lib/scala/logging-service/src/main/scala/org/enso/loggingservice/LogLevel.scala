@@ -3,13 +3,11 @@ package org.enso.loggingservice
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 
-/**
-  * Defines a log level for log messages.
+/** Defines a log level for log messages.
   */
 sealed abstract class LogLevel(final val level: Int) {
 
-  /**
-    * Determines if a component running on `this` log level should log the
+  /** Determines if a component running on `this` log level should log the
     * `other`.
     *
     * Log levels smaller or equal to component's log level are logged.
@@ -19,40 +17,35 @@ sealed abstract class LogLevel(final val level: Int) {
 }
 object LogLevel {
 
-  /**
-    * This log level should not be used by messages, instead it can be set as
+  /** This log level should not be used by messages, instead it can be set as
     * component's log level to completely disable logging for it.
     */
   case object Off extends LogLevel(-1) {
     override def toString: String = "off"
   }
 
-  /**
-    * Log level corresponding to severe errors, should be understandable to the
+  /** Log level corresponding to severe errors, should be understandable to the
     * end-user.
     */
   case object Error extends LogLevel(0) {
     override def toString: String = "error"
   }
 
-  /**
-    * Log level corresponding to important notices or issues that are not
+  /** Log level corresponding to important notices or issues that are not
     * severe.
     */
   case object Warning extends LogLevel(1) {
     override def toString: String = "warning"
   }
 
-  /**
-    * Log level corresponding to usual information of what the application is
+  /** Log level corresponding to usual information of what the application is
     * doing.
     */
   case object Info extends LogLevel(2) {
     override def toString: String = "info"
   }
 
-  /**
-    * Log level used for debugging the application.
+  /** Log level used for debugging the application.
     *
     * The messages can be more complex and targeted at developers diagnosing the
     * application.
@@ -61,16 +54,14 @@ object LogLevel {
     override def toString: String = "debug"
   }
 
-  /**
-    * Log level used for advanced debugging, may be used for more throughout
+  /** Log level used for advanced debugging, may be used for more throughout
     * diagnostics.
     */
   case object Trace extends LogLevel(4) {
     override def toString: String = "trace"
   }
 
-  /**
-    * Lists all available log levels.
+  /** Lists all available log levels.
     *
     * Can be used for example to automate parsing.
     */
@@ -83,16 +74,14 @@ object LogLevel {
     LogLevel.Trace
   )
 
-  /**
-    * [[Ordering]] instance for [[LogLevel]].
+  /** [[Ordering]] instance for [[LogLevel]].
     *
     * The log levels are ordered from most severe. If a log level is enabled, it
     * usually means that all levels smaller than it are enabled too.
     */
   implicit val ord: Ordering[LogLevel] = (x, y) => x.level - y.level
 
-  /**
-    * [[Encoder]] instance for [[LogLevel]].
+  /** [[Encoder]] instance for [[LogLevel]].
     */
   implicit val encoder: Encoder[LogLevel] = {
     case Off =>
@@ -104,8 +93,7 @@ object LogLevel {
       level.level.asJson
   }
 
-  /**
-    * [[Decoder]] instance for [[LogLevel]].
+  /** [[Decoder]] instance for [[LogLevel]].
     */
   implicit val decoder: Decoder[LogLevel] = { json =>
     json.as[Int].flatMap {

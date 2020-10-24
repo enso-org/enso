@@ -1,19 +1,17 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** This node represents the process of instantiating an atom at runtime. */
 @NodeInfo(shortName = "constructor::", description = "An atom instantiation at runtime.")
 public class InstantiateAtomNode extends RootNode {
-  private @Node.Child ExpressionNode instantiator;
+  private @Child ExpressionNode instantiator;
   private final String name;
 
   private InstantiateAtomNode(Language language, String name, ExpressionNode instantiator) {
@@ -22,7 +20,8 @@ public class InstantiateAtomNode extends RootNode {
     this.instantiator = instantiator;
   }
 
-  /** Executes this node.
+  /**
+   * Executes this node.
    *
    * @param frame the language frame being executed
    * @return the result of executing this node
@@ -34,7 +33,8 @@ public class InstantiateAtomNode extends RootNode {
         instantiator.executeGeneric(frame));
   }
 
-  /** Returns a string representation of this node.
+  /**
+   * Returns a string representation of this node.
    *
    * @return a string representation of this node
    */
@@ -43,7 +43,8 @@ public class InstantiateAtomNode extends RootNode {
     return "constructor::" + name;
   }
 
-  /** Creates an instance of this node.
+  /**
+   * Creates an instance of this node.
    *
    * @param language the language for which the node is created
    * @param name the name of the atom being instantated

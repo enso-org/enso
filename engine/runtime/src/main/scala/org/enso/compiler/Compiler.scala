@@ -40,8 +40,7 @@ class Compiler(val context: Context) {
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
 
-  /**
-    * Processes the provided language sources, registering any bindings in the
+  /** Processes the provided language sources, registering any bindings in the
     * given scope.
     *
     * @param module the scope into which new bindings are registered
@@ -113,8 +112,7 @@ class Compiler(val context: Context) {
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
   }
 
-  /**
-    * Gets a module definition by name.
+  /** Gets a module definition by name.
     *
     * @param name the name of module to look up
     * @return the module corresponding to the provided name, if exists
@@ -123,8 +121,7 @@ class Compiler(val context: Context) {
     context.getTopScope.getModule(name).toScala
   }
 
-  /**
-    * Ensures the passed module is in at least the parsed compilation stage.
+  /** Ensures the passed module is in at least the parsed compilation stage.
     *
     * @param module the module to ensure is parsed.
     */
@@ -138,8 +135,7 @@ class Compiler(val context: Context) {
     }
   }
 
-  /**
-    * Processes the language source, interpreting it as an expression.
+  /** Processes the language source, interpreting it as an expression.
     * Processes the source in the context of given local and module scopes.
     *
     * @param srcString string representing the expression to process
@@ -168,8 +164,7 @@ class Compiler(val context: Context) {
     }
   }
 
-  /**
-    * Finds and processes a language source by its qualified name.
+  /** Finds and processes a language source by its qualified name.
     *
     * The results of this operation are cached internally so we do not need to
     * process the same source file multiple times.
@@ -194,8 +189,7 @@ class Compiler(val context: Context) {
     module.getScope
   }
 
-  /**
-    * Parses the provided language sources.
+  /** Parses the provided language sources.
     *
     * @param source the code to parse
     * @return an AST representation of `source`
@@ -203,8 +197,7 @@ class Compiler(val context: Context) {
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
 
-  /**
-    * Parses the metadata of the provided language sources.
+  /** Parses the metadata of the provided language sources.
     *
     * @param source the code to parse
     * @return the source metadata
@@ -212,8 +205,7 @@ class Compiler(val context: Context) {
   def parseMeta(source: CharSequence): IDMap =
     Parser().splitMeta(source.toString)._2
 
-  /**
-    * Lowers the input AST to the compiler's high-level intermediate
+  /** Lowers the input AST to the compiler's high-level intermediate
     * representation.
     *
     * @param sourceAST the parser AST input
@@ -233,8 +225,7 @@ class Compiler(val context: Context) {
     )
   }
 
-  /**
-    * Lowers the input AST to the compiler's high-level intermediate
+  /** Lowers the input AST to the compiler's high-level intermediate
     * representation.
     *
     * @param sourceAST the parser AST representing the program source
@@ -269,8 +260,7 @@ class Compiler(val context: Context) {
     passManager.runPassesInline(ir, inlineContext)
   }
 
-  /**
-    * Runs the strict error handling mechanism (if enabled in the language
+  /** Runs the strict error handling mechanism (if enabled in the language
     * context) for the inline compiler flow.
     *
     * @param ir the IR after compilation passes.
@@ -295,8 +285,7 @@ class Compiler(val context: Context) {
       }
     }
 
-  /**
-    * Runs the strict error handling mechanism (if enabled in the language
+  /** Runs the strict error handling mechanism (if enabled in the language
     * context) for the module-level compiler flow.
     *
     * @param modules the modules to check against errors
@@ -346,8 +335,7 @@ class Compiler(val context: Context) {
     }
   }
 
-  /**
-    * Reports diagnostics from multiple modules.
+  /** Reports diagnostics from multiple modules.
     *
     * @param diagnostics the mapping between modules and existing diagnostics.
     * @return whether any errors were encountered.
@@ -355,20 +343,18 @@ class Compiler(val context: Context) {
   def reportDiagnostics(
     diagnostics: List[(Module, List[IR.Diagnostic])]
   ): Boolean = {
-    val results = diagnostics.map {
-      case (mod, diags) =>
-        if (diags.nonEmpty) {
-          context.getOut.println(s"In module ${mod.getName}:")
-          reportDiagnostics(diags, mod.getSource)
-        } else {
-          false
-        }
+    val results = diagnostics.map { case (mod, diags) =>
+      if (diags.nonEmpty) {
+        context.getOut.println(s"In module ${mod.getName}:")
+        reportDiagnostics(diags, mod.getSource)
+      } else {
+        false
+      }
     }
     results.exists(r => r)
   }
 
-  /**
-    * Reports compilation diagnostics to the standard output and throws an
+  /** Reports compilation diagnostics to the standard output and throws an
     * exception breaking the execution flow if there are errors.
     *
     * @param diagnostics all the diagnostics found in the program IR.

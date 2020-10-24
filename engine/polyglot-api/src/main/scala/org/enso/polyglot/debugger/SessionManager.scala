@@ -1,15 +1,13 @@
 package org.enso.polyglot.debugger
 
-/**
-  * Interface for executing Repl commands inside of a Repl session.
+/** Interface for executing Repl commands inside of a Repl session.
   *
   * A single instance is valid only during the current session, it is provided
   * to the SessionManager on start of each session.
   */
 trait ReplExecutor {
 
-  /**
-    * Evaluates an arbitrary expression in the current execution context.
+  /** Evaluates an arbitrary expression in the current execution context.
     *
     * @param expression the expression to evaluate
     * @return the result of evaluating the expression or error
@@ -18,16 +16,14 @@ trait ReplExecutor {
     expression: String
   ): Either[Exception, ObjectRepresentation]
 
-  /**
-    * Lists all the bindings available in the current execution scope.
+  /** Lists all the bindings available in the current execution scope.
     *
     * @return a map, where keys are variable names and values are current
     *         values of variables.
     */
   def listBindings(): Map[String, ObjectRepresentation]
 
-  /**
-    * Terminates this REPL session.
+  /** Terminates this REPL session.
     *
     * The last result of [[evaluate]] (or `Unit` if [[evaluate]] was not called
     * before) will be returned from the instrumented node.
@@ -41,14 +37,12 @@ trait ReplExecutor {
   def exit(): Nothing
 }
 
-/**
-  * Trait that should be implemented by Repl users to define how to handle Repl
+/** Trait that should be implemented by Repl users to define how to handle Repl
   * sessions.
   */
 trait SessionManager {
 
-  /**
-    * Method that is run when starting each Repl session. The whole session
+  /** Method that is run when starting each Repl session. The whole session
     * lives inside this method. It should always be finished by running
     * `executor.exit()`.
     *

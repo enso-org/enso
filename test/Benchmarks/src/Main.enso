@@ -41,7 +41,8 @@ sum_co_state_body =
     acc = State.get Sum
     State.put Counter n-1
     State.put Sum     acc+n
-    if n == 0 then acc else @Tail_Call here.sum_co_state_body
+    if n == 0 then acc else
+        @Tail_Call here.sum_co_state_body
 
 sum_co_state n =
     res = State.run Counter n (State.run Sum 0 here.sum_co_state_body)
@@ -67,7 +68,6 @@ sum_co n =
 
 main =
     hundred_mil = 100000000
-    IO.println (here.sum_co 1000)
     IO.println "Measuring Sum TCO Corecursive"
     Bench_Utils.measure (here.sum_co hundred_mil) "sum_tco_corecursive" 100 10
     IO.println "Measuring Sum TCO Decimal"

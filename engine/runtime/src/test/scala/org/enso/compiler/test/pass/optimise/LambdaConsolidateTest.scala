@@ -201,12 +201,16 @@ class LambdaConsolidateTest extends CompilerTest {
     "work properly with arguments defaulted to lambdas" in {
       implicit val inlineContext: InlineContext = mkContext
       val ir = """
-        |x -> (y = x->y->z) -> y x
-        |""".stripMargin.preprocessExpression.get.optimise.asInstanceOf[IR.Function.Lambda]
+                 |x -> (y = x->y->z) -> y x
+                 |""".stripMargin.preprocessExpression.get.optimise
+        .asInstanceOf[IR.Function.Lambda]
       ir.arguments.length shouldEqual 2
       val defaultExpr = ir.arguments(1).defaultValue.get
       defaultExpr shouldBe a[IR.Function.Lambda]
-      defaultExpr.asInstanceOf[IR.Function.Lambda].arguments.length shouldEqual 2
+      defaultExpr
+        .asInstanceOf[IR.Function.Lambda]
+        .arguments
+        .length shouldEqual 2
     }
 
     "collapse lambdas with multiple parameters" in {

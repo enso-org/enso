@@ -40,8 +40,7 @@ object Main {
   private val LOG_LEVEL                   = "log-level"
   private val LOGGER_CONNECT              = "logger-connect"
 
-  /**
-    * Builds the [[Options]] object representing the CLI syntax.
+  /** Builds the [[Options]] object representing the CLI syntax.
     *
     * @return an [[Options]] object representing the CLI syntax
     */
@@ -197,8 +196,7 @@ object Main {
     options
   }
 
-  /**
-    * Prints the help message to the standard output.
+  /** Prints the help message to the standard output.
     *
     * @param options object representing the CLI syntax
     */
@@ -217,8 +215,7 @@ object Main {
     sys.exit(exitCode)
   }
 
-  /**
-    * Handles the `--new` CLI option.
+  /** Handles the `--new` CLI option.
     *
     * Creates a project at the provided path. If the nameOption is provided it
     * specifies the project name, otherwise the name is generated automatically.
@@ -256,8 +253,7 @@ object Main {
     exitSuccess()
   }
 
-  /**
-    * Handles the `--run` CLI option.
+  /** Handles the `--run` CLI option.
     *
     * If `path` is a directory, so a project is run, a conflicting (pointing to
     * another project) `projectPath` should not be provided.
@@ -399,8 +395,7 @@ object Main {
     }
   }
 
-  /**
-    * Handles the `--repl` CLI option
+  /** Handles the `--repl` CLI option
     *
     * @param projectPath if specified, the REPL is run in context of a project
     *                    at the given path
@@ -431,8 +426,7 @@ object Main {
     exitSuccess()
   }
 
-  /**
-    * Handles `--server` CLI option
+  /** Handles `--server` CLI option
     *
     * @param line a CLI line
     * @param logLevel log level to set for the engine runtime
@@ -492,8 +486,7 @@ object Main {
     println(versionDescription.asString(useJson))
   }
 
-  /**
-    * Parses the log level option.
+  /** Parses the log level option.
     */
   def parseLogLevel(levelOption: String): LogLevel = {
     val name = levelOption.toLowerCase
@@ -505,8 +498,7 @@ object Main {
     }
   }
 
-  /**
-    * Parses an URI that specifies the logging service connection.
+  /** Parses an URI that specifies the logging service connection.
     */
   def parseUri(string: String): Uri =
     try {
@@ -517,13 +509,11 @@ object Main {
         exitFail()
     }
 
-  /**
-    * Default log level to use if the LOG_LEVEL option is not provided.
+  /** Default log level to use if the LOG_LEVEL option is not provided.
     */
   val defaultLogLevel: LogLevel = LogLevel.Info
 
-  /**
-    * Main entry point for the CLI program.
+  /** Main entry point for the CLI program.
     *
     * @param args the command line arguments
     */

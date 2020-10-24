@@ -164,17 +164,16 @@ case object LambdaShorthandToLambda extends IRPass {
           args
             .zip(argIsUnderscore)
             .map(updateShorthandArg(_, freshNameSupply))
-            .map {
-              case s @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
-                s.copy(value = desugarExpression(value, freshNameSupply))
+            .map { case s @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
+              s.copy(value = desugarExpression(value, freshNameSupply))
             }
 
         // Generate a definition arg instance for each shorthand arg
         val defArgs = updatedArgs.zip(argIsUnderscore).map {
           case (arg, isShorthand) => generateDefinitionArg(arg, isShorthand)
         }
-        val actualDefArgs = defArgs.collect {
-          case Some(defArg) => defArg
+        val actualDefArgs = defArgs.collect { case Some(defArg) =>
+          defArg
         }
 
         // Determine whether or not the function itself is shorthand
@@ -264,12 +263,11 @@ case object LambdaShorthandToLambda extends IRPass {
     *         position is lambda shorthand, otherwise `false`
     */
   def determineLambdaShorthand(args: List[IR.CallArgument]): List[Boolean] = {
-    args.map {
-      case IR.CallArgument.Specified(_, value, _, _, _, _) =>
-        value match {
-          case _: IR.Name.Blank => true
-          case _                => false
-        }
+    args.map { case IR.CallArgument.Specified(_, value, _, _, _, _) =>
+      value match {
+        case _: IR.Name.Blank => true
+        case _                => false
+      }
     }
   }
 

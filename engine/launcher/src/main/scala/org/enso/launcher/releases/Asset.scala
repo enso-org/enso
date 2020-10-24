@@ -4,18 +4,15 @@ import java.nio.file.Path
 
 import org.enso.cli.TaskProgress
 
-/**
-  * Represents a downloadable release asset.
+/** Represents a downloadable release asset.
   */
 trait Asset {
 
-  /**
-    * Asset's filename.
+  /** Asset's filename.
     */
   def fileName: String
 
-  /**
-    * Downloads the asset to the provided path.
+  /** Downloads the asset to the provided path.
     *
     * The path should include a filename for the asset (not just a parent
     * directory).
@@ -25,8 +22,7 @@ trait Asset {
     */
   def downloadTo(path: Path): TaskProgress[Unit]
 
-  /**
-    * Fetches the asset treating it as text data.
+  /** Fetches the asset treating it as text data.
     *
     * Returns a [[TaskProgress]] instance that will contain a [[String]]
     * containing the fetched text.

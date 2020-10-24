@@ -3,8 +3,7 @@ package org.enso.languageserver.effect
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-/**
-  * Functions helping to manage effects in tests.
+/** Functions helping to manage effects in tests.
   */
 trait Effects {
 

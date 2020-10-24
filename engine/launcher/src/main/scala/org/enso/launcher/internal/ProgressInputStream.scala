@@ -2,27 +2,23 @@ package org.enso.launcher.internal
 
 import java.io.InputStream
 
-/**
-  * Represents a *mutable* progress status.
+/** Represents a *mutable* progress status.
   */
 trait ReadProgress {
 
-  /**
-    * Specifies how many units have already been read.
+  /** Specifies how many units have already been read.
     *
     * Querying this property over time may give different results as the task
     * progresses.
     */
   def alreadyRead(): Long
 
-  /**
-    * Specifies how many units in total are expected, if known.
+  /** Specifies how many units in total are expected, if known.
     */
   def total(): Option[Long]
 }
 
-/**
-  * A wrapper for an [[InputStream]] that tracks the read progresss.
+/** A wrapper for an [[InputStream]] that tracks the read progresss.
   *
   * @param in the base stream to wrap
   * @param totalSize total amount of bytes that are expected to be available in
@@ -41,20 +37,17 @@ class ProgressInputStream(
     override def total(): Option[Long] = totalSize
   }
 
-  /**
-    * Returns the [[ReadProgress]] instance that can be queried to check how
+  /** Returns the [[ReadProgress]] instance that can be queried to check how
     * many bytes have been read already.
     */
   def progress: ReadProgress = readProgress
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def available: Int =
     in.available()
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def read: Int = {
     bytesRead += 1
@@ -62,8 +55,7 @@ class ProgressInputStream(
     in.read()
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def read(b: Array[Byte]): Int = {
     val bytes = in.read(b)
@@ -72,8 +64,7 @@ class ProgressInputStream(
     bytes
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def read(b: Array[Byte], off: Int, len: Int): Int = {
     val bytes = in.read(b, off, len)
@@ -82,8 +73,7 @@ class ProgressInputStream(
     bytes
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def skip(n: Long): Long = {
     val skipped = in.skip(n)
@@ -92,8 +82,7 @@ class ProgressInputStream(
     skipped
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def close(): Unit =
     in.close()

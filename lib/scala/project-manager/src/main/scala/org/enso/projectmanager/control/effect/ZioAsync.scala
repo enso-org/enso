@@ -5,15 +5,14 @@ import zio.ZIO
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-/**
-  * Instance of [[Async]] class for ZIO.
+/** Instance of [[Async]] class for ZIO.
   */
 class ZioAsync[R] extends Async[ZIO[R, +*, +*]] {
 
   implicit private val immediateEc =
     ExecutionContext.fromExecutor(ImmediateExecutor)
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def async[E, A](
     register: (Either[E, A] => Unit) => Unit
   ): ZIO[R, E, A] =
@@ -22,7 +21,7 @@ class ZioAsync[R] extends Async[ZIO[R, +*, +*]] {
 
     }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def fromFuture[A](thunk: () => Future[A]): ZIO[R, Throwable, A] =
     ZIO.effectAsync[R, Throwable, A] { cb =>
       thunk().onComplete {

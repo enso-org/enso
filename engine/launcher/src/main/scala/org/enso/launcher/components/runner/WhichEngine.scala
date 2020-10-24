@@ -1,7 +1,6 @@
 package org.enso.launcher.components.runner
 
-/**
-  * Returned by [[Runner.version]], specifies if the engine that is queried for
+/** Returned by [[Runner.version]], specifies if the engine that is queried for
   * version is from a project or the default one.
   */
 sealed trait WhichEngine

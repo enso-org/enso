@@ -13,15 +13,13 @@ import org.enso.launcher.releases.{
 
 import scala.util.{Failure, Success}
 
-/**
-  * [[RuntimeReleaseProvider]] implementation providing Graal Community Edition
+/** [[RuntimeReleaseProvider]] implementation providing Graal Community Edition
   * releases from the given [[SimpleReleaseProvider]].
   */
 class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends RuntimeReleaseProvider {
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def packageFileName(version: RuntimeVersion): String = {
     val os = OS.operatingSystem match {
@@ -38,8 +36,7 @@ class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
     s"graalvm-ce-java${version.java}-$os-$arch-${version.graal}$extension"
   }
 
-  /**
-    * @inheritdoc
+  /** @inheritdoc
     */
   override def downloadPackage(
     version: RuntimeVersion,
@@ -66,8 +63,7 @@ class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
   }
 }
 
-/**
-  * Default [[RuntimeReleaseProvider]] that provides Graal CE releases using the
+/** Default [[RuntimeReleaseProvider]] that provides Graal CE releases using the
   * GitHub Release API.
   */
 object GraalCEReleaseProvider

@@ -13,8 +13,7 @@ import org.enso.projectmanager.infrastructure.repository.{
 }
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 
-/**
-  * A hook responsible for moving a project to the target dir.
+/** A hook responsible for moving a project to the target dir.
   *
   * @param projectId a project id
   * @param newName a new project name

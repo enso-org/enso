@@ -1,6 +1,6 @@
 package src.main.scala.licenses.report
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{InvalidPathException, Path}
 import java.time.LocalDate
 
 import sbt._
@@ -8,8 +8,7 @@ import src.main.scala.licenses._
 
 import scala.util.control.NonFatal
 
-/**
-  * Reads settings from the `root` to add review statuses to discovered
+/** Reads settings from the `root` to add review statuses to discovered
   * attachments and add any additional attachments coming from the settings.
   *
   * The review settings consist of the following files or directories (all are
@@ -33,6 +32,11 @@ import scala.util.control.NonFatal
   *    - `custom-license` - a file that indicates that the dependency should not
   *      point to the default license, but it should contain a custom one within
   *      its files
+  *   - `default-and-custom-license` - a file that indicates that the dependency should point to the
+  *     default license, but it also contains additional license-like files that should be kept too;
+  *     it disables checking if the attached license-like files are equal to the default license or
+  *     not, so it should be used very carefully; at most one of `default-and-custom-license` and
+  *     `custom-license` should exist for each dependency
   *    - `copyright-keep` - copyright lines that should be included in the
   *      notice summary for the package
   *    - `copyright-keep-context` - copyright lines that should be included
@@ -47,8 +51,24 @@ import scala.util.control.NonFatal
   */
 case class Review(root: File, dependencySummary: DependencySummary) {
 
-  /**
-    * Runs the review process, returning a [[ReviewedDependency]] which includes
+  private object Paths {
+    val noticeHeader = "notice-header"
+
+    val filesAdd    = "files-add"
+    val filesKeep   = "files-keep"
+    val filesIgnore = "files-ignore"
+
+    val copyrightKeep            = "copyright-keep"
+    val copyrightKeepWithContext = "copyright-keep-context"
+    val copyrightIgnore          = "copyright-ignore"
+    val copyrightAdd             = "copyright-add"
+
+    val reviewedLicenses        = "reviewed-licenses"
+    val customLicense           = "custom-license"
+    val defaultAndCustomLicense = "default-and-custom-license"
+  }
+
+  /** Runs the review process, returning a [[ReviewedDependency]] which includes
     * information from the [[DependencySummary]] enriched with review statuses.
     */
   def run(): WithWarnings[ReviewedSummary] =
@@ -59,15 +79,14 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       }.flip
 
       header  = findHeader()
-      files   = findAdditionalFiles(root / "files-add")
+      files   = findAdditionalFiles(root / Paths.filesAdd)
       summary = ReviewedSummary(reviews, header, files)
       _ <- ReviewedSummary.warnAboutMissingReviews(summary)
       existingPackages = dependencySummary.dependencies.map(_._1.packageName)
       _ <- warnAboutMissingDependencies(existingPackages)
     } yield summary
 
-  /**
-    * Returns a list of warnings for dependencies whose configuration has been
+  /** Returns a list of warnings for dependencies whose configuration has been
     * detected but which have not been detected.
     *
     * This may be used to detect dependencies that have been removed after an
@@ -78,7 +97,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   ): WithWarnings[Unit] = {
     val foundConfigurations = listFiles(root).filter(_.isDirectory)
     val expectedFileNames =
-      existingPackageNames ++ Seq("files-add", "reviewed-licenses")
+      existingPackageNames ++ Seq(Paths.filesAdd, Paths.reviewedLicenses)
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
     val warnings = unexpectedConfigurations.map(p =>
@@ -88,20 +107,25 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     WithWarnings.justWarnings(warnings)
   }
 
-  /**
-    * Finds a header defined in the settings or
+  /** Finds a header defined in the settings or
     */
   private def findHeader(): String =
-    readFile(root / "notice-header").getOrElse(Review.defaultHeader)
+    readFile(root / Paths.noticeHeader).getOrElse(Review.defaultHeader)
 
-  /**
-    * Reads files from the provided directory as [[AttachedFile]].
+  /** Reads files from the provided directory as [[AttachedFile]].
     */
   private def findAdditionalFiles(dir: File): Seq[AttachedFile] =
-    listFiles(dir).map(f => AttachedFile.read(f.toPath, Some(dir.toPath)))
+    listFiles(dir).map { f =>
+      if (f.isDirectory)
+        AttachedFile(
+          PortablePath(f.toPath.toAbsolutePath),
+          Review.directoryMark
+        )
+      else
+        AttachedFile.read(f.toPath, Some(dir.toPath))
+    }
 
-  /**
-    * Splits the sequence of attachments into sequences of files and copyrights.
+  /** Splits the sequence of attachments into sequences of files and copyrights.
     */
   private def splitAttachments(
     attachments: Seq[Attachment]
@@ -111,8 +135,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     (notices, copyrights)
   }
 
-  /**
-    * Returns only such copyrights that are not included in one of the
+  /** Returns only such copyrights that are not included in one of the
     * discovered files.
     */
   private def removeCopyrightsIncludedInNotices(
@@ -128,36 +151,33 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     copyrights.filter(shouldKeepCopyright)
   }
 
-  /**
-    * Returns the review status of the license and any attachments associated
+  /** Returns the review status of the license and any attachments associated
     * with the dependency.
     */
   private def reviewDependency(
     info: DependencyInformation,
     attachments: Seq[Attachment]
   ): WithWarnings[ReviewedDependency] = {
-    val packageRoot                    = root / info.packageName
-    val (licenseReviewed, licensePath) = reviewLicense(packageRoot, info)
-    val (files, copyrights)            = splitAttachments(attachments)
+    val packageRoot         = root / info.packageName
+    val (files, copyrights) = splitAttachments(attachments)
     val copyrightsDeduplicated =
       removeCopyrightsIncludedInNotices(copyrights, files)
 
     for {
+      licenseReview  <- reviewLicense(packageRoot, info)
       processedFiles <- reviewFiles(packageRoot, files) ++ addFiles(packageRoot)
       processedCopyrights <-
         reviewCopyrights(packageRoot, copyrightsDeduplicated) ++
         addCopyrights(packageRoot)
     } yield ReviewedDependency(
-      information     = info,
-      licenseReviewed = licenseReviewed,
-      licensePath     = licensePath,
-      files           = processedFiles,
-      copyrights      = processedCopyrights
+      information   = info,
+      licenseReview = licenseReview,
+      files         = processedFiles,
+      copyrights    = processedCopyrights
     )
   }
 
-  /**
-    * Enriches the file attachments with their review status.
+  /** Enriches the file attachments with their review status.
     */
   private def reviewFiles(
     packageRoot: File,
@@ -166,8 +186,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     def keyForFile(file: AttachedFile): String = file.path.toString
     val keys                                   = files.map(keyForFile)
     for {
-      ignore <- readExpectedLines("files-ignore", keys, packageRoot)
-      keep   <- readExpectedLines("files-keep", keys, packageRoot)
+      ignore <- readExpectedLines(Paths.filesIgnore, keys, packageRoot)
+      keep   <- readExpectedLines(Paths.filesKeep, keys, packageRoot)
     } yield {
       def review(file: AttachedFile): AttachmentStatus = {
         val key = keyForFile(file)
@@ -180,18 +200,16 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     }
   }
 
-  /**
-    * Returns any additional file attachments that are manually added in the
+  /** Returns any additional file attachments that are manually added in the
     * review.
     */
   private def addFiles(
     packageRoot: File
   ): Seq[(AttachedFile, AttachmentStatus)] =
-    findAdditionalFiles(packageRoot / "files-add")
+    findAdditionalFiles(packageRoot / Paths.filesAdd)
       .map((_, AttachmentStatus.Added))
 
-  /**
-    * Enriches the copyright attachments with their review status.
+  /** Enriches the copyright attachments with their review status.
     */
   private def reviewCopyrights(
     packageRoot: File,
@@ -201,10 +219,10 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       copyrightMention.content.strip
     val keys = copyrights.map(keyForMention)
     for {
-      ignore <- readExpectedLines("copyright-ignore", keys, packageRoot)
-      keep   <- readExpectedLines("copyright-keep", keys, packageRoot)
+      ignore <- readExpectedLines(Paths.copyrightIgnore, keys, packageRoot)
+      keep   <- readExpectedLines(Paths.copyrightKeep, keys, packageRoot)
       keepContext <-
-        readExpectedLines("copyright-keep-context", keys, packageRoot)
+        readExpectedLines(Paths.copyrightKeepWithContext, keys, packageRoot)
     } yield {
 
       def review(copyright: CopyrightMention): AttachmentStatus = {
@@ -219,47 +237,69 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     }
   }
 
-  /**
-    * Returns any additional copyright attachments that are manually added in
+  /** Returns any additional copyright attachments that are manually added in
     * the review.
     */
   private def addCopyrights(
     packageRoot: File
   ): Seq[(CopyrightMention, AttachmentStatus)] =
-    readFile(packageRoot / "copyright-add")
+    readFile(packageRoot / Paths.copyrightAdd)
       .map(text =>
         (
           CopyrightMention(
             content  = "<manually added mentions>",
-            contexts = Seq(text),
-            origins  = Seq()
+            contexts = Seq(text)
           ),
           AttachmentStatus.Added
         )
       )
       .toSeq
 
-  /**
-    * Checks if the license has been reviewed.
-    *
-    * Returns a boolean value indicating if it has been reviewed and a path to
-    * the license file if a default file is used.
+  /** Checks review status of the license associated with the given dependency.
     */
   private def reviewLicense(
     packageRoot: File,
     info: DependencyInformation
-  ): (Boolean, Option[Path]) = {
-    if (Files.exists((packageRoot / "custom-license").toPath)) (true, None)
-    else
-      readFile(
-        root / "reviewed-licenses" / Review.normalizeName(info.license.name)
-      )
-        .map(p => (true, Some(Path.of(p.strip()))))
-        .getOrElse((false, None))
-  }
+  ): WithWarnings[LicenseReview] =
+    readFile(packageRoot / Paths.customLicense) match {
+      case Some(content) =>
+        val customFilename = content.strip()
+        WithWarnings(LicenseReview.Custom(customFilename))
+      case None =>
+        val settingPath =
+          root / Paths.reviewedLicenses / Review.normalizeName(
+            info.license.name
+          )
+        readFile(settingPath)
+          .map { content =>
+            if (content.isBlank) {
+              WithWarnings(
+                LicenseReview.NotReviewed,
+                Seq(s"License review file $settingPath is empty.")
+              )
+            } else
+              try {
+                val path = Path.of(content.strip())
+                val bothDefaultAndCustom =
+                  (packageRoot / Paths.defaultAndCustomLicense).exists()
+                WithWarnings(
+                  LicenseReview.Default(
+                    path,
+                    allowAdditionalCustomLicenses = bothDefaultAndCustom
+                  )
+                )
+              } catch {
+                case e: InvalidPathException =>
+                  WithWarnings(
+                    LicenseReview.NotReviewed,
+                    Seq(s"License review file $settingPath is malformed: $e")
+                  )
+              }
+          }
+          .getOrElse(WithWarnings(LicenseReview.NotReviewed))
+    }
 
-  /**
-    * Reads the file as lines.
+  /** Reads the file as lines.
     *
     * Returns an empty sequence if the file cannot be read.
     */
@@ -267,8 +307,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     try { IO.readLines(file).map(_.strip).filter(_.nonEmpty) }
     catch { case NonFatal(_) => Seq() }
 
-  /**
-    * Reads the file as lines and reports any lines that were not expected to be
+  /** Reads the file as lines and reports any lines that were not expected to be
     * found.
     */
   private def readExpectedLines(
@@ -287,8 +326,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     WithWarnings(lines, warnings)
   }
 
-  /**
-    * Reads the file as a [[String]].
+  /** Reads the file as a [[String]].
     *
     * Returns None if the file cannot be read.
     */
@@ -296,8 +334,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     try { Some(IO.read(file)) }
     catch { case NonFatal(_) => None }
 
-  /**
-    * Returns a sequence of files contained in a directory.
+  /** Returns a sequence of files contained in a directory.
     *
     * If the directory does not exist or otherwise cannot be queried, returns an
     * empty sequence.
@@ -310,16 +347,14 @@ case class Review(root: File, dependencySummary: DependencySummary) {
 
 object Review {
 
-  /**
-    * Normalizes a name so that it can be used as a filename.
+  /** Normalizes a name so that it can be used as a filename.
     */
   def normalizeName(string: String): String = {
     val charsToReplace = " /:;,"
     charsToReplace.foldLeft(string)((str, char) => str.replace(char, '_'))
   }
 
-  /**
-    * Default NOTICE header.
+  /** Default NOTICE header.
     */
   val defaultHeader: String = {
     val yearStart   = 2020
@@ -330,4 +365,6 @@ object Review {
     s"""Enso
        |Copyright $year New Byte Order sp. z o. o.""".stripMargin
   }
+
+  val directoryMark = "<a directory>"
 }

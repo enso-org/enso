@@ -13,8 +13,7 @@ import org.enso.launcher.releases.EnsoRepository
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{CurrentVersion, Environment, FileSystem, OS}
 
-/**
-  * Implements internal options that the launcher may use when running another
+/** Implements internal options that the launcher may use when running another
   * instance of itself.
   *
   * These options are used primarily to implement workarounds for
@@ -78,8 +77,7 @@ object InternalOpts {
   private var inheritEmulateRepository: Option[Path] = None
   private var inheritShouldWaitForAssets: Boolean    = false
 
-  /**
-    * Removes internal testing options that should not be preserved in the called executable.
+  /** Removes internal testing options that should not be preserved in the called executable.
     *
     * In release mode, this is an identity function, since these internal options are not permitted anyway.
     */
@@ -109,8 +107,7 @@ object InternalOpts {
       }
   }
 
-  /**
-    * Additional top level options that are internal to the launcher and should
+  /** Additional top level options that are internal to the launcher and should
     * not be used by users directly.
     *
     * They are used to implement workarounds for install / upgrade on Windows.
@@ -189,8 +186,7 @@ object InternalOpts {
     }
   }
 
-  /**
-    * Internal options used for testing.
+  /** Internal options used for testing.
     *
     * Disabled in release mode.
     */
@@ -231,8 +227,7 @@ object InternalOpts {
 
     }
 
-  /**
-    * Specifies options that are inherited by the process that is launched when
+  /** Specifies options that are inherited by the process that is launched when
     * continuing the upgrade.
     */
   private def optionsToInherit: Seq[String] = {
@@ -247,21 +242,18 @@ object InternalOpts {
     repositoryPath ++ waitForAssets
   }
 
-  /**
-    * Returns a helper class that allows to run the launcher located at the
+  /** Returns a helper class that allows to run the launcher located at the
     * provided path invoking the internal options.
     */
   def runWithNewLauncher(pathToNewLauncher: Path): Runner =
     new Runner(pathToNewLauncher)
 
-  /**
-    * A helper class used for running the workarounds using another launcher
+  /** A helper class used for running the workarounds using another launcher
     * executable.
     */
   class Runner private[InternalOpts] (pathToNewLauncher: Path) {
 
-    /**
-      * Tells the installed launcher to try to remove the old launcher
+    /** Tells the installed launcher to try to remove the old launcher
       * executable.
       *
       * It retries for a few seconds to give the process running the old
@@ -284,8 +276,7 @@ object InternalOpts {
       )
     }
 
-    /**
-      * Tells the temporary launcher to remove the original launcher executable
+    /** Tells the temporary launcher to remove the original launcher executable
       * and possibly its parent directory.
       *
       * The parent directory is removed if it is empty or only contains an empty
@@ -304,15 +295,14 @@ object InternalOpts {
         Seq(s"--$FINISH_UNINSTALL_PARENT", parent.toAbsolutePath.toString)
       )
       val command = Seq(
-          pathToNewLauncher.toAbsolutePath.toString,
-          s"--$FINISH_UNINSTALL",
-          executablePath.toAbsolutePath.toString
-        ) ++ parentParam.getOrElse(Seq())
+        pathToNewLauncher.toAbsolutePath.toString,
+        s"--$FINISH_UNINSTALL",
+        executablePath.toAbsolutePath.toString
+      ) ++ parentParam.getOrElse(Seq())
       runDetachedAndExit(command)
     }
 
-    /**
-      * Tells the launcher to continue a multi-step upgrade.
+    /** Tells the launcher to continue a multi-step upgrade.
       *
       * Creates an instance of [[LauncherUpgrader]] and invokes
       * [[LauncherUpgrader.internalContinueUpgrade]].
@@ -331,20 +321,19 @@ object InternalOpts {
       val inheritOpts =
         GlobalCLIOptions.toOptions(globalCLIOptions) ++ optionsToInherit
       val command = Seq(
-          pathToNewLauncher.toAbsolutePath.toString,
-          s"--$CONTINUE_UPGRADE",
-          targetVersion.toString,
-          s"--$UPGRADE_ORIGINAL_PATH",
-          originalPath.toAbsolutePath.normalize.toString
-        ) ++ inheritOpts
+        pathToNewLauncher.toAbsolutePath.toString,
+        s"--$CONTINUE_UPGRADE",
+        targetVersion.toString,
+        s"--$UPGRADE_ORIGINAL_PATH",
+        originalPath.toAbsolutePath.normalize.toString
+      ) ++ inheritOpts
       runAndWaitForResult(command)
     }
   }
 
   private val retryBaseAmount = 30
 
-  /**
-    * Tries to remove the file at `oldExecutablePath`, retrying several times if
+  /** Tries to remove the file at `oldExecutablePath`, retrying several times if
     * needed.
     *
     * On failure retries every 0.5s for 15s in total. That retry mechanism is in

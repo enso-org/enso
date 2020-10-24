@@ -3,8 +3,7 @@ package org.enso.languageserver.data
 import org.bouncycastle.jcajce.provider.digest.SHA3
 import org.bouncycastle.util.encoders.Hex
 
-/**
-  * SHA3-224 digest calculator.
+/** SHA3-224 digest calculator.
   */
 object Sha3_224VersionCalculator extends ContentBasedVersioning {
 

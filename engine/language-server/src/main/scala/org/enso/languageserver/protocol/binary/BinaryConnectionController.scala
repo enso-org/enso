@@ -47,8 +47,7 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 import scala.annotation.unused
 import scala.concurrent.duration._
 
-/**
-  * An actor handling data communications between a single client and the
+/** An actor handling data communications between a single client and the
   * language server. It acts as a front controller responsible for handling
   * all incoming requests and dispatching commands.
   *

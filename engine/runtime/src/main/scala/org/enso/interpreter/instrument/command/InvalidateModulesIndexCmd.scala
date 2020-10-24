@@ -5,8 +5,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that invalidates the modules index.
+/** A command that invalidates the modules index.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for invalidation
@@ -16,8 +15,7 @@ class InvalidateModulesIndexCmd(
   val request: Api.InvalidateModulesIndexRequest
 ) extends Command(maybeRequestId) {
 
-  /**
-    * Executes a request.
+  /** Executes a request.
     *
     * @param ctx contains suppliers of services to perform a request
     */

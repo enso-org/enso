@@ -5,14 +5,12 @@ import java.nio.file.{Files, Path}
 
 import org.enso.launcher.internal.ProgressInputStream
 
-/**
-  * A helper that allows to create a [[ProgressInputStream]] for a file located
+/** A helper that allows to create a [[ProgressInputStream]] for a file located
   * at the given path.
   */
 object FileProgressInputStream {
 
-  /**
-    * Creates a [[ProgressInputStream]] reading from the file at `path`.
+  /** Creates a [[ProgressInputStream]] reading from the file at `path`.
     *
     * The read progress depends on how many bytes have been read from the file.
     * The total size is determined from the file size as returned by the

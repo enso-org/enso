@@ -3,8 +3,7 @@ import sbt._
 
 object LauncherShimsForTest {
 
-  /**
-    * Creates a task that compiles the launcher shims which are used for some of
+  /** Creates a task that compiles the launcher shims which are used for some of
     * the launcher tests.
     *
     * @param rustcVersion Rust version that should be used

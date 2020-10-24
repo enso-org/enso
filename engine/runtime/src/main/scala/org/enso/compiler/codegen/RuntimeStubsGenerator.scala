@@ -4,15 +4,13 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 
-/**
-  * Generates stubs of runtime representations of atom constructors, to allow
+/** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
   * fully generated yet.
   */
 class RuntimeStubsGenerator() {
 
-  /**
-    * Runs the stage on the given module.
+  /** Runs the stage on the given module.
     *
     * @param module the module to generate stubs in.
     */

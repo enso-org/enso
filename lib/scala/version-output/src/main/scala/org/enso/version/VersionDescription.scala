@@ -2,8 +2,7 @@ package org.enso.version
 
 import buildinfo.Info
 
-/**
-  * Represents a description of a version string that can be rendered as a
+/** Represents a description of a version string that can be rendered as a
   * human-readable string or in JSON format.
   */
 trait VersionDescription {
@@ -14,8 +13,7 @@ trait VersionDescription {
     if (useJson) asJSONString else asHumanReadableString
 }
 
-/**
-  * Defines an additional parameter for the version description.
+/** Defines an additional parameter for the version description.
   *
   * @param humanReadableName the human readable prefix added when printing this
   *                          parameter in human-readable format
@@ -32,8 +30,7 @@ case class VersionDescriptionParameter(
 
 object VersionDescription {
 
-  /**
-    * Creates a [[VersionDescription]] instance.
+  /** Creates a [[VersionDescription]] instance.
     *
     * @param header header displayed as the first line of the human-readable
     *               representation

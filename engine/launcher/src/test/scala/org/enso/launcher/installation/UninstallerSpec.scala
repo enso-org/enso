@@ -8,8 +8,7 @@ import org.enso.launcher.{FileSystem, NativeTest, OS, WithTemporaryDirectory}
 class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
   def installedRoot: Path = getTestDirectory / "installed"
 
-  /**
-    * Prepares an installed distribution for the purposes of testing
+  /** Prepares an installed distribution for the purposes of testing
     * uninstallation.
     *
     * @param everythingInsideData if true, config and binary directory are put

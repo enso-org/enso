@@ -9,8 +9,7 @@ import org.enso.languageserver.protocol.binary.{EnsoUUID, Success}
 
 object SuccessReplyFactory {
 
-  /**
-    * Creates a [[Success]] inside a [[FlatBufferBuilder]].
+  /** Creates a [[Success]] inside a [[FlatBufferBuilder]].
     *
     * @param builder a class that helps build a FlatBuffer representation of
     *                complex objects
@@ -22,8 +21,7 @@ object SuccessReplyFactory {
     Success.endSuccess(builder)
   }
 
-  /**
-    * Creates a [[Success]] inside a [[FlatBufferBuilder]].
+  /** Creates a [[Success]] inside a [[FlatBufferBuilder]].
     *
     * @param correlationId correlation id used to correlate a response with a
     *                      request

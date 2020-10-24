@@ -6,15 +6,13 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 
-/**
-  * A representation of an executable position in code.
+/** A representation of an executable position in code.
   */
 sealed trait StackItem
 
 object StackItem {
 
-  /**
-    * A call performed at the top of the stack, to initialize the context.
+  /** A call performed at the top of the stack, to initialize the context.
     *
     * @param methodPointer points to a method definition
     * @param thisArgumentExpression optional argument
@@ -26,8 +24,7 @@ object StackItem {
     positionalArgumentsExpressions: Vector[String]
   ) extends StackItem
 
-  /**
-    * A call corresponding to "entering a function call".
+  /** A call corresponding to "entering a function call".
     *
     * @param expressionId an expression identifier
     */
@@ -56,9 +53,9 @@ object StackItem {
   implicit val encoder: Encoder[StackItem] =
     Encoder.instance[StackItem] {
       case ExplicitCall(
-          methodPointer,
-          thisArgumentExpression,
-          positionalArgumentsExpressions
+            methodPointer,
+            thisArgumentExpression,
+            positionalArgumentsExpressions
           ) =>
         Json.obj(
           CodecField.Type                           -> CodecType.ExplicitCall.asJson,

@@ -4,8 +4,7 @@ import akka.actor.ActorRef
 
 object PathWatcherProtocol {
 
-  /**
-    * Requests event manager to watch the path.
+  /** Requests event manager to watch the path.
     *
     * @param path path to watch
     */
@@ -17,13 +16,11 @@ object PathWatcherProtocol {
       WatchPath(path, Set(client))
   }
 
-  /**
-    * Requests event manager to stop watching.
+  /** Requests event manager to stop watching.
     */
   case class UnwatchPath(client: ActorRef)
 
-  /**
-    * Returns a file event result.
+  /** Returns a file event result.
     *
     * @param result file event
     */

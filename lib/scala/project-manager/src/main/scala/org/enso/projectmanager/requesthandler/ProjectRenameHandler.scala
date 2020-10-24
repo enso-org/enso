@@ -15,8 +15,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `project/rename` commands.
+/** A request handler for `project/rename` commands.
   *
   * @param service a project service
   * @param requestTimeout a request timeout
@@ -75,8 +74,7 @@ class ProjectRenameHandler[F[+_, +_]: Exec](
 
 object ProjectRenameHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ProjectRenameHandler]].
+  /** Creates a configuration object used to create a [[ProjectRenameHandler]].
     *
     * @param service a project service
     * @param requestTimeout a request timeout

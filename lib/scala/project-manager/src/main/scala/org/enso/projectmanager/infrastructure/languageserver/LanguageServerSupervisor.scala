@@ -26,8 +26,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSuper
 }
 import org.enso.projectmanager.util.UnhandledLogging
 
-/**
-  * A supervisor process responsible for monitoring language server and
+/** A supervisor process responsible for monitoring language server and
   * restarting it when the server is unresponsive. It delegates server
   * monitoring to the [[HeartbeatSession]] actor.
   *
@@ -129,11 +128,10 @@ class LanguageServerSupervisor(
       stop()
   }
 
-  private def waitingForChildren(): Receive = {
-    case Terminated(_) =>
-      if (context.children.isEmpty) {
-        context.stop(self)
-      }
+  private def waitingForChildren(): Receive = { case Terminated(_) =>
+    if (context.children.isEmpty) {
+      context.stop(self)
+    }
   }
 
   private def stop(): Unit = {
@@ -154,18 +152,15 @@ object LanguageServerSupervisor {
 
   private case object RestartServer
 
-  /**
-    * A command responsible for initiating heartbeat session.
+  /** A command responsible for initiating heartbeat session.
     */
   case object SendHeartbeat
 
-  /**
-    * Signals that server is unresponsive.
+  /** Signals that server is unresponsive.
     */
   case object ServerUnresponsive
 
-  /**
-    * Creates a configuration object used to create a [[LanguageServerSupervisor]].
+  /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
     *
     * @param config a server config
     * @param server a server handle

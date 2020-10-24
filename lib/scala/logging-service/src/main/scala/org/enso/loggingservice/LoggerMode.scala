@@ -3,8 +3,7 @@ package org.enso.loggingservice
 import akka.http.scaladsl.model.Uri
 import org.enso.loggingservice.printers.Printer
 
-/**
-  * Represents modes the logging service can be running in.
+/** Represents modes the logging service can be running in.
   *
   * @tparam InitializationResult type that is returned when
   *                              [[LoggingServiceManager]] sets up the given
@@ -13,15 +12,13 @@ import org.enso.loggingservice.printers.Printer
 sealed trait LoggerMode[InitializationResult]
 object LoggerMode {
 
-  /**
-    * Forwards log messages to a logging service server.
+  /** Forwards log messages to a logging service server.
     *
     * @param endpoint URI that is used to connect to the server via WebSockets
     */
   case class Client(endpoint: Uri) extends LoggerMode[Unit]
 
-  /**
-    * Starts gathering messages from this and other components.
+  /** Starts gathering messages from this and other components.
     *
     * Its initialization returns a [[ServerBinding]] that can be used to connect
     * to the initialized server.
@@ -39,8 +36,7 @@ object LoggerMode {
     interface: String = "localhost"
   ) extends LoggerMode[ServerBinding]
 
-  /**
-    * Processes log messages locally.
+  /** Processes log messages locally.
     *
     * @param printers a list of printers that process the incoming messages
     */

@@ -19,15 +19,13 @@ jobs:
         run: |
           ref=${{ github.ref }}
           tag=${ref#"refs/tags/"}
-          echo ::set-env name=TAG::$tag
+          echo "TAG=$tag" >> $GITHUB_ENV
       - name: Check if Broken Mark is Present
         shell: bash
         run: |
-          BROKEN="::set-env name=IS_BROKEN::true"
-          NOT_BROKEN="::set-env name=IS_BROKEN::false"
           curl https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.TAG }} > release.json
-          ./repo/tools/ci/releases/is-broken.js release.json > url.txt && echo $BROKEN || echo $NOT_BROKEN
-          echo ::set-env name=BROKEN_URL::$(cat url.txt)
+          ./repo/tools/ci/releases/is-broken.js release.json > url.txt && echo IS_BROKEN=true >> $GITHUB_ENV || echo IS_BROKEN=false >> $GITHUB_ENV
+          echo "BROKEN_URL=$(cat url.txt)" >> $GITHUB_ENV
       - name: Prepare AWS Session
         if: env.IS_BROKEN == 'true'
         shell: bash

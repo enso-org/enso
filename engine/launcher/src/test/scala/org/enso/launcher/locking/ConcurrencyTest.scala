@@ -57,22 +57,19 @@ class ConcurrencyTest
     testLocalLockManager = Some(new TestLocalLockManager)
   }
 
-  /**
-    * A separate [[LockManager]] for each test case.
+  /** A separate [[LockManager]] for each test case.
     * @return
     */
   def lockManager: LockManager = testLocalLockManager.get
 
-  /**
-    * Each call creates a distinct [[ResourceManager]], but all resource
+  /** Each call creates a distinct [[ResourceManager]], but all resource
     * managers created within one test case share the same [[lockManager]], so
     * that they see each other's locks.
     */
   def makeNewResourceManager(): ResourceManager =
     new ResourceManager(lockManager)
 
-  /**
-    * Creates a [[DistributionManager]] and [[ComponentsManager]] that can be
+  /** Creates a [[DistributionManager]] and [[ComponentsManager]] that can be
     * used in a test.
     *
     * @param releaseCallback called when a release asset is fetched
@@ -145,8 +142,7 @@ class ConcurrencyTest
     (distributionManager, componentsManager)
   }
 
-  /**
-    * Helper function, acts as [[makeManagers]] but returns only the
+  /** Helper function, acts as [[makeManagers]] but returns only the
     * [[ComponentsManager]].
     */
   def makeComponentsManager(
@@ -161,8 +157,7 @@ class ConcurrencyTest
   "locks" should {
     "synchronize parallel installations with the same runtime" in {
 
-      /**
-        * Two threads start installing different engines in parallel, but these
+      /** Two threads start installing different engines in parallel, but these
         * engines use the same runtime. The second thread is stalled on
         * downloading its engine package, so that the first one can start
         * downloading the runtime. When it starts downloading, it is suspended
@@ -238,8 +233,7 @@ class ConcurrencyTest
 
     "synchronize installation and usage" in {
 
-      /**
-        * The first thread starts installing the engine, but is suspended when
+      /** The first thread starts installing the engine, but is suspended when
         * downloading the package. The second thread then tries to use it, but
         * it should wait until the installation is finished.
         */
@@ -297,8 +291,7 @@ class ConcurrencyTest
 
     "synchronize uninstallation and usage" in {
 
-      /**
-        * The first thread starts using the engine, while in the meantime
+      /** The first thread starts using the engine, while in the meantime
         * another thread starts uninstalling it. The second thread has to wait
         * with uninstalling until the first one finishes using it.
         */
@@ -353,8 +346,7 @@ class ConcurrencyTest
 
     "synchronize main lock" in {
 
-      /**
-        * First two threads start and acquire the shared lock, than the third
+      /** First two threads start and acquire the shared lock, than the third
         * thread tries to acquire an exclusive lock (in practice that will be our
         * (un)installer), it should wait for the other threads to finish. When
         * the threads see that it started waiting (the waiting notification is

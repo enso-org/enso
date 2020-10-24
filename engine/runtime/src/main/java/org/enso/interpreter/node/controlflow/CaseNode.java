@@ -3,13 +3,12 @@ package org.enso.interpreter.node.controlflow;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
-import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
@@ -29,7 +28,6 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public abstract class CaseNode extends ExpressionNode {
 
   @Children private final BranchNode[] cases;
-  private final BranchProfile typeErrorProfile = BranchProfile.create();
 
   CaseNode(BranchNode[] cases) {
     this.cases = cases;
@@ -74,9 +72,10 @@ public abstract class CaseNode extends ExpressionNode {
       VirtualFrame frame,
       Object object,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     try {
       for (BranchNode branchNode : cases) {
-        branchNode.execute(frame, object);
+        branchNode.execute(frame, state, object);
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(

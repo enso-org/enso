@@ -33,8 +33,7 @@ import org.enso.text.editing.model.Position
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
-/**
-  * The handler of search requests.
+/** The handler of search requests.
   *
   * Handler initializes the database and responds to the search requests.
   *
@@ -98,11 +97,10 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
 
-    config.contentRoots.foreach {
-      case (_, contentRoot) =>
-        PackageManager.Default
-          .fromDirectory(contentRoot)
-          .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
+    config.contentRoots.foreach { case (_, contentRoot) =>
+      PackageManager.Default
+        .fromDirectory(contentRoot)
+        .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
     }
   }
 
@@ -178,13 +176,12 @@ final class SuggestionsHandler(
         .flatMap(update => update.expressionType.map(update.expressionId -> _))
       suggestionsRepo
         .updateAll(types)
-        .map {
-          case (version, updatedIds) =>
-            val updates = types.zip(updatedIds).collect {
-              case ((_, typeValue), Some(suggestionId)) =>
-                SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
-            }
-            SuggestionsDatabaseUpdateNotification(version, updates)
+        .map { case (version, updatedIds) =>
+          val updates = types.zip(updatedIds).collect {
+            case ((_, typeValue), Some(suggestionId)) =>
+              SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
+          }
+          SuggestionsDatabaseUpdateNotification(version, updates)
         }
         .onComplete {
           case Success(notification) =>
@@ -208,12 +205,11 @@ final class SuggestionsHandler(
 
     case GetSuggestionsDatabase =>
       suggestionsRepo.getAll
-        .map {
-          case (version, entries) =>
-            GetSuggestionsDatabaseResult(
-              version,
-              entries.map(SuggestionDatabaseEntry(_))
-            )
+        .map { case (version, entries) =>
+          GetSuggestionsDatabaseResult(
+            version,
+            entries.map(SuggestionDatabaseEntry(_))
+          )
         }
         .pipeTo(sender())
 
@@ -241,14 +237,13 @@ final class SuggestionsHandler(
           module =>
             suggestionsRepo
               .removeByModule(module)
-              .map {
-                case (version, ids) =>
-                  Right(
-                    SuggestionsDatabaseUpdateNotification(
-                      version,
-                      ids.map(SuggestionsDatabaseUpdate.Remove)
-                    )
+              .map { case (version, ids) =>
+                Right(
+                  SuggestionsDatabaseUpdateNotification(
+                    version,
+                    ids.map(SuggestionsDatabaseUpdate.Remove)
                   )
+                )
               }
         )
         .onComplete {
@@ -290,8 +285,7 @@ final class SuggestionsHandler(
       context.become(initialized(name, clients))
   }
 
-  /**
-    * Transition the initialization process.
+  /** Transition the initialization process.
     *
     * @param state current initialization state
     */
@@ -303,8 +297,7 @@ final class SuggestionsHandler(
     }
   }
 
-  /**
-    * Handle the suggestions database update.
+  /** Handle the suggestions database update.
     *
     * Function applies notification updates on the suggestions database and
     * builds the notification to the user
@@ -362,8 +355,7 @@ final class SuggestionsHandler(
     }
   }
 
-  /**
-    * Build the module name from the requested file path.
+  /** Build the module name from the requested file path.
     *
     * @param projectName the project name
     * @param path the requested file path
@@ -387,15 +379,13 @@ final class SuggestionsHandler(
 
 object SuggestionsHandler {
 
-  /**
-    * The notification about the project name update.
+  /** The notification about the project name update.
     *
     * @param projectName the new project name
     */
   case class ProjectNameUpdated(projectName: String)
 
-  /**
-    * The initialization state of the handler.
+  /** The initialization state of the handler.
     *
     * @param project the project name
     * @param suggestions the initialization event of the suggestions repo
@@ -405,8 +395,7 @@ object SuggestionsHandler {
     suggestions: Option[InitializedEvent.SuggestionsRepoInitialized.type] = None
   ) {
 
-    /**
-      * Check if all the components are initialized.
+    /** Check if all the components are initialized.
       *
       * @return the project name
       */
@@ -417,8 +406,7 @@ object SuggestionsHandler {
       } yield name
   }
 
-  /**
-    * Creates a configuration object used to create a [[SuggestionsHandler]].
+  /** Creates a configuration object used to create a [[SuggestionsHandler]].
     *
     * @param config the server configuration
     * @param suggestionsRepo the suggestions repo

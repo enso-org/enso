@@ -7,8 +7,7 @@ import org.enso.pkg.SemVerJson._
 
 import scala.util.{Failure, Try}
 
-/**
-  * Contains release metadata associated with a launcher release.
+/** Contains release metadata associated with a launcher release.
   *
   * @param minimumVersionForUpgrade minimum version of the current launcher that
   *                                is required to upgrade to this version; if
@@ -28,8 +27,7 @@ case class LauncherManifest(
 
 object LauncherManifest {
 
-  /**
-    * Default name of the asset containing the launcher manifest.
+  /** Default name of the asset containing the launcher manifest.
     */
   val assetName: String = "launcher-manifest.yaml"
 
@@ -39,8 +37,7 @@ object LauncherManifest {
     val directoriesToCopy        = "directories-to-copy"
   }
 
-  /**
-    * [[Decoder]] instance for [[LauncherManifest]].
+  /** [[Decoder]] instance for [[LauncherManifest]].
     */
   implicit val decoder: Decoder[LauncherManifest] = { json =>
     for {
@@ -56,8 +53,7 @@ object LauncherManifest {
     )
   }
 
-  /**
-    * Tries to parse the [[LauncherManifest]] from a [[String]].
+  /** Tries to parse the [[LauncherManifest]] from a [[String]].
     */
   def fromYAML(string: String): Try[LauncherManifest] =
     yaml.parser

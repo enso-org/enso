@@ -4,8 +4,7 @@ import java.util.UUID
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method}
 
-/**
-  * The connection management JSON RPC API provided by the language server.
+/** The connection management JSON RPC API provided by the language server.
   * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/protocol-language-server.md#connection-management]]
   * for message specifications.
   */

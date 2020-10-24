@@ -123,9 +123,9 @@ class LocalScope(
     scope.occurrences.foreach {
       case x: Occurrence.Def =>
         parentResult += x.symbol -> new FramePointer(
-            level,
-            frameSlots(x.id)
-          )
+          level,
+          frameSlots(x.id)
+        )
       case _ =>
     }
     parentResult

@@ -15,8 +15,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `project/delete` commands.
+/** A request handler for `project/delete` commands.
   *
   * @param service a project service
   * @param requestTimeout a request timeout
@@ -72,8 +71,7 @@ class ProjectDeleteHandler[F[+_, +_]: Exec](
 
 object ProjectDeleteHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ProjectDeleteHandler]].
+  /** Creates a configuration object used to create a [[ProjectDeleteHandler]].
     *
     * @param service a project service
     * @param requestTimeout a request timeout

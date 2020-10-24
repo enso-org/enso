@@ -17,19 +17,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, Promise}
 
-/**
-  * Manages setting up the logging service within the launcher.
+/** Manages setting up the logging service within the launcher.
   */
 object LauncherLogging {
   private val logger = Logger[LauncherLogging.type]
 
-  /**
-    * Default logl level to use if none is provided.
+  /** Default logl level to use if none is provided.
     */
   val defaultLogLevel: LogLevel = LogLevel.Warning
 
-  /**
-    * Sets up launcher's logging service as either a server that gathers other
+  /** Sets up launcher's logging service as either a server that gathers other
     * component's logs or a client that forwards them further.
     *
     * Forwarding logs to another server in the launcher is an internal,
@@ -60,8 +57,7 @@ object LauncherLogging {
     }
   }
 
-  /**
-    * Sets up a fallback logger that just logs to stderr.
+  /** Sets up a fallback logger that just logs to stderr.
     *
     * It can be used when the application has failed to parse the CLI options
     * and does not know which logger to set up.
@@ -77,8 +73,7 @@ object LauncherLogging {
 
   private val loggingServiceEndpointPromise = Promise[Option[Uri]]()
 
-  /**
-    * Returns a [[Uri]] of the logging service that launched components can
+  /** Returns a [[Uri]] of the logging service that launched components can
     * connect to.
     *
     * Points to the local server if it has been set up, or to the endpoint that
@@ -90,8 +85,7 @@ object LauncherLogging {
   def loggingServiceEndpoint(): Future[Option[Uri]] =
     loggingServiceEndpointPromise.future
 
-  /**
-    * Returns a printer for outputting the logs to the standard error.
+  /** Returns a printer for outputting the logs to the standard error.
     */
   private def stderrPrinter(
     globalCLIOptions: GlobalCLIOptions,
@@ -113,8 +107,7 @@ object LauncherLogging {
     val printExceptionsInStderr =
       implicitly[Ordering[LogLevel]].compare(logLevel, LogLevel.Debug) >= 0
 
-    /**
-      * Creates a stderr printer and a file printer if a log file can be opened.
+    /** Creates a stderr printer and a file printer if a log file can be opened.
       *
       * This is a `def` on purpose, as even if the service fails, the printers
       * are shut down, so the fallback must create new instances.
@@ -170,8 +163,7 @@ object LauncherLogging {
       }
   }
 
-  /**
-    * Connects this launcher to an external logging service.
+  /** Connects this launcher to an external logging service.
     *
     * Currently, this is an internal function used mostly for testing purposes.
     * It is not a user-facing API.
@@ -208,8 +200,7 @@ object LauncherLogging {
       }
   }
 
-  /**
-    * Waits until the logging service has been set-up.
+  /** Waits until the logging service has been set-up.
     *
     * Due to limitations of how the logging service is implemented, it can only
     * be terminated after it has been set up.
@@ -218,8 +209,7 @@ object LauncherLogging {
     Await.ready(loggingServiceEndpointPromise.future, 5.seconds)
   }
 
-  /**
-    * Turns off the main logging service, falling back to just a stderr backend.
+  /** Turns off the main logging service, falling back to just a stderr backend.
     *
     * This method should be called as part of uninstalling the distribution. The
     * server can be safely shutdown as during uninstallation no other components
@@ -235,8 +225,7 @@ object LauncherLogging {
     )
   }
 
-  /**
-    * Shuts down the logging service gracefully.
+  /** Shuts down the logging service gracefully.
     */
   def tearDown(): Unit =
     LoggingServiceManager.tearDown()

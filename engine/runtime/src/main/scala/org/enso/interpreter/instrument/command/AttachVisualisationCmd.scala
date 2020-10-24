@@ -11,8 +11,7 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that attaches a visualisation to an expression.
+/** A command that attaches a visualisation to an expression.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -22,9 +21,9 @@ class AttachVisualisationCmd(
   request: Api.AttachVisualisation
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc **/
-  override def execute(
-    implicit ctx: RuntimeContext,
+  /** @inheritdoc */
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     if (doesContextExist) {
@@ -40,8 +39,8 @@ class AttachVisualisationCmd(
     )
   }
 
-  private def attachVisualisation()(
-    implicit ctx: RuntimeContext,
+  private def attachVisualisation()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     val maybeFutureExecutable =
@@ -69,8 +68,8 @@ class AttachVisualisationCmd(
     }
   }
 
-  private def replyWithContextNotExistError()(
-    implicit ctx: RuntimeContext,
+  private def replyWithContextNotExistError()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     Future {

@@ -23,11 +23,11 @@ case object InHoisting {
   }
 
   /** Maps over the token stream, replacing occurrences of `Var("in")` with
-   * `Opr("in")` at the same location.
-   *
-   * @param ast the ast element to process
-   * @return `ast`, with occurrences of "in" replaced
-   */
+    * `Opr("in")` at the same location.
+    *
+    * @param ast the ast element to process
+    * @return `ast`, with occurrences of "in" replaced
+    */
   def process(ast: AST): AST = ast match {
     case App.Prefix.any(app) =>
       App.Prefix(process(app.func), app.off, process(app.arg))

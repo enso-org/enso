@@ -17,8 +17,7 @@ import org.enso.searcher.SuggestionsRepo
 
 import scala.concurrent.Future
 
-/**
-  * Registry handles execution context requests and communicates with runtime
+/** Registry handles execution context requests and communicates with runtime
   * connector.
   *
   * == Implementation ==
@@ -301,8 +300,7 @@ object ContextRegistry {
       Store(Map(), Map())
   }
 
-  /**
-    * Creates a configuration object used to create a [[ContextRegistry]].
+  /** Creates a configuration object used to create a [[ContextRegistry]].
     *
     * @param repo the suggestions repo
     * @param config language server configuration

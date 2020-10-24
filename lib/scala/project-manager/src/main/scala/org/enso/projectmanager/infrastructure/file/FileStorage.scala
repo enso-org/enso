@@ -3,31 +3,27 @@ package org.enso.projectmanager.infrastructure.file
 import org.enso.projectmanager.infrastructure.file.FileStorage._
 import shapeless._
 
-/**
-  * An abstraction for storing data object in the file.
+/** An abstraction for storing data object in the file.
   *
   * @tparam A a datatype to store
   * @tparam F a monadic context
   */
 trait FileStorage[A, F[+_, +_]] {
 
-  /**
-    * Loads the serialized object from the file.
+  /** Loads the serialized object from the file.
     *
     * @return either [[LoadFailure]] or the object
     */
   def load(): F[LoadFailure, A]
 
-  /**
-    * Persists the provided object on the disk.
+  /** Persists the provided object on the disk.
     *
     * @param data a data object
     * @return either [[FileSystemFailure]] or success
     */
   def persist(data: A): F[FileSystemFailure, Unit]
 
-  /**
-    * Atomically modifies persisted object using function `f`.
+  /** Atomically modifies persisted object using function `f`.
     *
     * @param f the update function that takes the current version of the object
     *          loaded from the disk and returns a tuple containing the new
@@ -41,15 +37,13 @@ trait FileStorage[A, F[+_, +_]] {
 
 object FileStorage {
 
-  /**
-    * Signals that representation
+  /** Signals that representation
     *
     * @param msg an error message
     */
   case class CannotDecodeData(msg: String)
 
-  /**
-    * A failure type for load operation.
+  /** A failure type for load operation.
     */
   type LoadFailure = CannotDecodeData :+: FileSystemFailure :+: CNil
 

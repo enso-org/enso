@@ -5,8 +5,7 @@ import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
 object StdBits {
 
-  /**
-    * Discovers dependencies of a project and copies them into the destination
+  /** Discovers dependencies of a project and copies them into the destination
     * directory.
     *
     * @param destination location where to put the dependencies

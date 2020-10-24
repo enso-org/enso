@@ -3,28 +3,24 @@ package org.enso.launcher.locking
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.components.RuntimeVersion
 
-/**
-  * Represents a resource that can be locked.
+/** Represents a resource that can be locked.
   */
 trait Resource {
 
-  /**
-    * Name of the resource.
+  /** Name of the resource.
     *
     * Must be a valid filename part.
     */
   def name: String
 
-  /**
-    * A message that is displayed by default if the lock on that resource cannot
+  /** A message that is displayed by default if the lock on that resource cannot
     * be acquired immediately.
     */
   def waitMessage: String
 }
 object Resource {
 
-  /**
-    * Synchronizes launcher upgrades.
+  /** Synchronizes launcher upgrades.
     */
   case object LauncherExecutable extends Resource {
     override def name: String = "launcher-executable"
@@ -33,8 +29,7 @@ object Resource {
       "the current process must wait until it is completed."
   }
 
-  /**
-    * This resource is held when adding or removing any components.
+  /** This resource is held when adding or removing any components.
     */
   case object AddOrRemoveComponents extends Resource {
     override def name: String = "add-remove-components"
@@ -43,8 +38,7 @@ object Resource {
       "the current process must wait until it finishes."
   }
 
-  /**
-    * This resource should be held (shared) by any process that is using the
+  /** This resource should be held (shared) by any process that is using the
     * engine to ensure that it will stay available for the duration of the
     * action.
     *
@@ -57,8 +51,7 @@ object Resource {
       "the current process must wait until other processes complete."
   }
 
-  /**
-    * This resource should be held (shared) by any process that is using the
+  /** This resource should be held (shared) by any process that is using the
     * runtime to ensure that it will stay available for the duration of the
     * action.
     *

@@ -220,10 +220,7 @@ public class CallArgumentInfo {
           newOversaturatedArgInfo.length);
 
       return new FunctionSchema(
-          originalSchema.getCallerFrameAccess(),
-          definitions,
-          argumentUsed,
-          oversaturatedArgInfo);
+          originalSchema.getCallerFrameAccess(), definitions, argumentUsed, oversaturatedArgInfo);
     }
   }
 

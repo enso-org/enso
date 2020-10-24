@@ -5,8 +5,7 @@ import org.enso.cli.CLIOutput
 import org.enso.launcher.locking.DefaultResourceManager
 import org.enso.launcher.upgrade.LauncherUpgrader
 
-/**
-  * Defines the entry point for the launcher.
+/** Defines the entry point for the launcher.
   */
 object Main {
   private def setup(): Unit =
@@ -27,8 +26,7 @@ object Main {
 
   private val logger = Logger[Main.type]
 
-  /**
-    * Entry point of the application.
+  /** Entry point of the application.
     */
   def main(args: Array[String]): Unit = {
     setup()
@@ -46,8 +44,7 @@ object Main {
     exit(exitCode)
   }
 
-  /**
-    * Exits the program in a safe way.
+  /** Exits the program in a safe way.
     *
     * This should be used ofer `sys.exit` to ensure that all services are
     * terminated gracefully and locks are released quickly (as the OS cleanup

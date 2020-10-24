@@ -3,41 +3,34 @@ package org.enso.jsonrpc
 import io.circe.Decoder.Result
 import io.circe._
 
-/**
-  * An intermediate representation of JSON RPC messages, used for
+/** An intermediate representation of JSON RPC messages, used for
   * (de)serialization.
   */
 object JsonProtocol {
   import io.circe.generic.auto._
   import io.circe.syntax._
 
-  /**
-    * Supertype of all conceivable messages received from the web.
+  /** Supertype of all conceivable messages received from the web.
     */
   sealed trait JsonMessage
 
-  /**
-    * A bare notification object.
+  /** A bare notification object.
     */
   case class Notification(method: String, params: Json) extends JsonMessage
 
-  /**
-    * A bare request object.
+  /** A bare request object.
     */
   case class Request(method: String, id: Id, params: Json) extends JsonMessage
 
-  /**
-    * A successful response object.
+  /** A successful response object.
     */
   case class ResponseResult(id: Id, result: Json) extends JsonMessage
 
-  /**
-    * An error response object.
+  /** An error response object.
     */
   case class ResponseError(id: Option[Id], error: ErrorData) extends JsonMessage
 
-  /**
-    * The error response details.
+  /** The error response details.
     */
   case class ErrorData(code: Int, message: String)
 
@@ -118,8 +111,8 @@ object JsonProtocol {
 
     override def apply(c: HCursor): Result[JsonMessage] = {
       val jsonRpcValid = c
-          .downField(Constants.jsonrpc)
-          .as[String] == Right(Constants.jsonrpcVersion)
+        .downField(Constants.jsonrpc)
+        .as[String] == Right(Constants.jsonrpcVersion)
       if (!jsonRpcValid) {
         return Left(
           DecodingFailure("Invalid JSON RPC version manifest.", List())
@@ -140,8 +133,7 @@ object JsonProtocol {
     }
   }
 
-  /**
-    * Parses a string into a valid JSON RPC message.
+  /** Parses a string into a valid JSON RPC message.
     * @param str the string to parse.
     * @return the data type corresponding to the message, if parsed
     *         successfully.
@@ -150,8 +142,7 @@ object JsonProtocol {
     io.circe.parser.parse(str).toOption.flatMap(_.as[JsonMessage].toOption)
   }
 
-  /**
-    * Encodes a message into a proper JSON RPC string.
+  /** Encodes a message into a proper JSON RPC string.
     * @param msg the message to encode.
     * @return a string representing a valid JSON RPC package.
     */
