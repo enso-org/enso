@@ -25,7 +25,7 @@ import org.enso.componentmanager.test.{
   TestSynchronizer,
   WithTemporaryDirectory
 }
-import org.enso.launcher.components.TestUserInterface
+import org.enso.launcher.components.TestComponentManagementUserInterface
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -135,7 +135,7 @@ class ConcurrencyTest
     }
 
     val componentsManager = new ComponentManager(
-      new TestUserInterface,
+      new TestComponentManagementUserInterface,
       distributionManager,
       resourceManager,
       engineProvider,

@@ -68,7 +68,7 @@ class ComponentManagerTest
       FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))
     )
     val componentsManager = new ComponentManager(
-      new TestUserInterface,
+      new TestComponentManagementUserInterface,
       distributionManager,
       TestLocalResourceManager.create(),
       engineProvider,

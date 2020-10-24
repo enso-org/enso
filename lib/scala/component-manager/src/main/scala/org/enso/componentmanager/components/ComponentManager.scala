@@ -4,19 +4,13 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.CLIOutput
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.componentmanager.archive.Archive
 import org.enso.componentmanager.locking.{LockType, Resource, ResourceManager}
 import org.enso.componentmanager.releases.ReleaseProvider
 import org.enso.componentmanager.releases.engine.EngineRelease
 import org.enso.componentmanager.releases.runtime.RuntimeReleaseProvider
-import org.enso.componentmanager.{
-  components,
-  DistributionManager,
-  FileSystem,
-  UserInterface
-}
+import org.enso.componentmanager.{components, DistributionManager, FileSystem}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -33,8 +27,7 @@ import scala.util.{Failure, Success, Try, Using}
   * @param runtimeReleaseProvider the provider of runtime releases
   */
 class ComponentManager(
-//  cliOptions: GlobalCLIOptions,
-  userInterface: UserInterface,
+  userInterface: ComponentManagementUserInterface,
   distributionManager: DistributionManager,
   resourceManager: ResourceManager,
   engineReleaseProvider: ReleaseProvider[EngineRelease],
@@ -370,28 +363,12 @@ class ComponentManager(
       throw UpgradeRequiredError(engineRelease.manifest.minimumLauncherVersion)
     }
     if (engineRelease.isBroken) {
-      if (false /*cliOptions.autoConfirm*/ ) { // TODO [UI]
-        logger.warn(
-          s"The engine release $version is marked as broken and it should " +
-          s"not be used. Since `auto-confirm` is set, the installation will " +
-          s"continue, but you may want to reconsider changing versions to a " +
-          s"stable release."
+      val continue = userInterface.shouldInstallBrokenEngine(version)
+      if (!continue) {
+        throw InstallationError(
+          "Installation has been cancelled by the user because the " +
+          "requested engine release is marked as broken."
         )
-      } else {
-        logger.warn(
-          s"The engine release $version is marked as broken and it should " +
-          s"not be used."
-        )
-        val continue = CLIOutput.askConfirmation(
-          "Are you sure you still want to continue installing this version " +
-          "despite the warning?"
-        )
-        if (!continue) {
-          throw InstallationError(
-            "Installation has been cancelled by the user because the " +
-            "requested engine release is marked as broken."
-          )
-        }
       }
     }
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
