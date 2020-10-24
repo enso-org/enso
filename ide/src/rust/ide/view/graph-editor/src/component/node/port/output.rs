@@ -25,9 +25,8 @@ use span_tree::SpanTree;
 use span_tree;
 
 use crate::Type;
-use crate::component::node::port::get_id_for_crumbs;
-use crate::component::type_coloring::TypeColorMap;
 use crate::component::node;
+
 
 
 // =================
@@ -615,7 +614,6 @@ pub struct OutputPorts {
         // This network will be re-created whenever we change the number of ports.
         port_network      : Rc<RefCell<frp::Network>>,
         data              : Rc<OutputPortsData>,
-        type_color_map    : TypeColorMap,
         pattern_span_tree : Rc<RefCell<SpanTree>>,
         scene             : Scene,
         id_map            : SharedIdCrumbMap,
@@ -626,17 +624,16 @@ pub struct OutputPorts {
 impl OutputPorts {
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
-        let pattern_span_tree  = SpanTree::default();
-        let network            = default();
-        let id_map             = default();
-        let frp                = Frp::new(&network,&id_map);
-        let number_of_ports    = pattern_span_tree.root_ref().leaf_iter().count();
-        let data               = OutputPortsData::new(scene,number_of_ports as u32);
-        let data               = Rc::new(data);
-        let type_color_map     = default();
+        let pattern_span_tree = SpanTree::<()>::default();
+        let network           = default();
+        let id_map            = default();
+        let frp               = Frp::new(&network,&id_map);
+        let number_of_ports   = pattern_span_tree.root_ref().leaf_iter().count();
+        let data              = OutputPortsData::new(scene,number_of_ports as u32);
+        let data              = Rc::new(data);
         let pattern_span_tree = Rc::new(RefCell::new(pattern_span_tree));
-        let scene              = scene.clone_ref();
-        let port_network       = default();
+        let scene             = scene.clone_ref();
+        let port_network      = default();
 
 
         // TODO memory leak from tween?
@@ -649,7 +646,7 @@ impl OutputPorts {
         delay_hide.set_duration(HIDE_DELAY_DURATION);
 
 
-        OutputPorts{scene,data,network,frp,pattern_span_tree,type_color_map,port_network,id_map,
+        OutputPorts{scene,data,network,frp,pattern_span_tree,port_network,id_map,
                      delay_show,delay_hide}
     }
 
@@ -767,17 +764,18 @@ impl OutputPorts {
     }
 
     /// Return the color of the port indicated by the given `Crumb`.
-    pub fn get_port_color(&self, crumbs:&[span_tree::Crumb]) -> Option<color::Lcha> {
-        let ast_id = get_id_for_crumbs(&self.pattern_span_tree.borrow(),&crumbs)?;
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles = StyleWatch::new(&self.scene.style_sheet);
-        self.type_color_map.type_color(ast_id, styles)
+    pub fn get_port_color(&self, _crumbs:&[span_tree::Crumb]) -> Option<color::Lcha> {
+        // let ast_id = get_id_for_crumbs(&self.pattern_span_tree.borrow(),&crumbs)?;
+        // // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        // let styles = StyleWatch::new(&self.scene.style_sheet);
+        // self.type_color_map.type_color(ast_id,&styles)
+        None
     }
 
     /// Set the type information for the given `ast::Id`.
-    pub fn set_pattern_type(&self, id:ast::Id, maybe_type:Option<Type>) {
-        self.type_color_map.update_entry(id,maybe_type);
-        self.set_port_colors_based_on_available_types();
+    pub fn set_pattern_type(&self, _id:ast::Id, _maybe_type:Option<Type>) {
+        // self.type_color_map.update_entry(id,maybe_type);
+        // self.set_port_colors_based_on_available_types();
     }
 }
 

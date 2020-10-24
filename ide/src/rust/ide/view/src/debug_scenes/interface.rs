@@ -113,13 +113,13 @@ fn init(app:&Application) {
     let expression_1 = expression_mock();
     graph_editor.frp.set_node_expression.emit((node1_id,expression_1.clone()));
     expression_1.input_span_tree.root_ref().leaf_iter().for_each(|node|{
-        if let  Some(expr_id) = node.expression_id {
+        if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
             graph_editor.frp.set_expression_type.emit((node1_id,expr_id,dummy_type));
         }
     });
     expression_1.output_span_tree.root_ref().leaf_iter().for_each(|node|{
-        if let  Some(expr_id) = node.expression_id {
+        if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
             graph_editor.frp.set_expression_type.emit((node1_id,expr_id,dummy_type));
         }
@@ -128,13 +128,13 @@ fn init(app:&Application) {
     let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
     expression_2.input_span_tree.root_ref().leaf_iter().for_each(|node|{
-        if let  Some(expr_id) = node.expression_id {
+        if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
             graph_editor.frp.set_expression_type.emit((node2_id,expr_id,dummy_type));
         }
     });
     expression_2.output_span_tree.root_ref().leaf_iter().for_each(|node|{
-        if let  Some(expr_id) = node.expression_id {
+        if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
             graph_editor.frp.set_expression_type.emit((node2_id,expr_id,dummy_type));
         }
@@ -188,14 +188,14 @@ pub fn expression_mock() -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree  = span_tree::builder::TreeBuilder::new(15)
         .add_child(0,4,span_tree::node::Kind::Operation,PrefixCrumb::Func)
-        .set_expression_id(Uuid::new_v4())
+        .set_ast_id(Uuid::new_v4())
         .done()
-        .add_empty_child(5,span_tree::node::InsertType::BeforeTarget)
-        .add_child(5,10,span_tree::node::Kind::Target{is_removable:false},PrefixCrumb::Arg)
-        .set_expression_id(Uuid::new_v4())
+        .add_empty_child(5,span_tree::node::InsertionPointType::BeforeTarget)
+        .add_child(5,10,span_tree::node::Kind::this(),PrefixCrumb::Arg)
+        .set_ast_id(Uuid::new_v4())
         .done()
-        .add_empty_child(15,span_tree::node::InsertType::Append)
-        .set_expression_id(Uuid::new_v4())
+        .add_empty_child(15,span_tree::node::InsertionPointType::Append)
+        .set_ast_id(Uuid::new_v4())
         .build();
     Expression {code,input_span_tree,output_span_tree}
 }
@@ -209,30 +209,30 @@ pub fn expression_mock2() -> Expression {
     let input_span_tree  = span_tree::builder::TreeBuilder::new(36)
         .add_child(0,14,span_tree::node::Kind::Chained,PrefixCrumb::Func)
             .add_child(0,9,span_tree::node::Kind::Operation,PrefixCrumb::Func)
-                .set_expression_id(Uuid::new_v4())
+                .set_ast_id(Uuid::new_v4())
                 .done()
-            .add_empty_child(10,span_tree::node::InsertType::BeforeTarget)
-            .add_child(10,4,span_tree::node::Kind::Target {is_removable:true},PrefixCrumb::Arg)
-                .set_expression_id(Uuid::new_v4())
+            .add_empty_child(10,span_tree::node::InsertionPointType::BeforeTarget)
+            .add_child(10,4,span_tree::node::Kind::this().removable(),PrefixCrumb::Arg)
+                .set_ast_id(Uuid::new_v4())
                 .done()
-            .add_empty_child(14,span_tree::node::InsertType::Append)
-            .set_expression_id(Uuid::new_v4())
+            .add_empty_child(14,span_tree::node::InsertionPointType::Append)
+            .set_ast_id(Uuid::new_v4())
             .done()
-        .add_child(15,21,span_tree::node::Kind::Argument {is_removable:true},PrefixCrumb::Arg)
-            .set_expression_id(Uuid::new_v4())
-            .add_child(1,19,span_tree::node::Kind::Argument {is_removable:false},parens_cr)
-                .set_expression_id(Uuid::new_v4())
+        .add_child(15,21,span_tree::node::Kind::argument().removable(),PrefixCrumb::Arg)
+            .set_ast_id(Uuid::new_v4())
+            .add_child(1,19,span_tree::node::Kind::argument(),parens_cr)
+                .set_ast_id(Uuid::new_v4())
                 .add_child(0,12,span_tree::node::Kind::Operation,PrefixCrumb::Func)
-                    .set_expression_id(Uuid::new_v4())
+                    .set_ast_id(Uuid::new_v4())
                     .done()
-                .add_empty_child(13,span_tree::node::InsertType::BeforeTarget)
-                .add_child(13,6,span_tree::node::Kind::Target {is_removable:false},PrefixCrumb::Arg)
-                    .set_expression_id(Uuid::new_v4())
+                .add_empty_child(13,span_tree::node::InsertionPointType::BeforeTarget)
+                .add_child(13,6,span_tree::node::Kind::this(),PrefixCrumb::Arg)
+                    .set_ast_id(Uuid::new_v4())
                     .done()
-                .add_empty_child(19,span_tree::node::InsertType::Append)
+                .add_empty_child(19,span_tree::node::InsertionPointType::Append)
                 .done()
             .done()
-        .add_empty_child(36,span_tree::node::InsertType::Append)
+        .add_empty_child(36,span_tree::node::InsertionPointType::Append)
         .build();
     Expression {code,input_span_tree,output_span_tree}
 }
@@ -240,21 +240,21 @@ pub fn expression_mock2() -> Expression {
 pub fn expression_mock3() -> Expression {
     let code       = "image.blur 15".to_string();
     let parser     = Parser::new_or_panic();
-    let this_param = span_tree::ParameterInfo {
-        name     : Some("this".to_owned()),
-        typename : Some("Image".to_owned()),
+    let this_param = span_tree::ArgumentInfo {
+        name : Some("this".to_owned()),
+        tp   : Some("Image".to_owned()),
     };
-    let param0 = span_tree::ParameterInfo {
-        name     : Some("radius".to_owned()),
-        typename : Some("Number".to_owned()),
+    let param0 = span_tree::ArgumentInfo {
+        name : Some("radius".to_owned()),
+        tp   : Some("Number".to_owned()),
     };
-    let param1 = span_tree::ParameterInfo {
-        name     : Some("foo".to_owned()),
-        typename : Some("Number".to_owned()),
+    let param1 = span_tree::ArgumentInfo {
+        name : Some("area".to_owned()),
+        tp   : Some("Vector Int".to_owned()),
     };
-    let param2 = span_tree::ParameterInfo {
-        name     : Some("bar".to_owned()),
-        typename : Some("Number".to_owned()),
+    let param2 = span_tree::ArgumentInfo {
+        name : Some("matrix".to_owned()),
+        tp   : Some("Vector String".to_owned()),
     };
     let parameters       = vec![this_param, param0, param1, param2];
     let ast              = parser.parse_line(&code).unwrap();

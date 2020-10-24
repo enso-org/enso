@@ -26,7 +26,7 @@ use text::Text;
 use super::super::node;
 
 use crate::Type;
-use crate::component::type_coloring::TypeColorMap;
+use crate::component::type_coloring;
 use ensogl_text::buffer::data::unit::traits::*;
 
 
@@ -81,11 +81,11 @@ impl Expression {
 
 fn get_id_for_crumbs(span_tree:&SpanTree, crumbs:&[span_tree::Crumb]) -> Option<ast::Id> {
     if span_tree.root_ref().crumbs == crumbs {
-        return span_tree.root.expression_id
+        return span_tree.root.ast_id
     };
     let span_tree_descendant = span_tree.root_ref().get_descendant(crumbs);
-    let expression_id        = span_tree_descendant.map(|node|{node.expression_id});
-    expression_id.ok().flatten()
+    let ast_id        = span_tree_descendant.map(|node|{node.ast_id});
+    ast_id.ok().flatten()
 }
 
 
@@ -145,8 +145,9 @@ pub struct Model {
     ports          : RefCell<Vec<component::ShapeView<shape::Shape>>>,
     width          : Cell<f32>,
     port_networks  : RefCell<Vec<frp::Network>>,
-    type_color_map : TypeColorMap,
     styles         : StyleWatch,
+    /// Used for applying type information update, which is in a form of `(ast::Id,Type)`.
+    id_crumbs_map  : RefCell<HashMap<ast::Id,span_tree::Crumbs>>,
     // Used for caching positions of ports. Used when dragging nodes to compute new edge position
     // based on the provided `Crumbs`. It would not be possible to do it fast without this map, as
     // some ports are virtual and have the same offset - like missing arguments.
@@ -161,11 +162,11 @@ impl Model {
         let ports_group    = display::object::Instance::new(&Logger::sub(&logger,"ports"));
         let app            = app.clone_ref();
         let port_networks  = default();
-        let type_color_map = default();
         let label          = app.new_view::<text::Area>();
         let ports          = default();
         let text_color     = ColorAnimation::new(&app);
         let position_map   = default();
+        let id_crumbs_map  = default();
 
         label.single_line(true);
         label.disable_command("cursor_move_up");
@@ -192,7 +193,7 @@ impl Model {
         let width      = default();
 
         Self {logger,display_object,ports_group,label,ports,width,app,expression,port_networks
-             ,type_color_map,styles,position_map}
+             ,styles,position_map,id_crumbs_map}
     }
 }
 
@@ -323,15 +324,18 @@ impl Manager {
                     // FIXME: How to properly discover self? Like `image.blur 15`, to disable
                     // 'blur' port?
 
+                    if let Some(id) = node.ast_id {
+                        self.model.id_crumbs_map.borrow_mut().insert(id,node.crumbs.clone());
+                    }
+
                     if !skip {
                         let logger   = Logger::sub(&model.logger,"port");
                         let port     = component::ShapeView::<shape::Shape>::new(&logger,self.scene());
-                        let type_map = &model.type_color_map;
 
                         let mut size  = span.size.value;
                         let mut index = span.index.value + offset_shift;
                         if is_expected_arg {
-                            let name      = node.parameter_info.as_ref().unwrap().name.as_ref().unwrap();
+                            let name      = node.name().unwrap();
                             size          = name.len();
                             index        += 1;
                             offset_shift += 1 + size;
@@ -356,9 +360,13 @@ impl Manager {
                         let missing_type_color = styles.get_color(theme::vars::graph_editor::edge::_type::missing::color);
 
                         let crumbs = node.crumbs.clone();
-                        let ast_id = get_id_for_crumbs(&expression.input_span_tree,&crumbs);
-                        let color  = ast_id.and_then(|id|type_map.type_color(id,styles.clone_ref()));
-                        let color  = color.unwrap_or(missing_type_color);
+                        let _ast_id = get_id_for_crumbs(&expression.input_span_tree,&crumbs);
+                        // println!(">> {:?}",node.argument_info.clone().unwrap_or_default().typename);
+                        // let color  = ast_id.and_then(|id|type_map.type_color(id,styles.clone_ref()));
+                        // let color  = color.unwrap_or(missing_type_color);
+                        let color = node.tp().map(
+                            |tp| type_coloring::color_for_type(tp.clone().into(),&styles)
+                        ).unwrap_or(missing_type_color);
 
                         let highlight = cursor::Style::new_highlight(&port,size,Some(color));
 
@@ -437,19 +445,25 @@ impl Manager {
         })
     }
 
-    pub fn get_port_color(&self, crumbs:&[span_tree::Crumb]) -> Option<color::Lcha> {
-        let ast_id = get_id_for_crumbs(&self.model.expression.borrow().input_span_tree,&crumbs)?;
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles = StyleWatch::new(&self.model.app.display.scene().style_sheet);
-        self.model.type_color_map.type_color(ast_id, styles)
+    pub fn get_port_color(&self, _crumbs:&[span_tree::Crumb]) -> Option<color::Lcha> {
+        // let ast_id = get_id_for_crumbs(&self.model.expression.borrow().input_span_tree,&crumbs)?;
+        // // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        // let styles = StyleWatch::new(&self.model.app.display.scene().style_sheet);
+        // self.model.type_color_map.type_color(ast_id,&styles)
+        None
     }
 
     pub fn width(&self) -> f32 {
         self.model.width.get()
     }
 
-    pub fn set_expression_type(&self, id:ast::Id, maybe_type:Option<Type>) {
-        self.model.type_color_map.update_entry(id,maybe_type);
+    pub fn set_expression_type(&self, id:ast::Id, _maybe_type:Option<Type>) {
+        if let Some(crumbs) = self.model.id_crumbs_map.borrow().get(&id) {
+            if let Ok(_node) = self.model.expression.borrow_mut().input_span_tree.get_node(crumbs) {
+
+            }
+        }
+        // self.model.type_color_map.update_entry(id,maybe_type);
     }
 }
 

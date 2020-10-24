@@ -8,8 +8,8 @@ use enso_protocol::project_manager;
 use json_rpc::expect_call;
 use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
-use span_tree::node::InsertType;
-use span_tree::node::Kind;
+use span_tree::node::InsertionPointType;
+use span_tree::node;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -79,6 +79,7 @@ async fn get_most_recent_project_or_create_new() {
     assert_eq!(expected_project, project.expect("Couldn't get project."))
 }
 
+// x
 #[wasm_bindgen_test]
 fn span_tree_args() {
     use crate::test::mock::*;
@@ -97,7 +98,7 @@ fn span_tree_args() {
     let get_node   = || graph.node(id).unwrap();
     let get_inputs = || NodeTrees::new(&get_node().info,executed_graph).unwrap().inputs;
     let get_param  = |n| get_inputs().root_ref().leaf_iter().nth(n).and_then(|node| {
-        node.parameter_info.clone()
+        node.argument_info()
     });
     let expected_this_param = model::suggestion_database::to_span_tree_param(&entry.arguments[0]);
     let expected_arg1_param = model::suggestion_database::to_span_tree_param(&entry.arguments[1]);
@@ -109,10 +110,12 @@ fn span_tree_args() {
         // The tree here should have two nodes under root - one with given Ast and second for
         // an additional prefix application argument.
         [_,second] => {
-            let Node{children,kind,parameter_info,..} = &second.node;
+            let Node{children,kind,..} = &second.node;
+            let expected_kind = node::Kind::insertion_point()
+                .with_kind(InsertionPointType::ExpectedArgument(0));
             assert!(children.is_empty());
-            assert_eq!(kind,&Kind::Empty(InsertType::ExpectedArgument(0)));
-            assert_eq!(parameter_info,&Some(expected_arg1_param.clone()));
+            // assert_eq!(kind,&node::Kind::from(expected_kind));
+            assert_eq!(kind.argument_info(),Some(expected_arg1_param.clone()));
         }
         _ => panic!("Expected only two children in the span tree's root"),
     };
@@ -124,10 +127,10 @@ fn span_tree_args() {
         // The tree here should have two nodes under root - one with given Ast and second for
         // an additional prefix application argument.
         [_,second] => {
-            let Node{children,kind,parameter_info,..} = &second.node;
+            let Node{children,kind,..} = &second.node;
             assert!(children.is_empty());
-            assert_eq!(kind,&Kind::Argument{is_removable:false});
-            assert_eq!(parameter_info,&Some(expected_arg1_param.clone()));
+            // assert_eq!(kind,&node::Kind::from(node::Kind::argument()));
+            assert_eq!(kind.argument_info(),Some(expected_arg1_param.clone()));
         }
         _ => panic!("Expected only two children in the span tree's root"),
     };
@@ -155,18 +158,18 @@ fn span_tree_args() {
     assert_eq!(get_param(3),None);
 
     graph.set_expression(id,"bar Base").unwrap();
-    assert_eq!(get_param(1),None);
-    assert_eq!(get_param(2),None);
-    assert_eq!(get_param(3),None);
+    assert_eq!(get_param(1),Some(default()));
+    assert_eq!(get_param(2),Some(span_tree::ArgumentInfo::this(None)));
+    assert_eq!(get_param(3),Some(default())); // FIXME: is this correct?
 
     graph.set_expression(id,"Base.bar").unwrap();
-    assert_eq!(get_param(1),None);
-    assert_eq!(get_param(2),None);
+    assert_eq!(get_param(1),Some(span_tree::ArgumentInfo::this(None)));
+    assert_eq!(get_param(2),Some(default()));
     assert_eq!(get_param(3),None);
 
     // === Oversaturated call ===
     graph.set_expression(id,"foo Base 10 20 30").unwrap();
     assert_eq!(get_param(1).as_ref(),Some(&expected_this_param));
     assert_eq!(get_param(2).as_ref(),Some(&expected_arg1_param));
-    assert_eq!(get_param(3).as_ref(),None);
+    assert_eq!(get_param(3).as_ref(),Some(&default()));
 }

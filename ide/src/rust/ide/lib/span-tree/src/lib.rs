@@ -9,6 +9,7 @@
 #![feature(associated_type_bounds)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+#![feature(type_ascription)]
 #![feature(matches_macro)]
 #![feature(exact_size_is_empty)]
 #![warn(missing_docs)]
@@ -29,6 +30,7 @@ pub mod builder;
 pub use node::Node;
 pub use node::Crumb;
 pub use node::Crumbs;
+pub use node::Payload;
 
 /// Module gathering all commonly used traits for massive importing.
 pub mod traits {
@@ -53,15 +55,28 @@ use crate::generate::Context;
 
 
 // =====================
-// === ParameterInfo ===
+// === ArgumentInfo ===
 // =====================
 
 /// Additional information available for nodes being function arguments or their placeholders.
-#[derive(Clone,Debug,Eq,PartialEq)]
+#[derive(Clone,Debug,Default,Eq,PartialEq)]
 #[allow(missing_docs)]
-pub struct ParameterInfo {
-    pub name     : Option<String>,
-    pub typename : Option<String>,
+pub struct ArgumentInfo {
+    pub name : Option<String>,
+    pub tp   : Option<String>,
+}
+
+impl ArgumentInfo {
+    /// Constructor.
+    pub fn new(name:Option<String>, tp:Option<String>) -> Self {
+        Self {name,tp}
+    }
+
+    /// Specialized constructor for "this" argument.
+    pub fn this(tp:Option<String>) -> Self {
+        let name = Some(node::This::NAME.into());
+        Self {name,tp}
+    }
 }
 
 
@@ -75,19 +90,19 @@ pub struct ParameterInfo {
 /// This structure is used to have some specific node marked as root node, to avoid confusion
 /// regarding SpanTree crumbs and AST crumbs.
 #[derive(Clone,Debug,Eq,PartialEq)]
-pub struct SpanTree {
+pub struct SpanTree<T=()> {
     /// A root node of the tree.
-    pub root : Node
+    pub root : Node<T>
 }
 
-impl SpanTree {
+impl<T:Payload> SpanTree<T> {
     /// Create span tree from something that could generate it (usually AST).
-    pub fn new(generator:&impl SpanTreeGenerator, context:&impl Context) -> FallibleResult<Self> {
+    pub fn new(generator:&impl SpanTreeGenerator<T>, context:&impl Context) -> FallibleResult<Self> {
         generator.generate_tree(context)
     }
 
     /// Get the `NodeRef` of root node.
-    pub fn root_ref(&self) -> node::Ref {
+    pub fn root_ref(&self) -> node::Ref<T> {
         node::Ref {
             node       : &self.root,
             span_begin : default(),
@@ -98,19 +113,14 @@ impl SpanTree {
 
     /// Get the node (root, child, or further descendant) identified by `crumbs`.
     pub fn get_node<'a>
-    (&self, crumbs:impl IntoIterator<Item=&'a Crumb>) -> FallibleResult<node::Ref> {
+    (&self, crumbs:impl IntoIterator<Item=&'a Crumb>) -> FallibleResult<node::Ref<T>> {
         self.root_ref().get_descendant(crumbs)
     }
 }
 
-impl Default for SpanTree {
+impl<T:Payload> Default for SpanTree<T> {
     fn default() -> Self {
-        let expression_id  = None;
-        let kind           = node::Kind::Root;
-        let size           = default();
-        let children       = default();
-        let parameter_info = default();
-        let root           = Node {kind,size,children,expression_id,parameter_info};
+        let root = Node::<T>::new().with_kind(node::Kind::Root);
         Self {root}
     }
 }

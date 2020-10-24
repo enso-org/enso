@@ -4,7 +4,7 @@
 
 use crate::prelude::*;
 
-use crate::ParameterInfo;
+use crate::ArgumentInfo;
 use ast::Id;
 
 
@@ -12,7 +12,7 @@ use ast::Id;
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct CalledMethodInfo {
     /// Information about arguments taken by a called method.
-    pub parameters : Vec<ParameterInfo>,
+    pub parameters : Vec<ArgumentInfo>,
 }
 
 

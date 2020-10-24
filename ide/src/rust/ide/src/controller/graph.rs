@@ -651,9 +651,10 @@ impl Handle {
         let info = self.destination_info(connection,context)?;
 
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
-            let port = info.port()?;
-            let only_empty_ports_after = info.chained_ports_after().all(|p| p.node.is_empty());
-            if port.is_action_available(Action::Erase) && only_empty_ports_after {
+            let port                        = info.port()?;
+            let only_insertion_points_after = info.chained_ports_after()
+                .all(|p| p.node.is_insertion_point());
+            if port.is_action_available(Action::Erase) && only_insertion_points_after {
                 info.erase()
             } else {
                 info.set(Ast::blank())
