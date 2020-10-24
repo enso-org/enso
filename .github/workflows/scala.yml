@@ -40,10 +40,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.4.1
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
+      - name: Setup Go
+        uses: actions/setup-go@v2
       - name: Disable TCP/UDP Offloading (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -63,9 +61,10 @@ jobs:
       - name: Prepare Engine Test Environment
         shell: bash
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install gunicorn gevent httpbin
-          gunicorn -b 0.0.0.0:8080 httpbin:app -k gevent &
+          go version
+          go get github.com/ahmetb/go-httpbin/cmd/httpbin
+          echo $GOPATH
+          $GOPATH/bin/httpbin -host :8080 &
       - name: Check Engine Test Environment
         shell: bash
         run: |
