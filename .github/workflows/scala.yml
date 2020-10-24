@@ -61,8 +61,7 @@ jobs:
       - name: Prepare Engine Test Environment
         shell: bash
         run: |
-          go version
-          go get github.com/ahmetb/go-httpbin/cmd/httpbin
+          go get -u github.com/ahmetb/go-httpbin/cmd/httpbin
           echo $GOPATH
           $GOPATH/bin/httpbin -host :8080 &
       - name: Check Engine Test Environment
