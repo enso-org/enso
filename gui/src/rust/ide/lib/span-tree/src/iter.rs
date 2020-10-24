@@ -3,6 +3,7 @@ use crate::prelude::*;
 
 use crate::Node;
 use crate::node;
+use crate::node::Payload;
 
 
 
@@ -12,8 +13,8 @@ use crate::node;
 
 /// A stack frame of DFS searching.
 #[derive(Debug)]
-struct StackFrame<'a> {
-    node                : &'a Node,
+struct StackFrame<'a,T> {
+    node                : &'a Node<T>,
     child_being_visited : usize,
 }
 
@@ -29,15 +30,15 @@ pub enum TreeFragment {
 /// An iterator over the leafs of some specific fragment of SpanTree. See `TreeFragment` for
 /// supported _fragment_ kinds.
 #[derive(Debug)]
-pub struct LeafIterator<'a> {
-    stack     : Vec<StackFrame<'a>>,
-    next_node : Option<&'a Node>,
-    base_node : node::Ref<'a>,
+pub struct LeafIterator<'a,T> {
+    stack     : Vec<StackFrame<'a,T>>,
+    next_node : Option<&'a Node<T>>,
+    base_node : node::Ref<'a,T>,
     fragment  : TreeFragment,
 }
 
-impl<'a> Iterator for LeafIterator<'a> {
-    type Item = node::Ref<'a>;
+impl<'a,T:Payload> Iterator for LeafIterator<'a,T> {
+    type Item = node::Ref<'a,T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next_node.is_some() {
@@ -52,9 +53,9 @@ impl<'a> Iterator for LeafIterator<'a> {
     }
 }
 
-impl<'a> LeafIterator<'a> {
+impl<'a,T> LeafIterator<'a,T> {
     /// Create iterator iterating over leafs of subtree rooted  on `node`.
-    pub fn new(node: node::Ref<'a>, fragment:TreeFragment) -> Self {
+    pub fn new(node: node::Ref<'a,T>, fragment:TreeFragment) -> Self {
         let stack     = vec![StackFrame {node:&node.node, child_being_visited:0}];
         let next_node = node.node.children.first().map(|ch| &ch.node);
         let base_node = node;
@@ -88,7 +89,7 @@ impl<'a> LeafIterator<'a> {
         }
     }
 
-    fn can_descend(&self, current_node:&Node) -> bool {
+    fn can_descend(&self, current_node:&Node<T>) -> bool {
         match &self.fragment {
             TreeFragment::AllNodes               => true,
             TreeFragment::ChainAndDirectChildren => current_node.kind == node::Kind::Chained,
@@ -108,13 +109,14 @@ mod tests {
 
     use crate::builder::Builder;
     use crate::builder::TreeBuilder;
-
+    use crate::SpanTree;
 
 
     #[test]
     fn leaf_iterating() {
         use ast::crumbs::InfixCrumb::*;
         use ast::crumbs::PrefixCrumb::*;
+        use node::Kind;
         use node::Kind::*;
 
         // Tree we use for tests (C means chained nodes):
@@ -126,24 +128,23 @@ mod tests {
         //                   /|       / | \
         // gg-children:     ()()     ()() ()
 
-        let is_removable = false;
-        let tree = TreeBuilder::new(14)
+        let tree : SpanTree = TreeBuilder::new(14)
             .add_child(0,10,Chained,vec![LeftOperand])
-                .add_leaf (0,3,Target{is_removable},vec![LeftOperand])
+                .add_leaf (0,3,Kind::this(),vec![LeftOperand])
                 .add_leaf (4,1,Operation,vec![Operator])
-                .add_child(6,3,Argument{is_removable},vec![RightOperand])
+                .add_child(6,3,Kind::argument(),vec![RightOperand])
                     .add_leaf(0,1,Operation,vec![Func])
-                    .add_leaf(2,1,Target{is_removable},vec![Arg])
+                    .add_leaf(2,1,Kind::this(),vec![Arg])
                     .done()
                 .done()
             .add_leaf (11,1,Operation,vec![Operator])
             .add_child(13,1,Chained  ,vec![RightOperand])
-                .add_leaf (0,3,Target{is_removable},vec![LeftOperand])
+                .add_leaf (0,3,Kind::this(),vec![LeftOperand])
                 .add_leaf (4,1,Operation,vec![Operator])
                 .add_child(6,5,Chained,vec![RightOperand])
-                    .add_leaf(0,1,Target{is_removable},vec![LeftOperand])
+                    .add_leaf(0,1,Kind::this(),vec![LeftOperand])
                     .add_leaf(2,1,Operation,vec![Operator])
-                    .add_leaf(4,1,Argument{is_removable},vec![RightOperand])
+                    .add_leaf(4,1,Kind::argument(),vec![RightOperand])
                     .done()
                 .done()
             .build();

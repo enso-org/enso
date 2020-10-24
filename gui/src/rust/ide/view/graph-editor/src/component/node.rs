@@ -324,10 +324,10 @@ impl Node {
             eval_ inputs.deselect (selection.set_target_value(0.0));
 
             eval inputs.set_expression ((expr) model.set_expression(expr));
-            eval inputs.set_expression_type (((ast_id,maybe_type)) {
-                model.ports.set_expression_type(*ast_id,maybe_type.clone());
-                model.output_ports.set_pattern_type(*ast_id,maybe_type.clone())
-            });
+            // eval inputs.set_expression_type (((ast_id,maybe_type)) {
+            //     model.ports.set_expression_type(*ast_id,maybe_type.clone());
+            //     model.output_ports.set_pattern_type(*ast_id,maybe_type.clone())
+            // });
 
             eval inputs.set_visualization ((content)
                 model.visualization.frp.set_visualization.emit(content)

@@ -130,7 +130,6 @@ commands.build.rust = async function(argv) {
         // https://github.com/rustwasm/wasm-pack/issues/696
         // console.log('Optimizing the WASM binary.')
         // await cmd.run('npx',['wasm-opt','-O3','-o',paths.dist.wasm.mainOpt,paths.dist.wasm.main])
-
         console.log('Minimizing the WASM binary.')
         await gzip(paths.dist.wasm.main,paths.dist.wasm.mainOptGz) // TODO main -> mainOpt
 
