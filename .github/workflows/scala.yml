@@ -40,6 +40,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.4.1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
       - name: Disable TCP/UDP Offloading (macOS)
         if: runner.os == 'macOS'
         shell: bash
