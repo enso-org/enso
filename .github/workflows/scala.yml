@@ -61,8 +61,6 @@ jobs:
           Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
           -UdpIPv6
       - name: Prepare Engine Test Environment
-        with:
-          python-version: '3.x'
         shell: bash
         run: |
           python -m pip install --upgrade pip setuptools wheel
