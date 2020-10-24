@@ -1,4 +1,4 @@
-package org.enso.launcher.config
+package org.enso.componentmanager.config
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, JsonObject}

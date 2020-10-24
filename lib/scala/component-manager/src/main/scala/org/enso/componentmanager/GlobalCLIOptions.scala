@@ -1,10 +1,10 @@
-package org.enso.launcher.cli
+package org.enso.componentmanager
 
 import akka.http.scaladsl.model.Uri
 import org.enso.cli.arguments.{Argument, OptsParseError}
-import org.enso.launcher.cli.GlobalCLIOptions.InternalOptions
+import org.enso.componentmanager.GlobalCLIOptions.InternalOptions
 import org.enso.loggingservice.LogLevel
-
+// FIXME [RW] this should be moved back to launcher, it has been moved here temporarily to ease in the refactoring
 /** Gathers settings set by the global CLI options.
   *
   * @param autoConfirm if this flag is set, the program should not ask the user

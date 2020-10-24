@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path}
 
 import org.enso.componentmanager.{FileSystem, OS}
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.launcher.{NativeTest, WithTemporaryDirectory}
+import org.enso.componentmanager.test.WithTemporaryDirectory
+import org.enso.launcher.NativeTest
 
 class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
   def installedRoot: Path = getTestDirectory / "installed"

@@ -8,17 +8,20 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.{
   CurrentVersion,
   DistributionManager,
-  Environment
+  Environment,
+  GlobalCLIOptions
 }
-import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
-import org.enso.launcher.components.ComponentsManager
+import org.enso.launcher.cli.{LauncherLogging, Main}
 import org.enso.launcher.components.runner.{
   JVMSettings,
   LanguageServerOptions,
   Runner,
   WhichEngine
 }
-import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
+import org.enso.componentmanager.config.{
+  DefaultVersion,
+  GlobalConfigurationManager
+}
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -37,7 +40,7 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 case class Launcher(cliOptions: GlobalCLIOptions) {
   private val logger = Logger[Launcher]
 
-  private lazy val componentsManager = ComponentsManager.default(cliOptions)
+  private lazy val componentsManager = DefaultComponentManager.make(cliOptions)
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)

@@ -1,4 +1,4 @@
-package org.enso.launcher.config
+package org.enso.componentmanager.config
 
 import java.io.BufferedWriter
 import java.nio.file.{Files, NoSuchFileException, Path}
@@ -9,7 +9,7 @@ import io.circe.{yaml, Json}
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.DistributionManager
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.launcher.components.ComponentsManager
+import org.enso.componentmanager.components.ComponentManager
 
 import scala.util.{Failure, Success, Try, Using}
 
@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try, Using}
   * default engine version and default project metadata used for new projects.
   */
 class GlobalConfigurationManager(
-  componentsManager: ComponentsManager,
+  componentsManager: ComponentManager,
   distributionManager: DistributionManager
 ) {
 

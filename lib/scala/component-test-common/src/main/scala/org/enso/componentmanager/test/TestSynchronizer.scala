@@ -1,4 +1,4 @@
-package org.enso.launcher.locktest
+package org.enso.componentmanager.test
 
 import java.util.concurrent.{Semaphore, TimeUnit}
 

@@ -8,6 +8,7 @@ import org.enso.componentmanager.{FileSystem, OS}
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher._
 import org.enso.componentmanager.locking.{FileLockManager, LockType}
+import org.enso.componentmanager.test.WithTemporaryDirectory
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 

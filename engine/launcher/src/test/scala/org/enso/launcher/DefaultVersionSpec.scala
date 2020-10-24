@@ -1,13 +1,14 @@
 package org.enso.launcher
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.components.{ComponentsManager, ComponentsManagerTest}
-import org.enso.launcher.config.DefaultVersion.{Exact, LatestInstalled}
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.componentmanager.components.ComponentManager
+import org.enso.launcher.components.ComponentManagerTest
+import org.enso.componentmanager.config.DefaultVersion.{Exact, LatestInstalled}
+import org.enso.componentmanager.config.GlobalConfigurationManager
 
-class DefaultVersionSpec extends ComponentsManagerTest {
+class DefaultVersionSpec extends ComponentManagerTest {
   def makeConfigAndComponentsManagers()
-    : (ComponentsManager, GlobalConfigurationManager) = {
+    : (ComponentManager, GlobalConfigurationManager) = {
     val (distributionManager, componentsManager, _) = makeManagers()
     val configurationManager =
       new GlobalConfigurationManager(componentsManager, distributionManager)

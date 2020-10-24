@@ -1,4 +1,4 @@
-package org.enso.launcher
+package org.enso.componentmanager.test
 
 import org.enso.loggingservice.TestLogger
 import org.scalatest.{BeforeAndAfterAll, Suite}

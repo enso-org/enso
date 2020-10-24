@@ -4,8 +4,11 @@ import java.nio.file.Path
 
 import org.enso.componentmanager.{DistributionManager, Environment}
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.launcher.locktest.TestLocalResourceManager
-import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
+import org.enso.componentmanager.test.{DropLogs, WithTemporaryDirectory}
+import org.enso.componentmanager.test.{
+  FakeEnvironment,
+  TestLocalResourceManager
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

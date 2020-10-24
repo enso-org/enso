@@ -9,11 +9,13 @@ import org.enso.componentmanager.{
   CurrentVersion,
   DistributionManager,
   FileSystem,
+  GlobalCLIOptions,
   OS
 }
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.componentmanager.archive.Archive
-import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
+import org.enso.componentmanager.components.UpgradeRequiredError
+import org.enso.launcher.cli.InternalOpts
 import org.enso.componentmanager.locking.{
   DefaultResourceManager,
   LockType,
@@ -24,7 +26,6 @@ import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.componentmanager.releases.ReleaseProvider
 import org.enso.launcher.releases.EnsoRepository
 import org.enso.launcher.InfoLogger
-import org.enso.launcher.components.LauncherUpgradeRequiredError
 import org.enso.logger.LoggerSyntax
 
 import scala.util.Try
@@ -386,7 +387,7 @@ object LauncherUpgrader {
       originalExecutablePath
     )
 
-  /** Wraps an action and intercepts the [[LauncherUpgradeRequiredError]]
+  /** Wraps an action and intercepts the [[UpgradeRequiredError]]
     * offering to upgrade the launcher and re-run the command with the newer
     * version.
     *
@@ -395,7 +396,7 @@ object LauncherUpgrader {
     * @param action action that is executed and may throw the exception; it
     *               should return the desired exit code
     * @return if `action` succeeds, its exit code is returned; otherwise if the
-    *         [[LauncherUpgradeRequiredError]] is intercepted and an upgrade is
+    *         [[UpgradeRequiredError]] is intercepted and an upgrade is
     *         performed, the exit code of the command that has been re-executed
     *         is returned
     */
@@ -405,19 +406,27 @@ object LauncherUpgrader {
     try {
       action
     } catch {
-      case upgradeRequiredError: LauncherUpgradeRequiredError =>
+      case upgradeRequiredError: UpgradeRequiredError =>
         askToUpgrade(upgradeRequiredError, originalArguments)
     }
   }
 
+  private var cachedCLIOptions: Option[GlobalCLIOptions] = None
+  def setCLIOptions(globalCLIOptions: GlobalCLIOptions): Unit =
+    cachedCLIOptions = Some(globalCLIOptions)
+
   private def askToUpgrade(
-    upgradeRequiredError: LauncherUpgradeRequiredError,
+    upgradeRequiredError: UpgradeRequiredError,
     originalArguments: Array[String]
   ): Int = {
-    val logger      = Logger[LauncherUpgrader].enter("auto-upgrade")
-    val autoConfirm = upgradeRequiredError.globalCLIOptions.autoConfirm
+    val logger = Logger[LauncherUpgrader].enter("auto-upgrade")
+    val globalCLIOptions = cachedCLIOptions.getOrElse(
+      throw new IllegalStateException(
+        "Upgrade requested but application was not initialized properly."
+      )
+    )
     def shouldProceed: Boolean =
-      if (autoConfirm) {
+      if (globalCLIOptions.autoConfirm) {
         logger.warn(
           "A more recent launcher version is required. Since `auto-confirm` " +
           "is set, the launcher upgrade will be peformed automatically."
@@ -439,7 +448,7 @@ object LauncherUpgrader {
       throw upgradeRequiredError
     }
 
-    val upgrader           = default(upgradeRequiredError.globalCLIOptions)
+    val upgrader           = default(globalCLIOptions)
     val targetVersion      = upgrader.latestVersion().get
     val launcherExecutable = upgrader.originalExecutable
     try {

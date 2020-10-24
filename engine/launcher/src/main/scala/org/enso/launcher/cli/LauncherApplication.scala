@@ -10,14 +10,20 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
-import org.enso.componentmanager.DistributionManager
+import org.enso.componentmanager
+import org.enso.componentmanager.{
+  ColorMode,
+  DistributionManager,
+  GlobalCLIOptions
+}
 import org.enso.launcher.Launcher
-import org.enso.launcher.cli.Arguments._
+import org.enso.componentmanager.cli.Arguments._
 import org.enso.launcher.components.runner.LanguageServerOptions
-import org.enso.launcher.config.DefaultVersion
+import org.enso.componentmanager.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.DistributionInstaller
 import org.enso.componentmanager.locking.DefaultResourceManager
+import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.loggingservice.LogLevel
 
 /** Defines the CLI commands and options for the program.
@@ -547,7 +553,7 @@ object LauncherApplication {
           Launcher.ensurePortable()
         }
 
-        val globalCLIOptions = GlobalCLIOptions(
+        val globalCLIOptions = componentmanager.GlobalCLIOptions(
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,
           useJSON      = useJSON,
@@ -557,6 +563,7 @@ object LauncherApplication {
         )
 
         internalOptsCallback(globalCLIOptions)
+        LauncherUpgrader.setCLIOptions(globalCLIOptions)
         LauncherLogging.setup(logLevel, connectLogger, globalCLIOptions)
         initializeApp()
 

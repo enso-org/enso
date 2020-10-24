@@ -1,4 +1,4 @@
-package org.enso.launcher
+package org.enso.componentmanager.test
 
 import java.nio.file.{Files, Path}
 
@@ -9,7 +9,7 @@ import org.enso.componentmanager.FileSystem.PathSyntax
   * which points to an Enso installation inside the temporary directory
   * generated for the test.
   */
-trait FakeEnvironment { self: WithTemporaryDirectory =>
+trait FakeEnvironment { self: { def getTestDirectory: Path } =>
 
   /** Returns a fake path to the Enso executable that is inside the temporary
     * directory for the test.

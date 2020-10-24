@@ -6,14 +6,14 @@ import java.util.UUID
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.launcher.components.ComponentsManagerTest
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.launcher.components.ComponentManagerTest
+import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 
 import scala.concurrent.Future
 
-class RunnerSpec extends ComponentsManagerTest {
+class RunnerSpec extends ComponentManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
 
   private val fakeUri = Uri("ws://test:1234/")

@@ -6,10 +6,9 @@ import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.{components, Environment}
-import org.enso.componentmanager.components.Engine
+import org.enso.componentmanager.components.{ComponentManager, Engine}
 import org.enso.componentmanager.components.Manifest.JVMOptionsContext
-import org.enso.launcher.components.ComponentsManager
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 
@@ -24,7 +23,7 @@ import scala.util.Try
 class Runner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,
-  componentsManager: ComponentsManager,
+  componentsManager: ComponentManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]
 ) {

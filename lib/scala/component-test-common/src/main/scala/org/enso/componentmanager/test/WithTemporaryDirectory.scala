@@ -1,7 +1,7 @@
-package org.enso.launcher
+package org.enso.componentmanager.test
 
-import java.nio.file.{Files, Path}
 import java.io.{File, IOException}
+import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterEach, Suite}

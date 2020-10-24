@@ -3,10 +3,10 @@ package org.enso.launcher.components
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.components
 import org.enso.componentmanager.components.RuntimeVersion
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.loggingservice.{LogLevel, TestLogger}
 
-class ComponentsManagerSpec extends ComponentsManagerTest {
+class ComponentManagerSpec extends ComponentManagerTest {
 
   "ComponentsManager" should {
     "find the latest engine version in semver ordering " +

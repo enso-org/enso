@@ -1,37 +1,22 @@
-package org.enso.launcher.components
+package org.enso.componentmanager.components
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
-import org.enso.componentmanager.{components, DistributionManager, FileSystem}
-import org.enso.componentmanager.archive.Archive
-import org.enso.componentmanager.components.{
-  ComponentMissingError,
-  Engine,
-  InstallationError,
-  Runtime,
-  RuntimeVersion,
-  UnrecognizedComponentError
-}
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.components.Manifest
-import org.enso.launcher.cli.GlobalCLIOptions
-import org.enso.componentmanager.locking.{
-  DefaultResourceManager,
-  LockType,
-  Resource,
-  ResourceManager
-}
-import org.enso.componentmanager.releases.engine.EngineRelease
-import org.enso.componentmanager.releases.runtime.{
-  GraalCEReleaseProvider,
-  RuntimeReleaseProvider
-}
+import org.enso.componentmanager.archive.Archive
+import org.enso.componentmanager.locking.{LockType, Resource, ResourceManager}
 import org.enso.componentmanager.releases.ReleaseProvider
-import org.enso.launcher.InfoLogger
-import org.enso.launcher.releases.EnsoRepository
+import org.enso.componentmanager.releases.engine.EngineRelease
+import org.enso.componentmanager.releases.runtime.RuntimeReleaseProvider
+import org.enso.componentmanager.{
+  components,
+  DistributionManager,
+  FileSystem,
+  UserInterface
+}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -42,21 +27,20 @@ import scala.util.{Failure, Success, Try, Using}
   *
   * See Note [Components Manager Concurrency Model]
   *
-  * @param cliOptions options from the CLI setting verbosity of the executed
-  *                   actions
+  * @param userInterface TODO [UI]
   * @param distributionManager the [[DistributionManager]] to use
   * @param engineReleaseProvider the provider of engine releases
   * @param runtimeReleaseProvider the provider of runtime releases
   */
-class ComponentsManager(
-  cliOptions: GlobalCLIOptions,
+class ComponentManager(
+//  cliOptions: GlobalCLIOptions,
+  userInterface: UserInterface,
   distributionManager: DistributionManager,
   resourceManager: ResourceManager,
   engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: RuntimeReleaseProvider
 ) {
-  private val showProgress = !cliOptions.hideProgress
-  private val logger       = Logger[ComponentsManager]
+  private val logger = Logger[ComponentManager]
 
   /** Tries to find runtime for the provided engine.
     *
@@ -192,10 +176,11 @@ class ComponentsManager(
             s"Runtime ${engine.manifest.runtimeVersion} required for $engine " +
             s"is missing."
           )
-          cliOptions.autoConfirm || CLIOutput.askConfirmation(
-            "Do you want to install the missing runtime?",
-            yesDefault = true
-          )
+          ??? // TODO [UI]
+//          cliOptions.autoConfirm || CLIOutput.askConfirmation(
+//            "Do you want to install the missing runtime?",
+//            yesDefault = true
+//          )
         }
         if (!complain || complainAndAsk()) {
           val version = engine.manifest.runtimeVersion
@@ -243,8 +228,8 @@ class ComponentsManager(
         Some(engine)
       }
       .recoverWith {
-        case _: ComponentMissingError        => Success(None)
-        case e: LauncherUpgradeRequiredError => Failure(e)
+        case _: ComponentMissingError => Success(None)
+        case e: UpgradeRequiredError  => Failure(e)
         case e: Exception =>
           Failure(
             UnrecognizedComponentError(
@@ -273,10 +258,11 @@ class ComponentsManager(
       case None =>
         def complainAndAsk(): Boolean = {
           logger.warn(s"Engine $version is missing.")
-          cliOptions.autoConfirm || CLIOutput.askConfirmation(
-            "Do you want to install the missing engine?",
-            yesDefault = true
-          )
+          ??? // TODO [UI]
+//          cliOptions.autoConfirm || CLIOutput.askConfirmation(
+//            "Do you want to install the missing engine?",
+//            yesDefault = true
+//          )
         }
 
         if (!complain || complainAndAsk()) {
@@ -286,7 +272,7 @@ class ComponentsManager(
           ) {
             findEngine(version) match {
               case Some(engine) =>
-                InfoLogger.info(
+                logger.info(
                   "The engine has already been installed by a different " +
                   "process."
                 )
@@ -360,7 +346,7 @@ class ComponentsManager(
       }
 
       safelyRemoveComponent(engine.path)
-      InfoLogger.info(s"Uninstalled $engine.")
+      logger.info(s"Uninstalled $engine.")
       cleanupRuntimes()
     }
 
@@ -381,13 +367,10 @@ class ComponentsManager(
   private def installEngine(version: SemVer): Engine = {
     val engineRelease = engineReleaseProvider.fetchRelease(version).get
     if (!engineRelease.manifest.isUsableWithCurrentVersion) {
-      throw LauncherUpgradeRequiredError(
-        engineRelease.manifest.minimumLauncherVersion,
-        cliOptions
-      )
+      throw UpgradeRequiredError(engineRelease.manifest.minimumLauncherVersion)
     }
     if (engineRelease.isBroken) {
-      if (cliOptions.autoConfirm) {
+      if (false /*cliOptions.autoConfirm*/ ) { // TODO [UI]
         logger.warn(
           s"The engine release $version is marked as broken and it should " +
           s"not be used. Since `auto-confirm` is set, the installation will " +
@@ -414,24 +397,23 @@ class ComponentsManager(
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
       logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
-      InfoLogger.info(s"Downloading ${enginePackage.getFileName}.")
-      engineRelease
-        .downloadPackage(enginePackage)
-        .waitForResult(showProgress)
-        .get
+      logger.info(s"Downloading ${enginePackage.getFileName}.")
+      val downloadTask = engineRelease.downloadPackage(enginePackage)
+      userInterface.trackProgress(downloadTask)
+      downloadTask.force()
 
       val engineDirectoryName =
         engineDirectoryNameForVersion(engineRelease.version)
 
-      InfoLogger.info(s"Extracting the engine.")
-      Archive
+      logger.info(s"Extracting the engine.")
+      val extractionTask = Archive
         .extractArchive(
           enginePackage,
           distributionManager.paths.temporaryDirectory,
           Some(engineDirectoryName)
         )
-        .waitForResult(showProgress)
-        .get
+      userInterface.trackProgress(extractionTask)
+      extractionTask.force()
 
       val engineTemporaryPath =
         distributionManager.paths.temporaryDirectory / engineDirectoryName
@@ -511,7 +493,7 @@ class ComponentsManager(
             )
           }
 
-          InfoLogger.info(s"Installed $engine.")
+          logger.info(s"Installed $engine.")
           engine
         }
 
@@ -636,12 +618,7 @@ class ComponentsManager(
   ): Try[components.Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
       if (!manifest.isUsableWithCurrentVersion) {
-        Failure(
-          LauncherUpgradeRequiredError(
-            manifest.minimumLauncherVersion,
-            cliOptions
-          )
-        )
+        Failure(UpgradeRequiredError(manifest.minimumLauncherVersion))
       } else Success(manifest)
     }
   }
@@ -663,23 +640,22 @@ class ComponentsManager(
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
-      InfoLogger.info(s"Downloading ${runtimePackage.getFileName}.")
-      runtimeReleaseProvider
-        .downloadPackage(runtimeVersion, runtimePackage)
-        .waitForResult(showProgress)
-        .get
+      logger.info(s"Downloading ${runtimePackage.getFileName}.")
+      val downloadTask =
+        runtimeReleaseProvider.downloadPackage(runtimeVersion, runtimePackage)
+      userInterface.trackProgress(downloadTask)
+      downloadTask.force()
 
       val runtimeDirectoryName = graalDirectoryForVersion(runtimeVersion)
 
-      InfoLogger.info(s"Extracting the runtime.")
-      Archive
-        .extractArchive(
-          runtimePackage,
-          distributionManager.paths.temporaryDirectory,
-          Some(runtimeDirectoryName)
-        )
-        .waitForResult(showProgress)
-        .get
+      logger.info(s"Extracting the runtime.")
+      val extractionTask = Archive.extractArchive(
+        runtimePackage,
+        distributionManager.paths.temporaryDirectory,
+        Some(runtimeDirectoryName)
+      )
+      userInterface.trackProgress(extractionTask)
+      extractionTask.force()
 
       val runtimeTemporaryPath =
         distributionManager.paths.temporaryDirectory / runtimeDirectoryName
@@ -709,7 +685,7 @@ class ComponentsManager(
           )
         }
 
-        InfoLogger.info(s"Installed $runtime.")
+        logger.info(s"Installed $runtime.")
         runtime
       } catch {
         case NonFatal(e) =>
@@ -731,7 +707,7 @@ class ComponentsManager(
   private def cleanupRuntimes(): Unit = {
     for (runtime <- listInstalledRuntimes()) {
       if (findEnginesUsingRuntime(runtime).isEmpty) {
-        InfoLogger.info(
+        logger.info(
           s"Removing $runtime, because it is not used by any installed Enso " +
           s"versions."
         )
@@ -823,20 +799,20 @@ class ComponentsManager(
  * running a command, `withEngine` or `withEngineAndRuntime` should be used.
  */
 
-object ComponentsManager {
+object ComponentManager {
 
-  /** Creates a [[ComponentsManager]] using the default [[DistributionManager]]
-    * and release providers.
-    *
-    * @param globalCLIOptions options from the CLI setting verbosity of the
-    *                         executed actions
-    */
-  def default(globalCLIOptions: GlobalCLIOptions): ComponentsManager =
-    new ComponentsManager(
-      globalCLIOptions,
-      DistributionManager,
-      DefaultResourceManager,
-      EnsoRepository.defaultEngineReleaseProvider,
-      GraalCEReleaseProvider
-    )
+//  /** Creates a [[ComponentManager]] using the default [[DistributionManager]]
+//    * and release providers.
+//    *
+//    * @param globalCLIOptions options from the CLI setting verbosity of the
+//    *                         executed actions
+//    */
+//  def default(globalCLIOptions: GlobalCLIOptions): ComponentManager =
+//    new ComponentManager(
+//      globalCLIOptions,
+//      DistributionManager,
+//      DefaultResourceManager,
+//      EnsoRepository.defaultEngineReleaseProvider,
+//      GraalCEReleaseProvider
+//    )
 }

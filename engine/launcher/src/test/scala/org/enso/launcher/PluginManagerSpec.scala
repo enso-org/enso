@@ -2,10 +2,10 @@ package org.enso.launcher
 
 import java.nio.file.{Files, Path}
 
+import org.enso.componentmanager.test.WithTemporaryDirectory
 import org.scalatest.OptionValues
 
 import scala.jdk.CollectionConverters._
-
 import scala.sys.process._
 
 class PluginManagerSpec

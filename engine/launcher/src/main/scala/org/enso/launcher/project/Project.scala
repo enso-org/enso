@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.pkg.{Config, DefaultEnsoVersion, Package, SemVerEnsoVersion}
 
 /** Represents an Enso project.

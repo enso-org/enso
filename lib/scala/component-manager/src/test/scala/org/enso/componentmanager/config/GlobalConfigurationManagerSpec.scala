@@ -1,10 +1,14 @@
-package org.enso.launcher.config
+package org.enso.componentmanager.config
 
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.DistributionManager
-import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
-import org.enso.launcher.locktest.TestLocalResourceManager
+import org.enso.componentmanager.test.{
+  DropLogs,
+  FakeEnvironment,
+  TestLocalResourceManager,
+  WithTemporaryDirectory
+}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

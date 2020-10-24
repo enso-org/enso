@@ -1,6 +1,6 @@
 package org.enso.componentmanager.components
 
-/** A base class for exceptions caused by [[ComponentsManager]] logic.
+/** A base class for exceptions caused by [[ComponentManager]] logic.
   */
 class ComponentsException(
   message: String,

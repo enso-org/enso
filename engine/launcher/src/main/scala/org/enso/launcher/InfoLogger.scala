@@ -23,6 +23,7 @@ object InfoLogger {
     * that info-level logs are printed to the console output.
     */
   def info(msg: => String): Unit = {
+    // TODO [UI] may want to look into this
     if (logger.underlying.isInfoEnabled) {
       logger.info(msg)
     } else {

@@ -3,19 +3,22 @@ package org.enso.launcher.components
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.{DistributionManager, Environment}
-import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
+import org.enso.componentmanager.components.ComponentManager
 import org.enso.componentmanager.releases.engine.EngineReleaseProvider
 import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
 import org.enso.componentmanager.releases.testing.FakeReleaseProvider
-import org.enso.launcher.locktest.TestLocalResourceManager
-import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
+import org.enso.componentmanager._
+import org.enso.componentmanager.test.{DropLogs, WithTemporaryDirectory}
+import org.enso.componentmanager.test.{
+  FakeEnvironment,
+  TestLocalResourceManager
+}
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class ComponentsManagerTest
+class ComponentManagerTest
     extends AnyWordSpec
     with Matchers
     with OptionValues
@@ -23,7 +26,7 @@ class ComponentsManagerTest
     with FakeEnvironment
     with DropLogs {
 
-  /** Creates the [[DistributionManager]], [[ComponentsManager]] and an
+  /** Creates the [[DistributionManager]], [[ComponentManager]] and an
     * [[Environment]] for use in the tests.
     *
     * Should be called separately for each test case, as the components use
@@ -34,7 +37,7 @@ class ComponentsManagerTest
     */
   def makeManagers(
     environmentOverrides: Map[String, String] = Map.empty
-  ): (DistributionManager, ComponentsManager, Environment) = {
+  ): (DistributionManager, ComponentManager, Environment) = {
     val env = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager =
       new DistributionManager(env, TestLocalResourceManager.create())
@@ -53,13 +56,8 @@ class ComponentsManagerTest
     val runtimeProvider = new GraalCEReleaseProvider(
       FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))
     )
-    val componentsManager = new ComponentsManager(
-      GlobalCLIOptions(
-        autoConfirm  = true,
-        hideProgress = true,
-        useJSON      = false,
-        colorMode    = ColorMode.Never
-      ),
+    val componentsManager = new ComponentManager(
+      new TestUserInterface,
       distributionManager,
       TestLocalResourceManager.create(),
       engineProvider,
@@ -69,11 +67,11 @@ class ComponentsManagerTest
     (distributionManager, componentsManager, env)
   }
 
-  /** Returns just the [[ComponentsManager]].
+  /** Returns just the [[ComponentManager]].
     *
     * See [[makeManagers]] for details.
     */
-  def makeComponentsManager(): ComponentsManager = makeManagers()._2
+  def makeComponentsManager(): ComponentManager = makeManagers()._2
 
   /** Creates a new project using the default package manager.
     */

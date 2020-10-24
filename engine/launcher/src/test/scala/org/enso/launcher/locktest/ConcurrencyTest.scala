@@ -4,24 +4,28 @@ import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
-import org.enso.componentmanager.{DistributionManager, FileSystem}
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.components.{Manifest, RuntimeVersion}
-import org.enso.componentmanager.locking.{
-  LockManager,
-  LockType,
-  Resource,
-  ResourceManager
+import org.enso.componentmanager.components.{
+  ComponentManager,
+  Manifest,
+  RuntimeVersion
 }
+import org.enso.componentmanager.locking._
 import org.enso.componentmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider
 }
 import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
 import org.enso.componentmanager.releases.testing.FakeReleaseProvider
-import org.enso.launcher.cli.{ColorMode, GlobalCLIOptions}
-import org.enso.launcher.{DropLogs, FakeEnvironment, WithTemporaryDirectory}
-import org.enso.launcher.components.ComponentsManager
+import org.enso.componentmanager._
+import org.enso.componentmanager.test.{
+  DropLogs,
+  FakeEnvironment,
+  TestLocalLockManager,
+  TestSynchronizer,
+  WithTemporaryDirectory
+}
+import org.enso.launcher.components.TestUserInterface
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -73,18 +77,18 @@ class ConcurrencyTest
   def makeNewResourceManager(): ResourceManager =
     new ResourceManager(lockManager)
 
-  /** Creates a [[DistributionManager]] and [[ComponentsManager]] that can be
+  /** Creates a [[DistributionManager]] and [[ComponentManager]] that can be
     * used in a test.
     *
     * @param releaseCallback called when a release asset is fetched
     * @param lockWaitsCallback called when a lock with the given name is not
     *                          acquired immediately
-    * @return a tuple of [[DistributionManager]] and [[ComponentsManager]]
+    * @return a tuple of [[DistributionManager]] and [[ComponentManager]]
     */
   def makeManagers(
     releaseCallback: String => Unit,
     lockWaitsCallback: String => Unit
-  ): (DistributionManager, ComponentsManager) = {
+  ): (DistributionManager, ComponentManager) = {
     val env = fakeInstalledEnvironment()
     val resourceManager = new ResourceManager(lockManager) {
       override def withResource[R](
@@ -130,13 +134,8 @@ class ConcurrencyTest
       }
     }
 
-    val componentsManager = new ComponentsManager(
-      GlobalCLIOptions(
-        autoConfirm  = true,
-        hideProgress = true,
-        useJSON      = false,
-        colorMode    = ColorMode.Never
-      ),
+    val componentsManager = new ComponentManager(
+      new TestUserInterface,
       distributionManager,
       resourceManager,
       engineProvider,
@@ -147,12 +146,12 @@ class ConcurrencyTest
   }
 
   /** Helper function, acts as [[makeManagers]] but returns only the
-    * [[ComponentsManager]].
+    * [[ComponentManager]].
     */
   def makeComponentsManager(
     releaseCallback: String => Unit,
     lockWaitsCallback: String => Unit
-  ): ComponentsManager =
+  ): ComponentManager =
     makeManagers(
       releaseCallback   = releaseCallback,
       lockWaitsCallback = lockWaitsCallback

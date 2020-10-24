@@ -1,10 +1,10 @@
-package org.enso.launcher.config
+package org.enso.componentmanager.config
 
 import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax._
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.arguments.Argument
-import org.enso.launcher.cli.Arguments._
+import org.enso.componentmanager.cli.Arguments._
 import org.enso.pkg.SemVerJson._
 
 /** Default version that is used when launching Enso outside of projects and

@@ -1,4 +1,4 @@
-package org.enso.launcher.cli
+package org.enso.componentmanager.cli
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import nl.gn0s1s.bump.SemVer

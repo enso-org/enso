@@ -1,4 +1,4 @@
-package org.enso.launcher.config
+package org.enso.componentmanager.config
 
 /** Indicates that the config is invalid.
   */

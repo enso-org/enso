@@ -149,11 +149,11 @@ class names are made up):
   "group": "org.enso.launcher.Main",
   "message": "Failed to load a configuration file.",
   "exception": {
-    "name": "org.enso.launcher.config.ConfigurationLoaderFailure",
+    "name": "org.enso.componentmanager.config.ConfigurationLoaderFailure",
     "message": "Configuration file does not exist.",
     "trace": [
       {
-        "element": "org.enso.launcher.config.ConfigurationLoader.load",
+        "element": "org.enso.componentmanager.config.ConfigurationLoader.load",
         "location": "ConfigurationLoader.scala:123"
       },
       {

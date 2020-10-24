@@ -5,15 +5,15 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
-import org.enso.componentmanager.{DistributionManager, FileSystem, OS}
-import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.launcher.cli.{
+import org.enso.componentmanager.{
+  DistributionManager,
+  FileSystem,
   GlobalCLIOptions,
-  InternalOpts,
-  LauncherLogging,
-  Main
+  OS
 }
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.componentmanager.FileSystem.PathSyntax
+import org.enso.launcher.cli.{InternalOpts, LauncherLogging, Main}
+import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.componentmanager.locking.{
   DefaultResourceManager,
   ResourceManager

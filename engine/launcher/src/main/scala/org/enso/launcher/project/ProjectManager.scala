@@ -2,7 +2,7 @@ package org.enso.launcher.project
 
 import java.nio.file.Path
 
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.pkg.PackageManager
 
 import scala.util.{Failure, Try}

@@ -1135,6 +1135,7 @@ lazy val launcher = project
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
+  .dependsOn(`component-test-common` % Test)
 
 lazy val `component-manager` = project
   .in(file("lib/scala/component-manager"))
@@ -1159,6 +1160,19 @@ lazy val `component-manager` = project
   .dependsOn(
     `version-output` // TODO [RW] may want to get rid of this if possible
   )
+  .dependsOn(`component-test-common` % Test)
+
+lazy val `component-test-common` = project
+  .in(file("lib/scala/component-test-common"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion,
+      "commons-io"                  % "commons-io"    % commonsIoVersion
+    )
+  )
+  .dependsOn(`logging-service`)
 
 val `std-lib-root`          = file("distribution/std-lib/")
 val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
