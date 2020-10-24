@@ -18,7 +18,7 @@ import org.enso.componentmanager.{
 }
 import org.enso.launcher.Launcher
 import org.enso.componentmanager.cli.Arguments._
-import org.enso.launcher.components.runner.LanguageServerOptions
+import org.enso.componentmanager.runner.LanguageServerOptions
 import org.enso.componentmanager.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.DistributionInstaller
@@ -229,11 +229,11 @@ object LauncherApplication {
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
               rootId    = rootId,
-              path      = path,
               interface = interface,
               rpcPort   = rpcPort,
               dataPort  = dataPort
             ),
+            contentRoot         = path,
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,

@@ -1,4 +1,4 @@
-package org.enso.launcher.components.runner
+package org.enso.componentmanager.runner
 
 /** Represents an error encountered when running the component.
   */

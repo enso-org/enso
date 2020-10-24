@@ -1,4 +1,4 @@
-package org.enso.launcher.project
+package org.enso.componentmanager.runner
 
 import java.io.File
 import java.nio.file.Path

@@ -1,4 +1,4 @@
-package org.enso.launcher.components.runner
+package org.enso.componentmanager.runner
 
 import nl.gn0s1s.bump.SemVer
 

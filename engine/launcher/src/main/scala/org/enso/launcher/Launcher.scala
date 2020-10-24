@@ -5,6 +5,15 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.config.{
+  DefaultVersion,
+  GlobalConfigurationManager
+}
+import org.enso.componentmanager.runner.{
+  JVMSettings,
+  LanguageServerOptions,
+  WhichEngine
+}
 import org.enso.componentmanager.{
   CurrentVersion,
   DistributionManager,
@@ -12,16 +21,7 @@ import org.enso.componentmanager.{
   GlobalCLIOptions
 }
 import org.enso.launcher.cli.{LauncherLogging, Main}
-import org.enso.launcher.components.runner.{
-  JVMSettings,
-  LanguageServerOptions,
-  Runner,
-  WhichEngine
-}
-import org.enso.componentmanager.config.{
-  DefaultVersion,
-  GlobalConfigurationManager
-}
+import org.enso.launcher.components.LauncherRunner
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -45,7 +45,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
   private lazy val runner =
-    new Runner(
+    new LauncherRunner(
       projectManager,
       configurationManager,
       componentsManager,
@@ -268,6 +268,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def runLanguageServer(
     options: LanguageServerOptions,
+    contentRoot: Path,
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
     useSystemJVM: Boolean,
@@ -279,6 +280,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         runner
           .languageServer(
             options,
+            contentRoot,
             versionOverride,
             logLevel,
             additionalArguments

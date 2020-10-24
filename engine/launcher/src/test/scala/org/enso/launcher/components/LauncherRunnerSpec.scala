@@ -1,4 +1,4 @@
-package org.enso.launcher.components.runner
+package org.enso.launcher.components
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
@@ -6,14 +6,17 @@ import java.util.UUID
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.launcher.components.ComponentManagerTest
 import org.enso.componentmanager.config.GlobalConfigurationManager
+import org.enso.componentmanager.runner._
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 
 import scala.concurrent.Future
 
-class RunnerSpec extends ComponentManagerTest {
+/** We test integration of both the underlying [[Runner]] and the
+  * [[LauncherRunner]] in a single suite.
+  */
+class LauncherRunnerSpec extends ComponentManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
 
   private val fakeUri = Uri("ws://test:1234/")
@@ -21,7 +24,7 @@ class RunnerSpec extends ComponentManagerTest {
   def makeFakeRunner(
     cwdOverride: Option[Path]     = None,
     extraEnv: Map[String, String] = Map.empty
-  ): Runner = {
+  ): LauncherRunner = {
     val (distributionManager, componentsManager, env) = makeManagers(extraEnv)
     val configurationManager =
       new GlobalConfigurationManager(componentsManager, distributionManager) {
@@ -30,7 +33,7 @@ class RunnerSpec extends ComponentManagerTest {
     val projectManager = new ProjectManager(configurationManager)
     val cwd            = cwdOverride.getOrElse(getTestDirectory)
     val runner =
-      new Runner(
+      new LauncherRunner(
         projectManager,
         configurationManager,
         componentsManager,
@@ -212,7 +215,6 @@ class RunnerSpec extends ComponentManagerTest {
 
       val options = LanguageServerOptions(
         rootId    = UUID.randomUUID(),
-        path      = projectPath,
         interface = "127.0.0.2",
         rpcPort   = 1234,
         dataPort  = 4321
@@ -220,6 +222,7 @@ class RunnerSpec extends ComponentManagerTest {
       val runSettings = runner
         .languageServer(
           options,
+          contentRootPath     = projectPath,
           versionOverride     = None,
           additionalArguments = Seq("additional"),
           logLevel            = LogLevel.Info
@@ -232,7 +235,7 @@ class RunnerSpec extends ComponentManagerTest {
       commandLine should include(s"--rpc-port ${options.rpcPort}")
       commandLine should include(s"--data-port ${options.dataPort}")
       commandLine should include(s"--root-id ${options.rootId}")
-      val normalizedPath = options.path.toAbsolutePath.normalize.toString
+      val normalizedPath = projectPath.toAbsolutePath.normalize.toString
       commandLine should include(s"--path $normalizedPath")
       runSettings.runnerArguments.lastOption.value shouldEqual "additional"
 
@@ -240,6 +243,7 @@ class RunnerSpec extends ComponentManagerTest {
       runner
         .languageServer(
           options,
+          contentRootPath     = projectPath,
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
           logLevel            = LogLevel.Info

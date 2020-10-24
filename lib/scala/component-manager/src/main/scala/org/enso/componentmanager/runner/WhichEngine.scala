@@ -1,4 +1,4 @@
-package org.enso.launcher.components.runner
+package org.enso.componentmanager.runner
 
 /** Returned by [[Runner.version]], specifies if the engine that is queried for
   * version is from a project or the default one.

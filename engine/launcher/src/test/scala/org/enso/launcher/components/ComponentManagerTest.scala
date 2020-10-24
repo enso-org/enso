@@ -18,6 +18,17 @@ import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+/** Gathers helper methods for testing the [[ComponentManager]].
+  *
+  * This class is shared by [[ComponentManagerSpec]] and other,
+  * launcher-specific test. It would make most sense to move it to the
+  * `component-manager` project, but then it would not be accessible from
+  * launcher's tests. To avoid over-complicating this, this class is in the
+  * `launcher` subproject, forcing [[ComponentManagerSpec]] to also be within
+  * this project instead of `component-manager` where it would fit better.
+  * Overall, as we always run all tests, the location of this particular test is
+  * not really that important, so for simplicity it is kept here.
+  */
 class ComponentManagerTest
     extends AnyWordSpec
     with Matchers

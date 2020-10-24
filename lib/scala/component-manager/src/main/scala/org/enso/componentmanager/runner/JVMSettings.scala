@@ -1,4 +1,4 @@
-package org.enso.launcher.components.runner
+package org.enso.componentmanager.runner
 
 /** Represents settings that are used to launch the runtime JVM.
   *
