@@ -20,6 +20,7 @@ transport formats, please look [here](./protocol-architecture).
 
 - [Types](#types)
   - [`ProjectMetadata`](#projectmetadata)
+  - [`MissingComponentAction`](#missingcomponentaction)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
@@ -34,6 +35,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`task/finished`](#taskfinished)
 - [Components Management](#components-management)
   - [`engine/list`](#enginelist)
+  - [`engine/install`](#engineinstall)
   - [`engine/uninstall`](#engineuninstall)
 - [Configuration Management](#configuration-management)
   - [`global-config/get`](#global-configget)
@@ -42,8 +44,10 @@ transport formats, please look [here](./protocol-architecture).
 - [Logging Service](#logging-service)
   - [`logging-service/get-endpoint`](#logging-serviceget-endpoint)
 - [Language Server Management](#language-server-management)
-- [Errors](#errors-13)
+- [Errors](#errors-14)
   - [`MissingComponentError`](#missingcomponenterror)
+  - [`BrokenComponentError`](#brokencomponenterror)
+  - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired)
   - [`ComponentInstallationError`](#componentinstallationerror)
   - [`ComponentUninstallationError`](#componentuninstallationerror)
   - [`ProjectNameValidationError`](#projectnamevalidationerror)
@@ -80,6 +84,23 @@ interface ProjectMetadata {
 }
 ```
 
+### `MissingComponentAction`
+
+This type specifies what action should be taken if a component required to
+complete an operation is missing.
+
+- `fail` will make the operation fail if any components are missing.
+- `install` will try to install any missing components, unless they are marked
+  as broken.
+- `force-install-broken` will try to install all missing components, even if
+  some of them are marked as broken.
+
+#### Format
+
+```typescript
+type MissingComponentAction = "fail" | "install" | "force-install-broken";
+```
+
 ## Project Management Operations
 
 The primary responsibility of the project managers is to allow users to manage
@@ -92,12 +113,13 @@ operation also includes spawning an instance of the language server open on the
 specified project.
 
 To open a project, an engine version that is specified in project settings needs
-to be installed. If `installMissingComponents` is set, this action will install
-any missing components, otherwise, an error will be reported if a component is
-missing. A typical usage scenario may consist of first trying to open the
-project without installing missing components. If that fails with the
-`MissingComponentError`, the client can ask the user if they want to install the
-missing components and re-attempt the action.
+to be installed. If `missingComponentAction` is set to `install` or
+`force-install-broken`, this action will install any missing components,
+otherwise, an error will be reported if a component is missing. A typical usage
+scenario may consist of first trying to open the project without installing
+missing components. If that fails with the `MissingComponentError`, the client
+can ask the user if they want to install the missing components and re-attempt
+the action.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -110,11 +132,11 @@ missing components and re-attempt the action.
 interface ProjectOpenRequest {
   projectId: UUID;
 
-  /** Specifies whether to install missing components.
+  /** Specifies how to handle missing components.
    *
-   * If not provided, defaults to false.
+   * If not provided, defaults to `fail`.
    */
-  installMissingComponents?: bool;
+  missingComponentAction?: MissingComponentAction;
 }
 ```
 
@@ -136,7 +158,10 @@ interface ProjectOpenResult {
 - [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
 - [`MissingComponentError`](#missingcomponenterror) to signal that the component
   required to open the project was missing (only in case
-  `installMissingComponents` was set to `false`).
+  `missingComponentAction` was set to `fail`).
+- [`BrokenComponentError`](#brokencomponenterror) to signal that the component
+  required to open the project was being installed but is marked as broken (only
+  in case `missingComponentAction` was set to `install`).
 - [`ComponentInstallationError`](#componentinstallationerror) to signal that the
   installation of a missing component has failed.
 - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
@@ -218,8 +243,8 @@ interface ProjectListResponse {
 This message requests the creation of a new project.
 
 To create a project, an engine version associated with it needs to be installed.
-If `installMissingComponents` is set, this action will install any missing
-components, otherwise, an error will be reported if a component is missing.
+Depending on `missingComponentAction`, any components required to complete the
+operation are missing will be installed or a failure will be reported.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -237,29 +262,19 @@ interface ProjectCreateRequest {
    *
    * Possible values are:
    * - a semver version string identifying an Enso engine version,
-   * - `default` to use the current default
-   * - `latest-installed` to use the most recent version that is installed on
-   *   the system.
+   * - `default` to use the current default.
    *
    * The field is optional - if it is missing, it is treated as `default`.
    */
   version?: String;
 
-  /** Specifies whether to install missing components.
+  /** Specifies how to handle missing components.
    *
-   * If not provided, defaults to false.
+   * If not provided, defaults to `fail`.
    */
-  installMissingComponents?: bool;
+  missingComponentAction?: MissingComponentAction;
 }
 ```
-
-> TODO [RW] discuss: Do we also want a 'latest-available' that would check the
-> repository for newer versions? While we are at it, as the version needs to be
-> specified somehow, we may want to be able to query all available version
-> strings from the repository? To allow users to choose a version for their new
-> project, besides just `engine/list` which only lists currently installed
-> versions. Or since the engine versions can be queried, we may want to get rid
-> of `latest-installed`.
 
 #### Result
 
@@ -279,7 +294,10 @@ interface ProjectOpenResponse {
   exists.
 - [`MissingComponentError`](#missingcomponenterror) to signal that the component
   required to create the project was missing (only in case
-  `installMissingComponents` was set to `false`).
+  `missingComponentAction` was set to `fail`).
+- [`BrokenComponentError`](#brokencomponenterror) to signal that the component
+  required to create the project was being installed but is marked as broken
+  (only in case `missingComponentAction` was set to `install`).
 - [`ComponentInstallationError`](#componentinstallationerror) to signal that the
   installation of a missing component has failed.
 - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
@@ -555,6 +573,13 @@ installed, does nothing.
 interface EngineInstallRequest {
   /** Semver string of engine version that should be installed. */
   version: String;
+
+  /** Specifies whether the engine should be installed even if it is marked as
+   * broken.
+   *
+   * If not provided, defaults to `false`.
+   */
+  forceInstallBroken?: bool;
 }
 ```
 
@@ -566,6 +591,9 @@ interface EngineInstallationSuccess {}
 
 #### Errors
 
+- [`BrokenComponentError`](#brokencomponenterror) to signal that the requested
+  engine version is marked as broken (only in case `forceInstallBroken` was set
+  to `false`).
 - [`ComponentInstallationError`](#componentinstallationerror) to signal that the
   installation of a missing component has failed.
 - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired) to signal
@@ -763,26 +791,20 @@ action did not ask for it to be automatically installed.
 }
 ```
 
-### `ComponentInstallationError`
+### `BrokenComponentError`
 
-Signals that installation of a missing component has been attempted but it has
-failed.
+Signals that a component that was being installed is marked as broken, but the
+option to forcibly install broken components was not set.
+
+This error may handled by warning the user about the broken version or
+suggesting to upgrade the project and asking to confirm using the broken
+version. If the user wants to ignore the warning, the operation can be
+reattempted with the option to forcibly install broken components.
 
 ```typescript
 "error" : {
   "code" : 4021,
-  "message" : "A problem occurred when trying to find the release: Cannot find release `enso-1.2.3-not-published`."
-}
-```
-
-### `ComponentUninstallationError`
-
-Signals that uninstallation of a component has failed.
-
-```typescript
-"error" : {
-  "code" : 4022,
-  "message" : "The requested engine version is not installed."
+  "message" : "Engine 1.2.3 is marked as broken."
 }
 ```
 
@@ -798,11 +820,34 @@ version that is required to complete the related action.
 
 ```typescript
 "error" : {
-  "code" : 4023,
+  "code" : 4022,
   "message" : "Project manager 1.2.3 is required to install the requested engine. Please upgrade.",
   "data": {
     "minimumRequiredVersion": "1.2.3"
   }
+}
+```
+
+### `ComponentInstallationError`
+
+Signals that installation of a missing component has been attempted but it has
+failed.
+
+```typescript
+"error" : {
+  "code" : 4023,
+  "message" : "A problem occurred when trying to find the release: Cannot find release `enso-1.2.3-not-published`."
+}
+```
+
+### `ComponentUninstallationError`
+
+Signals that uninstallation of a component has failed.
+
+```typescript
+"error" : {
+  "code" : 4024,
+  "message" : "The requested engine version is not installed."
 }
 ```
 
