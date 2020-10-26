@@ -44,9 +44,7 @@ class ComponentManagerSpec extends ComponentManagerTest {
           components.RuntimeVersion(SemVer(1, 0, 0), "11"),
           components.RuntimeVersion(SemVer(2, 0, 0), "11")
         )
-      engineVersions.map(
-        componentsManager.findOrInstallEngine(_, complain = false)
-      )
+      engineVersions.map(componentsManager.findOrInstallEngine)
 
       componentsManager
         .listInstalledEngines()
@@ -67,10 +65,7 @@ class ComponentManagerSpec extends ComponentManagerTest {
     "preserve the broken mark when installing a broken release" in {
       val componentsManager = makeComponentsManager()
       val brokenVersion     = SemVer(0, 999, 0, Some("marked-broken"))
-      componentsManager.findOrInstallEngine(
-        brokenVersion,
-        complain = false
-      )
+      componentsManager.findOrInstallEngine(brokenVersion)
 
       assert(
         componentsManager.findEngine(brokenVersion).value.isMarkedBroken,
@@ -97,7 +92,7 @@ class ComponentManagerSpec extends ComponentManagerTest {
 
       val brokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
       val logs = TestLogger.gatherLogs {
-        componentsManager.findOrInstallEngine(brokenVersion, complain = false)
+        componentsManager.findOrInstallEngine(brokenVersion)
       }
       val warnings = logs.filter(_.logLevel == LogLevel.Warning)
       warnings should have size 1
@@ -111,9 +106,7 @@ class ComponentManagerSpec extends ComponentManagerTest {
       val componentsManager = makeComponentsManager()
       val engineVersions =
         Seq(SemVer(0, 0, 0), SemVer(0, 0, 1), SemVer(0, 0, 1, Some("pre")))
-      engineVersions.map(
-        componentsManager.findOrInstallEngine(_, complain = false)
-      )
+      engineVersions.map(componentsManager.findOrInstallEngine)
 
       componentsManager.listInstalledEngines() should have length 3
       componentsManager.listInstalledRuntimes() should have length 2

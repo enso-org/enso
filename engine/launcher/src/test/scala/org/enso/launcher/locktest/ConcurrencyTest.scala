@@ -199,7 +199,7 @@ class ConcurrencyTest
         )
 
         distributionManager.tryCleaningTemporaryDirectory()
-        componentsManager.findOrInstallEngine(engine1, complain = false)
+        componentsManager.findOrInstallEngine(engine1)
       }
 
       sync.waitFor("t1-downloads-runtime")
@@ -223,7 +223,7 @@ class ConcurrencyTest
         )
 
         distributionManager.tryCleaningTemporaryDirectory()
-        componentsManager.findOrInstallEngine(engine2, complain = false)
+        componentsManager.findOrInstallEngine(engine2)
       }
 
       sync.join()
@@ -260,7 +260,7 @@ class ConcurrencyTest
             )
         )
 
-        componentsManager.findOrInstallEngine(engineVersion, complain = false)
+        componentsManager.findOrInstallEngine(engineVersion)
       }
 
       sync.waitFor("t1-downloads-engine")

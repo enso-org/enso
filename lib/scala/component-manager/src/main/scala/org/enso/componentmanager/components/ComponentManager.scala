@@ -10,7 +10,7 @@ import org.enso.componentmanager.locking.{LockType, Resource, ResourceManager}
 import org.enso.componentmanager.releases.ReleaseProvider
 import org.enso.componentmanager.releases.engine.EngineRelease
 import org.enso.componentmanager.releases.runtime.RuntimeReleaseProvider
-import org.enso.componentmanager.{components, DistributionManager, FileSystem}
+import org.enso.componentmanager.{DistributionManager, FileSystem}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -39,14 +39,14 @@ class ComponentManager(
     *
     * Returns None if the runtime is missing.
     */
-  def findRuntime(engine: Engine): Option[components.Runtime] =
+  def findRuntime(engine: Engine): Option[Runtime] =
     findRuntime(engine.manifest.runtimeVersion)
 
   /** Finds an installed runtime with the given `version`.
     *
     * Returns None if that version is not installed.
     */
-  def findRuntime(version: RuntimeVersion): Option[components.Runtime] = {
+  def findRuntime(version: RuntimeVersion): Option[Runtime] = {
     val name = runtimeNameForVersion(version)
     val path = distributionManager.paths.runtimes / name
     if (Files.exists(path)) {
@@ -110,7 +110,7 @@ class ComponentManager(
     * The components will be installed if needed.
     */
   def withEngineAndRuntime[R](engineVersion: SemVer)(
-    action: (Engine, components.Runtime) => R
+    action: (Engine, Runtime) => R
   ): R = {
     val engine  = findOrInstallEngine(version = engineVersion)
     val runtime = findOrInstallRuntime(engine)
@@ -152,31 +152,13 @@ class ComponentManager(
     * it is missing.
     *
     * @param engine the engine for which the runtime is requested
-    * @param complain if set and the runtime is missing, prints a warning and
-    *                 asks the user to install the missing runtime (unless
-    *                 [[cliOptions.autoConfirm]] is set, in which case it
-    *                 installs it without asking)
     */
-  private def findOrInstallRuntime(
-    engine: Engine,
-    complain: Boolean = true
-  ): components.Runtime =
+  private def findOrInstallRuntime(engine: Engine): Runtime =
     findRuntime(engine) match {
       case Some(found) => found
       case None =>
-        def complainAndAsk(): Boolean = {
-          logger.warn(
-            s"Runtime ${engine.manifest.runtimeVersion} required for $engine " +
-            s"is missing."
-          )
-          ??? // TODO [UI]
-//          cliOptions.autoConfirm || CLIOutput.askConfirmation(
-//            "Do you want to install the missing runtime?",
-//            yesDefault = true
-//          )
-        }
-        if (!complain || complainAndAsk()) {
-          val version = engine.manifest.runtimeVersion
+        val version = engine.manifest.runtimeVersion
+        if (userInterface.shouldInstallMissingRuntime(version)) {
           resourceManager.withResources(
             (Resource.AddOrRemoveComponents, LockType.Shared),
             (Resource.Runtime(version), LockType.Exclusive)
@@ -240,25 +222,12 @@ class ComponentManager(
     * it is missing.
     *
     * @param version the requested engine version
-    * @param complain if set and the engine is missing, prints a warning and
-    *                 asks the user to install the missing engine (unless
-    *                 [[cliOptions.autoConfirm]] is set, in which case it
-    *                 installs it without asking)
     */
-  def findOrInstallEngine(version: SemVer, complain: Boolean = true): Engine =
+  def findOrInstallEngine(version: SemVer): Engine =
     findEngine(version) match {
       case Some(found) => found
       case None =>
-        def complainAndAsk(): Boolean = {
-          logger.warn(s"Engine $version is missing.")
-          ??? // TODO [UI]
-//          cliOptions.autoConfirm || CLIOutput.askConfirmation(
-//            "Do you want to install the missing engine?",
-//            yesDefault = true
-//          )
-        }
-
-        if (!complain || complainAndAsk()) {
+        if (userInterface.shouldInstallMissingEngine(version)) {
           resourceManager.withResources(
             (Resource.AddOrRemoveComponents, LockType.Shared),
             (Resource.Engine(version), LockType.Exclusive)
@@ -279,22 +248,18 @@ class ComponentManager(
         }
     }
 
-  /** Finds installed engines that use the given `runtime`.
-    */
-  def findEnginesUsingRuntime(runtime: components.Runtime): Seq[Engine] =
+  /** Finds installed engines that use the given `runtime`. */
+  def findEnginesUsingRuntime(runtime: Runtime): Seq[Engine] =
     listInstalledEngines().filter(_.manifest.runtimeVersion == runtime.version)
 
-  /** Lists all installed runtimes.
-    */
-  def listInstalledRuntimes(): Seq[components.Runtime] =
+  /** Lists all installed runtimes. */
+  def listInstalledRuntimes(): Seq[Runtime] =
     FileSystem
       .listDirectory(distributionManager.paths.runtimes)
       .map(path => (path, loadGraalRuntime(path)))
-      .flatMap(handleErrorsAsWarnings[components.Runtime]("A runtime"))
+      .flatMap(handleErrorsAsWarnings[Runtime]("A runtime"))
 
-  /** Lists all installed engines.
-    * @return
-    */
+  /** Lists all installed engines. */
   def listInstalledEngines(): Seq[Engine] = {
     FileSystem
       .listDirectory(distributionManager.paths.engines)
@@ -449,7 +414,7 @@ class ComponentManager(
           * runtime may be removed if the installation fails.
           */
         def finishInstallation(
-          runtime: components.Runtime,
+          runtime: Runtime,
           wasJustInstalled: Boolean
         ): Engine = {
           val enginePath =
@@ -526,7 +491,7 @@ class ComponentManager(
 
   /** Loads the GraalVM runtime definition.
     */
-  private def loadGraalRuntime(path: Path): Try[components.Runtime] = {
+  private def loadGraalRuntime(path: Path): Try[Runtime] = {
     val name = path.getFileName.toString
     for {
       version <- parseGraalRuntimeVersionString(name)
@@ -549,7 +514,7 @@ class ComponentManager(
       case regex(javaVersionString, graalVersionString) =>
         SemVer(graalVersionString) match {
           case Some(graalVersion) =>
-            Some(components.RuntimeVersion(graalVersion, javaVersionString))
+            Some(RuntimeVersion(graalVersion, javaVersionString))
           case None =>
             logger.warn(
               s"Invalid runtime version string `$graalVersionString`."
@@ -570,7 +535,7 @@ class ComponentManager(
     for {
       version  <- parseEngineVersion(path)
       manifest <- loadAndCheckEngineManifest(path)
-      engine = components.Engine(version, path, manifest)
+      engine = Engine(version, path, manifest)
       _ <- engine.ensureValid()
     } yield engine
 
@@ -592,7 +557,7 @@ class ComponentManager(
     */
   private def loadAndCheckEngineManifest(
     path: Path
-  ): Try[components.Manifest] = {
+  ): Try[Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
       if (!manifest.isUsableWithCurrentVersion) {
         Failure(UpgradeRequiredError(manifest.minimumLauncherVersion))
