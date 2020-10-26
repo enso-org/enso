@@ -1,4 +1,5 @@
 from Base import all
+import Base.Data.Json
 import Base.Net.Proxy
 import Base.Net.Uri
 import Base.Net.Http.Auth
@@ -7,6 +8,7 @@ import Base.Net.Http.Header
 import Base.Net.Http.Request
 import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Http.Response
+import Base.Net.Http.Version
 import Base.System.File
 import Base.Time.Duration
 import Base.Time.Time
@@ -22,7 +24,7 @@ polyglot java import org.enso.base.Http_Utils
 
 type Http
 
-    type Http timeout auth follow_redirects proxy
+    type Http timeout auth follow_redirects proxy version
 
     ## Send an OPTIONS request.
 
@@ -98,14 +100,13 @@ type Http
         this.request req
 
     ## Send a POST request with body with content-type "application/json".
-       TODO: [DB] fix when JSON is implemented.
 
        > Example
          Send a POST request with json data.
-             json = '''
+             json = Json.parse <| '''
                  {"key":"val"}
              Http.new.post_json "http://httpbin.org/post" json
-    post_json : To_Uri -> Text -> Vector -> Response
+    post_json : To_Uri -> Json -> Vector -> Response
     post_json addr body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post addr (Request_Body.Json body_json) headers . with_headers new_headers
@@ -121,10 +122,10 @@ type Http
 
        > Example
          Send a PUT request with json data.
-             json = '''
+             json = Json.parse <| '''
                  {"key":"val"}
              Http.new.put_json "http://httpbin.org/put" json
-    put_json : To_Uri -> Text -> Vector -> Response
+    put_json : To_Uri -> Json -> Vector -> Response
     put_json addr body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put addr (Request_Body.Json body_json) headers . with_headers new_headers
@@ -187,7 +188,7 @@ type Http
                 Pair req (body_publishers.ofString [text])
             Request_Body.Json json ->
                 builder.header [Header.application_json.name, Header.application_json.value]
-                Pair req (body_publishers.ofString [json])
+                Pair req (body_publishers.ofString [json.to_text])
             Request_Body.Form form ->
                 add_multipart form =
                     body_builder = Http_Utils.multipart_body_builder []
@@ -242,9 +243,16 @@ type Http
                 Polyglot.invoke builder "proxy" [proxy_selector].to_array
             Proxy.None ->
                 Unit
+        # version
+        http_client_version = Polyglot.get_member HttpClient "Version"
+        case this.version of
+            Version.Http_1_1 ->
+                Polyglot.invoke builder "version" [http_client_version.valueOf ["HTTP_1_1"]].to_array
+            Version.Http_2 ->
+                Polyglot.invoke builder "version" [http_client_version.valueOf ["HTTP_2"]].to_array
         # build http client
         builder.build []
 
 new : Duration -> Auth -> Boolean -> Proxy -> Http
-new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.System) =
-    Http timeout auth follow_redirects proxy
+new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+    Http timeout auth follow_redirects proxy version
