@@ -52,11 +52,22 @@ async function check_version (name,required,cfg) {
     version     = version.trim()
     if (cfg.preprocess) { version = cfg.preprocess(version) }
     if (cfg.silent !== true) {
-        console.log(`Checking '${name}' version.`)
+        console.log(`Checking if '${name}' version is '${required}'.`)
     }
     if (version != required) {
         throw `[ERROR] The '${name}' version '${version}' does not match the required one '${required}'.`
     }
 }
 
-module.exports = {section,run,run_read,check_version,with_cwd}
+async function get_npm_info (name) {
+    let info = await run_read('npm',['info',name,'--json'])
+    return JSON.parse(info)
+}
+
+async function get_npm_lts_version_of (name) {
+    let info = await get_npm_info(name)
+    version  = info['dist-tags'].lts
+    return version
+}
+
+module.exports = {section,run,run_read,check_version,get_npm_info,get_npm_lts_version_of,with_cwd}

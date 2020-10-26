@@ -210,7 +210,7 @@ commands.watch.rust = async function(argv) {
     let build_args = []
     if (argv.crate != undefined) { build_args.push(`--crate=${argv.crate}`) }
     build_args  = build_args.join(' ')
-    let target  = '"' + `node ${paths.script.main} build --no-js --dev ${build_args} -- ` + cargoArgs.join(" ") + '"'
+    let target  = '"' + `node ${paths.script.main} --skip-version-validation build --no-js --dev ${build_args} -- ` + cargoArgs.join(" ") + '"'
     let args    = ['watch','-s',`${target}`]
     await cmd.with_cwd(paths.rust.root, async () => {
         await cmd.run('cargo',args)
