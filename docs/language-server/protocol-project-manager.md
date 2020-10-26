@@ -21,6 +21,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Types](#types)
   - [`ProjectMetadata`](#projectmetadata)
   - [`MissingComponentAction`](#missingcomponentaction)
+  - [`EngineVersion`](#engineversion)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
@@ -34,7 +35,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`task/progress-update`](#taskprogress-update)
   - [`task/finished`](#taskfinished)
 - [Components Management](#components-management)
-  - [`engine/list`](#enginelist)
+  - [`engine/list-installed`](#enginelist-installed)
+  - [`engine/list-available`](#enginelist-available)
   - [`engine/install`](#engineinstall)
   - [`engine/uninstall`](#engineuninstall)
 - [Configuration Management](#configuration-management)
@@ -44,12 +46,13 @@ transport formats, please look [here](./protocol-architecture).
 - [Logging Service](#logging-service)
   - [`logging-service/get-endpoint`](#logging-serviceget-endpoint)
 - [Language Server Management](#language-server-management)
-- [Errors](#errors-14)
+- [Errors](#errors-15)
   - [`MissingComponentError`](#missingcomponenterror)
   - [`BrokenComponentError`](#brokencomponenterror)
   - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired)
   - [`ComponentInstallationError`](#componentinstallationerror)
   - [`ComponentUninstallationError`](#componentuninstallationerror)
+  - [`ComponentRepositoryUnavailable`](#componentrepositoryunavailable)
   - [`ProjectNameValidationError`](#projectnamevalidationerror)
   - [`ProjectDataStoreError`](#projectdatastoreerror)
   - [`ProjectExistsError`](#projectexistserror)
@@ -99,6 +102,22 @@ complete an operation is missing.
 
 ```typescript
 type MissingComponentAction = "fail" | "install" | "force-install-broken";
+```
+
+### `EngineVersion`
+
+This type represents an installed or available engine version.
+
+#### Format
+
+```typescript
+interface EngineVersion {
+  /** Semver string of engine version. */
+  version: String;
+
+  /** Specifies if that version is marked as broken. */
+  markedAsBroken: bool;
+}
 ```
 
 ## Project Management Operations
@@ -529,9 +548,13 @@ interface TaskFailedNotification {
 
 ## Components Management
 
-### `engine/list`
+### `engine/list-installed`
 
 Lists engine versions currently installed.
+
+Please note that the broken marks associated with each engine currently
+represent the state at the moment of installation. As of now, if the broken mark
+has been added later, it is not updated automatically.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -541,21 +564,51 @@ Lists engine versions currently installed.
 #### Parameters
 
 ```typescript
-interface EngineVersionListRequest {}
+null;
 ```
 
 #### Result
 
 ```typescript
 interface EngineVersionListResponse {
-  /** List of semver strings identifying engine versions. */
-  versions: [String];
+  /** List of installed engines. */
+  versions: [EngineVersion];
 }
 ```
 
 #### Errors
 
 TBC
+
+### `engine/list-available`
+
+Queries the repository to list all engine versions that are available to be
+installed.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+interface EngineVersionListResponse {
+  /** List of available engines. */
+  versions: [EngineVersion];
+}
+```
+
+#### Errors
+
+- [`ComponentRepositoryUnavailable`](#componentrepositoryunavailable) to signal
+  that the component repository could not be reached.
 
 ### `engine/install`
 
@@ -586,7 +639,7 @@ interface EngineInstallRequest {
 #### Result
 
 ```typescript
-interface EngineInstallationSuccess {}
+null;
 ```
 
 #### Errors
@@ -621,7 +674,7 @@ interface EngineUninstallRequest {
 #### Result
 
 ```typescript
-interface EngineUninstallationSuccess {}
+null;
 ```
 
 #### Errors
@@ -742,7 +795,7 @@ Requests the endpoint for connecting to the logging service.
 #### Parameters
 
 ```typescript
-interface LoggingServiceEndpointRequest {}
+null;
 ```
 
 #### Result
@@ -848,6 +901,18 @@ Signals that uninstallation of a component has failed.
 "error" : {
   "code" : 4024,
   "message" : "The requested engine version is not installed."
+}
+```
+
+### `ComponentRepositoryUnavailable`
+
+Signals that the repository is unavailable and could not be queried (usually
+caused by lack of internet connection).
+
+```typescript
+"error" : {
+  "code" : 4025,
+  "message" : "Could not connect to github.com"
 }
 ```
 
