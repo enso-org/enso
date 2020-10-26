@@ -3,6 +3,7 @@ package org.enso.projectmanager.protocol
 import io.circe.generic.auto._
 import org.enso.jsonrpc.Protocol
 import org.enso.projectmanager.protocol.ProjectManagementApi._
+import org.enso.projectmanager.protocol.TaskProgressAPI._
 
 object JsonRpc {
 
@@ -16,5 +17,8 @@ object JsonRpc {
       .registerRequest(ProjectClose)
       .registerRequest(ProjectRename)
       .registerRequest(ProjectList)
+      .registerNotification(TaskStarted)
+      .registerNotification(TaskProgressUpdate)
+      .registerNotification(TaskFinished)
 
 }

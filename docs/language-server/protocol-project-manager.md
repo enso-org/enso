@@ -527,22 +527,14 @@ Indicates that a task has been finished, either successfully or with an error.
 #### Parameters
 
 ```typescript
-type TaskFinishNotification =
-  | TaskFinishedSuccessfullyNotification
-  | TaskFailedNotification;
-
-interface TaskFinishedSuccessfullyNotification {
+interface TaskFinishedNotification {
   taskId: UUID;
 
   /** Optional message informing about task completion. */
   message?: String;
-}
 
-interface TaskFailedNotification {
-  taskId: UUID;
-
-  /** Message explaining the encountered error. */
-  message: String;
+  /** Specifies if the task succeeded or failed. */
+  success: bool;
 }
 ```
 
