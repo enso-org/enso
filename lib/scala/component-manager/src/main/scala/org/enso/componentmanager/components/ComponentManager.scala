@@ -21,7 +21,9 @@ import scala.util.{Failure, Success, Try, Using}
   *
   * See Note [Components Manager Concurrency Model]
   *
-  * @param userInterface TODO [UI]
+  * @param userInterface a [[ComponentManagementUserInterface]] instance that
+  *                      specifies how to handle user interactions (displaying
+  *                      progress and handling corner cases)
   * @param distributionManager the [[DistributionManager]] to use
   * @param engineReleaseProvider the provider of engine releases
   * @param runtimeReleaseProvider the provider of runtime releases

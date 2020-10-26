@@ -8,9 +8,15 @@ import org.enso.launcher.cli.CLIComponentManagementUserInterface
 import org.enso.launcher.releases.EnsoRepository
 
 object DefaultComponentManager {
-  def make(globalCLIOptions: GlobalCLIOptions): ComponentManager =
+  def make(
+    globalCLIOptions: GlobalCLIOptions,
+    alwaysInstallMissing: Boolean
+  ): ComponentManager =
     new ComponentManager(
-      new CLIComponentManagementUserInterface(globalCLIOptions),
+      new CLIComponentManagementUserInterface(
+        globalCLIOptions,
+        alwaysInstallMissing
+      ),
       DistributionManager,
       DefaultResourceManager,
       EnsoRepository.defaultEngineReleaseProvider,

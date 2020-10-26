@@ -7,14 +7,21 @@ import org.enso.componentmanager.components.{
   RuntimeVersion
 }
 
-class TestComponentManagementUserInterface
+class TestComponentManagementUserInterface(installBroken: Boolean)
     extends ComponentManagementUserInterface {
 
   /** @inheritdoc */
   override def trackProgress(task: TaskProgress[_]): Unit = ()
 
   /** @inheritdoc */
-  override def shouldInstallBrokenEngine(version: SemVer): Boolean = false
+  override def shouldInstallBrokenEngine(version: SemVer): Boolean = {
+    wasAskedForBroken = true
+    installBroken
+  }
+
+  private var wasAskedForBroken: Boolean = false
+
+  def wasAskedToInstallBroken: Boolean = wasAskedForBroken
 
   /** @inheritdoc */
   override def shouldInstallMissingEngine(version: SemVer): Boolean = true
@@ -22,4 +29,9 @@ class TestComponentManagementUserInterface
   /** @inheritdoc */
   override def shouldInstallMissingRuntime(version: RuntimeVersion): Boolean =
     true
+}
+
+object TestComponentManagementUserInterface {
+  def default: TestComponentManagementUserInterface =
+    new TestComponentManagementUserInterface(installBroken = false)
 }

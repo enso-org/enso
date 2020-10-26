@@ -135,7 +135,7 @@ class ConcurrencyTest
     }
 
     val componentsManager = new ComponentManager(
-      new TestComponentManagementUserInterface,
+      TestComponentManagementUserInterface.default,
       distributionManager,
       resourceManager,
       engineProvider,

@@ -40,7 +40,8 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 case class Launcher(cliOptions: GlobalCLIOptions) {
   private val logger = Logger[Launcher]
 
-  private lazy val componentsManager = DefaultComponentManager.make(cliOptions)
+  private lazy val componentsManager =
+    DefaultComponentManager.make(cliOptions, alwaysInstallMissing = false)
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
@@ -150,12 +151,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * Also installs the required runtime if it wasn't already installed.
     */
   def installEngine(version: SemVer): Int = {
-    val existing = componentsManager.findEngine(version)
+    val installingComponentManager =
+      DefaultComponentManager.make(cliOptions, alwaysInstallMissing = true)
+    val existing = installingComponentManager.findEngine(version)
     if (existing.isDefined) {
       InfoLogger.info(s"Engine $version is already installed.")
     } else {
       // TODO [RW] re-implement {complain = false} here
-      componentsManager.findOrInstallEngine(version)
+      installingComponentManager.findOrInstallEngine(version)
     }
     0
   }

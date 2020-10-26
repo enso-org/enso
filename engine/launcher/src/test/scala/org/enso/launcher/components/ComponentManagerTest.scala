@@ -3,7 +3,10 @@ package org.enso.launcher.components
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.components.ComponentManager
+import org.enso.componentmanager.components.{
+  ComponentManagementUserInterface,
+  ComponentManager
+}
 import org.enso.componentmanager.releases.engine.EngineReleaseProvider
 import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
 import org.enso.componentmanager.releases.testing.FakeReleaseProvider
@@ -47,7 +50,9 @@ class ComponentManagerTest
     * [[Environment]] for the created managers.
     */
   def makeManagers(
-    environmentOverrides: Map[String, String] = Map.empty
+    environmentOverrides: Map[String, String] = Map.empty,
+    userInterface: ComponentManagementUserInterface =
+      TestComponentManagementUserInterface.default
   ): (DistributionManager, ComponentManager, Environment) = {
     val env = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager =
@@ -68,7 +73,7 @@ class ComponentManagerTest
       FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))
     )
     val componentsManager = new ComponentManager(
-      new TestComponentManagementUserInterface,
+      userInterface,
       distributionManager,
       TestLocalResourceManager.create(),
       engineProvider,

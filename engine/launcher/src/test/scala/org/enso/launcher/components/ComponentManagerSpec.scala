@@ -4,7 +4,6 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.components
 import org.enso.componentmanager.components.RuntimeVersion
 import org.enso.componentmanager.config.GlobalConfigurationManager
-import org.enso.loggingservice.{LogLevel, TestLogger}
 
 class ComponentManagerSpec extends ComponentManagerTest {
 
@@ -63,8 +62,10 @@ class ComponentManagerSpec extends ComponentManagerTest {
     }
 
     "preserve the broken mark when installing a broken release" in {
-      val componentsManager = makeComponentsManager()
-      val brokenVersion     = SemVer(0, 999, 0, Some("marked-broken"))
+      val componentsManager = makeManagers(userInterface =
+        new TestComponentManagementUserInterface(installBroken = true)
+      )._2
+      val brokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
       componentsManager.findOrInstallEngine(brokenVersion)
 
       assert(
@@ -75,7 +76,10 @@ class ComponentManagerSpec extends ComponentManagerTest {
     }
 
     "skip broken releases when finding latest installed version" in {
-      val (distributionManager, componentsManager, _) = makeManagers()
+      val (distributionManager, componentsManager, _) =
+        makeManagers(userInterface =
+          new TestComponentManagementUserInterface(installBroken = true)
+        )
       val configurationManager =
         new GlobalConfigurationManager(componentsManager, distributionManager)
 
@@ -88,17 +92,16 @@ class ComponentManagerSpec extends ComponentManagerTest {
     }
 
     "issue a warning when a broken release is requested" in {
-      val componentsManager = makeComponentsManager()
+      val userInterface =
+        new TestComponentManagementUserInterface(installBroken = true)
+      val componentsManager = makeManagers(userInterface = userInterface)._2
 
       val brokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
-      val logs = TestLogger.gatherLogs {
-        componentsManager.findOrInstallEngine(brokenVersion)
-      }
-      val warnings = logs.filter(_.logLevel == LogLevel.Warning)
-      warnings should have size 1
-      val expectedWarning = warnings.head.message
-      expectedWarning should include("is marked as broken")
-      expectedWarning should include("consider changing")
+      componentsManager.findOrInstallEngine(brokenVersion)
+      assert(
+        userInterface.wasAskedToInstallBroken,
+        "User interface should have been queried if broken versions are allowed."
+      )
       componentsManager.findEngine(brokenVersion).value
     }
 

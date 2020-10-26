@@ -9,8 +9,10 @@ import org.enso.componentmanager.components.{
   RuntimeVersion
 }
 
-class CLIComponentManagementUserInterface(cliOptions: GlobalCLIOptions)
-    extends ComponentManagementUserInterface {
+class CLIComponentManagementUserInterface(
+  cliOptions: GlobalCLIOptions,
+  alwaysInstallMissing: Boolean
+) extends ComponentManagementUserInterface {
 
   /** @inheritdoc */
   override def trackProgress(task: TaskProgress[_]): Unit =
@@ -21,7 +23,7 @@ class CLIComponentManagementUserInterface(cliOptions: GlobalCLIOptions)
 
   /** @inheritdoc */
   override def shouldInstallBrokenEngine(version: SemVer): Boolean =
-    if (cliOptions.autoConfirm) { // TODO [UI]
+    if (cliOptions.autoConfirm) {
       logger.warn(
         s"The engine release $version is marked as broken and it should " +
         s"not be used. Since `auto-confirm` is set, the installation will " +
@@ -50,7 +52,7 @@ class CLIComponentManagementUserInterface(cliOptions: GlobalCLIOptions)
       )
     }
 
-    complainAndAsk() // TODO [RW] how to detect if we want to complain or not
+    alwaysInstallMissing || complainAndAsk()
   }
 
   /** @inheritdoc */
