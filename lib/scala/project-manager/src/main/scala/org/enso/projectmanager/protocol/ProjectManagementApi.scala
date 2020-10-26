@@ -2,8 +2,14 @@ package org.enso.projectmanager.protocol
 
 import java.util.UUID
 
+import nl.gn0s1s.bump.SemVer
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
-import org.enso.projectmanager.data.{ProjectMetadata, Socket}
+import org.enso.pkg.EnsoVersion
+import org.enso.projectmanager.data.{
+  MissingComponentAction,
+  ProjectMetadata,
+  Socket
+}
 
 /** The project management JSON RPC API provided by the project manager.
   * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
@@ -13,7 +19,11 @@ object ProjectManagementApi {
 
   case object ProjectCreate extends Method("project/create") {
 
-    case class Params(name: String)
+    case class Params(
+      name: String,
+      version: Option[EnsoVersion],
+      missingComponentAction: Option[MissingComponentAction]
+    )
 
     case class Result(projectId: UUID)
 
@@ -54,7 +64,10 @@ object ProjectManagementApi {
 
   case object ProjectOpen extends Method("project/open") {
 
-    case class Params(projectId: UUID)
+    case class Params(
+      projectId: UUID,
+      missingComponentAction: Option[MissingComponentAction]
+    )
 
     case class Result(
       languageServerJsonAddress: Socket,
@@ -97,6 +110,25 @@ object ProjectManagementApi {
       type Result = ProjectList.Result
     }
   }
+
+  case class MissingComponentError(msg: String) extends Error(4020, msg)
+
+  case class BrokenComponentError(msg: String) extends Error(4021, msg)
+
+  // TODO [RW] add payload
+  case class ProjectManagerUpgradeRequired(minimumRequiredVersion: SemVer)
+      extends Error(
+        4022,
+        s"Project manager $minimumRequiredVersion is required to install the " +
+        s"requested engine. Please upgrade."
+      )
+
+  case class ComponentInstallationError(msg: String) extends Error(4023, msg)
+
+  case class ComponentUninstallationError(msg: String) extends Error(4024, msg)
+
+  case class ComponentRepositoryUnavailable(msg: String)
+      extends Error(4025, msg)
 
   case class ProjectNameValidationError(msg: String) extends Error(4001, msg)
 

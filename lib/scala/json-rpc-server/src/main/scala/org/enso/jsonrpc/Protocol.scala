@@ -95,6 +95,13 @@ case class ResponseError(id: Option[Id], error: Error)
   */
 abstract class Error(val code: Int, val message: String)
 
+// TODO [RW] error with payload
+//abstract class ErrorWithPayload[+Payload](
+//  code: Int,
+//  message: String,
+//  val data: Payload
+//) extends Error(code, message)
+
 /** Builtin error types, defined by JSON RPC.
   */
 object Errors {

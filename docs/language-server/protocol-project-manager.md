@@ -781,12 +781,6 @@ null;
 
 Requests the endpoint for connecting to the logging service.
 
-> TODO [RW] discuss: This approach assumes that the project manager always
-> starts the logging service. It makes sense as it needs to log its boot, but we
-> may want to somehow allow the client to decide or maybe re-configure the
-> logging service? But it would make more sense to do it when launching the
-> project-manager.
-
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol

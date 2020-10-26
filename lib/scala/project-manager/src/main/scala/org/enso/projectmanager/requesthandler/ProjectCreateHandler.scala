@@ -6,7 +6,9 @@ import akka.actor._
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
+import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion}
 import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
@@ -34,7 +36,15 @@ class ProjectCreateHandler[F[+_, +_]: Exec](
 
   private def requestStage: Receive = {
     case Request(ProjectCreate, id, params: ProjectCreate.Params) =>
-      Exec[F].exec(service.createUserProject(params.name)).pipeTo(self)
+      val version = params.version.getOrElse(DefaultEnsoVersion)
+      val missingComponentAction =
+        params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
+      Exec[F]
+        .exec(
+          service
+            .createUserProject(params.name, version, missingComponentAction)
+        )
+        .pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
