@@ -17,8 +17,10 @@ polyglot java import java.lang.System
 polyglot java import java.util.Objects
 
 spec =
-    host = if Objects.equals ["true", System.getenv ["CI"]] then "http://localhost:8080" else "http://httpbin.org"
-    httpbin (path = "") = host + path
+    is_ci = Objects.equals ["true", System.getenv ["CI"]]
+    if is_ci then here.spec_impl else Unit
+
+spec_impl =
     describe "Http" <|
         it "should create HTTP client with timeout setting" <|
             http = Http.new (timeout = 30.seconds)
@@ -35,36 +37,32 @@ spec =
             http = Http.new (proxy = proxy_setting)
             http.proxy.should_equal proxy_setting
         it "should send GET request" <|
-            res = Http.new.get (httpbin "/get")
+            res = Http.new.get "http://localhost:8080/get"
             res.code.should_equal Status_Code.ok
-        it "should send HEAD request" <|
-            res = Http.new.head (httpbin "")
-            res.code.should_equal Status_Code.ok
-            res.body.to_text.should_equal ""
         it "should POST empty body" <|
             body_empty = Request_Body.Empty
-            res = Http.new.post (httpbin "/post") body_empty
+            res = Http.new.post "http://localhost:8080/post" body_empty
             res.code.should_equal Status_Code.ok
         it "should POST text body" <|
             body_text = Request_Body.Text "Hello World!"
-            res = Http.new.post (httpbin "/post") body_text
+            res = Http.new.post "http://localhost:8080/post" body_text
             res.code.should_equal Status_Code.ok
         it "should POST form text" <|
             form_parts = [Form.text_field "key" "val"]
-            res = Http.new.post_form (httpbin "/post") form_parts
+            res = Http.new.post_form "http://localhost:8080/post" form_parts
             res.code.should_equal Status_Code.ok
         it "should POST form file" <|
             test_file = Enso_Project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
-            res = Http.new.post_form (httpbin "/post") form_parts
+            res = Http.new.post_form "http://localhost:8080/post" form_parts
             res.code.should_equal Status_Code.ok
         it "should POST form multipart" <|
             test_file = Enso_Project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
-            res = Http.new.post_form (httpbin "/post") form_parts [Header.multipart_form_data]
+            res = Http.new.post_form "http://localhost:8080/post" form_parts [Header.multipart_form_data]
             res.code.should_equal Status_Code.ok
         it "should POST Json" <|
             json = '''
                 {"key":"val"}
-            res = Http.new.post_json (httpbin "/post") json
+            res = Http.new.post_json "http://localhost:8080/post" json
             res.code.should_equal Status_Code.ok
