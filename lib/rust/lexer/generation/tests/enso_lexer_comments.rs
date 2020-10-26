@@ -27,7 +27,7 @@ use lexer_definition::library::token::Token;
 fn disable_eof() {
     let input    = "# Here is a nice long comment string.";
     let expected = token::Stream::from(vec![
-        Token::DisableComment(" Here is a nice long comment string.",0)
+        Token::disable_comment(" Here is a nice long comment string.", 0)
     ]);
     assert_lexes(input,expected);
 }
@@ -36,12 +36,12 @@ fn disable_eof() {
 fn disable_lf() {
     let input    = "# Here is a nice long comment string.\n";
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::Line(
-                    vec![Token::DisableComment(" Here is a nice long comment string.",0)],
+                Token::line(
+                    vec![Token::disable_comment(" Here is a nice long comment string.", 0)],
                     0,
                     token::LineEnding::LF
                 )
@@ -56,12 +56,12 @@ fn disable_lf() {
 fn disable_crlf() {
     let input    = "# Here is a nice long comment string.\r\n";
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::Line(
-                    vec![Token::DisableComment(" Here is a nice long comment string.",0)],
+                Token::line(
+                    vec![Token::disable_comment(" Here is a nice long comment string.", 0)],
                     0,
                     token::LineEnding::CRLF
                 )
@@ -76,12 +76,12 @@ fn disable_crlf() {
 fn disable_in_line() {
     let input    = "a + b <*> N # Compare the frobnicators.";
     let expected = token::Stream::from(vec![
-        Token::Variable("a",0),
-        Token::Operator("+",1),
-        Token::Variable("b",1),
-        Token::Operator("<*>",1),
-        Token::Referent("N",1),
-        Token::DisableComment(" Compare the frobnicators.",1),
+        Token::variable("a", 0),
+        Token::operator("+", 1),
+        Token::variable("b", 1),
+        Token::operator("<*>", 1),
+        Token::referent("N", 1),
+        Token::disable_comment(" Compare the frobnicators.", 1),
     ]);
     assert_lexes(input,expected)
 }
@@ -90,21 +90,21 @@ fn disable_in_line() {
 fn disable_in_interpolate() {
     let input    = "'String `1 + 1 # add` stuff.'";
     let expected = token::Stream::from(vec![
-        Token::TextLine(
+        Token::text_line(
             token::TextStyle::FormatLine,
             vec![
-                Token::TextSegmentRaw("String ",0),
-                Token::TextSegmentInterpolate(
+                Token::text_segment_raw("String ", 0),
+                Token::text_segment_interpolate(
                     vec![
-                        Token::Number("","1",0),
-                        Token::Operator("+",1),
-                        Token::Number("","1",1),
-                        Token::Unrecognized("#",1),
-                        Token::Variable("add",1)
+                        Token::number("", "1", 0),
+                        Token::operator("+", 1),
+                        Token::number("", "1", 1),
+                        Token::unrecognized("#", 1),
+                        Token::variable("add", 1)
                     ],
                     0
                 ),
-                Token::TextSegmentRaw(" stuff.",0),
+                Token::text_segment_raw(" stuff.", 0),
             ],
             0
         )
@@ -116,9 +116,9 @@ fn disable_in_interpolate() {
 fn doc_single_line_eof() {
     let input    = "## Foo bar baz";
     let expected = token::Stream::from(vec![
-        Token::DocComment(
+        Token::doc_comment(
             vec![
-                Token::Line(vec![Token::TextSegmentRaw("Foo bar baz",0)],0,token::LineEnding::None)
+                Token::line(vec![Token::text_segment_raw("Foo bar baz", 0)], 0, token::LineEnding::None)
             ],
             3,
             0
@@ -131,16 +131,16 @@ fn doc_single_line_eof() {
 fn doc_single_line_lf() {
     let input    = "## Foo bar baz\n";
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
-                                    vec![Token::TextSegmentRaw("Foo bar baz",0)],
+                                Token::line(
+                                    vec![Token::text_segment_raw("Foo bar baz", 0)],
                                     0,
                                     token::LineEnding::LF
                                 )
@@ -152,7 +152,7 @@ fn doc_single_line_lf() {
                     0,
                     token::LineEnding::None
                 ),
-                Token::BlankLine(0,token::LineEnding::None),
+                Token::blank_line(0, token::LineEnding::None),
             ],
             0
         )
@@ -164,16 +164,16 @@ fn doc_single_line_lf() {
 fn doc_single_line_crlf() {
     let input    = "## Foo bar baz\r\n";
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
-                                    vec![Token::TextSegmentRaw("Foo bar baz",0)],
+                                Token::line(
+                                    vec![Token::text_segment_raw("Foo bar baz", 0)],
                                     0,
                                     token::LineEnding::CRLF
                                 )
@@ -185,7 +185,7 @@ fn doc_single_line_crlf() {
                     0,
                     token::LineEnding::None
                 ),
-                Token::BlankLine(0,token::LineEnding::None),
+                Token::blank_line(0, token::LineEnding::None),
             ],
             0
         )
@@ -197,21 +197,21 @@ fn doc_single_line_crlf() {
 fn doc_in_interpolate() {
     let input    = "'String `1 + 1 ## add` stuff.'";
     let expected = token::Stream::from(vec![
-        Token::TextLine(
+        Token::text_line(
             token::TextStyle::FormatLine,
             vec![
-                Token::TextSegmentRaw("String ",0),
-                Token::TextSegmentInterpolate(
+                Token::text_segment_raw("String ", 0),
+                Token::text_segment_interpolate(
                     vec![
-                        Token::Number("","1",0),
-                        Token::Operator("+",1),
-                        Token::Number("","1",1),
-                        Token::Unrecognized("##",1),
-                        Token::Variable("add",1)
+                        Token::number("", "1", 0),
+                        Token::operator("+", 1),
+                        Token::number("", "1", 1),
+                        Token::unrecognized("##", 1),
+                        Token::variable("add", 1)
                     ],
                     0
                 ),
-                Token::TextSegmentRaw(" stuff.",0),
+                Token::text_segment_raw(" stuff.", 0),
             ],
             0
         )
@@ -231,36 +231,36 @@ r#"##  Here is a doc comment.
     Until the indentation decreases back.
 
 trailing_blanks_not_part_of_comment"#);
-    let doc_comment = Token::DocComment(
+    let doc_comment = Token::doc_comment(
         vec![
-            Token::Line(
-                vec![Token::TextSegmentRaw("Here is a doc comment.",0)],
+            Token::line(
+                vec![Token::text_segment_raw("Here is a doc comment.", 0)],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(
-                vec![Token::TextSegmentRaw("It spans multiple lines.",0)],
+            Token::line(
+                vec![Token::text_segment_raw("It spans multiple lines.", 0)],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(
-                vec![Token::TextSegmentRaw("    Some are indented much further.",0)],
+            Token::line(
+                vec![Token::text_segment_raw("    Some are indented much further.", 0)],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(
-                vec![Token::TextSegmentRaw("    And this is okay.",0)],
+            Token::line(
+                vec![Token::text_segment_raw("    And this is okay.", 0)],
                 0,
                 token::LineEnding::LF
             ),
-            Token::BlankLine(0,token::LineEnding::LF),
-            Token::Line(
-                vec![Token::TextSegmentRaw("It keeps going, even with blank lines.",0)],
+            Token::blank_line(0, token::LineEnding::LF),
+            Token::line(
+                vec![Token::text_segment_raw("It keeps going, even with blank lines.", 0)],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(
-                vec![Token::TextSegmentRaw("Until the indentation decreases back.",0)],
+            Token::line(
+                vec![Token::text_segment_raw("Until the indentation decreases back.", 0)],
                 0,
                 token::LineEnding::LF
             ),
@@ -269,14 +269,14 @@ trailing_blanks_not_part_of_comment"#);
         0
     );
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::Line(vec![doc_comment],0,token::LineEnding::None),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
-                    vec![Token::Variable("trailing_blanks_not_part_of_comment",0)],
+                Token::line(vec![doc_comment], 0, token::LineEnding::None),
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
+                    vec![Token::variable("trailing_blanks_not_part_of_comment", 0)],
                     0,
                     token::LineEnding::None
                 )
@@ -291,21 +291,21 @@ trailing_blanks_not_part_of_comment"#);
 fn doc_mixed_line_endings() {
     let input    = "## Start a doc comment\n   It has indent 3.\r\n    \n    An indented blank too.";
     let expected = token::Stream::from(vec![
-        Token::DocComment(
+        Token::doc_comment(
             vec![
-                Token::Line(
-                    vec![Token::TextSegmentRaw("Start a doc comment",0)],
+                Token::line(
+                    vec![Token::text_segment_raw("Start a doc comment", 0)],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::Line(
-                    vec![Token::TextSegmentRaw("It has indent 3.",0)],
+                Token::line(
+                    vec![Token::text_segment_raw("It has indent 3.", 0)],
                     0,
                     token::LineEnding::CRLF
                 ),
-                Token::BlankLine(4,token::LineEnding::LF),
-                Token::Line(
-                    vec![Token::TextSegmentRaw(" An indented blank too.",0)],
+                Token::blank_line(4, token::LineEnding::LF),
+                Token::line(
+                    vec![Token::text_segment_raw(" An indented blank too.", 0)],
                     0,
                     token::LineEnding::None
                 )

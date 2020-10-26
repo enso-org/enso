@@ -65,20 +65,37 @@ pub fn run_bench_sizes(name:&str, input:&str, add_newline:bool, c:&mut Criterion
 /// meaning that the output will be _larger_ than `size` bytes. If the size of
 /// the input already exceeds `size`, it is returned unchanged.
 pub fn replicate_to_size(input:&str, size:usize, add_newline:bool) -> String {
-    let input_size = input.len();
-    let times         = 1 + (size / input_size);
+    let input_size        = input.len();
+    let times             = 1 + (size / input_size);
     let mut input_newline = input.to_string();
-    if add_newline {
-        input_newline.push('\n');
-    } else {
-        input_newline.push(' ');
-    }
+    let to_add            = if add_newline { '\n' } else { ' ' };
+    input_newline.push(to_add);
     input_newline.repeat(times)
 }
 
 /// Replace any windows-style line-endings in `input` with unix-style line-endings.
 fn preprocess(input:&str) -> String {
     input.replace("\r\n","\n")
+}
+
+
+
+// ==============
+// === Macros ===
+// ==============
+
+#[macro_export]
+macro_rules! bench {
+    (bench_name = $bench_name:literal; fun_name = $fun_name:ident; bench_input = $bench_input:expr;) => {
+        pub fn $fun_name(c:&mut Criterion) {
+            src::run_bench_sizes(
+                $bench_name,
+                $bench_input.as_str(),
+                true,
+                c
+            )
+        }
+    }
 }
 
 

@@ -26,42 +26,42 @@ use lexer_definition::library::token::Token;
 #[test]
 fn integer() {
     let input    = "13831";
-    let expected = token::Stream::from(vec![Token::Number("","13831",0)]);
+    let expected = token::Stream::from(vec![Token::number("", "13831", 0)]);
     assert_lexes(input,expected);
 }
 
 #[test]
 fn integer_with_explicit_base() {
     let input    = "10_13831";
-    let expected = token::Stream::from(vec![Token::Number("10","13831",0)]);
+    let expected = token::Stream::from(vec![Token::number("10", "13831", 0)]);
     assert_lexes(input,expected);
 }
 
 #[test]
 fn dangling_base() {
     let input    = "10_";
-    let expected = token::Stream::from(vec![Token::DanglingBase("10",0)]);
+    let expected = token::Stream::from(vec![Token::dangling_base("10", 0)]);
     assert_lexes(input,expected);
 }
 
 #[test]
 fn hex_number() {
     let input    = "16_ff";
-    let expected = token::Stream::from(vec![Token::Number("16","ff",0)]);
+    let expected = token::Stream::from(vec![Token::number("16", "ff", 0)]);
     assert_lexes(input,expected);
 }
 
 #[test]
 fn decimal() {
     let input    = "2.71828";
-    let expected = token::Stream::from(vec![Token::Number("","2.71828",0)]);
+    let expected = token::Stream::from(vec![Token::number("", "2.71828", 0)]);
     assert_lexes(input,expected);
 }
 
 #[test]
 fn decimal_with_explicit_base() {
     let input    = "10_2.71828";
-    let expected = token::Stream::from(vec![Token::Number("10","2.71828",0)]);
+    let expected = token::Stream::from(vec![Token::number("10", "2.71828", 0)]);
     assert_lexes(input,expected);
 }
 
@@ -69,8 +69,8 @@ fn decimal_with_explicit_base() {
 fn error_base() {
     let input    = "10.2_2";
     let expected = token::Stream::from(vec![
-        Token::Number("","10.2",0),
-        Token::InvalidSuffix("_2",0),
+        Token::number("", "10.2", 0),
+        Token::invalid_suffix("_2", 0),
     ]);
     assert_lexes(input,expected);
 }
@@ -79,7 +79,7 @@ fn error_base() {
 fn offset_number() {
     let input    = "    10.2";
     let expected = token::Stream::from(vec![
-        Token::Number("","10.2",4),
+        Token::number("", "10.2", 4),
     ]);
     assert_lexes(input,expected);
 }

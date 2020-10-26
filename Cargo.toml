@@ -34,7 +34,6 @@ debug-assertions = true
 opt-level        = 3
 lto              = true
 debug            = false
-panic            = 'unwind'
 debug-assertions = false
 
 [profile.bench]

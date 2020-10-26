@@ -35,42 +35,42 @@ r#"f
     argument_4
     argument_5"#);
     let block_fn_args =
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             4,
             vec![
-                Token::Line(
-                    vec![Token::Variable("argument_1",0)],
+                Token::line(
+                    vec![Token::variable("argument_1", 0)],
                     0,
                     LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("argument_2",0),
+                        Token::variable("argument_2", 0),
                     ],
                     0,
                     LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("fn",0),
-                        Token::Variable("a1",1),
-                        Token::Variable("a2",1),
-                        Token::Variable("a3",1),
+                        Token::variable("fn", 0),
+                        Token::variable("a1", 1),
+                        Token::variable("a2", 1),
+                        Token::variable("a3", 1),
                     ],
                     0,
                     LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("argument_4",0),
+                        Token::variable("argument_4", 0),
                     ],
                     0,
                     LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("argument_5",0),
+                        Token::variable("argument_5", 0),
                     ],
                     0,
                     LineEnding::None
@@ -78,16 +78,16 @@ r#"f
             ],
             0
         );
-    let top_level_first_line = Token::Line(
+    let top_level_first_line = Token::line(
         vec![
-            Token::Variable("f",0),
+            Token::variable("f", 0),
             block_fn_args
         ],
         0,
         LineEnding::LF
     );
     let top_level_block = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             0,
             vec![top_level_first_line],
@@ -101,26 +101,26 @@ r#"f
 #[test]
 fn empty_lines() {
     let input        = "f\r\n    a\n\n    b\n";
-    let nested_block = Token::Block(
+    let nested_block = Token::block(
         BlockType::Continuous,
         4,
         vec![
-            Token::Line(vec![Token::Variable("a",0)],0,LineEnding::LF),
-            Token::BlankLine(0,LineEnding::LF),
-            Token::Line(vec![Token::Variable("b",0)],0,LineEnding::LF),
+            Token::line(vec![Token::variable("a", 0)], 0, LineEnding::LF),
+            Token::blank_line(0, LineEnding::LF),
+            Token::line(vec![Token::variable("b", 0)], 0, LineEnding::LF),
         ],
         0
     );
-    let top_line = Token::Line(
+    let top_line = Token::line(
         vec![
-            Token::Variable("f",0),
+            Token::variable("f", 0),
             nested_block
         ],
         0,
         LineEnding::CRLF
     );
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             0,
             vec![top_line],
@@ -140,15 +140,15 @@ bar
 baz
 "#);
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             0,
             vec![
-                Token::BlankLine(0,LineEnding::LF),
-                Token::BlankLine(0,LineEnding::LF),
-                Token::Line(vec![Token::Variable("foo",0)],0,LineEnding::LF),
-                Token::Line(vec![Token::Variable("bar",0)],0,LineEnding::LF),
-                Token::Line(vec![Token::Variable("baz",0)],0,LineEnding::LF),
+                Token::blank_line(0, LineEnding::LF),
+                Token::blank_line(0, LineEnding::LF),
+                Token::line(vec![Token::variable("foo", 0)], 0, LineEnding::LF),
+                Token::line(vec![Token::variable("bar", 0)], 0, LineEnding::LF),
+                Token::line(vec![Token::variable("baz", 0)], 0, LineEnding::LF),
             ],
             0
         )
@@ -162,26 +162,26 @@ fn with_operator() {
 r#"x ->
     foo x 1
 "#);
-    let nested_block = Token::Block(
+    let nested_block = Token::block(
         BlockType::Discontinuous,
         4,
         vec![
-            Token::Line(vec![
-                Token::Variable("foo",0),
-                Token::Variable("x",1),
-                Token::Number("","1",1),
+            Token::line(vec![
+                Token::variable("foo", 0),
+                Token::variable("x", 1),
+                Token::number("", "1", 1),
             ], 0, LineEnding::LF)
         ],
         0
     );
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             0,
             vec![
-                Token::Line(vec![
-                    Token::Variable("x",0),
-                    Token::Operator("->",1),
+                Token::line(vec![
+                    Token::variable("x", 0),
+                    Token::operator("->", 1),
                     nested_block
                 ], 0, LineEnding::LF)
             ],
@@ -201,37 +201,37 @@ some_long_thing
 
     quux
 "#);
-    let function_block = Token::Block(
+    let function_block = Token::block(
         BlockType::Discontinuous,
         8,
         vec![
-            Token::Line(vec![Token::Referent("Bar",0)],0,LineEnding::LF),
-            Token::Line(vec![Token::Variable("baz",0)],0,LineEnding::LF),
-            Token::BlankLine(0,LineEnding::LF),
+            Token::line(vec![Token::referent("Bar", 0)], 0, LineEnding::LF),
+            Token::line(vec![Token::variable("baz", 0)], 0, LineEnding::LF),
+            Token::blank_line(0, LineEnding::LF),
         ],
         0
     );
-    let foo_block = Token::Block(
+    let foo_block = Token::block(
         BlockType::Continuous,
         4,
         vec![
-            Token::Line(vec![
-                Token::Variable("foo",0),
-                Token::Operator("->",1),
+            Token::line(vec![
+                Token::variable("foo", 0),
+                Token::operator("->", 1),
                 function_block,
             ], 0, LineEnding::LF),
-            Token::Line(vec![Token::Variable("quux",0)],0,LineEnding::LF),
+            Token::line(vec![Token::variable("quux", 0)], 0, LineEnding::LF),
         ],
         0
     );
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             0,
             vec![
-                Token::BlankLine(0,LineEnding::LF),
-                Token::Line(vec![
-                    Token::Variable("some_long_thing",0),
+                Token::blank_line(0, LineEnding::LF),
+                Token::line(vec![
+                    Token::variable("some_long_thing", 0),
                     foo_block
                 ], 0, LineEnding::LF),
             ],
@@ -250,38 +250,38 @@ some_long_thing
         baz
 quux
 "#);
-    let function_block = Token::Block(
+    let function_block = Token::block(
         BlockType::Discontinuous,
         8,
         vec![
-            Token::Line(vec![Token::Referent("Bar",0)],0,LineEnding::LF),
-            Token::Line(vec![Token::Variable("baz",0)],0,LineEnding::LF),
+            Token::line(vec![Token::referent("Bar", 0)], 0, LineEnding::LF),
+            Token::line(vec![Token::variable("baz", 0)], 0, LineEnding::LF),
         ],
         0
     );
-    let foo_block = Token::Block(
+    let foo_block = Token::block(
         BlockType::Continuous,
         4,
         vec![
-            Token::Line(vec![
-                Token::Variable("foo",0),
-                Token::Operator("->",1),
+            Token::line(vec![
+                Token::variable("foo", 0),
+                Token::operator("->", 1),
                 function_block,
             ], 0, LineEnding::LF),
         ],
         0
     );
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             0,
             vec![
-                Token::BlankLine(0,LineEnding::LF),
-                Token::Line(vec![
-                    Token::Variable("some_long_thing",0),
+                Token::blank_line(0, LineEnding::LF),
+                Token::line(vec![
+                    Token::variable("some_long_thing", 0),
                     foo_block
                 ], 0, LineEnding::LF),
-                Token::Line(vec![Token::Variable("quux",0)],0,LineEnding::LF),
+                Token::line(vec![Token::variable("quux", 0)], 0, LineEnding::LF),
             ],
             0
         )
@@ -292,23 +292,23 @@ quux
 #[test]
 fn extra_indented_blank_lines() {
     let input          = "a\n    b\n        \n  \n    c";
-    let indented_block = Token::Block(
+    let indented_block = Token::block(
         BlockType::Continuous,
         4,
         vec![
-            Token::Line(vec![Token::Variable("b",0)],0,LineEnding::LF),
-            Token::BlankLine(8,LineEnding::LF),
-            Token::BlankLine(2,LineEnding::LF),
-            Token::Line(vec![Token::Variable("c",0)],0,LineEnding::None),
+            Token::line(vec![Token::variable("b", 0)], 0, LineEnding::LF),
+            Token::blank_line(8, LineEnding::LF),
+            Token::blank_line(2, LineEnding::LF),
+            Token::line(vec![Token::variable("c", 0)], 0, LineEnding::None),
         ],
         0
     );
-    let top_level_line = Token::Line(vec![
-        Token::Variable("a",0),
+    let top_level_line = Token::line(vec![
+        Token::variable("a", 0),
         indented_block
-    ],0,LineEnding::LF);
+    ], 0, LineEnding::LF);
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             0,
             vec![top_level_line],

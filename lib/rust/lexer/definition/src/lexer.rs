@@ -1,17 +1,20 @@
 //! This module contains the definition of the lexer for the Enso programming language.
 //!
-//! While the lexer functions aren't able to be namespaced themselves, their trace messages pretend
-//! to be. This is to allow easy visual acquisition of transition functions for particular lexemes
-//! occurring in the logging output.
+//! Due to the architecture of the flexer, the lexer functions can't be separated into modules by
+//! their responsibility, and therefore can't be namespaced. Despite this, the convention for this
+//! lexer is that their `trace!` messages _should be_. This is simply because it makes it easier
+//! to spot functions dealing with a certain class of lexemes in the logging output.
 
 use crate::prelude::*;
 use enso_flexer::*;
 
+use crate::library::lexeme;
 use crate::library::token::BlockType;
 use crate::library::token::Token;
 use crate::library::token;
 use crate::library::escape;
 use crate::library::escape::EscapeSequence;
+use crate::rule;
 
 use enso_flexer::automata::pattern::Pattern;
 use enso_flexer::automata::symbol::Symbol;
@@ -73,20 +76,20 @@ impl EnsoLexer {
     /// Push the current token stream onto the stack.
     pub fn push_tokens(&mut self) {
         let current_stream = mem::take(&mut self.output);
-        debug!(self.logger,"Push Tokens: {&current_stream:?}");
+        debug!(self.logger,"Push Tokens: {&current_stream:?}.");
         self.tokens_stack.push(current_stream);
     }
 
     /// Pop the top token stream from the stack and make it current.
     pub fn pop_tokens(&mut self) {
         let popped  = self.tokens_stack.pop().unwrap_or_default();
-        debug!(self.logger,"Pop Tokens: {&popped:?}");
+        debug!(self.logger,"Pop Tokens: {&popped:?}.");
         self.output = popped;
     }
 
     /// Append the provided `token` to the lexer output.
     pub fn append_token(&mut self, token:Token) {
-        debug!(self.logger,"Append: {&token:?}");
+        debug!(self.logger,"Append: {&token:?}.");
         self.output.append(token);
         if self.block_state.has_delayed_lines() {
             let tokens = self.consume_tokens();
@@ -101,90 +104,20 @@ impl EnsoLexer {
 
     /// Consume the currently active stream of tokens.
     pub fn consume_tokens(&mut self) -> token::Stream {
-        debug!(self.logger,"Consume Tokens: {&self.output:?}");
+        debug!(self.logger,"Consume Tokens: {&self.output:?}.");
         mem::take(&mut self.output)
     }
 
     /// Consume the current match and replace it with the empty string.
     pub fn consume_current(&mut self) -> String {
-        debug!(self.logger,"Consume: {self.current_match:?}");
+        debug!(self.logger,"Consume: {self.current_match:?}.");
         mem::take(&mut self.current_match)
     }
 
     /// Discard the current match and replace it with the empty string.
     pub fn discard_current(&mut self) {
-        debug!(self.logger,"Discard: {self.current_match:?}");
+        debug!(self.logger,"Discard: {self.current_match:?}.");
         self.current_match = default();
-    }
-}
-
-
-
-// === Common Patterns ===
-
-/// Basic character classification
-#[allow(dead_code)]
-impl EnsoLexer {
-    /// Match lower-case ASCII letters.
-    fn lower_ascii_letter() -> Pattern {
-        Pattern::range('a'..='z')
-    }
-
-    /// Match upper-case ASCII letters.
-    fn upper_ascii_letter() -> Pattern {
-        Pattern::range('A'..='Z')
-    }
-
-    /// Match ASCII digits.
-    fn ascii_digit() -> Pattern {
-        Pattern::range('0'..='9')
-    }
-
-    /// Match ASCII letters.
-    fn ascii_letter() -> Pattern {
-        EnsoLexer::lower_ascii_letter() | EnsoLexer::upper_ascii_letter()
-    }
-
-    /// Match ASCII alphanumeric characters.
-    fn ascii_alpha_num() -> Pattern {
-        EnsoLexer::ascii_digit() | EnsoLexer::ascii_letter()
-    }
-
-    /// Match at least one ASCII space character.
-    fn spaces() -> Pattern {
-        Pattern::char(' ').many1()
-    }
-
-    /// Match a newline.
-    ///
-    /// This matches both Unix (LF) and Windows (CRLF) styles of newlines. This is particularly
-    /// important so as not to result in incorrect spans on windows clients.
-    fn newline() -> Pattern {
-        Pattern::char('\n') | Pattern::all_of("\r\n")
-    }
-
-    /// The allowable group characters in Enso.
-    fn group_chars() -> String {
-        String::from("()[]{}")
-    }
-
-    /// The allowable operator characters in Enso.
-    fn operator_chars() -> String {
-        String::from(";!$%&*+-/<>?^~|:\\")
-    }
-
-    /// The characters that break tokens in Enso.
-    fn whitespace_break_chars() -> String {
-        String::from("\t\r\n")
-    }
-
-    /// The characters that break token lexing in Enso.
-    fn break_chars() -> String {
-        let mut break_chars = String::from("`@#,. ");
-        break_chars.push_str(&Self::operator_chars());
-        break_chars.push_str(&Self::whitespace_break_chars());
-        break_chars.push_str(&Self::group_chars());
-        break_chars
     }
 }
 
@@ -198,7 +131,7 @@ impl EnsoLexer {
     // === Disable Comments ===
 
     /// Triggered when a disable comment is encountered.
-    fn on_begin_disable_comment<R:LazyReader>(&mut self, _reader:&mut R){
+    fn on_begin_disable_comment<R:ReaderOps>(&mut self, _reader:&mut R){
         trace!(self.logger,"Comment::on_begin_disable_comment");
         let offset          = self.offset.consume();
         let disable_comment = self.disable_comment;
@@ -207,14 +140,14 @@ impl EnsoLexer {
     }
 
     /// Accumulate the disable comment contents.
-    fn on_build_disable_comment<R:LazyReader>(&mut self, _reader:&mut R){
+    fn on_build_disable_comment<R:ReaderOps>(&mut self, _reader:&mut R){
         trace!(self.logger,"Comment::on_build_disable_comment");
         let current = self.consume_current();
         self.comment_state.append_to_line(current);
     }
 
     /// Triggered when a disable comment is ended.
-    fn on_end_disable_comment<R:LazyReader>(&mut self, line_end:token::LineEnding, reader:&mut R) {
+    fn on_end_disable_comment<R:ReaderOps>(&mut self, line_end:token::LineEnding, reader:&mut R) {
         trace!(self.logger,"Comment::on_end_disable_comment");
         self.discard_current();
         let disable_comment = self.disable_comment;
@@ -233,10 +166,11 @@ impl EnsoLexer {
         }
     }
 
+
     // === Doc Comments ===
 
     /// Triggered when starting a doc comment.
-    fn on_begin_doc_comment<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_begin_doc_comment<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Comment::on_begin_doc_comment");
         let offset      = self.offset.consume();
         let indent      = self.consume_current().chars().count();
@@ -247,14 +181,14 @@ impl EnsoLexer {
     }
 
     /// Accumulate the contents of the current doc comment line.
-    fn on_build_doc_comment_line<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_build_doc_comment_line<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Comment::on_build_doc_comment_line");
         let current = self.consume_current();
         self.comment_state.append_to_line(current);
     }
 
     /// Triggered when a line is ended in a doc comment.
-    fn on_doc_comment_end_of_line<R:LazyReader>
+    fn on_doc_comment_end_of_line<R:ReaderOps>
     ( &mut self
     , line_ending:token::LineEnding
     , reader:&mut R
@@ -276,7 +210,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when ending a doc comment.
-    fn on_end_doc_comment<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_end_doc_comment<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Comment::on_end_doc_comment");
         let doc_comment = self.doc_comment;
         let mut comment = self.comment_state.consume_current();
@@ -291,7 +225,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when a new line is discovered in a doc comment.
-    fn doc_comment_on_new_line<R:LazyReader>(&mut self, reader:&mut R) {
+    fn doc_comment_on_new_line<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Comment::doc_comment_on_new_line");
         self.pop_state();
         let indent         = self.consume_current().chars().count();
@@ -300,13 +234,13 @@ impl EnsoLexer {
             self.on_end_doc_comment(reader);
             self.block_on_newline(token::LineEnding::None,reader);
         } else if (indent - comment_indent) > 0 {
-            let remaining_indent = " ".repeat(indent - comment_indent);
+            let remaining_indent = lexeme::space().literal().repeat(indent - comment_indent);
             self.comment_state.append_to_line(remaining_indent);
         }
     }
 
     /// Triggered when an empty line is discovered in a doc comment.
-    fn doc_comment_on_empty_line<R:LazyReader>
+    fn doc_comment_on_empty_line<R:ReaderOps>
     ( &mut self
     , line_ending:token::LineEnding
     , reader:&mut R
@@ -323,54 +257,68 @@ impl EnsoLexer {
         }
     }
 
+
     // === Comment Rules ===
 
     /// The rules for lexing Enso comments.
     fn add_comment_rules(lexer:&mut EnsoLexer) {
-        let comment_char      = c!('#');
-        let lf                = l!("\n");
-        let crlf              = l!("\r\n");
-        let eof               = Pattern::eof();
-        let spaces            = EnsoLexer::spaces();
-        let doc_comment_start = &comment_char >> &comment_char >> &spaces;
+        let comment_char      = lexeme::comment().into_pattern();
+        let lf                = lexeme::lf().into_pattern();
+        let crlf              = lexeme::crlf();
+        let eof               = lexeme::eof();
+        let spaces            = lexeme::spaces();
+        let doc_comment_start = lexeme::doc_comment().into_pattern() >> &spaces.opt();
         let eof_newline       = &spaces.opt() >> &eof;
         let empty_line_lf     = &spaces.opt() >> &lf;
         let empty_line_crlf   = &spaces.opt() >> &crlf;
+        let any               = Pattern::any();
+
+
+        // === Initial State Rules ===
 
         let initial_state_id = lexer.initial_state;
         let initial_state    = lexer.group_mut(initial_state_id);
-        initial_state.create_rule(&doc_comment_start,"self.on_begin_doc_comment(reader)");
-        initial_state.create_rule(&comment_char,     "self.on_begin_disable_comment(reader)");
+        rule!(initial_state(doc_comment_start) => self.on_begin_doc_comment(reader));
+        rule!(initial_state(comment_char)      => self.on_begin_disable_comment(reader));
+
+
+        // === Disable Comment Rules ===
 
         let disable_comment_id = lexer.disable_comment;
         let disable_comment    = lexer.group_mut(disable_comment_id);
-        disable_comment.create_rule(&lf,"self.on_end_disable_comment(token::LineEnding::LF,reader)");
-        disable_comment.create_rule(&crlf,"self.on_end_disable_comment(token::LineEnding::CRLF,reader)");
-        disable_comment.create_rule(&eof,"self.on_end_disable_comment(token::LineEnding::None,reader)");
-        disable_comment.create_rule(&Pattern::any(),"self.on_build_disable_comment(reader)");
+        rule!(disable_comment(lf)   => self.on_end_disable_comment(token::LineEnding::LF,reader));
+        rule!(disable_comment(crlf) => self.on_end_disable_comment(token::LineEnding::CRLF,reader));
+        rule!(disable_comment(eof)  => self.on_end_disable_comment(token::LineEnding::None,reader));
+        rule!(disable_comment(any)  => self.on_build_disable_comment(reader));
+
+
+        // === Doc Comment Rules ===
 
         let doc_comment_id = lexer.doc_comment;
         let doc_comment    = lexer.group_mut(doc_comment_id);
-        doc_comment.create_rule(&lf,"self.on_doc_comment_end_of_line(token::LineEnding::LF,reader)");
-        doc_comment.create_rule(&crlf,"self.on_doc_comment_end_of_line(token::LineEnding::CRLF,reader)");
-        doc_comment.create_rule(&eof,"self.on_doc_comment_end_of_line(token::LineEnding::None,reader)");
-        doc_comment.create_rule(&Pattern::any(),"self.on_build_doc_comment_line(reader)");
+        rule!(doc_comment(lf)   => self.on_doc_comment_end_of_line(token::LineEnding::LF,reader));
+        rule!(doc_comment(crlf) => self.on_doc_comment_end_of_line(token::LineEnding::CRLF,reader));
+        rule!(doc_comment(eof)  => self.on_doc_comment_end_of_line(token::LineEnding::None,reader));
+        rule!(doc_comment(any)  => self.on_build_doc_comment_line(reader));
+
+
+        // === Newline Handling in Doc Comments ===
 
         let doc_comment_newline_id = lexer.doc_comment_newline;
         let doc_comment_newline    = lexer.group_mut(doc_comment_newline_id);
-        doc_comment_newline.create_rule(&spaces.opt(),"self.doc_comment_on_new_line(reader)");
-        doc_comment_newline.create_rule(
-            &empty_line_lf,
-            "self.doc_comment_on_empty_line(token::LineEnding::LF,reader)"
-        );
-        doc_comment_newline.create_rule(
-            &empty_line_crlf,
-            "self.doc_comment_on_empty_line(token::LineEnding::CRLF,reader)"
-        );
-        doc_comment_newline.create_rule(
-            &eof_newline,
-            "self.doc_comment_on_empty_line(token::LineEnding::None,reader)"
-        );
+        rule!(doc_comment_newline(spaces.opt()) => self.doc_comment_on_new_line(reader));
+        rule!(doc_comment_newline(empty_line_lf) => self.doc_comment_on_empty_line(
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(doc_comment_newline(empty_line_crlf) => self.doc_comment_on_empty_line(
+            token::LineEnding::CRLF,
+            reader
+        ));
+        rule!(doc_comment_newline(eof_newline) => self.doc_comment_on_empty_line(
+            token::LineEnding::None,
+            reader
+        ));
     }
 }
 
@@ -382,46 +330,46 @@ impl EnsoLexer {
 impl EnsoLexer {
 
     /// Create an arbitrary operator that requires no special handling.
-    fn on_operator<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_operator<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Operator::on_operator");
         let op_modifier_check = self.operator_modifier_check;
         let operator          = self.consume_current();
         let offset            = self.offset.consume();
-        let token             = Token::Operator(operator,offset);
+        let token             = Token::operator(operator,offset);
         self.append_token(token);
         self.push_state(op_modifier_check);
     }
 
     /// Create an operator that cannot have an associated modifier.
-    fn on_operator_no_modifier<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_operator_no_modifier<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Operator::on_operator_no_modifier");
         let op_suffix_check = self.operator_suffix_check;
         let operator        = self.consume_current();
         let offset          = self.offset.consume();
-        let token           = Token::Operator(operator,offset);
+        let token           = Token::operator(operator,offset);
         self.append_token(token);
         self.push_state(op_suffix_check);
     }
 
     /// Create a grouping operator.
-    fn on_group<R:LazyReader>(&mut self, reader:&mut R) {
+    fn on_group<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Operator::on_group");
         let suffix_check = self.ident_suffix_check;
         let operator     = self.consume_current();
         let offset       = self.offset.consume();
-        let token        = Token::Operator(operator,offset);
+        let token        = Token::operator(operator,offset);
         self.append_token(token);
         self.push_state(suffix_check);
         self.ident_on_no_error_suffix(reader);
     }
 
     /// Create an operator modifier.
-    fn on_modifier<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_modifier<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Operator::on_modifier");
         match self.output.pop() {
             Some(token) => match token.shape {
                 token::Shape::Operator(name) => {
-                    let new_token = Token::Modifier(name,token.offset);
+                    let new_token = Token::modifier(name,token.offset);
                     self.discard_current();
                     self.append_token(new_token);
                 },
@@ -431,16 +379,20 @@ impl EnsoLexer {
         }
     }
 
-    /// Triggered when an operator is immediately followed by another (e.g. `.+` or `. ==`).
-    fn on_dotted_operator<R:LazyReader>(&mut self, _reader:&mut R) {
+    /// Triggered when a dot operator is immediately followed by another (e.g. `.+` or `. ==`).
+    fn on_dotted_operator<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Operator::on_dot_operator");
         let suffix_check  = self.operator_suffix_check;
         let offset        = self.offset.consume();
-        let dotted_op     = Token::Operator(".",offset);
+        let dotted_op     = Token::operator(lexeme::dot().literal(),offset);
         let current_match = self.consume_current();
-        let second_op_str = current_match.trim_start_matches(|c| c == ' ' || c == '.');
+        let second_op_str = current_match.trim_start_matches(|c| {
+            let space = lexeme::space().unsafe_char();
+            let dot   = lexeme::dot().unsafe_char();
+            c == space || c == dot
+        });
         let second_offset = current_match.chars().count() - second_op_str.chars().count() - 1;
-        let second_op     = Token::Operator(second_op_str,second_offset);
+        let second_op     = Token::operator(second_op_str,second_offset);
         self.append_token(dotted_op);
         self.append_token(second_op);
         self.push_state(suffix_check);
@@ -448,40 +400,55 @@ impl EnsoLexer {
 
     /// The rules for lexing Enso operators.
     fn add_operator_rules(lexer:&mut EnsoLexer) {
-        let operator_char = Pattern::any_of(Self::operator_chars().as_str());
-        let equals        = c!('=');
-        let comma         = c!(',');
-        let dot           = c!('.');
-        let spaces        = EnsoLexer::spaces();
-        let error_char    = &operator_char | &equals | &comma | &dot;
-        let error_suffix  = &error_char.many1();
-        let operator_body = &operator_char.many1();
-        let ops_eq =
-            &equals | l!("==") | l!(">=") | l!("<=") | l!("!=") | l!("#=") | l!("=>");
-        let ops_in          = l!("in");
-        let ops_dot         = &dot | comma | l!("..") | l!("...");
+        let operator_char   = Pattern::any_of(lexeme::operator_chars().as_str());
+        let equals          = lexeme::equals_op().into_pattern();
+        let comma           = lexeme::comma().into_pattern();
+        let dot             = lexeme::dot().into_pattern();
+        let spaces          = lexeme::spaces();
+        let error_char      = &operator_char | &equals | &comma | &dot;
+        let error_suffix    = &error_char.many1();
+        let operator_body   = &operator_char.many1();
+        let equals_comp     = lexeme::equals_comp().into_pattern();
+        let ge_op           = lexeme::ge_operator().into_pattern();
+        let le_op           = lexeme::le_operator().into_pattern();
+        let not_equal       = lexeme::not_equal().into_pattern();
+        let hash_eq         = lexeme::hash_eq().into_pattern();
+        let fat_arrow       = lexeme::fat_arrow().into_pattern();
+        let ops_eq          = &equals | &equals_comp | &ge_op | &le_op | &not_equal | &hash_eq
+                            | &fat_arrow;
+        let ops_in          = lexeme::operator_in().into_pattern();
+        let ops_dot         = &dot | comma | lexeme::two_dots().into_pattern()
+                            | lexeme::three_dots().into_pattern();
         let dotted_op       = &dot >> &spaces.opt() >> (operator_body | &ops_eq);
-        let ops_group       = Pattern::any_of(Self::group_chars().as_str());
+        let ops_group       = Pattern::any_of(lexeme::group_chars().as_str());
         let ops_no_modifier = &ops_eq | &ops_dot | &ops_in;
+
+
+        // === Initial State Rules for Operators ===
 
         let initial_state_id = lexer.initial_state;
         let initial_state    = lexer.group_mut(initial_state_id);
-        initial_state.create_rule(&operator_body,  "self.on_operator(reader)");
-        initial_state.create_rule(&dotted_op,      "self.on_dotted_operator(reader)");
-        initial_state.create_rule(&ops_no_modifier,"self.on_operator_no_modifier(reader)");
-        initial_state.create_rule(&ops_group,      "self.on_group(reader)");
+        rule!(initial_state(operator_body)   => self.on_operator(reader));
+        rule!(initial_state(dotted_op)       => self.on_dotted_operator(reader));
+        rule!(initial_state(ops_no_modifier) => self.on_operator_no_modifier(reader));
+        rule!(initial_state(ops_group)       => self.on_group(reader));
+
+
+        // === Modifier Checking for Operators ===
 
         let operator_mod_check_id = lexer.operator_modifier_check;
         let operator_mod_check    = lexer.group_mut(operator_mod_check_id);
-        operator_mod_check.create_rule(&equals,"self.on_modifier(reader)");
+        rule!(operator_mod_check(equals) => self.on_modifier(reader));
+
+
+        // === Suffix Checking for Operators ===
 
         let operator_sfx_check_id = lexer.operator_suffix_check;
         let operator_sfx_check    = lexer.group_mut(operator_sfx_check_id);
-        operator_sfx_check.create_rule(&error_suffix,     "self.ident_on_error_suffix(reader)");
-        operator_sfx_check.create_rule(&Pattern::always(),"self.ident_on_no_error_suffix(reader)");
+        rule!(operator_sfx_check(error_suffix)      => self.ident_on_error_suffix(reader));
+        rule!(operator_sfx_check(Pattern::always()) => self.ident_on_no_error_suffix(reader));
     }
 }
-
 
 
 // === Identifiers ===
@@ -491,36 +458,36 @@ impl EnsoLexer {
 impl EnsoLexer {
 
     /// Create a variable identifier from the current match.
-    fn on_variable_ident<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_variable_ident<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Identifier::on_variable_ident");
-        let token        = Token::Variable(self.consume_current(),self.offset.consume());
+        let token        = Token::variable(self.consume_current(),self.offset.consume());
         let suffix_check = self.ident_suffix_check;
         self.append_token(token);
         self.push_state(suffix_check);
     }
 
     /// Create a referent identifier from the current match.
-    fn on_referent_ident<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_referent_ident<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Identifier::on_referent_ident");
-        let token        = Token::Referent(self.consume_current(),self.offset.consume());
+        let token        = Token::referent(self.consume_current(),self.offset.consume());
         let suffix_check = self.ident_suffix_check;
         self.append_token(token);
         self.push_state(suffix_check);
     }
 
     /// Create an external identifier from the current match.
-    fn on_external_ident<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_external_ident<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Identifier::on_external_ident");
-        let token        = Token::External(self.consume_current(),self.offset.consume());
+        let token        = Token::external(self.consume_current(),self.offset.consume());
         let suffix_check = self.ident_suffix_check;
         self.append_token(token);
         self.push_state(suffix_check);
     }
 
     /// Create a blank identifier from the current match.
-    fn on_blank<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_blank<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Identifier::on_blank");
-        let token        = Token::Blank(self.offset.consume());
+        let token        = Token::blank(self.offset.consume());
         let suffix_check = self.ident_suffix_check;
         self.discard_current();
         self.append_token(token);
@@ -528,66 +495,70 @@ impl EnsoLexer {
     }
 
     /// Create an annotation from the current match.
-    fn on_annotation<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_annotation<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Identifier::on_annotation");
         let current      = self.consume_current();
         let offset       = self.offset.consume();
-        let token        = Token::Annotation(&current[1..],offset);
+        let length_drop  = lexeme::annotation_symbol().length();
+        let token        = Token::annotation(&current[length_drop..],offset);
         let suffix_check = self.ident_suffix_check;
         self.append_token(token);
         self.push_state(suffix_check);
     }
 
     /// Tokenize an unexpected error suffix.
-    fn ident_on_error_suffix<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn ident_on_error_suffix<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Identifier::ident_on_error_suffix");
-        let token = Token::InvalidSuffix(self.consume_current(),self.offset.consume());
+        let token = Token::invalid_suffix(self.consume_current(),self.offset.consume());
         self.append_token(token);
         self.pop_state();
     }
 
     /// Submit a non-error identifier.
-    fn ident_on_no_error_suffix<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn ident_on_no_error_suffix<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Identifier::ident_on_no_error_suffix");
         self.pop_state();
     }
 
-    fn ident_on_eof_suffix<R:LazyReader>(&mut self, _reader:&mut R) {
-        trace!(self.logger,"Identifier::ident_on_eof_suffix");
-        unimplemented!();
-    }
-
     /// The set of rules for lexing Enso identifiers.
     fn add_identifier_rules(lexer:&mut EnsoLexer) {
-        let body_char    = (EnsoLexer::lower_ascii_letter() | EnsoLexer::ascii_digit()).many();
-        let underscore   = c!('_');
-        let ticks        = c!('\'').many();
-        let init_var_seg = EnsoLexer::lower_ascii_letter() >> &body_char;
-        let var_seg      =
-            (EnsoLexer::lower_ascii_letter() | EnsoLexer::ascii_digit()) >> &body_char;
-        let init_ref_seg = EnsoLexer::upper_ascii_letter() >> &body_char;
-        let ref_seg      =
-            (EnsoLexer::upper_ascii_letter() | EnsoLexer::ascii_digit()) >> &body_char;
-        let external_start = EnsoLexer::ascii_letter() | &underscore;
-        let external_body  = EnsoLexer::ascii_alpha_num() | &underscore;
-        let variable_ident = &init_var_seg >> (&underscore >> &var_seg).many() >> &ticks;
-        let referent_ident = &init_ref_seg >> (&underscore >> &ref_seg).many() >> &ticks;
-        let external_ident = &external_start >> external_body.many() >> &ticks;
-        let error_suffix   = Pattern::none_of(EnsoLexer::break_chars().as_str()).many1();
-        let annotation     = c!('@') >> (&variable_ident | &referent_ident);
+        let body_char         = (lexeme::lower_ascii_letter() | lexeme::ascii_digit()).many();
+        let blank             = lexeme::blank_ident().into_pattern();
+        let ident_seg_sep     = lexeme::ident_segment_separator().into_pattern();
+        let ticks             = lexeme::identifier_tick().into_pattern().many();
+        let init_var_seg      = lexeme::lower_ascii_letter() >> &body_char;
+        let lower_ascii_alnum = lexeme::lower_ascii_letter() | lexeme::ascii_digit();
+        let var_seg           = &lower_ascii_alnum >> &body_char;
+        let init_ref_seg      = lexeme::upper_ascii_letter() >> &body_char;
+        let upper_ascii_alnum = lexeme::upper_ascii_letter() | lexeme::ascii_digit();
+        let ref_seg           = &upper_ascii_alnum >> &body_char;
+        let external_start    = lexeme::ascii_letter() | &ident_seg_sep;
+        let external_body     = lexeme::ascii_alpha_num() | &ident_seg_sep;
+        let variable_ident    = &init_var_seg >> (&ident_seg_sep >> &var_seg).many() >> &ticks;
+        let referent_ident    = &init_ref_seg >> (&ident_seg_sep >> &ref_seg).many() >> &ticks;
+        let external_ident    = &external_start >> external_body.many() >> &ticks;
+        let error_suffix      = Pattern::none_of(lexeme::break_chars().as_str()).many1();
+        let annotation_symbol = lexeme::annotation_symbol().into_pattern();
+        let annotation        = annotation_symbol >> (&variable_ident | &referent_ident);
+
+
+        // === Initial State Rules for Identifiers ===
 
         let initial_state_id = lexer.initial_state;
         let initial_state    = lexer.group_mut(initial_state_id);
-        initial_state.create_rule(&variable_ident,"self.on_variable_ident(reader)");
-        initial_state.create_rule(&referent_ident,"self.on_referent_ident(reader)");
-        initial_state.create_rule(&underscore,    "self.on_blank(reader)");
-        initial_state.create_rule(&external_ident,"self.on_external_ident(reader)");
-        initial_state.create_rule(&annotation,    "self.on_annotation(reader)");
+        rule!(initial_state(variable_ident) => self.on_variable_ident(reader));
+        rule!(initial_state(referent_ident) => self.on_referent_ident(reader));
+        rule!(initial_state(blank)          => self.on_blank(reader));
+        rule!(initial_state(external_ident) => self.on_external_ident(reader));
+        rule!(initial_state(annotation)     => self.on_annotation(reader));
+
+
+        // === Identifier Suffix Checking Rules ===
 
         let suffix_check_id = lexer.ident_suffix_check;
         let suffix_check    = lexer.group_mut(suffix_check_id);
-        suffix_check.create_rule(&error_suffix,     "self.ident_on_error_suffix(reader)");
-        suffix_check.create_rule(&Pattern::always(),"self.ident_on_no_error_suffix(reader)");
+        rule!(suffix_check(error_suffix)      => self.ident_on_error_suffix(reader));
+        rule!(suffix_check(Pattern::always()) => self.ident_on_no_error_suffix(reader));
     }
 }
 
@@ -607,15 +578,15 @@ impl EnsoLexer {
     }
 
     /// Triggered when the lexer matches an integer with an implicit base.
-    fn on_integer<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_integer<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::on_integer");
-        let number_phase_2 = self.number_phase_two;
+        let number_phase_2        = self.number_phase_two;
         self.number_state.literal = self.consume_current();
         self.push_state(number_phase_2)
     }
 
     /// Triggered when the lexer matches a number annotated with an explicit base.
-    fn on_explicit_base<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_explicit_base<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::on_explicit_base");
         let literal               = self.consume_current();
         self.number_state.literal = literal;
@@ -627,18 +598,18 @@ impl EnsoLexer {
 
     /// Triggered when the lexer has seen an explicit base definition that isn't followed by an
     /// actual number.
-    fn on_dangling_base<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_dangling_base<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::on_dangling_base");
         let base   = self.number_state.consume_base();
         let offset = self.offset.consume();
-        let token  = Token::DanglingBase(base,offset);
+        let token  = Token::dangling_base(base,offset);
         self.append_token(token);
         self.discard_current();
         self.finalize_explicit_base();
     }
 
     /// Triggered when an explicit decimal number has been seen by the lexer.
-    fn on_decimal<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_decimal<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::on_decimal");
         let decimal_suffix_check  = self.decimal_suffix_check;
         self.number_state.literal = self.consume_current();
@@ -649,7 +620,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when an explicit base annotation has been seen by the lexer.
-    fn seen_base<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn seen_base<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::seen_base");
         let seen_base_id = self.number_seen_base;
         self.push_state(seen_base_id);
@@ -657,7 +628,7 @@ impl EnsoLexer {
     }
 
     /// Submit an integer token into the lexer.
-    fn submit_integer<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn submit_integer<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::submit_integer");
         let offset = self.offset.consume();
         let token  = self.number_state.consume_token(offset);
@@ -666,18 +637,18 @@ impl EnsoLexer {
     }
 
     /// Triggered when a decimal number is followed by an erroneous suffix.
-    fn decimal_error_suffix<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn decimal_error_suffix<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::decimal_error_suffix");
         let decimal_suffix_check = self.decimal_suffix_check;
         let current_match        = self.consume_current();
         let offset               = self.offset.consume();
-        let token                = Token::InvalidSuffix(current_match,offset);
+        let token                = Token::invalid_suffix(current_match,offset);
         self.append_token(token);
         self.pop_states_including(decimal_suffix_check);
     }
 
     /// Triggered when a decimal number is followed by a valid suffix.
-    fn decimal_valid_suffix<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn decimal_valid_suffix<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Number::decimal_valid_suffix");
         let seen_decimal_id = self.decimal_suffix_check;
         self.pop_states_including(seen_decimal_id);
@@ -685,33 +656,45 @@ impl EnsoLexer {
 
     /// The rules for lexing numbers in Enso.
     fn add_number_rules(lexer:&mut EnsoLexer) {
-        let digits            = EnsoLexer::ascii_digit().many1();
-        let point             = c!('.');
-        let underscore        = c!('_');
+        let digits            = lexeme::ascii_digit().many1();
+        let point             = lexeme::decimal_separator().into_pattern();
+        let base_separator    = lexeme::number_base_separator().into_pattern();
         let decimal           = &digits >> &point >> &digits;
-        let arbitrary_digits  = EnsoLexer::ascii_alpha_num().many1();
+        let arbitrary_digits  = lexeme::ascii_alpha_num().many1();
         let arbitrary_decimal = &arbitrary_digits >> (&point >> &arbitrary_digits).opt();
-        let error_suffix      = Pattern::none_of(EnsoLexer::break_chars().as_str()).many1();
+        let error_suffix      = Pattern::none_of(lexeme::break_chars().as_str()).many1();
+
+
+        // === Initial State Rules for Number Literals ===
 
         let initial_state_id = lexer.initial_state;
         let initial_state    = lexer.group_mut(initial_state_id);
-        initial_state.create_rule(&digits, "self.on_integer(reader)");
-        initial_state.create_rule(&decimal,"self.on_decimal(reader)");
+        rule!(initial_state(digits)  => self.on_integer(reader));
+        rule!(initial_state(decimal) => self.on_decimal(reader));
+
+
+        // === Rules in "Phase 2" of Number Lexing (Checks for Bases) ===
 
         let number_phase_2_id = lexer.number_phase_two;
         let number_phase_2    = lexer.groups_mut().group_mut(number_phase_2_id);
-        number_phase_2.create_rule(&underscore,       "self.seen_base(reader)");
-        number_phase_2.create_rule(&Pattern::always(),"self.submit_integer(reader)");
+        rule!(number_phase_2(base_separator)    => self.seen_base(reader));
+        rule!(number_phase_2(Pattern::always()) => self.submit_integer(reader));
+
+
+        // === Rules for Seeing an Explicit Base in a Number Literal ===
 
         let seen_base_id = lexer.number_seen_base;
         let seen_base    = lexer.groups_mut().group_mut(seen_base_id);
-        seen_base.create_rule(&arbitrary_decimal,"self.on_explicit_base(reader)");
-        seen_base.create_rule(&Pattern::always(),"self.on_dangling_base(reader)");
+        rule!(seen_base(arbitrary_decimal) => self.on_explicit_base(reader));
+        rule!(seen_base(Pattern::always()) => self.on_dangling_base(reader));
+
+
+        // === Rules for Seeing an Explicit Decimal Number ===
 
         let decimal_suffix_check_id = lexer.decimal_suffix_check;
         let decimal_suffix_check    = lexer.groups_mut().group_mut(decimal_suffix_check_id);
-        decimal_suffix_check.create_rule(&error_suffix,     "self.decimal_error_suffix(reader)");
-        decimal_suffix_check.create_rule(&Pattern::always(),"self.decimal_valid_suffix(reader)");
+        rule!(decimal_suffix_check(error_suffix)      => self.decimal_error_suffix(reader));
+        rule!(decimal_suffix_check(Pattern::always()) => self.decimal_valid_suffix(reader));
     }
 }
 
@@ -725,94 +708,105 @@ impl EnsoLexer {
     // === Error ===
 
     /// Triggered when encountering an invalid set of quotes.
-    fn on_invalid_quote<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_invalid_quote<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_invalid_quote");
         let offset     = self.offset.consume();
         let bad_quotes = self.consume_current();
-        let token      = Token::InvalidQuote(bad_quotes,offset);
+        let token      = Token::invalid_quote(bad_quotes, offset);
         self.append_token(token);
     }
 
     /// Submit a missing quote in a nested text line literal.
-    fn submit_missing_quote_nested<R:LazyReader>
+    fn submit_missing_quote_nested<R:ReaderOps>
     ( &mut self
-      , line_ending:token::LineEnding
-      , reader:&mut R
+    , line_ending : token::LineEnding
+    , reader      : &mut R
     ) {
         trace!(self.logger,"Text::submit_missing_quote_nested");
+        self.on_missing_quote(reader);
         let interpolate_is_closed = false;
-        let matched_bookmark      = self.bookmarks.matched_bookmark;
-        self.bookmarks.rewind(matched_bookmark,reader);
-        let nested         = self.text_state.unsafe_current_mut();
-        nested.style       = Some(token::TextStyle::UnclosedLine);
-        let nested_text    = self.text_state.unsafe_end_literal();
-        let nested_literal = nested_text.into();
-        self.append_token(nested_literal);
-        self.pop_state();
         self.on_interpolate_end(interpolate_is_closed,reader);
         let top_level       = self.text_state.unsafe_current_mut();
-        let top_level_style = top_level.style.expect("Must be set.");
-        top_level.style = match top_level_style {
-            token::TextStyle::FormatLine => Some(token::TextStyle::UnclosedLine),
-            _                            => Some(top_level_style),
-        };
+        let top_level_style = top_level.unsafe_get_style();
+        top_level.style = Some(match top_level_style {
+            token::TextStyle::FormatLine => token::TextStyle::UnclosedLine,
+            _                            => top_level_style,
+        });
         let text    = self.text_state.unsafe_end_literal();
         let literal = text.into();
         self.append_token(literal);
         self.pop_state();
-        match line_ending {
-            token::LineEnding::None => self.on_eof(reader),
-            _                       => self.block_state.push_line_ending(line_ending),
-        }
+        self.on_missing_quote_cleanup(line_ending,reader);
     }
 
     /// Submit a missing closing quote in a text line literal.
-    fn submit_missing_quote<R:LazyReader>(&mut self, new_line:token::LineEnding, reader:&mut R) {
+    fn submit_missing_quote<R:ReaderOps>(&mut self, new_line:token::LineEnding, reader:&mut R) {
         trace!(self.logger,"Text::submit_missing_quote");
+        self.on_missing_quote(reader);
+        self.on_missing_quote_cleanup(new_line,reader);
+    }
+
+    /// The common logic for dealing with a missing quote in a text line literal.
+    fn on_missing_quote<R:ReaderOps>(&mut self, reader:&mut R) {
+        trace!(self.logger,"Text::on_missing_quote");
         let matched_bookmark = self.bookmarks.matched_bookmark;
-        self.bookmarks.rewind(matched_bookmark, reader);
+        self.bookmarks.rewind(matched_bookmark,reader);
         let current   = self.text_state.unsafe_current_mut();
         current.style = Some(token::TextStyle::UnclosedLine);
         let text      = self.text_state.unsafe_end_literal();
         let literal   = text.into();
         self.append_token(literal);
         self.pop_state();
-        match new_line {
+    }
+
+    /// The common logic that must run after dealing with a missing quote in a text line literal.
+    fn on_missing_quote_cleanup<R:ReaderOps>
+    ( &mut self
+    , line_ending:token::LineEnding
+    , reader:&mut R
+    ) {
+        trace!(self.logger,"Text::on_missing_quote_after");
+        match line_ending {
             token::LineEnding::None => self.on_eof(reader),
-            _                       => self.block_state.push_line_ending(new_line),
+            _                       => self.block_state.push_line_ending(line_ending),
         }
     }
 
     /// Triggered when encountering the opening of a text block in a nested context.
-    fn on_text_block_nested<R:LazyReader>(&mut self, new_line:token::LineEnding, reader:&mut R) {
+    fn on_text_block_nested<R:ReaderOps>
+    ( &mut self
+    , new_line  : token::LineEnding
+    , quote     : lexeme::Lexeme
+    , reader    : &mut R
+    ) {
         trace!(self.logger,"Text::on_text_block_nested");
         let current      = self.consume_current();
         let offset       = self.offset.consume();
-        let text         = &current[0..3];
-        let unrecognized = Token::Unrecognized(text,offset);
+        let text         = &current[0..quote.length()];
+        let unrecognized = Token::unrecognized(text,offset);
         self.append_token(unrecognized);
         self.on_newline_in_interpolate(new_line,reader);
     }
 
+
     // === Lines ===
 
     /// Triggered when beginning a format line literal.
-    fn on_begin_format_line<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_begin_format_line<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_begin_format_line");
         let interpolate = self.text_interpolate;
         let literal     = self.text_state.begin_literal();
         literal.style   = Some(token::TextStyle::FormatLine);
-        if self.is_inside_state(interpolate) {
-            let nested_format_line = self.text_format_line_nested;
-            self.push_state(nested_format_line);
+        let state       = if self.is_inside_state(interpolate) {
+            self.text_format_line_nested
         } else {
-            let format_line_state = self.text_format_line;
-            self.push_state(format_line_state);
-        }
+            self.text_format_line
+        };
+        self.push_state(state);
     }
 
     /// Submits a text line literal.
-    fn submit_text_line<R:LazyReader>(&mut self, end_to:group::Identifier, _reader:&mut R) {
+    fn submit_text_line<R:ReaderOps>(&mut self, end_to:group::Identifier, _reader:&mut R) {
         trace!(self.logger,"Text::submit_text_line");
         let text          = self.text_state.unsafe_end_literal();
         let token         = text.into();
@@ -821,24 +815,24 @@ impl EnsoLexer {
     }
 
     /// Triggered when beginning a raw line literal.
-    fn on_begin_raw_line<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_begin_raw_line<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_begin_raw_line");
         let interpolate = self.text_interpolate;
         let literal     = self.text_state.begin_literal();
         literal.style   = Some(token::TextStyle::RawLine);
-        if self.is_inside_state(interpolate) {
-            let nested_raw_line = self.text_raw_line_nested;
-            self.push_state(nested_raw_line);
+        let state       = if self.is_inside_state(interpolate) {
+            self.text_raw_line_nested
         } else {
-            let raw_line_state = self.text_raw_line;
-            self.push_state(raw_line_state);
-        }
+            self.text_raw_line
+        };
+        self.push_state(state);
     }
+
 
     // === Inline Blocks ===
 
     /// Triggered when beginning an inline text block.
-    fn text_on_inline_block<R:LazyReader>
+    fn text_on_inline_block<R:ReaderOps>
     ( &mut self
       , style       : token::TextStyle
       , enter_state : group::Identifier
@@ -855,21 +849,21 @@ impl EnsoLexer {
     /// Triggered when ending an inline text block.
     fn text_end_inline_block(&mut self) {
         trace!(self.logger,"Text::text_end_inline_block");
-        let text    = self.text_state.end_literal().expect("Literal is present.");
+        let text    = self.text_state.unsafe_end_literal();
         let literal = text.into();
         self.append_token(literal);
         self.pop_state();
     }
 
     /// Triggered when encountering EOF inside an inline block.
-    fn text_on_eof_in_inline_block<R:LazyReader>(&mut self, reader:&mut R) {
+    fn text_on_eof_in_inline_block<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Text::text_on_eof_in_inline_block");
         self.text_end_inline_block();
         self.on_eof(reader);
     }
 
     /// Triggered when encountering a newline in an inline block.
-    fn text_inline_block_on_newline<R:LazyReader>
+    fn text_inline_block_on_newline<R:ReaderOps>
     ( &mut self
       , line_ending : token::LineEnding
       , _reader     : &mut R
@@ -883,7 +877,7 @@ impl EnsoLexer {
     }
 
     /// Triggered on completion of a format inline block.
-    fn submit_format_inline_block<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn submit_format_inline_block<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::submit_format_inline_block");
         let format_inline_block = self.text_format_inline_block;
         let text                = self.text_state.unsafe_end_literal();
@@ -892,10 +886,11 @@ impl EnsoLexer {
         self.pop_states_including(format_inline_block);
     }
 
+
     // === Blocks ===
 
     /// Triggered when beginning a text block.
-    fn on_begin_text_block<R:LazyReader>
+    fn on_begin_text_block<R:ReaderOps>
     ( &mut self
       , block_style : token::TextStyle
       , enter_state : group::Identifier
@@ -920,7 +915,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when ending a text block.
-    fn text_on_end_of_block<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn text_on_end_of_block<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::text_on_end_of_block");
         self.pop_state();
         let mut text_state = self.text_state.unsafe_end_literal();
@@ -935,7 +930,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when encountering a newline followed by an EOF in a text block.
-    fn text_on_eof_new_line<R:LazyReader>(&mut self, reader:&mut R) {
+    fn text_on_eof_new_line<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Text::text_on_eof_new_line");
         let block_newline = self.block_newline;
         self.pop_state();
@@ -944,7 +939,7 @@ impl EnsoLexer {
     }
 
     /// Triggered at the end of a line in a text block.
-    fn text_on_end_of_line<R:LazyReader>(&mut self, line_ending:token::LineEnding, _reader:&mut R) {
+    fn text_on_end_of_line<R:ReaderOps>(&mut self, line_ending:token::LineEnding, _reader:&mut R) {
         trace!(self.logger,"Text::text_on_end_of_line");
         let text_newline = self.text_seen_newline;
         self.text_state.push_line_ending(line_ending);
@@ -953,7 +948,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when lexing a new line in a text block.
-    fn text_on_new_line<R:LazyReader>(&mut self, reader:&mut R) {
+    fn text_on_new_line<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Text::text_on_new_line");
         self.pop_state();
         let indent = self.consume_current().chars().count();
@@ -966,14 +961,15 @@ impl EnsoLexer {
             self.text_on_end_of_block(reader);
             self.block_on_newline(token::LineEnding::None,reader);
         } else if (indent - text.indent) > 0 {
+            let segment_offset = 0;
             let literal_spaces = " ".repeat(indent - text.indent);
-            let segment        = Token::TextSegmentRaw(literal_spaces,0);
+            let segment        = Token::text_segment_raw(literal_spaces,segment_offset);
             text.append_segment_to_line(segment);
         }
     }
 
     /// Triggered when lexing an empty line in a text block.
-    fn text_on_empty_line<R:LazyReader>(&mut self, line_ending:token::LineEnding, _reader:&mut R) {
+    fn text_on_empty_line<R:ReaderOps>(&mut self, line_ending:token::LineEnding, _reader:&mut R) {
         trace!(self.logger,"Text::text_on_empty_line");
         let current = self.consume_current();
         let indent  = current.chars().count() - line_ending.size();
@@ -981,10 +977,11 @@ impl EnsoLexer {
         self.text_state.append_empty_line(indent);
     }
 
+
     // === Segments ===
 
     /// Triggered when beginning an interpolation in a format literal.
-    fn on_interpolate_begin<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_interpolate_begin<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_interpolate_begin");
         let text_interpolate = self.text_interpolate;
         self.push_tokens();
@@ -993,7 +990,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when an interpolate quote is seen in a _nested_ text literal.
-    fn on_nested_interpolate_quote<R:LazyReader>(&mut self, reader:&mut R) {
+    fn on_nested_interpolate_quote<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Text::on_nested_interpolate_quote");
         let mut nested_text = self.text_state.unsafe_end_literal();
         let new_style       = match nested_text.style {
@@ -1009,7 +1006,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when ending an interpolation in a format text literal.
-    fn on_interpolate_end<R:LazyReader>(&mut self, is_closed:bool, reader:&mut R) {
+    fn on_interpolate_end<R:ReaderOps>(&mut self, is_closed:bool, reader:&mut R) {
         trace!(self.logger,"Text::on_interpolate_end");
         let text_interpolate   = self.text_interpolate;
         let nested_format_line = self.text_format_line_nested;
@@ -1026,9 +1023,9 @@ impl EnsoLexer {
             let expr_tokens  = self.consume_tokens();
             let offset       = self.offset.consume();
             let expr_segment = if is_closed {
-                Token::TextSegmentInterpolate(expr_tokens.into(),offset)
+                Token::text_segment_interpolate(expr_tokens.into(),offset)
             } else {
-                Token::TextSegmentUnclosedInterpolate(expr_tokens.into(),offset)
+                Token::text_segment_unclosed_interpolate(expr_tokens.into(),offset)
             };
             self.text_state.append_segment(expr_segment);
             self.pop_tokens();
@@ -1040,7 +1037,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when encountering an EOF inside an interpolation.
-    fn on_eof_in_interpolate<R:LazyReader>(&mut self, reader:&mut R) {
+    fn on_eof_in_interpolate<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Text::on_eof_in_interpolate");
         let interpolate_is_closed = false;
         self.on_interpolate_end(interpolate_is_closed,reader);
@@ -1055,7 +1052,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when encountering a newline inside an interpolation.
-    fn on_newline_in_interpolate<R:LazyReader>
+    fn on_newline_in_interpolate<R:ReaderOps>
     ( &mut self
       , line_ending : token::LineEnding
       , reader      : &mut R
@@ -1063,13 +1060,13 @@ impl EnsoLexer {
         trace!(self.logger,"Text::on_newline_in_interpolate");
         let interpolate_is_closed = false;
         self.on_interpolate_end(interpolate_is_closed,reader);
-        let current_style = self.text_state.unsafe_current().style.expect("Must be set.");
+        let current_style = self.text_state.unsafe_current().unsafe_get_style();
         match current_style {
             token::TextStyle::FormatLine => {
                 let mut text = self.text_state.unsafe_end_literal();
                 text.style   = match text.style {
                     Some(token::TextStyle::FormatLine) => Some(token::TextStyle::UnclosedLine),
-                    _ => text.style,
+                    _                                  => text.style,
                 };
                 let token = text.into();
                 self.append_token(token);
@@ -1087,158 +1084,190 @@ impl EnsoLexer {
     }
 
     /// Triggered when encountering a doc comment inside an interpolate.
-    fn on_doc_comment_in_interpolate<R:LazyReader>(&mut self, _reader:&mut R) {
-        trace!(self.logger,"Text::submit_plain_segment");
+    fn on_doc_comment_in_interpolate<R:ReaderOps>(&mut self, _reader:&mut R) {
+        trace!(self.logger,"Text::on_doc_comment_in_interpolate");
         let offset     = self.offset.consume();
-        let token      = Token::Unrecognized("##",offset);
-        let new_offset = self.consume_current().chars().count() - 2;
+        let token      = Token::unrecognized(lexeme::doc_comment().literal(), offset);
+        let new_offset = self.consume_current().chars().count() - lexeme::doc_comment().length();
         self.append_token(token);
         self.offset.increase(new_offset,0);
     }
 
     /// Triggered when submitting a raw segment of text in a literal.
-    fn submit_plain_segment<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn submit_plain_segment<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::submit_plain_segment");
         let last_segment  = self.text_state.consume_segment();
         let current_match = self.consume_current();
         let token         = match last_segment {
             Some(token) => match token {
                 Token{shape:token::Shape::TextSegmentRaw(lit),offset,..} => {
-                    Token::TextSegmentRaw(lit + &current_match,offset)
+                    Token::text_segment_raw(lit + &current_match, offset)
                 },
                 _ => {
                     let offset = self.offset.consume();
                     self.text_state.append_segment(token);
-                    Token::TextSegmentRaw(current_match,offset)
+                    Token::text_segment_raw(current_match, offset)
                 },
             },
             _ => {
                 let offset = self.offset.consume();
-                Token::TextSegmentRaw(current_match,offset)
+                Token::text_segment_raw(current_match, offset)
             },
         };
         self.text_state.append_segment(token);
     }
 
+
+    // === Escape Sequences ===
+
     /// Triggered when encountering a literal escape sequence.
-    fn on_escape_literal<R:LazyReader>(&mut self, _escape_code:&str, _reader:&mut R) {
+    fn on_escape_literal<R:ReaderOps>(&mut self, escape_code:&str, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_literal");
         let offset = self.offset.consume();
-        let escape = Token::TextSegmentEscape(token::EscapeStyle::Literal,_escape_code,offset);
+        let escape = Token::text_segment_escape(token::EscapeStyle::Literal,escape_code,offset);
         self.discard_current();
         self.text_state.append_segment(escape);
     }
 
     /// Triggered when encountering a byte escape sequence.
-    fn on_escape_byte<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_byte<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_byte");
         let current_match = self.consume_current();
         let offset        = self.offset.consume();
-        let escape        = escape::ByteEscape::build(current_match,offset);
-        self.text_state.append_segment(escape);
+        let escape        = escape::Byte::build(current_match);
+        let token         = Token::text_segment_escape_from_shape(escape,offset);
+        self.text_state.append_segment(token);
     }
 
     /// Triggered when encountering a U16 unicode escape sequence.
-    fn on_escape_u16<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_u16<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_u16");
         let current_match = self.consume_current();
         let offset        = self.offset.consume();
-        let escape        = escape::U16::build(current_match,offset);
-        self.text_state.append_segment(escape);
+        let escape        = escape::U16::build(current_match);
+        let token         = Token::text_segment_escape_from_shape(escape,offset);
+        self.text_state.append_segment(token);
     }
 
     /// Triggered when encountering a U21 unicode escape sequence.
-    fn on_escape_u21<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_u21<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_u32");
         let current_match = self.consume_current();
         let offset        = self.offset.consume();
-        let escape        = escape::U21::build(current_match,offset);
-        self.text_state.append_segment(escape);
+        let escape        = escape::U21::build(current_match);
+        let token         = Token::text_segment_escape_from_shape(escape,offset);
+        self.text_state.append_segment(token);
     }
 
     /// Triggered when encountering a U32 unicode escape sequence.
-    fn on_escape_u32<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_u32<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_u32");
         let current_match = self.consume_current();
         let offset        = self.offset.consume();
-        let escape        = escape::U32::build(current_match,offset);
-        self.text_state.append_segment(escape);
+        let escape        = escape::U32::build(current_match);
+        let token         = Token::text_segment_escape_from_shape(escape,offset);
+        self.text_state.append_segment(token);
     }
 
     /// Triggered when encountering an escaped raw quote.
-    fn on_escape_raw_quote<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_raw_quote<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_raw_quote");
         let offset = self.offset.consume();
-        let escape = Token::TextSegmentEscape(token::EscapeStyle::Literal,"\"",offset);
+        let escape = Token::text_segment_escape(
+            token::EscapeStyle::Literal,
+            lexeme::raw_quote().literal(),
+            offset
+        );
         self.discard_current();
         self.text_state.append_segment(escape);
     }
 
     /// Triggered when encountering an escaped format quote.
-    fn on_escape_format_quote<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_format_quote<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_format_quote");
         let offset = self.offset.consume();
-        let escape = Token::TextSegmentEscape(token::EscapeStyle::Literal,"'",offset);
+        let escape = Token::text_segment_escape(
+            token::EscapeStyle::Literal,
+            lexeme::format_quote().literal(),
+            offset
+        );
         self.discard_current();
         self.text_state.append_segment(escape);
     }
 
     /// Triggered when encountering an escaped interpolate quote.
-    fn on_escape_interpolate_quote<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_interpolate_quote<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_interpolate_quote");
         let offset = self.offset.consume();
-        let escape = Token::TextSegmentEscape(token::EscapeStyle::Literal,"`",offset);
+        let escape = Token::text_segment_escape(
+            token::EscapeStyle::Literal,
+            lexeme::interpolate_quote().literal(),
+            offset
+        );
         self.discard_current();
         self.text_state.append_segment(escape);
     }
 
     /// Triggered when encountering an escaped backslash.
-    fn on_escape_slash<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_slash<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_slash");
         let offset = self.offset.consume();
-        let escape = Token::TextSegmentEscape(token::EscapeStyle::Literal,"\\",offset);
+        let escape = Token::text_segment_escape(
+            token::EscapeStyle::Literal,
+            lexeme::slash().literal(),
+            offset
+        );
         self.discard_current();
         self.text_state.append_segment(escape);
     }
 
     /// Triggered when encountering an unrecognized escape sequence.
-    fn on_escape_invalid<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_escape_invalid<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Text::on_escape_invalid");
         let offset  = self.offset.consume();
         let current = self.consume_current();
-        let escape  = Token::TextSegmentEscape(token::EscapeStyle::Invalid,current,offset);
+        let escape  = Token::text_segment_escape(token::EscapeStyle::Invalid,current,offset);
         self.text_state.append_segment(escape);
     }
+
 
     // === Rule Definitions ===
 
     /// Define the rules for lexing Enso text literals.
     fn add_text_rules(lexer:&mut EnsoLexer) {
-        let format_quote         = c!('\'');
-        let format_block_quote   = l!("'''");
-        let raw_quote            = c!('"');
-        let raw_block_quote      = l!("\"\"\"");
-        let backslash            = c!('\\');
-        let spaces               = EnsoLexer::spaces();
-        let eof                  = Pattern::eof();
-        let interpolate_quote    = c!('`');
-        let lf                   = l!("\n");
-        let crlf                 = l!("\r\n");
+        let format_quote         = lexeme::format_quote().into_pattern();
+        let format_block_quote   = lexeme::format_block_quote().into_pattern();
+        let raw_quote            = lexeme::raw_quote().into_pattern();
+        let raw_block_quote      = lexeme::raw_block_quote().into_pattern();
+        let backslash            = lexeme::slash().into_pattern();
+        let spaces               = lexeme::spaces();
+        let opt_spaces           = spaces.opt();
+        let eof                  = lexeme::eof();
+        let interpolate_quote    = lexeme::interpolate_quote().into_pattern();
+        let lf                   = lexeme::lf().into_pattern();
+        let crlf                 = lexeme::crlf();
         let format_block_lf      = &format_block_quote >> spaces.opt() >> &lf;
         let format_block_crlf    = &format_block_quote >> spaces.opt() >> &crlf;
         let raw_block_lf         = &raw_block_quote >> spaces.opt() >> &lf;
         let raw_block_crlf       = &raw_block_quote >> spaces.opt() >> &crlf;
-        let format_char          = Pattern::none_of("'`\\\n\r");
-        let format_raw_segment   = format_char.many1();
-        let format_block_segment = Pattern::none_of("\n\r\\`").many1();
-        let raw_block_segment    = Pattern::none_of("\n\r\\");
-        let raw_segment          = Pattern::none_of("\"\n\r\\").many1();
-        let unicode_escape_char  = Pattern::none_of("'\"`\\\n\r{}");
-        let escape_byte          = l!("\\x") >> Pattern::repeat_between(&unicode_escape_char,0,3);
-        let escape_u16           = l!("\\u") >> Pattern::repeat_between(&unicode_escape_char,0,5);
-        let escape_u21           = l!("\\u{") >> &unicode_escape_char.many() >> l!("}");
-        let escape_u32           = l!("\\U") >> Pattern::repeat_between(&unicode_escape_char,0,9);
-        let escape_slash         = l!("\\\\");
+        let format_raw_segment   = lexeme::format_line_raw_char().many1();
+        let format_block_segment = lexeme::format_block_raw_char().many1();
+        let raw_segment          = lexeme::raw_line_raw_char().many1();
+        let raw_block_segment    = lexeme::raw_block_raw_char().many1();
+        let unicode_escape_char  = lexeme::unicode_escape_digit();
+        let byte_escape_start    = lexeme::byte_escape_start().into_pattern();
+        let u16_escape_start     = lexeme::u16_escape_start().into_pattern();
+        let u21_escape_start     = lexeme::u21_escape_start().into_pattern();
+        let u21_escape_end       = lexeme::u21_escape_end().into_pattern();
+        let u32_escape_start     = lexeme::u32_escape_start().into_pattern();
+        let escape_byte_digits   = Pattern::repeat_between(&unicode_escape_char,0,3);
+        let escape_u16_digits    = Pattern::repeat_between(&unicode_escape_char,0,5);
+        let escape_u32_digits    = Pattern::repeat_between(&unicode_escape_char,0,9);
+        let escape_byte          = &byte_escape_start >> &escape_byte_digits;
+        let escape_u16           = &u16_escape_start >> &escape_u16_digits;
+        let escape_u21           = u21_escape_start >> &unicode_escape_char.many() >> u21_escape_end;
+        let escape_u32           = u32_escape_start >> &escape_u32_digits;
+        let escape_slash         = lexeme::escaped_slash().into_pattern();
         let escape_invalid       = &backslash >> Pattern::not_symbol(Symbol::eof()).opt();
         let escape_format_quote  = &backslash >> &format_quote;
         let escape_raw_quote     = &backslash >> &raw_quote;
@@ -1248,79 +1277,84 @@ impl EnsoLexer {
         let eof_new_line         = &spaces.opt() >> &eof;
         let empty_line_lf        = &spaces.opt() >> &lf;
         let empty_line_crlf      = &spaces.opt() >> &crlf;
-        let comment_char         = l!("#").many1();
-        let doc_comment_start    = l!("## ");
+        let comment_char         = lexeme::comment().into_pattern().many1();
+        let doc_comment_start    = lexeme::doc_comment().into_pattern() >> &opt_spaces;
+
+
+        // === Initial State Rules for Text Literals ===
 
         let root_state_id = lexer.initial_state;
         let root_state    = lexer.group_mut(root_state_id);
-        root_state.create_rule(&interpolate_quote,   "self.on_interpolate_end(true,reader)");
-        root_state.create_rule(&invalid_format_quote,"self.on_invalid_quote(reader)");
-        root_state.create_rule(&format_quote,        "self.on_begin_format_line(reader)");
-        root_state.create_rule(
-            &format_block_lf,
-            "self.on_begin_text_block(\
-                token::TextStyle::FormatBlock,self.text_format_block,token::LineEnding::LF,reader\
-            )"
-        );
-        root_state.create_rule(
-            &format_block_crlf,
-            "self.on_begin_text_block(\
-                token::TextStyle::FormatBlock,self.text_format_block,token::LineEnding::CRLF,reader\
-            )"
-        );
-        root_state.create_rule(
-            &format_block_quote,
-            "self.text_on_inline_block(\
-                token::TextStyle::FormatInlineBlock,self.text_format_inline_block,reader\
-            )"
-        );
-        root_state.create_rule(&invalid_raw_quote,"self.on_invalid_quote(reader)");
-        root_state.create_rule(&raw_quote,        "self.on_begin_raw_line(reader)");
-        root_state.create_rule(
-            &raw_block_lf,
-            "self.on_begin_text_block(\
-                token::TextStyle::RawBlock,self.text_raw_block,token::LineEnding::LF,reader\
-            )"
-        );
-        root_state.create_rule(
-            &raw_block_crlf,
-            "self.on_begin_text_block(\
-                token::TextStyle::RawBlock,self.text_raw_block,token::LineEnding::CRLF,reader\
-            )"
-        );
-        root_state.create_rule(
-            &raw_block_quote,
-            "self.text_on_inline_block(\
-                token::TextStyle::RawInlineBlock,self.text_raw_inline_block,reader\
-            )"
-        );
+        rule!(root_state(interpolate_quote)    => self.on_interpolate_end(true,reader));
+        rule!(root_state(invalid_format_quote) => self.on_invalid_quote(reader));
+        rule!(root_state(format_quote)         => self.on_begin_format_line(reader));
+        rule!(root_state(format_block_lf) => self.on_begin_text_block(
+            token::TextStyle::FormatBlock,
+            self.text_format_block,
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(root_state(format_block_crlf) => self.on_begin_text_block(
+            token::TextStyle::FormatBlock,
+            self.text_format_block,
+            token::LineEnding::CRLF,
+            reader
+        ));
+        rule!(root_state(format_block_quote) => self.text_on_inline_block(
+            token::TextStyle::FormatInlineBlock,
+            self.text_format_inline_block,
+            reader
+        ));
+        rule!(root_state(invalid_raw_quote) => self.on_invalid_quote(reader));
+        rule!(root_state(raw_quote)         => self.on_begin_raw_line(reader));
+        rule!(root_state(raw_block_lf) => self.on_begin_text_block(
+            token::TextStyle::RawBlock,
+            self.text_raw_block,
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(root_state(raw_block_crlf) => self.on_begin_text_block(
+            token::TextStyle::RawBlock,
+            self.text_raw_block,
+            token::LineEnding::CRLF,
+            reader
+        ));
+        rule!(root_state(raw_block_quote) => self.text_on_inline_block(
+            token::TextStyle::RawInlineBlock,
+            self.text_raw_inline_block,
+            reader
+        ));
+
+
+        // === Rules for Handling Lines in Text Blocks ===
 
         let in_block_line_id = lexer.in_block_line;
         let in_block_line    = lexer.group_mut(in_block_line_id);
-        in_block_line.create_rule(
-            &format_block_lf,
-            "self.on_begin_text_block(\
-                token::TextStyle::FormatBlock,self.text_format_block,token::LineEnding::LF,reader\
-            )"
-        );
-        in_block_line.create_rule(
-            &format_block_crlf,
-            "self.on_begin_text_block(\
-                token::TextStyle::FormatBlock,self.text_format_block,token::LineEnding::CRLF,reader\
-            )"
-        );
-        in_block_line.create_rule(
-            &raw_block_lf,
-            "self.on_begin_text_block(\
-                token::TextStyle::RawBlock,self.text_raw_block,token::LineEnding::LF,reader\
-            )"
-        );
-        in_block_line.create_rule(
-            &raw_block_crlf,
-            "self.on_begin_text_block(\
-                token::TextStyle::RawBlock,self.text_raw_block,token::LineEnding::CRLF,reader\
-            )"
-        );
+        rule!(in_block_line(format_block_lf) => self.on_begin_text_block(
+            token::TextStyle::FormatBlock,
+            self.text_format_block,
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(in_block_line(format_block_crlf) => self.on_begin_text_block(
+            token::TextStyle::FormatBlock,
+            self.text_format_block,
+            token::LineEnding::CRLF,
+            reader
+        ));
+        rule!(in_block_line(raw_block_lf) => self.on_begin_text_block(
+            token::TextStyle::RawBlock,
+            self.text_raw_block,
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(in_block_line(raw_block_crlf) => self.on_begin_text_block(
+            token::TextStyle::RawBlock,
+            self.text_raw_block,
+            token::LineEnding::CRLF,
+            reader
+        ));
+
 
         // === Escape Sequences ===
 
@@ -1331,196 +1365,211 @@ impl EnsoLexer {
             let call    = format!("self.on_escape_literal({:?},reader)",&char_escape.repr.as_str());
             text_escape.create_rule(&pattern,call.as_str());
         }
-        text_escape.create_rule(&escape_byte,   "self.on_escape_byte(reader)");
-        text_escape.create_rule(&escape_u21,    "self.on_escape_u21(reader)");
-        text_escape.create_rule(&escape_u16,    "self.on_escape_u16(reader)");
-        text_escape.create_rule(&escape_u32,    "self.on_escape_u32(reader)");
-        text_escape.create_rule(&escape_slash,  "self.on_escape_slash(reader)");
-        text_escape.create_rule(&escape_invalid,"self.on_escape_invalid(reader)");
+        rule!(text_escape(escape_byte)    => self.on_escape_byte(reader));
+        rule!(text_escape(escape_u21)     => self.on_escape_u21(reader));
+        rule!(text_escape(escape_u16)     => self.on_escape_u16(reader));
+        rule!(text_escape(escape_u32)     => self.on_escape_u32(reader));
+        rule!(text_escape(escape_slash)   => self.on_escape_slash(reader));
+        rule!(text_escape(escape_invalid) => self.on_escape_invalid(reader));
+
 
         // === Interpolation Rules ===
 
         let text_interpolate_id = lexer.text_interpolate;
         let text_interpolate    = lexer.group_mut(text_interpolate_id);
-        text_interpolate.create_rule(&doc_comment_start, "self.on_doc_comment_in_interpolate(reader)");
-        text_interpolate.create_rule(&comment_char,      "self.on_unrecognized(reader)");
-        text_interpolate.create_rule(&format_block_quote,"self.on_unrecognized(reader)");
-        text_interpolate.create_rule(
-            &format_block_lf,
-            "self.on_text_block_nested(token::LineEnding::LF,reader)"
-        );
-        text_interpolate.create_rule(
-            &format_block_crlf,
-            "self.on_text_block_nested(token::LineEnding::CRLF,reader)"
-        );
-        text_interpolate.create_rule(&invalid_format_quote,"self.on_invalid_quote(reader)");
-        text_interpolate.create_rule(&raw_block_quote,     "self.on_unrecognized(reader)");
-        text_interpolate.create_rule(
-            &raw_block_lf,
-            "self.on_text_block_nested(token::LineEnding::LF,reader)"
-        );
-        text_interpolate.create_rule(
-            &raw_block_crlf,
-            "self.on_text_block_nested(token::LineEnding::CRLF,reader)"
-        );
-        text_interpolate.create_rule(&invalid_raw_quote,"self.on_invalid_quote(reader)");
-        text_interpolate.create_rule(&eof,              "self.on_eof_in_interpolate(reader)");
-        text_interpolate.create_rule(
-            &lf,
-            "self.on_newline_in_interpolate(token::LineEnding::LF,reader)"
-        );
-        text_interpolate.create_rule(
-            &crlf,
-            "self.on_newline_in_interpolate(token::LineEnding::CRLF,reader)"
-        );
+        rule!(text_interpolate(doc_comment_start)  => self.on_doc_comment_in_interpolate(reader));
+        rule!(text_interpolate(comment_char)       => self.on_unrecognized(reader));
+        rule!(text_interpolate(format_block_quote) => self.on_unrecognized(reader));
+        rule!(text_interpolate(format_block_lf) => self.on_text_block_nested(
+            token::LineEnding::LF,
+            lexeme::format_block_quote(),
+            reader
+        ));
+        rule!(text_interpolate(format_block_crlf) => self.on_text_block_nested(
+            token::LineEnding::CRLF,
+            lexeme::format_block_quote(),
+            reader
+        ));
+        rule!(text_interpolate(invalid_format_quote) => self.on_invalid_quote(reader));
+        rule!(text_interpolate(raw_block_quote)      => self.on_unrecognized(reader));
+        rule!(text_interpolate(raw_block_lf) => self.on_text_block_nested(
+            token::LineEnding::LF,
+            lexeme::raw_block_quote(),
+            reader
+        ));
+        rule!(text_interpolate(raw_block_crlf) => self.on_text_block_nested(
+            token::LineEnding::CRLF,
+            lexeme::raw_block_quote(),
+            reader
+        ));
+        rule!(text_interpolate(invalid_raw_quote) => self.on_invalid_quote(reader));
+        rule!(text_interpolate(eof)               => self.on_eof_in_interpolate(reader));
+        rule!(text_interpolate(lf) => self.on_newline_in_interpolate(
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(text_interpolate(crlf) => self.on_newline_in_interpolate(
+            token::LineEnding::CRLF,
+            reader
+        ));
 
-        // === Format Text ===
+
+        // === Format Text Common Rules ===
 
         let text_format_id = lexer.text_format;
         let text_format    = lexer.group_mut(text_format_id);
-        text_format.create_rule(&interpolate_quote,  "self.on_interpolate_begin(reader)");
-        text_format.create_rule(&escape_backtick,    "self.on_escape_interpolate_quote(reader)");
-        text_format.create_rule(&escape_format_quote,"self.on_escape_format_quote(reader)");
+        rule!(text_format(interpolate_quote)   => self.on_interpolate_begin(reader));
+        rule!(text_format(escape_backtick)     => self.on_escape_interpolate_quote(reader));
+        rule!(text_format(escape_format_quote) => self.on_escape_format_quote(reader));
+
+
+        // === Format Text Line Rules ===
 
         let text_format_line_id = lexer.text_format_line;
         let text_format_line    = lexer.group_mut(text_format_line_id);
-        text_format_line.create_rule(
-            &format_quote,
-            "self.submit_text_line(self.text_format_line,reader)"
-        );
-        text_format_line.create_rule(&format_raw_segment,"self.submit_plain_segment(reader)");
-        text_format_line.create_rule(
-            &eof,
-            "self.submit_missing_quote(token::LineEnding::None,reader)"
-        );
-        text_format_line.create_rule(
-            &lf,
-            "self.submit_missing_quote(token::LineEnding::LF,reader)"
-        );
-        text_format_line.create_rule(
-            &crlf,
-            "self.submit_missing_quote(token::LineEnding::CRLF,reader)"
-        );
+        rule!(text_format_line(format_quote) => self.submit_text_line(
+            self.text_format_line,
+            reader
+        ));
+        rule!(text_format_line(format_raw_segment) => self.submit_plain_segment(reader));
+        rule!(text_format_line(eof)  => self.submit_missing_quote(token::LineEnding::None,reader));
+        rule!(text_format_line(lf)   => self.submit_missing_quote(token::LineEnding::LF,reader));
+        rule!(text_format_line(crlf) => self.submit_missing_quote(token::LineEnding::CRLF,reader));
+
+
+        // === Format Text Inline Block Rules ===
 
         let format_inline_block_id = lexer.text_format_inline_block;
         let format_inline_block    = lexer.group_mut(format_inline_block_id);
-        format_inline_block.create_rule(&format_block_segment,"self.submit_plain_segment(reader)");
-        format_inline_block.create_rule(&eof,"self.text_on_eof_in_inline_block(reader)");
-        format_inline_block.create_rule(
-            &lf,
-            "self.text_inline_block_on_newline(token::LineEnding::LF,reader)"
-        );
-        format_inline_block.create_rule(
-            &crlf,
-            "self.text_inline_block_on_newline(token::LineEnding::CRLF,reader)"
-        );
+        rule!(format_inline_block(format_block_segment) => self.submit_plain_segment(reader));
+        rule!(format_inline_block(eof) => self.text_on_eof_in_inline_block(reader));
+        rule!(format_inline_block(lf) => self.text_inline_block_on_newline(
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(format_inline_block(crlf) => self.text_inline_block_on_newline(
+            token::LineEnding::CRLF,
+            reader
+        ));
+
+
+        // === Format Text Block Rules ===
 
         let format_block_id = lexer.text_format_block;
         let format_block    = lexer.group_mut(format_block_id);
-        format_block.create_rule(&format_block_segment,"self.submit_plain_segment(reader)");
-        format_block.create_rule(&eof,"self.text_on_end_of_block(reader)");
-        format_block.create_rule(&lf,"self.text_on_end_of_line(token::LineEnding::LF,reader)");
-        format_block.create_rule(&crlf,"self.text_on_end_of_line(token::LineEnding::CRLF,reader)");
+        rule!(format_block(format_block_segment) => self.submit_plain_segment(reader));
+        rule!(format_block(eof)                  => self.text_on_end_of_block(reader));
+        rule!(format_block(lf)   => self.text_on_end_of_line(token::LineEnding::LF,reader));
+        rule!(format_block(crlf) => self.text_on_end_of_line(token::LineEnding::CRLF,reader));
+
+
+        // === Rules for Format Lines Nested Inside Interpolations ===
 
         let format_line_nested_id = lexer.text_format_line_nested;
         let format_line_nested    = lexer.group_mut(format_line_nested_id);
-        format_line_nested.create_rule(&interpolate_quote,"self.on_interpolate_end(true,reader)");
-        format_line_nested.create_rule(
-            &format_quote,
-            "self.submit_text_line(self.text_format_line_nested,reader)"
-        );
-        format_line_nested.create_rule(&format_raw_segment,"self.submit_plain_segment(reader)");
-        format_line_nested.create_rule(
-            &eof,
-            "self.submit_missing_quote_nested(token::LineEnding::None,reader)"
-        );
-        format_line_nested.create_rule(
-            &lf,
-            "self.submit_missing_quote_nested(token::LineEnding::LF,reader)"
-        );
-        format_line_nested.create_rule(
-            &crlf,
-            "self.submit_missing_quote_nested(token::LineEnding::CRLF,reader)"
-        );
+        rule!(format_line_nested(interpolate_quote) => self.on_interpolate_end(true,reader));
+        rule!(format_line_nested(format_quote) => self.submit_text_line(
+            self.text_format_line_nested,
+            reader
+        ));
+        rule!(format_line_nested(format_raw_segment) => self.submit_plain_segment(reader));
+        rule!(format_line_nested(eof) => self.submit_missing_quote_nested(
+            token::LineEnding::None,
+            reader
+        ));
+        rule!(format_line_nested(lf) => self.submit_missing_quote_nested(
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(format_line_nested(crlf) => self.submit_missing_quote_nested(
+            token::LineEnding::CRLF,
+            reader
+        ));
 
-        // === Raw Text ===
+
+        // === Raw Text Common Rules ===
 
         let text_raw_id = lexer.text_raw;
         let text_raw    = lexer.group_mut(text_raw_id);
-        text_raw.create_rule(&escape_raw_quote, "self.on_escape_raw_quote(reader)");
-        text_raw.create_rule(&escape_invalid,   "self.submit_plain_segment(reader)");
+        rule!(text_raw(escape_raw_quote) => self.on_escape_raw_quote(reader));
+        rule!(text_raw(escape_slash)     => self.on_escape_slash(reader));
+        rule!(text_raw(escape_invalid)   => self.submit_plain_segment(reader));
+
+
+        // === Raw Text Line Rules ===
 
         let text_raw_line_id = lexer.text_raw_line;
         let text_raw_line    = lexer.group_mut(text_raw_line_id);
-        text_raw_line.create_rule(&raw_quote,  "self.submit_text_line(self.text_raw_line,reader)");
-        text_raw_line.create_rule(&raw_segment,"self.submit_plain_segment(reader)");
-        text_raw_line.create_rule(
-            &eof,
-            "self.submit_missing_quote(token::LineEnding::None,reader)"
-        );
-        text_raw_line.create_rule(
-            &lf,
-            "self.submit_missing_quote(token::LineEnding::LF,reader)"
-        );
-        text_raw_line.create_rule(
-            &crlf,
-            "self.submit_missing_quote(token::LineEnding::CRLF,reader)"
-        );
+        rule!(text_raw_line(raw_quote)   => self.submit_text_line(self.text_raw_line,reader));
+        rule!(text_raw_line(raw_segment) => self.submit_plain_segment(reader));
+        rule!(text_raw_line(eof)  => self.submit_missing_quote(token::LineEnding::None,reader));
+        rule!(text_raw_line(lf)   => self.submit_missing_quote(token::LineEnding::LF,reader));
+        rule!(text_raw_line(crlf) => self.submit_missing_quote(token::LineEnding::CRLF,reader));
+
+
+        // === Raw Text Inline Block Rules ===
 
         let raw_inline_block_id = lexer.text_raw_inline_block;
         let raw_inline_block    = lexer.group_mut(raw_inline_block_id);
-        raw_inline_block.create_rule(&raw_block_segment,"self.submit_plain_segment(reader)");
-        raw_inline_block.create_rule(&eof,              "self.text_on_eof_in_inline_block(reader)");
-        raw_inline_block.create_rule(
-            &lf,
-            "self.text_inline_block_on_newline(token::LineEnding::LF,reader)"
-        );
-        raw_inline_block.create_rule(
-            &crlf,
-            "self.text_inline_block_on_newline(token::LineEnding::CRLF,reader)"
-        );
+        rule!(raw_inline_block(raw_block_segment) => self.submit_plain_segment(reader));
+        rule!(raw_inline_block(eof)               => self.text_on_eof_in_inline_block(reader));
+        rule!(raw_inline_block(lf) => self.text_inline_block_on_newline(
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(raw_inline_block(crlf) => self.text_inline_block_on_newline(
+            token::LineEnding::CRLF,
+            reader
+        ));
+
+
+        // === Raw Text Block Rules ===
 
         let raw_block_id = lexer.text_raw_block;
         let raw_block    = lexer.group_mut(raw_block_id);
-        raw_block.create_rule(&raw_block_segment,"self.submit_plain_segment(reader)");
-        raw_block.create_rule(&eof, "self.text_on_end_of_block(reader)");
-        raw_block.create_rule(&lf,  "self.text_on_end_of_line(token::LineEnding::LF,reader)");
-        raw_block.create_rule(&crlf,"self.text_on_end_of_line(token::LineEnding::CRLF,reader)");
+        rule!(raw_block(raw_block_segment) => self.submit_plain_segment(reader));
+        rule!(raw_block(eof)  => self.text_on_end_of_block(reader));
+        rule!(raw_block(lf)   => self.text_on_end_of_line(token::LineEnding::LF,reader));
+        rule!(raw_block(crlf) => self.text_on_end_of_line(token::LineEnding::CRLF,reader));
+
+
+        // === Rules for Raw Lines Nested Inside Interpolations ===
 
         let raw_line_nested_id = lexer.text_raw_line_nested;
         let raw_line_nested    = lexer.group_mut(raw_line_nested_id);
-        raw_line_nested.create_rule(
-            &raw_quote,
-            "self.submit_text_line(self.text_raw_line_nested,reader)"
-        );
-        raw_line_nested.create_rule(&raw_segment,"self.submit_plain_segment(reader)");
-        raw_line_nested.create_rule(
-            &eof,
-            "self.submit_missing_quote_nested(token::LineEnding::None,reader)"
-        );
-        raw_line_nested.create_rule(
-            &lf,
-            "self.submit_missing_quote_nested(token::LineEnding::LF,reader)"
-        );
-        raw_line_nested.create_rule(
-            &crlf,
-            "self.submit_missing_quote_nested(token::LineEnding::CRLF,reader)"
-        );
+        rule!(raw_line_nested(raw_quote) => self.submit_text_line(
+            self.text_raw_line_nested,
+            reader
+        ));
+        rule!(raw_line_nested(raw_segment) => self.submit_plain_segment(reader));
+        rule!(raw_line_nested(eof) => self.submit_missing_quote_nested(
+            token::LineEnding::None,
+            reader
+        ));
+        rule!(raw_line_nested(lf) => self.submit_missing_quote_nested(
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(raw_line_nested(crlf) => self.submit_missing_quote_nested(
+            token::LineEnding::CRLF,
+            reader
+        ));
+
 
         // === Text Block Line Handling ===
 
         let text_newline_id = lexer.text_seen_newline;
         let text_newline    = lexer.group_mut(text_newline_id);
-        text_newline.create_rule(&spaces.opt(),"self.text_on_new_line(reader)");
-        text_newline.create_rule(
-            &empty_line_lf,
-            "self.text_on_empty_line(token::LineEnding::LF,reader)"
-        );
-        text_newline.create_rule(
-            &empty_line_crlf,
-            "self.text_on_empty_line(token::LineEnding::CRLF,reader)"
-        );
-        text_newline.create_rule(&eof_new_line, "self.text_on_eof_new_line(reader)");
+        rule!(text_newline(spaces.opt()) => self.text_on_new_line(reader));
+        rule!(text_newline(empty_line_lf) => self.text_on_empty_line(
+            token::LineEnding::LF,
+            reader
+        ));
+        rule!(text_newline(empty_line_crlf) => self.text_on_empty_line(
+            token::LineEnding::CRLF,
+            reader
+        ));
+        rule!(text_newline(eof_new_line) => self.text_on_eof_new_line(reader));
     }
 }
 
@@ -1532,7 +1581,7 @@ impl EnsoLexer {
 impl EnsoLexer {
 
     /// Common functionality for both styles of line ending.
-    fn block_on_newline<R:LazyReader>(&mut self, line_end:token::LineEnding, _reader:&mut R) {
+    fn block_on_newline<R:ReaderOps>(&mut self, line_end:token::LineEnding, _reader:&mut R) {
         trace!(self.logger,"Block::block_on_newline");
         self.block_state.push_line_ending(line_end);
         let block_newline             = self.block_newline;
@@ -1542,7 +1591,7 @@ impl EnsoLexer {
     }
 
     /// Transitions the lexer into a state in which it knows it is lexing a block line.
-    fn block_in_line<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn block_in_line<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Block::block_in_line");
         let indent_len = self.current_match.chars().count();
         self.offset.increase(indent_len,0);
@@ -1551,7 +1600,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when lexing a non-blank line.
-    fn block_on_non_empty_line<R:LazyReader>(&mut self, reader:&mut R) {
+    fn block_on_non_empty_line<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Block::block_on_non_empty_line");
         let block_newline = self.block_newline;
         self.pop_states_including(block_newline);
@@ -1572,7 +1621,7 @@ impl EnsoLexer {
     }
 
     /// Begin a new block.
-    fn begin_block<R:LazyReader>(&mut self, block_indent:usize, _reader:&mut R) {
+    fn begin_block<R:ReaderOps>(&mut self, block_indent:usize, _reader:&mut R) {
         trace!(self.logger,"Block::begin_block");
         let is_orphan = self.output.is_empty();
         self.push_tokens();
@@ -1580,7 +1629,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when lexing an empty line in a block.
-    fn block_on_empty_line<R:LazyReader>(&mut self, line_end:token::LineEnding, reader:&mut R) {
+    fn block_on_empty_line<R:ReaderOps>(&mut self, line_end:token::LineEnding, reader:&mut R) {
         trace!(self.logger,"Block::block_on_empty_line");
         self.block_state.push_line_ending(line_end);
         self.block_submit_line(reader);
@@ -1591,7 +1640,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when lexing a line in a block that ends a file.
-    fn block_in_eof_line<R:LazyReader>(&mut self, reader:&mut R) {
+    fn block_in_eof_line<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Block::block_in_eof_line");
         let initial_state = self.initial_state;
         self.pop_states_until(initial_state);
@@ -1599,11 +1648,11 @@ impl EnsoLexer {
     }
 
     /// Triggered when beginning a top-level block.
-    fn block_begin_top_level<R:LazyReader>(&mut self, reader:&mut R) {
+    fn block_begin_top_level<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Block::block_begin_top_level");
         let matched_bookmark = self.bookmarks.matched_bookmark;
         let block_newline    = self.block_newline;
-        let initial_state = self.initial_state;
+        let initial_state    = self.initial_state;
         self.bookmarks.rewind(matched_bookmark,reader);
         self.offset.push();
         self.pop_states_until(initial_state);
@@ -1611,7 +1660,7 @@ impl EnsoLexer {
     }
 
     /// Triggered when a block is ended.
-    fn on_block_end<R:LazyReader>(&mut self, new_indent:usize, reader:&mut R) {
+    fn on_block_end<R:ReaderOps>(&mut self, new_indent:usize, reader:&mut R) {
         trace!(self.logger,"Block::on_block_end");
         if self.block_state.seen_newline {
             while new_indent < self.block_state.current().indent {
@@ -1619,7 +1668,7 @@ impl EnsoLexer {
             }
             if new_indent > self.block_state.current().indent {
                 info!(self.logger,"Block with invalid indentation.");
-                self.begin_block(new_indent, reader);
+                self.begin_block(new_indent,reader);
                 self.block_state.current_mut().is_valid = false;
             } else {
                 self.offset.push();
@@ -1629,7 +1678,7 @@ impl EnsoLexer {
     }
 
     /// Create a block token from the current block state.
-    fn build_block<R:LazyReader>(&mut self, reader:&mut R) -> Token {
+    fn build_block<R:ReaderOps>(&mut self, reader:&mut R) -> Token {
         trace!(self.logger,"Block::build_block");
         self.block_submit_line(reader);
         let offset        = self.offset.consume();
@@ -1638,14 +1687,14 @@ impl EnsoLexer {
     }
 
     /// Submit a block to the token stream of the lexer.
-    fn block_submit<R:LazyReader>(&mut self, reader:&mut R) {
+    fn block_submit<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Block::block_submit");
         let mut block = self.build_block(reader);
         self.pop_tokens();
         self.offset.pop();
         self.block_state.end_block();
         if let Some(Token{shape:token::Shape::Operator(_),..}) = self.last_token() {
-            if let token::Shape::Block {indent,lines,..} = block.shape {
+            if let token::Shape::Block{indent,lines,..} = block.shape {
                 block.shape = token::Shape::block(BlockType::Discontinuous,indent,lines);
             }
         }
@@ -1656,20 +1705,20 @@ impl EnsoLexer {
     /// Submit a line in a block.
     ///
     /// It should be noted that lines that have content in blocks cannot have an offset.
-    fn block_submit_line<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn block_submit_line<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Block::block_submit_line");
         if self.block_state.seen_newline {
             if !self.output.is_empty() {
                 let token_stream = self.consume_tokens();
                 self.block_state.append_line_to_current(token_stream.into());
             }
-            debug!(self.logger,"Clear Output Buffer: Old Length = {self.output.len()}");
+            debug!(self.logger,"Clear Output Buffer: Old Length = {self.output.len()}.");
             self.output.clear();
         }
     }
 
     /// Triggered when the top-level block ends.
-    fn block_end_top_level<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn block_end_top_level<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Block::block_end_top_level");
         let current_block = self.block_state.consume_current();
         if self.block_state.seen_newline {
@@ -1678,37 +1727,50 @@ impl EnsoLexer {
             self.append_token(top_level_block);
         } else {
             let additional_offset = current_block.indent;
-            if let Some(token) = self.output.first_mut() { token.offset += additional_offset }
+            if let Some(token)    = self.output.first_mut() { token.offset += additional_offset }
         }
     }
 
     /// The rule definitions for lexing blocks in Enso.
     fn add_block_rules(lexer:&mut EnsoLexer) {
-        let spaces     = EnsoLexer::spaces();
-        let lf         = c!('\n');
-        let crlf       = l!("\r\n");
+        let spaces     = lexeme::spaces();
+        let lf         = lexeme::lf().into_pattern();
+        let crlf       = lexeme::crlf();
         let opt_spaces = spaces.opt();
         let eof_line   = &opt_spaces >> Pattern::eof();
+        let always     = Pattern::always();
+
+
+        // === Initial State Rules for Blocks ===
 
         let root_state_id = lexer.initial_state;
         let root_state    = lexer.group_mut(root_state_id);
-        root_state.create_rule(&lf,  "self.block_on_newline(token::LineEnding::LF,reader)");
-        root_state.create_rule(&crlf,"self.block_on_newline(token::LineEnding::CRLF,reader)");
+        rule!(root_state(lf)   => self.block_on_newline(token::LineEnding::LF,reader));
+        rule!(root_state(crlf) => self.block_on_newline(token::LineEnding::CRLF,reader));
+
+
+        // === Rules for Blocks Having Seen a Newline ===
 
         let block_newline_id = lexer.block_newline;
         let block_newline    = lexer.group_mut(block_newline_id);
-        block_newline.create_rule(&opt_spaces,"self.block_in_line(reader)");
-        block_newline.create_rule(&eof_line,  "self.block_in_eof_line(reader)");
+        rule!(block_newline(opt_spaces) => self.block_in_line(reader));
+        rule!(block_newline(eof_line)   => self.block_in_eof_line(reader));
+
+
+        // === Rules for Lines in Blocks ===
 
         let in_block_line_id = lexer.in_block_line;
         let in_block_line    = lexer.group_mut(in_block_line_id);
-        in_block_line.create_rule(&lf,"self.block_on_empty_line(token::LineEnding::LF,reader)");
-        in_block_line.create_rule(&crlf,"self.block_on_empty_line(token::LineEnding::CRLF,reader)");
-        in_block_line.create_rule(&Pattern::always(),"self.block_on_non_empty_line(reader)");
+        rule!(in_block_line(lf)     => self.block_on_empty_line(token::LineEnding::LF,reader));
+        rule!(in_block_line(crlf)   => self.block_on_empty_line(token::LineEnding::CRLF,reader));
+        rule!(in_block_line(always) => self.block_on_non_empty_line(reader));
+
+
+        // === Rules for Top-Level Blocks ===
 
         let block_module_id = lexer.block_top_level;
         let block_module    = lexer.group_mut(block_module_id);
-        block_module.create_rule(&opt_spaces,"self.block_begin_top_level(reader)");
+        rule!(block_module(opt_spaces) => self.block_begin_top_level(reader));
     }
 }
 
@@ -1720,7 +1782,7 @@ impl EnsoLexer {
 impl EnsoLexer {
 
     /// Triggered on an arbitrary space character.
-    fn on_space<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_space<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Root::on_space");
         let current_len = self.current_match.chars().count();
         self.offset.increase(current_len,0);
@@ -1728,35 +1790,35 @@ impl EnsoLexer {
     }
 
     /// Triggered on an arbitrary eof character.
-    fn on_eof<R:LazyReader>(&mut self, reader:&mut R) {
+    fn on_eof<R:ReaderOps>(&mut self, reader:&mut R) {
         trace!(self.logger,"Root::on_eof");
+        let base_block_indent = 0;
         self.offset.push();
         self.block_submit_line(reader);
-        self.on_block_end(0,reader);
+        self.on_block_end(base_block_indent,reader);
         self.block_end_top_level(reader);
     }
 
     /// Triggered on any unrecognized character.
-    fn on_unrecognized<R:LazyReader>(&mut self, _reader:&mut R) {
+    fn on_unrecognized<R:ReaderOps>(&mut self, _reader:&mut R) {
         trace!(self.logger,"Root::on_unrecognized");
-        let token = Token::Unrecognized(self.consume_current(),self.offset.consume());
+        let token = Token::unrecognized(self.consume_current(),self.offset.consume());
         self.append_token(token);
     }
 
     /// The default rules for the lexer.
     fn add_default_rules(lexer:&mut EnsoLexer) {
-        let space = Pattern::char(' ');
+        let space = lexeme::space().into_pattern();
         let eof   = Pattern::eof();
         let any   = Pattern::any();
 
         let initial_state_id = lexer.initial_state;
         let initial_state    = lexer.group_mut(initial_state_id);
-        initial_state.create_rule(&space,"self.on_space(reader)");
-        initial_state.create_rule(&eof,  "self.on_eof(reader)");
-        initial_state.create_rule(&any,  "self.on_unrecognized(reader)");
+        rule!(initial_state(space) => self.on_space(reader));
+        rule!(initial_state(eof)   => self.on_eof(reader));
+        rule!(initial_state(any)   => self.on_unrecognized(reader));
     }
 }
-
 
 
 // === Trait Impls ===
@@ -1801,6 +1863,9 @@ impl Default for EnsoLexer {
 // ===================
 
 /// The state for the Enso lexer.
+///
+/// This state contains all of the stateful information required to lex the Enso language, as well
+/// as the functionality for manipulating the reader of the lexer.
 #[derive(Debug)]
 pub struct State<Logger> {
     /// The logger for the lexing state.
@@ -2013,6 +2078,12 @@ impl<Logger:AnyLogger<Owned=Logger>> enso_flexer::State for State<Logger> {
 // =========================
 
 /// A manager for the current offset state of the lexer.
+///
+/// The offset is the number of leading spaces between the last-lexed token and the token that is
+/// currently being lexed.
+///
+/// In addition to containing the _current_ offset, it also provides facilities for manipulating a
+/// _stack_ of offsets as the lexer changes state.
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct Offset<Logger> {
     /// The current offset of the lexer.
@@ -2036,7 +2107,7 @@ impl<Logger:AnyLogger> Offset<Logger> {
 
     /// Push the current offset onto the offset stack.
     pub fn push(&mut self) {
-        debug!(self.logger,"Push Offset: {self.current}");
+        debug!(self.logger,"Push Offset: {self.current}.");
         self.stack.push(self.current);
         self.current = 0;
     }
@@ -2044,23 +2115,23 @@ impl<Logger:AnyLogger> Offset<Logger> {
     /// Pop the top offset from the offset stack.
     pub fn pop(&mut self) {
         self.current = self.stack.pop().unwrap_or(0);
-        debug!(self.logger,"Pop Offset: {self.current}");
+        debug!(self.logger,"Pop Offset: {self.current}.");
     }
 
     /// Consume the current offset.
     pub fn consume(&mut self) -> usize {
         let offset   = self.current;
         self.current = 0;
-        debug!(self.logger,"Consume Offset: {offset}");
+        debug!(self.logger,"Consume Offset: {offset}.");
         offset
     }
 
     /// Increase the current offset by `match_length` + `shift`.
     pub fn increase(&mut self, match_length:usize, shift:usize) {
         let diff = match_length + shift;
-        debug!(self.logger,"Increase Offset By: {diff}");
+        debug!(self.logger,"Increase Offset By: {diff}.");
         self.current += diff;
-        debug!(self.logger,"Offset Now: {self.current}");
+        debug!(self.logger,"Offset Now: {self.current}.");
     }
 }
 
@@ -2071,6 +2142,9 @@ impl<Logger:AnyLogger> Offset<Logger> {
 // =========================
 
 /// The state for lexing an Enso number.
+///
+/// It contains the various portions of a number seen so far, and provides useful operations for the
+/// manipulation of this state and subsequent conversion into a number token.
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct NumberLexingState<Logger> {
     /// The (optional) base for the number.
@@ -2084,7 +2158,7 @@ pub struct NumberLexingState<Logger> {
 impl<Logger:AnyLogger> NumberLexingState<Logger> {
     /// Create a new number lexing state.
     pub fn new(logger:Logger) -> Self {
-        let base = default();
+        let base    = default();
         let literal = default();
         NumberLexingState{base,literal,logger}
     }
@@ -2093,19 +2167,19 @@ impl<Logger:AnyLogger> NumberLexingState<Logger> {
     pub fn reset(&mut self) {
         self.base.truncate(0);
         self.literal.truncate(0);
-        debug!(self.logger,"Reset Number State");
+        debug!(self.logger,"Reset Number State.");
     }
 
     /// Swap the `base` and `literal` in place.
     pub fn swap_members(&mut self) {
-        debug!(self.logger,"Swap Number Fields");
+        debug!(self.logger,"Swap Number Fields.");
         mem::swap(&mut self.base,&mut self.literal);
     }
 
     /// Convert `self` into a token, resetting the lexing state.
     pub fn consume_token(&mut self, offset:usize) -> Token {
-        debug!(self.logger,"Consuming Number: Base = {self.base}, Number = {self.literal}");
-        Token::Number(mem::take(&mut self.base),mem::take(&mut self.literal),offset)
+        debug!(self.logger,"Consuming Number: Base = {self.base}, Number = {self.literal}.");
+        Token::number(mem::take(&mut self.base), mem::take(&mut self.literal), offset)
     }
 
     /// Take the `literal` portion of the number lexing state.
@@ -2126,11 +2200,18 @@ impl<Logger:AnyLogger> NumberLexingState<Logger> {
 // ========================
 
 /// The state for managing the lexing of blocks in Enso.
+///
+/// It contains structures for tracking the nesting of block literals as lexing proceeds, as well
+/// as tracking the overall block state of the lexer.
 #[derive(Clone,Debug,PartialEq)]
 pub struct BlockLexingState<Logger> {
     /// The stack of blocks being lexed.
     stack : NonEmptyVec<BlockState>,
-    /// Lines that will
+    /// Lines that will be included into the block upon encountering the _next_ valid line.
+    ///
+    /// This is necessary due to the language's grouping of trailing blank lines in block-like
+    /// constructs, as it ensures that they get attributed to the parent block instead of being
+    /// trailing blank lines in the current block.
     delayed_append_lines : VecDeque<Token>,
     /// Whether or not the lexer has seen an explicit newline.
     seen_newline : bool,
@@ -2151,13 +2232,13 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
     pub fn push_line_ending(&mut self, line_ending:token::LineEnding) {
         self.seen_newline = true;
         self.current_mut().record_line_ending(line_ending);
-        debug!(self.logger,"Push Line Ending: {line_ending:?}");
+        debug!(self.logger,"Push Line Ending: {line_ending:?}.");
     }
 
     /// Consume the last seen line ending.
     pub fn pop_line_ending(&mut self) -> token::LineEnding {
         let popped = self.current_mut().consume_line_ending();
-        debug!(self.logger,"Pop Line Ending: {popped:?}");
+        debug!(self.logger,"Pop Line Ending: {popped:?}.");
         popped
     }
 
@@ -2166,7 +2247,7 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
         let trailing_line_ending = self.pop_line_ending();
         debug!(
             self.logger,
-            "Append Line: Line Ending = {trailing_line_ending:?}, Tokens = {&tokens:?}"
+            "Append Line: Line Ending = {trailing_line_ending:?}, Tokens = {&tokens:?}."
         );
         let offset = 0;
         self.current_mut().push_line(tokens,offset,trailing_line_ending);
@@ -2177,7 +2258,7 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
     pub fn process_delayed_lines(&mut self) {
         if self.has_delayed_lines() {
             let delayed = mem::take(&mut self.delayed_append_lines);
-            debug!(self.logger,"Appending Delayed Lines: {&delayed:?}");
+            debug!(self.logger,"Appending Delayed Lines: {&delayed:?}.");
             self.current_mut().lines.extend(delayed);
         }
     }
@@ -2190,7 +2271,7 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
     /// Delay appending a line to the current block until after [`self::append_line_to_current`] is
     /// called.
     pub fn append_delayed_line(&mut self, line:Token) {
-        debug!(self.logger,"Delay Appending: {&line:?}");
+        debug!(self.logger,"Delay Appending: {&line:?}.");
         self.delayed_append_lines.push_back(line)
     }
 
@@ -2206,22 +2287,22 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
 
     /// Push a new block state onto the stack.
     pub fn begin_block(&mut self, new_offset:usize, is_orphan:bool) {
-        debug!(self.logger,"Begin Block State: Indent = {new_offset}");
+        debug!(self.logger,"Begin Block State: Indent = {new_offset}.");
         self.stack.push(default());
         self.current_mut().is_orphan = is_orphan;
-        self.current_mut().indent = new_offset;
+        self.current_mut().indent    = new_offset;
     }
 
     /// Pop a block state from the stack.
     pub fn end_block(&mut self) -> Option<BlockState> {
-        debug!(self.logger,"End Block State");
+        debug!(self.logger,"End Block State.");
         self.stack.pop()
     }
 
     /// Consume the state of the current block.
     pub fn consume_current(&mut self) -> BlockState {
         let block = mem::take(self.stack.last_mut());
-        debug!(self.logger,"Consume Block: {&block:?}");
+        debug!(self.logger,"Consume Block: {&block:?}.");
         block
     }
 
@@ -2229,7 +2310,7 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
     pub fn push_empty_line(&mut self, offset:usize) {
         let trailing_line_ending = self.pop_line_ending();
         self.current_mut().push_empty_line(offset,trailing_line_ending);
-        debug!(self.logger,"Append Empty Line: Line Ending = {trailing_line_ending:?}");
+        debug!(self.logger,"Append Empty Line: Line Ending = {trailing_line_ending:?}.");
     }
 }
 
@@ -2240,6 +2321,10 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
 // ==================
 
 /// The state for lexing a given block in Enso.
+///
+/// It tracks the particulars about a certain block in the program source code, including its
+/// validity, whether or not it is orphaned, the root indentation of the block, as well as the lines
+/// that make it up.
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub struct BlockState {
     /// Whether or not the block is orphaned.
@@ -2274,7 +2359,7 @@ impl BlockState {
     , indent               : usize
     , trailing_line_ending : token::LineEnding
     ) {
-        let line = Token::Line(tokens,indent,trailing_line_ending);
+        let line = Token::line(tokens,indent,trailing_line_ending);
         self.lines.push(line)
     }
 
@@ -2282,7 +2367,7 @@ impl BlockState {
     ///
     /// The offset here should be the offset from the baseline, not from the block indent level.
     pub fn push_empty_line(&mut self, offset:usize, trailing_line_ending:token::LineEnding) {
-        let line = Token::BlankLine(offset, trailing_line_ending);
+        let line = Token::blank_line(offset,trailing_line_ending);
         self.lines.push(line);
     }
 
@@ -2298,7 +2383,7 @@ impl BlockState {
 
     /// Convert the block state into a block token.
     pub fn into_token(self, offset:usize) -> Token {
-        Token::Block(
+        Token::block(
             BlockType::Continuous,
             self.indent,
             self.lines,
@@ -2328,6 +2413,9 @@ impl Default for BlockState {
 // =======================
 
 /// The required state for managing the lexing of text literals in Enso.
+///
+/// This maintains a stack of text literals as it is possible to nest text literals via the use
+/// of interpolated segments in format text literals.
 #[derive(Clone,Debug,PartialEq)]
 pub struct TextLexingState<Logger> {
     /// The stack of text lexing states.
@@ -2373,7 +2461,7 @@ impl<Logger:AnyLogger> TextLexingState<Logger> {
     pub fn push_line_ending(&mut self, line_ending:token::LineEnding) {
         if let Some(current_mut) = self.current_mut() {
             current_mut.record_line_ending(line_ending);
-            debug!(self.logger,"Push Line Ending: {line_ending:?}");
+            debug!(self.logger,"Push Line Ending: {line_ending:?}.");
         }
     }
 
@@ -2381,14 +2469,14 @@ impl<Logger:AnyLogger> TextLexingState<Logger> {
     pub fn pop_line_ending(&mut self) -> token::LineEnding {
         if let Some(current_mut) = self.current_mut() {
             let ending = current_mut.consume_line_ending();
-            debug!(self.logger,"Pop Line Ending: {ending:?}");
+            debug!(self.logger,"Pop Line Ending: {ending:?}.");
             ending
         } else { token::LineEnding::None }
     }
 
     /// Append `token` to the currently-active line in the current literal.
     pub fn append_segment(&mut self, token:Token) {
-        debug!(self.logger,"Append Token to Current Line: {&token:?}");
+        debug!(self.logger,"Append Token to Current Line: {&token:?}.");
         if let Some(current_mut) = self.current_mut() {
             current_mut.append_segment_to_line(token);
         }
@@ -2397,25 +2485,21 @@ impl<Logger:AnyLogger> TextLexingState<Logger> {
     /// Consume the most-recently added token from the line.
     pub fn consume_segment(&mut self) -> Option<Token> {
         let result = self.current_mut().map(|t| t.consume_segment_from_line()).flatten();
-        debug!(self.logger,"Consume Segment: {result:?}");
+        debug!(self.logger,"Consume Segment: {result:?}.");
         result
     }
 
     /// Append a line to the current text literal.
     pub fn append_line(&mut self, line:Token) {
-        debug!(self.logger,"Append Line to Current Literal: {&line:?}");
-        self.current_mut().for_each(|t| {
-            t.append_line(line);
-        });
+        debug!(self.logger,"Append Line to Current Literal: {&line:?}.");
+        self.current_mut().for_each(|t| t.append_line(line));
     }
 
     /// Append an empty line to the current text literal with `offset` leading spaces.
     pub fn append_empty_line(&mut self, offset:usize) {
         let line_ending = self.pop_line_ending();
-        self.current_mut().iter_mut().for_each(|t| {
-            t.append_empty_line(offset,line_ending);
-        });
-        debug!(self.logger,"Append Empty Line: Line Ending = {line_ending:?}");
+        self.current_mut().iter_mut().for_each(|t| t.append_empty_line(offset,line_ending));
+        debug!(self.logger,"Append Empty Line: Line Ending = {line_ending:?}.");
     }
 
     /// Submit the current line into the block.
@@ -2425,13 +2509,13 @@ impl<Logger:AnyLogger> TextLexingState<Logger> {
 
     /// Begin a new text literal.
     pub fn begin_literal(&mut self) -> &mut TextState {
-        debug!(self.logger,"Begin Text Literal");
+        debug!(self.logger,"Begin Text Literal.");
         self.text_stack.push_and_get_mut(default())
     }
 
     /// End the current text literal.
     pub fn end_literal(&mut self) -> Option<TextState> {
-        debug!(self.logger,"End Text Literal");
+        debug!(self.logger,"End Text Literal.");
         self.text_stack.pop()
     }
 
@@ -2456,6 +2540,10 @@ impl<Logger:AnyLogger> TextLexingState<Logger> {
 // =================
 
 /// The state for lexing a single text literal.
+///
+/// This type is responsible for tracking the particulars of a given text literal. This includes its
+/// positioning information (offset and indent), as well as the _type_ of literal it is, and any
+/// lines and/or segments that make up the literal.
 #[derive(Clone,Debug,Default,PartialEq)]
 pub struct TextState {
     /// The offset of the literal from the token preceding it.
@@ -2494,7 +2582,7 @@ impl TextState {
 
     /// Append an empty line with `offset` leading spaces to the current text literal.
     pub fn append_empty_line(&mut self, offset:usize, line_ending:token::LineEnding) {
-        let line = Token::BlankLine(offset,line_ending);
+        let line = Token::blank_line(offset, line_ending);
         self.empty_lines.push(line);
     }
 
@@ -2536,7 +2624,7 @@ impl TextState {
     pub fn consume_current_line(&mut self) -> Token {
         let line_ending = self.consume_line_ending();
         let tokens      = mem::take(&mut self.segments);
-        Token::Line(tokens,0,line_ending)
+        Token::line(tokens, 0, line_ending)
     }
 
     /// Submit the current line in the literal.
@@ -2552,34 +2640,34 @@ impl TextState {
 
     /// Reset the text lexing state.
     pub fn reset(&mut self) {
-        self.style                 = default();
-        self.offset                = default();
-        self.indent = default();
-        self.lines                 = default();
-        self.segments = default();
-        self.explicit_line_endings = default();
+        *self = default();
+    }
+
+    /// Get the text style of the current literal, with the assumption that it's set.
+    pub fn unsafe_get_style(&self) -> token::TextStyle {
+        self.style.expect("The text style must be set.")
     }
 }
 
 
 // === Trait Impls ===
 
-impl Into<Token> for TextState {
-    fn into(mut self) -> Token {
-        let style = self.style.expect("The literal style must be set when consuming the literal.");
+impl From<TextState> for Token {
+    fn from(mut text:TextState) -> Self {
+        let style = text.style.expect("The literal style must be set when consuming the literal.");
         if style.is_line_literal() {
-            let tokens    = mem::take(&mut self.segments);
-            Token::TextLine(style, tokens, self.offset)
+            let tokens = mem::take(&mut text.segments);
+            Token::text_line(style,tokens,text.offset)
         } else if style.is_block_literal() {
-            if !self.segments.is_empty() {
-                let last_line = self.consume_current_line();
-                self.append_line(last_line);
+            if !text.segments.is_empty() {
+                let last_line = text.consume_current_line();
+                text.append_line(last_line);
             }
-            let lines = mem::take(&mut self.lines);
-            Token::TextBlock(self.starting_line_ending,style, lines, self.indent, self.offset)
+            let lines = mem::take(&mut text.lines);
+            Token::text_block(text.starting_line_ending,style,lines,text.indent,text.offset)
         } else if style.is_inline_block_literal() {
-            let tokens = mem::take(&mut self.segments);
-            Token::TextInlineBlock(style,tokens,self.offset)
+            let tokens = mem::take(&mut text.segments);
+            Token::text_inline_block(style,tokens,text.offset)
         } else {
             unreachable_panic!("The above cases should cover all styles.");
         }
@@ -2592,8 +2680,10 @@ impl Into<Token> for TextState {
 // === CommentLexingState ===
 // ==========================
 
-// TODO [AA] New tokens for CommentText, DisableComment, DocComment.
 /// The state for lexing comments in Enso.
+///
+/// As it is impossible to nest comments, this serves as a non-consumable state for lexing them. It
+/// tracks the information about the current comment being lexed.
 #[derive(Clone,Debug,PartialEq)]
 pub struct CommentLexingState<Logger> {
     /// The comment currently being lexed.
@@ -2611,19 +2701,19 @@ impl<Logger:AnyLogger> CommentLexingState<Logger> {
 
     /// Append `text` to the current comment line.
     pub fn append_to_line(&mut self, text:String) {
-        debug!(self.logger,"Append to Line: {&text:?}");
+        debug!(self.logger,"Append to Line: {&text:?}.");
         self.current_comment.append_to_line(text);
     }
 
     /// Submit the current line in the comment.
     pub fn submit_line(&mut self, line_ending:token::LineEnding) {
-        debug!(self.logger,"Submit Line: Ending = {line_ending:?}");
+        debug!(self.logger,"Submit Line: Ending = {line_ending:?}.");
         self.current_comment.submit_line(line_ending);
     }
 
     /// Submit a blank line in the comment.
     pub fn submit_blank_line(&mut self, indent:usize, line_ending:token::LineEnding) {
-        debug!(self.logger,"Submit Blank Line: Ending = {line_ending:?}");
+        debug!(self.logger,"Submit Blank Line: Ending = {line_ending:?}.");
         self.current_comment.submit_blank_line(indent,line_ending);
     }
 
@@ -2639,19 +2729,19 @@ impl<Logger:AnyLogger> CommentLexingState<Logger> {
 
     /// Consume the current comment.
     pub fn consume_current(&mut self) -> CommentState {
-        debug!(self.logger,"Consume Current Comment");
+        debug!(self.logger,"Consume Current Comment.");
         mem::take(&mut self.current_comment)
     }
 
     /// Set the indent of the current comment.
     pub fn set_indent(&mut self, indent:usize) {
-        debug!(self.logger,"Set Indent = {indent}");
+        debug!(self.logger,"Set Indent = {indent}.");
         self.current_comment.indent = indent;
     }
 
     /// Set the offset of the current comment.
     pub fn set_offset(&mut self, offset:usize) {
-        debug!(self.logger,"Set Offset = {offset}");
+        debug!(self.logger,"Set Offset = {offset}.");
         self.current_comment.offset = offset;
     }
 }
@@ -2663,6 +2753,9 @@ impl<Logger:AnyLogger> CommentLexingState<Logger> {
 // ====================
 
 /// The state for lexing a single comment.
+///
+/// This type tracks the particulars of any given comment, including the lines that make up the
+/// comment, as well as the indent and offset of it (the positioning information).
 #[derive(Clone,Default,Debug,PartialEq)]
 pub struct CommentState {
     /// The lines that make up the comment.
@@ -2691,14 +2784,14 @@ impl CommentState {
             self.lines.extend(blanks);
         }
         let text = self.consume_current_line();
-        let text_token = Token::TextSegmentRaw(text,0);
-        let line_token = Token::Line(vec![text_token],0,line_ending);
+        let text_token = Token::text_segment_raw(text,0);
+        let line_token = Token::line(vec![text_token],0,line_ending);
         self.lines.push(line_token);
     }
 
     /// Submit a blank line.
     pub fn submit_blank_line(&mut self, offset:usize, line_ending:token::LineEnding) {
-        let line = Token::BlankLine(offset,line_ending);
+        let line = Token::blank_line(offset, line_ending);
         self.blank_lines.push(line);
     }
 
@@ -2721,15 +2814,15 @@ impl CommentState {
 
 // === Trait Impls ===
 
-impl Into<Token> for CommentState {
-    fn into(mut self) -> Token {
-        if self.lines.is_empty() {
-            Token::DisableComment(self.current_line,self.offset)
+impl From<CommentState> for Token {
+    fn from(mut comment:CommentState) -> Self {
+        if comment.lines.is_empty() {
+            Token::disable_comment(comment.current_line,comment.offset)
         } else {
-            if !self.current_line.is_empty() {
-                self.submit_line(token::LineEnding::None);
+            if !comment.current_line.is_empty() {
+                comment.submit_line(token::LineEnding::None);
             }
-            Token::DocComment(self.lines,self.indent,self.offset)
+            Token::doc_comment(comment.lines,comment.indent,comment.offset)
         }
     }
 }

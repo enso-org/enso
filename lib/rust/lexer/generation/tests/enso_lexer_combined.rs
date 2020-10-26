@@ -36,13 +36,13 @@ map this fn -> case this.types of
         x.Cons (map xs)
     x -> fn x
 "#);
-    let doc_comment = Token::Line(
+    let doc_comment = Token::line(
         vec![
-            Token::DocComment(
+            Token::doc_comment(
                 vec![
-                    Token::Line(
+                    Token::line(
                         vec![
-                            Token::TextSegmentRaw(
+                            Token::text_segment_raw(
                                 "Traverse the heterogeneous list, applying the provided polymorphic \
                                 function",
                                 0
@@ -51,8 +51,8 @@ map this fn -> case this.types of
                         0,
                         token::LineEnding::LF,
                     ),
-                    Token::Line(
-                        vec![Token::TextSegmentRaw("wherever it matches.",0)],
+                    Token::line(
+                        vec![Token::text_segment_raw("wherever it matches.", 0)],
                         0,
                         token::LineEnding::LF
                     )
@@ -64,65 +64,65 @@ map this fn -> case this.types of
         0,
         token::LineEnding::None,
     );
-    let annotation = Token::Line(
-        vec![Token::Annotation("Tail_Call",0)],
+    let annotation = Token::line(
+        vec![Token::annotation("Tail_Call", 0)],
         0,
         token::LineEnding::LF,
     );
-    let signature = Token::Line(
+    let signature = Token::line(
         vec![
-            Token::Variable("map",0),
-            Token::Operator(":",1),
-            Token::Variable("forall",1),
-            Token::Variable("ts",1),
-            Token::Variable("ts'",1),
-            Token::Operator("=>",1),
-            Token::Operator("(",1),
-            Token::Variable("this",0),
-            Token::Operator(":",1),
-            Token::Referent("H_List",1),
-            Token::Variable("ts",1),
-            Token::Operator(")",0),
-            Token::Operator("->",1),
-            Token::Operator("(",1),
-            Token::Variable("exists",0),
-            Token::Variable("a",1),
-            Token::Variable("b",1),
-            Token::Operator(".",1),
-            Token::Variable("a",1),
-            Token::Operator("~>",1),
-            Token::Variable("b",1),
-            Token::Operator(")",0),
-            Token::Operator("->",1),
-            Token::Referent("H_List",1),
-            Token::Variable("ts'",1),
+            Token::variable("map", 0),
+            Token::operator(":", 1),
+            Token::variable("forall", 1),
+            Token::variable("ts", 1),
+            Token::variable("ts'", 1),
+            Token::operator("=>", 1),
+            Token::operator("(", 1),
+            Token::variable("this", 0),
+            Token::operator(":", 1),
+            Token::referent("H_List", 1),
+            Token::variable("ts", 1),
+            Token::operator(")", 0),
+            Token::operator("->", 1),
+            Token::operator("(", 1),
+            Token::variable("exists", 0),
+            Token::variable("a", 1),
+            Token::variable("b", 1),
+            Token::operator(".", 1),
+            Token::variable("a", 1),
+            Token::operator("~>", 1),
+            Token::variable("b", 1),
+            Token::operator(")", 0),
+            Token::operator("->", 1),
+            Token::referent("H_List", 1),
+            Token::variable("ts'", 1),
         ],
         0,
         token::LineEnding::LF
     );
-    let cons_branch_body = Token::Block(
+    let cons_branch_body = Token::block(
         token::BlockType::Discontinuous,
         8,
         vec![
-            Token::Line(
+            Token::line(
                 vec![
-                    Token::Variable("x'",0),
-                    Token::Operator("=",1),
-                    Token::Variable("fn",1),
-                    Token::Variable("x",1),
+                    Token::variable("x'", 0),
+                    Token::operator("=", 1),
+                    Token::variable("fn", 1),
+                    Token::variable("x", 1),
                 ],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(
+            Token::line(
                 vec![
-                    Token::Variable("x",0),
-                    Token::Operator(".",0),
-                    Token::Referent("Cons",0),
-                    Token::Operator("(",1),
-                    Token::Variable("map",0),
-                    Token::Variable("xs",1),
-                    Token::Operator(")",0),
+                    Token::variable("x", 0),
+                    Token::operator(".", 0),
+                    Token::referent("Cons", 0),
+                    Token::operator("(", 1),
+                    Token::variable("map", 0),
+                    Token::variable("xs", 1),
+                    Token::operator(")", 0),
                 ],
                 0,
                 token::LineEnding::LF
@@ -130,27 +130,27 @@ map this fn -> case this.types of
         ],
         0
     );
-    let case_body = Token::Block(
+    let case_body = Token::block(
         token::BlockType::Continuous,
         4,
         vec![
-            Token::Line(
+            Token::line(
                 vec![
-                    Token::Referent("Cons",0),
-                    Token::Variable("x",1),
-                    Token::Variable("xs",1),
-                    Token::Operator("->",1),
+                    Token::referent("Cons", 0),
+                    Token::variable("x", 1),
+                    Token::variable("xs", 1),
+                    Token::operator("->", 1),
                     cons_branch_body,
                 ],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(
+            Token::line(
                 vec![
-                    Token::Variable("x",0),
-                    Token::Operator("->",1),
-                    Token::Variable("fn",1),
-                    Token::Variable("x",1)
+                    Token::variable("x", 0),
+                    Token::operator("->", 1),
+                    Token::variable("fn", 1),
+                    Token::variable("x", 1)
                 ],
                 0,
                 token::LineEnding::LF,
@@ -158,24 +158,24 @@ map this fn -> case this.types of
         ],
         0
     );
-    let function = Token::Line(
+    let function = Token::line(
         vec![
-            Token::Variable("map",0),
-            Token::Variable("this",1),
-            Token::Variable("fn",1),
-            Token::Operator("->",1),
-            Token::Variable("case",1),
-            Token::Variable("this",1),
-            Token::Operator(".",0),
-            Token::Variable("types",0),
-            Token::Variable("of",1),
+            Token::variable("map", 0),
+            Token::variable("this", 1),
+            Token::variable("fn", 1),
+            Token::operator("->", 1),
+            Token::variable("case", 1),
+            Token::variable("this", 1),
+            Token::operator(".", 0),
+            Token::variable("types", 0),
+            Token::variable("of", 1),
             case_body,
         ],
         0,
         token::LineEnding::LF
     );
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![doc_comment,annotation,signature,function],
@@ -197,25 +197,25 @@ type Maybe a
         Just _  -> True
         Nothing -> False
 "#);
-    let case_block = Token::Block(
+    let case_block = Token::block(
         token::BlockType::Continuous,
         8,
         vec![
-            Token::Line(
+            Token::line(
                 vec![
-                    Token::Referent("Just",0),
-                    Token::Blank(1),
-                    Token::Operator("->",2),
-                    Token::Referent("True",1),
+                    Token::referent("Just", 0),
+                    Token::blank(1),
+                    Token::operator("->", 2),
+                    Token::referent("True", 1),
                 ],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(
+            Token::line(
                 vec![
-                    Token::Referent("Nothing",0),
-                    Token::Operator("->",1),
-                    Token::Referent("False",1)
+                    Token::referent("Nothing", 0),
+                    Token::operator("->", 1),
+                    Token::referent("False", 1)
                 ],
                 0,
                 token::LineEnding::LF
@@ -223,30 +223,30 @@ type Maybe a
         ],
         0
     );
-    let type_body = Token::Block(
+    let type_body = Token::block(
         token::BlockType::Continuous,
         4,
         vec![
-            Token::Line(
+            Token::line(
                 vec![
-                    Token::Variable("type",0),
-                    Token::Referent("Just",1),
-                    Token::Variable("item",1),
-                    Token::Operator(":",0),
-                    Token::Variable("a",0),
+                    Token::variable("type", 0),
+                    Token::referent("Just", 1),
+                    Token::variable("item", 1),
+                    Token::operator(":", 0),
+                    Token::variable("a", 0),
                 ],
                 0,
                 token::LineEnding::LF
             ),
-            Token::Line(vec![Token::Referent("Nothing",0)],0,token::LineEnding::LF),
-            Token::BlankLine(0,token::LineEnding::LF),
-            Token::Line(
+            Token::line(vec![Token::referent("Nothing", 0)], 0, token::LineEnding::LF),
+            Token::blank_line(0, token::LineEnding::LF),
+            Token::line(
                 vec![
-                    Token::Variable("is_just",0),
-                    Token::Operator("=",1),
-                    Token::Variable("case",1),
-                    Token::Variable("this",1),
-                    Token::Variable("of",1),
+                    Token::variable("is_just", 0),
+                    Token::operator("=", 1),
+                    Token::variable("case", 1),
+                    Token::variable("this", 1),
+                    Token::variable("of", 1),
                     case_block,
                 ],
                 0,
@@ -255,22 +255,22 @@ type Maybe a
         ],
         0
     );
-    let complex_type = Token::Line(
+    let complex_type = Token::line(
         vec![
-            Token::Variable("type",0),
-            Token::Referent("Maybe",1),
-            Token::Variable("a",1),
+            Token::variable("type", 0),
+            Token::referent("Maybe", 1),
+            Token::variable("a", 1),
             type_body,
         ],
         0,
         token::LineEnding::LF
     );
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::BlankLine(0,token::LineEnding::LF),
+                Token::blank_line(0, token::LineEnding::LF),
                 complex_type
             ],
             0
@@ -295,125 +295,125 @@ polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
 "#);
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("import",0),
-                        Token::Referent("Base",1),
-                        Token::Operator(".",0),
-                        Token::Referent("List",0),
+                        Token::variable("import", 0),
+                        Token::referent("Base", 1),
+                        Token::operator(".", 0),
+                        Token::referent("List", 0),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("import",0),
-                        Token::Referent("Base",1),
-                        Token::Operator(".",0),
-                        Token::Referent("Number",0),
-                        Token::Operator(".",0),
-                        Token::Referent("Extensions",0),
+                        Token::variable("import", 0),
+                        Token::referent("Base", 1),
+                        Token::operator(".", 0),
+                        Token::referent("Number", 0),
+                        Token::operator(".", 0),
+                        Token::referent("Extensions", 0),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("from",0),
-                        Token::Referent("Builtins",1),
-                        Token::Variable("import",1),
-                        Token::Referent("Unit",1),
-                        Token::Operator(",",0),
-                        Token::Referent("Number",1),
-                        Token::Operator(",",0),
-                        Token::Referent("Integer",1),
-                        Token::Operator(",",0),
-                        Token::Referent("Any",1),
-                        Token::Operator(",",0),
-                        Token::Referent("True",1),
-                        Token::Operator(",",0),
-                        Token::Referent("False",1),
+                        Token::variable("from", 0),
+                        Token::referent("Builtins", 1),
+                        Token::variable("import", 1),
+                        Token::referent("Unit", 1),
+                        Token::operator(",", 0),
+                        Token::referent("Number", 1),
+                        Token::operator(",", 0),
+                        Token::referent("Integer", 1),
+                        Token::operator(",", 0),
+                        Token::referent("Any", 1),
+                        Token::operator(",", 0),
+                        Token::referent("True", 1),
+                        Token::operator(",", 0),
+                        Token::referent("False", 1),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::Variable("from",0),
-                        Token::Referent("Builtins",1),
-                        Token::Variable("export",1),
-                        Token::Variable("all",1),
+                        Token::variable("from", 0),
+                        Token::referent("Builtins", 1),
+                        Token::variable("export", 1),
+                        Token::variable("all", 1),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::Variable("from",0),
-                        Token::Referent("Base",1),
-                        Token::Operator(".",0),
-                        Token::Referent("List",0),
-                        Token::Variable("export",1),
-                        Token::Referent("Nil",1),
-                        Token::Operator(",",0),
-                        Token::Referent("Cons",1),
+                        Token::variable("from", 0),
+                        Token::referent("Base", 1),
+                        Token::operator(".", 0),
+                        Token::referent("List", 0),
+                        Token::variable("export", 1),
+                        Token::referent("Nil", 1),
+                        Token::operator(",", 0),
+                        Token::referent("Cons", 1),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("from",0),
-                        Token::Referent("Base",1),
-                        Token::Operator(".",0),
-                        Token::Referent("Number",0),
-                        Token::Operator(".",0),
-                        Token::Referent("Extensions",0),
-                        Token::Variable("export",1),
-                        Token::Variable("all",1),
-                        Token::Variable("hiding",1),
-                        Token::Referent("Math",1),
+                        Token::variable("from", 0),
+                        Token::referent("Base", 1),
+                        Token::operator(".", 0),
+                        Token::referent("Number", 0),
+                        Token::operator(".", 0),
+                        Token::referent("Extensions", 0),
+                        Token::variable("export", 1),
+                        Token::variable("all", 1),
+                        Token::variable("hiding", 1),
+                        Token::referent("Math", 1),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::Variable("polyglot",0),
-                        Token::Variable("java",1),
-                        Token::Variable("import",1),
-                        Token::Variable("com",1),
-                        Token::Operator(".",0),
-                        Token::Variable("ibm",0),
-                        Token::Operator(".",0),
-                        Token::Variable("icu",0),
-                        Token::Operator(".",0),
-                        Token::Variable("text",0),
-                        Token::Operator(".",0),
-                        Token::External("BreakIterator",0),
+                        Token::variable("polyglot", 0),
+                        Token::variable("java", 1),
+                        Token::variable("import", 1),
+                        Token::variable("com", 1),
+                        Token::operator(".", 0),
+                        Token::variable("ibm", 0),
+                        Token::operator(".", 0),
+                        Token::variable("icu", 0),
+                        Token::operator(".", 0),
+                        Token::variable("text", 0),
+                        Token::operator(".", 0),
+                        Token::external("BreakIterator", 0),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("polyglot",0),
-                        Token::Variable("java",1),
-                        Token::Variable("import",1),
-                        Token::Variable("org",1),
-                        Token::Operator(".",0),
-                        Token::Variable("enso",0),
-                        Token::Operator(".",0),
-                        Token::Variable("base",0),
-                        Token::Operator(".",0),
-                        Token::Referent("Text_Utils",0),
+                        Token::variable("polyglot", 0),
+                        Token::variable("java", 1),
+                        Token::variable("import", 1),
+                        Token::variable("org", 1),
+                        Token::operator(".", 0),
+                        Token::variable("enso", 0),
+                        Token::operator(".", 0),
+                        Token::variable("base", 0),
+                        Token::operator(".", 0),
+                        Token::referent("Text_Utils", 0),
                     ],
                     0,
                     token::LineEnding::LF
@@ -449,28 +449,28 @@ Spec.is_fail = this.behaviors.any is_fail
 Suite.is_fail = this.specs.any is_fail
 "#);
     let expected = token::Stream::from(vec![
-        Token::Block(
+        Token::block(
             token::BlockType::Continuous,
             0,
             vec![
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("from",0),
-                        Token::Referent("Base",1),
-                        Token::Variable("import",1),
-                        Token::Variable("all",1),
+                        Token::variable("from", 0),
+                        Token::referent("Base", 1),
+                        Token::variable("import", 1),
+                        Token::variable("all", 1),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
+                                Token::line(
                                     vec![
-                                        Token::TextSegmentRaw(
+                                        Token::text_segment_raw(
                                             "The top-level entry point for a test suite.",
                                             0
                                         ),
@@ -486,22 +486,22 @@ Suite.is_fail = this.specs.any is_fail
                     0,
                     token::LineEnding::None
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("type",0),
-                        Token::Referent("Suite",1),
-                        Token::Variable("specs",1),
+                        Token::variable("type", 0),
+                        Token::referent("Suite", 1),
+                        Token::variable("specs", 1),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
-                                    vec![Token::TextSegmentRaw("PRIVATE",0),],
+                                Token::line(
+                                    vec![Token::text_segment_raw("PRIVATE", 0),],
                                     0,
                                     token::LineEnding::LF,
                                 )
@@ -513,23 +513,23 @@ Suite.is_fail = this.specs.any is_fail
                     0,
                     token::LineEnding::None
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("type",0),
-                        Token::Referent("Spec",1),
-                        Token::Variable("name",1),
-                        Token::Variable("behaviors",1)
+                        Token::variable("type", 0),
+                        Token::referent("Spec", 1),
+                        Token::variable("name", 1),
+                        Token::variable("behaviors", 1)
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
-                                    vec![Token::TextSegmentRaw("PRIVATE",0),],
+                                Token::line(
+                                    vec![Token::text_segment_raw("PRIVATE", 0),],
                                     0,
                                     token::LineEnding::LF,
                                 )
@@ -541,23 +541,23 @@ Suite.is_fail = this.specs.any is_fail
                     0,
                     token::LineEnding::None
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Variable("type",0),
-                        Token::Referent("Behavior",1),
-                        Token::Variable("name",1),
-                        Token::Variable("result",1)
+                        Token::variable("type", 0),
+                        Token::referent("Behavior", 1),
+                        Token::variable("name", 1),
+                        Token::variable("result", 1)
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
-                                    vec![Token::TextSegmentRaw("PRIVATE",0),],
+                                Token::line(
+                                    vec![Token::text_segment_raw("PRIVATE", 0),],
                                     0,
                                     token::LineEnding::LF,
                                 )
@@ -569,28 +569,28 @@ Suite.is_fail = this.specs.any is_fail
                     0,
                     token::LineEnding::None
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Referent("Behavior",0),
-                        Token::Operator(".",0),
-                        Token::Variable("is_fail",0),
-                        Token::Operator("=",1),
-                        Token::Variable("this",1),
-                        Token::Operator(".",0),
-                        Token::Variable("result",0),
-                        Token::Operator(".",0),
-                        Token::Variable("is_fail",0),
+                        Token::referent("Behavior", 0),
+                        Token::operator(".", 0),
+                        Token::variable("is_fail", 0),
+                        Token::operator("=", 1),
+                        Token::variable("this", 1),
+                        Token::operator(".", 0),
+                        Token::variable("result", 0),
+                        Token::operator(".", 0),
+                        Token::variable("is_fail", 0),
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
-                                    vec![Token::TextSegmentRaw("PRIVATE",0),],
+                                Token::line(
+                                    vec![Token::text_segment_raw("PRIVATE", 0),],
                                     0,
                                     token::LineEnding::LF,
                                 )
@@ -602,29 +602,29 @@ Suite.is_fail = this.specs.any is_fail
                     0,
                     token::LineEnding::None
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Referent("Spec",0),
-                        Token::Operator(".",0),
-                        Token::Variable("is_fail",0),
-                        Token::Operator("=",1),
-                        Token::Variable("this",1),
-                        Token::Operator(".",0),
-                        Token::Variable("behaviors",0),
-                        Token::Operator(".",0),
-                        Token::Variable("any",0),
-                        Token::Variable("is_fail",1)
+                        Token::referent("Spec", 0),
+                        Token::operator(".", 0),
+                        Token::variable("is_fail", 0),
+                        Token::operator("=", 1),
+                        Token::variable("this", 1),
+                        Token::operator(".", 0),
+                        Token::variable("behaviors", 0),
+                        Token::operator(".", 0),
+                        Token::variable("any", 0),
+                        Token::variable("is_fail", 1)
                     ],
                     0,
                     token::LineEnding::LF
                 ),
-                Token::BlankLine(0,token::LineEnding::LF),
-                Token::Line(
+                Token::blank_line(0, token::LineEnding::LF),
+                Token::line(
                     vec![
-                        Token::DocComment(
+                        Token::doc_comment(
                             vec![
-                                Token::Line(
-                                    vec![Token::TextSegmentRaw("PRIVATE",0),],
+                                Token::line(
+                                    vec![Token::text_segment_raw("PRIVATE", 0),],
                                     0,
                                     token::LineEnding::LF,
                                 )
@@ -636,18 +636,18 @@ Suite.is_fail = this.specs.any is_fail
                     0,
                     token::LineEnding::None
                 ),
-                Token::Line(
+                Token::line(
                     vec![
-                        Token::Referent("Suite",0),
-                        Token::Operator(".",0),
-                        Token::Variable("is_fail",0),
-                        Token::Operator("=",1),
-                        Token::Variable("this",1),
-                        Token::Operator(".",0),
-                        Token::Variable("specs",0),
-                        Token::Operator(".",0),
-                        Token::Variable("any",0),
-                        Token::Variable("is_fail",1)
+                        Token::referent("Suite", 0),
+                        Token::operator(".", 0),
+                        Token::variable("is_fail", 0),
+                        Token::operator("=", 1),
+                        Token::variable("this", 1),
+                        Token::operator(".", 0),
+                        Token::variable("specs", 0),
+                        Token::operator(".", 0),
+                        Token::variable("any", 0),
+                        Token::variable("is_fail", 1)
                     ],
                     0,
                     token::LineEnding::LF

@@ -12,12 +12,15 @@
 
 pub mod generated;
 
+use lexer_definition::rule;
+
 /// Support libraries for the lexer definition.
 ///
 /// This is an intentional re-export in this crate's namespace.
 mod library {
     pub use lexer_definition::library::*;
 }
+
 
 /// A library of commonly useful functionality.
 mod prelude {

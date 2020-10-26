@@ -5,117 +5,76 @@ mod lexer_bench_sources;
 use criterion::{criterion_group, criterion_main, Criterion, Throughput, black_box};
 use lexer_bench_sources as src;
 
-// Performance Notes:
-// - Block handling seems to contribute significantly to the runtime, on the order of ~30% in the
-//   simple cases.
-// - Performance is subpar. Hypotheses:
-//   + Getting badly hit by cache misses.
-//   + Getting badly hit by branch prediction.
-//   + Allocation patterns are suboptimal.
-
 
 
 // ==========================
 // === Literal Benchmarks ===
 // ==========================
 
-fn bench_literal_number_integer(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Integer",
-        src::literal::number::integer().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Integer";
+    fun_name    = bench_literal_number_integer;
+    bench_input = src::literal::number::integer();
 }
 
-fn bench_literal_number_integer_explicit_base(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Integer Explicit Base",
-        src::literal::number::integer_explicit_base().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Integer Explicit Base";
+    fun_name    = bench_literal_number_integer_explicit_base;
+    bench_input = src::literal::number::integer_explicit_base();
 }
 
-fn bench_literal_number_decimal(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Decimal",
-        src::literal::number::decimal().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Decimal";
+    fun_name    = bench_literal_number_decimal;
+    bench_input = src::literal::number::decimal();
 }
 
-fn bench_literal_number_decimal_explicit_base(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Decimal Explicit Base",
-        src::literal::number::decimal_explicit_base().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Decimal Explicit Base";
+    fun_name    = bench_literal_number_decimal_explicit_base;
+    bench_input = src::literal::number::decimal_explicit_base();
 }
 
-fn bench_literal_number_error_base(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Number Error Base",
-        src::literal::number::error_base().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Number Error Base";
+    fun_name    = bench_literal_number_error_base;
+    bench_input = src::literal::number::error_base();
 }
 
-fn bench_literal_text_format_line(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Text Format Line",
-        src::literal::text::format_line().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Text Format Line";
+    fun_name    = bench_literal_text_format_line;
+    bench_input = src::literal::text::format_line();
 }
 
-fn bench_literal_text_format_inline_block(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Text Format Inline Block",
-        src::literal::text::format_inline_block().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Text Format Inline Block";
+    fun_name    = bench_literal_text_format_inline_block;
+    bench_input = src::literal::text::format_inline_block();
 }
 
-fn bench_literal_text_format_block(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Text Format Block",
-        src::literal::text::format_block().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Text Format Block";
+    fun_name    = bench_literal_text_format_block;
+    bench_input = src::literal::text::format_block();
 }
 
-fn bench_literal_text_raw_line(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Text Raw Line",
-        src::literal::text::raw_line().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Text Raw Line";
+    fun_name    = bench_literal_text_raw_line;
+    bench_input = src::literal::text::raw_line();
 }
 
-fn bench_literal_text_raw_inline_block(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Text Raw Inline Block",
-        src::literal::text::raw_inline_block().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Text Raw Inline Block";
+    fun_name    = bench_literal_text_raw_inline_block;
+    bench_input = src::literal::text::raw_inline_block();
 }
 
-fn bench_literal_text_raw_block(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Text Raw Block",
-        src::literal::text::raw_block().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Text Raw Block";
+    fun_name    = bench_literal_text_raw_block;
+    bench_input = src::literal::text::raw_block();
 }
 
 criterion_group!{
@@ -141,22 +100,16 @@ criterion_group!{
 // === Names Benchmarks ===
 // ========================
 
-fn bench_names_line_of(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Line of Names",
-        src::name::line_of().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Line of Names";
+    fun_name    = bench_names_line_of;
+    bench_input = src::name::line_of();
 }
 
-fn bench_names_invalid_suffix(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Names with Invalid Suffixes",
-        src::name::invalid_suffix().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Names with invalid Suffixes";
+    fun_name    = bench_names_invalid_suffix;
+    bench_input = src::name::invalid_suffix();
 }
 
 criterion_group! {
@@ -173,31 +126,22 @@ criterion_group! {
 // === Operator Benchmarks ===
 // ===========================
 
-fn bench_operator_line_of(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Line of Operators",
-        src::operator::line_of().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Line of Operators";
+    fun_name    = bench_operator_line_of;
+    bench_input = src::operator::line_of();
 }
 
-fn bench_operator_dot_call(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Dot Call Operators",
-        src::operator::dot_call().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Dot Call Operators";
+    fun_name    = bench_operator_dot_call;
+    bench_input = src::operator::dot_call();
 }
 
-fn bench_operator_invalid_suffix(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Operators with Invalid Suffixes",
-        src::operator::invalid_suffix().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Operators with Invalid Suffixes";
+    fun_name    = bench_operator_invalid_suffix;
+    bench_input = src::operator::invalid_suffix();
 }
 
 criterion_group! {
@@ -215,31 +159,22 @@ criterion_group! {
 // === Block Benchmarks ===
 // ========================
 
-fn bench_block_top_level(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Top Level Block",
-        src::block::top_level().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Top Level Block";
+    fun_name    = bench_block_top_level;
+    bench_input = src::block::top_level();
 }
 
-fn bench_block_nested(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Nested Block",
-        src::block::nested().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Nested Block";
+    fun_name    = bench_block_nested;
+    bench_input = src::block::nested();
 }
 
-fn bench_block_deeply_nested(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Deeply Nested Blocks",
-        src::block::deeply_nested().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Deeply Nested Blocks";
+    fun_name    = bench_block_deeply_nested;
+    bench_input = src::block::deeply_nested();
 }
 
 criterion_group! {
@@ -257,31 +192,22 @@ criterion_group! {
 // === Comment Benchmarks ===
 // ==========================
 
-fn bench_comment_line(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Line Comment",
-        src::comment::line().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Line Comment";
+    fun_name    = bench_comment_line;
+    bench_input = src::comment::line();
 }
 
-fn bench_comment_in_line(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Comment in Line",
-        src::comment::in_line().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Comment in Line";
+    fun_name    = bench_comment_in_line;
+    bench_input = src::comment::in_line();
 }
 
-fn bench_comment_doc(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Doc Comment",
-        src::comment::doc().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Doc Comment";
+    fun_name    = bench_comment_doc;
+    bench_input = src::comment::doc();
 }
 
 criterion_group! {
@@ -299,22 +225,16 @@ criterion_group! {
 // === Combined Benchmarks ===
 // ===========================
 
-fn bench_combined_simple(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Simple Combined Example",
-        src::combined::simple().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Simple Combined Example";
+    fun_name    = bench_combined_simple;
+    bench_input = src::combined::simple();
 }
 
-fn bench_combined_complex(c:&mut Criterion) {
-    src::run_bench_sizes(
-        "Complex Combined Example",
-        src::combined::complex().as_str(),
-        true,
-        c
-    );
+bench! {
+    bench_name  = "Complex Combined Example";
+    fun_name    = bench_combined_complex;
+    bench_input = src::combined::complex();
 }
 
 criterion_group! {
