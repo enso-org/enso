@@ -16,6 +16,7 @@ type Uri_Error
 
 type Uri
 
+    ## Represents a Uniform Resource Identifier (URI) reference.
     type Uri internal_uri
 
     ## Implement To_Uri

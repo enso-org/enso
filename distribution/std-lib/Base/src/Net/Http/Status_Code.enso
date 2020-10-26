@@ -161,6 +161,6 @@ service_unavailable = Status_Code 503
 gateway_timeout : Status_Code
 gateway_timeout = Status_Code 504
 
-## HTTP Version Not Supported.
+## 505 HTTP Version Not Supported.
 http_version_not_supported : Status_Code
 http_version_not_supported = Status_Code 505
