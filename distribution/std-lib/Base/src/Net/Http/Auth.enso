@@ -1,8 +1,0 @@
-## Authentication settings.
-type Auth
-
-    ## No authentication.
-    type None
-
-    ## Basic HTTP authentication.
-    type Basic_Auth user password

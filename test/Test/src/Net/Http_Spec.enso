@@ -3,7 +3,6 @@ from Base import all
 import Base.Data.Json
 import Base.Test
 import Base.Net.Http
-import Base.Net.Http.Auth
 import Base.Net.Http.Form
 import Base.Net.Http.Header
 import Base.Net.Http.Request
@@ -27,10 +26,6 @@ spec_impl =
         it "should create HTTP client with timeout setting" <|
             http = Http.new (timeout = 30.seconds)
             http.timeout.should_equal 30.seconds
-        it "should create HTTP client with auth setting" <|
-            basic_auth = Auth.Basic_Auth "user" "pass"
-            http = Http.new (auth = basic_auth)
-            http.auth.should_equal basic_auth
         it "should create HTTP client with follow_redirects setting" <|
             http = Http.new (follow_redirects = False)
             http.follow_redirects.should_equal False

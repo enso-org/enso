@@ -1,10 +1,9 @@
 package org.enso.base;
 
-import org.enso.base.net.http.BasicAuthenticator;
+import org.enso.base.net.http.BasicAuthorization;
 import org.enso.base.net.http.MultipartBodyBuilder;
 import org.enso.base.net.http.UrlencodedBodyBuilder;
 
-import java.net.Authenticator;
 import java.net.http.HttpHeaders;
 import java.util.AbstractMap;
 import java.util.List;
@@ -14,14 +13,14 @@ import java.util.Map;
 public class Http_Utils {
 
   /**
-   * Create the authenticator for HTTP basic auth.
+   * Create the header for HTTP basic auth.
    *
    * @param user the user name.
    * @param password the password.
-   * @return the new basic authenticator.
+   * @return the new header.
    */
-  public static Authenticator basic_authenticator(String user, String password) {
-    return new BasicAuthenticator(user, password);
+  public static String header_basic_auth(String user, String password) {
+    return BasicAuthorization.header(user, password);
   }
 
   /**

@@ -2,7 +2,6 @@ from Base import all
 import Base.Data.Json
 import Base.Net.Proxy
 import Base.Net.Uri
-import Base.Net.Http.Auth
 import Base.Net.Http.Form
 import Base.Net.Http.Header
 import Base.Net.Http.Method
@@ -25,7 +24,7 @@ polyglot java import org.enso.base.Http_Utils
 
 type Http
 
-    type Http timeout auth follow_redirects proxy version
+    type Http timeout follow_redirects proxy version
 
     ## Send an Options request.
 
@@ -44,9 +43,8 @@ type Http
              Http.new.get "http://httpbin.org/get"
 
        > Example
-         Authenticated Get request (note the use of TLS).
-             http = Http.new (auth = Auth.Basic_Auth "user" "pass")
-             http.get "https://httpbin.org/basic-auth/user/pass"
+         Send authenticated Get request (note the use of TLS).
+             Http.new.get "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
 
        > Example
          Download a file.
@@ -245,16 +243,10 @@ type Http
         builder = HttpClient.newBuilder []
         # timeout
         if this.timeout.is_date then Panic.throw (Time.time_error "Connection timeout does not support date intervals") else builder.connectTimeout [this.timeout.internal_duration]
-        # auth
-        case this.auth of
-            Auth.Basic_Auth user pass -> builder.authenticator [Http_Utils.basic_authenticator [user, pass]]
-            Auth.None -> Unit
         # redirect
         redirect = Polyglot.get_member HttpClient "Redirect"
         redirect_policy = case this.follow_redirects of
-            True -> case this.auth of
-                Auth.None -> Polyglot.get_member redirect "ALWAYS"
-                _ -> Polyglot.get_member redirect "NORMAL"
+            True -> Polyglot.get_member redirect "ALWAYS"
             False -> Polyglot.get_member redirect "NEVER"
         builder.followRedirects [redirect_policy]
         # proxy
@@ -290,9 +282,9 @@ type Http
    > Example
      Create an HTTP client with extended timeout and proxy settings.
          Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
-new : Duration -> Auth -> Boolean -> Proxy -> Http
-new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
-    Http timeout auth follow_redirects proxy version
+new : Duration -> Boolean -> Proxy -> Http
+new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+    Http timeout follow_redirects proxy version
 
 ## Send an Options request.
 
@@ -307,6 +299,10 @@ options uri (headers = []) = here.new.options uri headers
    > Example
      Send a Get request.
          Http.get "http://httpbin.org/get"
+
+   > Example
+     Send authenticated Get request (note the use of TLS).
+         Http.get "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
 
    > Example
      Download a file.
