@@ -32,8 +32,8 @@ type Http
          Send an Options request.
              Http.new.options "http://httpbin.org"
     options : To_Uri -> Vector -> Response
-    options addr (headers = []) =
-        req = Request.options addr headers
+    options uri (headers = []) =
+        req = Request.options uri headers
         this.request req
 
     ## Send a Get request.
@@ -52,8 +52,8 @@ type Http
              res = Http.new.get "http://httpbin.org/bytes/1024"
              res.body.to_file out_file
     get : To_Uri -> Vector -> Response
-    get addr (headers = []) =
-        req = Request.get addr headers
+    get uri (headers = []) =
+        req = Request.get uri headers
         this.request req
 
     ## Send a Head request.
@@ -63,8 +63,8 @@ type Http
              res = Http.new.head "http://httpbin.org"
              IO.println res.headers
     head : To_Uri -> Vector -> Response
-    head addr (headers = []) =
-        req = Request.head addr headers
+    head uri (headers = []) =
+        req = Request.head uri headers
         this.request req
 
     ## Send a Post request.
@@ -75,8 +75,8 @@ type Http
              header_binary = Header.content_type "application/octet-stream"
              Http.new.post "http://httpbin.org/post" body [header_binary]
     post : To_Uri -> Request_Body -> Vector -> Respoonse
-    post addr body (headers = []) =
-        req = Request.post addr body headers
+    post uri body (headers = []) =
+        req = Request.post uri body headers
         this.request req
 
     ## Send a Post request with the form. By default it will be encoded as
@@ -99,9 +99,9 @@ type Http
              http = Http.new (timeout = 30.seconds)
              http.post_form "http://httpbin.org/post" form
     post_form : To_Uri -> To_Form -> Vector -> Response
-    post_form addr parts (headers = []) =
+    post_form uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
-        req = Request.post addr (Request_Body.Form parts.to_form) new_headers . with_headers headers
+        req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
         this.request req
 
     ## Send a Post request with body with content-type "application/json".
@@ -112,9 +112,9 @@ type Http
                  {"key":"val"}
              Http.new.post_json "http://httpbin.org/post" json
     post_json : To_Uri -> Json -> Vector -> Response
-    post_json addr body_json (headers = []) =
+    post_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
-        req = Request.post addr (Request_Body.Json body_json) headers . with_headers new_headers
+        req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
         this.request req
 
     ## Send a Put request.
@@ -125,8 +125,8 @@ type Http
              header_binary = Header.content_type "application/octet-stream"
              Http.new.put "http://httpbin.org/post" body [header_binary]
     put : To_Uri -> Request_Body -> Vector -> Respoonse
-    put addr body (headers = []) =
-        req = Request.put addr body headers
+    put uri body (headers = []) =
+        req = Request.put uri body headers
         this.request req
 
     ## Send a Put request with body with content-type "application/json".
@@ -137,9 +137,9 @@ type Http
                  {"key":"val"}
              Http.new.put_json "http://httpbin.org/put" json
     put_json : To_Uri -> Json -> Vector -> Response
-    put_json addr body_json (headers = []) =
+    put_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
-        req = Request.put addr (Request_Body.Json body_json) headers . with_headers new_headers
+        req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
         this.request req
 
     ## Create a Delete request.
@@ -148,8 +148,8 @@ type Http
          Send a Delete request.
              Http.new.delete "http://httpbin.org/delete"
     delete : To_Uri -> Vector -> Response
-    delete addr (headers = []) =
-        req = Request.delete addr headers
+    delete uri (headers = []) =
+        req = Request.delete uri headers
         this.request req
 
     ## Create a request
