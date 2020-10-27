@@ -16,6 +16,15 @@ use ensogl_theme as theme;
 
 
 
+// ==================
+// === Constants  ===
+// ==================
+
+const BUTTON_PADDING : f32 = 0.5;
+const BUTTON_OFFSET  : f32 = 0.5;
+
+
+
 // ===============
 // === Shapes  ===
 // ===============
@@ -112,25 +121,43 @@ impl Model {
     }
 
     fn place_button_in_slot<T:ColorableShape>(&self, button:&ToggleButton<T>, index:usize) {
-        let icon_size = Vector2::new(self.size.get().y, self.size.get().y);
+        let icon_size = self.icon_size();
         let index     = index as f32;
-        let padding   = 0.5;
-        let offset    = 0.5;
+        let padding   = BUTTON_PADDING;
+        let offset    = BUTTON_OFFSET;
         button.mod_position(|p| p.x = ((1.0 + padding) * index + offset) * icon_size.x);
         button.frp.set_size(icon_size);
     }
 
+    fn icon_size(&self) -> Vector2 {
+        Vector2::new(self.size.get().y, self.size.get().y)
+    }
+
+    fn layout_hover_area_to_cover_buttons(&self, button_count:usize) {
+        let button_count   = button_count as f32;
+        let size           = self.size.get();
+        let padding        = BUTTON_PADDING;
+        let offset         = BUTTON_OFFSET;
+        let hover_padding  = 1.0;
+        let button_width   = self.icon_size().x;
+        let hover_width    = button_width * (button_count + hover_padding + offset + padding);
+        let hover_height   = button_width * 2.0;
+        let hover_ara_size = Vector2::new(hover_width,hover_height);
+        self.hover_area.shape.size.set(hover_ara_size);
+        let center_offset  = -size.x / 2.0 + hover_ara_size.x / 2.0;
+        let padding_offset = - 0.5 * hover_padding * button_width;
+        self.hover_area.set_position_x(center_offset + padding_offset);
+    }
+
     fn set_size(&self, size:Vector2) {
         self.size.set(size);
-
-        let hover_ara_size = Vector2::new(size.x,size.y*2.0);
-        self.hover_area.shape.size.set(hover_ara_size);
-
         self.icons.set_position_x(-size.x/2.0);
 
         self.place_button_in_slot(&self.icon_visibility, 0);
         self.place_button_in_slot(&self.icon_skip, 1);
         self.place_button_in_slot(&self.icon_freeze, 2);
+
+        self.layout_hover_area_to_cover_buttons(3);
 
         // The appears smaller than the other ones, so this is an aesthetic adjustment.
         self.icon_visibility.set_scale_xy(Vector2::new(1.2,1.2));
