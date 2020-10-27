@@ -1,6 +1,6 @@
 import Base.Data.Number.Extensions
 import Base.Data.Text.Extensions
-import Base.List
+import Base.Data.List
 import Base.Vector
 import Base.System.File
 import Base.Meta.Enso_Project
@@ -19,7 +19,7 @@ export Base.Data.Json
 from Base.Data.Number.Extensions export all hiding Math, String
 from Base.Data.Text.Extensions export Text
 from Base.Meta.Enso_Project export all
-from Base.List export Nil, Cons
+from Base.Data.List export Nil, Cons
 from Base.Vector export Vector
 from Base.Error.Extensions export all
 from Base.Polyglot.Java export all
