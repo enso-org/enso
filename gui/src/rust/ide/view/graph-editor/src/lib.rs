@@ -507,6 +507,11 @@ impl Node {
         self.view.id().into()
     }
 
+    /// Return all edges connected to this node. Ingoing and outgoing both.
+    pub fn all_edges(self) -> Vec<EdgeId> {
+        self.in_edges.keys().extended(self.out_edges.keys())
+    }
+
 }
 
 impl display::Object for Node {
@@ -662,6 +667,10 @@ impl EdgeTarget {
         let node_id = node_id.into();
         let port    = Rc::new(port);
         Self {node_id,port}
+    }
+
+    pub fn is_connected_to(&self, node_id:NodeId) -> bool {
+        self.node_id == node_id
     }
 }
 
@@ -2207,12 +2216,18 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     }
 
+
     // === Set Expression Type ===
     frp::extend! { network
 
-    eval inputs.set_expression_type (((node_id,ast_id,maybe_type)) {
-        model.set_node_expression_type(*node_id,*ast_id,maybe_type.clone())
-    });
+    node_to_refresh <- inputs.set_expression_type.map(f!([model]((node_id,ast_id,maybe_type)) {
+        model.set_node_expression_type(*node_id,*ast_id,maybe_type.clone());
+        *node_id
+    }));
+    edges_to_refresh <= node_to_refresh.map(f!([nodes](node_id)
+         nodes.get_cloned_ref(node_id).map(|node| node.all_edges())
+    )).unwrap();
+    eval edges_to_refresh ((edge) model.refresh_edge_position(*edge));
 
     }
 
