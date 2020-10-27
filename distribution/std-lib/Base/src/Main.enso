@@ -4,14 +4,14 @@ import Base.Data.List
 import Base.Data.Vector
 import Base.System.File
 import Base.Meta.Enso_Project
-import Base.Meta.Meta
+import Base.Meta
 import Base.Error.Extensions
 import Base.Polyglot.Java
 import Base.Data.Map
 import Base.Data.Json
 from Builtins import Unit, Number, Integer, Any, True, False, Cons, Boolean
 
-export Base.Meta.Meta
+export Base.Meta
 from Builtins export all hiding Meta
 
 export Base.Data.Map
