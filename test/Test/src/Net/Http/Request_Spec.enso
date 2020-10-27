@@ -13,36 +13,36 @@ spec =
     test_headers = [Header.application_json, Header.new "X-Foo-Id" "0123456789"]
     describe "Request" <|
         it "should get method" <|
-            req = Request.new Method.POST test_uri
-            req.method.should_equal Method.POST
+            req = Request.new Method.Post test_uri
+            req.method.should_equal Method.Post
         it "should get uri" <|
-            req = Request.new Method.GET test_uri
+            req = Request.get test_uri
             req.uri.should_equal test_uri
         it "should get headers" <|
-            req = Request.new Method.GET test_uri test_headers
+            req = Request.get test_uri test_headers
             req.headers.should_equal test_headers
         it "should add header" <|
             new_header = Header.accept_all
-            req = Request.new Method.GET test_uri test_headers . with_header new_header.name new_header.value
+            req = Request.get test_uri test_headers . with_header new_header.name new_header.value
             req.headers.should_equal (test_headers + [new_header])
         it "should update header" <|
-            req = Request.new Method.GET test_uri test_headers . with_header "X-Foo-Id" "42"
+            req = Request.get test_uri test_headers . with_header "X-Foo-Id" "42"
             req.headers.should_equal [Header.application_json, Header.new "X-Foo-Id" "42"]
         it "should add headers" <|
-            req = Request.new Method.GET test_uri . with_headers test_headers
+            req = Request.get test_uri . with_headers test_headers
             req.headers.should_equal test_headers
         it "should update headers" <|
             new_headers = [Header.multipart_form_data, Header.accept_all]
-            req = Request.new Method.GET test_uri test_headers . with_headers new_headers
+            req = Request.get test_uri test_headers . with_headers new_headers
             req.headers.should_equal [Header.multipart_form_data, test_headers.at 1, Header.accept_all]
         it "should set json body" <|
             json = '''
                 {"key":"val"}
-            req = Request.new Method.GET test_uri . with_json json
+            req = Request.get test_uri . with_json json
             req.body.should_equal (Request_Body.Json json)
             req.headers.should_equal [Header.application_json]
         it "should set form body" <|
             body_form = [Form.text_field "key" "val"]
-            req = Request.new Method.GET test_uri . with_form body_form
+            req = Request.get test_uri . with_form body_form
             req.body.should_equal (Request_Body.Form body_form.to_form)
             req.headers.should_equal [Header.application_x_www_form_urlencoded]

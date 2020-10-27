@@ -5,6 +5,7 @@ import Base.Net.Uri
 import Base.Net.Http.Auth
 import Base.Net.Http.Form
 import Base.Net.Http.Header
+import Base.Net.Http.Method
 import Base.Net.Http.Request
 import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Http.Response
@@ -26,24 +27,24 @@ type Http
 
     type Http timeout auth follow_redirects proxy version
 
-    ## Send an OPTIONS request.
+    ## Send an Options request.
 
        > Example
-         Send an OPTIONS request.
+         Send an Options request.
              Http.new.options "http://httpbin.org"
     options : To_Uri -> Vector -> Response
     options addr (headers = []) =
         req = Request.options addr headers
         this.request req
 
-    ## Send a GET request.
+    ## Send a Get request.
 
        > Example
-         Send a GET request.
+         Send a Get request.
              Http.new.get "http://httpbin.org/get"
 
        > Example
-         Authenticated GET request (note the use of TLS).
+         Authenticated Get request (note the use of TLS).
              http = Http.new (auth = Auth.Basic_Auth "user" "pass")
              http.get "https://httpbin.org/basic-auth/user/pass"
 
@@ -57,10 +58,10 @@ type Http
         req = Request.get addr headers
         this.request req
 
-    ## Send a HEAD request.
+    ## Send a Head request.
 
        > Example
-         Send a HEAD request.
+         Send a Head request.
              res = Http.new.head "http://httpbin.org"
              IO.println res.headers
     head : To_Uri -> Vector -> Response
@@ -68,28 +69,34 @@ type Http
         req = Request.head addr headers
         this.request req
 
-    ## Send a POST request.
+    ## Send a Post request.
+
+       > Example
+         Send a Post request with binary data.
+             body = Body.Bytes "Hello".utf_8
+             header_binary = Header.content_type "application/octet-stream"
+             Http.new.post "http://httpbin.org/post" body [header_binary]
     post : To_Uri -> Request_Body -> Vector -> Respoonse
     post addr body (headers = []) =
         req = Request.post addr body headers
         this.request req
 
-    ## Send a POST request with the form. By default it will be encoded as
+    ## Send a Post request with the form. By default it will be encoded as
        "application/x-www-form-urlencoded". To encode the form as
        "multipart/form-data" add the appropriate header.
 
        > Example
-         Send a POST request with form.
+         Send a Post request with form.
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              Http.new.post_form "http://httpbin.org/post" form
 
        > Example
-         Send a POST request with form encoded as "multipart/form-data".
+         Send a Post request with form encoded as "multipart/form-data".
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              Http.new.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
 
        > Example
-         Configure http client and send a POST request.
+         Configure HTTP client and send a Post request.
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              http = Http.new (timeout = 30.seconds)
              http.post_form "http://httpbin.org/post" form
@@ -99,10 +106,10 @@ type Http
         req = Request.post addr (Request_Body.Form parts.to_form) new_headers . with_headers headers
         this.request req
 
-    ## Send a POST request with body with content-type "application/json".
+    ## Send a Post request with body with content-type "application/json".
 
        > Example
-         Send a POST request with json data.
+         Send a Post request with json data.
              json = Json.parse <| '''
                  {"key":"val"}
              Http.new.post_json "http://httpbin.org/post" json
@@ -112,16 +119,22 @@ type Http
         req = Request.post addr (Request_Body.Json body_json) headers . with_headers new_headers
         this.request req
 
-    ## Send a PUT request.
+    ## Send a Put request.
+
+       > Example
+         Send a Put request with binary data.
+             body = Body.Bytes "contents".utf_8
+             header_binary = Header.content_type "application/octet-stream"
+             Http.new.put "http://httpbin.org/post" body [header_binary]
     put : To_Uri -> Request_Body -> Vector -> Respoonse
     put addr body (headers = []) =
         req = Request.put addr body headers
         this.request req
 
-    ## Send a PUT request with body with content-type "application/json".
+    ## Send a Put request with body with content-type "application/json".
 
        > Example
-         Send a PUT request with json data.
+         Send a Put request with json data.
              json = Json.parse <| '''
                  {"key":"val"}
              Http.new.put_json "http://httpbin.org/put" json
@@ -131,10 +144,10 @@ type Http
         req = Request.put addr (Request_Body.Json body_json) headers . with_headers new_headers
         this.request req
 
-    ## Create a DELETE request.
+    ## Create a Delete request.
 
        > Example
-         Send a DELETE request.
+         Send a Delete request.
              Http.new.delete "http://httpbin.org/delete"
     delete : To_Uri -> Vector -> Response
     delete addr (headers = []) =
@@ -144,33 +157,33 @@ type Http
     ## Create a request
 
        > Example
-         Send a GET request with headers.
-             req = Request.new Method.GET "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
+         Send a Get request with headers.
+             req = Request.new Method.Get "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
              res = Http.new.request req
              res.body
 
        > Example
-         Open a connection and send a POST request with form.
+         Open a connection and send a Post request with form.
              req = Request.post "http://httpbin.org/post" . with_form [Form.text_field "key" "value"] . with_header "X-Trace-Id" "123456789"
              res = http.new.request req
              res.code
 
        > Example
-         Send a POST request with urlencoded form data.
+         Send a Post request with urlencoded form data.
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              req = Request.post "http://httpbin.org/post" . with_form form
              Http.new.request req
 
        > Example
-         Send a POST request with form encoded as "multipart/form-data".
+         Send a Post request with form encoded as "multipart/form-data".
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              req = Request.post "http://httpbin.org/post" . with_form form . with_headers [Header.multipart_form_data]
              Http.new.post req
 
        > Example
-         Configure http client and send a POST request with form.
+         Configure HTTP client and send a Post request with form.
              form = [Form.text_field "name" "John Doe"]
-             req = Request.new Method.POST "http://httpbin.org/post" . with_form form
+             req = Request.new Method.Post "http://httpbin.org/post" . with_form form
              http = Http.new (timeout = 30.seconds) (proxy = Proxy.new "proxy.example.com:80")
              http.request req
     request : Request -> Response
@@ -205,10 +218,19 @@ type Http
                     Pair req (body_builder.build [])
                 if req.headers.contains Header.multipart_form_data then add_multipart form else
                     add_urlencoded form
+        # method
+        req_http_method = case req.method of
+            Method.Options -> "OPTIONS"
+            Method.Get -> "GET"
+            Method.Post -> "POST"
+            Method.Put -> "PUT"
+            Method.Delete -> "DELETE"
+            Method.Trace -> "TRACE"
+            Method.Connect -> "CONNECT"
         case req_with_body of
             Pair req body ->
                 # set method and body
-                builder.method [req.method.to_text, body]
+                builder.method [req_http_method, body]
                 # set headers
                 req.headers.map h-> builder.header [h.name, h.value]
         http_request = builder.build []

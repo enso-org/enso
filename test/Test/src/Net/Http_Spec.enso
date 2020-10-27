@@ -42,7 +42,7 @@ spec_impl =
             version_setting = Version.Http_2
             http = Http.new (version = version_setting)
             http.version.should_equal version_setting
-        it "should send GET request" <|
+        it "should send Get request" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -56,7 +56,7 @@ spec_impl =
             res = Http.new.get "http://localhost:8080/get"
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
-        it "should POST empty body" <|
+        it "should Post empty body" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -75,7 +75,7 @@ spec_impl =
             res = Http.new.post "http://localhost:8080/post" body_empty
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
-        it "should POST text body" <|
+        it "should Post text body" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -95,7 +95,7 @@ spec_impl =
             res = Http.new.post "http://localhost:8080/post" body_text
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
-        it "should POST form text" <|
+        it "should Post form text" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -115,17 +115,17 @@ spec_impl =
             res = Http.new.post_form "http://localhost:8080/post" form_parts
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
-        it "should POST form file" <|
+        it "should Post form file" <|
             test_file = Enso_Project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form "http://localhost:8080/post" form_parts
             res.code.should_equal Status_Code.ok
-        it "should POST form multipart" <|
+        it "should Post form multipart" <|
             test_file = Enso_Project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form "http://localhost:8080/post" form_parts [Header.multipart_form_data]
             res.code.should_equal Status_Code.ok
-        it "should POST Json" <|
+        it "should Post Json" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {

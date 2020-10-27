@@ -8,7 +8,7 @@ type Header
 
     ## Header equality.
     == : Header -> Boolean
-    == that = Text_Utils.equals_ignore_case [this.name, that.name] && this.value==that.value
+    == that = (this.name.equals_ignore_case that.name) && this.value==that.value
 
 ## Create a new Header.
 new : Text -> Text -> Header
@@ -29,6 +29,9 @@ content_type text = Header "Content-Type" text
 
 application_json : Header
 application_json = here.content_type "application/json"
+
+application_octet_stream : Header
+application_octet_stream = here.content_type "application/octet-stream"
 
 application_x_www_form_urlencoded : Header
 application_x_www_form_urlencoded = here.content_type "application/x-www-form-urlencoded"
