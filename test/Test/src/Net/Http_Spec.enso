@@ -60,6 +60,20 @@ spec_impl =
             res = Http.new.get "http://localhost:8080/get"
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+        it "should send Get request using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.8"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            res = Http.get "http://localhost:8080/get"
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
         it "should Post empty body" <|
             expected_response = Json.parse <| '''
                 {
@@ -77,6 +91,25 @@ spec_impl =
                 }
             body_empty = Request_Body.Empty
             res = Http.new.post "http://localhost:8080/post" body_empty
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        it "should Post empty body using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.8"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            body_empty = Request_Body.Empty
+            res = Http.post "http://localhost:8080/post" body_empty
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         it "should Post text body" <|
@@ -119,6 +152,26 @@ spec_impl =
             res = Http.new.post_form "http://localhost:8080/post" form_parts
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+        it "should Post form text using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "7",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "User-Agent": "Java-http-client/11.0.8"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "key=val",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            form_parts = [Form.text_field "key" "val"]
+            res = Http.post_form "http://localhost:8080/post" form_parts
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
         it "should Post form file" <|
             test_file = Enso_Project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
@@ -150,5 +203,28 @@ spec_impl =
             json = Json.parse <| '''
                 {"key":"val"}
             res = Http.new.post_json "http://localhost:8080/post" json
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
+        it "should Post Json using module method" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "13",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Java-http-client/11.0.8"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "{\\"key\\":\\"val\\"}",
+                  "files": null,
+                  "form": null,
+                  "json": {
+                    "key": "val"
+                  }
+                }
+            json = Json.parse <| '''
+                {"key":"val"}
+            res = Http.post_json "http://localhost:8080/post" json
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response

@@ -293,3 +293,70 @@ type Http
 new : Duration -> Auth -> Boolean -> Proxy -> Http
 new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
     Http timeout auth follow_redirects proxy version
+
+## Send an Options request.
+
+   > Example
+     Send an Options request.
+         Http.options "http://httpbin.org"
+options : To_Uri -> Vector -> Response
+options uri (headers = []) = here.new.options uri headers
+
+## Send a Get request.
+
+   > Example
+     Send a Get request.
+         Http.get "http://httpbin.org/get"
+
+   > Example
+     Download a file.
+         out_file = File.new "/tmp/out.bin"
+         res = Http.get "http://httpbin.org/bytes/1024"
+         res.body.to_file out_file
+get : To_Uri -> Vector -> Response
+get uri (headers = []) = here.new.get uri headers
+
+## Send a Head request.
+
+   > Example
+     Send a Head request.
+         res = Http.head "http://httpbin.org"
+         IO.println res.headers
+head : To_Uri -> Vector -> Response
+head uri (headers = []) = here.new.options uri headers
+
+## Send a Post request.
+
+   > Example
+     Send a Post request with binary data.
+         body = Body.Bytes "Hello".utf_8
+         header_binary = Header.content_type "application/octet-stream"
+         Http.post "http://httpbin.org/post" body [header_binary]
+post : To_Uri -> Request_Body -> Vector -> Respoonse
+post uri body (headers = []) = here.new.post uri body headers
+
+## Send a Post request with the form. By default it will be encoded as
+   "application/x-www-form-urlencoded". To encode the form as
+   "multipart/form-data" add the appropriate header.
+
+   > Example
+     Send a Post request with form.
+         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+         Http.post_form "http://httpbin.org/post" form
+
+   > Example
+     Send a Post request with form encoded as "multipart/form-data".
+         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+         Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
+post_form : To_Uri -> To_Form -> Vector -> Response
+post_form uri parts (headers = []) = here.new.post_form uri parts headers
+
+## Send a Post request with body with content-type "application/json".
+
+   > Example
+     Send a Post request with json data.
+         json = Json.parse <| '''
+             {"key":"val"}
+         Http.post_json "http://httpbin.org/post" json
+post_json : To_Uri -> Json -> Vector -> Response
+post_json uri body_json (headers = []) = here.new.post_json uri body_json headers
