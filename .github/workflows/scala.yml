@@ -40,6 +40,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.4.1
+      - name: Setup Go
+        uses: actions/setup-go@v2
       - name: Disable TCP/UDP Offloading (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -248,6 +250,12 @@ jobs:
           cp manifest.yaml $ENGINE_DIST_DIR
 
       # Test Distribution
+      - name: Prepare Engine Test Environment
+        shell: bash
+        run: |
+          go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
+          $(go env GOPATH)/bin/httpbin -host :8080 &
+
       - name: Test Engine Distribution (Unix)
         shell: bash
         if: runner.os != 'Windows'

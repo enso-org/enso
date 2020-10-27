@@ -69,6 +69,28 @@ Text.split_at separator =
 Text.== : Text -> Boolean
 Text.== that = Text_Utils.equals [this, that]
 
+## Checks whether `this` is equal to `that`, ignoring case considerations.
+
+   Two texts are considered equal ignoring case if they are of the same length
+   and corresponding characters are equal ignoring case.
+
+   The definition of equality includes Unicode canonicalization. I.e. two texts
+   are equal if they are identical after canonical decomposition. This ensures
+   that different ways of expressing the same character in the underlying
+   binary representation are considered equal.
+
+   > Example
+
+     The string 'É' (i.e. the character U+00C9, LATIN CAPITAL LETTER E WITH
+     ACUTE) is equal ignore case to the string 'é' (i.e. the character U+00E9,
+     LATIN SMALL LETTER E WITH ACUTE), which is canonically the same as the
+     string 'e\u0301' (i.e. the letter `e` followed by U+0301, COMBINING ACUTE
+     ACCENT). Therefore:
+         (('É' . equals_ignore_case 'é') && ('é' == 'e\u0301')) == True
+
+Text.equals_ignore_case : Text -> Boolean
+Text.equals_ignore_case that = Text_Utils.equals_ignore_case [this, that]
+
 ## Checks if `this` is lexicographically before `that`.
 Text.< : Text -> Boolean
 Text.< that = Text_Utils.lt [this, that]

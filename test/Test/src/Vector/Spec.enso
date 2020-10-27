@@ -34,4 +34,16 @@ spec = describe "Vectors" <|
         vec.drop_right 2 . should_equal first_four
         vec.take 4 . should_equal first_four
         vec.take_right 4 . should_equal last_four
-
+    it "should check exists" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.exists (ix -> ix > 3) . should_be_true
+        vec.exists (ix -> ix < 0) . should_be_false
+    it "should check contains" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.contains 1 . should_be_true
+        vec.contains 0 . should_be_false
+    it "should filter elements" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.filter (ix -> ix > 3) . should_equal [4, 5]
+        vec.filter (ix -> ix == 1) . should_equal [1]
+        vec.filter (ix -> ix < 0) . should_equal []

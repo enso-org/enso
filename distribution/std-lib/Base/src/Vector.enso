@@ -77,6 +77,22 @@ type Vector
         f = acc -> ix -> function acc (arr.at ix)
         0.upto this.length . fold initial f
 
+    ## Checks whether a predicate holds for at least one element of this vector.
+    exists : (Any -> Any) -> Boolean
+    exists p =
+        check found ix = if found then found else p ix
+        this.fold False check
+
+    ## Checks whether this vector contains a given value as an element.
+    contains : Any -> Boolean
+    contains elem = this.exists ix-> ix == elem
+
+    ## Selects all elements of this vector which satisfy a predicate.
+    filter : (Any -> Boolean) -> Vector
+    filter p =
+        check acc ix = if p ix then acc + [ix] else acc
+        this.fold [] check
+
     ## Creates a new vector of the given length, initializing elements using
        the provided constructor function.
 

@@ -46,7 +46,7 @@ type Date
          Add 6 months to a local date.
              Date.new 2020 + 6.months
     + : Duration -> Date
-    + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . plus [amount.interval_period])
+    + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . plus [amount.internal_period])
 
     ## Subtract specified amount of time to this instant.
 
@@ -54,7 +54,7 @@ type Date
          Subtract 7 days from a local date.
              Date.new 2020 - 7.days
     - : Duration -> Date
-    - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . minus [amount.interval_period])
+    - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . minus [amount.internal_period])
 
     ## Format this date using the default formatter.
     to_text : Text

@@ -47,3 +47,23 @@ spec =
         it "should check if empty" <|
             interval = 0.seconds
             interval.is_empty . should_be_true
+        it "should normalize periods" <|
+            interval = 12.months
+            interval.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0]
+        it "should normalize addition" <|
+            interval = 11.months + 1.month
+            interval.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0]
+        it "should normalize subtraction" <|
+            interval = 13.months - 1.month
+            interval.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0]
+        it "should check equality" <|
+            3.seconds.should_equal 3.seconds
+            60.seconds.should_equal 1.minute
+            61.seconds.should_equal (1.minute + 1.second)
+            60.minutes.should_equal 1.hour
+            (24.hours == 1.day) . should_be_false
+            (30.days == 1.month) . should_be_false
+            12.months.should_equal 1.year
+            18.months.should_equal (1.year + 6.months)
+            1.year.should_equal (11.months + 1.month)
+            10.years.should_equal 10.years

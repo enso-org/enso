@@ -19,12 +19,14 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 @NodeInfo(shortName = "<new>", description = "Instantiates a polyglot constructor.")
 public class ConstructorDispatchNode extends BuiltinRootNode {
+
   private ConstructorDispatchNode(Language language) {
     super(language);
   }
 
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private @Child HostValueToEnsoNode hostValueToEnsoNode = HostValueToEnsoNode.build();
   private final BranchProfile err = BranchProfile.create();
 
   /**
@@ -53,7 +55,7 @@ public class ConstructorDispatchNode extends BuiltinRootNode {
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
       Object[] arguments = TypesGen.expectArray(args[1]).getItems();
-      Object res = library.instantiate(cons, arguments);
+      Object res = hostValueToEnsoNode.execute(library.instantiate(cons, arguments));
       return new Stateful(state, res);
     } catch (UnsupportedMessageException
         | ArityException
