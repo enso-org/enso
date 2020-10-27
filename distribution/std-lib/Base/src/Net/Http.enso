@@ -10,8 +10,8 @@ import Base.Net.Http.Request.Body as Request_Body
 import Base.Net.Http.Response
 import Base.Net.Http.Version
 import Base.System.File
-import Base.Time.Duration
-import Base.Time.Time
+import Base.Data.Time.Duration
+import Base.Data.Time.Time
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.net.InetSocketAddress

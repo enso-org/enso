@@ -1,8 +1,8 @@
 from Base import all
-import Base.Time.Date
-import Base.Time.Duration
-import Base.Time.Time_Of_Day
-import Base.Time.Zone
+import Base.Data.Time.Date
+import Base.Data.Time.Duration
+import Base.Data.Time.Time_Of_Day
+import Base.Data.Time.Zone
 
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.format.DateTimeFormatter

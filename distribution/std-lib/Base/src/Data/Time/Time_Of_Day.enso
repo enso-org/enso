@@ -1,8 +1,8 @@
 from Base import all
-import Base.Time.Date
-import Base.Time.Duration
-import Base.Time.Time
-import Base.Time.Zone
+import Base.Data.Time.Date
+import Base.Data.Time.Duration
+import Base.Data.Time.Time
+import Base.Data.Time.Zone
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
@@ -70,7 +70,7 @@ type Time_Of_Day
        example, "HH-mm-ss.SSS" will format "16:21:10" as "16-21-10.323".
 
        For the list of accepted symbols in pattern refer to
-       `Base.Time.Time.format` doc.
+       `Base.Data.Time.Time.format` doc.
 
        > Example
          Format "16:21:10" as "16:21:00.1234"
@@ -130,7 +130,7 @@ parse text =
 ## Obtains an instance of Time_Of_Day from a text using custom format.
 
    For the list of accepted symbols in pattern refer to
-   `Base.Time.Time.format` doc.
+   `Base.Data.Time.Time.format` doc.
 
    > Example
      Parse "04:30:20" as Time_Of_Day.

@@ -1,9 +1,9 @@
 from Base import all
 
 import Base.Test
-import Base.Time.Time
-import Base.Time.Duration
-import Base.Time.Zone
+import Base.Data.Time.Time
+import Base.Data.Time.Duration
+import Base.Data.Time.Zone
 
 spec =
     describe "Time" <|

@@ -12,7 +12,7 @@ import Base.Net.Http.Version
 import Base.Net.Proxy
 import Base.Net.Uri
 import Base.System.File
-import Base.Time.Duration
+import Base.Data.Time.Duration
 
 polyglot java import java.lang.System
 polyglot java import java.util.Objects

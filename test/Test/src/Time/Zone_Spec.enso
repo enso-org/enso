@@ -1,7 +1,7 @@
 from Base import all
 
 import Base.Test
-import Base.Time.Zone
+import Base.Data.Time.Zone
 
 spec =
     describe "Zone" <|
