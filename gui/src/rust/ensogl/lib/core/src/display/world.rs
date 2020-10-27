@@ -132,7 +132,7 @@ impl World {
                 else if key == "Digit2"    { display_mode.set(2) }
             }
         }));
-        web::document().add_event_listener_with_callback_and_bool
+        web::window().add_event_listener_with_callback_and_bool
         ("keydown",c.as_ref().unchecked_ref(),true).unwrap();
         c.forget();
         // -----------------------------------------------------------------------------------------
