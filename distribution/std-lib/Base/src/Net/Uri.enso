@@ -14,6 +14,11 @@ Text.to_uri = here.parse this
 type Uri_Error
     type Syntax_Error message
 
+## PRIVATE
+panic_on_error ~action =
+    action . catch <| case _ of
+        Syntax_Error msg -> Panic.throw (Syntax_Error msg)
+
 type Uri
 
     ## Represents a Uniform Resource Identifier (URI) reference.

@@ -244,7 +244,7 @@ type Http
     internal_http_client =
         builder = HttpClient.newBuilder []
         # timeout
-        if this.timeout.is_date then Error.throw (Time.time_error "Connection timeout does not support date intervals") else builder.connectTimeout [this.timeout.internal_duration]
+        if this.timeout.is_date then Panic.throw (Time.time_error "Connection timeout does not support date intervals") else builder.connectTimeout [this.timeout.internal_duration]
         # auth
         case this.auth of
             Auth.Basic_Auth user pass -> builder.authenticator [Http_Utils.basic_authenticator [user, pass]]
