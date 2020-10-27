@@ -1,4 +1,4 @@
-import Base.Test
+import Base.Test.Test
 from Base import all
 
 spec = describe "List" <|
@@ -28,4 +28,3 @@ spec = describe "List" <|
         any_eq_five = l.any (== 5)
         any_even.should_be_true
         any_eq_five.should_be_false
-

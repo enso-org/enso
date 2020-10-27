@@ -1,5 +1,5 @@
 from Test.Names.Definitions import My_Type, Another_Constant
-import Base.Test
+import Base.Test.Test
 
 Definitions.Foo.my_method = case this of
     Definitions.Foo x y z -> x * y * z

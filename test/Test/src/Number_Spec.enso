@@ -1,4 +1,4 @@
-import Base.Test
+import Base.Test.Test
 
 spec = describe "Number" <|
     it "should define addition" <|

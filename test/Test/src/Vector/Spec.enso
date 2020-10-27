@@ -1,5 +1,5 @@
 from Base import all
-import Base.Test
+import Base.Test.Test
 
 spec = describe "Vectors" <|
     it "should allow accessing elements" <|

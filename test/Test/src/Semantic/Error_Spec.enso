@@ -1,5 +1,5 @@
 from Base import all
-import Base.Test
+import Base.Test.Test
 
 type My_Type foo
 
@@ -18,4 +18,3 @@ spec =
 
             err_3.target.to_text.should_equal "(My_Type False)"
             err_3.method_name.should_equal "nope"
-

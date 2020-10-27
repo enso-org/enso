@@ -2,7 +2,7 @@ from Base import all
 import Base.System.Process
 from Base.System.Process.Exit_Code import Exit_Success, Exit_Failure
 import Base.System.Platform
-import Base.Test
+import Base.Test.Test
 
 spec = describe "Process" <|
     it "should call simple command" <|
