@@ -215,7 +215,9 @@ type Http
         body_handler = Polyglot.get_member HttpResponse "BodyHandlers" . ofByteArray []
         Response.response (this.internal_http_client.send [http_request, body_handler])
 
-    ## Build an HTTP client.
+    ## PRIVATE
+
+       Build an HTTP client.
     internal_http_client : HttpClient
     internal_http_client =
         builder = HttpClient.newBuilder []
@@ -253,6 +255,19 @@ type Http
         # build http client
         builder.build []
 
+## Create a new instance of HTTP client.
+
+   > Example
+     Create an HTTP client with default settings.
+         Http.new
+
+   > Example
+     Create an HTTP client with extended timeout.
+         Http.new timeout=30.seconds
+
+   > Example
+     Create an HTTP client with extended timeout and proxy settings.
+         Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
 new : Duration -> Auth -> Boolean -> Proxy -> Http
 new (timeout = 10.seconds) (auth = Auth.None) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
     Http timeout auth follow_redirects proxy version
