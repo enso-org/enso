@@ -1,9 +1,9 @@
 from Base import all
 
+import Base.Data.Vector
 import Base.Net.Http.Header
 import Base.Net.Http.Response.Body as Response_Body
 import Base.Net.Http.Status_Code
-import Base.Vector
 
 polyglot java import org.enso.base.Http_Utils
 

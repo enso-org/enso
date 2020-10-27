@@ -46,8 +46,8 @@ Access modifiers in Enso work as follows:
   modifier from the file in which you want to access those elements.
 
   ```ruby
-  import private Base.Vector
-  import unsafe Base.Atom
+  import private Base.Data.Vector
+  import unsafe Base.Data.Atom
   ```
 
 - These modified imports are available in _all_ scopes, so it is possible to
@@ -55,8 +55,8 @@ Access modifiers in Enso work as follows:
 
   ```ruby
   function_using_modifiers v x =
-      import private Base.Vector
-      import unsafe Base.Atom
+      import private Base.Data.Vector
+      import unsafe Base.Data.Atom
 
       v.mutate_at_index 0 (_ -> x)
       x = MyAtom.mutate_field name="sum" (with = x -> x + 20)

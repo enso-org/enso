@@ -1,5 +1,5 @@
 import Base.Process.Exit_Code
-from Base.Vector import Vector
+from Base.Data.Vector import Vector
 from Builtins import Array, System, True, False
 
 ## The builder object that is used to create operating system processes.

@@ -1,5 +1,4 @@
 from Base import all
-import Base.Vector
 import Base.Net.Uri
 import Base.Net.Http.Form
 import Base.Net.Http.Header
