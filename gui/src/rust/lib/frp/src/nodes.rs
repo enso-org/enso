@@ -562,7 +562,7 @@ impl DynamicNetwork {
 
 
     // === Filter ===
-    pub fn filter<T,P>(&self, label:Label, src:&T, p:P) -> Stream<Output<T>>
+    pub fn filter<T,P>(self, label:Label, src:&T, p:P) -> Stream<Output<T>>
     where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
         OwnedFilter::new(label,src,p).into()
     }
