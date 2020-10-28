@@ -1,5 +1,6 @@
 package org.enso.languageserver.data
 
+import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 

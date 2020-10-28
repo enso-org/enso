@@ -21,6 +21,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.testkit.RetrySpec
+import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers

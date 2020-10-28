@@ -27,6 +27,7 @@ import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

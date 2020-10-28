@@ -14,7 +14,6 @@ import org.enso.languageserver.data.{
   CapabilityRegistration,
   ClientId,
   Config,
-  ContentBasedVersioning,
   ReceivesSuggestionsDatabaseUpdates
 }
 import org.enso.languageserver.event.InitializedEvent
@@ -28,6 +27,7 @@ import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.text.ContentBasedVersioning
 import org.enso.text.editing.model.Position
 
 import scala.concurrent.Future

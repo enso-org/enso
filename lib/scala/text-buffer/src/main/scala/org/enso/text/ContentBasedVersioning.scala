@@ -1,4 +1,4 @@
-package org.enso.languageserver.data
+package org.enso.text
 
 /** A content-based versioning calculator.
   */

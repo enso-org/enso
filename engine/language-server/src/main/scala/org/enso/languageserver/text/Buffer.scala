@@ -2,7 +2,7 @@ package org.enso.languageserver.text
 
 import java.io.File
 
-import org.enso.languageserver.data.ContentBasedVersioning
+import org.enso.text.ContentBasedVersioning
 import org.enso.text.buffer.Rope
 
 /** A buffer state representation.

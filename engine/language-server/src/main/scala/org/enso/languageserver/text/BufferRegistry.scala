@@ -7,11 +7,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityReleaseBadRequest,
   ReleaseCapability
 }
-import org.enso.languageserver.data.{
-  CanEdit,
-  CapabilityRegistration,
-  ContentBasedVersioning
-}
+import org.enso.languageserver.data.{CanEdit, CapabilityRegistration}
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
@@ -23,6 +19,7 @@ import org.enso.languageserver.text.TextProtocol.{
   SaveFile
 }
 import org.enso.searcher.FileVersionsRepo
+import org.enso.text.ContentBasedVersioning
 
 import scala.concurrent.Future
 

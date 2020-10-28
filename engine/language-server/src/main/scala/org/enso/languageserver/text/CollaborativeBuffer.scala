@@ -6,12 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
 import akka.pattern.pipe
 import cats.implicits._
 import org.enso.languageserver.capability.CapabilityProtocol._
-import org.enso.languageserver.data.{
-  CanEdit,
-  CapabilityRegistration,
-  ClientId,
-  ContentBasedVersioning
-}
+import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.event.{
   BufferClosed,
   BufferOpened,
@@ -34,6 +29,7 @@ import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.FileVersionsRepo
+import org.enso.text.ContentBasedVersioning
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
 
