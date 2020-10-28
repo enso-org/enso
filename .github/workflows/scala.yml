@@ -260,13 +260,13 @@ jobs:
         shell: bash
         if: runner.os != 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso --run test/Test
+          $ENGINE_DIST_DIR/bin/enso --run test/Tests
 
       - name: Test Engine Distribution (Windows)
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Test
+          $ENGINE_DIST_DIR/bin/enso.bat --run test/Tests
 
       # Publish
       - name: Publish the Engine Distribution Artifact

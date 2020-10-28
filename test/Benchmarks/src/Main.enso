@@ -1,4 +1,4 @@
-import Base.Test.Bench
+import Test.Bench
 from Base import all
 
 polyglot java import java.lang.Long

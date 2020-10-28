@@ -1,6 +1,6 @@
 from Base import all
 
-import Base.Test.Bench
+import Test.Bench
 
 prep_json size =
     single = '{"foo": 543}, {"bar": false}'

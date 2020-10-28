@@ -1,7 +1,0 @@
-import Test.Semantic.Import_Loop.A
-
-type My_Type
-
-My_Type.bar x = x + 1
-
-My_Type.baz = A.foo

@@ -1,0 +1,3 @@
+import Tests.Semantic.Deep_Export.Internal_3
+
+const = Internal_3.util.const + 5.bar

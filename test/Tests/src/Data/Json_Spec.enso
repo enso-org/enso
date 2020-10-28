@@ -1,0 +1,108 @@
+from Base import all
+
+import Test
+
+type Author name year_of_birth
+type Book title author
+
+Test.Verbs.fail_parsing_with subject expected =
+    as_fail = case Json.parse subject of
+        _ -> Test.Failure "Expected a parse error, but no error reported."
+    result = as_fail.catch e-> case e of
+        Json.Parse_Error msg ->
+            if msg.contains expected then Test.Success else
+                fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
+                Test.Failure fail_msg
+        _ ->
+            fail_msg = "Expected a parser error, but " + e.to_text + " was thrown."
+            Test.Failure fail_msg
+    case result of
+        Test.Success -> Test.Success
+        fail -> Panic.throw fail
+
+Test.Verbs.parse_as subject expected =
+    Test.Verbs.equal (Json.parse subject) expected.to_json
+
+Text.should_render_itself =
+    Test.Verbs.equal (Json.parse this . to_text) this
+
+spec =
+    describe "JSON Deserialization" <|
+        it "should parse JSON structures" <|
+            "0    ".should parse_as 0
+            " 123    ".should parse_as 123
+            "15.0643".should parse_as 15.0643
+            "32.5E-1".should parse_as 3.25
+            "32.5E+1".should parse_as 325.0
+            "32.5e1".should parse_as 325.0
+            "false".should parse_as False
+            "true".should parse_as True
+            "null".should parse_as Json.Null
+            "[null, null, true, false]".should parse_as <|
+                [Json.Null, Json.Null, True, False]
+            "[]".should parse_as []
+            '[[1, 3], [5 , "foo"], 7, 8]'.should parse_as <|
+                [[1, 3], [5, 'foo'], 7, 8]
+            '"foo"'.should parse_as 'foo'
+            '"foo\\n\\t\\u20AC\\u20AC"'.should parse_as 'foo\n\t€€'
+            '["foo", "foo\\n\\u00aB", null, true]'.should parse_as <|
+                ["foo", 'foo\n\u{AB}', Json.Null, True]
+            object_json = '''
+                { "foo": "bar",
+                  "baz": ["foo", "x", false],
+                  "y": {"z": null, "w": null} }
+            object_json.should parse_as <|
+                foo_v = "bar".to_json
+                baz_v = ["foo", "x", False].to_json
+                y_v = Json.Object (Map.empty . insert "z" Json.Null . insert "w" Json.Null)
+                Json.Object (Map.empty . insert "foo" foo_v . insert "baz" baz_v . insert "y" y_v)
+        it "should report meaningful parsing errors" <|
+            "foo".should fail_parsing_with "Expected a false"
+            "[,]".should fail_parsing_with "Expected a start of a JSON value"
+            "{,}".should fail_parsing_with "Expected a string"
+            deep_err = '''
+                { "foo": "bar",
+                  "baz": ["foo", "x"", false],
+                  "y": {"z": null, "w": null} }
+            deep_err.should fail_parsing_with "Expected a comma"
+            "123 4".should fail_parsing_with "Expected end of input"
+        it "should parse and convert JSON into domain model" <|
+            book_1 = Book "Lord of the Rings" <|
+                Author "J. R. R. Tolkien" 1892
+            book_2 = Book "The Little Prince" <|
+                Author "Antoine de Saint-Exupéry" 1900
+            book_3 = Book "And Then There Were None" <|
+                Author "Agatha Christie" 1890
+            books = [book_1, book_2, book_3]
+
+            json_string = (Enso_Project.data / "books.json").read
+            parsed = Json.parse json_string
+            domain = parsed.into (Vector (Book title=Text (Author name=Text year_of_birth=Number)))
+            domain.should equal books
+    describe "JSON Serialization" <|
+        it "should print JSON structures to valid json" <|
+            "0".should_render_itself
+            "123".should_render_itself
+            "15.0643".should_render_itself
+            "false".should_render_itself
+            "true".should_render_itself
+            "null".should_render_itself
+            "[null,null,true,false]".should_render_itself
+            "[]".should_render_itself
+            '[[1,3],[5,"foo"],7,8]'.should_render_itself
+            '"foo"'.should_render_itself
+            '"foo\\n\\t\\r\\f\\b\\"\\\\"'.should_render_itself
+            '["foo","foo\\n",null,true]'.should_render_itself
+            object_json = '{"baz":["foo","x",false],"foo":"bar","y":{"w":null,"z":null}}'
+            object_json.should_render_itself
+        it "should convert arbitrary types to JSON" <|
+            1.to_json.should equal (Json.Number 1)
+            1.54.to_json.should equal (Json.Number 1.54)
+            ["foo", "bar", "baz"].to_json.should equal <|
+                (Json.Array [Json.String "foo", Json.String "bar", Json.String "baz"])
+            Author "Tolkien" 1892 . to_json . should equal <|
+                n = Json.String "Tolkien"
+                y = Json.Number 1892
+                t = Json.String "Author"
+                fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
+                Json.Object fields
