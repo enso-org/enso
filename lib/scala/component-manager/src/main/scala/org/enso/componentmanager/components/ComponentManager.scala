@@ -236,7 +236,7 @@ class ComponentManager(
           ) {
             findEngine(version) match {
               case Some(engine) =>
-                logger.info(
+                userInterface.logInfo(
                   "The engine has already been installed by a different " +
                   "process."
                 )
@@ -306,7 +306,7 @@ class ComponentManager(
       }
 
       safelyRemoveComponent(engine.path)
-      logger.info(s"Uninstalled $engine.")
+      userInterface.logInfo(s"Uninstalled $engine.")
       cleanupRuntimes()
     }
 
@@ -341,7 +341,7 @@ class ComponentManager(
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
       logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
-      logger.info(s"Downloading ${enginePackage.getFileName}.")
+      userInterface.logInfo(s"Downloading ${enginePackage.getFileName}.")
       val downloadTask = engineRelease.downloadPackage(enginePackage)
       userInterface.trackProgress(downloadTask)
       downloadTask.force()
@@ -349,7 +349,7 @@ class ComponentManager(
       val engineDirectoryName =
         engineDirectoryNameForVersion(engineRelease.version)
 
-      logger.info(s"Extracting the engine.")
+      userInterface.logInfo(s"Extracting the engine.")
       val extractionTask = Archive
         .extractArchive(
           enginePackage,
@@ -437,7 +437,7 @@ class ComponentManager(
             )
           }
 
-          logger.info(s"Installed $engine.")
+          userInterface.logInfo(s"Installed $engine.")
           engine
         }
 
@@ -584,7 +584,7 @@ class ComponentManager(
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
-      logger.info(s"Downloading ${runtimePackage.getFileName}.")
+      userInterface.logInfo(s"Downloading ${runtimePackage.getFileName}.")
       val downloadTask =
         runtimeReleaseProvider.downloadPackage(runtimeVersion, runtimePackage)
       userInterface.trackProgress(downloadTask)
@@ -592,7 +592,7 @@ class ComponentManager(
 
       val runtimeDirectoryName = graalDirectoryForVersion(runtimeVersion)
 
-      logger.info(s"Extracting the runtime.")
+      userInterface.logInfo(s"Extracting the runtime.")
       val extractionTask = Archive.extractArchive(
         runtimePackage,
         distributionManager.paths.temporaryDirectory,
@@ -629,7 +629,7 @@ class ComponentManager(
           )
         }
 
-        logger.info(s"Installed $runtime.")
+        userInterface.logInfo(s"Installed $runtime.")
         runtime
       } catch {
         case NonFatal(e) =>
@@ -651,7 +651,7 @@ class ComponentManager(
   private def cleanupRuntimes(): Unit = {
     for (runtime <- listInstalledRuntimes()) {
       if (findEnginesUsingRuntime(runtime).isEmpty) {
-        logger.info(
+        userInterface.logInfo(
           s"Removing $runtime, because it is not used by any installed Enso " +
           s"versions."
         )

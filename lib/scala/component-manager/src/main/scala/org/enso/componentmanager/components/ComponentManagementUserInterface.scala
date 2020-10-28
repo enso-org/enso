@@ -37,4 +37,7 @@ trait ComponentManagementUserInterface {
     * action will fail.
     */
   def shouldInstallBrokenEngine(version: SemVer): Boolean
+
+  /** Called to allow for special handling of info-level logs. */
+  def logInfo(message: => String): Unit
 }

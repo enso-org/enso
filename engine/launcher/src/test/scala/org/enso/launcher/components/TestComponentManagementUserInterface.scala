@@ -29,6 +29,8 @@ class TestComponentManagementUserInterface(installBroken: Boolean)
   /** @inheritdoc */
   override def shouldInstallMissingRuntime(version: RuntimeVersion): Boolean =
     true
+
+  override def logInfo(message: => String): Unit = ()
 }
 
 object TestComponentManagementUserInterface {

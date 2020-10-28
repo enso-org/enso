@@ -8,6 +8,7 @@ import org.enso.componentmanager.components.{
   ComponentManagementUserInterface,
   RuntimeVersion
 }
+import org.enso.launcher.InfoLogger
 
 class CLIComponentManagementUserInterface(
   cliOptions: GlobalCLIOptions,
@@ -63,4 +64,6 @@ class CLIComponentManagementUserInterface(
       yesDefault = true
     )
   }
+
+  override def logInfo(message: => String): Unit = InfoLogger.info(message)
 }
