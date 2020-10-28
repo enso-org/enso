@@ -14,10 +14,10 @@ import Tests.Data.Numbers_Spec
 import Tests.Data.Text_Spec
 import Tests.Data.Time.Spec as Time_Spec
 import Tests.Data.Vector_Spec
-import Tests.Net.Http_Spec
-import Tests.Net.Uri_Spec
-import Tests.Net.Http.Header_Spec
-import Tests.Net.Http.Request_Spec
+import Tests.Network.Http_Spec
+import Tests.Network.Uri_Spec
+import Tests.Network.Http.Header_Spec
+import Tests.Network.Http.Request_Spec
 import Tests.System.File_Spec
 import Tests.System.Process_Spec
 

@@ -2,15 +2,15 @@ from Base import all
 
 import Base.Data.Json
 import Test
-import Base.Net.Http
-import Base.Net.Http.Form
-import Base.Net.Http.Header
-import Base.Net.Http.Request
-import Base.Net.Http.Request.Body as Request_Body
-import Base.Net.Http.Status_Code
-import Base.Net.Http.Version
-import Base.Net.Proxy
-import Base.Net.Uri
+import Base.Network.Http
+import Base.Network.Http.Form
+import Base.Network.Http.Header
+import Base.Network.Http.Request
+import Base.Network.Http.Request.Body as Request_Body
+import Base.Network.Http.Status_Code
+import Base.Network.Http.Version
+import Base.Network.Proxy
+import Base.Network.Uri
 import Base.System.File
 import Base.Data.Time.Duration
 
