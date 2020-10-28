@@ -1,8 +1,8 @@
-package org.enso.componentmanager
+package org.enso.launcher.cli
 
 import akka.http.scaladsl.model.Uri
 import org.enso.cli.arguments.{Argument, OptsParseError}
-import org.enso.componentmanager.GlobalCLIOptions.InternalOptions
+import org.enso.launcher.cli.GlobalCLIOptions.InternalOptions
 import org.enso.loggingservice.LogLevel
 // FIXME [RW] this should be moved back to launcher, it has been moved here temporarily to ease in the refactoring
 /** Gathers settings set by the global CLI options.

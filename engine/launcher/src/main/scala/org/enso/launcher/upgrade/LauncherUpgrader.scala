@@ -9,13 +9,12 @@ import org.enso.componentmanager.{
   CurrentVersion,
   DistributionManager,
   FileSystem,
-  GlobalCLIOptions,
   OS
 }
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.componentmanager.archive.Archive
 import org.enso.componentmanager.components.UpgradeRequiredError
-import org.enso.launcher.cli.InternalOpts
+import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
 import org.enso.componentmanager.locking.{
   DefaultResourceManager,
   LockType,

@@ -5,9 +5,9 @@ import java.nio.file.Path
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.Environment
 import org.enso.componentmanager.components.Manifest.JVMOptionsContext
-import org.enso.componentmanager.components.{ComponentManager, Engine}
-import org.enso.componentmanager.{components, Environment}
+import org.enso.componentmanager.components.{ComponentManager, Engine, Runtime}
 import org.enso.loggingservice.LogLevel
 
 import scala.concurrent.duration.DurationInt
@@ -173,9 +173,9 @@ class Runner(
     */
   private def systemJavaCommand: JavaCommand = JavaCommand("java", None)
 
-  /** The [[JavaCommand]] representing a managed [[components.Runtime]].
+  /** The [[JavaCommand]] representing a managed [[Runtime]].
     */
-  private def javaCommandForRuntime(runtime: components.Runtime): JavaCommand =
+  private def javaCommandForRuntime(runtime: Runtime): JavaCommand =
     JavaCommand(
       executableName = runtime.javaExecutable.toAbsolutePath.normalize.toString,
       javaHomeOverride =
@@ -199,7 +199,7 @@ class Runner(
         Await.result(loggerConnection, 3.seconds)
       } catch {
         case exception: TimeoutException =>
-          Logger[components.Runtime].warn(
+          Logger[Runtime].warn(
             "The logger has not been set up within the 3 second time limit, " +
             "the launched component will be started but it will not be " +
             "connected to the logging service.",

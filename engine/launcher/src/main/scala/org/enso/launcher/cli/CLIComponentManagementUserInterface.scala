@@ -3,7 +3,6 @@ package org.enso.launcher.cli
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.{CLIOutput, ProgressBar, TaskProgress}
-import org.enso.componentmanager.GlobalCLIOptions
 import org.enso.componentmanager.components.{
   ComponentManagementUserInterface,
   RuntimeVersion

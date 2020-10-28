@@ -17,10 +17,9 @@ import org.enso.componentmanager.runner.{
 import org.enso.componentmanager.{
   CurrentVersion,
   DistributionManager,
-  Environment,
-  GlobalCLIOptions
+  Environment
 }
-import org.enso.launcher.cli.{LauncherLogging, Main}
+import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
 import org.enso.launcher.components.LauncherRunner
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
