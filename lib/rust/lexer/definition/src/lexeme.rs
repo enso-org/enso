@@ -10,147 +10,140 @@ use enso_flexer::automata::pattern::Pattern;
 // === Basic Pattern Definitions ===
 // =================================
 
-/// Match lower-case ASCII letters.
-pub fn lower_ascii_letter() -> Pattern {
-    Pattern::range('a'..='z')
-}
-
-/// Match upper-case ASCII letters.
-pub fn upper_ascii_letter() -> Pattern {
-    Pattern::range('A'..='Z')
-}
-
-/// Match ASCII digits.
-pub fn ascii_digit() -> Pattern {
-    Pattern::range('0'..='9')
-}
-
-/// Match ASCII letters.
-pub fn ascii_letter() -> Pattern {
-    lower_ascii_letter() | upper_ascii_letter()
-}
-
-/// Match ASCII alphanumeric characters.
-pub fn ascii_alpha_num() -> Pattern {
-    ascii_digit() | ascii_letter()
-}
-
-/// Match at least one ASCII space character.
-pub fn spaces() -> Pattern {
-    space().into_pattern().many1()
-}
-
-/// Match a windows-style newline.
-pub fn crlf() -> Pattern {
-    let lf = lf().into_pattern();
-    let cr = cr().into_pattern();
-    cr >> lf
-}
-
-/// Match the end-of-file character.
-pub fn eof() -> Pattern {
-    Pattern::eof()
-}
-
-/// Match a newline.
+/// Basic lexemes as patterns.
 ///
-/// This matches both Unix (LF) and Windows (CRLF) styles of newlines. This is particularly
-/// important so as not to result in incorrect spans on windows clients.
-pub fn newline() -> Pattern {
-    let lf = lf().into_pattern();
-    lf | crlf()
-}
+/// These must _only_ be used as part of the lexer definition, not used at runtime as they are not
+/// performant.
+pub mod definition_pattern {
+    use super::*;
 
-/// The allowable group characters in Enso.
-pub fn group_chars() -> String {
-    String::from("()[]{}")
-}
+    /// Match lower-case ASCII letters.
+    pub fn lower_ascii_letter() -> Pattern {
+        Pattern::range('a'..='z')
+    }
 
-/// The allowable operator characters in Enso.
-pub fn operator_chars() -> String {
-    String::from(";!$%&*+-/<>?^~|:\\")
-}
+    /// Match upper-case ASCII letters.
+    pub fn upper_ascii_letter() -> Pattern {
+        Pattern::range('A'..='Z')
+    }
 
-/// The characters that break tokens in Enso.
-pub fn whitespace_break_chars() -> String {
-    let mut text = String::new();
-    text.push_str(tab().literal());
-    text.push_str(cr().literal());
-    text.push_str(lf().literal());
-    text
-}
+    /// Match ASCII digits.
+    pub fn ascii_digit() -> Pattern {
+        Pattern::range('0'..='9')
+    }
 
-/// The characters that break token lexing in Enso.
-pub fn break_chars() -> String {
-    let mut break_chars = String::new();
-    break_chars.push_str(interpolate_quote().literal());
-    break_chars.push_str(comment().literal());
-    break_chars.push_str(annotation_symbol().literal());
-    break_chars.push_str(space().literal());
-    break_chars.push_str(comma().literal());
-    break_chars.push_str(dot().literal());
-    break_chars.push_str(&operator_chars());
-    break_chars.push_str(&whitespace_break_chars());
-    break_chars.push_str(&group_chars());
-    break_chars
-}
+    /// Match ASCII letters.
+    pub fn ascii_letter() -> Pattern {
+        lower_ascii_letter() | upper_ascii_letter()
+    }
 
-/// Adds the basic characters not allowed in a raw segment in a format text literal.
-fn add_base_format_disallows(chars:&mut String) {
-    chars.push_str(interpolate_quote().literal());
-    chars.push_str(slash().literal());
-    chars.push_str(lf().literal());
-    chars.push_str(cr().literal());
-}
+    /// Match ASCII alphanumeric characters.
+    pub fn ascii_alpha_num() -> Pattern {
+        ascii_digit() | ascii_letter()
+    }
 
-/// Characters allowable inside a raw segment in a format line.
-pub fn format_line_raw_char() -> Pattern {
-    let mut chars = String::new();
-    chars.push_str(format_quote().literal());
-    add_base_format_disallows(&mut chars);
-    Pattern::none_of(&chars)
-}
+    /// Match at least one ASCII space character.
+    pub fn spaces() -> Pattern {
+        into_pattern(literal::SPACE).many1()
+    }
 
-/// Characters allowable inside a raw segment in a format block.
-pub fn format_block_raw_char() -> Pattern {
-    let mut chars = String::new();
-    add_base_format_disallows(&mut chars);
-    Pattern::none_of(&chars)
-}
+    /// Match the end-of-file character.
+    pub fn eof() -> Pattern {
+        Pattern::eof()
+    }
 
-/// Adds the basic characters not allowed in a raw segment in a raw text literal.
-fn add_base_raw_disallows(chars:&mut String) {
-    chars.push_str(slash().literal());
-    chars.push_str(lf().literal());
-    chars.push_str(cr().literal());
-}
+    /// Match a newline.
+    ///
+    /// This matches both Unix (LF) and Windows (CRLF) styles of newlines. This is particularly
+    /// important so as not to result in incorrect spans on windows clients.
+    pub fn newline() -> Pattern {
+        let lf   = into_pattern(literal::LF);
+        let crlf = into_pattern(literal::CRLF);
+        lf | crlf
+    }
 
-/// Characters allowable inside a raw segment in a raw line.
-pub fn raw_line_raw_char() -> Pattern {
-    let mut chars = String::new();
-    chars.push_str(raw_quote().literal());
-    add_base_raw_disallows(&mut chars);
-    Pattern::none_of(&chars)
-}
+    /// The characters that break tokens in Enso.
+    pub fn whitespace_break_chars() -> String {
+        [
+            literal::TAB,
+            literal::LF,
+            literal::CR
+        ].concat().to_string()
+    }
 
-/// Characters allowable inside a raw segment in a raw block.
-pub fn raw_block_raw_char() -> Pattern {
-    let mut chars = String::new();
-    add_base_raw_disallows(&mut chars);
-    Pattern::none_of(&chars)
-}
+    /// The characters that break token lexing in Enso.
+    pub fn break_chars() -> String {
+        [
+            literal::INTERPOLATE_QUOTE,
+            literal::COMMENT,
+            literal::ANNOTATION_SYMBOL,
+            literal::SPACE,
+            literal::COMMA,
+            literal::DOT,
+            literal::OPERATOR_CHARS,
+            literal::GROUP_CHARS,
+            &whitespace_break_chars()
+        ].concat().to_string()
+    }
 
-/// The characters allowed as digits in a unicode escape.
-pub fn unicode_escape_digit() -> Pattern {
-    let mut chars = String::new();
-    chars.push_str(format_quote().literal());
-    chars.push_str(raw_quote().literal());
-    chars.push_str(interpolate_quote().literal());
-    chars.push_str(slash().literal());
-    chars.push_str(lf().literal());
-    chars.push_str(cr().literal());
-    chars.push_str("{}");
-    Pattern::none_of(&chars)
+    /// Adds the basic characters not allowed in a raw segment in a format text literal.
+    fn add_base_format_disallows(chars:&mut String) {
+        chars.push_str(literal::INTERPOLATE_QUOTE);
+        chars.push_str(literal::SLASH);
+        chars.push_str(literal::LF);
+        chars.push_str(literal::CR);
+    }
+
+    /// Characters allowable inside a raw segment in a format line.
+    pub fn format_line_raw_char() -> Pattern {
+        let mut chars = String::new();
+        chars.push_str(literal::FORMAT_QUOTE);
+        add_base_format_disallows(&mut chars);
+        Pattern::none_of(&chars)
+    }
+
+    /// Characters allowable inside a raw segment in a format block.
+    pub fn format_block_raw_char() -> Pattern {
+        let mut chars = String::new();
+        add_base_format_disallows(&mut chars);
+        Pattern::none_of(&chars)
+    }
+
+    /// Adds the basic characters not allowed in a raw segment in a raw text literal.
+    fn add_base_raw_disallows(chars:&mut String) {
+        chars.push_str(literal::SLASH);
+        chars.push_str(literal::LF);
+        chars.push_str(literal::CR);
+    }
+
+    /// Characters allowable inside a raw segment in a raw line.
+    pub fn raw_line_raw_char() -> Pattern {
+        let mut chars = String::new();
+        chars.push_str(literal::RAW_QUOTE);
+        add_base_raw_disallows(&mut chars);
+        Pattern::none_of(&chars)
+    }
+
+    /// Characters allowable inside a raw segment in a raw block.
+    pub fn raw_block_raw_char() -> Pattern {
+        let mut chars = String::new();
+        add_base_raw_disallows(&mut chars);
+        Pattern::none_of(&chars)
+    }
+
+    /// The characters allowed as digits in a unicode escape.
+    pub fn unicode_escape_digit() -> Pattern {
+        let chars = &[
+            literal::FORMAT_QUOTE,
+            literal::RAW_QUOTE,
+            literal::INTERPOLATE_QUOTE,
+            literal::SLASH,
+            literal::LF,
+            literal::CR,
+            "{}"
+        ].concat().to_string();
+        Pattern::none_of(&chars)
+    }
 }
 
 
@@ -159,244 +152,153 @@ pub fn unicode_escape_digit() -> Pattern {
 // === Enso Lexeme Definitions ===
 // ===============================
 
-/// The number of repetitions of a quote required to define a text block.
-pub const BLOCK_QUOTE_LEN:usize = 3;
+/// The literal lexemes that make up the Enso language.
+pub mod literal {
 
-/// The space character.
-pub fn space() -> Lexeme {
-    Lexeme::new(" ")
-}
+    /// The type of a literal lexeme.
+    pub type Literal = &'static str;
 
-/// The line-feed character.
-pub fn lf() -> Lexeme {
-    Lexeme::new("\n")
-}
+    // === The Lexemes ===
 
-/// The carriage-return character.
-pub fn cr() -> Lexeme {
-    Lexeme::new("\r")
-}
+    /// The space character.
+    pub const SPACE:Literal = " ";
 
-/// The tab character.
-pub fn tab() -> Lexeme {
-    Lexeme::new("\t")
-}
+    /// The line-feed character.
+    pub const LF:Literal = "\n";
 
-/// The comment character.
-pub fn comment() -> Lexeme {
-    Lexeme::new("#")
-}
+    /// The carriage-return character.
+    pub const CR:Literal = "\r";
 
-/// The doc comment character.
-pub fn doc_comment() -> Lexeme {
-    Lexeme::new(comment().literal().repeat(2))
-}
+    /// The crlf windows-style line ending.
+    pub const CRLF:Literal = "\r\n";
 
-/// The symbol for beginning an annotation.
-pub fn annotation_symbol() -> Lexeme {
-    Lexeme::new("@")
-}
+    /// The tab character.
+    pub const TAB:Literal = "\t";
 
-/// The dot symbol.
-pub fn dot() -> Lexeme {
-    Lexeme::new(".")
-}
+    /// The comment character.
+    pub const COMMENT:Literal = "#";
 
-/// Two dots.
-pub fn two_dots() -> Lexeme {
-    Lexeme::new(dot().literal().repeat(2))
-}
+    /// The doc comment character.
+    pub const DOC_COMMENT:Literal = "##";
+    /// The symbol for beginning an annotation.
+    pub const ANNOTATION_SYMBOL:Literal = "@";
 
-/// Three dots.
-pub fn three_dots() -> Lexeme {
-    Lexeme::new(dot().literal().repeat(3))
-}
+    /// The dot symbol
+    pub const DOT:Literal = ".";
 
-/// The comma symbol.
-pub fn comma() -> Lexeme {
-    Lexeme::new(",")
-}
+    /// Two dots.
+    pub const TWO_DOTS:Literal = "..";
 
-/// The `in` operator.
-pub fn operator_in() -> Lexeme {
-    Lexeme::new("in")
-}
+    /// Three dots.
+    pub const THREE_DOTS:Literal = "...";
 
-/// The tick allowable at the end of an identifier.
-pub fn identifier_tick() -> Lexeme {
-    Lexeme::new("'")
-}
+    /// Three dots.
+    pub const COMMA:Literal = ",";
 
-/// The quote used to delimit interpolations in format text literals.
-pub fn interpolate_quote() -> Lexeme {
-    Lexeme::new("`")
-}
+    /// The `in` operator.
+    pub const OPERATOR_IN:Literal = "in";
 
-/// The quote used to delimit format text literals.
-pub fn format_quote() -> Lexeme {
-    Lexeme::new("'")
-}
+    /// The tick allowable at the end of an identifier.
+    pub const IDENTIFIER_TICK:Literal = "'";
 
-/// The quote used to delimit format block literals.
-pub fn format_block_quote() -> Lexeme {
-    Lexeme::new(format_quote().literal().repeat(BLOCK_QUOTE_LEN))
-}
+    /// The quote used to delimit interpolations in format text literals.
+    pub const INTERPOLATE_QUOTE:Literal = "`";
 
-/// The quote used to delimit raw text literals.
-pub fn raw_quote() -> Lexeme {
-    Lexeme::new("\"")
-}
+    /// The quote used to delimit format text literals.
+    pub const FORMAT_QUOTE:Literal = "'";
 
-/// The quote used to delimit raw block literals.
-pub fn raw_block_quote() -> Lexeme {
-    Lexeme::new(raw_quote().literal().repeat(BLOCK_QUOTE_LEN))
-}
+    /// The quote used to delimit format block literals.
+    pub const FORMAT_BLOCK_QUOTE:Literal = "'''";
 
-/// The equals operator.
-pub fn equals_op() -> Lexeme {
-    Lexeme::new("=")
-}
+    /// The quote used to delimit raw text literals.
+    pub const RAW_QUOTE:Literal = "\"";
 
-/// The equality comparison operator.
-pub fn equals_comp() -> Lexeme {
-    Lexeme::new("==")
-}
+    /// The quote used to delimit raw block literals.
+    pub const RAW_BLOCK_QUOTE:Literal = "\"\"\"";
 
-/// Greater-than or equal.
-pub fn ge_operator() -> Lexeme {
-    Lexeme::new(">=")
-}
+    /// The equals operator.
+    pub const EQUALS:Literal = "=";
 
-/// Less-than or equal.
-pub fn le_operator() -> Lexeme {
-    Lexeme::new("<=")
-}
+    /// The equality comparison operator.
+    pub const EQUALS_COMP:Literal = "==";
 
-/// Inequality comparison operator.
-pub fn not_equal() -> Lexeme {
-    Lexeme::new("!=")
-}
+    /// Greater-than or equal.
+    pub const GE_OPERATOR:Literal = ">=";
 
-/// The hash eq operator.
-pub fn hash_eq() -> Lexeme {
-    Lexeme::new("#=")
-}
+    /// Less-than or equal.
+    pub const LE_OPERATOR:Literal = "<=";
 
-/// The fat arrow operator.
-pub fn fat_arrow() -> Lexeme {
-    Lexeme::new("=>")
-}
+    /// Inequality comparison operator.
+    pub const NOT_EQUAL:Literal = "!=";
 
-/// The blank identifier.
-pub fn blank_ident() -> Lexeme {
-    Lexeme::new("_")
-}
+    /// The hash eq operator.
+    pub const HASH_EQ:Literal = "#=";
 
-/// The separator for identifier segments.
-pub fn ident_segment_separator() -> Lexeme {
-    Lexeme::new("_")
-}
+    /// The wide arrow operator.
+    pub const WIDE_ARROW:Literal = "=>";
 
-/// The separator between a number literal's explicit base and the number itself.
-pub fn number_base_separator() -> Lexeme {
-    Lexeme::new("_")
-}
+    /// The blank identifier.
+    pub const BLANK_IDENT:Literal = "_";
 
-/// The separator between the integer and fractional parts of the number literal.
-pub fn decimal_separator() -> Lexeme {
-    Lexeme::new(".")
-}
+    /// The identifier segment separator.
+    pub const IDENT_SEGMENT_SEPARATOR:Literal = "_";
 
-/// The backslash character.
-pub fn slash() -> Lexeme {
-    Lexeme::new(r"\")
-}
+    /// The separator between a number literal's explicit base and the number itself.
+    pub const NUMBER_BASE_SEPARATOR:Literal = "_";
 
-/// An escaped slash character.
-pub fn escaped_slash() -> Lexeme {
-    Lexeme::new(r"\\")
-}
+    /// The separator between the integer and fractional parts of the number literal.
+    pub const DECIMAL_SEPARATOR:Literal = ".";
 
-/// The beginning of a byte escape.
-pub fn byte_escape_start() -> Lexeme {
-    Lexeme::new(r"\x")
-}
+    /// The backslash character.
+    pub const SLASH:Literal = r"\";
 
-/// The beginning of a u16 escape.
-pub fn u16_escape_start() -> Lexeme {
-    Lexeme::new(r"\u")
-}
+    /// An escaped [`SLASH`].
+    pub const ESCAPED_SLASH:Literal = r"\\";
 
-/// The beginning of a u21 escape.
-pub fn u21_escape_start() -> Lexeme {
-    Lexeme::new(r"\u{")
-}
+    /// The beginning of a byte escape.
+    pub const BYTE_ESCAPE_START:Literal = r"\x";
 
-/// The end of a u21 escape.
-pub fn u21_escape_end() -> Lexeme {
-    Lexeme::new("}")
-}
+    /// The beginning of a u16 escape.
+    pub const U16_ESCAPE_START:Literal = r"\u";
 
-/// The beginning of a u32 escape.
-pub fn u32_escape_start() -> Lexeme {
-    Lexeme::new(r"\U")
+    /// The beginning of a u21 escape.
+    pub const U21_ESCAPE_START:Literal = r"\u{";
+
+    /// The end of a u21 escape.
+    pub const U21_ESCAPE_END:Literal = "}";
+
+    /// The beginning of a u32 escape.
+    pub const U32_ESCAPE_START:Literal = r"\U";
+
+    /// The allowable group characters in Enso.
+    pub const GROUP_CHARS:Literal = "()[]{}";
+
+    /// The allowable operator characters in Enso.
+    pub const OPERATOR_CHARS:Literal = ";!$%&*+-/<>?^~|:\\";
 }
 
 
 
-// ==============
-// === Lexeme ===
-// ==============
+// =========================
+// === Utility Functions ===
+// =========================
 
-/// A lexeme for the Enso Language.
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
-#[allow(missing_docs)]
-pub struct Lexeme {
-    literal : String
+/// Get the first character of the lexeme, if it exists.
+pub fn char(literal:&'static str) -> Option<char> {
+    literal.chars().nth(0)
 }
 
-impl Lexeme {
-    /// Constructor.
-    pub fn new(literal:impl Str) -> Self {
-        let literal = literal.into();
-        Self{literal}
-    }
-
-    /// Get the size of the lexeme.
-    pub fn length(&self) -> usize {
-        self.literal.len()
-    }
-
-    /// Get a reference to the literal of the lexeme.
-    pub fn literal(&self) -> &str {
-        self.literal.as_str()
-    }
-
-    /// Get the character of the lexeme, if it is a single character.
-    pub fn char(&self) -> Option<char> {
-        if self.length() == 1 {
-            Some(self.literal.chars().nth(0).unwrap())
-        } else {
-            None
-        }
-    }
-
-    /// Obtain the character of the lexeme, assuming it exists.
-    pub fn unsafe_char(&self) -> char {
-        self.char().expect("Lexeme is a single character.")
-    }
-
-    /// Consume the lexeme as a literal pattern.
-    pub fn into_pattern(self) -> Pattern {
-        self.into()
-    }
+/// Get the first character of the lexeme, assuming that it exists.
+pub fn unsafe_char(literal:&'static str) -> char {
+    char(literal).expect("The first character of the literal exists.")
 }
 
+/// Convert the lexeme into a pattern.
+pub fn into_pattern(literal:&'static str) -> Pattern {
+    literal.into()
+}
 
-// === Trait Impls ===
-
-impl From<Lexeme> for Pattern {
-    fn from(lexeme:Lexeme) -> Self {
-        lexeme.literal.as_str().into()
-    }
+/// The proper length of the `literal`.
+pub fn len(literal:&'static str) -> usize {
+    literal.chars().count()
 }

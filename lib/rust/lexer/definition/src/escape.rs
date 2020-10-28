@@ -132,13 +132,13 @@ pub trait EscapeSequence {
     ///
     /// The suffix is the characters that need to be stripped from the end of the escape sequence to
     /// get, in conjunction with [`EscapeSequence::prefix_length()`] the escape value itself.
-    fn suffix_length() -> usize;
+    fn suffix_length() -> usize { 0 }
 
     /// Return the minimum number of digits accepted by the escape sequence type.
     fn digits_min_length() -> usize;
 
     /// Return the maximum number of digits accepted by the escape sequence type.
-    fn digits_max_length() -> usize;
+    fn digits_max_length() -> usize { Self::digits_min_length() }
 
     /// A validator for any additional properties of the escape sequence.
     ///
@@ -153,9 +153,6 @@ pub trait EscapeSequence {
 
     /// The style of escape after unsuccessful validation.
     fn style_on_failure() -> token::EscapeStyle;
-
-    /// The escape sequence has no suffix.
-    const NO_SUFFIX:usize = 0;
 }
 
 
@@ -165,13 +162,14 @@ pub trait EscapeSequence {
 // ==================
 
 /// A validator for ASCII escapes.
+///
+/// An ascii escape begins with the sequence `\x` and is followed by two hexadecimal digits (e.g.
+/// `\x0F`.
 #[derive(Clone,Copy,Default,Debug,Eq,PartialEq)]
 pub struct Byte;
 impl EscapeSequence for Byte {
-    fn prefix_length()     -> usize { lexeme::byte_escape_start().length() }
-    fn suffix_length()     -> usize { Self::NO_SUFFIX }
+    fn prefix_length()     -> usize { lexeme::len(lexeme::literal::BYTE_ESCAPE_START) }
     fn digits_min_length() -> usize { 2 }
-    fn digits_max_length() -> usize { 2 }
     fn style_on_success()  -> EscapeStyle { token::EscapeStyle::Byte }
     fn style_on_failure()  -> EscapeStyle { token::EscapeStyle::Invalid }
 }
@@ -183,13 +181,14 @@ impl EscapeSequence for Byte {
 // ===========
 
 /// A validator for U16 unicode escapes.
+///
+/// A U16 unicode escape begins with the sequence `\u` and is followed by four hexadecimal digits,
+/// e.g. `\u0F0F`.
 #[derive(Clone,Copy,Default,Debug,Eq,PartialEq)]
 pub struct U16;
 impl EscapeSequence for U16 {
-    fn prefix_length()     -> usize { lexeme::u16_escape_start().length() }
-    fn suffix_length()     -> usize { Self::NO_SUFFIX }
+    fn prefix_length()     -> usize { lexeme::len(lexeme::literal::U16_ESCAPE_START) }
     fn digits_min_length() -> usize { 4 }
-    fn digits_max_length() -> usize { 4 }
     fn style_on_success()  -> EscapeStyle { token::EscapeStyle::U16 }
     fn style_on_failure()  -> EscapeStyle { token::EscapeStyle::InvalidUnicode }
 }
@@ -201,11 +200,14 @@ impl EscapeSequence for U16 {
 // ===========
 
 /// A validator for U21 unicode escapes.
+///
+/// A U21 unicode escape begins with the sequence `\u`, followed by a sequence of 1-6 hexadecimal
+/// digits enclosed in braces (`{}`). Both `\u{F}` and `\u{AFAFAF}` are valid U21 escapes.
 #[derive(Clone,Copy,Default,Debug,Eq,PartialEq)]
 pub struct U21;
 impl EscapeSequence for U21 {
-    fn prefix_length()     -> usize { lexeme::u21_escape_start().length() }
-    fn suffix_length()     -> usize { lexeme::u21_escape_end().length() }
+    fn prefix_length()     -> usize { lexeme::len(lexeme::literal::U21_ESCAPE_START) }
+    fn suffix_length()     -> usize { lexeme::len(lexeme::literal::U21_ESCAPE_END) }
     fn digits_min_length() -> usize { 1 }
     fn digits_max_length() -> usize { 6 }
     fn style_on_success()  -> EscapeStyle { token::EscapeStyle::U21 }
@@ -219,13 +221,14 @@ impl EscapeSequence for U21 {
 // ===========
 
 /// A validator for U32 unicode escapes.
+///
+/// A U32 unicode escape begins with the sequence \U, followed by 8 hexadecimal digits. Due to the
+/// restrictions of unicode, the first two digits _must_ be zero (e.g. `\U00AFAFAF`).
 #[derive(Clone,Copy,Default,Debug,Eq,PartialEq)]
 pub struct U32;
 impl EscapeSequence for U32 {
-    fn prefix_length()         -> usize { lexeme::u32_escape_start().length() }
-    fn suffix_length()         -> usize { Self::NO_SUFFIX }
+    fn prefix_length()         -> usize { lexeme::len(lexeme::literal::U32_ESCAPE_START) }
     fn digits_min_length()     -> usize { 8 }
-    fn digits_max_length()     -> usize { 8 }
     fn validator(digits: &str) -> bool { digits.starts_with("00") }
     fn style_on_success()      -> EscapeStyle { token::EscapeStyle::U32 }
     fn style_on_failure()      -> EscapeStyle { token::EscapeStyle::InvalidUnicode }

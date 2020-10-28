@@ -321,8 +321,8 @@ impl LineEnding {
     pub fn size(self) -> usize {
         match self {
             Self::None => Self::NO_LENGTH,
-            Self::LF   => lexeme::lf().length(),
-            Self::CRLF => lexeme::cr().length() + lexeme::lf().length(),
+            Self::LF   => lexeme::len(lexeme::literal::LF),
+            Self::CRLF => lexeme::len(lexeme::literal::CRLF),
         }
     }
 }
@@ -373,13 +373,13 @@ impl TextStyle {
     /// Calculate the length of the delimiters for a particular style of text literal.
     pub fn length(self) -> usize {
         match self {
-            TextStyle::FormatLine        => lexeme::format_quote().length() * 2,
-            TextStyle::RawLine           => lexeme::raw_quote().length() * 2,
-            TextStyle::FormatInlineBlock => lexeme::format_block_quote().length(),
-            TextStyle::RawInlineBlock    => lexeme::raw_block_quote().length(),
-            TextStyle::UnclosedLine      => lexeme::format_quote().length(),
-            TextStyle::FormatBlock       => lexeme::format_block_quote().length(),
-            TextStyle::RawBlock          => lexeme::raw_block_quote().length(),
+            TextStyle::FormatLine        => lexeme::len(lexeme::literal::FORMAT_QUOTE) * 2,
+            TextStyle::RawLine           => lexeme::len(lexeme::literal::RAW_QUOTE) * 2,
+            TextStyle::FormatInlineBlock => lexeme::len(lexeme::literal::FORMAT_BLOCK_QUOTE),
+            TextStyle::RawInlineBlock    => lexeme::len(lexeme::literal::RAW_BLOCK_QUOTE),
+            TextStyle::UnclosedLine      => lexeme::len(lexeme::literal::FORMAT_QUOTE),
+            TextStyle::FormatBlock       => lexeme::len(lexeme::literal::FORMAT_BLOCK_QUOTE),
+            TextStyle::RawBlock          => lexeme::len(lexeme::literal::RAW_BLOCK_QUOTE),
         }
     }
 
@@ -444,16 +444,16 @@ impl EscapeStyle {
     /// Get the length taken up in source by the delimiters to an escape type.
     pub fn size(self) -> usize {
         match self {
-            EscapeStyle::Byte           => lexeme::byte_escape_start().length(),
-            EscapeStyle::Invalid        => Self::NO_ADDITIONAL_LENGTH,
-            EscapeStyle::InvalidUnicode => Self::NO_ADDITIONAL_LENGTH,
-            EscapeStyle::Literal        => lexeme::slash().length(),
-            EscapeStyle::U16            => lexeme::u16_escape_start().length(),
-            EscapeStyle::U32            => lexeme::u32_escape_start().length(),
-            EscapeStyle::Unfinished     => Self::NO_ADDITIONAL_LENGTH,
-            EscapeStyle::U21            =>
-                lexeme::u21_escape_start().length() + lexeme::u21_escape_end().length(),
-
+            EscapeStyle::Byte    => lexeme::len(lexeme::literal::BYTE_ESCAPE_START),
+            EscapeStyle::Literal => lexeme::len(lexeme::literal::SLASH),
+            EscapeStyle::U16     => lexeme::len(lexeme::literal::U16_ESCAPE_START),
+            EscapeStyle::U32     => lexeme::len(lexeme::literal::U32_ESCAPE_START),
+            EscapeStyle::U21     => {
+                let start_len = lexeme::len(lexeme::literal::U21_ESCAPE_START);
+                let end_len   = lexeme::len(lexeme::literal::U21_ESCAPE_END);
+                start_len + end_len
+            }
+            _ => Self::NO_ADDITIONAL_LENGTH,
         }
     }
 }
