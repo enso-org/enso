@@ -45,6 +45,10 @@ spec =
         it "should allow defining extension methods through the Decimal type" <|
             32.5.get_fun_factor.should_equal "Wow, 32.5 is such a fun number!"
     describe "Numbers" <|
+        it "should define addition" <|
+            2+3 . should_equal 5
+        it "should define multiplication" <|
+            2*3 . should_equal 6
         it "should expose comparison operators" <|
             (3 < hundred_factorial).should_be_true
             (hundred_factorial < 3).should_be_false
