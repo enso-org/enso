@@ -30,9 +30,8 @@ object JsonProtocol {
     */
   case class ResponseError(id: Option[Id], error: ErrorData) extends JsonMessage
 
-  /** The error response details.
-    */
-  case class ErrorData(code: Int, message: String)
+  /** The error response details. */
+  case class ErrorData(code: Int, message: String, data: Option[Json] = None)
 
   object Constants {
     val jsonrpc: String              = "jsonrpc"
@@ -43,6 +42,9 @@ object JsonProtocol {
     val method: String               = "method"
     val params: String               = "params"
     val error: String                = "error"
+    val code: String                 = "code"
+    val message: String              = "message"
+    val data: String                 = "data"
   }
 
   implicit val notificationEncoder: Encoder[Notification] =
@@ -75,6 +77,21 @@ object JsonProtocol {
         Constants.id    -> response.id.asJson,
         Constants.error -> response.error.asJson
       )
+
+  implicit val errorDataEncoder: Encoder[ErrorData] =
+    (errorData: ErrorData) => {
+      val base = JsonObject(
+        Constants.code    -> errorData.code.asJson,
+        Constants.message -> errorData.message.asJson
+      )
+      val result = errorData.data match {
+        case Some(additionalPayload) =>
+          base.+:(Constants.data -> additionalPayload)
+        case None =>
+          base
+      }
+      result.asJson
+    }
 
   implicit val requestEncoder: Encoder[Request] = (request: Request) =>
     Json.obj(

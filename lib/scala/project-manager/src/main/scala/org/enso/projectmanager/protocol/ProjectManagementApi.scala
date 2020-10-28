@@ -2,6 +2,8 @@ package org.enso.projectmanager.protocol
 
 import java.util.UUID
 
+import io.circe.Json
+import io.circe.syntax._
 import nl.gn0s1s.bump.SemVer
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.pkg.EnsoVersion
@@ -263,13 +265,22 @@ object ProjectManagementApi {
 
   case class BrokenComponentError(msg: String) extends Error(4021, msg)
 
-  // TODO [RW] add payload
   case class ProjectManagerUpgradeRequired(minimumRequiredVersion: SemVer)
       extends Error(
         4022,
         s"Project manager $minimumRequiredVersion is required to install the " +
         s"requested engine. Please upgrade."
+      ) {
+
+    /** Additional payload that can be used to get the version string of the
+      * minimum required project manager version.
+      */
+    override def payload: Option[Json] = Some(
+      Json.obj(
+        "minimumRequiredVersion" -> minimumRequiredVersion.toString.asJson
       )
+    )
+  }
 
   case class ComponentInstallationError(msg: String) extends Error(4023, msg)
 
