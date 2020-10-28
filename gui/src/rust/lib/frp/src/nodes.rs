@@ -303,6 +303,25 @@ impl Network {
     }
 
 
+    // === Filter ===
+
+    /// Passes exactly those incoming events that satisfy the predicate `p`.
+    pub fn filter<T,P>(&self, label:Label, src:&T, p:P) -> Stream<Output<T>>
+    where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
+        self.register(OwnedFilter::new(label,src,p))
+    }
+
+
+    // === FilterMap ===
+
+    /// Applies the function `f` to the value of all incoming events. If the resulting `Option`
+    /// caries a value then this value is passed on. Otherwise, nothing happens.
+    pub fn filter_map<T,F,Out>(&self, label:Label, src:&T, f:F) -> Stream<Out>
+    where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Option<Out> {
+        self.register(OwnedFilterMap::new(label,src,f))
+    }
+
+
     // === Map ===
 
     /// On every event from the first input stream, sample all other input streams and run the
@@ -539,6 +558,21 @@ impl DynamicNetwork {
      -> OwnedStream<(Output<T1>,Output<T2>,Output<T3>,Output<T4>)>
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
         OwnedAll4::new(label,t1,t2,t3,t4).into()
+    }
+
+
+    // === Filter ===
+    pub fn filter<T,P>(&self, label:Label, src:&T, p:P) -> Stream<Output<T>>
+    where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
+        OwnedFilter::new(label,src,p).into()
+    }
+
+
+    // === FilterMap ===
+
+    pub fn filter_map<T,F,Out>(self, label:Label, src:&T, f:F) -> OwnedStream<Out>
+    where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Option<Out> {
+        OwnedFilterMap::new(label,src,f).into()
     }
 
 
@@ -1653,11 +1687,89 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
 
 
 
+// ==============
+// === Filter ===
+// ==============
+
+pub struct FilterData  <T,P> { phantom:PhantomData<T>, predicate:P }
+pub type   OwnedFilter <T,P> = stream::Node     <FilterData<T,P>>;
+pub type   Filter      <T,P> = stream::WeakNode <FilterData<T,P>>;
+
+impl<T,P> HasOutput for FilterData<T,P>
+where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
+    type Output = Output<T>;
+}
+
+impl<T,P> OwnedFilter<T,P>
+where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
+    /// Constructor.
+    pub fn new(label:Label, src:&T, predicate:P) -> Self {
+        let definition = FilterData {phantom:PhantomData,predicate};
+        Self::construct_and_connect(label,src,definition)
+    }
+}
+
+impl<T,P> stream::EventConsumer<Output<T>> for OwnedFilter<T,P>
+where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
+    fn on_event(&self, value:&Output<T>) {
+        if (self.predicate)(value) {
+            self.emit_event(value);
+        }
+    }
+}
+
+impl<T,P> Debug for FilterData<T,P> {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"FilterData")
+    }
+}
+
+
+
+// =================
+// === FilterMap ===
+// =================
+
+pub struct FilterMapData  <T,F> { phantom:PhantomData<T>, function:F }
+pub type   OwnedFilterMap <T,F> = stream::Node     <FilterMapData<T,F>>;
+pub type   FilterMap      <T,F> = stream::WeakNode <FilterMapData<T,F>>;
+
+impl<T,F,Out> HasOutput for FilterMapData<T,F>
+where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Option<Out> {
+    type Output = Out;
+}
+
+impl<T,F,Out> OwnedFilterMap<T,F>
+where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Option<Out> {
+    /// Constructor.
+    pub fn new(label:Label, src:&T, function:F) -> Self {
+        let definition = FilterMapData {phantom:PhantomData,function};
+        Self::construct_and_connect(label,src,definition)
+    }
+}
+
+impl<T,F,Out> stream::EventConsumer<Output<T>> for OwnedFilterMap<T,F>
+where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Option<Out> {
+    fn on_event(&self, value:&Output<T>) {
+        if let Some(out) = (self.function)(value) {
+            self.emit_event(&out);
+        }
+    }
+}
+
+impl<T,F> Debug for FilterMapData<T,F> {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"FilterMapData")
+    }
+}
+
+
+
 // ===========
 // === Map ===
 // ===========
 
-pub struct MapData  <T,F> { _src:T, function:F }
+pub struct MapData  <T,F> { phantom:PhantomData<T>, function:F }
 pub type   OwnedMap <T,F> = stream::Node     <MapData<T,F>>;
 pub type   Map      <T,F> = stream::WeakNode <MapData<T,F>>;
 
@@ -1670,8 +1782,7 @@ impl<T,F,Out> OwnedMap<T,F>
 where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Out {
     /// Constructor.
     pub fn new(label:Label, src:&T, function:F) -> Self {
-        let _src       = src.clone_ref();
-        let definition = MapData {_src,function};
+        let definition = MapData {phantom:PhantomData,function};
         Self::construct_and_connect(label,src,definition)
     }
 }
