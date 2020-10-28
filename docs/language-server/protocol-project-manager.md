@@ -14,7 +14,7 @@ pertain to the project manager component. Please familiarise yourself with the
 document.
 
 For information on the design and architecture of the protocol, as well as its
-transport formats, please look [here](./protocol-architecture).
+transport formats, please look [here](./protocol-architecture.md).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -151,7 +151,8 @@ the action.
 interface ProjectOpenRequest {
   projectId: UUID;
 
-  /** Specifies how to handle missing components.
+  /**
+   * Specifies how to handle missing components.
    *
    * If not provided, defaults to `fail`.
    */
@@ -277,7 +278,8 @@ interface ProjectCreateRequest {
   /** Name of the project to create. */
   name: String;
 
-  /** Enso Engine version to use for the project.
+  /**
+   * Enso Engine version to use for the project.
    *
    * Possible values are:
    * - a semver version string identifying an Enso engine version,
@@ -287,7 +289,8 @@ interface ProjectCreateRequest {
    */
   version?: String;
 
-  /** Specifies how to handle missing components.
+  /**
+   * Specifies how to handle missing components.
    *
    * If not provided, defaults to `fail`.
    */
@@ -470,12 +473,14 @@ progress.
 
 ```typescript
 interface TaskStartNotification {
-  /** Unique identifier of the task, used to correlate progress updates and the
+  /**
+   * Unique identifier of the task, used to correlate progress updates and the
    * finished notification.
    */
   taskId: UUID;
 
-  /** Name of the operation this task is related to, for example
+  /**
+   * Name of the operation this task is related to, for example
    * `project/open`.
    */
   relatedOperation: String;
@@ -483,7 +488,8 @@ interface TaskStartNotification {
   /** Unit in which progress of this task is measured. */
   unit: "bytes" | "other";
 
-  /** Indicates total expected progress.
+  /**
+   * Indicates total expected progress.
    *
    * May be missing, as it is not always known, for example when downloading a
    * file of unknown size or waiting on a lock.
@@ -619,7 +625,8 @@ interface EngineInstallRequest {
   /** Semver string of engine version that should be installed. */
   version: String;
 
-  /** Specifies whether the engine should be installed even if it is marked as
+  /**
+   * Specifies whether the engine should be installed even if it is marked as
    * broken.
    *
    * If not provided, defaults to `false`.
@@ -697,7 +704,8 @@ interface GlobalConfigGetRequest {
 
 ```typescript
 interface GlobalConfigGetResponse {
-  /** The value set in the config.
+  /**
+   * The value set in the config.
    *
    * The field may be missing if the requested value is not set in the config.
    */
@@ -794,7 +802,7 @@ interface LoggingServiceEndpointResponse {
 
 #### Errors
 
-- [`LoggingServiceUnavailable`][#loggingserviceunavailable] to signal that the
+- [`LoggingServiceUnavailable`](#loggingserviceunavailable) to signal that the
   logging service is unavailable.
 
 ## Language Server Management
@@ -1031,5 +1039,16 @@ Signals that the logging service is not available.
 "error" : {
   "code" : 4012,
   "message" : "The logging service has failed to boot."
+}
+```
+
+### `ServiceError`
+
+Signals a generic service error.
+
+```typescript
+"error" : {
+  "code" : 1,
+  "message" : "Service error"
 }
 ```
