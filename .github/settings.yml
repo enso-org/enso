@@ -224,6 +224,7 @@ branches:
           - "Rust Test Native (ubuntu-latest)"
           - "Rust Test Native (windows-latest)"
           - "Rust Test WASM"
+          - "Verify Notice Package"
           - "license/cla"
       enforce_admins: null
       restrictions: null
@@ -250,6 +251,7 @@ branches:
           - "Rust Test Native (ubuntu-latest)"
           - "Rust Test Native (windows-latest)"
           - "Rust Test WASM"
+          - "Verify Notice Package"
           - "license/cla"
       #          - "Vulnerability Scan" # CodeQL is temporarily disabled due to incompatibility
       enforce_admins: null
