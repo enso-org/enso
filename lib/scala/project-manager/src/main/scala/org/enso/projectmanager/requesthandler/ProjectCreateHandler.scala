@@ -6,7 +6,7 @@ import akka.actor._
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion}
+import org.enso.pkg.DefaultEnsoVersion
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate

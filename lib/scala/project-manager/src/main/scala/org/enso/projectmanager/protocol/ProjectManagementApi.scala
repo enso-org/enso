@@ -6,6 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.pkg.EnsoVersion
 import org.enso.projectmanager.data.{
+  EngineVersion,
   MissingComponentAction,
   ProjectMetadata,
   Socket
@@ -108,6 +109,153 @@ object ProjectManagementApi {
 
     implicit val hasResult = new HasResult[this.type] {
       type Result = ProjectList.Result
+    }
+  }
+
+  case object TaskStarted extends Method("task/started") {
+
+    case class Params(
+      taskId: UUID,
+      relatedOperation: String,
+      unit: String,
+      total: Option[Int]
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = TaskStarted.Params
+    }
+  }
+
+  case object TaskProgressUpdate extends Method("task/progress-update") {
+
+    case class Params(
+      taskId: UUID,
+      message: Option[String],
+      done: Int
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = TaskProgressUpdate.Params
+    }
+  }
+
+  case object TaskFinished extends Method("task/progress-update") {
+
+    case class Params(
+      taskId: UUID,
+      message: Option[String],
+      success: Boolean
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = TaskFinished.Params
+    }
+  }
+
+  case object EngineListInstalled extends Method("engine/list-installed") {
+
+    case class Result(versions: Seq[EngineVersion])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = EngineListInstalled.Result
+    }
+  }
+
+  case object EngineListAvailable extends Method("engine/list-available") {
+
+    case class Result(versions: Seq[EngineVersion])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = EngineListAvailable.Result
+    }
+  }
+
+  case object EngineInstall extends Method("engine/install") {
+
+    case class Params(version: SemVer, forceInstallBroken: Option[Boolean])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = EngineInstall.Params
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object EngineUninstall extends Method("engine/install") {
+
+    case class Params(version: SemVer)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = EngineUninstall.Params
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object ConfigGet extends Method("global-config/get") {
+
+    case class Params(key: String)
+
+    case class Result(value: Option[String])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ConfigGet.Params
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = ConfigGet.Result
+    }
+  }
+
+  case object ConfigSet extends Method("global-config/set") {
+
+    case class Params(key: String, value: String)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ConfigSet.Params
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object ConfigDelete extends Method("global-config/delete") {
+
+    case class Params(key: String)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ConfigDelete.Params
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object LoggingServiceGetEndpoint
+      extends Method("logging-service/get-endpoint") {
+
+    case class Result(uri: String)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = LoggingServiceGetEndpoint.Result
     }
   }
 
