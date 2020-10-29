@@ -70,8 +70,8 @@ impl<'a> PatternDfs<'a> {
             Or(pat)     => self.push_child_to_visit(&pattern,&pat.elem,PatternMatchCrumb::Or),
             Seq(pat)    => {
                 let (left_elem,right_elem) = &pat.elem;
-                self.push_child_to_visit(&pattern,left_elem ,PatternMatchCrumb::Seq{right:false});
                 self.push_child_to_visit(&pattern,right_elem,PatternMatchCrumb::Seq{right:true});
+                self.push_child_to_visit(&pattern,left_elem ,PatternMatchCrumb::Seq{right:false});
             },
             Many(pat) => {
                 for (index,elem) in pat.elem.iter().enumerate().rev() {
