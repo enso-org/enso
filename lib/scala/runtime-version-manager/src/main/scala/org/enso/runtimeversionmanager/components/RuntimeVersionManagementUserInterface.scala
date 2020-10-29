@@ -29,7 +29,7 @@ trait RuntimeVersionManagementUserInterface {
     * Depending on the return value, the missing runtime will be installed or
     * the action will fail.
     */
-  def shouldInstallMissingRuntime(version: RuntimeVersion): Boolean
+  def shouldInstallMissingRuntime(version: GraalVMVersion): Boolean
 
   /** Called when a broken engine is about to be installed.
     *

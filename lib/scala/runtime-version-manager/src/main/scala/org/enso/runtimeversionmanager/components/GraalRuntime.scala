@@ -12,12 +12,12 @@ import scala.util.{Failure, Success, Try}
   * @param version version of the component
   * @param path path to the component
   */
-case class Runtime(version: RuntimeVersion, path: Path) {
+case class GraalRuntime(version: GraalVMVersion, path: Path) {
 
   /** @inheritdoc
     */
   override def toString: String =
-    s"GraalVM ${version.graal}-java${version.java}"
+    s"GraalVM ${version.graalVersion}-java${version.java}"
 
   /** The path to the JAVA_HOME directory associated with this runtime.
     */

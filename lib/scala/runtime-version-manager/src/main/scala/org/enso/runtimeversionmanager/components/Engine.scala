@@ -26,7 +26,7 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
   /** The runtime version that is associated with this engine and should be used
     * for running it.
     */
-  def graalRuntimeVersion: RuntimeVersion = manifest.runtimeVersion
+  def graalRuntimeVersion: GraalVMVersion = manifest.runtimeVersion
 
   /** A set of JVM options that should be added when running this engine.
     */

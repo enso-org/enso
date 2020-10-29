@@ -1,7 +1,7 @@
 package org.enso.launcher
 
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
-import org.enso.runtimeversionmanager.releases.runtime.GraalCEReleaseProvider
+import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.launcher.cli.{
   CLIRuntimeVersionManagementUserInterface,
   GlobalCLIOptions

@@ -34,11 +34,11 @@ case class Manifest(
   brokenMark: Boolean
 ) {
 
-  /** Returns a [[RuntimeVersion]] which encapsulates all version information
+  /** Returns a [[GraalVMVersion]] which encapsulates all version information
     * needed to find the runtime required for this release.
     */
-  def runtimeVersion: RuntimeVersion =
-    components.RuntimeVersion(graalVMVersion, graalJavaVersion)
+  def runtimeVersion: GraalVMVersion =
+    components.GraalVMVersion(graalVMVersion, graalJavaVersion)
 
   def isUsableWithCurrentVersion: Boolean =
     CurrentVersion.version >= minimumLauncherVersion

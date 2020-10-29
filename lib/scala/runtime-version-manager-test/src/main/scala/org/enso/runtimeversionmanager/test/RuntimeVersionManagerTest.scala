@@ -14,7 +14,7 @@ import org.enso.runtimeversionmanager.distribution.{
   TemporaryDirectoryManager
 }
 import org.enso.runtimeversionmanager.releases.engine.EngineReleaseProvider
-import org.enso.runtimeversionmanager.releases.runtime.GraalCEReleaseProvider
+import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
@@ -61,7 +61,7 @@ class RuntimeVersionManagerTest
     val temporaryDirectoryManager =
       new TemporaryDirectoryManager(distributionManager, resourceManager)
 
-    val componentsManager = new RuntimeVersionManager(
+    val runtimeVersionManager = new RuntimeVersionManager(
       userInterface,
       distributionManager,
       temporaryDirectoryManager,
@@ -70,14 +70,14 @@ class RuntimeVersionManagerTest
       runtimeProvider
     )
 
-    (distributionManager, componentsManager, env)
+    (distributionManager, runtimeVersionManager, env)
   }
 
   /** Returns just the [[RuntimeVersionManager]].
     *
     * See [[makeManagers]] for details.
     */
-  def makeComponentsManager(): RuntimeVersionManager = makeManagers()._2
+  def makeRuntimeVersionManager(): RuntimeVersionManager = makeManagers()._2
 
   /** Creates a new project using the default package manager.
     */

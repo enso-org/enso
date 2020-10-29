@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.locking
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.components.RuntimeVersion
+import org.enso.runtimeversionmanager.components.GraalVMVersion
 
 /** Represents a resource that can be locked.
   */
@@ -57,8 +57,9 @@ object Resource {
     *
     * It is acquired exclusively when the runtime is installed or uninstalled.
     */
-  case class Runtime(version: RuntimeVersion) extends Resource {
-    override def name: String = s"runtime-${version.graal}-${version.java}"
+  case class Runtime(version: GraalVMVersion) extends Resource {
+    override def name: String =
+      s"runtime-${version.graalVersion}-${version.java}"
     override def waitMessage: String =
       s"Another process is using $version, " +
       "the current process must wait until other processes complete."

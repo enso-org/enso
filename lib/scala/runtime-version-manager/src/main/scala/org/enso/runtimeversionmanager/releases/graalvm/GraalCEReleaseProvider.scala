@@ -1,10 +1,10 @@
-package org.enso.runtimeversionmanager.releases.runtime
+package org.enso.runtimeversionmanager.releases.graalvm
 
 import java.nio.file.Path
 
 import org.enso.cli.TaskProgress
 import org.enso.runtimeversionmanager.OS
-import org.enso.runtimeversionmanager.components.RuntimeVersion
+import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.releases.github.GithubReleaseProvider
 import org.enso.runtimeversionmanager.releases.{
   ReleaseProviderException,
@@ -13,15 +13,14 @@ import org.enso.runtimeversionmanager.releases.{
 
 import scala.util.{Failure, Success}
 
-/** [[RuntimeReleaseProvider]] implementation providing Graal Community Edition
-  * releases from the given [[SimpleReleaseProvider]].
+/** [[GraalVMRuntimeReleaseProvider]] implementation providing Graal Community
+  * Edition releases from the given [[SimpleReleaseProvider]].
   */
 class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
-    extends RuntimeReleaseProvider {
+    extends GraalVMRuntimeReleaseProvider {
 
-  /** @inheritdoc
-    */
-  override def packageFileName(version: RuntimeVersion): String = {
+  /** @inheritdoc */
+  override def packageFileName(version: GraalVMVersion): String = {
     val os = OS.operatingSystem match {
       case OS.Linux   => "linux"
       case OS.MacOS   => "darwin"
@@ -33,16 +32,15 @@ class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
       case OS.MacOS   => ".tar.gz"
       case OS.Windows => ".zip"
     }
-    s"graalvm-ce-java${version.java}-$os-$arch-${version.graal}$extension"
+    s"graalvm-ce-java${version.java}-$os-$arch-${version.graalVersion}$extension"
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def downloadPackage(
-    version: RuntimeVersion,
+    version: GraalVMVersion,
     destination: Path
   ): TaskProgress[Unit] = {
-    val tagName     = s"vm-${version.graal}"
+    val tagName     = s"vm-${version.graalVersion}"
     val packageName = packageFileName(version)
     val release     = releaseProvider.releaseForTag(tagName)
     release match {
@@ -63,8 +61,8 @@ class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
   }
 }
 
-/** Default [[RuntimeReleaseProvider]] that provides Graal CE releases using the
-  * GitHub Release API.
+/** Default [[GraalVMRuntimeReleaseProvider]] that provides Graal CE releases
+  * using the GitHub Release API.
   */
 object GraalCEReleaseProvider
     extends GraalCEReleaseProvider(

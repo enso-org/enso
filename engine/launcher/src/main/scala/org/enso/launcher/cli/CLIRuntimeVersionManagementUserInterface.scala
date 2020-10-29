@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.{CLIOutput, ProgressBar, TaskProgress}
 import org.enso.runtimeversionmanager.components.{
-  RuntimeVersion,
+  GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
 import org.enso.launcher.InfoLogger
@@ -61,7 +61,7 @@ class CLIRuntimeVersionManagementUserInterface(
   }
 
   /** @inheritdoc */
-  override def shouldInstallMissingRuntime(version: RuntimeVersion): Boolean = {
+  override def shouldInstallMissingRuntime(version: GraalVMVersion): Boolean = {
     logger.warn(s"Required runtime $version is missing.")
     cliOptions.autoConfirm || CLIOutput.askConfirmation(
       "Do you want to install the missing runtime?",

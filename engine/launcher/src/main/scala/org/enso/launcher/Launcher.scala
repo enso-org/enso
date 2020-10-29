@@ -116,7 +116,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   /** Prints a list of installed runtimes.
     */
   def listRuntimes(): Int = {
-    for (runtime <- componentsManager.listInstalledRuntimes()) {
+    for (runtime <- componentsManager.listInstalledGraalRuntimes()) {
       val engines = componentsManager.findEnginesUsingRuntime(runtime)
       val usedBy = {
         val plural =
@@ -133,7 +133,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def listSummary(): Int = {
     for (engine <- componentsManager.listInstalledEngines()) {
-      val runtime = componentsManager.findRuntime(engine)
+      val runtime = componentsManager.findGraalRuntime(engine)
       val runtimeName = runtime
         .map(_.toString)
         .getOrElse("no runtime found for this distribution")

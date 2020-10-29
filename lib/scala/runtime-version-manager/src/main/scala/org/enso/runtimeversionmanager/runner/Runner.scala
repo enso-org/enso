@@ -9,7 +9,7 @@ import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,
-  Runtime,
+  GraalRuntime,
   RuntimeVersionManager
 }
 import org.enso.loggingservice.LogLevel
@@ -177,9 +177,9 @@ class Runner(
     */
   private def systemJavaCommand: JavaCommand = JavaCommand("java", None)
 
-  /** The [[JavaCommand]] representing a managed [[Runtime]].
+  /** The [[JavaCommand]] representing a managed [[GraalRuntime]].
     */
-  private def javaCommandForRuntime(runtime: Runtime): JavaCommand =
+  private def javaCommandForRuntime(runtime: GraalRuntime): JavaCommand =
     JavaCommand(
       executableName = runtime.javaExecutable.toAbsolutePath.normalize.toString,
       javaHomeOverride =
@@ -203,7 +203,7 @@ class Runner(
         Await.result(loggerConnection, 3.seconds)
       } catch {
         case exception: TimeoutException =>
-          Logger[Runtime].warn(
+          Logger[GraalRuntime].warn(
             "The logger has not been set up within the 3 second time limit, " +
             "the launched component will be started but it will not be " +
             "connected to the logging service.",

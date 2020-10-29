@@ -7,8 +7,8 @@ import org.enso.cli.TaskProgress
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
+  GraalVMVersion,
   Manifest,
-  RuntimeVersion,
   RuntimeVersionManager
 }
 import org.enso.runtimeversionmanager.distribution.{
@@ -19,7 +19,7 @@ import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider
 }
-import org.enso.runtimeversionmanager.releases.runtime.GraalCEReleaseProvider
+import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
 import org.scalatest.BeforeAndAfterEach
@@ -117,7 +117,7 @@ class ConcurrencyTest
       FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))
     ) {
       override def downloadPackage(
-        version: RuntimeVersion,
+        version: GraalVMVersion,
         destination: Path
       ): TaskProgress[Unit] = {
         releaseCallback(packageFileName(version))

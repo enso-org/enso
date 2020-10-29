@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
 import org.enso.runtimeversionmanager.components.{
-  RuntimeVersion,
+  GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
 
@@ -33,7 +33,7 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
   override def shouldInstallMissingEngine(version: SemVer): Boolean = true
 
   /** @inheritdoc */
-  override def shouldInstallMissingRuntime(version: RuntimeVersion): Boolean =
+  override def shouldInstallMissingRuntime(version: GraalVMVersion): Boolean =
     true
 
   /** @inheritdoc */
