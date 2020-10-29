@@ -10,9 +10,9 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
-import org.enso.componentmanager.cli.Arguments._
-import org.enso.componentmanager.config.DefaultVersion
-import org.enso.componentmanager.runner.LanguageServerOptions
+import org.enso.runtimeversionmanager.cli.Arguments._
+import org.enso.runtimeversionmanager.config.DefaultVersion
+import org.enso.runtimeversionmanager.runner.LanguageServerOptions
 import org.enso.launcher.distribution.DefaultManagers._
 import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction

@@ -4,11 +4,11 @@ import java.nio.file.{Files, Path, StandardCopyOption}
 
 import io.circe.parser
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.{FileSystem, OS}
-import org.enso.componentmanager.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.{FileSystem, OS}
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.launcher._
-import org.enso.componentmanager.locking.{FileLockManager, LockType}
-import org.enso.componentmanager.test.WithTemporaryDirectory
+import org.enso.runtimeversionmanager.locking.{FileLockManager, LockType}
+import org.enso.runtimeversionmanager.test.WithTemporaryDirectory
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 

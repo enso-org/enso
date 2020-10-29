@@ -2,9 +2,9 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
-import org.enso.componentmanager.{FileSystem, OS}
-import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.test.WithTemporaryDirectory
+import org.enso.runtimeversionmanager.{FileSystem, OS}
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.test.WithTemporaryDirectory
 import org.enso.launcher.NativeTest
 
 class UninstallerSpec extends NativeTest with WithTemporaryDirectory {

@@ -2,8 +2,8 @@ package org.enso.launcher.project
 
 import java.nio.file.Path
 
-import org.enso.componentmanager.config.GlobalConfigurationManager
-import org.enso.componentmanager.runner.Project
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.runner.Project
 import org.enso.pkg.PackageManager
 
 import scala.util.{Failure, Try}

@@ -5,15 +5,19 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
-import org.enso.componentmanager.{CurrentVersion, FileSystem, OS}
-import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.archive.Archive
-import org.enso.componentmanager.components.UpgradeRequiredError
-import org.enso.componentmanager.distribution.DistributionManager
+import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.archive.Archive
+import org.enso.runtimeversionmanager.components.UpgradeRequiredError
+import org.enso.runtimeversionmanager.distribution.DistributionManager
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
-import org.enso.componentmanager.locking.{LockType, Resource, ResourceManager}
+import org.enso.runtimeversionmanager.locking.{
+  LockType,
+  Resource,
+  ResourceManager
+}
 import org.enso.launcher.releases.launcher.LauncherRelease
-import org.enso.componentmanager.releases.ReleaseProvider
+import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.launcher.releases.EnsoRepository
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.distribution.DefaultManagers

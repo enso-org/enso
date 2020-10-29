@@ -1,6 +1,6 @@
 package org.enso.launcher.releases.fallback.staticwebsite
 
-import org.enso.componentmanager.releases.{Asset, Release}
+import org.enso.runtimeversionmanager.releases.{Asset, Release}
 
 /** A [[Release]] provided by the [[FileStorageFallbackReleaseProvider]].
   *

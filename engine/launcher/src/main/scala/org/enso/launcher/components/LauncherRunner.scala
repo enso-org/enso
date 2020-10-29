@@ -4,10 +4,10 @@ import java.nio.file.{Files, Path}
 
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.Environment
-import org.enso.componentmanager.components.ComponentManager
-import org.enso.componentmanager.config.GlobalConfigurationManager
-import org.enso.componentmanager.runner.{
+import org.enso.runtimeversionmanager.Environment
+import org.enso.runtimeversionmanager.components.RuntimeVersionManager
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.runner.{
   LanguageServerOptions,
   RunSettings,
   Runner,
@@ -25,7 +25,7 @@ import scala.util.Try
 class LauncherRunner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,
-  componentsManager: ComponentManager,
+  componentsManager: RuntimeVersionManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]
 ) extends Runner(

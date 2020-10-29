@@ -1,9 +1,9 @@
 package org.enso.launcher
 
-import org.enso.componentmanager.components.ComponentManager
-import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
+import org.enso.runtimeversionmanager.components.RuntimeVersionManager
+import org.enso.runtimeversionmanager.releases.runtime.GraalCEReleaseProvider
 import org.enso.launcher.cli.{
-  CLIComponentManagementUserInterface,
+  CLIRuntimeVersionManagementUserInterface,
   GlobalCLIOptions
 }
 import org.enso.launcher.distribution.DefaultManagers._
@@ -13,9 +13,9 @@ object DefaultComponentManager {
   def make(
     globalCLIOptions: GlobalCLIOptions,
     alwaysInstallMissing: Boolean
-  ): ComponentManager =
-    new ComponentManager(
-      new CLIComponentManagementUserInterface(
+  ): RuntimeVersionManager =
+    new RuntimeVersionManager(
+      new CLIRuntimeVersionManagementUserInterface(
         globalCLIOptions,
         alwaysInstallMissing
       ),

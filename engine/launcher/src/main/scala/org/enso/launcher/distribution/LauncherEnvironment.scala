@@ -3,7 +3,7 @@ package org.enso.launcher.distribution
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
-import org.enso.componentmanager.Environment
+import org.enso.runtimeversionmanager.Environment
 
 /** Default [[Environment]] to use in the launcher.
   *

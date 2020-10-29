@@ -178,8 +178,8 @@ lazy val enso = (project in file("."))
     runtime,
     searcher,
     launcher,
-    `component-manager`,
-    `component-manager-test`,
+    `runtime-version-manager`,
+    `runtime-version-manager-test`,
     syntax.jvm,
     testkit
   )
@@ -1133,14 +1133,14 @@ lazy val launcher = project
     parallelExecution in Test := false
   )
   .dependsOn(cli)
-  .dependsOn(`component-manager`)
+  .dependsOn(`runtime-version-manager`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
-  .dependsOn(`component-manager-test` % Test)
+  .dependsOn(`runtime-version-manager-test` % Test)
 
-lazy val `component-manager` = project
-  .in(file("lib/scala/component-manager"))
+lazy val `runtime-version-manager` = project
+  .in(file("lib/scala/runtime-version-manager"))
   .configs(Test)
   .settings(
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
@@ -1159,8 +1159,8 @@ lazy val `component-manager` = project
   .dependsOn(cli)
   .dependsOn(`version-output`)
 
-lazy val `component-manager-test` = project
-  .in(file("lib/scala/component-manager-test"))
+lazy val `runtime-version-manager-test` = project
+  .in(file("lib/scala/runtime-version-manager-test"))
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
@@ -1170,7 +1170,7 @@ lazy val `component-manager-test` = project
     )
   )
   .settings(parallelExecution in Test := false)
-  .dependsOn(`component-manager`)
+  .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
 
 val `std-lib-root`          = file("distribution/std-lib/")

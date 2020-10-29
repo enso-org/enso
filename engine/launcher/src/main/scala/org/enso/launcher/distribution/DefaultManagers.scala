@@ -2,11 +2,11 @@ package org.enso.launcher.distribution
 
 import java.nio.file.Path
 
-import org.enso.componentmanager.distribution.{
+import org.enso.runtimeversionmanager.distribution.{
   PortableDistributionManager,
   TemporaryDirectoryManager
 }
-import org.enso.componentmanager.locking.{FileLockManager, ResourceManager}
+import org.enso.runtimeversionmanager.locking.{FileLockManager, ResourceManager}
 
 /** Gathers default managers used in the launcher. */
 object DefaultManagers {

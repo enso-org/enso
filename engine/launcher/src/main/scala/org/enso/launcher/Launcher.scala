@@ -5,12 +5,12 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.CurrentVersion
-import org.enso.componentmanager.config.{
+import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.runtimeversionmanager.config.{
   DefaultVersion,
   GlobalConfigurationManager
 }
-import org.enso.componentmanager.runner.{
+import org.enso.runtimeversionmanager.runner.{
   JVMSettings,
   LanguageServerOptions,
   WhichEngine

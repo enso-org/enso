@@ -1,6 +1,6 @@
 package org.enso.launcher.releases.fallback
 
-import org.enso.componentmanager.releases.{
+import org.enso.runtimeversionmanager.releases.{
   Asset,
   Release,
   SimpleReleaseProvider

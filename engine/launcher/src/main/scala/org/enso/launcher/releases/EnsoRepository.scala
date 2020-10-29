@@ -3,14 +3,14 @@ package org.enso.launcher.releases
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
-import org.enso.componentmanager.http.URIBuilder
-import org.enso.componentmanager.releases.engine.{
+import org.enso.runtimeversionmanager.http.URIBuilder
+import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider
 }
-import org.enso.componentmanager.releases.github.GithubReleaseProvider
-import org.enso.componentmanager.releases.testing.FakeReleaseProvider
-import org.enso.componentmanager.releases.{
+import org.enso.runtimeversionmanager.releases.github.GithubReleaseProvider
+import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
+import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }

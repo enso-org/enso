@@ -2,7 +2,7 @@ package org.enso.launcher.releases.fallback
 
 import java.nio.file.Path
 
-import org.enso.componentmanager.FileSystem
+import org.enso.runtimeversionmanager.FileSystem
 import org.enso.launcher.TestHelpers
 import org.enso.launcher.releases.fallback.staticwebsite.FileStorageFallbackReleaseProvider
 import org.scalatest.matchers.should.Matchers

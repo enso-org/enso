@@ -5,10 +5,10 @@ import java.util.UUID
 
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.config.GlobalConfigurationManager
-import org.enso.componentmanager.runner._
-import org.enso.componentmanager.test.ComponentManagerTest
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.runner._
+import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 
@@ -17,7 +17,7 @@ import scala.concurrent.Future
 /** We test integration of both the underlying [[Runner]] and the
   * [[LauncherRunner]] in a single suite.
   */
-class LauncherRunnerSpec extends ComponentManagerTest {
+class LauncherRunnerSpec extends RuntimeVersionManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
 
   private val fakeUri = Uri("ws://test:1234/")
