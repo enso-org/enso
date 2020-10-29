@@ -6,7 +6,6 @@ import org.enso.componentmanager.distribution.DistributionManager
 import org.enso.componentmanager.test.{
   DropLogs,
   FakeEnvironment,
-  TestLocalResourceManager,
   WithTemporaryDirectory
 }
 import org.scalatest.OptionValues
@@ -21,9 +20,8 @@ class GlobalConfigurationManagerSpec
     with OptionValues
     with DropLogs {
   def makeConfigManager(): GlobalConfigurationManager = {
-    val env = fakeInstalledEnvironment()
-    val distributionManager =
-      new DistributionManager(env, TestLocalResourceManager.create())
+    val env                 = fakeInstalledEnvironment()
+    val distributionManager = new DistributionManager(env)
     new GlobalConfigurationManager(null, distributionManager) {
       override def defaultVersion: SemVer = SemVer(0, 0, 0)
     }
