@@ -66,31 +66,33 @@ impl Token {
     /// Construct a token representing a blank identifier.
     pub fn blank(offset:usize) -> Token {
         let shape  = Shape::Blank;
-        let length = 1;
+        let length = lexeme::len(lexeme::literal::BLANK_IDENT);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing an operator.
     pub fn operator(name:impl Str, offset:usize) -> Token {
-        let str    = name.into();
-        let length = str.chars().count();
-        let shape  = Shape::Operator(str);
+        let name   = name.into();
+        let length = name.chars().count();
+        let shape  = Shape::Operator(name);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing a modifier operator.
     pub fn modifier(name:impl Str, offset:usize) -> Token {
-        let str    = name.into();
-        let length = str.chars().count() + 1;
-        let shape  = Shape::Modifier(str);
+        let name         = name.into();
+        let modifier_len = lexeme::len(lexeme::literal::EQUALS);
+        let length       = name.chars().count() + modifier_len;
+        let shape        = Shape::Modifier(name);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing
     pub fn annotation(name_str:impl Str, offset:usize) -> Token {
-        let name   = name_str.into();
-        let length = name.chars().count() + 1;
-        let shape  = Shape::Annotation(name);
+        let name           = name_str.into();
+        let annotation_len = lexeme::len(lexeme::literal::ANNOTATION_SYMBOL);
+        let length         = name.chars().count() + annotation_len;
+        let shape          = Shape::Annotation(name);
         Token{shape,length,offset}
     }
 
@@ -101,7 +103,8 @@ impl Token {
         let length = if base.is_empty() {
             number.chars().count()
         } else {
-            base.chars().count() + 1 + number.chars().count()
+            let base_sep_len = lexeme::len(lexeme::literal::NUMBER_BASE_SEPARATOR);
+            base.chars().count() + base_sep_len + number.chars().count()
         };
         let shape = Shape::Number{base,number};
         Token{shape,length,offset}
@@ -109,9 +112,10 @@ impl Token {
 
     /// Construct a token representing a dangling number base.
     pub fn dangling_base(base:impl Str, offset:usize) -> Token {
-        let base_str = base.into();
-        let length   = base_str.chars().count() + 1;
-        let shape    = Shape::DanglingBase(base_str);
+        let base_str     = base.into();
+        let base_sep_len = lexeme::len(lexeme::literal::NUMBER_BASE_SEPARATOR);
+        let length       = base_str.chars().count() + base_sep_len;
+        let shape        = Shape::DanglingBase(base_str);
         Token{shape,length,offset}
     }
 
@@ -246,25 +250,26 @@ impl Token {
 
     /// Construct a token representing an invalid suffix.
     pub fn invalid_suffix(text:impl Str, offset:usize) -> Token {
-        let str    = text.into();
-        let length = str.chars().count();
-        let shape  = Shape::InvalidSuffix(str);
+        let text   = text.into();
+        let length = text.chars().count();
+        let shape  = Shape::InvalidSuffix(text);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing an unrecognised lexeme.
     pub fn unrecognized(text:impl Str, offset:usize) -> Token {
-        let str    = text.into();
-        let length = str.chars().count();
-        let shape  = Shape::Unrecognized(str);
+        let text   = text.into();
+        let length = text.chars().count();
+        let shape  = Shape::Unrecognized(text);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing a disable comment.
     pub fn disable_comment(text:impl Str, offset:usize) -> Token {
-        let text   = text.into();
-        let length = text.chars().count() + 1;
-        let shape  = Shape::DisableComment(text);
+        let text        = text.into();
+        let comment_len = lexeme::len(lexeme::literal::COMMENT);
+        let length      = text.chars().count() + comment_len;
+        let shape       = Shape::DisableComment(text);
         Token{shape,length,offset}
     }
 
@@ -491,7 +496,12 @@ pub enum Shape {
     // === Literals ===
 
     /// A literal number.
-    Number {base:String, number:String},
+    Number {
+        /// The (optional) base for the number to be interpreted in.
+        base:String,
+        /// The number itself, possibly with a decimal point.
+        number:String
+    },
     /// A dangling base from a number literal.
     DanglingBase(String),
     /// A text line literal.
@@ -631,7 +641,9 @@ impl Shape {
 
     /// Construct a number literal.
     pub fn number(base:impl Into<String>, num:impl Into<String>) -> Shape {
-        Shape::Number{base:base.into(),number:num.into()}
+        let base   = base.into();
+        let number = num.into();
+        Shape::Number{base,number}
     }
 
     /// Construct a dangling base literal.

@@ -12,8 +12,6 @@
 
 pub mod generated;
 
-use lexer_definition::rules;
-
 /// Support libraries for the lexer definition.
 ///
 /// This is an intentional re-export in this crate's namespace.

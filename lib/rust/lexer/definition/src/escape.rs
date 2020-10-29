@@ -83,12 +83,13 @@ fn is_hex_digit(c:char) -> bool {
 /// A trait representing various kinds of escape sequence.
 ///
 /// An escape sequence built using this trait will have its digits calculated by stripping the
-/// [`prefix_length`] and [`suffix_length`] from the input string, and then validated using
-/// [`digits_min_length`], [`digits_max_length`], and [`validator`]. All digits must be valid
-/// hexadecimal digits as defined by [`is_hex_digit`] above.
+/// [`Self::prefix_length()`] and [`Self::suffix_length()`] from the input string, and then
+/// validated using [`Self::digits_min_length()`], [`Self::digits_max_length()`], and
+/// [`Self::validator()`]. All digits must be valid hexadecimal digits as defined by
+/// [`is_hex_digit`] above.
 ///
-/// In addition, the implementation must define [`style_on_success`] and [`style_on_failure`] to
-/// determine the type of escape output on success and failure.
+/// In addition, the implementation must define [`Self::style_on_success()`] and
+/// [`Self::style_on_failure()`] to determine the type of escape output on success and failure.
 pub trait EscapeSequence {
     /// Create a token of the relevant escape sequence type.
     ///
@@ -132,18 +133,22 @@ pub trait EscapeSequence {
     ///
     /// The suffix is the characters that need to be stripped from the end of the escape sequence to
     /// get, in conjunction with [`EscapeSequence::prefix_length()`] the escape value itself.
+    ///
+    /// This defaults to `0`.
     fn suffix_length() -> usize { 0 }
 
     /// Return the minimum number of digits accepted by the escape sequence type.
     fn digits_min_length() -> usize;
 
     /// Return the maximum number of digits accepted by the escape sequence type.
+    ///
+    /// This defaults to `digits_min_length()`.
     fn digits_max_length() -> usize { Self::digits_min_length() }
 
     /// A validator for any additional properties of the escape sequence.
     ///
     /// It will be passed the _digits_ of the escape sequence, as defined by
-    /// [`EscapeSequence::get_digits`], and has a default implementation that always succeeds.
+    /// [`EscapeSequence::get_digits()`], and has a default implementation that always succeeds.
     /// Please implement this validator yourself if you would like to assert _additional_ properties
     /// on your escape sequence.
     fn validator(_digits:&str) -> bool { true }

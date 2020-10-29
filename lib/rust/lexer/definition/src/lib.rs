@@ -25,6 +25,7 @@ pub mod library {
     pub use crate::escape;
     pub use crate::lexeme;
     pub use crate::token;
+    pub use crate::rules;
 }
 
 /// A collection of functionality for working with the lexer definition.

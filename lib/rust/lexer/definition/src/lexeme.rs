@@ -13,7 +13,7 @@ use enso_flexer::automata::pattern::Pattern;
 /// Basic lexemes as patterns.
 ///
 /// These must _only_ be used as part of the lexer definition, not used at runtime as they are not
-/// performant.
+/// performant at all.
 pub mod definition_pattern {
     use super::*;
 
@@ -64,11 +64,7 @@ pub mod definition_pattern {
 
     /// The characters that break tokens in Enso.
     pub fn whitespace_break_chars() -> String {
-        [
-            literal::TAB,
-            literal::LF,
-            literal::CR
-        ].concat().to_string()
+        [literal::TAB,literal::LF,literal::CR].concat()
     }
 
     /// The characters that break token lexing in Enso.
@@ -83,7 +79,7 @@ pub mod definition_pattern {
             literal::OPERATOR_CHARS,
             literal::GROUP_CHARS,
             &whitespace_break_chars()
-        ].concat().to_string()
+        ].concat()
     }
 
     /// Adds the basic characters not allowed in a raw segment in a format text literal.
@@ -141,8 +137,8 @@ pub mod definition_pattern {
             literal::LF,
             literal::CR,
             "{}"
-        ].concat().to_string();
-        Pattern::none_of(&chars)
+        ].concat();
+        Pattern::none_of(chars)
     }
 }
 
@@ -180,6 +176,7 @@ pub mod literal {
 
     /// The doc comment character.
     pub const DOC_COMMENT:Literal = "##";
+
     /// The symbol for beginning an annotation.
     pub const ANNOTATION_SYMBOL:Literal = "@";
 
