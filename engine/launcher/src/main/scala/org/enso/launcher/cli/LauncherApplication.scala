@@ -10,11 +10,10 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
-import org.enso.componentmanager.DistributionManager
 import org.enso.componentmanager.cli.Arguments._
 import org.enso.componentmanager.config.DefaultVersion
-import org.enso.componentmanager.locking.DefaultResourceManager
 import org.enso.componentmanager.runner.LanguageServerOptions
+import org.enso.launcher.distribution.DefaultManagers._
 import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.upgrade.LauncherUpgrader
@@ -319,7 +318,7 @@ object LauncherApplication {
     ) {
       val version = Opts.optionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
-        DistributionManager.tryCleaningTemporaryDirectory()
+        temporaryDirectoryManager.tryCleaningTemporaryDirectory()
         version match {
           case Some(value) =>
             Launcher(config).installEngine(value)
@@ -400,7 +399,7 @@ object LauncherApplication {
       "unexpected files."
     ) {
       Opts.pure(()) map { (_: Unit) => (config: Config) =>
-        DistributionManager.tryCleaningTemporaryDirectory()
+        temporaryDirectoryManager.tryCleaningTemporaryDirectory()
         Launcher(config).uninstallDistribution()
       }
     }

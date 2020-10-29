@@ -9,8 +9,12 @@ import org.enso.componentmanager.components.{
 }
 import org.enso.componentmanager.releases.engine.EngineReleaseProvider
 import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
-import org.enso.componentmanager.releases.testing.FakeReleaseProvider
 import org.enso.componentmanager._
+import org.enso.componentmanager.distribution.{
+  DistributionManager,
+  TemporaryDirectoryManager
+}
+import org.enso.componentmanager.releases.testing.FakeReleaseProvider
 import org.enso.componentmanager.test.{DropLogs, WithTemporaryDirectory}
 import org.enso.componentmanager.test.{
   FakeEnvironment,
@@ -54,9 +58,8 @@ class ComponentManagerTest
     userInterface: ComponentManagementUserInterface =
       TestComponentManagementUserInterface.default
   ): (DistributionManager, ComponentManager, Environment) = {
-    val env = fakeInstalledEnvironment(environmentOverrides)
-    val distributionManager =
-      new DistributionManager(env, TestLocalResourceManager.create())
+    val env                 = fakeInstalledEnvironment(environmentOverrides)
+    val distributionManager = new DistributionManager(env)
     val fakeReleasesRoot =
       Path.of(
         getClass
@@ -72,10 +75,16 @@ class ComponentManagerTest
     val runtimeProvider = new GraalCEReleaseProvider(
       FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))
     )
+
+    val resourceManager = TestLocalResourceManager.create()
+    val temporaryDirectoryManager =
+      new TemporaryDirectoryManager(distributionManager, resourceManager)
+
     val componentsManager = new ComponentManager(
       userInterface,
       distributionManager,
-      TestLocalResourceManager.create(),
+      temporaryDirectoryManager,
+      resourceManager,
       engineProvider,
       runtimeProvider
     )

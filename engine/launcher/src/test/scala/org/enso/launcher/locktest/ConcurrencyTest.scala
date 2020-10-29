@@ -18,6 +18,10 @@ import org.enso.componentmanager.releases.engine.{
 import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
 import org.enso.componentmanager.releases.testing.FakeReleaseProvider
 import org.enso.componentmanager._
+import org.enso.componentmanager.distribution.{
+  DistributionManager,
+  TemporaryDirectoryManager
+}
 import org.enso.componentmanager.test.{
   DropLogs,
   FakeEnvironment,
@@ -88,7 +92,7 @@ class ConcurrencyTest
   def makeManagers(
     releaseCallback: String => Unit,
     lockWaitsCallback: String => Unit
-  ): (DistributionManager, ComponentManager) = {
+  ): (DistributionManager, ComponentManager, TemporaryDirectoryManager) = {
     val env = fakeInstalledEnvironment()
     val resourceManager = new ResourceManager(lockManager) {
       override def withResource[R](
@@ -106,7 +110,7 @@ class ConcurrencyTest
       }
     }
 
-    val distributionManager = new DistributionManager(env, resourceManager)
+    val distributionManager = new DistributionManager(env)
     val fakeReleasesRoot =
       Path.of(
         getClass
@@ -134,15 +138,18 @@ class ConcurrencyTest
       }
     }
 
+    val temporaryDirectoryManager =
+      new TemporaryDirectoryManager(distributionManager, resourceManager)
     val componentsManager = new ComponentManager(
       TestComponentManagementUserInterface.default,
       distributionManager,
+      temporaryDirectoryManager,
       resourceManager,
       engineProvider,
       runtimeProvider
     )
 
-    (distributionManager, componentsManager)
+    (distributionManager, componentsManager, temporaryDirectoryManager)
   }
 
   /** Helper function, acts as [[makeManagers]] but returns only the
@@ -185,7 +192,7 @@ class ConcurrencyTest
       FileSystem.writeTextFile(garbage, "Garbage")
 
       sync.startThread("t1") {
-        val (distributionManager, componentsManager) = makeManagers(
+        val (_, componentsManager, temporaryDirectoryManager) = makeManagers(
           releaseCallback = { asset =>
             if (asset.startsWith("graalvm-")) {
               sync.signal("t1-downloads-runtime")
@@ -198,14 +205,14 @@ class ConcurrencyTest
             )
         )
 
-        distributionManager.tryCleaningTemporaryDirectory()
+        temporaryDirectoryManager.tryCleaningTemporaryDirectory()
         componentsManager.findOrInstallEngine(engine1)
       }
 
       sync.waitFor("t1-downloads-runtime")
 
       sync.startThread("t2") {
-        val (distributionManager, componentsManager) = makeManagers(
+        val (_, componentsManager, temporaryDirectoryManager) = makeManagers(
           releaseCallback = { asset =>
             if (asset.startsWith("graalvm-")) {
               throw new IllegalStateException(
@@ -222,7 +229,7 @@ class ConcurrencyTest
           }
         )
 
-        distributionManager.tryCleaningTemporaryDirectory()
+        temporaryDirectoryManager.tryCleaningTemporaryDirectory()
         componentsManager.findOrInstallEngine(engine2)
       }
 

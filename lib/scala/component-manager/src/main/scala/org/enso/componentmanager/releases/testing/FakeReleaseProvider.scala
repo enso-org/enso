@@ -3,14 +3,14 @@ package org.enso.componentmanager.releases.testing
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import org.enso.cli.{ProgressListener, TaskProgress}
-import org.enso.componentmanager.locking.{DefaultFileLockManager, LockType}
-import org.enso.componentmanager.{FileSystem, OS}
+import org.enso.componentmanager.locking.{FileLockManager, LockType}
 import org.enso.componentmanager.releases.{
   Asset,
   Release,
   ReleaseProviderException,
   SimpleReleaseProvider
 }
+import org.enso.componentmanager.{FileSystem, OS}
 
 import scala.io.Source
 import scala.sys.process._
@@ -22,16 +22,19 @@ import scala.util.{Success, Try, Using}
   *                     release
   * @param copyIntoArchiveRoot list of filenames that will be copied to the root
   *                            of each created archive
+  * @param lockManagerForAssets if the test wants to wait on locks for assets,
+  *                             it should provide a lock manager to handle that
   */
 case class FakeReleaseProvider(
   releasesRoot: Path,
-  copyIntoArchiveRoot: Seq[String] = Seq.empty,
-  shouldWaitForAssets: Boolean     = false
+  copyIntoArchiveRoot: Seq[String]              = Seq.empty,
+  lockManagerForAssets: Option[FileLockManager] = None
 ) extends SimpleReleaseProvider {
+
   private val releases =
     FileSystem
       .listDirectory(releasesRoot)
-      .map(FakeRelease(_, copyIntoArchiveRoot, shouldWaitForAssets))
+      .map(FakeRelease(_, copyIntoArchiveRoot, lockManagerForAssets))
 
   /** @inheritdoc
     */
@@ -50,12 +53,11 @@ case class FakeReleaseProvider(
   *
   * @param path path to the release root, each file or directory inside of it
   *             represents a [[FakeAsset]]
-  * @param copyIntoArchiveRoot list of
   */
 case class FakeRelease(
   path: Path,
-  copyIntoArchiveRoot: Seq[String] = Seq.empty,
-  shouldWaitForAssets: Boolean
+  copyIntoArchiveRoot: Seq[String]              = Seq.empty,
+  lockManagerForAssets: Option[FileLockManager] = None
 ) extends Release {
 
   /** @inheritdoc
@@ -68,7 +70,7 @@ case class FakeRelease(
     val pathsToCopy = copyIntoArchiveRoot.map(path.resolve)
     FileSystem
       .listDirectory(path)
-      .map(FakeAsset(_, pathsToCopy, shouldWaitForAssets))
+      .map(FakeAsset(_, pathsToCopy, lockManagerForAssets))
   }
 }
 
@@ -85,8 +87,8 @@ case class FakeRelease(
   */
 case class FakeAsset(
   source: Path,
-  copyIntoArchiveRoot: Seq[Path] = Seq.empty,
-  shouldWaitForAssets: Boolean
+  pathsToCopy: Seq[Path],
+  lockManagerForAssets: Option[FileLockManager] = None
 ) extends Asset {
 
   /** @inheritdoc
@@ -107,27 +109,29 @@ case class FakeAsset(
     }
   }
 
-  /** If [[shouldWaitForAssets]] is set, acquires a shared lock on the asset.
+  /** If [[lockManagerForAssets]] is set, acquires a shared lock on the asset.
     *
     * The test runner may grab an exclusive lock on an asset as a way to
     * synchronize actions (this download will wait until such exclusive lock is
     * released).
     */
   private def maybeWaitForAsset(): Unit =
-    if (shouldWaitForAssets) {
+    lockManagerForAssets.foreach { lockManager =>
       val name     = "testasset-" + fileName
       val lockType = LockType.Shared
-      val lock =
-        DefaultFileLockManager.tryAcquireLock(name, lockType) match {
-          case Some(immediateLock) =>
-            System.err.println(
-              "[TEST] Error: Lock was unexpectedly acquired immediately."
-            )
-            immediateLock
-          case None =>
-            System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
-            DefaultFileLockManager.acquireLock(name, lockType)
-        }
+      val lock = lockManager.tryAcquireLock(
+        name,
+        lockType
+      ) match {
+        case Some(immediateLock) =>
+          System.err.println(
+            "[TEST] Error: Lock was unexpectedly acquired immediately."
+          )
+          immediateLock
+        case None =>
+          System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")
+          lockManager.acquireLock(name, lockType)
+      }
       lock.release()
     }
 
@@ -150,7 +154,7 @@ case class FakeAsset(
       roots.headOption.getOrElse(source)
     }
 
-    for (sourceToCopy <- copyIntoArchiveRoot) {
+    for (sourceToCopy <- pathsToCopy) {
       Files.copy(
         sourceToCopy,
         innerRoot.resolve(sourceToCopy.getFileName),

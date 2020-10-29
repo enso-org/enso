@@ -10,7 +10,11 @@ import org.enso.componentmanager.locking.{LockType, Resource, ResourceManager}
 import org.enso.componentmanager.releases.ReleaseProvider
 import org.enso.componentmanager.releases.engine.EngineRelease
 import org.enso.componentmanager.releases.runtime.RuntimeReleaseProvider
-import org.enso.componentmanager.{DistributionManager, FileSystem}
+import org.enso.componentmanager.FileSystem
+import org.enso.componentmanager.distribution.{
+  DistributionManager,
+  TemporaryDirectoryManager
+}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -31,6 +35,7 @@ import scala.util.{Failure, Success, Try, Using}
 class ComponentManager(
   userInterface: ComponentManagementUserInterface,
   distributionManager: DistributionManager,
+  temporaryDirectoryManager: TemporaryDirectoryManager,
   resourceManager: ResourceManager,
   engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: RuntimeReleaseProvider
@@ -353,14 +358,15 @@ class ComponentManager(
       val extractionTask = Archive
         .extractArchive(
           enginePackage,
-          distributionManager.paths.temporaryDirectory,
+          temporaryDirectoryManager.accessTemporaryDirectory(),
           Some(engineDirectoryName)
         )
       userInterface.trackProgress(extractionTask)
       extractionTask.force()
 
       val engineTemporaryPath =
-        distributionManager.paths.temporaryDirectory / engineDirectoryName
+        temporaryDirectoryManager
+          .accessTemporaryDirectory() / engineDirectoryName
       def undoTemporaryEngine(): Unit = {
         if (Files.exists(engineTemporaryPath)) {
           FileSystem.removeDirectory(engineTemporaryPath)
@@ -595,14 +601,15 @@ class ComponentManager(
       userInterface.logInfo(s"Extracting the runtime.")
       val extractionTask = Archive.extractArchive(
         runtimePackage,
-        distributionManager.paths.temporaryDirectory,
+        temporaryDirectoryManager.accessTemporaryDirectory(),
         Some(runtimeDirectoryName)
       )
       userInterface.trackProgress(extractionTask)
       extractionTask.force()
 
       val runtimeTemporaryPath =
-        distributionManager.paths.temporaryDirectory / runtimeDirectoryName
+        temporaryDirectoryManager
+          .accessTemporaryDirectory() / runtimeDirectoryName
 
       def undoTemporaryRuntime(): Unit = {
         if (Files.exists(runtimeTemporaryPath)) {
@@ -681,7 +688,7 @@ class ComponentManager(
     */
   private def safelyRemoveComponent(path: Path): Unit = {
     val temporaryPath =
-      distributionManager.paths.temporaryDirectory / path.getFileName
+      temporaryDirectoryManager.accessTemporaryDirectory() / path.getFileName
     FileSystem.atomicMove(path, temporaryPath)
     FileSystem.removeDirectory(temporaryPath)
   }

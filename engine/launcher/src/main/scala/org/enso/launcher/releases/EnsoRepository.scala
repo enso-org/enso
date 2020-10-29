@@ -14,6 +14,7 @@ import org.enso.componentmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
+import org.enso.launcher.distribution.DefaultManagers
 import org.enso.launcher.releases.fallback.SimpleReleaseProviderWithFallback
 import org.enso.launcher.releases.fallback.staticwebsite.StaticWebsiteFallbackReleaseProvider
 import org.enso.launcher.releases.launcher.{
@@ -102,6 +103,8 @@ object EnsoRepository {
   ): SimpleReleaseProvider =
     FakeReleaseProvider(
       fakeRepositoryRoot,
-      shouldWaitForAssets = shouldWaitForAssets
+      lockManagerForAssets =
+        if (shouldWaitForAssets) Some(DefaultManagers.DefaultFileLockManager)
+        else None
     )
 }

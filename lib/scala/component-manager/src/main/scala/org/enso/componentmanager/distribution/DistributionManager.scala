@@ -1,13 +1,10 @@
-package org.enso.componentmanager
+package org.enso.componentmanager.distribution
 
 import java.nio.file.{Files, Path}
 
 import com.typesafe.scalalogging.Logger
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.locking.{
-  DefaultResourceManager,
-  ResourceManager
-}
+import org.enso.componentmanager.{Environment, FileSystem, OS}
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -24,16 +21,9 @@ import scala.util.control.NonFatal
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components
   * @param logs a directory for storing logs
-  * @param tmp a directory for storing temporary files that is located on the
-  *            same filesystem as `runtimes` and `engines`, used during
-  *            installation to decrease the possibility of getting a broken
-  *            installation if the installation process has been abruptly
-  *            terminated. The directory is created on demand (when its path is
-  *            requested for the first time) and is removed if the application
-  *            exits normally (as long as it is empty, but normal termination of
-  *            the installation process should ensure that).
-  * @param resourceManager reference to the resource manager used for
-  *                        synchronizing access to the temporary files
+  * @param unsafeTemporaryDirectory path to the temporary directory, should not
+  *                                 be used directly, see
+  *                                 [[TemporaryDirectoryManager]]
   */
 case class DistributionPaths(
   dataRoot: Path,
@@ -42,8 +32,7 @@ case class DistributionPaths(
   config: Path,
   locks: Path,
   logs: Path,
-  tmp: Path,
-  resourceManager: ResourceManager
+  unsafeTemporaryDirectory: Path
 ) {
 
   /** @inheritdoc
@@ -55,22 +44,14 @@ case class DistributionPaths(
        |  engines  = $engines,
        |  config   = $config,
        |  locks    = $locks,
-       |  tmp      = $tmp
+       |  tmp      = $unsafeTemporaryDirectory
        |)""".stripMargin
-
-  lazy val temporaryDirectory: Path = {
-    resourceManager.startUsingTemporaryDirectory()
-    tmp
-  }
 }
 
 /** A helper class that detects if a portable or installed distribution is run
   * and encapsulates management of paths to components of the distribution.
   */
-class DistributionManager(
-  val env: Environment,
-  resourceManager: ResourceManager
-) {
+class DistributionManager(val env: Environment) {
   private val logger = Logger[DistributionManager]
 
   /** Specifies whether the launcher has been run as a portable distribution or
@@ -133,54 +114,28 @@ class DistributionManager(
     if (isRunningPortable) {
       val root = env.getPathToRunningExecutable.getParent.getParent
       DistributionPaths(
-        dataRoot = root,
-        runtimes = root / RUNTIMES_DIRECTORY,
-        engines  = root / ENGINES_DIRECTORY,
-        config   = root / CONFIG_DIRECTORY,
-        locks    = root / LOCK_DIRECTORY,
-        logs     = root / LOG_DIRECTORY,
-        tmp      = root / TMP_DIRECTORY,
-        resourceManager
+        dataRoot                 = root,
+        runtimes                 = root / RUNTIMES_DIRECTORY,
+        engines                  = root / ENGINES_DIRECTORY,
+        config                   = root / CONFIG_DIRECTORY,
+        locks                    = root / LOCK_DIRECTORY,
+        logs                     = root / LOG_DIRECTORY,
+        unsafeTemporaryDirectory = root / TMP_DIRECTORY
       )
     } else {
       val dataRoot   = LocallyInstalledDirectories.dataDirectory
       val configRoot = LocallyInstalledDirectories.configDirectory
       val runRoot    = LocallyInstalledDirectories.runtimeDirectory
       DistributionPaths(
-        dataRoot = dataRoot,
-        runtimes = dataRoot / RUNTIMES_DIRECTORY,
-        engines  = dataRoot / ENGINES_DIRECTORY,
-        config   = configRoot,
-        locks    = runRoot / LOCK_DIRECTORY,
-        logs     = LocallyInstalledDirectories.logDirectory,
-        tmp      = dataRoot / TMP_DIRECTORY,
-        resourceManager
+        dataRoot                 = dataRoot,
+        runtimes                 = dataRoot / RUNTIMES_DIRECTORY,
+        engines                  = dataRoot / ENGINES_DIRECTORY,
+        config                   = configRoot,
+        locks                    = runRoot / LOCK_DIRECTORY,
+        logs                     = LocallyInstalledDirectories.logDirectory,
+        unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY
       )
     }
-
-  /** Tries to clean the temporary files directory.
-    *
-    * It should be run at startup whenever the program wants to run clean-up.
-    * Currently it is run when installation-related operations are taking place.
-    * It may not proceed if another process is using it. It has to be run before
-    * the first access to the temporaryDirectory, as after that the directory is
-    * marked as in-use and will not be cleaned.
-    */
-  def tryCleaningTemporaryDirectory(): Unit = {
-    val tmp = paths.tmp
-    if (Files.exists(tmp)) {
-      resourceManager.tryWithExclusiveTemporaryDirectory {
-        if (!FileSystem.isDirectoryEmpty(tmp)) {
-          logger.info(
-            "Cleaning up temporary files from a previous installation."
-          )
-        }
-        FileSystem.removeDirectory(tmp)
-        Files.createDirectories(tmp)
-        FileSystem.removeEmptyDirectoryOnExit(tmp)
-      }
-    }
-  }
 
   /** Removes unused lockfiles.
     */
@@ -358,8 +313,3 @@ class DistributionManager(
       safeDataDirectory.exists(Files.isDirectory(_))
   }
 }
-
-/** A default DistributionManager using the default environment.
-  */
-object DistributionManager
-    extends DistributionManager(Environment, DefaultResourceManager)

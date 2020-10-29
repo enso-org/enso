@@ -1,7 +1,6 @@
 package org.enso.componentmanager.components
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.CurrentVersion
 
 /** A base class for exceptions caused by [[ComponentManager]] logic.
   */
@@ -54,15 +53,6 @@ case class ComponentMissingError(message: String, cause: Throwable = null)
 case class UpgradeRequiredError(
   expectedLauncherVersion: SemVer
 ) extends ComponentsException(
-      s"Minimum launcher version required to use this engine is " +
-      s"$expectedLauncherVersion"
-    ) {
-
-  /** @inheritdoc
-    */
-  override def toString: String =
-    s"This launcher version is ${CurrentVersion.version}, but " +
-    s"$expectedLauncherVersion is required to run this engine. If you want " +
-    s"to use it, upgrade the launcher with `enso upgrade`."
-
-}
+      s"Minimum version required to use this engine is " +
+      s"$expectedLauncherVersion."
+    )

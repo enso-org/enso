@@ -7,9 +7,10 @@ import cats.implicits._
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._
-import org.enso.componentmanager.{CurrentVersion, Environment, FileSystem, OS}
+import org.enso.componentmanager.{CurrentVersion, FileSystem, OS}
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.componentmanager.cli.Arguments._
+import org.enso.launcher.distribution.LauncherEnvironment
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.releases.EnsoRepository
 
@@ -209,7 +210,7 @@ object InternalOpts {
           }
 
           emulateLocation.foreach { location =>
-            Environment.internalOverrideExecutableLocation(location)
+            LauncherEnvironment.internalOverrideExecutableLocation(location)
           }
 
           if (waitForAssets) {

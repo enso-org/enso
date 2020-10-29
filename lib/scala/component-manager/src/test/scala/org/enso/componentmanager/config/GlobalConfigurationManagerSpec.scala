@@ -2,7 +2,7 @@ package org.enso.componentmanager.config
 
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.componentmanager.DistributionManager
+import org.enso.componentmanager.distribution.DistributionManager
 import org.enso.componentmanager.test.{
   DropLogs,
   FakeEnvironment,

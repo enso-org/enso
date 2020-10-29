@@ -101,10 +101,6 @@ object GatherLicenses {
       )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
       if (summaryWarnings.nonEmpty) {
-        // TODO [RW] A separate task should be added to verify that the package
-        //  has been built without warnings that would report these warnings as
-        //  errors for the final distribution; this task should be run on CI to
-        //  verify the report is correct and up-to-date
         log.warn(
           "The distribution notices were regenerated, but there are " +
           "not-reviewed issues within the report. The notices are probably " +

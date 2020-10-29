@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
-import org.enso.componentmanager.{DistributionManager, FileSystem, OS}
+import org.enso.componentmanager.{FileSystem, OS}
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.launcher.cli.{
   GlobalCLIOptions,
@@ -14,11 +14,10 @@ import org.enso.launcher.cli.{
   Main
 }
 import org.enso.componentmanager.config.GlobalConfigurationManager
-import org.enso.componentmanager.locking.{
-  DefaultResourceManager,
-  ResourceManager
-}
+import org.enso.componentmanager.distribution.DistributionManager
+import org.enso.componentmanager.locking.ResourceManager
 import org.enso.launcher.InfoLogger
+import org.enso.launcher.distribution.DefaultManagers
 
 import scala.util.control.NonFatal
 
@@ -349,8 +348,8 @@ object DistributionUninstaller {
     */
   def default(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =
     new DistributionUninstaller(
-      DistributionManager,
-      DefaultResourceManager,
+      DefaultManagers.distributionManager,
+      DefaultManagers.DefaultResourceManager,
       globalCLIOptions
     )
 }

@@ -5,6 +5,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager.CurrentVersion
 import org.enso.componentmanager.config.{
   DefaultVersion,
   GlobalConfigurationManager
@@ -14,13 +15,10 @@ import org.enso.componentmanager.runner.{
   LanguageServerOptions,
   WhichEngine
 }
-import org.enso.componentmanager.{
-  CurrentVersion,
-  DistributionManager,
-  Environment
-}
 import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
 import org.enso.launcher.components.LauncherRunner
+import org.enso.launcher.distribution.DefaultManagers._
+import org.enso.launcher.distribution.LauncherEnvironment
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -42,14 +40,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val componentsManager =
     DefaultComponentManager.make(cliOptions, alwaysInstallMissing = false)
   private lazy val configurationManager =
-    new GlobalConfigurationManager(componentsManager, DistributionManager)
+    new GlobalConfigurationManager(componentsManager, distributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
   private lazy val runner =
     new LauncherRunner(
       projectManager,
       configurationManager,
       componentsManager,
-      Environment,
+      LauncherEnvironment,
       LauncherLogging.loggingServiceEndpoint()
     )
   private lazy val upgrader = LauncherUpgrader.default(cliOptions)
@@ -178,7 +176,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def uninstallEngine(version: SemVer): Int = {
     componentsManager.uninstallEngine(version)
-    DistributionManager.tryCleaningUnusedLockfiles()
+    distributionManager.tryCleaningUnusedLockfiles()
     0
   }
 
@@ -481,7 +479,7 @@ object Launcher {
   /** Checks if the launcher is running in portable mode and exits if it is not.
     */
   def ensurePortable(): Unit = {
-    if (!DistributionManager.isRunningPortable) {
+    if (!distributionManager.isRunningPortable) {
       Logger[Launcher].error(
         "`--ensure-portable` is set, but the launcher is not running in " +
         "portable mode. Terminating."

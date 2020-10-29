@@ -2,12 +2,13 @@ package org.enso.launcher.installation
 
 import java.nio.file.Path
 
-import org.enso.componentmanager.{DistributionManager, Environment}
+import org.enso.componentmanager.Environment
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.test.{DropLogs, WithTemporaryDirectory}
+import org.enso.componentmanager.distribution.DistributionManager
 import org.enso.componentmanager.test.{
+  DropLogs,
   FakeEnvironment,
-  TestLocalResourceManager
+  WithTemporaryDirectory
 }
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -26,11 +27,7 @@ class DistributionManagerSpec
         override def getPathToRunningExecutable: Path = executable
       }
 
-      val distributionManager =
-        new DistributionManager(
-          fakeEnvironment,
-          TestLocalResourceManager.create()
-        )
+      val distributionManager = new DistributionManager(fakeEnvironment)
       distributionManager.isRunningPortable shouldEqual true
       distributionManager.paths.dataRoot shouldEqual getTestDirectory
       distributionManager.paths.config shouldEqual getTestDirectory / "config"
@@ -45,11 +42,7 @@ class DistributionManagerSpec
         override def getPathToRunningExecutable: Path = executable
       }
 
-      val distributionManager =
-        new DistributionManager(
-          fakeEnvironment,
-          TestLocalResourceManager.create()
-        )
+      val distributionManager = new DistributionManager(fakeEnvironment)
       distributionManager.isRunningPortable shouldEqual false
     }
 
@@ -60,10 +53,7 @@ class DistributionManagerSpec
       val binDir    = getTestDirectory / "test_bin"
 
       val distributionManager =
-        new DistributionManager(
-          fakeInstalledEnvironment(),
-          TestLocalResourceManager.create()
-        )
+        new DistributionManager(fakeInstalledEnvironment())
       distributionManager.paths.dataRoot shouldEqual dataDir
       distributionManager.paths.config shouldEqual configDir
       distributionManager.LocallyInstalledDirectories.binDirectory shouldEqual

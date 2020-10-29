@@ -1154,9 +1154,7 @@ lazy val `component-manager` = project
   )
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
-  .dependsOn(
-    cli // TODO [RW] this is temporary, TaskProgress should get its own module
-  )
+  .dependsOn(cli)
   .dependsOn(
     `version-output` // TODO [RW] may want to get rid of this if possible
   )
