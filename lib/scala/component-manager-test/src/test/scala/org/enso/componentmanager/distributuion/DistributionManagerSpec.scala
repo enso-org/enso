@@ -4,7 +4,10 @@ import java.nio.file.Path
 
 import org.enso.componentmanager.Environment
 import org.enso.componentmanager.FileSystem.PathSyntax
-import org.enso.componentmanager.distribution.DistributionManager
+import org.enso.componentmanager.distribution.{
+  DistributionManager,
+  PortableDistributionManager
+}
 import org.enso.componentmanager.test.{
   DropLogs,
   FakeEnvironment,
@@ -27,7 +30,7 @@ class DistributionManagerSpec
         override def getPathToRunningExecutable: Path = executable
       }
 
-      val distributionManager = new DistributionManager(fakeEnvironment)
+      val distributionManager = new PortableDistributionManager(fakeEnvironment)
       distributionManager.isRunningPortable shouldEqual true
       distributionManager.paths.dataRoot shouldEqual getTestDirectory
       distributionManager.paths.config shouldEqual getTestDirectory / "config"
@@ -42,7 +45,7 @@ class DistributionManagerSpec
         override def getPathToRunningExecutable: Path = executable
       }
 
-      val distributionManager = new DistributionManager(fakeEnvironment)
+      val distributionManager = new PortableDistributionManager(fakeEnvironment)
       distributionManager.isRunningPortable shouldEqual false
     }
 

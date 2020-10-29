@@ -10,6 +10,7 @@ import org.enso.componentmanager.components.{
 }
 import org.enso.componentmanager.distribution.{
   DistributionManager,
+  PortableDistributionManager,
   TemporaryDirectoryManager
 }
 import org.enso.componentmanager.releases.engine.EngineReleaseProvider
@@ -44,7 +45,7 @@ class ComponentManagerTest
       TestComponentManagementUserInterface.default
   ): (DistributionManager, ComponentManager, Environment) = {
     val env                 = fakeInstalledEnvironment(environmentOverrides)
-    val distributionManager = new DistributionManager(env)
+    val distributionManager = new PortableDistributionManager(env)
     val fakeReleasesRoot    = FakeReleases.path
     val engineProvider = new EngineReleaseProvider(
       FakeReleaseProvider(

@@ -10,7 +10,7 @@ import org.enso.componentmanager.test.{
 
 class ComponentManagerSpec extends ComponentManagerTest {
 
-  "ComponentsManager" should {
+  "ComponentManager" should {
     "find the latest engine version in semver ordering " +
     "(skipping broken releases)" in {
       val componentsManager = makeComponentsManager()

@@ -3,16 +3,16 @@ package org.enso.launcher.distribution
 import java.nio.file.Path
 
 import org.enso.componentmanager.distribution.{
-  DistributionManager,
+  PortableDistributionManager,
   TemporaryDirectoryManager
 }
 import org.enso.componentmanager.locking.{FileLockManager, ResourceManager}
 
 object DefaultManagers {
-  val distributionManager = new DistributionManager(LauncherEnvironment)
+  val distributionManager = new PortableDistributionManager(LauncherEnvironment)
 
-  /** Default [[FileLockManager]] storing lock files in a directory defined by the
-    * [[DistributionManager]].
+  /** Default [[FileLockManager]] storing lock files in a directory defined by
+    * the distribution manager.
     */
   object DefaultFileLockManager extends FileLockManager {
 

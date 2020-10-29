@@ -48,43 +48,15 @@ case class DistributionPaths(
        |)""".stripMargin
 }
 
-/** A helper class that detects if a portable or installed distribution is run
-  * and encapsulates management of paths to components of the distribution.
+/** A helper class that encapsulates management of paths to components of the
+  * distribution.
+  *
+  * It defaults to using the locally installed mode. If portable distributions
+  * should be supported, the specialized [[PortableDistributionManager]] should
+  * be used.
   */
 class DistributionManager(val env: Environment) {
   private val logger = Logger[DistributionManager]
-
-  /** Specifies whether the launcher has been run as a portable distribution or
-    * it is a locally installed distribution.
-    */
-  lazy val isRunningPortable: Boolean = {
-    val portable = detectPortable()
-    logger.debug(s"Launcher portable mode = $portable")
-    if (portable && LocallyInstalledDirectories.installedDistributionExists) {
-      val installedRoot   = LocallyInstalledDirectories.dataDirectory
-      val installedBinary = LocallyInstalledDirectories.binaryExecutable
-
-      logger.debug(
-        s"The launcher is run in portable mode, but an installed distribution" +
-        s" is available at $installedRoot."
-      )
-
-      if (Files.exists(installedBinary)) {
-        if (installedBinary == env.getPathToRunningExecutable) {
-          logger.debug(
-            "That distribution seems to be corresponding to this launcher " +
-            "executable, that is running in portable mode."
-          )
-        } else {
-          logger.debug(
-            s"However, that installed distribution most likely uses another " +
-            s"launcher executable, located at $installedBinary."
-          )
-        }
-      }
-    }
-    portable
-  }
 
   /** Determines paths that should be used by the launcher.
     */
@@ -94,48 +66,28 @@ class DistributionManager(val env: Environment) {
     paths
   }
 
-  private val PORTABLE_MARK_FILENAME = ".enso.portable"
-  val ENGINES_DIRECTORY              = "dist"
-  val RUNTIMES_DIRECTORY             = "runtime"
-  val CONFIG_DIRECTORY               = "config"
-  val BIN_DIRECTORY                  = "bin"
-  val LOCK_DIRECTORY                 = "lock"
-  val LOG_DIRECTORY                  = "log"
-  val TMP_DIRECTORY                  = "tmp"
+  val ENGINES_DIRECTORY  = "dist"
+  val RUNTIMES_DIRECTORY = "runtime"
+  val CONFIG_DIRECTORY   = "config"
+  val BIN_DIRECTORY      = "bin"
+  val LOCK_DIRECTORY     = "lock"
+  val LOG_DIRECTORY      = "log"
+  val TMP_DIRECTORY      = "tmp"
 
-  private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
-  private def possiblePortableRoot: Path =
-    env.getPathToRunningExecutable.getParent.getParent
-
-  private def portableMarkFilePath: Path =
-    possiblePortableRoot / PORTABLE_MARK_FILENAME
-
-  private def detectPaths(): DistributionPaths =
-    if (isRunningPortable) {
-      val root = env.getPathToRunningExecutable.getParent.getParent
-      DistributionPaths(
-        dataRoot                 = root,
-        runtimes                 = root / RUNTIMES_DIRECTORY,
-        engines                  = root / ENGINES_DIRECTORY,
-        config                   = root / CONFIG_DIRECTORY,
-        locks                    = root / LOCK_DIRECTORY,
-        logs                     = root / LOG_DIRECTORY,
-        unsafeTemporaryDirectory = root / TMP_DIRECTORY
-      )
-    } else {
-      val dataRoot   = LocallyInstalledDirectories.dataDirectory
-      val configRoot = LocallyInstalledDirectories.configDirectory
-      val runRoot    = LocallyInstalledDirectories.runtimeDirectory
-      DistributionPaths(
-        dataRoot                 = dataRoot,
-        runtimes                 = dataRoot / RUNTIMES_DIRECTORY,
-        engines                  = dataRoot / ENGINES_DIRECTORY,
-        config                   = configRoot,
-        locks                    = runRoot / LOCK_DIRECTORY,
-        logs                     = LocallyInstalledDirectories.logDirectory,
-        unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY
-      )
-    }
+  protected def detectPaths(): DistributionPaths = {
+    val dataRoot   = LocallyInstalledDirectories.dataDirectory
+    val configRoot = LocallyInstalledDirectories.configDirectory
+    val runRoot    = LocallyInstalledDirectories.runtimeDirectory
+    DistributionPaths(
+      dataRoot                 = dataRoot,
+      runtimes                 = dataRoot / RUNTIMES_DIRECTORY,
+      engines                  = dataRoot / ENGINES_DIRECTORY,
+      config                   = configRoot,
+      locks                    = runRoot / LOCK_DIRECTORY,
+      logs                     = LocallyInstalledDirectories.logDirectory,
+      unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY
+    )
+  }
 
   /** Removes unused lockfiles.
     */

@@ -5,18 +5,18 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
-import org.enso.componentmanager.{FileSystem, OS}
 import org.enso.componentmanager.FileSystem.PathSyntax
+import org.enso.componentmanager.config.GlobalConfigurationManager
+import org.enso.componentmanager.distribution.PortableDistributionManager
+import org.enso.componentmanager.locking.ResourceManager
+import org.enso.componentmanager.{FileSystem, OS}
+import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{
   GlobalCLIOptions,
   InternalOpts,
   LauncherLogging,
   Main
 }
-import org.enso.componentmanager.config.GlobalConfigurationManager
-import org.enso.componentmanager.distribution.DistributionManager
-import org.enso.componentmanager.locking.ResourceManager
-import org.enso.launcher.InfoLogger
 import org.enso.launcher.distribution.DefaultManagers
 
 import scala.util.control.NonFatal
@@ -27,7 +27,7 @@ import scala.util.control.NonFatal
   *                the distribution that will be uninstalled
   */
 class DistributionUninstaller(
-  manager: DistributionManager,
+  manager: PortableDistributionManager,
   resourceManager: ResourceManager,
   globalCLIOptions: GlobalCLIOptions
 ) {
