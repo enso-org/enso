@@ -1135,7 +1135,7 @@ lazy val launcher = project
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
-  .dependsOn(`component-test-common` % Test)
+  .dependsOn(`component-manager-test` % Test)
 
 lazy val `component-manager` = project
   .in(file("lib/scala/component-manager"))
@@ -1155,13 +1155,10 @@ lazy val `component-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
   .dependsOn(cli)
-  .dependsOn(
-    `version-output` // TODO [RW] may want to get rid of this if possible
-  )
-  .dependsOn(`component-test-common` % Test)
+  .dependsOn(`version-output`)
 
-lazy val `component-test-common` = project
-  .in(file("lib/scala/component-test-common"))
+lazy val `component-manager-test` = project
+  .in(file("lib/scala/component-manager-test"))
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
@@ -1170,6 +1167,8 @@ lazy val `component-test-common` = project
       "commons-io"                  % "commons-io"    % commonsIoVersion
     )
   )
+  .settings(parallelExecution in Test := false)
+  .dependsOn(`component-manager`)
   .dependsOn(`logging-service`)
 
 val `std-lib-root`          = file("distribution/std-lib/")

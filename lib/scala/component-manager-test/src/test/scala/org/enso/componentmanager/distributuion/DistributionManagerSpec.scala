@@ -1,9 +1,10 @@
-package org.enso.componentmanager.distribution
+package org.enso.componentmanager.distributuion
 
 import java.nio.file.Path
 
 import org.enso.componentmanager.Environment
 import org.enso.componentmanager.FileSystem.PathSyntax
+import org.enso.componentmanager.distribution.DistributionManager
 import org.enso.componentmanager.test.{
   DropLogs,
   FakeEnvironment,

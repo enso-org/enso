@@ -22,12 +22,7 @@ class UpgradeSpec
 
   /** Location of the fake releases root.
     */
-  private val fakeReleaseRoot = Path
-    .of(
-      getClass
-        .getResource("/org/enso/launcher/components/fake-releases")
-        .toURI
-    ) / "launcher"
+  private val fakeReleaseRoot = FakeLauncherReleases.path
 
   /** Location of built Rust artifacts.
     */

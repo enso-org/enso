@@ -1,41 +1,33 @@
-package org.enso.launcher.locktest
+package org.enso.componentmanager.locking
 
 import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
 import org.enso.componentmanager.FileSystem.PathSyntax
+import org.enso.componentmanager._
 import org.enso.componentmanager.components.{
   ComponentManager,
   Manifest,
   RuntimeVersion
 }
-import org.enso.componentmanager.locking._
+import org.enso.componentmanager.distribution.{
+  DistributionManager,
+  TemporaryDirectoryManager
+}
 import org.enso.componentmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider
 }
 import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
 import org.enso.componentmanager.releases.testing.FakeReleaseProvider
-import org.enso.componentmanager._
-import org.enso.componentmanager.distribution.{
-  DistributionManager,
-  TemporaryDirectoryManager
-}
-import org.enso.componentmanager.test.{
-  DropLogs,
-  FakeEnvironment,
-  TestLocalLockManager,
-  TestSynchronizer,
-  WithTemporaryDirectory
-}
-import org.enso.launcher.components.TestComponentManagementUserInterface
+import org.enso.componentmanager.test._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Try
-// TODO [RW] parts of this test may be moved to component-manager, but parts must be retained
+
 class ConcurrencyTest
     extends AnyWordSpec
     with Matchers
@@ -111,12 +103,7 @@ class ConcurrencyTest
     }
 
     val distributionManager = new DistributionManager(env)
-    val fakeReleasesRoot =
-      Path.of(
-        getClass
-          .getResource("/org/enso/launcher/components/fake-releases")
-          .toURI
-      )
+    val fakeReleasesRoot    = FakeReleases.path
     val engineProvider = new EngineReleaseProvider(
       FakeReleaseProvider(
         fakeReleasesRoot.resolve("enso"),

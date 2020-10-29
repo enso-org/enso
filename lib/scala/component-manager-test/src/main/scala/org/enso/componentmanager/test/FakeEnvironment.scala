@@ -3,13 +3,12 @@ package org.enso.componentmanager.test
 import java.nio.file.{Files, Path}
 
 import org.enso.componentmanager.{Environment, FileSystem}
-import org.enso.componentmanager.FileSystem.PathSyntax
 
 /** A test-suite mixin that adds helper functions that create a fake environment
   * which points to an Enso installation inside the temporary directory
   * generated for the test.
   */
-trait FakeEnvironment { self: { def getTestDirectory: Path } =>
+trait FakeEnvironment { self: WithTemporaryDirectory =>
 
   /** Returns a fake path to the Enso executable that is inside the temporary
     * directory for the test.
@@ -18,12 +17,15 @@ trait FakeEnvironment { self: { def getTestDirectory: Path } =>
     *                 portable
     */
   def fakeExecutablePath(portable: Boolean = false): Path = {
-    val fakeBin = getTestDirectory / "bin"
+    val fakeBin = getTestDirectory.resolve("bin")
     Files.createDirectories(fakeBin)
     if (portable) {
-      FileSystem.writeTextFile(getTestDirectory / ".enso.portable", "mark")
+      FileSystem.writeTextFile(
+        getTestDirectory.resolve(".enso.portable"),
+        "mark"
+      )
     }
-    fakeBin / "enso"
+    fakeBin.resolve("enso")
   }
 
   /** Returns an [[Environment]] instance that overrides the `ENSO_*`
@@ -38,10 +40,10 @@ trait FakeEnvironment { self: { def getTestDirectory: Path } =>
     extraOverrides: Map[String, String] = Map.empty
   ): Environment = {
     val executable = fakeExecutablePath()
-    val dataDir    = getTestDirectory / "test_data"
-    val configDir  = getTestDirectory / "test_config"
-    val binDir     = getTestDirectory / "test_bin"
-    val runDir     = getTestDirectory / "test_run"
+    val dataDir    = getTestDirectory.resolve("test_data")
+    val configDir  = getTestDirectory.resolve("test_config")
+    val binDir     = getTestDirectory.resolve("test_bin")
+    val runDir     = getTestDirectory.resolve("test_run")
     val env = extraOverrides
       .updated("ENSO_DATA_DIRECTORY", dataDir.toString)
       .updated("ENSO_CONFIG_DIRECTORY", configDir.toString)

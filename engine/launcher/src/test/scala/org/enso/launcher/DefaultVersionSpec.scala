@@ -2,9 +2,9 @@ package org.enso.launcher
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.components.ComponentManager
-import org.enso.launcher.components.ComponentManagerTest
 import org.enso.componentmanager.config.DefaultVersion.{Exact, LatestInstalled}
 import org.enso.componentmanager.config.GlobalConfigurationManager
+import org.enso.componentmanager.test.ComponentManagerTest
 
 class DefaultVersionSpec extends ComponentManagerTest {
   def makeConfigAndComponentsManagers()

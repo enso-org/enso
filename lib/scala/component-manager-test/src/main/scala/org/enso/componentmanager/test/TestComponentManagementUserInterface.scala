@@ -1,4 +1,4 @@
-package org.enso.launcher.components
+package org.enso.componentmanager.test
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress

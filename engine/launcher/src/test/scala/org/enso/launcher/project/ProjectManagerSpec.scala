@@ -3,7 +3,7 @@ package org.enso.launcher.project
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.componentmanager.distribution.DistributionManager
-import org.enso.launcher.components.ComponentManagerTest
+import org.enso.componentmanager.test.ComponentManagerTest
 import org.enso.pkg.Contact
 import org.scalatest.{Inside, OptionValues}
 

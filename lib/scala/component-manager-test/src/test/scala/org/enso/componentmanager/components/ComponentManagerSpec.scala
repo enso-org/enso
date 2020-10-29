@@ -1,9 +1,12 @@
-package org.enso.launcher.components
+package org.enso.componentmanager.components
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.components
-import org.enso.componentmanager.components.RuntimeVersion
 import org.enso.componentmanager.config.GlobalConfigurationManager
+import org.enso.componentmanager.test.{
+  ComponentManagerTest,
+  TestComponentManagementUserInterface
+}
 
 class ComponentManagerSpec extends ComponentManagerTest {
 

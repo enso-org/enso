@@ -8,6 +8,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.componentmanager.FileSystem.PathSyntax
 import org.enso.componentmanager.config.GlobalConfigurationManager
 import org.enso.componentmanager.runner._
+import org.enso.componentmanager.test.ComponentManagerTest
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 

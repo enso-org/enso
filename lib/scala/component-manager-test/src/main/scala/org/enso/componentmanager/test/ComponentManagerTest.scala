@@ -1,25 +1,20 @@
-package org.enso.launcher.components
+package org.enso.componentmanager.test
 
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.componentmanager._
 import org.enso.componentmanager.components.{
   ComponentManagementUserInterface,
   ComponentManager
 }
-import org.enso.componentmanager.releases.engine.EngineReleaseProvider
-import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
-import org.enso.componentmanager._
 import org.enso.componentmanager.distribution.{
   DistributionManager,
   TemporaryDirectoryManager
 }
+import org.enso.componentmanager.releases.engine.EngineReleaseProvider
+import org.enso.componentmanager.releases.runtime.GraalCEReleaseProvider
 import org.enso.componentmanager.releases.testing.FakeReleaseProvider
-import org.enso.componentmanager.test.{DropLogs, WithTemporaryDirectory}
-import org.enso.componentmanager.test.{
-  FakeEnvironment,
-  TestLocalResourceManager
-}
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
@@ -60,12 +55,7 @@ class ComponentManagerTest
   ): (DistributionManager, ComponentManager, Environment) = {
     val env                 = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager = new DistributionManager(env)
-    val fakeReleasesRoot =
-      Path.of(
-        getClass
-          .getResource("/org/enso/launcher/components/fake-releases")
-          .toURI
-      )
+    val fakeReleasesRoot    = FakeReleases.path
     val engineProvider = new EngineReleaseProvider(
       FakeReleaseProvider(
         fakeReleasesRoot.resolve("enso"),
