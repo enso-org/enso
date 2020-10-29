@@ -1,8 +1,12 @@
 package org.enso.projectmanager.data
 
+import enumeratum._
+
 /** Specifies how to handle missing components. */
-sealed trait MissingComponentAction
-object MissingComponentAction {
+sealed trait MissingComponentAction extends EnumEntry
+object MissingComponentAction
+    extends Enum[MissingComponentAction]
+    with CirceEnum[MissingComponentAction] {
 
   /** Specifies that an action requiring a missing component should fail. */
   case object Fail extends MissingComponentAction
@@ -16,4 +20,6 @@ object MissingComponentAction {
     * install it, even if it is broken.
     */
   case object ForceInstallBroken extends MissingComponentAction
+
+  override val values = findValues
 }

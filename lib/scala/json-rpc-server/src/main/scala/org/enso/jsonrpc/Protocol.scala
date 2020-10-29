@@ -107,6 +107,8 @@ object Errors {
   case object MethodNotFound extends Error(-32601, "Method not found")
   case object InvalidParams  extends Error(-32602, "Invalid params")
   case object ServiceError   extends Error(1, "Service error")
+  case object NotImplementedError
+      extends Error(10, "The requested method is not implemented")
   case class UnknownError(
     override val code: Int,
     override val message: String,

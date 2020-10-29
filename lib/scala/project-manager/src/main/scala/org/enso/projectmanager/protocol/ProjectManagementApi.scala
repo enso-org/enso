@@ -10,6 +10,7 @@ import org.enso.pkg.EnsoVersion
 import org.enso.projectmanager.data.{
   EngineVersion,
   MissingComponentAction,
+  ProgressUnit,
   ProjectMetadata,
   Socket
 }
@@ -119,7 +120,7 @@ object ProjectManagementApi {
     case class Params(
       taskId: UUID,
       relatedOperation: String,
-      unit: String,
+      unit: ProgressUnit,
       total: Option[Int]
     )
 

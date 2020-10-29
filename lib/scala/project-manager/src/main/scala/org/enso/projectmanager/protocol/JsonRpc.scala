@@ -4,6 +4,12 @@ import io.circe.generic.auto._
 import org.enso.jsonrpc.Protocol
 import org.enso.projectmanager.protocol.ProjectManagementApi._
 
+/** Implicits from this module are required for correct serialization.
+  *
+  * Do not remove this import.
+  */
+import org.enso.pkg.SemVerJson._
+
 object JsonRpc {
 
   /** A description of supported JSON RPC messages.

@@ -21,6 +21,7 @@ transport formats, please look [here](./protocol-architecture.md).
 - [Types](#types)
   - [`ProjectMetadata`](#projectmetadata)
   - [`MissingComponentAction`](#missingcomponentaction)
+  - [`ProgressUnit`](#progressunit)
   - [`EngineVersion`](#engineversion)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
@@ -65,6 +66,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`LanguageServerError`](#languageservererror)
   - [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror)
   - [`LoggingServiceUnavailable`](#loggingserviceunavailable)
+  - [`ServiceError`](#serviceerror)
 
 <!-- /MarkdownTOC -->
 
@@ -92,16 +94,26 @@ interface ProjectMetadata {
 This type specifies what action should be taken if a component required to
 complete an operation is missing.
 
-- `fail` will make the operation fail if any components are missing.
-- `install` will try to install any missing components, unless they are marked
+- `Fail` will make the operation fail if any components are missing.
+- `Install` will try to install any missing components, unless they are marked
   as broken.
-- `force-install-broken` will try to install all missing components, even if
-  some of them are marked as broken.
+- `ForceInstallBroken` will try to install all missing components, even if some
+  of them are marked as broken.
 
 #### Format
 
 ```typescript
-type MissingComponentAction = "fail" | "install" | "force-install-broken";
+type MissingComponentAction = Fail | Install | ForceInstallBroken;
+```
+
+### `ProgressUnit`
+
+This type specifies the unit of progress updates related to a task.
+
+#### Format
+
+```typescript
+type ProgressUnit = Bytes | Other;
 ```
 
 ### `EngineVersion`
@@ -486,7 +498,7 @@ interface TaskStartNotification {
   relatedOperation: String;
 
   /** Unit in which progress of this task is measured. */
-  unit: "bytes" | "other";
+  unit: ProgressUnit;
 
   /**
    * Indicates total expected progress.

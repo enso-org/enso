@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor._
 import akka.pattern.pipe
-import org.enso.jsonrpc.Errors.ServiceError
+import org.enso.jsonrpc.Errors.{NotImplementedError, ServiceError}
 import org.enso.jsonrpc._
 import org.enso.pkg.DefaultEnsoVersion
 import org.enso.projectmanager.control.effect.Exec
@@ -36,19 +36,26 @@ class ProjectCreateHandler[F[+_, +_]: Exec](
 
   private def requestStage: Receive = {
     case Request(ProjectCreate, id, params: ProjectCreate.Params) =>
-      val version = params.version.getOrElse(DefaultEnsoVersion)
-      val missingComponentAction =
-        params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
-      Exec[F]
-        .exec(
-          service
-            .createUserProject(params.name, version, missingComponentAction)
-        )
-        .pipeTo(self)
-      val cancellable =
-        context.system.scheduler
-          .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+      if (params.version.isDefined) {
+        // TODO [RW] just to indicate that choosing specific version is not yet
+        //  implemented, should be removed once that functionality is added
+        sender() ! ResponseError(Some(id), NotImplementedError)
+        context.stop(self)
+      } else {
+        val version = params.version.getOrElse(DefaultEnsoVersion)
+        val missingComponentAction =
+          params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
+        Exec[F]
+          .exec(
+            service
+              .createUserProject(params.name, version, missingComponentAction)
+          )
+          .pipeTo(self)
+        val cancellable =
+          context.system.scheduler
+            .scheduleOnce(requestTimeout, self, RequestTimeout)
+        context.become(responseStage(id, sender(), cancellable))
+      }
   }
 
   private def responseStage(
