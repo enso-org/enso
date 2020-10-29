@@ -26,8 +26,7 @@ object GatherLicenses {
     settingKey[Set[String]]("The ivy configurations we consider in the review.")
   private val stateFileName = "report-state"
 
-  /** The task that performs the whole license gathering process.
-    */
+  /** The task that performs the whole license gathering process. */
   lazy val run = Def.task {
     val log        = state.value.log
     val targetRoot = target.value
@@ -94,7 +93,7 @@ object GatherLicenses {
       )
       val packagePath = distribution.packageDestination
       PackageNotices.create(distribution, processedSummary, packagePath)
-      ReviewState.write(
+      ReportState.write(
         distributionRoot / stateFileName,
         distribution,
         summaryWarnings.length
@@ -120,6 +119,8 @@ object GatherLicenses {
     reports
   }
 
+  /** The task that verifies if the report has been generated and is up-to-date.
+    */
   lazy val verifyReports = Def.task {
     val configRoot = configurationRoot.value
     val log        = streams.value.log
@@ -136,9 +137,9 @@ object GatherLicenses {
     for (distribution <- distributions.value) {
       val distributionRoot = configRoot / distribution.artifactName
       val name             = distribution.artifactName
-      ReviewState.read(distributionRoot / stateFileName, log) match {
+      ReportState.read(distributionRoot / stateFileName, log) match {
         case Some(reviewState) =>
-          val currentInputHash = ReviewState.computeInputHash(distribution)
+          val currentInputHash = ReportState.computeInputHash(distribution)
           if (currentInputHash != reviewState.inputHash) {
             warnAndThrow(
               s"Report for the $name is not up to date - " +
@@ -152,7 +153,7 @@ object GatherLicenses {
             )
           }
 
-          val currentOutputHash = ReviewState.computeOutputHash(distribution)
+          val currentOutputHash = ReportState.computeOutputHash(distribution)
           if (currentOutputHash != reviewState.outputHash) {
             log.error(
               s"Report for the $name seems to be up-to-date but the notice " +
