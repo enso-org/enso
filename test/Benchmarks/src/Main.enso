@@ -1,4 +1,4 @@
-import Base.Bench_Utils
+import Test.Bench
 from Base import all
 
 polyglot java import java.lang.Long
@@ -69,17 +69,17 @@ sum_co n =
 main =
     hundred_mil = 100000000
     IO.println "Measuring Sum TCO Corecursive"
-    Bench_Utils.measure (here.sum_co hundred_mil) "sum_tco_corecursive" 100 10
+    Bench.measure (here.sum_co hundred_mil) "sum_tco_corecursive" 100 10
     IO.println "Measuring Sum TCO Decimal"
-    Bench_Utils.measure (here.sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
+    Bench.measure (here.sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
     IO.println "Measuring SumTCO"
-    Bench_Utils.measure (here.sum_tco hundred_mil) "sum_tco" 100 10
+    Bench.measure (here.sum_tco hundred_mil) "sum_tco" 100 10
     IO.println "Measuring SumTCO Java"
-    Bench_Utils.measure (here.sum_tco_java hundred_mil) "sum_tco_java" 100 10
+    Bench.measure (here.sum_tco_java hundred_mil) "sum_tco_java" 100 10
     IO.println "Measuring SumTCO Eval"
-    Bench_Utils.measure (here.sum_tco_eval hundred_mil) "sum_tco_eval" 100 10
+    Bench.measure (here.sum_tco_eval hundred_mil) "sum_tco_eval" 100 10
     IO.println "Measuring State"
-    Bench_Utils.measure (here.sum_state hundred_mil) "sum_state" 100 10
+    Bench.measure (here.sum_state hundred_mil) "sum_state" 100 10
     IO.println "Measuring Co-State"
-    Bench_Utils.measure (here.sum_co_state hundred_mil) "sum_co_state" 100 10
+    Bench.measure (here.sum_co_state hundred_mil) "sum_co_state" 100 10
     IO.println "Bye."

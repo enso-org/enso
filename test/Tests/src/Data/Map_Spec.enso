@@ -1,0 +1,14 @@
+from Base import all
+
+import Test
+
+spec = describe "Maps" <|
+    it "should allow inserting and looking up values" <|
+        m = Map.empty . insert "foo" 134 . insert "bar" 654 . insert "baz" "spam"
+        m.get "foo" . should equal 134
+        m.get "bar" . should equal 654
+        m.get "baz" . should equal "spam"
+        m.get "nope" . catch e->e . should_equal (Map.No_Value_For_Key "nope")
+    it "should convert the whole map to a vector" <|
+        m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
+        m.to_vector.should equal [[0, 0], [1, 2], [3, -5]]

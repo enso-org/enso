@@ -1,0 +1,49 @@
+from Base import all
+import Test
+
+spec = describe "Vectors" <|
+    it "should allow accessing elements" <|
+        [1,2,3].at 2 . should_equal 3
+    it "should have a well-defined length" <|
+        [1,2,3].length . should_equal 3
+    it "should allow folding an operator over its elements" <|
+        [1,2,3].fold 0 (+) . should_equal 6
+    it "should allow vector creation with a programmatic constructor" <|
+        Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
+    it "should have a well-defined text conversion" <|
+        [].to_text.should_equal "[]"
+        [1,2,3].to_text.should_equal "[1, 2, 3]"
+        [Unit].to_text.should_equal "[Unit]"
+    it "should allow mapping an operation, returning a new vector" <|
+        vec = [1, 2, 3, 4]
+        mapped = vec.map x-> x * x
+        vec.to_text.should_equal "[1, 2, 3, 4]"
+        mapped.to_text.should_equal "[1, 4, 9, 16]"
+    it "should define equality" <|
+        [1,2,3]==[1,2] . should_be_false
+        [1,2,3]==[1,2,3] . should_be_true
+        [1,2,3]==[3,4,5] . should_be_false
+    it "should define concatenation" <|
+        concat = [1, 2, 3] + [4, 5, 6]
+        concat.should_equal [1, 2, 3, 4, 5, 6]
+    it "should define take and drop family of operations" <|
+        vec = [1, 2, 3, 4, 5, 6]
+        first_four = [1, 2, 3, 4]
+        last_four = [3, 4, 5, 6]
+        vec.drop 2 . should_equal last_four
+        vec.drop_right 2 . should_equal first_four
+        vec.take 4 . should_equal first_four
+        vec.take_right 4 . should_equal last_four
+    it "should check exists" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.exists (ix -> ix > 3) . should_be_true
+        vec.exists (ix -> ix < 0) . should_be_false
+    it "should check contains" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.contains 1 . should_be_true
+        vec.contains 0 . should_be_false
+    it "should filter elements" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.filter (ix -> ix > 3) . should_equal [4, 5]
+        vec.filter (ix -> ix == 1) . should_equal [1]
+        vec.filter (ix -> ix < 0) . should_equal []

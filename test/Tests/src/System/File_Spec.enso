@@ -1,0 +1,56 @@
+from Base import all
+import Test
+
+spec =
+    sample_file = Enso_Project.data / "sample.txt"
+    non_existent_file = File.new "does_not_exist.txt"
+    describe "File Operations" <|
+        it "should allow reading a file" <|
+            contents = sample_file.read
+            contents.should start_with "Cupcake ipsum dolor sit amet."
+        it "should allow reading a file to byte vector" <|
+            contents = sample_file.read_bytes
+            contents.take 6 . should_equal [67, 117, 112, 99, 97, 107]
+        it "should handle exceptions when reading a non-existent file" <|
+            file = File.new "does_not_exist.txt"
+            successfully_failed = Panic.recover file.read . catch <| case _ of
+                File.No_Such_File_Error _ -> True
+                _ -> False
+            successfully_failed . should_be_true
+        it "should check if file exists" <|
+            non_existent_file.exists.should_be_false
+            sample_file.exists.should_be_true
+        it "should check if file is a directory" <|
+            sample_file.is_directory.should_be_false
+            Enso_Project.root.is_directory.should_be_true
+        it "should get file name" <|
+            sample_file.name.should_equal "sample.txt"
+        it "should convert a file to absolute" <|
+            abs = File.new "foo.txt" . absolute
+            through_cwd = (File.current_directory / "foo.txt")
+            abs.should_equal through_cwd
+        it "should normalize file" <|
+            f_1 = File.new "foo"
+            f_2 = File.new "bar/../baz/../foo"
+            f_2.normalize.should_equal f_1
+        it "should allow reading a file byte by byte" <|
+            f = Enso_Project.data / "short.txt"
+            f.exists.should_be_false
+            f.write "Cup"
+            f.with_input_stream stream->
+                stream.read_byte.should_equal 67
+                stream.read_byte.should_equal 117
+                stream.read_byte.should_equal 112
+                stream.read_byte.should_equal -1
+            f.delete
+            f.exists.should_be_false
+        it "should write and append to files" <|
+            f = Enso_Project.data / "work.txt"
+            f.exists.should_be_false
+            f.write "line 1!"
+            f.exists.should_be_true
+            f.read.should_equal "line 1!"
+            f.append '\nline 2!'
+            f.read.should_equal 'line 1!\nline 2!'
+            f.delete
+            f.exists.should_be_false

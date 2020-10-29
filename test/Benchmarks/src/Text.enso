@@ -1,6 +1,6 @@
 from Base import all
 from Builtins import Prim_Text_Helper
-import Base.Bench_Utils
+import Test.Bench
 
 polyglot java import java.lang.StringBuilder
 
@@ -16,6 +16,6 @@ build_long_bldr n =
     res
 
 main =
-    Bench_Utils.measure (here.build_long_bldr 1000000) "string append bldr" 100 10
-    Bench_Utils.measure (here.build_long 1000000) "string append" 100 10
+    Bench.measure (here.build_long_bldr 1000000) "string append bldr" 100 10
+    Bench.measure (here.build_long 1000000) "string append" 100 10
     IO.println "Bye"

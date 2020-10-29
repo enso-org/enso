@@ -1,0 +1,72 @@
+from Base import all
+
+import Test
+
+Integer.is_even = this % 2 == 0
+Decimal.get_fun_factor = "Wow, " + this.to_text + " is such a fun number!"
+
+spec =
+    eps = 0.000001
+    almost_max_long = 9223372036854775806
+    almost_max_long_times_three = 27670116110564327418
+    hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+    describe "Integers" <|
+        it "should be of unbound size when multiplied" <|
+            1.upto 101 . fold 1 (*) . should_equal hundred_factorial
+        it "should be of unbound size when added" <|
+            (almost_max_long + almost_max_long + almost_max_long).should_equal almost_max_long_times_three
+        it "should be of unbound size when subtracted" <|
+            (0 - almost_max_long - almost_max_long - almost_max_long).should_equal almost_max_long_times_three.negate
+        it "should be of unbound size when dividing" <|
+            expected = 3372816184472482867110284450043137767873196479305249187406461598235841786750685581361224832688174410089430537516012695688121622150430744676
+            ((1.upto 101 . fold 1 (*)).div  3*almost_max_long).should_equal expected
+        it "should be of unbound size when taking remainder" <|
+            expected = 3191479909175673432
+            ((1.upto 101 . fold 1 (*)) % 3*almost_max_long).should_equal expected
+        it "should allow defining extension methods through the Integer type for any number size" <|
+            876543.is_even.should_be_false
+            (1.upto 101 . fold 1 (*)).is_even.should_be_true
+        it "should handle the negation edge cases" <|
+            x = 9223372036854775808
+            y = -x
+            z = -9223372036854775808
+            y.should_equal z
+        it "should handle equality between small and big integers" <|
+            (1 == hundred_factorial).should_be_false
+            (hundred_factorial == 1).should_be_false
+        it "should properly handle going to big numbers and back" <|
+            ((almost_max_long * 3) / 3) . should_equal almost_max_long
+        it "should use floating point arithmetic for division" <|
+            (3 / 4) . should_equal 0.75 epsilon=eps
+            (almost_max_long * 2 / almost_max_long_times_three) . should_equal 0.6666666 epsilon=eps
+    describe "Decimals" <|
+        it "should exist and expose basic arithmetic operations" <|
+            ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
+        it "should allow defining extension methods through the Decimal type" <|
+            32.5.get_fun_factor.should_equal "Wow, 32.5 is such a fun number!"
+    describe "Numbers" <|
+        it "should define addition" <|
+            2+3 . should_equal 5
+        it "should define multiplication" <|
+            2*3 . should_equal 6
+        it "should expose comparison operators" <|
+            (3 < hundred_factorial).should_be_true
+            (hundred_factorial < 3).should_be_false
+            (3.0 < hundred_factorial).should_be_true
+            (3.0 <= 3.4).should_be_true
+            (3.0 >= 2).should_be_true
+            (-hundred_factorial > 0).should_be_false
+        it "should expose exponentiation operations" <|
+            (3.14 ^ 2.71).should_equal 22.216689546 epsilon=eps
+            (3.14 ^ 14).should_equal 9057640.36635 epsilon=eps
+            a = almost_max_long
+            (a ^ 4).should_equal (a * a * a * a)
+            (2 ^ 10).should_equal 1024
+            (2 ^ 0.5).should_equal 1.41421356237 epsilon=eps
+            (a^2)^0.5 . should_equal a epsilon=eps
+        it "should expose more involved mathematical functions" <|
+            Math.Pi.sin.should_equal 0 epsilon=eps
+            (Math.Pi / 4).sin.should_equal (2 ^ 0.5)/2 epsilon=eps
+            (Math.Pi / 6).cos.should_equal (3.sqrt / 2) epsilon=eps
+            (17 ^ 0.13).log base=17 . should_equal 0.13 epsilon=eps
+            0.exp.should_equal 1

@@ -1,6 +1,6 @@
 from Base import all
 import Builtins
-import Base.Bench_Utils
+import Test.Bench
 
 polyglot java import java.util.Random
 
@@ -27,8 +27,8 @@ main =
     list = here.gen_list mil
     vec = Vector.new mil (ix -> ix + 1)
     vec_decimal = Vector.new mil (ix -> ix + 0.0)
-    Bench_Utils.measure (here.sum_list_meta list) "list meta-fold" 1000 10
-    Bench_Utils.measure (list.fold 0 (+)) "list fold" 1000 10
-    Bench_Utils.measure (vec.fold 0 (+)) "vector fold" 1000 10
-    Bench_Utils.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
-    Bench_Utils.measure (here.build_map 10000) "build a map" 100 10
+    Bench.measure (here.sum_list_meta list) "list meta-fold" 1000 10
+    Bench.measure (list.fold 0 (+)) "list fold" 1000 10
+    Bench.measure (vec.fold 0 (+)) "vector fold" 1000 10
+    Bench.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
+    Bench.measure (here.build_map 10000) "build a map" 100 10

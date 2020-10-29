@@ -74,7 +74,7 @@ case object VectorLiterals extends IRPass {
           .resolvedExports
           .map(_.module)
       )
-      .find(_.getName.toString == "Base.Vector")
+      .find(_.getName.toString == "Base.Data.Vector")
     val name = IR.Name.Literal("<Sequence Macro>", isReferent = true, None)
     module
       .map { module =>

@@ -5413,7 +5413,7 @@ object IR {
       case object UnresolvedSequenceMacro extends Reason {
         override def explain(originalName: Name): String =
           "No definition for the sequence macro could be found. Try" +
-          " importing the default definition from the Base.Vector module."
+          " importing the default definition from the Base.Data.Vector module."
       }
 
       /** An error coming from an unknown annotation name.

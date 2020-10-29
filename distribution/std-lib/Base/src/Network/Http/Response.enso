@@ -1,0 +1,26 @@
+from Base import all
+
+import Base.Data.Vector
+import Base.Network.Http.Header
+import Base.Network.Http.Response.Body as Response_Body
+import Base.Network.Http.Status_Code
+
+polyglot java import org.enso.base.Http_Utils
+
+type Response
+
+    type Response internal_http_response
+
+    ## Get the response headers.
+    headers : Vector
+    headers =
+        header_entries = Vector.vector (Http_Utils.get_headers [this.internal_http_response.headers []])
+        header_entries.map e-> Header.new (e.getKey []) (e.getValue [])
+
+    ## Get the response body.
+    body : Response_Body
+    body = Response_Body.body (Vector.vector (this.internal_http_response.body []))
+
+    ## Get the response status code.
+    code : Status_Code
+    code = Status_Code.status_code (this.internal_http_response.statusCode [])

@@ -1,0 +1,43 @@
+import Test
+
+import Tests.Semantic.Import_Loop.Spec as Import_Loop_Spec
+import Tests.Semantic.Deep_Export.Spec as Deep_Export_Spec
+import Tests.Semantic.Java_Interop_Spec
+import Tests.Semantic.Error_Spec
+import Tests.Semantic.Names_Spec
+import Tests.Semantic.Meta_Spec
+
+import Tests.Data.Json_Spec
+import Tests.Data.List_Spec
+import Tests.Data.Map_Spec
+import Tests.Data.Numbers_Spec
+import Tests.Data.Text_Spec
+import Tests.Data.Time.Spec as Time_Spec
+import Tests.Data.Vector_Spec
+import Tests.Network.Http_Spec
+import Tests.Network.Uri_Spec
+import Tests.Network.Http.Header_Spec
+import Tests.Network.Http.Request_Spec
+import Tests.System.File_Spec
+import Tests.System.Process_Spec
+
+main = Test.Suite.runMain <|
+    List_Spec.spec
+    Numbers_Spec.spec
+    Import_Loop_Spec.spec
+    Names_Spec.spec
+    Error_Spec.spec
+    Deep_Export_Spec.spec
+    Process_Spec.spec
+    Java_Interop_Spec.spec
+    Vector_Spec.spec
+    Text_Spec.spec
+    Time_Spec.spec
+    File_Spec.spec
+    Meta_Spec.spec
+    Map_Spec.spec
+    Json_Spec.spec
+    Uri_Spec.spec
+    Header_Spec.spec
+    Request_Spec.spec
+    Http_Spec.spec

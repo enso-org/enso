@@ -1,0 +1,30 @@
+import Test
+from Base import all
+
+spec = describe "List" <|
+    l = Base.Cons 1 <| Base.Cons 2 <| Base.Cons 3 <| Base.Nil
+    it "should have properly defined length" <|
+        l.length.should_equal 3
+    it "should have well defined length when empty" <|
+        Nil.length.should_equal 0
+    it "should allow mapping a function over its elements with .map" <|
+        l.map +1 . head . should_equal 2
+    it "should allow reversing with .reverse" <|
+        l.reverse.head.should_equal 3
+    it "should allow executing an action for each element with .each" <|
+        sum = State.run Number 0 <|
+            l.each el->
+                s = State.get Number
+                State.put Number s+el
+            State.get Number
+        sum.should_equal 6
+    it "should allow folding the list with an arbitrary operation with .fold" <|
+        sum = l.fold 0 (+)
+        prod = l.fold 1 (*)
+        sum.should_equal 6
+        prod.should_equal 6
+    it "should allow checking if an element satisfies a predicate with .any" <|
+        any_even = l.any (x -> x % 2 == 0)
+        any_eq_five = l.any (== 5)
+        any_even.should_be_true
+        any_eq_five.should_be_false

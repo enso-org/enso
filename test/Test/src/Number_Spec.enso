@@ -1,7 +1,0 @@
-import Base.Test
-
-spec = describe "Number" <|
-    it "should define addition" <|
-        2+3 . should_equal 5
-    it "should define multiplication" <|
-        2*3 . should_equal 6
