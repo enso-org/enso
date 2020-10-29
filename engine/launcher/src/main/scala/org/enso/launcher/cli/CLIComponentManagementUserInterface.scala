@@ -9,6 +9,11 @@ import org.enso.componentmanager.components.{
 }
 import org.enso.launcher.InfoLogger
 
+/** [[ComponentManagementUserInterface]] that reports information and progress
+  * to the command line.
+  *
+  * It may ask interactive questions to the user, depending on [[cliOptions]].
+  */
 class CLIComponentManagementUserInterface(
   cliOptions: GlobalCLIOptions,
   alwaysInstallMissing: Boolean
@@ -64,5 +69,6 @@ class CLIComponentManagementUserInterface(
     )
   }
 
+  /** @inheritdoc */
   override def logInfo(message: => String): Unit = InfoLogger.info(message)
 }

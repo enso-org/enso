@@ -6,6 +6,13 @@ import com.typesafe.scalalogging.Logger
 import org.enso.componentmanager.FileSystem
 import org.enso.componentmanager.locking.ResourceManager
 
+/** Manages safe access to the temporary directory.
+  *
+  * The temporary directory is created on demand and automatically removed if it
+  * is empty. Temporary files from previous runs are removed when the temporary
+  * directory is first accessed. Locking mechanism is used to ensure that the
+  * old files are no longer used by any other instances running in parallel.
+  */
 class TemporaryDirectoryManager(
   distribution: DistributionManager,
   resourceManager: ResourceManager
@@ -53,5 +60,4 @@ class TemporaryDirectoryManager(
       }
     }
   }
-
 }

@@ -1,5 +1,6 @@
 package org.enso.componentmanager.test
 
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
 import org.enso.componentmanager.components.{
@@ -7,8 +8,13 @@ import org.enso.componentmanager.components.{
   RuntimeVersion
 }
 
+/** [[ComponentManagementUserInterface]] for usage in testing.
+  *
+  * It ensures that there are no interactive actions and unnecessary logging.
+  */
 class TestComponentManagementUserInterface(installBroken: Boolean)
     extends ComponentManagementUserInterface {
+  private val logger = Logger[TestComponentManagementUserInterface]
 
   /** @inheritdoc */
   override def trackProgress(task: TaskProgress[_]): Unit = ()
@@ -30,10 +36,13 @@ class TestComponentManagementUserInterface(installBroken: Boolean)
   override def shouldInstallMissingRuntime(version: RuntimeVersion): Boolean =
     true
 
-  override def logInfo(message: => String): Unit = ()
+  /** @inheritdoc */
+  override def logInfo(message: => String): Unit = logger.debug(message)
 }
 
 object TestComponentManagementUserInterface {
+
+  /** Creates a default [[TestComponentManagementUserInterface]]. */
   def default: TestComponentManagementUserInterface =
     new TestComponentManagementUserInterface(installBroken = false)
 }

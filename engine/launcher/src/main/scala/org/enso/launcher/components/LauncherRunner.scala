@@ -20,6 +20,8 @@ import org.enso.loggingservice.LogLevel
 import scala.concurrent.Future
 import scala.util.Try
 
+/** Extends the [[Runner]] with launcher specific logic for project discovery.
+  */
 class LauncherRunner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,

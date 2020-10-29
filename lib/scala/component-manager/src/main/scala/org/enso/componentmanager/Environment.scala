@@ -127,8 +127,8 @@ trait Environment {
     *
     * It is intended for usage in native binary builds, where it returns the
     * path to the binary executable that is running. When running on the JVM,
-    * returns a path to the root of the classpath for the `org.enso.launcher`
-    * package or a built JAR.
+    * returns a path to the root of the classpath for the
+    * `org.enso.componentmanager` package or a built JAR.
     */
   def getPathToRunningExecutable: Path = try {
     val codeSource =

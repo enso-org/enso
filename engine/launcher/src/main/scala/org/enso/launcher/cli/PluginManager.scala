@@ -138,6 +138,6 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
 }
 
 /** Default implementation of the [[PluginManager]] using the default
-  * [[Environment]].
+  * [[LauncherEnvironment]].
   */
 object PluginManager extends PluginManager(LauncherEnvironment)

@@ -5,7 +5,14 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import org.enso.componentmanager.Environment
 
+/** Default [[Environment]] to use in the launcher.
+  *
+  * In non-release mode, it allows internal test scripts to override the
+  * executable location.
+  */
 object LauncherEnvironment extends Environment {
+
+  /** @inheritdoc */
   override def getPathToRunningExecutable: Path =
     executablePathOverride.getOrElse(super.getPathToRunningExecutable)
 
