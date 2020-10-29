@@ -111,7 +111,7 @@ fn span_tree_args() {
         // an additional prefix application argument.
         [_,second] => {
             let Node{children,kind,..} = &second.node;
-            let expected_kind = node::Kind::insertion_point()
+            let _expected_kind = node::Kind::insertion_point()
                 .with_kind(InsertionPointType::ExpectedArgument(0));
             assert!(children.is_empty());
             // assert_eq!(kind,&node::Kind::from(expected_kind));

@@ -164,7 +164,7 @@ fn generate_node_for_ast<T:Payload>
         let chain      = infix.flatten();
         let app_base   = ApplicationBase::new(ast);
         let invocation = || -> Option<CalledMethodInfo> {
-            context.call_info(ast.id?, app_base.function_name)
+            context.call_info(ast.id?, Some(app_base.function_name?))
         }();
 
         // All prefix params are missing arguments, since there is no prefix application.
