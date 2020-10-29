@@ -178,6 +178,8 @@ lazy val enso = (project in file("."))
     runtime,
     searcher,
     launcher,
+    `component-manager`,
+    `component-manager-test`,
     syntax.jvm,
     testkit
   )
