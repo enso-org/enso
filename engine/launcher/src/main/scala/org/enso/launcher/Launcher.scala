@@ -154,7 +154,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     if (existing.isDefined) {
       InfoLogger.info(s"Engine $version is already installed.")
     } else {
-      // TODO [RW] re-implement {complain = false} here
       installingComponentManager.findOrInstallEngine(version)
     }
     0
