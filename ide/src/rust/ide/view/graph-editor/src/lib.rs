@@ -1573,7 +1573,7 @@ impl application::View for GraphEditor {
 
           // === Visualization ===
           , (Press       , "!node_editing" , "space" , "press_visualization_visibility")
-          , (DoublePress , "!node_editing" , "space" , "double_press_visualization_visibility")
+          // , (DoublePress , "!node_editing" , "space" , "double_press_visualization_visibility")
           , (Release     , "!node_editing" , "space" , "release_visualization_visibility")
 
           // === Selection ===
