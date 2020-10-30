@@ -46,7 +46,6 @@ use ensogl::display;
 use ensogl::display::object::Id;
 use ensogl::display::Scene;
 use ensogl::display::shape::StyleWatch;
-use ensogl::display::shape::text::text_field::FocusManager;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component::Tween;
 use ensogl::gui::cursor;
@@ -372,12 +371,6 @@ ensogl::define_endpoints! {
         cycle_visualization_for_selected_node(),
         /// Switches the selected visualisation to/from fullscreen mode.
         toggle_fullscreen_for_selected_visualization(),
-
-
-        // === Project Management ===
-
-        /// Cancel project name editing, restablishing the old name.
-        cancel_project_name_editing(),
 
 
         // === Debug ===
@@ -904,9 +897,9 @@ impl Deref for GraphEditorModelWithNetwork {
 }
 
 impl GraphEditorModelWithNetwork {
-    pub fn new(app:&Application, cursor:cursor::Cursor, focus_manager:&FocusManager) -> Self {
+    pub fn new(app:&Application, cursor:cursor::Cursor) -> Self {
         let network = frp::Network::new();
-        let model   = GraphEditorModel::new(app,cursor,&network,focus_manager);
+        let model   = GraphEditorModel::new(app,cursor,&network);
         Self {model,network}
     }
 
@@ -1092,7 +1085,6 @@ impl GraphEditorModel {
     ( app           : &Application
     , cursor        : cursor::Cursor
     , network       : &frp::Network
-    , focus_manager : &FocusManager
     ) -> Self {
         let scene              = app.display.scene();
         let logger             = Logger::new("GraphEditor");
@@ -1102,7 +1094,7 @@ impl GraphEditorModel {
         let visualizations     = visualization::Registry::with_default_visualizations();
         let frp                = FrpInputs::new(network);
         let touch_state        = TouchState::new(network,&scene.mouse.frp);
-        let breadcrumbs        = component::Breadcrumbs::new(scene,focus_manager);
+        let breadcrumbs        = component::Breadcrumbs::new(app.clone_ref());
         let app                = app.clone_ref();
         Self {
             logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs,visualizations
@@ -1567,7 +1559,6 @@ impl application::View for GraphEditor {
           // === Drag ===
             (Press   , ""              , "left-mouse-button" , "node_press")
           , (Release , ""              , "left-mouse-button" , "node_release")
-          , (Press   , "!node_editing" , "escape"            , "cancel_project_name_editing")
           , (Press   , "!node_editing" , "backspace"         , "remove_selected_nodes")
           , (Press   , ""              , "cmd g"             , "collapse_selected_nodes")
 
@@ -1665,10 +1656,9 @@ impl Default for SelectionMode {
 #[allow(unused_parens)]
 fn new_graph_editor(app:&Application) -> GraphEditor {
     let world          = &app.display;
-    let focus_manager  = world.text_field_focus_manager();
     let scene          = world.scene();
     let cursor         = &app.cursor;
-    let model          = GraphEditorModelWithNetwork::new(app,cursor.clone_ref(),focus_manager);
+    let model          = GraphEditorModelWithNetwork::new(app,cursor.clone_ref());
     let network        = &model.network;
     let nodes          = &model.nodes;
     let edges          = &model.edges;
@@ -1690,8 +1680,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // =============================
 
     frp::extend! { network
-        eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.frp.debug.push_breadcrumb.emit(None));
-        eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.frp.debug.pop_breadcrumb.emit(()));
+        eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.debug_push_breadcrumb.emit(None));
+        eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.debug_pop_breadcrumb.emit(()));
     }
 
 
@@ -1703,16 +1693,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Commit project name edit ===
 
     frp::extend! { network
-        eval_ touch.background.selected(model.breadcrumbs.frp.outside_press.emit(()));
-    }
-
-
-    // === Cancel project name editing ===
-
-    frp::extend! { network
-        eval_ inputs.cancel_project_name_editing(
-            model.breadcrumbs.frp.cancel_project_name_editing.emit(())
-        );
+        eval_ touch.background.selected(model.breadcrumbs.outside_press.emit(()));
     }
 
 
@@ -1782,13 +1763,6 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
                 node.model.ports.frp.edit_mode.emit(false);
             }
         });
-    }
-
-
-    // === Cancel project name editing ===
-
-    frp::extend! { network
-        eval_ inputs.cancel_project_name_editing(model.frp.cancel_project_name_editing.emit(()));
     }
 
 
@@ -2475,6 +2449,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     cursor_style_on_edge_drag_stop <- out.all_edges_attached.constant(default());
     cursor_style_edge_drag         <- any (cursor_style_edge_drag,cursor_style_on_edge_drag_stop);
 
+    let breadcrumb_style = model.breadcrumbs.pointer_style.clone_ref();
 
     pointer_style <- all
         [ pointer_on_drag
@@ -2482,6 +2457,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         , cursor_press
         , node_pointer_style
         , cursor_style_edge_drag
+        , breadcrumb_style
         ].fold();
 
     eval pointer_style ((style) cursor.frp.set_style.emit(style));
@@ -2499,7 +2475,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
 impl display::Object for GraphEditor {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        self.model.display_object()
     }
 }
 

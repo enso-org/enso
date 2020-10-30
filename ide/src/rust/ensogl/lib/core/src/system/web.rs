@@ -1,7 +1,6 @@
 //! Root module for web-based functionalities.
 
 pub mod dom;
-pub mod text_input;
 
 pub use ensogl_system_web::*;
 pub use web_sys::HtmlElement;

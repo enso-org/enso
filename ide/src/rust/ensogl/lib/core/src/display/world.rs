@@ -15,7 +15,6 @@ use crate::debug::stats::Stats;
 use crate::display::render::*;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::Scene;
-use crate::display::shape::text::text_field;
 use crate::display;
 use crate::system::web;
 
@@ -77,7 +76,6 @@ pub struct World {
     uniforms         : Uniforms,
     stats            : Stats,
     stats_monitor    : stats::Monitor,
-    focus_manager    : text_field::FocusManager, // FIXME: Move it to `Application`.
     callback_handles : CallbackHandles,
 }
 
@@ -93,7 +91,6 @@ impl World {
         let uniforms        = Uniforms::new(&scene.variables);
         let main_loop       = animation::DynamicLoop::new();
         let stats_monitor   = stats::Monitor::new(&stats);
-        let focus_manager   = text_field::FocusManager::new_with_js_handlers();
 
         let on_before_frame = main_loop.on_before_frame (f_!(stats_monitor.begin()));
         let on_after_frame  = main_loop.on_after_frame  (f_!(stats_monitor.end()));
@@ -107,8 +104,7 @@ impl World {
         );
 
         let callback_handles = CallbackHandles {on_before_frame,on_frame,on_after_frame};
-        Self {scene,scene_dirty,logger,main_loop,uniforms,callback_handles,stats,stats_monitor
-             ,focus_manager} . init()
+        Self{scene,scene_dirty,logger,main_loop,uniforms,callback_handles,stats,stats_monitor}.init()
     }
 
     fn init(self) -> Self {
@@ -157,11 +153,6 @@ impl World {
     /// Scene accessor.
     pub fn scene(&self) -> &Scene {
         &self.scene
-    }
-
-    /// Text field focus manager accessor.
-    pub fn text_field_focus_manager(&self) -> &text_field::FocusManager {
-        &self.focus_manager
     }
 
     /// Register a callback which should be run on each animation frame.

@@ -274,6 +274,48 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6))
     }
 
+    pub fn all_vec7<Out,T1,T2,T3,T4,T5,T6,T7>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6, t7:&T7) -> Stream<Vec<Out>>
+        where Out : Data,
+              T1  : EventOutput<Output=Out>,
+              T2  : EventOutput<Output=Out>,
+              T3  : EventOutput<Output=Out>,
+              T4  : EventOutput<Output=Out>,
+              T5  : EventOutput<Output=Out>,
+              T6  : EventOutput<Output=Out>,
+              T7  : EventOutput<Output=Out>{
+        self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6).with(t7))
+    }
+
+    pub fn all_vec8<Out,T1,T2,T3,T4,T5,T6,T7,T8>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6, t7:&T7, t8:&T8) -> Stream<Vec<Out>>
+        where Out : Data,
+              T1  : EventOutput<Output=Out>,
+              T2  : EventOutput<Output=Out>,
+              T3  : EventOutput<Output=Out>,
+              T4  : EventOutput<Output=Out>,
+              T5  : EventOutput<Output=Out>,
+              T6  : EventOutput<Output=Out>,
+              T7  : EventOutput<Output=Out>,
+              T8  : EventOutput<Output=Out>{
+        self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6).with(t7).with(t8))
+    }
+
+    pub fn all_vec9<Out,T1,T2,T3,T4,T5,T6,T7,T8,T9>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6, t7:&T7, t8:&T8, t9:&T9) -> Stream<Vec<Out>>
+        where Out : Data,
+              T1  : EventOutput<Output=Out>,
+              T2  : EventOutput<Output=Out>,
+              T3  : EventOutput<Output=Out>,
+              T4  : EventOutput<Output=Out>,
+              T5  : EventOutput<Output=Out>,
+              T6  : EventOutput<Output=Out>,
+              T7  : EventOutput<Output=Out>,
+              T8  : EventOutput<Output=Out>,
+              T9  : EventOutput<Output=Out>{
+        self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6).with(t7).with(t8).with(t9))
+    }
+
     /// Merges input streams into a stream containing values from all of them. On event from any of
     /// the input streams, all streams are sampled and the final event is produced.
     pub fn all<T1,T2>(&self, label:Label, t1:&T1, t2:&T2) -> Stream<(Output<T1>,Output<T2>)>

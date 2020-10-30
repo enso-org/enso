@@ -183,18 +183,18 @@ define_theme! { dark
                 color = color::Lcha::new(1.0,0.0,0.0,0.4)
             }
             selected {
-                color = color::Lcha::new(1.0,0.0,0.0,0.6)
+                color = color::Lcha::new(1.0,0.0,0.0,0.7)
             }
             deselected{
                 left {
-                    color = color::Lcha::new(1.0,0.0,0.0,0.6)
+                    color = color::Lcha::new(1.0,0.0,0.0,0.5)
                 }
                 right {
                     color = color::Lcha::new(1.0,0.0,0.0,0.2)
                 }
             }
             hover {
-                color = color::Lcha::new(1.0,0.0,0.0,0.6)
+                color = color::Lcha::new(1.0,0.0,0.0,0.7)
             }
         }
         edge {
@@ -339,18 +339,18 @@ define_default_theme! { light
                 color = color::Lcha::new(0.0,0.0,0.0,0.4)
             }
             selected {
-                color = color::Lcha::new(0.0,0.0,0.0,0.6)
+                color = color::Lcha::new(0.0,0.0,0.0,0.7)
             }
             deselected{
                 left {
-                    color = color::Lcha::new(0.0,0.0,0.0,0.6)
+                    color = color::Lcha::new(0.0,0.0,0.0,0.5)
                 }
                 right {
                     color = color::Lcha::new(0.0,0.0,0.0,0.2)
                 }
             }
             hover {
-                color = color::Lcha::new(0.0,0.0,0.0,0.6)
+                color = color::Lcha::new(0.0,0.0,0.0,0.7)
             }
         }
         edge {
