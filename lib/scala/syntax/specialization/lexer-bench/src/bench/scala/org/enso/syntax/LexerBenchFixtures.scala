@@ -13,15 +13,28 @@ object LexerBenchFixtures {
 
   // === Lexer Runner ===
 
+  /** Execute the lexer on the provided `input`.
+    *
+    * @param input the source code
+    * @return the result of lexing `input`
+    */
   def runLexer(input: String): ParserDef2.Result[AST.Module] = {
     val engine = newEngine()
-//    val reader = new Reader(new CommentRemover(input).run)
     val reader = new Reader(input)
     engine.run(reader)
   }
 
   // === Utilities ===
 
+  /** Replicate the provided `input` out to the provided `size` in bytes
+    * (according to utf-8).
+    *
+    * @param input the text to replicate
+    * @param size the size to replicate `input` to
+    * @param addNewline whether or not a newline should be added after each
+    *                   repetition of `input`
+    * @return `input`, repeated enough times to make the size >= `size`
+    */
   def replicate(
     input: String,
     size: Int,
@@ -33,6 +46,11 @@ object LexerBenchFixtures {
     inputNewline.repeat(times)
   }
 
+  /** Replace all CRLF line endings in the input by LF.
+    *
+    * @param input the input text
+    * @return `input` with all `\r\n` replaced by `\n`
+    */
   def preprocess(input: String): String = {
     input.replace("\r\n", "\n")
   }
