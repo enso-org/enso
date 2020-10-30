@@ -66,7 +66,6 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`LanguageServerError`](#languageservererror)
   - [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror)
   - [`LoggingServiceUnavailable`](#loggingserviceunavailable)
-  - [`ServiceError`](#serviceerror)
 
 <!-- /MarkdownTOC -->
 
@@ -370,7 +369,8 @@ null
   underlying data store.
 - [`ProjectExistsError`](#projectexistserror) to signal that the project with
   the provided name already exists.
-- [`ServiceError`](#serviceerror) to signal that the the operation timed out.
+- [`ServiceError`](./protocol-common.md#serviceerror) to signal that the the
+  operation timed out.
 - [`LanguageServerError`](#languageservererror) to signal generic language
   server failures.
 
@@ -1051,16 +1051,5 @@ Signals that the logging service is not available.
 "error" : {
   "code" : 4012,
   "message" : "The logging service has failed to boot."
-}
-```
-
-### `ServiceError`
-
-Signals a generic service error.
-
-```typescript
-"error" : {
-  "code" : 1,
-  "message" : "Service error"
 }
 ```
