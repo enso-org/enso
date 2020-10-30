@@ -556,7 +556,7 @@ interface TaskFinishedNotification {
 }
 ```
 
-## Components Management
+## Runtime Version Management
 
 ### `engine/list-installed`
 

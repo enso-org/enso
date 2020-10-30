@@ -18,7 +18,7 @@ import org.enso.runtimeversionmanager.locking.{
 }
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
-import org.enso.launcher.releases.EnsoRepository
+import org.enso.launcher.releases.LauncherRepository
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.logger.LoggerSyntax
@@ -377,7 +377,7 @@ object LauncherUpgrader {
     new LauncherUpgrader(
       globalCLIOptions,
       DefaultManagers.distributionManager,
-      EnsoRepository.defaultLauncherReleaseProvider,
+      LauncherRepository.defaultLauncherReleaseProvider,
       DefaultManagers.defaultResourceManager,
       originalExecutablePath
     )

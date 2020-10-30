@@ -1,13 +1,13 @@
 package org.enso.launcher
 
-import org.enso.runtimeversionmanager.components.RuntimeVersionManager
-import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.launcher.cli.{
   CLIRuntimeVersionManagementUserInterface,
   GlobalCLIOptions
 }
 import org.enso.launcher.distribution.DefaultManagers._
-import org.enso.launcher.releases.EnsoRepository
+import org.enso.runtimeversionmanager.components.RuntimeVersionManager
+import org.enso.runtimeversionmanager.releases.engine.EngineRepository
+import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 
 object DefaultComponentManager {
   def make(
@@ -22,7 +22,7 @@ object DefaultComponentManager {
       distributionManager,
       temporaryDirectoryManager,
       defaultResourceManager,
-      EnsoRepository.defaultEngineReleaseProvider,
+      EngineRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider
     )
 }

@@ -23,7 +23,7 @@ import scala.util.Try
   * of a JVM.
   */
 class Runner(
-  componentsManager: RuntimeVersionManager,
+  runtimeVersionManager: RuntimeVersionManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]
 ) {
@@ -152,11 +152,11 @@ class Runner(
 
     val engineVersion = runSettings.version
     if (jvmSettings.useSystemJVM) {
-      componentsManager.withEngine(engineVersion) { engine =>
+      runtimeVersionManager.withEngine(engineVersion) { engine =>
         prepareAndRunCommand(engine, systemJavaCommand)
       }
     } else {
-      componentsManager.withEngineAndRuntime(engineVersion) {
+      runtimeVersionManager.withEngineAndRuntime(engineVersion) {
         (engine, runtime) =>
           prepareAndRunCommand(engine, javaCommandForRuntime(runtime))
       }

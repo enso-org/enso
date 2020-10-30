@@ -6,7 +6,7 @@ import scala.util.{Failure, Try}
 
 /** Clients can implement this trait to get progress updates.
   */
-trait ProgressListener[A] {
+trait ProgressListener[-A] {
   def progressUpdate(done: Long, total: Option[Long]): Unit
   def done(result: Try[A]):                            Unit
 }
