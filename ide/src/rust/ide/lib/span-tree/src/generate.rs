@@ -380,14 +380,24 @@ fn generate_node_for_known_match<T:Payload>
 fn generate_children_from_segment<T:Payload>
 (gen:&mut ChildGenerator<T>, index:usize, segment:&MacroMatchSegment<Ast>, context:&impl Context)
 -> FallibleResult {
-    let children_kind = node::Kind::argument();
-    gen.spacing(segment.head.len());
+
+    // generate child for head
+    let ast           = segment.head.clone_ref();
+    let segment_crumb = ast::crumbs::SegmentMatchCrumb::Head;
+    let ast_crumb     = ast::crumbs::MatchCrumb::Segs {val:segment_crumb, index};
+    let located_ast   = Located::new(ast_crumb,ast);
+    gen.generate_ast_node(located_ast,node::Kind::Token,context)?;
+
     for macros::AstInPattern {ast,crumbs} in macros::all_ast_nodes_in_pattern(&segment.body) {
+        let child_kind = match crumbs.last() {
+            Some(ast::crumbs::PatternMatchCrumb::Tok) => node::Kind::Token,
+            _                                         => node::Kind::argument().into(),
+        };
         gen.spacing(ast.off);
         let segment_crumb = ast::crumbs::SegmentMatchCrumb::Body {val:crumbs};
         let ast_crumb     = ast::crumbs::MatchCrumb::Segs{val:segment_crumb, index};
         let located_ast   = Located::new(ast_crumb,ast.wrapped);
-        gen.generate_ast_node(located_ast,children_kind.clone(),context)?;
+        gen.generate_ast_node(located_ast,child_kind,context)?;
     }
     Ok(())
 }
@@ -426,7 +436,13 @@ fn generate_children_from_ambiguous<T:Payload>
 , context : &impl Context
 ) -> FallibleResult {
     let children_kind = node::Kind::argument();
-    gen.spacing(segment.head.len());
+    // generate child for head
+    let ast           = segment.head.clone_ref();
+    let segment_crumb = ast::crumbs::AmbiguousSegmentCrumb::Head;
+    let ast_crumb     = ast::crumbs::AmbiguousCrumb {field:segment_crumb, index};
+    let located_ast   = Located::new(ast_crumb,ast);
+    gen.generate_ast_node(located_ast,node::Kind::Token,context)?;
+
     if let Some(sast) = &segment.body {
         gen.spacing(sast.off);
         let field       = ast::crumbs::AmbiguousSegmentCrumb::Body;
@@ -745,17 +761,17 @@ mod test {
 
         // Check the other fields
         clear_expression_ids(&mut tree.root);
-        let if_then_else_cr     = vec![Seq { right: false }, Or, Build];
-        let parens_cr           = vec![Seq { right: false }, Or, Or, Build];
-        let segment_body_crumbs = |index:usize, pattern_crumb:&Vec<PatternMatchCrumb>| {
-            let val = ast::crumbs::SegmentMatchCrumb::Body {val:pattern_crumb.clone()};
-            ast::crumbs::MatchCrumb::Segs {val,index}
-        };
+        let seq             = Seq {right:false};
+        let if_then_else_cr = vec![seq,Or,Build];
+        let parens_cr       = vec![seq,Or,Or,Build];
 
         let expected = TreeBuilder::new(29)
+            .add_leaf(0,2,node::Kind::Token,segment_head_crumbs(0))
             .add_leaf(3,3,node::Kind::argument(),segment_body_crumbs(0,&if_then_else_cr))
+            .add_leaf(7,4,node::Kind::Token,segment_head_crumbs(1))
             .add_child(12,9,node::Kind::argument(),segment_body_crumbs(1,&if_then_else_cr))
                 .add_child(0,7,node::Kind::Operation,PrefixCrumb::Func)
+                    .add_leaf(0,1,node::Kind::Token,segment_head_crumbs(0))
                     .add_child(1,5,node::Kind::argument(),segment_body_crumbs(0,&parens_cr))
                         .add_empty_child(0,BeforeTarget)
                         .add_leaf(0,1,node::Kind::this(),InfixCrumb::LeftOperand)
@@ -764,12 +780,46 @@ mod test {
                         .add_leaf(4,1,node::Kind::argument(),InfixCrumb::RightOperand)
                         .add_empty_child(5,Append)
                         .done()
+                    .add_leaf(6,1,node::Kind::Token,segment_head_crumbs(1))
                     .done()
                 .add_empty_child(8,BeforeTarget)
                 .add_leaf(8,1,node::Kind::this(),PrefixCrumb::Arg)
                 .add_empty_child(9,Append)
                 .done()
-            .add_leaf(27,2,node::Kind::argument(),segment_body_crumbs(2,&if_then_else_cr))
+            .add_leaf(22,4,node::Kind::Token,segment_head_crumbs(2))
+            .add_child(27,2,node::Kind::argument(),segment_body_crumbs(2,&if_then_else_cr))
+                .add_leaf(0,1,node::Kind::Token,segment_head_crumbs(0))
+                .add_leaf(1,1,node::Kind::Token,segment_head_crumbs(1))
+                .done()
+            .build();
+
+        assert_eq!(expected,tree);
+    }
+
+    #[wasm_bindgen_test]
+    fn generating_span_tree_from_matched_list_macro() {
+        use PatternMatchCrumb::*;
+
+        let parser     = Parser::new_or_panic();
+        let expression = "[a,b]";
+        let ast        = parser.parse_line(expression).unwrap();
+        let mut tree   = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
+
+        // Check the other fields
+        clear_expression_ids(&mut tree.root);
+        let left_seq          = Seq {right:false};
+        let right_seq         = Seq {right:true};
+        let many              = Many {index:0};
+        let first_element_cr  = vec![left_seq,Or,Or,left_seq,Build];
+        let second_element_cr = vec![left_seq,Or,Or,right_seq,many,right_seq,Build];
+        let comma_cr          = vec![left_seq,Or,Or,right_seq,many,left_seq,Tok];
+
+        let expected = TreeBuilder::new(5)
+            .add_leaf(0,1,node::Kind::Token,segment_head_crumbs(0))
+            .add_leaf(1,1,node::Kind::argument(),segment_body_crumbs(0,&first_element_cr))
+            .add_leaf(2,1,node::Kind::Token,segment_body_crumbs(0,&comma_cr))
+            .add_leaf(3,1,node::Kind::argument(),segment_body_crumbs(0,&second_element_cr))
+            .add_leaf(4,1,node::Kind::Token,segment_head_crumbs(1))
             .build();
 
         assert_eq!(expected,tree);
@@ -789,9 +839,11 @@ mod test {
 
         // Check the other fields:
         clear_expression_ids(&mut tree.root);
-        let crumb    = AmbiguousCrumb{index:0, field:AmbiguousSegmentCrumb::Body};
+        let head_crumb = AmbiguousCrumb{index:0, field:AmbiguousSegmentCrumb::Head};
+        let body_crumb = AmbiguousCrumb{index:0, field:AmbiguousSegmentCrumb::Body};
         let expected = TreeBuilder::new(2)
-            .add_leaf(1,1,node::Kind::argument(),crumb)
+            .add_leaf(0,1,node::Kind::Token,head_crumb)
+            .add_leaf(1,1,node::Kind::argument(),body_crumb)
             .build();
 
         assert_eq!(expected,tree);
@@ -902,5 +954,15 @@ mod test {
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
         assert_eq!(tree,expected);
+    }
+
+    fn segment_body_crumbs(index:usize, pattern_crumb:&Vec<PatternMatchCrumb>) -> ast::crumbs::MatchCrumb {
+        let val = ast::crumbs::SegmentMatchCrumb::Body {val:pattern_crumb.clone()};
+        ast::crumbs::MatchCrumb::Segs {val,index}
+    }
+
+    fn segment_head_crumbs(index:usize) -> ast::crumbs::MatchCrumb {
+        let val = ast::crumbs::SegmentMatchCrumb::Head;
+        ast::crumbs::MatchCrumb::Segs {val,index}
     }
 }
