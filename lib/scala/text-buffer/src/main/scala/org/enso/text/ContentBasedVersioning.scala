@@ -1,21 +1,13 @@
 package org.enso.text
 
-/** A content-based versioning calculator.
-  */
+/** A content-based versioning calculator. */
 trait ContentBasedVersioning {
 
   /** Evaluates content-based version of document.
     *
     * @param content a textual content
-    * @return a string representation of a digest
+    * @return a content version
     */
-  def evalVersion(content: String): String
-
-  /** Evaluates content-based version of document.
-    *
-    * @param content a textual content
-    * @return a digest
-    */
-  def evalDigest(content: String): Array[Byte]
+  def evalVersion(content: String): ContentVersion
 
 }

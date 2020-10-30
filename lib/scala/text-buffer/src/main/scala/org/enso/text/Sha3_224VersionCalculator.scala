@@ -1,20 +1,16 @@
 package org.enso.text
 
-import org.bouncycastle.jcajce.provider.digest.SHA3
-import org.bouncycastle.util.encoders.Hex
+import java.nio.charset.StandardCharsets
 
-/** SHA3-224 digest calculator.
-  */
+import org.bouncycastle.jcajce.provider.digest.SHA3
+
+/** SHA3-224 digest calculator. */
 object Sha3_224VersionCalculator extends ContentBasedVersioning {
 
   /** @inheritdoc */
-  override def evalVersion(content: String): String =
-    Hex.toHexString(evalDigest(content))
-
-  /** @inheritdoc */
-  override def evalDigest(content: String): Array[Byte] = {
+  override def evalVersion(content: String): ContentVersion = {
     val digestSHA3 = new SHA3.Digest224()
-    digestSHA3.digest(content.getBytes("UTF-8"))
+    ContentVersion(digestSHA3.digest(content.getBytes(StandardCharsets.UTF_8)))
   }
 
 }

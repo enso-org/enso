@@ -1,7 +1,5 @@
 package org.enso.languageserver.search
 
-import java.util
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.pipe
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -27,7 +25,7 @@ import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
-import org.enso.text.ContentBasedVersioning
+import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing.model.Position
 
 import scala.concurrent.Future
@@ -141,10 +139,9 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
       val isVersionChanged =
-        fileVersionsRepo.getVersion(msg.file).map { versionOpt =>
-          versionOpt.fold(true)(
-            !util.Arrays.equals(_, versionCalculator.evalDigest(msg.contents))
-          )
+        fileVersionsRepo.getVersion(msg.file).map { digestOpt =>
+          val currentVersion = versionCalculator.evalVersion(msg.contents)
+          !digestOpt.map(ContentVersion(_)).contains(currentVersion)
         }
       val applyUpdatesIfVersionChanged =
         isVersionChanged.flatMap { isChanged =>
@@ -319,7 +316,7 @@ final class SuggestionsHandler(
         case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Clean) =>
           (add, remove, clean :+ m.module)
       }
-    val fileVersion = versionCalculator.evalDigest(msg.contents)
+    val fileVersion = versionCalculator.evalVersion(msg.contents)
     log.debug(
       s"Applying suggestion updates: Add(${addCmds.map(_.name).mkString(",")}); Remove(${removeCmds
         .map(_.name)
@@ -329,7 +326,7 @@ final class SuggestionsHandler(
       (_, cleanedIds)     <- suggestionsRepo.removeAllByModule(cleanCmds)
       (_, removedIds)     <- suggestionsRepo.removeAll(removeCmds)
       (version, addedIds) <- suggestionsRepo.insertAll(addCmds)
-      _                   <- fileVersionsRepo.setVersion(msg.file, fileVersion)
+      _                   <- fileVersionsRepo.setVersion(msg.file, fileVersion.toDigest)
     } yield {
       val updatesCleaned = cleanedIds.map(SuggestionsDatabaseUpdate.Remove)
       val updatesRemoved =

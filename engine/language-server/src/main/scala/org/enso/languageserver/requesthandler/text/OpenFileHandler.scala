@@ -57,7 +57,11 @@ class OpenFileHandler(
         OpenFile,
         id,
         OpenFile
-          .Result(capability, buffer.contents.toString, buffer.version)
+          .Result(
+            capability,
+            buffer.contents.toString,
+            buffer.version.toHexString
+          )
       )
       cancellable.cancel()
       context.stop(self)

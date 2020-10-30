@@ -8,6 +8,7 @@ import java.util.logging.Level
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.Job
 import org.enso.polyglot.RuntimeServerInfo
+import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
@@ -48,7 +49,8 @@ class JobExecutionEngine(
       truffleContext   = interpreterContext.truffleContext,
       jobProcessor     = this,
       jobControlPlane  = this,
-      locking          = locking
+      locking          = locking,
+      versioning       = Sha3_224VersionCalculator
     )
 
   /** @inheritdoc */
