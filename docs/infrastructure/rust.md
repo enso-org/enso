@@ -11,7 +11,7 @@ order: 4
 The Rust project is built using Cargo which manages dependencies between the
 projects as well as external dependencies and allows for incremental
 compilation. The build configuration is defined in
-[`Cargo.toml`](../../Cargo.toml).
+[`Cargo.toml`](https://github.com/enso-org/enso/blob/main/Cargo.toml).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

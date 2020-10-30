@@ -27,7 +27,7 @@ The current functionality of the macro resolver is as follows:
 - TBC
 
 The current overview of the macro resolution process can be found in the scala
-[implementation](../../lib/syntax/specialization/shared/src/main/scala/org/enso/syntax/text/Parser.scala).
+[implementation](https://github.com/enso-org/enso/blob/main/lib/scala/syntax/specialization/shared/src/main/scala/org/enso/syntax/text/Parser.scala).
 
 > The actionables for this section are:
 >

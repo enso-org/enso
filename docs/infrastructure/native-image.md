@@ -8,10 +8,11 @@ order: 3
 
 # Native Image
 
-[`NativeImage`](../../project/NativeImage.scala) defines a task that is used for
-compiling a project into a native binary using Graal's Native Image. It compiles
-the project and runs the Native Image tool which builds the image. Currently,
-Native Image is used for building the Launcher.
+[`NativeImage`](https://github.com/enso-org/enso/blob/main/project/NativeImage.scala)
+defines a task that is used for compiling a project into a native binary using
+Graal's Native Image. It compiles the project and runs the Native Image tool
+which builds the image. Currently, Native Image is used for building the
+Launcher.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

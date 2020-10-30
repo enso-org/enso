@@ -137,12 +137,14 @@ configurations will not be fixed by the core team.
 In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
-  [`project/build.properties`](../project/build.properties).
+  [`project/build.properties`](https://github.com/enso-org/enso/blob/main/project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.
 - [GraalVM](https://www.graalvm.org/) with the same version as described in the
-  [`build.sbt`](../build.sbt) file, configured as your default JVM. GraalVM is
-  distributed for different Java versions, so you need a GraalVM distribution
-  for the same Java version as specified in [`build.sbt`](../build.sbt).
+  [`build.sbt`](https://github.com/enso-org/enso/blob/main/build.sbt) file,
+  configured as your default JVM. GraalVM is distributed for different Java
+  versions, so you need a GraalVM distribution for the same Java version as
+  specified in
+  [`build.sbt`](https://github.com/enso-org/enso/blob/main/build.sbt).
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
 - [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
@@ -239,8 +241,8 @@ Please follow the guidelines [above](#getting-set-up-rust) to install node if
 you have not already done so.
 
 The version if prettier is forced by our
-[`package-lock.json`](../package-lock.json) in order for us to make formatting
-bumps all at once.
+[`package-lock.json`](https://github.com/enso-org/enso/blob/main/package.json)
+in order for us to make formatting bumps all at once.
 
 You can format all of our documentation and configuration as follows:
 
@@ -333,7 +335,7 @@ the following flags:
 - `--printAssembly`: Prints the assembly output from the HotSpot JIT tier.
 
 For more information on this sbt command, please see
-[WithDebugCommand.scala](../project/WithDebugCommand.scala).
+[WithDebugCommand.scala](https://github.com/enso-org/enso/blob/main/project/WithDebugCommand.scala).
 
 It is used as an addendum to the basic sbt command you want to run (e.g. `test`
 from above). The format is `withDebug COMMAND [OPTIONS...]`, and if you need to
@@ -414,8 +416,9 @@ need to follow these steps:
 4. In the options for that configuration select 'Listen to remote JVM' under
    'Debugger mode:'
 5. Where it provides the command-line arguments for the remote JVM, copy these
-   and add them to `truffleRunOptions` in [`build.sbt`](build.sbt). Remove the
-   portion of these options after `suspend=y`, including the comma. They are
+   and add them to `truffleRunOptions` in
+   [`build.sbt`](https://github.com/enso-org/enso/blob/main/build.sbt). Remove
+   the portion of these options after `suspend=y`, including the comma. They are
    placeholders that we don't use.
 6. Alternatively, certain tasks, such as `run`, `benchOnly` and `testOnly` can
    be used through the `withDebug` SBT command. For this to work, your remote

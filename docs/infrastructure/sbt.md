@@ -11,7 +11,7 @@ order: 1
 The project is built using the Scala Build Tool which manages dependencies
 between the projects as well as external dependencies and allows for incremental
 compilation. The build configuration is defined in
-[`build.sbt`](../../build.sbt).
+[`build.sbt`](https://github.com/enso-org/enso/blob/main/build.sbt).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -56,7 +56,7 @@ changing the version of Graal, before launching the sbt shell, you should first
 run `sbt bootstrap`, to make sure the environment is properly prepared.
 
 The logic for copying the JAR is implemented in the `bootstrapJARs` task in
-[`CopyTruffleJAR`](../../project/CopyTruffleJAR.scala).
+[`CopyTruffleJAR`](https://github.com/enso-org/enso/blob/main/project/CopyTruffleJAR.scala).
 
 ## Compile Hooks
 
@@ -87,35 +87,38 @@ To check some invariants _after_ compilation, we can replace the original
 `Compile / compile` task with a custom one which does its post-compile checks
 and returns the result of `(Compile / compile).value`. An example of such a
 'patched' compile task is implemented in
-[`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala).
+[`FixInstrumentsGeneration`](https://github.com/enso-org/enso/blob/main/project/FixInstrumentsGeneration.scala).
 
 ## Helper Tasks
 
-There are additional tasks defined in the [`project`](../../project) directory.
-They are used by [`build.sbt`](../../build.sbt) to provide some additional
-functionality.
+There are additional tasks defined in the
+[`project`](https://github.com/enso-org/enso/blob/main/project) directory. They
+are used by [`build.sbt`](https://github.com/enso-org/enso/blob/main/build.sbt)
+to provide some additional functionality.
 
 ### Graal and Flatc Version Check
 
-[`EnvironmentCheck`](../../project/EnvironmentCheck.scala) defines a helper
-function that can be attached to the default `Global / onLoad` state transition
-to run a version check when loading the sbt project. This helper function
-compares the version of JVM running sbt with GraalVM version defined in
-[`build.sbt`](../../build.sbt) and the version of `flatc` installed in the
-system with the Flatbuffers library version defined in
-[`build.sbt`](../../build.sbt). If the versions do not match it reports an error
-telling the user to change to the correct version.
+[`EnvironmentCheck`](https://github.com/enso-org/enso/blob/main/project/EnvironmentCheck.scala)
+defines a helper function that can be attached to the default `Global / onLoad`
+state transition to run a version check when loading the sbt project. This
+helper function compares the version of JVM running sbt with GraalVM version
+defined in [`build.sbt`](https://github.com/enso-org/enso/blob/main/build.sbt)
+and the version of `flatc` installed in the system with the Flatbuffers library
+version defined in
+[`build.sbt`](https://github.com/enso-org/enso/blob/main/build.sbt). If the
+versions do not match it reports an error telling the user to change to the
+correct version.
 
 ### Benchmarks
 
-[`BenchTasks`](../../project/BenchTasks.scala) defines configuration keys for
-benchmarking.
+[`BenchTasks`](https://github.com/enso-org/enso/blob/main/project/BenchTasks.scala)
+defines configuration keys for benchmarking.
 
 ### Build Information
 
-[`BenchTasks`](../../project/BuildInfo.scala) records version information
-including what git commit has been used for compiling the project. This
-information is used by `enso --version`.
+[`BenchTasks`](https://github.com/enso-org/enso/blob/main/project/BuildInfo.scala)
+records version information including what git commit has been used for
+compiling the project. This information is used by `enso --version`.
 
 ### Instruments Generation
 
@@ -125,7 +128,7 @@ changed instruments are recompiled and the annotation processor does not detect
 this, so un-changed instruments get un-registered.
 
 To fix this, the pre-compile task defined in
-[`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala)
+[`FixInstrumentsGeneration`](https://github.com/enso-org/enso/blob/main/project/FixInstrumentsGeneration.scala)
 detects changes to instruments and if only one of them should be recompiled, it
 forces recompilation of all of them, to ensure consistency.
 
@@ -145,11 +148,11 @@ stops the current compilation task, asking the user to restart it.
 
 ### Flatbuffers Generation
 
-[`GenerateFlatbuffers`](../../project/GenerateFlatbuffers.scala) defines the
-task that runs the Flatbuffer compiler `flatc` whenever the flatbuffer
-definitions have been changed. It also makes sure that `flatc` is available on
-PATH and that its version matches the version of the library. It reports any
-errors.
+[`GenerateFlatbuffers`](https://github.com/enso-org/enso/blob/main/project/GenerateFlatbuffers.scala)
+defines the task that runs the Flatbuffer compiler `flatc` whenever the
+flatbuffer definitions have been changed. It also makes sure that `flatc` is
+available on PATH and that its version matches the version of the library. It
+reports any errors.
 
 ### Ensuring JARs Were Loaded
 
@@ -159,7 +162,8 @@ user should run `sbt bootstrap` to ensure that.
 
 If the compilation proceeds without the bootstrapped JARs it may lead to
 inconsistent state with some dependencies being undetected and weird errors. To
-avoid such situations, [`CopyTruffleJAR`](../../project/CopyTruffleJAR.scala)
+avoid such situations,
+[`CopyTruffleJAR`](https://github.com/enso-org/enso/blob/main/project/CopyTruffleJAR.scala)
 defines is a pre-compile task that is executed before compiling the `runtime`
 subproject which makes sure that the Truffle JAR is up-to-date. Even if the
 developer forgets about `bootstrap`, this pre-compile task will update the
@@ -179,17 +183,17 @@ user should remember to run `bootstrap` when necessary.
 
 ### Debugging Command
 
-[`WithDebugCommand`](../../project/WithDebugCommand.scala) defines a command
-that allows to run a task with additional JVM-level flags.
+[`WithDebugCommand`](https://github.com/enso-org/enso/blob/main/project/WithDebugCommand.scala)
+defines a command that allows to run a task with additional JVM-level flags.
 
 ### Recompile Parser
 
-[`RecompileParser`](../../project/RecompileParser.scala) defines a task that can
-be attached to the `compile` task in configurations of the `syntax` project.
-This task ensures that the `syntax` project is recompiled whenever
-`syntax-definition` changes.
+[`RecompileParser`](https://github.com/enso-org/enso/blob/main/project/RecompileParser.scala)
+defines a task that can be attached to the `compile` task in configurations of
+the `syntax` project. This task ensures that the `syntax` project is recompiled
+whenever `syntax-definition` changes.
 
 ## Native Image
 
-[`NativeImage`](../../project/NativeImage.scala) task is described at
-[Native Image](native-image.md).
+[`NativeImage`](https://github.com/enso-org/enso/blob/main/project/NativeImage.scala)
+task is described at [Native Image](native-image.md).

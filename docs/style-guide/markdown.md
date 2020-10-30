@@ -33,7 +33,9 @@ For instructions on how to install it, please see our
 [contributing guidelines](../CONTRIBUTING.md#getting-set-up-documentation).
 
 If you notice files in generated code being formatted by prettier, please add
-them to the [`.prettierignore`](../../.prettierignore) file.
+them to the
+[`.prettierignore`](https://github.com/enso-org/enso/blob/main/.prettierignore)
+file.
 
 When bumping the version of prettier, please commit the resultant documentation
 formatting changes along with the bump as a separate PR from any functional code

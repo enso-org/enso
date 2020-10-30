@@ -33,6 +33,6 @@ recompiled and the annotation processor 'forgets' about other instruments that
 haven't been recompiled, leading to runtime errors about missing instruments.
 
 To fix that, we add the
-[`FixInstrumentsGeneration.scala`](../../project/FixInstrumentsGeneration.scala)
+[`FixInstrumentsGeneration.scala`](https://github.com/enso-org/enso/blob/main/project/FixInstrumentsGeneration.scala)
 task which detects changes to any of the instruments and forces recompilation of
 all instruments in the project by removing their classfiles.

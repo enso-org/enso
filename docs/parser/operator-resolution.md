@@ -45,4 +45,4 @@ with modifications to support operator sections.
 >
 > - Work out how to formulate this functionality efficiently in rust. The scala
 >   implementation can be found
->   [here](../../lib/syntax/definition/src/main/scala/org/enso/syntax/text/prec/Operator.scala).
+>   [here](https://github.com/enso-org/enso/blob/main/lib/scala/syntax/definition/src/main/scala/org/enso/syntax/text/prec/Operator.scala).

@@ -146,7 +146,7 @@ jvm-options:
 The `minimum-launcher-version` should be updated whenever a new version of Enso
 introduces changes that require a more recent launcher version. This value is
 stored in
-[`distribution/manifest.template.yaml`](../../distribution/manifest.template.yaml)
+[`distribution/manifest.template.yaml`](https://github.com/enso-org/enso/blob/main/distribution/manifest.template.yaml)
 and other values are added to this template at build time.
 
 #### Launcher Manifest
@@ -174,7 +174,7 @@ It contains the following fields:
   distribution's data root. Acts similarly to `files-to-copy`.
 
 A template manifest file, located in
-[`distribution/launcher-manifest.yaml`](../../distribution/launcher-manifest.yaml),
+[`distribution/launcher-manifest.yaml`](https://github.com/enso-org/enso/blob/main/distribution/launcher-manifest.yaml),
 is automatically copied to the release. If any new files or directories are
 added or a breaking change to the upgrade mechanism is being made, this manifest
 template must be updated accordingly.
