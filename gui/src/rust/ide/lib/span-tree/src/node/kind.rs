@@ -24,6 +24,8 @@ pub enum Kind {
     This(This),
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
     Argument(Argument),
+    /// A node being a unmodifiable token in macro.
+    Token,
     /// A node being a placeholder for inserting new child to Prefix or Operator chain. It should
     /// not have children, but can be assigned with a span representing the number of spaces between
     /// AST tokens. For example, given expression `foo   bar`, the span assigned to the

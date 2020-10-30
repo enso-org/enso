@@ -151,6 +151,7 @@ impl<'a,T> Implementation for node::Ref<'a,T> {
                 );
                 root.set_traversing(&self.ast_crumbs,new_ast?)
             })),
+            node::Kind::Token => None,
             _ => match &self.ast_crumbs.last() {
                 // Operators should be treated in a special way - setting functions in place in
                 // a operator should replace Infix with Prefix with two applications.
@@ -366,8 +367,12 @@ mod test {
             , Case{expr:"f a"        , span:2..3  , expected: &[Set]       }
             , Case{expr:"if a then b", span:3..4  , expected: &[Set]       }
             , Case{expr:"if a then b", span:10..11, expected: &[Set]       }
+            , Case{expr:"(a + b)"    , span:0..1  , expected: &[]          }
+            , Case{expr:"[a,b]"      , span:0..1  , expected: &[]          }
+            , Case{expr:"[a,b]"      , span:4..5  , expected: &[]          }
             , Case{expr:"(a + b + c)", span:5..6  , expected: &[Set,Erase] }
             , Case{expr:"(a"         , span:1..2  , expected: &[Set]       }
+            , Case{expr:"(a"         , span:0..1  , expected: &[]          }
             , Case{expr:"(a + b + c" , span:5..6  , expected: &[Set,Erase] }
             ];
         let parser = Parser::new_or_panic();
