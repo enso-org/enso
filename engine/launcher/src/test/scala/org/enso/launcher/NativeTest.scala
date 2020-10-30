@@ -5,6 +5,7 @@ import java.lang.{ProcessBuilder => JProcessBuilder}
 import java.nio.file.{Files, Path}
 import java.util.concurrent.{Semaphore, TimeUnit}
 
+import org.enso.runtimeversionmanager.OS
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.{MatchResult, Matcher}

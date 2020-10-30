@@ -1,6 +1,6 @@
 package org.enso.launcher.releases.fallback
 
-import org.enso.launcher.releases.SimpleReleaseProvider
+import org.enso.runtimeversionmanager.releases.SimpleReleaseProvider
 
 /** A fallback [[SimpleReleaseProvider]].
   *

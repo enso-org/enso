@@ -2,7 +2,7 @@ package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
-import org.enso.launcher.locking.DefaultResourceManager
+import org.enso.launcher.distribution.DefaultManagers
 import org.enso.launcher.upgrade.LauncherUpgrader
 
 /** Defines the entry point for the launcher.
@@ -56,7 +56,7 @@ object Main {
     */
   def exit(exitCode: Int): Nothing = {
     LauncherLogging.tearDown()
-    DefaultResourceManager.releaseMainLock()
+    DefaultManagers.DefaultResourceManager.releaseMainLock()
     sys.exit(exitCode)
   }
 }

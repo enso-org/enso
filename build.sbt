@@ -178,6 +178,8 @@ lazy val enso = (project in file("."))
     runtime,
     searcher,
     launcher,
+    `runtime-version-manager`,
+    `runtime-version-manager-test`,
     syntax.jvm,
     testkit
   )
@@ -1131,8 +1133,44 @@ lazy val launcher = project
     parallelExecution in Test := false
   )
   .dependsOn(cli)
+  .dependsOn(`runtime-version-manager`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`logging-service`)
+  .dependsOn(`runtime-version-manager-test` % Test)
+
+lazy val `runtime-version-manager` = project
+  .in(file("lib/scala/runtime-version-manager"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+      "org.typelevel"              %% "cats-core"        % catsVersion,
+      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
+      "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+      "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+      akkaHttp,
+      akkaSLF4J
+    )
+  )
+  .dependsOn(pkg)
+  .dependsOn(`logging-service`)
+  .dependsOn(cli)
+  .dependsOn(`version-output`)
+
+lazy val `runtime-version-manager-test` = project
+  .in(file("lib/scala/runtime-version-manager-test"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion,
+      "commons-io"                  % "commons-io"    % commonsIoVersion
+    )
+  )
+  .settings(parallelExecution in Test := false)
+  .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
 
 val `std-lib-root`          = file("distribution/std-lib/")

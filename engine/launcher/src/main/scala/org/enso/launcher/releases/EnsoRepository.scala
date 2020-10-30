@@ -3,16 +3,24 @@ package org.enso.launcher.releases
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
-import org.enso.launcher.http.URIBuilder
-import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
+import org.enso.runtimeversionmanager.http.URIBuilder
+import org.enso.runtimeversionmanager.releases.engine.{
+  EngineRelease,
+  EngineReleaseProvider
+}
+import org.enso.runtimeversionmanager.releases.github.GithubReleaseProvider
+import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
+import org.enso.runtimeversionmanager.releases.{
+  ReleaseProvider,
+  SimpleReleaseProvider
+}
+import org.enso.launcher.distribution.DefaultManagers
 import org.enso.launcher.releases.fallback.SimpleReleaseProviderWithFallback
 import org.enso.launcher.releases.fallback.staticwebsite.StaticWebsiteFallbackReleaseProvider
-import org.enso.launcher.releases.github.GithubReleaseProvider
 import org.enso.launcher.releases.launcher.{
   LauncherRelease,
   LauncherReleaseProvider
 }
-import org.enso.launcher.releases.testing.FakeReleaseProvider
 
 /** Represents the default Enso repository providing releases for the engine and
   * the launcher.
@@ -95,6 +103,8 @@ object EnsoRepository {
   ): SimpleReleaseProvider =
     FakeReleaseProvider(
       fakeRepositoryRoot,
-      shouldWaitForAssets = shouldWaitForAssets
+      lockManagerForAssets =
+        if (shouldWaitForAssets) Some(DefaultManagers.DefaultFileLockManager)
+        else None
     )
 }

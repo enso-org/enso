@@ -3,7 +3,7 @@ package org.enso.launcher.releases.fallback.staticwebsite
 import java.nio.file.Path
 
 import org.enso.cli.TaskProgress
-import org.enso.launcher.releases.Asset
+import org.enso.runtimeversionmanager.releases.Asset
 
 /** An [[Asset]] provided by [[FallbackRelease]].
   *

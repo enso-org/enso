@@ -3,7 +3,11 @@ package org.enso.launcher.releases.fallback.staticwebsite
 import java.nio.file.Path
 
 import org.enso.cli.TaskProgress
-import org.enso.launcher.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
+import org.enso.runtimeversionmanager.http.{
+  HTTPDownload,
+  HTTPRequestBuilder,
+  URIBuilder
+}
 
 /** Provides [[FileStorage]] backed by a static HTTPS website.
   *

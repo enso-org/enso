@@ -4,16 +4,19 @@ import java.nio.file.{Files, Path}
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.distribution.PortableDistributionManager
+import org.enso.runtimeversionmanager.locking.ResourceManager
+import org.enso.runtimeversionmanager.{FileSystem, OS}
+import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.launcher.distribution.DefaultManagers
 import org.enso.launcher.installation.DistributionInstaller.{
   BundleAction,
   IgnoreBundles,
   MoveBundles
 }
-import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
-import org.enso.launcher.{FileSystem, InfoLogger, OS}
 
 import scala.util.control.NonFatal
 
@@ -32,7 +35,7 @@ import scala.util.control.NonFatal
   *                           otherwise explicitly asks the user
   */
 class DistributionInstaller(
-  manager: DistributionManager,
+  manager: PortableDistributionManager,
   resourceManager: ResourceManager,
   autoConfirm: Boolean,
   removeOldLauncher: Boolean,
@@ -411,8 +414,8 @@ object DistributionInstaller {
     bundleActionOption: Option[BundleAction]
   ): DistributionInstaller =
     new DistributionInstaller(
-      DistributionManager,
-      DefaultResourceManager,
+      DefaultManagers.distributionManager,
+      DefaultManagers.DefaultResourceManager,
       globalCLIOptions.autoConfirm,
       removeOldLauncher  = removeOldLauncher,
       bundleActionOption = bundleActionOption

@@ -1,0 +1,80 @@
+package org.enso.runtimeversionmanager.distribution
+
+import java.nio.file.{Files, Path}
+
+import com.typesafe.scalalogging.Logger
+import org.enso.runtimeversionmanager.Environment
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+
+/** A specialized variant of [[DistributionManager]] that is able to detect if
+  * the currently running distribution is running in portable or locally
+  * installed mode.
+  */
+class PortableDistributionManager(env: Environment)
+    extends DistributionManager(env) {
+  private val logger = Logger[PortableDistributionManager]
+
+  /** Name of the file that should be placed in the distribution root to mark it
+    * as running in portable mode.
+    */
+  private val PORTABLE_MARK_FILENAME = ".enso.portable"
+
+  /** Describes the path of a possible distribution root.
+    *
+    * This directory is checked for [[PORTABLE_MARK_FILENAME]]. If the mark file
+    * is present, portable mode is selected.
+    */
+  def possiblePortableRoot: Path =
+    env.getPathToRunningExecutable.getParent.getParent
+
+  /** Specifies whether the program has been run as a portable distribution or
+    * it is a locally installed distribution.
+    */
+  lazy val isRunningPortable: Boolean = {
+    val portable = detectPortable()
+    logger.debug(s"Launcher portable mode = $portable")
+    if (portable && LocallyInstalledDirectories.installedDistributionExists) {
+      val installedRoot   = LocallyInstalledDirectories.dataDirectory
+      val installedBinary = LocallyInstalledDirectories.binaryExecutable
+
+      logger.debug(
+        s"The launcher is run in portable mode, but an installed distribution" +
+        s" is available at $installedRoot."
+      )
+
+      if (Files.exists(installedBinary)) {
+        if (installedBinary == env.getPathToRunningExecutable) {
+          logger.debug(
+            "That distribution seems to be corresponding to this launcher " +
+            "executable, that is running in portable mode."
+          )
+        } else {
+          logger.debug(
+            s"However, that installed distribution most likely uses another " +
+            s"launcher executable, located at $installedBinary."
+          )
+        }
+      }
+    }
+    portable
+  }
+
+  override protected def detectPaths(): DistributionPaths =
+    if (isRunningPortable) {
+      val root = env.getPathToRunningExecutable.getParent.getParent
+      DistributionPaths(
+        dataRoot                 = root,
+        runtimes                 = root / RUNTIMES_DIRECTORY,
+        engines                  = root / ENGINES_DIRECTORY,
+        config                   = root / CONFIG_DIRECTORY,
+        locks                    = root / LOCK_DIRECTORY,
+        logs                     = root / LOG_DIRECTORY,
+        unsafeTemporaryDirectory = root / TMP_DIRECTORY
+      )
+    } else super.detectPaths()
+
+  private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
+
+  private def portableMarkFilePath: Path =
+    possiblePortableRoot / PORTABLE_MARK_FILENAME
+}

@@ -1,6 +1,10 @@
 package org.enso.launcher.releases.fallback
 
-import org.enso.launcher.releases.{Asset, Release, SimpleReleaseProvider}
+import org.enso.runtimeversionmanager.releases.{
+  Asset,
+  Release,
+  SimpleReleaseProvider
+}
 import org.scalatest.TryValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

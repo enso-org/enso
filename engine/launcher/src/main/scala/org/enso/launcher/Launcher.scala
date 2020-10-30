@@ -5,19 +5,23 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
-import org.enso.launcher.components.ComponentsManager
-import org.enso.launcher.components.runner.{
+import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.runtimeversionmanager.config.{
+  DefaultVersion,
+  GlobalConfigurationManager
+}
+import org.enso.runtimeversionmanager.runner.{
   JVMSettings,
   LanguageServerOptions,
-  Runner,
   WhichEngine
 }
-import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
+import org.enso.launcher.cli.{GlobalCLIOptions, LauncherLogging, Main}
+import org.enso.launcher.components.LauncherRunner
+import org.enso.launcher.distribution.DefaultManagers._
+import org.enso.launcher.distribution.LauncherEnvironment
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
-  DistributionManager,
   DistributionUninstaller
 }
 import org.enso.launcher.project.ProjectManager
@@ -33,16 +37,17 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 case class Launcher(cliOptions: GlobalCLIOptions) {
   private val logger = Logger[Launcher]
 
-  private lazy val componentsManager = ComponentsManager.default(cliOptions)
+  private lazy val componentsManager =
+    DefaultComponentManager.make(cliOptions, alwaysInstallMissing = false)
   private lazy val configurationManager =
-    new GlobalConfigurationManager(componentsManager, DistributionManager)
+    new GlobalConfigurationManager(componentsManager, distributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
   private lazy val runner =
-    new Runner(
+    new LauncherRunner(
       projectManager,
       configurationManager,
       componentsManager,
-      Environment,
+      LauncherEnvironment,
       LauncherLogging.loggingServiceEndpoint()
     )
   private lazy val upgrader = LauncherUpgrader.default(cliOptions)
@@ -111,7 +116,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   /** Prints a list of installed runtimes.
     */
   def listRuntimes(): Int = {
-    for (runtime <- componentsManager.listInstalledRuntimes()) {
+    for (runtime <- componentsManager.listInstalledGraalRuntimes()) {
       val engines = componentsManager.findEnginesUsingRuntime(runtime)
       val usedBy = {
         val plural =
@@ -128,7 +133,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def listSummary(): Int = {
     for (engine <- componentsManager.listInstalledEngines()) {
-      val runtime = componentsManager.findRuntime(engine)
+      val runtime = componentsManager.findGraalRuntime(engine)
       val runtimeName = runtime
         .map(_.toString)
         .getOrElse("no runtime found for this distribution")
@@ -143,11 +148,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * Also installs the required runtime if it wasn't already installed.
     */
   def installEngine(version: SemVer): Int = {
-    val existing = componentsManager.findEngine(version)
+    val installingComponentManager =
+      DefaultComponentManager.make(cliOptions, alwaysInstallMissing = true)
+    val existing = installingComponentManager.findEngine(version)
     if (existing.isDefined) {
       InfoLogger.info(s"Engine $version is already installed.")
     } else {
-      componentsManager.findOrInstallEngine(version, complain = false)
+      installingComponentManager.findOrInstallEngine(version)
     }
     0
   }
@@ -168,7 +175,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def uninstallEngine(version: SemVer): Int = {
     componentsManager.uninstallEngine(version)
-    DistributionManager.tryCleaningUnusedLockfiles()
+    distributionManager.tryCleaningUnusedLockfiles()
     0
   }
 
@@ -261,6 +268,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def runLanguageServer(
     options: LanguageServerOptions,
+    contentRoot: Path,
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
     useSystemJVM: Boolean,
@@ -272,6 +280,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         runner
           .languageServer(
             options,
+            contentRoot,
             versionOverride,
             logLevel,
             additionalArguments
@@ -469,7 +478,7 @@ object Launcher {
   /** Checks if the launcher is running in portable mode and exits if it is not.
     */
   def ensurePortable(): Unit = {
-    if (!DistributionManager.isRunningPortable) {
+    if (!distributionManager.isRunningPortable) {
       Logger[Launcher].error(
         "`--ensure-portable` is set, but the launcher is not running in " +
         "portable mode. Terminating."

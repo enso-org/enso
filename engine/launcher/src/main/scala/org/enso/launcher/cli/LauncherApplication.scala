@@ -10,16 +10,14 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
-import org.enso.launcher.Launcher
-import org.enso.launcher.cli.Arguments._
-import org.enso.launcher.components.runner.LanguageServerOptions
-import org.enso.launcher.config.DefaultVersion
+import org.enso.runtimeversionmanager.cli.Arguments._
+import org.enso.runtimeversionmanager.config.DefaultVersion
+import org.enso.runtimeversionmanager.runner.LanguageServerOptions
+import org.enso.launcher.distribution.DefaultManagers._
+import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
-import org.enso.launcher.installation.{
-  DistributionInstaller,
-  DistributionManager
-}
-import org.enso.launcher.locking.DefaultResourceManager
+import org.enso.launcher.upgrade.LauncherUpgrader
+import org.enso.launcher.{cli, Launcher}
 import org.enso.loggingservice.LogLevel
 
 /** Defines the CLI commands and options for the program.
@@ -225,11 +223,11 @@ object LauncherApplication {
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
               rootId    = rootId,
-              path      = path,
               interface = interface,
               rpcPort   = rpcPort,
               dataPort  = dataPort
             ),
+            contentRoot         = path,
             versionOverride     = versionOverride,
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
@@ -320,7 +318,7 @@ object LauncherApplication {
     ) {
       val version = Opts.optionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
-        DistributionManager.tryCleaningTemporaryDirectory()
+        temporaryDirectoryManager.tryCleaningTemporaryDirectory()
         version match {
           case Some(value) =>
             Launcher(config).installEngine(value)
@@ -401,7 +399,7 @@ object LauncherApplication {
       "unexpected files."
     ) {
       Opts.pure(()) map { (_: Unit) => (config: Config) =>
-        DistributionManager.tryCleaningTemporaryDirectory()
+        temporaryDirectoryManager.tryCleaningTemporaryDirectory()
         Launcher(config).uninstallDistribution()
       }
     }
@@ -549,7 +547,7 @@ object LauncherApplication {
           Launcher.ensurePortable()
         }
 
-        val globalCLIOptions = GlobalCLIOptions(
+        val globalCLIOptions = cli.GlobalCLIOptions(
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,
           useJSON      = useJSON,
@@ -559,6 +557,7 @@ object LauncherApplication {
         )
 
         internalOptsCallback(globalCLIOptions)
+        LauncherUpgrader.setCLIOptions(globalCLIOptions)
         LauncherLogging.setup(logLevel, connectLogger, globalCLIOptions)
         initializeApp()
 

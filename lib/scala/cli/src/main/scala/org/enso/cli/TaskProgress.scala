@@ -35,6 +35,11 @@ trait TaskProgress[A] {
     if (showProgress) ProgressBar.waitWithProgress(this)
     else TaskProgress.waitForTask(this)
 
+  /** Waits for the task to finish and returns its value, throwing any
+    * exceptions that were reported.
+    */
+  def force(): A = TaskProgress.waitForTask(this).get
+
   /** Alters the task by transforming its result with a function `f` that may
     * fail.
     *

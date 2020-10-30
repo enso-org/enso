@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path}
 
 import org.enso.cli.arguments
 import org.enso.cli.arguments.CommandHelp
-import org.enso.launcher.{Environment, FileSystem}
+import org.enso.runtimeversionmanager.{Environment, FileSystem}
+import org.enso.launcher.distribution.LauncherEnvironment
 
 import scala.sys.process._
 import scala.util.Try
@@ -137,6 +138,6 @@ class PluginManager(env: Environment) extends arguments.PluginManager {
 }
 
 /** Default implementation of the [[PluginManager]] using the default
-  * [[Environment]].
+  * [[LauncherEnvironment]].
   */
-object PluginManager extends PluginManager(Environment)
+object PluginManager extends PluginManager(LauncherEnvironment)

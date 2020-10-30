@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
-import org.enso.launcher.releases.{
+import org.enso.runtimeversionmanager.releases.{
   EnsoReleaseProvider,
   Release,
   ReleaseProviderException,

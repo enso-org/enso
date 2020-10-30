@@ -5,16 +5,19 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
-import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.distribution.PortableDistributionManager
+import org.enso.runtimeversionmanager.locking.ResourceManager
+import org.enso.runtimeversionmanager.{FileSystem, OS}
+import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{
   GlobalCLIOptions,
   InternalOpts,
   LauncherLogging,
   Main
 }
-import org.enso.launcher.config.GlobalConfigurationManager
-import org.enso.launcher.locking.{DefaultResourceManager, ResourceManager}
-import org.enso.launcher.{FileSystem, InfoLogger, OS}
+import org.enso.launcher.distribution.DefaultManagers
 
 import scala.util.control.NonFatal
 
@@ -24,7 +27,7 @@ import scala.util.control.NonFatal
   *                the distribution that will be uninstalled
   */
 class DistributionUninstaller(
-  manager: DistributionManager,
+  manager: PortableDistributionManager,
   resourceManager: ResourceManager,
   globalCLIOptions: GlobalCLIOptions
 ) {
@@ -345,8 +348,8 @@ object DistributionUninstaller {
     */
   def default(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =
     new DistributionUninstaller(
-      DistributionManager,
-      DefaultResourceManager,
+      DefaultManagers.distributionManager,
+      DefaultManagers.DefaultResourceManager,
       globalCLIOptions
     )
 }

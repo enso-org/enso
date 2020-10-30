@@ -2,7 +2,7 @@ package org.enso.launcher.cli
 
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
-import org.enso.launcher.installation.DistributionManager
+import org.enso.launcher.distribution.DefaultManagers
 import org.enso.loggingservice.printers.{
   FileOutputPrinter,
   Printer,
@@ -11,11 +11,11 @@ import org.enso.loggingservice.printers.{
 }
 import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, Promise}
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 /** Manages setting up the logging service within the launcher.
   */
@@ -115,7 +115,9 @@ object LauncherLogging {
     def createPrinters() =
       try {
         val filePrinter =
-          FileOutputPrinter.create(DistributionManager.paths.logs)
+          FileOutputPrinter.create(
+            DefaultManagers.distributionManager.paths.logs
+          )
         Seq(
           stderrPrinter(globalCLIOptions, printExceptionsInStderr),
           filePrinter

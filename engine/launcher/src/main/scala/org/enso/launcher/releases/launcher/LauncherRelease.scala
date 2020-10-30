@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
-import org.enso.launcher.CurrentVersion
+import org.enso.runtimeversionmanager.CurrentVersion
 
 /** Represents a launcher release.
   */
