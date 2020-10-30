@@ -21,7 +21,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.testkit.RetrySpec
-import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -42,6 +42,9 @@ class SuggestionsHandlerSpec
   import system.dispatcher
 
   val Timeout: FiniteDuration = 10.seconds
+
+  def contentsVersion(text: String): ContentVersion =
+    Sha3_224VersionCalculator.evalVersion(text)
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
@@ -74,7 +77,7 @@ class SuggestionsHandlerSpec
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "",
+          contentsVersion(""),
           Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add)
         )
 
@@ -110,7 +113,7 @@ class SuggestionsHandlerSpec
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "",
+          contentsVersion(""),
           Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add) ++
           Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Remove)
         )
@@ -253,7 +256,7 @@ class SuggestionsHandlerSpec
     runtimeConnector: TestProbe,
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: FileVersionsRepo[Future]
-  )(implicit versionCalculator: ContentBasedVersioning): ActorRef = {
+  ): ActorRef = {
     val handler =
       system.actorOf(
         SuggestionsHandler.props(
@@ -295,8 +298,7 @@ class SuggestionsHandlerSpec
       ActorRef
     ) => Any
   ): Unit = {
-    implicit val versionCalc = Sha3_224VersionCalculator
-    val testContentRoot      = Files.createTempDirectory(null).toRealPath()
+    val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config          = newConfig(testContentRoot.toFile)
     val router          = TestProbe("session-router")

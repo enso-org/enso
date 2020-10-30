@@ -11,6 +11,7 @@ import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -277,6 +278,9 @@ class RuntimeServerTest
 
   }
 
+  def contentsVersion(content: String): ContentVersion =
+    Sha3_224VersionCalculator.evalVersion(content)
+
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
@@ -405,6 +409,7 @@ class RuntimeServerTest
         |    this.foo 1 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -456,7 +461,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -510,6 +515,7 @@ class RuntimeServerTest
         |    IO.println (this.foo 1 2)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -561,7 +567,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -615,6 +621,7 @@ class RuntimeServerTest
         |bar = State.get Number
         |""".stripMargin
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -666,7 +673,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -718,6 +725,7 @@ class RuntimeServerTest
         |    State.get Number
         |""".stripMargin
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -769,7 +777,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -821,6 +829,7 @@ class RuntimeServerTest
         |    1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -872,7 +881,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -921,6 +930,7 @@ class RuntimeServerTest
         )
       )
     val contents = context.Main.code
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -958,7 +968,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -1099,6 +1109,7 @@ class RuntimeServerTest
         |    IO.println result
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -1150,7 +1161,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -1235,6 +1246,7 @@ class RuntimeServerTest
         |Number.x y = y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -1286,7 +1298,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -1556,6 +1568,7 @@ class RuntimeServerTest
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
+    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -1631,7 +1644,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -1881,6 +1894,7 @@ class RuntimeServerTest
         |
         |main = IO.println "I'm a file!"
         |""".stripMargin
+    val version = contentsVersion(code)
 
     // Create a new file
     val mainFile = context.writeMain(code)
@@ -1910,7 +1924,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          code,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -1960,6 +1974,7 @@ class RuntimeServerTest
     val metadata   = new Metadata
     val idMain     = metadata.addItem(7, 2)
     val code       = metadata.appendToCode("main = 84")
+    val version    = contentsVersion(code)
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -2009,7 +2024,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          code,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2097,7 +2112,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          context.Main.code,
+          contentsVersion(context.Main.code),
           List(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2241,6 +2256,7 @@ class RuntimeServerTest
         |
         |main = IO.println "I'm a file!"
         |""".stripMargin
+    val version = contentsVersion(code)
 
     // Create a new file
     val mainFile = context.writeMain(code)
@@ -2270,7 +2286,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          code,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2320,7 +2336,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          codeModified,
+          contentsVersion(codeModified),
           Seq(
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
@@ -3459,7 +3475,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           visualisationFile,
-          context.Visualisation.code,
+          contentsVersion(context.Visualisation.code),
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean("Test.Visualisation"),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -3578,6 +3594,7 @@ class RuntimeServerTest
 
   it should "emit visualisation update without value update" in {
     val contents   = context.Main.code
+    val version    = contentsVersion(contents)
     val moduleName = "Test.Main"
     val mainFile   = context.writeMain(contents)
     val visualisationFile =
@@ -3627,7 +3644,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           visualisationFile,
-          context.Visualisation.code,
+          contentsVersion(context.Visualisation.code),
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean("Test.Visualisation"),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -3664,7 +3681,7 @@ class RuntimeServerTest
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           mainFile,
-          contents,
+          version,
           Seq(
             Api.SuggestionsDatabaseUpdate.Clean(moduleName),
             Api.SuggestionsDatabaseUpdate.Add(

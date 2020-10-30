@@ -12,6 +12,7 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.polyglot.Suggestion
+import org.enso.text.ContentVersion
 import org.enso.text.editing.model.{Range, TextEdit}
 
 import scala.util.Try
@@ -794,12 +795,12 @@ object Runtime {
     /** A notification about the changes in the suggestions database.
       *
       * @param file the module file path
-      * @param contents the module source
+      * @param version the version of the module
       * @param updates the list of suggestions extracted from module
       */
     case class SuggestionsDatabaseModuleUpdateNotification(
       file: File,
-      contents: String,
+      version: ContentVersion,
       updates: Seq[SuggestionsDatabaseUpdate]
     ) extends ApiNotification
 

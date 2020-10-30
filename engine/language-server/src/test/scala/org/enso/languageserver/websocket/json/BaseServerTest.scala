@@ -41,6 +41,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val testContentRootId     = UUID.randomUUID()
   val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
+  val versionCalculator     = Sha3_224VersionCalculator
 
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
 
@@ -81,7 +82,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    implicit val versionCalculator = Sha3_224VersionCalculator
 
     val zioExec         = ZioExec(zio.Runtime.default)
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)

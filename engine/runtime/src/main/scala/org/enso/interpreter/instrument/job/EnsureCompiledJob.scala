@@ -135,9 +135,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(module.getName.toString, module.getIr)
         .filter(isSuggestionGlobal)
+      val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
       val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
-        module.getLiteralSource.toString,
+        version,
         Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
         addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
       )
@@ -169,9 +170,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
+      val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
       val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
-        module.getLiteralSource.toString,
+        version,
         Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
         addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
       )
@@ -185,6 +187,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Unit = {
     val moduleName = module.getName.toString
+    val version    = ctx.versioning.evalVersion(module.getLiteralSource.toString)
     if (module.isIndexed) {
       ctx.executionService.getLogger
         .finest(s"Analyzing indexed module ${module.getName}")
@@ -195,7 +198,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           .build(moduleName, module.getIr)
       val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
-        module.getLiteralSource.toString,
+        version,
         removedSuggestions
           .diff(addedSuggestions)
           .map(Api.SuggestionsDatabaseUpdate.Remove) :++
@@ -212,7 +215,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           .build(moduleName, module.getIr)
       val update = Api.SuggestionsDatabaseModuleUpdateNotification(
         new File(module.getPath),
-        module.getLiteralSource.toString,
+        version,
         Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
         addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
       )
