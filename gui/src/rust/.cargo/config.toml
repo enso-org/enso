@@ -1,0 +1,6 @@
+[target.wasm32-unknown-unknown]
+rustflags = [
+    # Increas the stack size from 1MB to ca 1.5MB. This is required to avoid running out of stack
+    # space in debug builds.
+    "-C", "link-args=-z stack-size=1500000",
+]

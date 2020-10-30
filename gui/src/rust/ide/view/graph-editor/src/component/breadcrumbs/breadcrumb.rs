@@ -12,20 +12,18 @@ use crate::MethodPointer;
 
 use enso_frp as frp;
 use ensogl::data::color;
-use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
-use ensogl::display::shape::text::glyph::system::Line;
-use ensogl::display::shape::text::glyph::system::GlyphSystem;
-use ensogl::gui::component;
+use ensogl::display;
 use ensogl::gui::component::Animation;
+use ensogl::gui::component;
+use ensogl_text as text;
 use ensogl_theme as theme;
-use logger::enabled::Logger;
 use logger::AnyLogger;
+use logger::enabled::Logger;
 use nalgebra::Vector2;
 use std::f32::consts::PI;
-
+use ensogl::application::Application;
 
 
 // =================
@@ -48,7 +46,6 @@ const SEPARATOR_SIZE    : f32 = 6.0;
 /// Breadcrumb padding.
 pub const PADDING      : f32 = 1.0;
 const SEPARATOR_MARGIN : f32 = 10.0;
-const TEXT_BASELINE    : f32 = 2.0;
 
 
 
@@ -266,8 +263,7 @@ pub struct BreadcrumbModel {
     view           : component::ShapeView<background::Shape>,
     separator      : component::ShapeView<separator::Shape>,
     icon           : component::ShapeView<icon::Shape>,
-    glyph_system   : GlyphSystem,
-    label          : Line,
+    label          : text::Area,
     animations     : Animations,
     style          : StyleWatch,
     /// Breadcrumb information such as name and expression id.
@@ -278,18 +274,16 @@ pub struct BreadcrumbModel {
 
 impl BreadcrumbModel {
     /// Constructor.
-    pub fn new<'t,S:Into<&'t Scene>>
-    (scene:S, frp:&Frp,method_pointer:&MethodPointer, expression_id:&ast::Id) -> Self {
-        let scene             = scene.into();
+    pub fn new
+    (app:&Application, frp:&Frp,method_pointer:&MethodPointer, expression_id:&ast::Id) -> Self {
+        let scene             = app.display.scene();
         let logger            = Logger::new("Breadcrumbs");
         let display_object    = display::object::Instance::new(&logger);
         let view_logger       = Logger::sub(&logger,"view_logger");
         let view              = component::ShapeView::<background::Shape>::new(&view_logger, scene);
         let icon              = component::ShapeView::<icon::Shape>::new(&view_logger, scene);
         let separator         = component::ShapeView::<separator::Shape>::new(&view_logger, scene);
-        let font              = scene.fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
-        let glyph_system      = GlyphSystem::new(scene,font);
-        let label             = glyph_system.new_line();
+        let label             = app.new_view::<text::Area>();
         let expression_id     = *expression_id;
         let method_pointer    = method_pointer.clone();
         let info              = Rc::new(BreadcrumbInfo{method_pointer,expression_id});
@@ -311,13 +305,12 @@ impl BreadcrumbModel {
         scene.views.main.remove(&shape_system.shape_system.symbol);
         scene.views.breadcrumbs.add(&shape_system.shape_system.symbol);
 
-        let symbol = glyph_system.sprite_system().symbol();
-        scene.views.main.remove(&symbol);
-        scene.views.breadcrumbs.add(&symbol);
+        label.remove_from_view(&scene.views.main);
+        label.add_to_view(&scene.views.breadcrumbs);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
-        Self{logger,view,icon,separator,display_object,glyph_system,label,info,animations,style
+        Self{logger,view,icon,separator,display_object,label,info,animations,style
             ,relative_position,outputs}.init()
     }
 
@@ -335,11 +328,12 @@ impl BreadcrumbModel {
 
         let color  = if self.is_selected() { full_color } else { transparent_color };
 
-        self.label.set_font_size(TEXT_SIZE);
-        self.label.set_font_color(color);
-        self.label.set_text(&self.info.method_pointer.name);
-        let y_position = -TEXT_SIZE/2.0+TEXT_BASELINE;
-        self.label.set_position(Vector3(ICON_RADIUS+ICON_RIGHT_MARGIN,y_position,0.0));
+        self.label.set_default_color.emit(color);
+        self.label.set_default_text_size(text::style::Size::from(TEXT_SIZE));
+        self.label.single_line(true);
+        self.label.set_position_x(ICON_RADIUS+ICON_RIGHT_MARGIN);
+        self.label.set_position_y(TEXT_SIZE/2.0);
+        self.label.set_content(&self.info.method_pointer.name);
 
         let width  = self.width();
         let height = self.height();
@@ -374,7 +368,7 @@ impl BreadcrumbModel {
 
     /// Get the height of the view.
     pub fn height(&self) -> f32 {
-        self.label.font_size() + VERTICAL_MARGIN * 2.0
+        TEXT_SIZE + VERTICAL_MARGIN * 2.0
     }
 
     fn fade_in(&self, value:f32) {
@@ -387,7 +381,7 @@ impl BreadcrumbModel {
 
     fn set_color(&self, value:Vector4<f32>) {
         let color = color::Rgba::from(value);
-        self.label.set_font_color(color);
+        self.label.set_color_all(color);
         self.icon.shape.red.set(color.red);
         self.icon.shape.green.set(color.green);
         self.icon.shape.blue.set(color.blue);
@@ -466,10 +460,11 @@ pub struct Breadcrumb {
 
 impl Breadcrumb {
     /// Constructor.
-    pub fn new(scene:&Scene, method_pointer:&MethodPointer, expression_id:&ast::Id) -> Self {
+    pub fn new(app:&Application, method_pointer:&MethodPointer, expression_id:&ast::Id) -> Self {
         let frp     = Frp::new();
-        let model   = Rc::new(BreadcrumbModel::new(scene,&frp,method_pointer,expression_id));
+        let model   = Rc::new(BreadcrumbModel::new(app,&frp,method_pointer,expression_id));
         let network = &frp.network;
+        let scene   = app.display.scene();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles      = StyleWatch::new(&scene.style_sheet);

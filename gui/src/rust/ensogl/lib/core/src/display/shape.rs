@@ -3,7 +3,6 @@
 pub mod compound;
 pub mod constants;
 pub mod primitive;
-pub mod text;
 
 
 pub use primitive::*;

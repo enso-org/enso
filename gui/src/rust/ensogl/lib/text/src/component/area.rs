@@ -419,6 +419,7 @@ ensogl_core::define_endpoints! {
         paste_string          (String),
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
+        set_color_all         (color::Rgba),
         set_default_color     (color::Rgba),
         set_default_text_size (style::Size),
         set_content           (String),
@@ -617,6 +618,10 @@ impl Area {
 
             eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
             eval input.set_default_text_size ((t) m.buffer.frp.set_default_text_size(*t));
+            eval input.set_color_all         ([input](color) {
+                let all_bytes = buffer::Range::from(Bytes::from(0)..Bytes(i32::max_value()));
+                input.set_color_bytes.emit((all_bytes,*color));
+            });
             eval input.set_color_bytes       ((t) {
                 m.buffer.frp.set_color_bytes.emit(*t);
                 m.redraw(); // FIXME: Should not be needed.

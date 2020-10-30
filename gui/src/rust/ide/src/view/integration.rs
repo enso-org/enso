@@ -207,8 +207,8 @@ impl Integration {
 
         let breadcrumbs = &model.view.graph().model.breadcrumbs;
         frp::extend! {network
-            eval_ breadcrumbs.frp.outputs.breadcrumb_pop(model.node_exited_in_ui(&()).ok());
-            eval  breadcrumbs.frp.outputs.breadcrumb_push((local_call) {
+            eval_ breadcrumbs.output.breadcrumb_pop(model.node_exited_in_ui(&()).ok());
+            eval  breadcrumbs.output.breadcrumb_push((local_call) {
                 model.expression_entered_in_ui(&local_call.as_ref().map(|local_call| {
                     let definition = (**local_call.definition).clone();
                     let call       = local_call.call;
@@ -222,7 +222,7 @@ impl Integration {
 
         let breadcrumbs = &model.view.graph().model.breadcrumbs;
         frp::extend! {network
-            eval breadcrumbs.frp.outputs.project_name((name) {
+            eval breadcrumbs.output.project_name((name) {
                 model.rename_project(name);
             });
         }
@@ -402,7 +402,7 @@ impl Model {
 impl Model {
     fn init_project_name(&self) {
         let project_name = self.project.name().to_string();
-        self.view.graph().model.breadcrumbs.frp.project_name.emit(project_name);
+        self.view.graph().model.breadcrumbs.input.project_name.emit(project_name);
     }
 
     fn rename_project(&self, name:impl Str) {
@@ -414,7 +414,7 @@ impl Model {
             executor::global::spawn(async move {
                 if let Err(e) = project.rename_project(name).await {
                     info!(logger, "The project couldn't be renamed: {e}");
-                    breadcrumbs.frp.cancel_project_name_editing.emit(());
+                    breadcrumbs.cancel_project_name_editing.emit(());
                 }
             });
         }
@@ -651,7 +651,7 @@ impl Model {
         let call       = local_call.call;
         let local_call = graph_editor::LocalCall{definition,call};
         self.view.graph().frp.deselect_all_nodes.emit_event(&());
-        self.view.graph().model.breadcrumbs.frp.push_breadcrumb.emit(&Some(local_call));
+        self.view.graph().model.breadcrumbs.push_breadcrumb.emit(&Some(local_call));
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()
     }
@@ -661,7 +661,7 @@ impl Model {
         self.view.graph().frp.deselect_all_nodes.emit_event(&());
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()?;
-        self.view.graph().model.breadcrumbs.frp.pop_breadcrumb.emit(());
+        self.view.graph().model.breadcrumbs.pop_breadcrumb.emit(());
         let id = self.get_displayed_node_id(id)?;
         self.view.graph().frp.select_node.emit_event(&id);
         Ok(())
