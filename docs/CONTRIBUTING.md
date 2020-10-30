@@ -294,15 +294,15 @@ vanilla GraalVM distribution.
 
 #### Building the Project Manager Fat Jar
 
-In order to build a fat jar with Project Manager component, run the `assembly`
-task on the `project-manager` subproject:
+In order to build a fat jar with the Project Manager component, run the
+`assembly` task on the `project-manager` subproject:
 
 ```bash
 sbt "project-manager/assembly"
 ```
 
-This will produce the `project-manager` fat jar and a `runtime.jar` fat jar in
-the repository root.
+This will produce a `project-manager` fat jar and a `runtime.jar` fat jar in the
+repository root.
 
 #### Building the Launcher Native Binary
 
@@ -472,8 +472,8 @@ Enso should be launched using the `distribution/bin` scripts.
 
 Interpreter is started with the `distribution/bin/enso` script and requires
 `runner.jar` and `runtime.jar` (see
-[Building the Interperter CLI Fat Jar](#buildingtheinterpreterclifatjar)) to be
-built and copied (or linked) to the `distribution/component` directory.
+[Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
+to be built and copied (or linked) to the `distribution/component` directory.
 
 ```bash
 # build runtime.jar and runner.jar
@@ -500,23 +500,24 @@ Hello, World!
 
 #### Project Manager
 
-Project manager is required to run the [IDE](https://github.com/enso-org/ide).
-It is started with the `distribution/bin/project-manager` script and requires
-`runtime.jar` and `project-manager.jar` (see
-[Building the Project Manager Fat Jar](#buildingtheprojectmanagerfatjar)) to be
-built and copied (or linked) to the `distribution/component` directory.
+Project manager is required to run the
+[Enso IDE](https://github.com/enso-org/ide). It is started with the
+`distribution/bin/project-manager` script and requires `runtime.jar` and
+`project-manager.jar` (see
+[Building the Project Manager Fat Jar](#building-the-project-manager-fat-jar))
+to be built and copied (or linked) to the `distribution/component` directory.
 
 ```bash
 # build project-manager.jar and runtime.jar
 sbt project-manager/assembly
-# link or copy jars to the distributiong
+# link or copy jars to the distribution
 cd distribution/component
 ln -s ../../runtime.jar .
 ln -s ../../project-manager.jar .
 ```
 
 Detailed information on the flags it supports is shown by the `--help` flag. To
-run the Project Manager, just execute the following script:
+run the Project Manager, execute the following script:
 
 ```bash
 distribution/bin/project-manager
