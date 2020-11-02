@@ -96,6 +96,13 @@ further investigation.
 | :bangbang: <kbd>cmd</kbd> + <kbd>\</kbd> | Toggle documentation view visibility |
 
 
+#### Visualizations Implementations
+| Shortcut | Action |
+| -------- | ------ |
+| <kbd>meta</kbd> + <kbd>a</kbd> | Show all points if available in visualization. |
+| <kbd>meta</kbd> + <kbd>z</kbd> | Zoom into selection if available in visualization. |
+
+
 #### Debug
 | Shortcut | Action |
 | -------- | ------ |
