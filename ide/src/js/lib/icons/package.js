@@ -4,7 +4,7 @@ let config = {
         "build": "node src/index.js"
     },
     devDependencies: {
-        "sharp": "^0.24.1",
+        "sharp": "^0.26.2",
         "to-ico": "^1.1.5"
     }
 }

@@ -5,6 +5,11 @@ on: [push]
 # Please check if all components are available before updating the rust toolchain version.
 # https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu.html
 
+# TODO
+# We might want to select the latest LTS node version automatically (right now we have hardcoded
+# the '14.15.0' version below), but this issue needs to be resolved first:
+# https://github.com/actions/setup-node/pull/58
+
 jobs:
 
   build:
@@ -34,7 +39,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.19.0'
+          node-version: '14.15.0'
 
       - name: Build
         run: node ./run build
@@ -58,7 +63,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.19.0'
+          node-version: '14.15.0'
 
       - name: Building Rust Sources
         run: node ./run lint
@@ -79,7 +84,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.19.0'
+          node-version: '14.15.0'
 
       - name: Run tests
         run: node ./run test --no-wasm
@@ -112,7 +117,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.19.0'
+          node-version: '14.15.0'
 
       - name: Run tests
         run: node ./run test --no-native
@@ -134,7 +139,7 @@ jobs:
   #     - name: Install Node
   #       uses: actions/setup-node@v1
   #       with:
-  #         node-version: '12.19.0'
+  #         node-version: '14.15.0'
   #
   #     - name: Generate test profile
   #       working-directory: src/rust

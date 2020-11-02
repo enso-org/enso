@@ -9,6 +9,9 @@ let config = {
         "webpack-dev-server": "^3.1.5",
     },
     scripts: {
+        // IMPORTANT! Please remember to run "bootstrap" before "build" or "watch" to install
+        // or update the required dependencies.
+        "bootstrap": "npx lerna bootstrap",
         "build": "npx lerna run build --stream",
         "clean": "npx lerna clean -y && rm -Rf node_modules",
         "dist": "npx lerna run build --stream && npx lerna run dist --stream",
