@@ -1,8 +1,8 @@
 let config = {
     name: "enso-studio-content",
     scripts: {
-        "build": "webpack",
-        "watch": "webpack-dev-server"
+        "build": "npx webpack",
+        "watch": "npx webpack-dev-server"
     },
     dependencies: {
         "enso-studio-common": "2.0.0-alpha.0",

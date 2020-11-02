@@ -35,7 +35,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v1
         with:
-          node-version: '12.19.0'
+          node-version: '14.15.0'
 
       - name: Build
         run: node ./run dist
