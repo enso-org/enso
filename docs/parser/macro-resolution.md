@@ -8,6 +8,11 @@ order: 4
 
 # Macro Resolution
 
+
+
+
+Much more sophisticated than a standard macro system, much more like a parser.
+
 Macro resolution is the process of taking the structured token stream from the
 [lexer](./lexer.md), and resolving it into the [ast](./ast.md) through the
 process of resolving macros. This process produces a chunked AST stream,
@@ -15,10 +20,43 @@ including spacing-unaware elements.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Macro Matchers](#macro-matchers)
+    - [Relative Precedence Matchers](#relative-precedence-matchers)
+- [Recursive Resolution](#recursive-resolution)
+    - [Named Macros](#named-macros)
+- [Macro Resolution Errors](#macro-resolution-errors)
+    - [Use as Parser Errors](#use-as-parser-errors)
 - [Functionality](#functionality)
-- [Errors During Macro Resolution](#errors-during-macro-resolution)
 
 <!-- /MarkdownTOC -->
+
+## Macro Matchers
+
+### Relative Precedence Matchers
+
+## Recursive Resolution
+
+### Named Macros
+
+## Macro Resolution Errors
+
+### Use as Parser Errors
+
+
+
+
+It is very important that, during macro resolution, the resolver produces
+descriptive errors for error conditions in the macro resolver.
+
+> The actionables for this section are:
+>
+> - Determine how best to provide detailed and specific errors from within the
+>   macro resolution engine.
+
+
+
+
+
 
 ## Functionality
 
@@ -37,12 +75,3 @@ The current overview of the macro resolution process can be found in the scala
 >   `x : a -> b : a -> c` should parse with the correct precedence).
 > - Create a detailed design for how macro resolution should work.
 
-## Errors During Macro Resolution
-
-It is very important that, during macro resolution, the resolver produces
-descriptive errors for error conditions in the macro resolver.
-
-> The actionables for this section are:
->
-> - Determine how best to provide detailed and specific errors from within the
->   macro resolution engine.
