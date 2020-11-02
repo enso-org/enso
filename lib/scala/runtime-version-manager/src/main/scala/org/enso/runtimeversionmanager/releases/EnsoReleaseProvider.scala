@@ -17,8 +17,7 @@ abstract class EnsoReleaseProvider[ReleaseType](
 ) extends ReleaseProvider[ReleaseType] {
   protected val tagPrefix = "enso-"
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def findLatestVersion(): Try[SemVer] =
     fetchAllValidVersions().flatMap { versions =>
       versions.sorted.lastOption.map(Success(_)).getOrElse {
@@ -26,15 +25,20 @@ abstract class EnsoReleaseProvider[ReleaseType](
       }
     }
 
-  /** @inheritdoc
-    */
-  override def fetchAllValidVersions(): Try[Seq[SemVer]] =
+  /** @inheritdoc */
+  override def fetchAllVersions(): Try[Seq[ReleaseProvider.Version]] =
     simpleReleaseProvider.listReleases().map { releases =>
-      releases
-        .filter(!_.isMarkedBroken)
-        .map(_.tag.stripPrefix(tagPrefix))
-        .flatMap(SemVer(_))
+      for {
+        release <- releases
+        versionString = release.tag.stripPrefix(tagPrefix)
+        version <- SemVer(versionString)
+      } yield ReleaseProvider
+        .Version(version = version, markedAsBroken = release.isMarkedBroken)
     }
+
+  /** @inheritdoc */
+  override def fetchAllValidVersions(): Try[Seq[SemVer]] =
+    fetchAllVersions().map(_.filter(!_.markedAsBroken).map(_.version))
 }
 
 object EnsoReleaseProvider {

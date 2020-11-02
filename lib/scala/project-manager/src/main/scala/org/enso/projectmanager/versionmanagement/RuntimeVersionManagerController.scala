@@ -1,17 +1,23 @@
 package org.enso.projectmanager.versionmanagement
 
+import java.nio.file.Path
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.{ProgressListener, TaskProgress}
-import org.enso.projectmanager.data.{EngineVersion, ProgressUnit}
+import org.enso.projectmanager.data.{
+  EngineVersion,
+  MissingComponentAction,
+  ProgressUnit
+}
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
+import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRepository
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.runner.{JVMSettings, Runner}
@@ -36,48 +42,44 @@ class RuntimeVersionManagerController
     with UnhandledLogging {
   import RuntimeVersionManagerController._
 
-  private var allowBroken                   = false
-  private var allowMissing                  = false
-  private var currentUser: Option[ActorRef] = None
-  private val interface = new RuntimeVersionManagementUserInterface {
+  private class ControllerInterface(
+    user: ActorRef,
+    allowBroken: Boolean,
+    allowMissing: Boolean
+  ) extends RuntimeVersionManagementUserInterface {
     override def trackProgress(task: TaskProgress[_]): Unit = {
-      currentUser match {
-        case Some(user) =>
-          var uuid: Option[UUID] = None
+      var uuid: Option[UUID] = None
 
-          /** Initializes the task on first invocation and just returns the
-            * generated UUID on further invocations.
-            */
-          def initializeTask(total: Option[Long]): UUID = uuid match {
-            case Some(value) => value
-            case None =>
-              val generated = UUID.randomUUID()
-              uuid = Some(generated)
-              val unit = ProgressUnit.Other // TODO [RW] unit handling
-              user ! Notification.TaskStarted(generated, total, unit)
-              generated
-          }
-          task.addProgressListener(new ProgressListener[Any] {
-            override def progressUpdate(
-              done: Long,
-              total: Option[Long]
-            ): Unit = {
-              val uuid = initializeTask(total)
-              user ! Notification.TaskUpdate(uuid, done)
-            }
-
-            override def done(result: Try[Any]): Unit = result match {
-              case Failure(exception) =>
-                val uuid = initializeTask(None)
-                user ! Notification.TaskFailure(uuid, exception)
-              case Success(_) =>
-                val uuid = initializeTask(None)
-                user ! Notification.TaskSuccess(uuid)
-            }
-          })
+      /** Initializes the task on first invocation and just returns the
+        * generated UUID on further invocations.
+        */
+      def initializeTask(total: Option[Long]): UUID = uuid match {
+        case Some(value) => value
         case None =>
-          log.warning("Progress reported but no current user.")
+          val generated = UUID.randomUUID()
+          uuid = Some(generated)
+          val unit = ProgressUnit.Other // TODO [RW] unit handling
+          user ! Notification.TaskStarted(generated, total, unit)
+          generated
       }
+      task.addProgressListener(new ProgressListener[Any] {
+        override def progressUpdate(
+          done: Long,
+          total: Option[Long]
+        ): Unit = {
+          val uuid = initializeTask(total)
+          user ! Notification.TaskUpdate(uuid, done)
+        }
+
+        override def done(result: Try[Any]): Unit = result match {
+          case Failure(exception) =>
+            val uuid = initializeTask(None)
+            user ! Notification.TaskFailure(uuid, exception)
+          case Success(_) =>
+            val uuid = initializeTask(None)
+            user ! Notification.TaskSuccess(uuid)
+        }
+      })
     }
 
     override def shouldInstallMissingEngine(version: SemVer): Boolean =
@@ -95,8 +97,12 @@ class RuntimeVersionManagerController
 
   private val engineProvider = EngineRepository.defaultEngineReleaseProvider
 
-  private val runtimeVersionManager = new RuntimeVersionManager(
-    userInterface             = interface,
+  private def runtimeVersionManager(
+    user: ActorRef,
+    allowMissing: Boolean = false,
+    allowBroken: Boolean  = false
+  ) = new RuntimeVersionManager(
+    userInterface             = new ControllerInterface(user, allowBroken, allowMissing),
     distributionManager       = Managers.distributionManager,
     temporaryDirectoryManager = Managers.temporaryDirectoryManager,
     resourceManager           = Managers.resourceManager,
@@ -104,66 +110,129 @@ class RuntimeVersionManagerController
     runtimeReleaseProvider    = GraalCEReleaseProvider
   )
 
-  private val runner = new Runner(
-    runtimeVersionManager = runtimeVersionManager,
-    environment           = DefaultEnvironment,
-    loggerConnection      = Future.successful(None) // TODO [RW] logging in PM
+  private def makeRunner(
+    user: ActorRef,
+    allowMissing: Boolean = false,
+    allowBroken: Boolean  = false
+  ) = new Runner(
+    runtimeVersionManager =
+      runtimeVersionManager(user, allowMissing, allowBroken),
+    environment      = DefaultEnvironment,
+    loggerConnection = Future.successful(None) // TODO [RW] logging in PM
   )
+
+  private def makeRunner(
+    user: ActorRef,
+    missingComponentAction: MissingComponentAction
+  ) = missingComponentAction match {
+    case MissingComponentAction.Fail =>
+      makeRunner(user, allowMissing = false, allowBroken = false)
+    case MissingComponentAction.Install =>
+      makeRunner(user, allowMissing = true, allowBroken = false)
+    case MissingComponentAction.ForceInstallBroken =>
+      makeRunner(user, allowMissing = true, allowBroken = true)
+  }
 
   // TODO [RW] do we need a way to override this?
   private val jvmSettings = JVMSettings(false, Seq.empty)
 
-  override def receive: Receive = { case request: Request =>
-    currentUser = Some(sender())
+  override def receive: Receive = defaultMode
+
+  private def defaultMode: Receive = { case request: Request =>
     handleRequest(request)
+  }
+
+  private def supervisingLanguageServer: Receive = {
+    case Request.StopLanguageServer =>
+      stopLanguageServer()
+      context.become(defaultMode)
+    case _: Request => sender() ! Response.ServiceIsBusy
   }
 
   private def handleRequest(request: Request): Unit = request match {
     case Request.InstallEngine(version, forceInstallBroken) =>
-      allowBroken  = forceInstallBroken
-      allowMissing = true
-      try {
-        runtimeVersionManager.findOrInstallEngine(version)
-        sender() ! Response.Success
-      } catch {
-        case error: Exception =>
-          sender() ! Response.Failure(error)
+      val result = Try {
+        runtimeVersionManager(
+          sender(),
+          allowBroken  = forceInstallBroken,
+          allowMissing = true
+        ).findOrInstallEngine(version)
+        Response.Success
       }
+      respondWithTry(result)
     case Request.UninstallEngine(version) =>
-      try {
-        runtimeVersionManager.uninstallEngine(version)
-        sender() ! Response.Success
-      } catch {
-        case error: Exception =>
-          sender() ! Response.Failure(error)
+      val result = Try {
+        runtimeVersionManager(sender()).uninstallEngine(version)
+        Response.Success
       }
+      respondWithTry(result)
     case Request.ListInstalledEngines =>
-      val list = runtimeVersionManager
-        .listInstalledEngines()
-        .map(engine =>
-          EngineVersion(
-            version        = engine.version,
-            markedAsBroken = engine.isMarkedBroken
+      val result = Try {
+        val list = runtimeVersionManager(sender())
+          .listInstalledEngines()
+          .map(engine =>
+            EngineVersion(
+              version        = engine.version,
+              markedAsBroken = engine.isMarkedBroken
+            )
           )
-        )
-      sender() ! Response.EngineList(list)
-    case Request.ListAvailableEngines =>
-      // TODO [RW, AO] the remote provider only returns non-broken versions,
-      //  is that ok?
-      engineProvider.fetchAllValidVersions() match {
-        case Failure(exception) =>
-          sender() ! Response.Failure(exception)
-        case Success(value) =>
-          val list = value.map(EngineVersion(_, markedAsBroken = true))
-          sender() ! Response.EngineList(list)
+        Response.EngineList(list)
       }
-    case Request.CreateProject(_) =>
-      val _ = jvmSettings
-      val _ = runner
-//      runner.newProject(???, ???, ???, ???, ???, ???) // FIXME [RW] WIP
+      respondWithTry(result)
+    case Request.ListAvailableEngines =>
+      val result = engineProvider.fetchAllVersions().map { versions =>
+        val list = versions.map {
+          case ReleaseProvider.Version(version, markedAsBroken) =>
+            EngineVersion(version, markedAsBroken)
+        }
+        Response.EngineList(list)
+      }
+      respondWithTry(result)
+    case Request.CreateProject(
+          path,
+          name,
+          version,
+          authorName,
+          authorEmail,
+          additionalArguments,
+          missingComponentAction
+        ) =>
+      def checkExitCode(exitCode: Int): Try[Unit] = if (exitCode == 0)
+        Success(())
+      else
+        Failure(
+          new RuntimeException(s"Engine returned non-zero exit code: $exitCode")
+        )
+
+      val runner = makeRunner(sender(), missingComponentAction)
+      val result = for {
+        runSettings <- runner.newProject(
+          path                = path,
+          name                = name,
+          version             = version,
+          authorName          = authorName,
+          authorEmail         = authorEmail,
+          additionalArguments = additionalArguments
+        )
+        exitCode <- runner.withCommand(runSettings, jvmSettings)(_.run())
+        _        <- checkExitCode(exitCode)
+      } yield Response.Success
+      respondWithTry(result)
+
     case Request.StartLanguageServer(_) =>
-      ??? // FIXME [RW] WIP
+      startLanguageServer()
   }
+
+  private def respondWithTry(result: Try[Response]): Unit = result match {
+    case Failure(exception) => sender() ! Response.Failure(exception)
+    case Success(response)  => sender() ! response
+  }
+
+  private def startLanguageServer(): Unit = {
+    context.become(supervisingLanguageServer)
+  }
+
+  private def stopLanguageServer(): Unit = {}
 }
 
 object RuntimeVersionManagerController {
@@ -174,12 +243,26 @@ object RuntimeVersionManagerController {
     case class UninstallEngine(version: SemVer) extends Request
     case object ListInstalledEngines            extends Request
     case object ListAvailableEngines            extends Request
-    case class CreateProject(todo: Any)         extends Request
-    case class StartLanguageServer(todo: Any)   extends Request
+    case class CreateProject(
+      path: Path,
+      name: String,
+      version: SemVer,
+      authorName: Option[String],
+      authorEmail: Option[String],
+      additionalArguments: Seq[String],
+      missingComponentAction: MissingComponentAction
+    )                                         extends Request
+    case class StartLanguageServer(todo: Any) extends Request
+    case object StopLanguageServer            extends Request
   }
 
   sealed trait Response
   object Response {
+
+    /** Indicates that currently a managed Language Server instance is running
+      * so other operations are not permitted.
+      */
+    case object ServiceIsBusy                          extends Response
     case object Success                                extends Response
     case class Failure(exception: Throwable)           extends Response
     case class EngineList(engines: Seq[EngineVersion]) extends Response
