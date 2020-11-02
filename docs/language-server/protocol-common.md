@@ -12,7 +12,7 @@ This document contains the specification of the Enso protocol messages that are
 common to multiple sub-components of the protocol.
 
 For information on the design and architecture of the protocol, as well as its
-transport formats, please look [here](./protocol-architecture).
+transport formats, please look [here](./protocol-architecture.md).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -21,6 +21,13 @@ transport formats, please look [here](./protocol-architecture).
   - [`Path`](#path)
   - [`IPWithSocket`](#ipwithsocket)
   - [`EnsoUUID`](#ensouuid)
+- [Common Errors](#common-errors)
+  - [`ParseError`](#parseerror)
+  - [`InvalidRequest`](#invalidrequest)
+  - [`MethodNotFound`](#methodnotfound)
+  - [`InvalidParams`](#invalidparams)
+  - [`ServiceError`](#serviceerror)
+  - [`NotImplementedError`](#notimplementederror)
 
 <!-- /MarkdownTOC -->
 
@@ -116,5 +123,77 @@ struct EnsoUUID {
   //The most significant bits of the UUID.
   mostSigBits:uint64;
 
+}
+```
+
+## Common Errors
+
+### `ParseError`
+
+Signals that the message failed to parse.
+
+```typescript
+"error" : {
+  "code" : -32700,
+  "message" : "Parse error"
+}
+```
+
+### `InvalidRequest`
+
+Signals that the request is invalid.
+
+```typescript
+"error" : {
+  "code" : -32600,
+  "message" : "Invalid Request"
+}
+```
+
+### `MethodNotFound`
+
+Signals that the requested method is not supported.
+
+```typescript
+"error" : {
+  "code" : -32601,
+  "message" : "Method not found"
+}
+```
+
+### `InvalidParams`
+
+Signals that the parameters provided for the requested method were invalid.
+
+This may indicate that the type or format of one of the parameters is different
+than expected.
+
+```typescript
+"error" : {
+  "code" : -32602,
+  "message" : "Invalid params"
+}
+```
+
+### `ServiceError`
+
+Signals a generic service error.
+
+```typescript
+"error" : {
+  "code" : 1,
+  "message" : "Service error"
+}
+```
+
+### `NotImplementedError`
+
+Signals that the requested method is supported, but it is has not been
+implemented yet.
+
+```typescript
+"error" : {
+  "code" : 10,
+  "message" : "The requested method is not implemented"
 }
 ```

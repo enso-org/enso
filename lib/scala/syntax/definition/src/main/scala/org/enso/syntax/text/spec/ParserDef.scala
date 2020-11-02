@@ -516,6 +516,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       logger.trace {
         onEscape(Segment.Escape.Slash)
       }
+    def onEscapeFormatQuote(): Unit = logger.trace {
+      onEscape(Segment.Escape.Quote)
+    }
 
     def onEscapeQuote(): Unit =
       logger.trace {
@@ -618,47 +621,24 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     FMT_BLCK.parent    = FMT
   }
 
-  ROOT     || '`' || text.onInterpolateEnd()
-  text.FMT || '`' || text.onInterpolateBegin()
-
+  ROOT || '`'                    || text.onInterpolateEnd()
   ROOT || "'''" >> "'".many1     || text.onInvalidQuote()
+  ROOT || "'"                    || text.onBegin(text.FMT_LINE)
+  ROOT || text.fmtBlock          || text.onBeginBlock(text.FMT_BLCK)
+  ROOT || "'''"                  || text.onInlineBlock()
   ROOT || "\"\"\"" >> "\"".many1 || text.onInvalidQuote()
+  ROOT || '"'                    || text.onBegin(text.RAW_LINE)
+  ROOT || text.rawBlock          || text.onBeginBlock(text.RAW_BLCK)
+  ROOT || "\"\"\""               || text.onInlineBlock()
 
-  ROOT            || "'"           || text.onBegin(text.FMT_LINE)
-  text.FMT_LINE   || "'"           || text.submit()
-  text.FMT_LINE   || "'".many1     || text.submitInvalidQuote()
-  text.FMT_LINE   || text.fmtSeg   || text.submitPlainSegment()
-  text.FMT_LINE   || eof           || text.submitMissingQuote()
-  text.FMT_LINE   || newline       || text.submitMissingQuote()
   block.FIRSTCHAR || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
-  ROOT            || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
-  ROOT            || "'''"         || text.onInlineBlock()
-  text.FMT_BLCK   || text.fmtBSeg  || text.submitPlainSegment()
-  text.FMT_BLCK   || eof           || text.onEndOfBlock()
-  text.FMT_BLCK   || newline       || text.onEndOfLine()
-
-  ROOT            || '"'           || text.onBegin(text.RAW_LINE)
-  text.RAW_LINE   || '"'           || text.submit()
-  text.RAW_LINE   || '"'.many1     || text.submitInvalidQuote()
-  text.RAW_LINE   || text.rawSeg   || text.submitPlainSegment()
-  text.RAW_LINE   || eof           || text.submitMissingQuote()
-  text.RAW_LINE   || newline       || text.submitMissingQuote()
   block.FIRSTCHAR || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
-  ROOT            || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
-  ROOT            || "\"\"\""      || text.onInlineBlock()
-  text.RAW_BLCK   || text.rawBSeg  || text.submitPlainSegment()
-  text.RAW_BLCK   || eof           || text.onEndOfBlock()
-  text.RAW_BLCK   || newline       || text.onEndOfLine()
 
-  text.NEWLINE || space.opt            || text.onNewLine()
-  text.NEWLINE || space.opt >> newline || text.onEmptyLine()
-  text.NEWLINE || space.opt >> eof     || text.onEOFNewLine()
-
+  text.FMT || '`' || text.onInterpolateBegin()
   AST.Text.Segment.Escape.Character.codes.foreach { code =>
     val char = s"text.Segment.Escape.Character.$code"
     text.FMT || s"\\$code" run s"text.onEscape($char)"
   }
-
   AST.Text.Segment.Escape.Control.codes.foreach { code =>
     val ctrl = s"text.Segment.Escape.Control.$code"
     text.FMT || s"\\$code" run s"text.onEscape($ctrl)"
@@ -668,15 +648,38 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   text.FMT || text.escape_u16 || text.onEscapeU16()
   text.FMT || text.escape_u32 || text.onEscapeU32()
   text.FMT || text.escape_int || text.onEscapeInt()
+  text.FMT || "\\'"           || text.onEscapeFormatQuote()
   text.FMT || "\\\\"          || text.onEscapeSlash()
-  text.FMT || "\\'"           || text.onEscapeQuote()
   text.FMT || "\\" >> any     || text.onEscapeInvalid()
   text.FMT || "\\"            || text.onEscapeUnfinished()
 
+  text.FMT_LINE   || "'"           || text.submit()
+  text.FMT_LINE   || "'".many1     || text.submitInvalidQuote()
+  text.FMT_LINE   || text.fmtSeg   || text.submitPlainSegment()
+  text.FMT_LINE   || eof           || text.submitMissingQuote()
+  text.FMT_LINE   || newline       || text.submitMissingQuote()
+
+  text.FMT_BLCK   || text.fmtBSeg  || text.submitPlainSegment()
+  text.FMT_BLCK   || eof           || text.onEndOfBlock()
+  text.FMT_BLCK   || newline       || text.onEndOfLine()
+
+  text.RAW_LINE || '"'         || text.submit()
+  text.RAW_LINE || '"'.many1   || text.submitInvalidQuote()
+  text.RAW_LINE || text.rawSeg || text.submitPlainSegment()
+  text.RAW_LINE || eof         || text.submitMissingQuote()
+  text.RAW_LINE || newline     || text.submitMissingQuote()
   text.RAW_LINE || "\\\""      || text.onEscapeRawQuote()
   text.RAW_LINE || "\\\\"      || text.onEscapeSlash()
   text.RAW_LINE || "\\" >> any || text.onEscapeInvalid()
   text.RAW_LINE || "\\"        || text.onEscapeUnfinished()
+
+  text.RAW_BLCK   || text.rawBSeg  || text.submitPlainSegment()
+  text.RAW_BLCK   || eof           || text.onEndOfBlock()
+  text.RAW_BLCK   || newline       || text.onEndOfLine()
+
+  text.NEWLINE || space.opt            || text.onNewLine()
+  text.NEWLINE || space.opt >> newline || text.onEmptyLine()
+  text.NEWLINE || space.opt >> eof     || text.onEOFNewLine()
 
   //////////////
   /// Blocks ///

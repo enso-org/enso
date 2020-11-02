@@ -2,9 +2,6 @@
 
 members = [
     "lib/rust/ast",
-    "lib/rust/flexer",
-    "lib/rust/flexer-testing/definition",
-    "lib/rust/flexer-testing/generation",
     "lib/rust/launcher-shims",
     "lib/rust/lexer/definition",
     "lib/rust/lexer/generation",
@@ -15,16 +12,17 @@ members = [
 # assumes you have `rust-lib` in the same directory as `enso`. See:
 # https://github.com/enso-org/rust-lib/blob/main/docs/CONTRIBUTING.md#developing-in-conjunction-with-enso--ide
 [patch.crates-io]
-# enso-automata       = { path = '../rust-lib/src/automata'       }
-# enso-data           = { path = '../rust-lib/src/data'           }
-# enso-generics       = { path = '../rust-lib/src/generics'       }
-# enso-lazy-reader    = { path = '../rust-lib/src/lazy-reader'    }
-# enso-logger         = { path = '../rust-lib/src/logger'         }
-# enso-macro-utils    = { path = '../rust-lib/src/macro-utils'    }
-# enso-optics         = { path = '../rust-lib/src/optics'         }
-# enso-prelude        = { path = '../rust-lib/src/prelude'        }
-# enso-shapely        = { path = '../rust-lib/src/shapely/impl'   }
-# enso-shapely-macros = { path = '../rust-lib/src/shapely/macros' }
+#enso-automata       = { path = '../rust-lib/src/automata'       }
+#enso-data           = { path = '../rust-lib/src/data'           }
+#enso-flexer         = { path = '../rust-lib/src/flexer'         }
+#enso-generics       = { path = '../rust-lib/src/generics'       }
+#enso-lazy-reader    = { path = '../rust-lib/src/lazy-reader'    }
+#enso-logger         = { path = '../rust-lib/src/logger'         }
+#enso-macro-utils    = { path = '../rust-lib/src/macro-utils'    }
+#enso-optics         = { path = '../rust-lib/src/optics'         }
+#enso-prelude        = { path = '../rust-lib/src/prelude'        }
+#enso-shapely        = { path = '../rust-lib/src/shapely/impl'   }
+#enso-shapely-macros = { path = '../rust-lib/src/shapely/macros' }
 
 [profile.dev]
 opt-level        = 0
@@ -36,7 +34,6 @@ debug-assertions = true
 opt-level        = 3
 lto              = true
 debug            = false
-panic            = 'abort'
 debug-assertions = false
 
 [profile.bench]

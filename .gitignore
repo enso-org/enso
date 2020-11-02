@@ -97,6 +97,7 @@ bench-report.xml
 .editorconfig
 .bloop/
 .bsp/
+project/metals.sbt
 
 #################
 ## Build Cache ##

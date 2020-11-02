@@ -6,6 +6,8 @@
 
 use crate::prelude::*;
 
+use crate::lexeme;
+
 
 
 // =============
@@ -24,6 +26,11 @@ pub struct Token {
 }
 
 impl Token {
+    /// Constructor.
+    pub fn new(shape:Shape, length:usize, offset:usize) -> Token {
+        Token{shape,length,offset}
+    }
+
     /// Get the length that the token takes up in the program source.
     pub fn source_length(&self) -> usize {
         self.length + self.offset
@@ -31,10 +38,9 @@ impl Token {
 }
 
 /// Constructors for the various forms of token.
-#[allow(non_snake_case)]
 impl Token {
     /// Construct a token representing a referent identifier.
-    pub fn Referent(name:impl Str, offset:usize) -> Token {
+    pub fn referent(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count();
         let shape  = Shape::Referent(str);
@@ -42,7 +48,7 @@ impl Token {
     }
 
     /// Construct a token representing a variable identifier.
-    pub fn Variable(name:impl Str, offset:usize) -> Token {
+    pub fn variable(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count();
         let shape  = Shape::Variable(str);
@@ -50,7 +56,7 @@ impl Token {
     }
 
     /// Construct a token representing an external identifier.
-    pub fn External(name:impl Str, offset:usize) -> Token {
+    pub fn external(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count();
         let shape  = Shape::External(str);
@@ -58,61 +64,157 @@ impl Token {
     }
 
     /// Construct a token representing a blank identifier.
-    pub fn Blank(offset:usize) -> Token {
+    pub fn blank(offset:usize) -> Token {
         let shape  = Shape::Blank;
-        let length = 1;
+        let length = lexeme::len(lexeme::literal::BLANK_IDENT);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing an operator.
-    pub fn Operator(name:impl Str, offset:usize) -> Token {
-        let str    = name.into();
-        let length = str.chars().count();
-        let shape  = Shape::Operator(str);
+    pub fn operator(name:impl Str, offset:usize) -> Token {
+        let name   = name.into();
+        let length = name.chars().count();
+        let shape  = Shape::Operator(name);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing a modifier operator.
-    pub fn Modifier(name:impl Str, offset:usize) -> Token {
-        let str    = name.into();
-        let length = str.chars().count() + 1;
-        let shape  = Shape::Modifier(str);
+    pub fn modifier(name:impl Str, offset:usize) -> Token {
+        let name         = name.into();
+        let modifier_len = lexeme::len(lexeme::literal::EQUALS);
+        let length       = name.chars().count() + modifier_len;
+        let shape        = Shape::Modifier(name);
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing
+    pub fn annotation(name_str:impl Str, offset:usize) -> Token {
+        let name           = name_str.into();
+        let annotation_len = lexeme::len(lexeme::literal::ANNOTATION_SYMBOL);
+        let length         = name.chars().count() + annotation_len;
+        let shape          = Shape::Annotation(name);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing a number literal.
-    pub fn Number(base:impl Str, num:impl Into<String>, offset:usize) -> Token {
-        let str      = num.into();
-        let base_str = base.into();
-        let length   = if base_str.is_empty() {
-            str.chars().count()
+    pub fn number(base:impl Str, num:impl Into<String>, offset:usize) -> Token {
+        let number = num.into();
+        let base   = base.into();
+        let length = if base.is_empty() {
+            number.chars().count()
         } else {
-            base_str.chars().count() + 1 + str.chars().count()
+            let base_sep_len = lexeme::len(lexeme::literal::NUMBER_BASE_SEPARATOR);
+            base.chars().count() + base_sep_len + number.chars().count()
         };
-        let shape = Shape::Number{base:base_str,number:str};
+        let shape = Shape::Number{base,number};
         Token{shape,length,offset}
     }
 
     /// Construct a token representing a dangling number base.
-    pub fn DanglingBase(base:impl Str, offset:usize) -> Token {
-        let base_str = base.into();
-        let length   = base_str.chars().count() + 1;
-        let shape    = Shape::DanglingBase(base_str);
+    pub fn dangling_base(base:impl Str, offset:usize) -> Token {
+        let base_str     = base.into();
+        let base_sep_len = lexeme::len(lexeme::literal::NUMBER_BASE_SEPARATOR);
+        let length       = base_str.chars().count() + base_sep_len;
+        let shape        = Shape::DanglingBase(base_str);
         Token{shape,length,offset}
     }
 
-    /// Construct a token representing a text literal.
-    pub fn Text(text:impl Str, offset:usize) -> Token {
-        let str    = text.into();
-        let length = str.chars().count();
-        let shape  = Shape::Text(str);
+    /// Construct a token representing a line of text.
+    pub fn text_line(style:TextStyle, segments:Vec<Token>, offset:usize) -> Token {
+        let segments_len:usize = segments.iter().map(|s| s.source_length()).sum();
+        let length             = style.length() + segments_len;
+        let shape              = Shape::TextLine{style,segments};
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing an inline block text literal.
+    pub fn text_inline_block
+    ( style    : TextStyle
+    , segments : Vec<Token>
+    , offset   : usize
+    ) -> Token {
+        let segments_length:usize = segments.iter().map(|s| s.source_length()).sum();
+        let length                = style.length() + segments_length;
+        let shape                 = Shape::TextInlineBlock{style,segments};
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing a block of text.
+    pub fn text_block
+    ( start_line_ending : LineEnding
+    , style             : TextStyle
+    , lines             : Vec<Token>
+    , indent            : usize
+    , offset            : usize
+    ) -> Token {
+        let length = style.length() + start_line_ending.size() + lines.iter().fold(0, |l,r|
+            l + match r.shape {
+                Shape::Line {..}    => indent + r.source_length(),
+                Shape::BlankLine(_) => r.source_length(),
+                _                   => unreachable_panic!("Text blocks should only contain lines."),
+            }
+        );
+        let shape = Shape::TextBlock{start_line_ending,style,lines};
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing an invalid quote.
+    pub fn invalid_quote(bad_quotes:impl Str, offset:usize) -> Token {
+        let bad_string = bad_quotes.into();
+        let length     = bad_string.chars().count();
+        let shape      = Shape::InvalidQuote(bad_string);
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing a raw text segment.
+    pub fn text_segment_raw(str:impl Str, offset:usize) -> Token {
+        let string = str.into();
+        let length = string.chars().count();
+        let shape  = Shape::TextSegmentRaw(string);
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing an escape sequence.
+    pub fn text_segment_escape(style:EscapeStyle, repr_str:impl Str, offset:usize) -> Token {
+        let repr   = repr_str.into();
+        let length = style.size() + repr.chars().count();
+        let shape  = Shape::TextSegmentEscape{style,repr};
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing an escape sequence using a literal `shape`.
+    pub fn text_segment_escape_from_shape(shape:Shape, offset:usize) -> Token {
+        match &shape {
+            Shape::TextSegmentEscape{style,repr} => {
+                let length = style.size() + repr.chars().count();
+                Token{shape,length,offset}
+            },
+            _ => unreachable_panic!("Shape must be a TextSegmentEscape.")
+        }
+    }
+
+    /// Construct a token representing an interpolated text segment.
+    pub fn text_segment_interpolate(tokens:Vec<Token>, offset:usize) -> Token {
+        let length_of_interpolation_ticks = 2;
+        let length =
+            length_of_interpolation_ticks + tokens.iter().fold(0,|l,r| l + r.source_length());
+        let shape = Shape::TextSegmentInterpolate{tokens};
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing an unclosed interpolated text segment.
+    pub fn text_segment_unclosed_interpolate(tokens:Vec<Token>, offset:usize) -> Token {
+        let length_of_interpolation_tick = 1;
+        let length =
+            length_of_interpolation_tick + tokens.iter().fold(0,|l,r| l + r.source_length());
+        let shape = Shape::TextSegmentUnclosedInterpolate{tokens};
         Token{shape,length,offset}
     }
 
     /// Construct a token representing a line of tokens.
-    pub fn Line(tokens:Vec<Token>, offset:usize, trailing_line_ending:LineEnding) -> Token {
+    pub fn line(tokens:Vec<Token>, offset:usize, trailing_line_ending:LineEnding) -> Token {
         let line_ending_len = trailing_line_ending.size();
-        let length          = tokens.iter().fold(line_ending_len,|l,r| l + r.offset + r.length);
+        let length          = tokens.iter().fold(line_ending_len,|l,r| l + r.source_length());
         let shape           = Shape::Line{tokens,trailing_line_ending};
         Token{shape,length,offset}
     }
@@ -121,26 +223,25 @@ impl Token {
     ///
     /// The `offset` for blank lines is from the leftmost column, not from the parent block's
     /// indentation.
-    pub fn BlankLine(offset:usize, trailing_line_ending:LineEnding) -> Token {
+    pub fn blank_line(offset:usize, trailing_line_ending:LineEnding) -> Token {
         let length = trailing_line_ending.size();
         let shape  = Shape::BlankLine(trailing_line_ending);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing a block.
-    pub fn Block
+    pub fn block
     ( block_type  : BlockType
     , indent      : usize
     , lines       : Vec<Token>
     , offset      : usize
     ) -> Token {
         let length = lines.iter().map(|line| {
-            let line_length = line.length;
-            let line_offset = line.offset;
             match line.shape {
-                Shape::Line{..}     => indent + line_offset + line_length,
-                Shape::BlankLine(_) => line_offset + line_length,
-                _                   => unreachable_panic!("Tokens in a blocks should always be lines."),
+                Shape::Line{..}     => indent + line.source_length(),
+                Shape::BlankLine(_) => line.source_length(),
+                _                   =>
+                    unreachable_panic!("Tokens in a blocks should always be lines."),
             }
         }).sum();
         let shape = Shape::Block{block_type,indent,lines};
@@ -148,18 +249,40 @@ impl Token {
     }
 
     /// Construct a token representing an invalid suffix.
-    pub fn InvalidSuffix(text:impl Str, offset:usize) -> Token {
-        let str    = text.into();
-        let length = str.chars().count();
-        let shape  = Shape::InvalidSuffix(str);
+    pub fn invalid_suffix(text:impl Str, offset:usize) -> Token {
+        let text   = text.into();
+        let length = text.chars().count();
+        let shape  = Shape::InvalidSuffix(text);
         Token{shape,length,offset}
     }
 
     /// Construct a token representing an unrecognised lexeme.
-    pub fn Unrecognized(text:impl Str, offset:usize) -> Token {
-        let str    = text.into();
-        let length = str.chars().count();
-        let shape  = Shape::Unrecognized(str);
+    pub fn unrecognized(text:impl Str, offset:usize) -> Token {
+        let text   = text.into();
+        let length = text.chars().count();
+        let shape  = Shape::Unrecognized(text);
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing a disable comment.
+    pub fn disable_comment(text:impl Str, offset:usize) -> Token {
+        let text        = text.into();
+        let comment_len = lexeme::len(lexeme::literal::COMMENT);
+        let length      = text.chars().count() + comment_len;
+        let shape       = Shape::DisableComment(text);
+        Token{shape,length,offset}
+    }
+
+    /// Construct a token representing a documentation comment.
+    pub fn doc_comment(lines:Vec<Token>, indent:usize, offset:usize) -> Token {
+        let length = lines.iter().map(|line| {
+            match line.shape {
+                Shape::Line{..}     => indent + line.source_length(),
+                Shape::BlankLine(_) => line.source_length(),
+                _ => unreachable_panic!("Tokens in a doc comment should always be lines."),
+            }
+        }).sum();
+        let shape = Shape::DocComment{lines,indent};
         Token{shape,length,offset}
     }
 }
@@ -179,9 +302,11 @@ pub enum BlockType {
     Discontinuous,
 }
 
-// ===================
-// === NewlineType ===
-// ===================
+
+
+// ==================
+// === LineEnding ===
+// ==================
 
 /// The type of newline associated with the line.
 #[derive(Copy,Clone,Debug,Display,PartialEq,Eq)]
@@ -195,12 +320,14 @@ pub enum LineEnding {
 }
 
 impl LineEnding {
+    const NO_LENGTH:usize = 0;
+
     /// Get the number of rust `char`s that the newline type takes up.
     pub fn size(self) -> usize {
         match self {
-            Self::None => 0,
-            Self::LF   => 1,
-            Self::CRLF => 2,
+            Self::None => Self::NO_LENGTH,
+            Self::LF   => lexeme::len(lexeme::literal::LF),
+            Self::CRLF => lexeme::len(lexeme::literal::CRLF),
         }
     }
 }
@@ -211,6 +338,128 @@ impl LineEnding {
 impl Default for LineEnding {
     fn default() -> Self {
         LineEnding::None
+    }
+}
+
+
+
+// =================
+// === TextStyle ===
+// =================
+
+/// The style of the text literal.
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum TextStyle {
+    // === Line ===
+
+    /// A interpolated text line literal.
+    FormatLine,
+    /// A raw text line literal.
+    RawLine,
+    /// An unclosed text line literal.
+    UnclosedLine,
+
+    // === Inline Block ===
+
+    /// A format inline block text literal.
+    FormatInlineBlock,
+    /// A raw inline block text literal.
+    RawInlineBlock,
+
+    // === Block ===
+
+    /// An interpolated text block literal.
+    FormatBlock,
+    /// A raw text block literal.
+    RawBlock,
+}
+
+impl TextStyle {
+    /// Calculate the length of the delimiters for a particular style of text literal.
+    pub fn length(self) -> usize {
+        match self {
+            TextStyle::FormatLine        => lexeme::len(lexeme::literal::FORMAT_QUOTE) * 2,
+            TextStyle::RawLine           => lexeme::len(lexeme::literal::RAW_QUOTE) * 2,
+            TextStyle::FormatInlineBlock => lexeme::len(lexeme::literal::FORMAT_BLOCK_QUOTE),
+            TextStyle::RawInlineBlock    => lexeme::len(lexeme::literal::RAW_BLOCK_QUOTE),
+            TextStyle::UnclosedLine      => lexeme::len(lexeme::literal::FORMAT_QUOTE),
+            TextStyle::FormatBlock       => lexeme::len(lexeme::literal::FORMAT_BLOCK_QUOTE),
+            TextStyle::RawBlock          => lexeme::len(lexeme::literal::RAW_BLOCK_QUOTE),
+        }
+    }
+
+    /// Check if the text literal is a line literal.
+    pub fn is_line_literal(self) -> bool {
+        match self {
+            TextStyle::RawLine      => true,
+            TextStyle::FormatLine   => true,
+            TextStyle::UnclosedLine => true,
+            _                       => false,
+        }
+    }
+
+    /// Check if the text literal is an inline block literal.
+    pub fn is_inline_block_literal(self) -> bool {
+        match self {
+            TextStyle::FormatInlineBlock => true,
+            TextStyle::RawInlineBlock    => true,
+            _                            => false,
+        }
+    }
+
+    /// Check if the text literal is a block literal.
+    pub fn is_block_literal(self) -> bool {
+        match self {
+            TextStyle::FormatBlock => true,
+            TextStyle::RawBlock    => true,
+            _                      => false,
+        }
+    }
+}
+
+
+
+// ===================
+// === EscapeStyle ===
+// ===================
+
+/// A description of the style of escape sequence seen.
+#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+pub enum EscapeStyle {
+    /// A \xNN-style byte escape.
+    Byte,
+    /// Unicode 16-bit escape sequence.
+    U16,
+    /// Unicode 21-bit escape sequence.
+    U21,
+    /// Unicode 32-bit escape sequence.
+    U32,
+    /// A literal escape character.
+    Literal,
+    /// An invalid unicode escape.
+    InvalidUnicode,
+    /// An invalid escape.
+    Invalid,
+    /// An escape slash without any following escape.
+    Unfinished,
+}
+impl EscapeStyle {
+    const NO_ADDITIONAL_LENGTH:usize = 0;
+
+    /// Get the length taken up in source by the delimiters to an escape type.
+    pub fn size(self) -> usize {
+        match self {
+            EscapeStyle::Byte    => lexeme::len(lexeme::literal::BYTE_ESCAPE_START),
+            EscapeStyle::Literal => lexeme::len(lexeme::literal::SLASH),
+            EscapeStyle::U16     => lexeme::len(lexeme::literal::U16_ESCAPE_START),
+            EscapeStyle::U32     => lexeme::len(lexeme::literal::U32_ESCAPE_START),
+            EscapeStyle::U21     => {
+                let start_len = lexeme::len(lexeme::literal::U21_ESCAPE_START);
+                let end_len   = lexeme::len(lexeme::literal::U21_ESCAPE_END);
+                start_len + end_len
+            }
+            _ => Self::NO_ADDITIONAL_LENGTH,
+        }
     }
 }
 
@@ -241,25 +490,73 @@ pub enum Shape {
     Operator(String),
     /// A modifier identifier.
     Modifier(String),
+    /// An annotation.
+    Annotation(String),
 
     // === Literals ===
 
     /// A literal number.
-    Number{base:String, number:String},
+    Number {
+        /// The (optional) base for the number to be interpreted in.
+        base:String,
+        /// The number itself, possibly with a decimal point.
+        number:String
+    },
     /// A dangling base from a number literal.
     DanglingBase(String),
-    /// A text literal.
-    ///
-    /// This is currently way too simplistic to actually represent text, but it is a good
-    /// placeholder.
-    Text(String),
+    /// A text line literal.
+    TextLine {
+        /// The type of literal being encoded.
+        style : TextStyle,
+        /// The segments that make up the line of text.
+        segments : Vec<Token>,
+    },
+    /// An inline block text literal.
+    TextInlineBlock {
+        /// The type of literal being encoded.
+        style : TextStyle,
+        /// The segments that make up the line of text.
+        segments : Vec<Token>,
+    },
+    /// A text block literal.
+    TextBlock {
+        /// The line ending that occurs directly after the opening quote marks.
+        start_line_ending : LineEnding,
+        /// The type of literal being encoded.
+        style : TextStyle,
+        /// The lines in the text block literal.
+        lines : Vec<Token>
+    },
+    /// An invalid quote for a text literal.
+    InvalidQuote(String),
+    /// A segment of a line of text containing only literal text.
+    TextSegmentRaw(String),
+    /// A segment of a line of text that represents an escape sequence.
+    TextSegmentEscape {
+        /// The type of escape being represented.
+        style : EscapeStyle,
+        /// The literal escape sequence.
+        repr : String,
+    },
+    /// A segment of a line of text that contains an interpolated expression.
+    TextSegmentInterpolate {
+        /// The tokens making up the interpolated expression.
+        tokens : Vec<Token>,
+    },
+    /// An interpolated expression that hasn't been closed.
+    TextSegmentUnclosedInterpolate {
+        /// The tokens making up the interpolated expression.
+        tokens : Vec<Token>
+    },
+    /// An invalid text segment (e.g. unclosed interpolate segment).
+    TextSegmentInvalid(String),
 
     // === Lines ===
     /// A line containing tokens.
     ///
     /// The offset for a line is always zero, as it is contained in a block with a defined
     /// indentation.
-    Line{
+    Line {
         /// The tokens on the line.
         tokens : Vec<Token>,
         /// The line ending that _ends_ the line.
@@ -290,6 +587,17 @@ pub enum Shape {
     InvalidSuffix(String),
     /// An unrecognized token.
     Unrecognized(String),
+
+    // === Comments ===
+    /// A disable comment (`# ...`).
+    DisableComment(String),
+    /// An Enso documentation comment (`## ...`).
+    DocComment {
+        /// The lines in the doc comment body. Each line must contain raw text segments only.
+        lines : Vec<Token>,
+        /// The indentation of the doc comment's body from the baseline.
+        indent : usize
+    }
 }
 
 impl Shape {
@@ -326,9 +634,16 @@ impl Shape {
         Shape::Modifier(opr.into())
     }
 
+    /// Construct an annotation identifier.
+    pub fn annotation(name:impl Into<String>) -> Shape {
+        Shape::Annotation(name.into())
+    }
+
     /// Construct a number literal.
     pub fn number(base:impl Into<String>, num:impl Into<String>) -> Shape {
-        Shape::Number{base:base.into(),number:num.into()}
+        let base   = base.into();
+        let number = num.into();
+        Shape::Number{base,number}
     }
 
     /// Construct a dangling base literal.
@@ -336,9 +651,50 @@ impl Shape {
         Shape::DanglingBase(base.into())
     }
 
-    /// Construct a text literal.
-    pub fn text(text:impl Into<String>) -> Shape {
-        Shape::Text(text.into())
+    /// Construct a text line literal.
+    pub fn text_line(style:TextStyle, segments:Vec<Token>) -> Shape {
+        Shape::TextLine{style,segments}
+    }
+
+    /// Construct an inline block text literal.
+    pub fn text_inline_block(style:TextStyle, segments:Vec<Token>) -> Shape {
+        Shape::TextInlineBlock{style,segments}
+    }
+
+    /// Construct a text block literal.
+    pub fn text_block(start_line_ending: LineEnding, style:TextStyle, lines:Vec<Token>) -> Shape {
+        Shape::TextBlock{start_line_ending,style,lines}
+    }
+
+    /// Construct an invalid quote literal.
+    pub fn invalid_quote(bad_quotes:impl Str) -> Shape {
+        Shape::InvalidQuote(bad_quotes.into())
+    }
+
+    /// Construct a raw text segment.
+    pub fn text_segment_raw(text:impl Str) -> Shape {
+        Shape::TextSegmentRaw(text.into())
+    }
+
+    /// Construct a text segment containing an escape sequence.
+    pub fn text_segment_escape(style:EscapeStyle, repr_str:impl Str) -> Shape {
+        let repr = repr_str.into();
+        Shape::TextSegmentEscape{style,repr}
+    }
+
+    /// Construct a text segment containing an interpolated expression.
+    pub fn text_segment_interpolate(tokens:Vec<Token>) -> Shape {
+        Shape::TextSegmentInterpolate{tokens}
+    }
+
+    /// Construct a text segment containing an unclosed interpolated expression.
+    pub fn text_segment_unclosed_interpolate(tokens:Vec<Token>) -> Shape {
+        Shape::TextSegmentUnclosedInterpolate{tokens}
+    }
+
+    /// Construct an invalid text segment.
+    pub fn text_segment_invalid(str:impl Str) -> Shape {
+        Shape::TextSegmentInvalid(str.into())
     }
 
     /// Construct a line that contains tokens.
@@ -364,6 +720,16 @@ impl Shape {
     /// Construct an unrecognised token.
     pub fn unrecognized(text:impl Into<String>) -> Shape {
         Shape::Unrecognized(text.into())
+    }
+
+    /// Construct a disable comment shape.
+    pub fn disable_comment(text:impl Str) -> Shape {
+        Shape::DisableComment(text.into())
+    }
+
+    /// Construct a doc comment shape.
+    pub fn doc_comment(lines:Vec<Token>, indent:usize) -> Shape {
+        Shape::DocComment{lines,indent}
     }
 }
 
@@ -423,148 +789,5 @@ impl From<Vec<Token>> for Stream {
 impl Into<Vec<Token>> for Stream {
     fn into(self) -> Vec<Token> {
         self.tokens
-    }
-}
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::token::BlockType;
-
-
-    // === Testing Utilities ===
-
-    /// Asserts that the `token` has the provided `shape`.
-    pub fn assert_shape(token:&Token, shape:Shape) {
-        assert_eq!(token.shape,shape);
-    }
-
-    /// Asserts that the `token` has the provided `length`.
-    pub fn assert_length(token:&Token, length:usize) {
-        assert_eq!(token.length,length)
-    }
-
-
-    // === Tests for Token Construction ===
-
-    #[test]
-    fn construct_referent_token() {
-        let token = Token::Referent("Some_Ref_Name",0);
-        assert_shape(&token,Shape::referent("Some_Ref_Name"));
-        assert_length(&token,13);
-    }
-
-    #[test]
-    fn construct_variable_token() {
-        let token = Token::Variable("some_variable_name",0);
-        assert_shape(&token,Shape::variable("some_variable_name"));
-        assert_length(&token,18);
-    }
-
-    #[test]
-    fn construct_external_name_token() {
-        let token = Token::External("camelCase",0);
-        assert_shape(&token,Shape::external("camelCase"));
-        assert_length(&token,9);
-    }
-
-    #[test]
-    fn construct_blank_token() {
-        let token = Token::Blank(0);
-        assert_shape(&token,Shape::blank());
-        assert_length(&token,1);
-    }
-
-    #[test]
-    fn construct_operator_token() {
-        let token = Token::Operator("==>",0);
-        assert_shape(&token,Shape::operator("==>"));
-        assert_length(&token,3);
-    }
-
-    #[test]
-    fn construct_modifier_token() {
-        let token = Token::Modifier("+",0);
-        assert_shape(&token,Shape::modifier("+"));
-        assert_length(&token,2);
-    }
-
-    #[test]
-    fn construct_number_token() {
-        let token = Token::Number("","1231",0);
-        assert_shape(&token,Shape::number("","1231"));
-        assert_length(&token,4);
-    }
-
-    #[test]
-    fn construct_dangling_base_token() {
-        let token = Token::DanglingBase("15",0);
-        assert_shape(&token,Shape::dangling_base("15"));
-        assert_length(&token,3);
-    }
-
-    #[test]
-    fn construct_text_token() {
-        let token = Token::Text("some prose goes here",0);
-        assert_shape(&token,Shape::text("some prose goes here"));
-        assert_length(&token,20);
-        // TODO [AA] Make this internally account for length of quotes.
-    }
-
-    #[test]
-    fn construct_line_token() {
-        let tokens = vec![Token::Variable("aa",0),Token::Referent("Abc",1)];
-        let token  = Token::Line(tokens.clone(), 4, LineEnding::LF);
-        assert_shape(&token,Shape::line(tokens.clone(), LineEnding::LF));
-        assert_length(&token,7);
-    }
-
-    #[test]
-    fn construct_blank_line_token() {
-        let token = Token::BlankLine(13,LineEnding::LF);
-        assert_shape(&token, Shape::blank_line(LineEnding::LF));
-        assert_length(&token,1);
-    }
-
-    #[test]
-    fn construct_block_token_lf() {
-        let lines = vec![
-            Token::Line(vec![],0,LineEnding::LF),
-            Token::Line(vec![],4,LineEnding::LF)
-        ];
-        let token = Token::Block(BlockType::Continuous,4,lines.clone(),0);
-        assert_shape(&token,Shape::block(BlockType::Continuous,4,lines.clone()));
-        assert_length(&token,14);
-    }
-
-    #[test]
-    fn construct_block_token_crlf() {
-        let lines = vec![
-            Token::Line(vec![],0,LineEnding::CRLF),
-            Token::Line(vec![],4,LineEnding::CRLF)
-        ];
-        let token = Token::Block(BlockType::Continuous,4,lines.clone(),0);
-        assert_shape(&token,Shape::block(BlockType::Continuous,4,lines.clone()));
-        assert_length(&token,16);
-    }
-
-    #[test]
-    fn construct_invalid_suffix_token() {
-        let token = Token::InvalidSuffix("aaa",0);
-        assert_shape(&token,Shape::invalid_suffix("aaa"));
-        assert_length(&token,3);
-    }
-
-    #[test]
-    fn construct_unrecognized_token() {
-        let token = Token::Unrecognized("a",0);
-        assert_shape(&token,Shape::unrecognized("a"));
-        assert_length(&token,1);
     }
 }

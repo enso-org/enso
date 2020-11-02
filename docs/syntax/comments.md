@@ -23,6 +23,7 @@ Enso supports a variety of types of comments:
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Disable Comments](#disable-comments)
+- [Freeze Comments](#freeze-comments)
 - [Documentation Comments](#documentation-comments)
   - [Tags](#tags)
   - [Sections](#sections)
@@ -39,13 +40,35 @@ Disable comments are the standard form of comment seen in a programming language
 in that they prevent a given piece of code from executing. In Enso, they are
 created by prefixing the expression to disable with the `#` character.
 
-These aren't _exactly_ like most language's disable comments however:
+Disable comments in Enso do not have their contents validated, and continue from
+the `#` character to the end of the line.
 
-- When you disable a line in Enso, it is still run through the parser to see if
-  it is syntactically valid.
-- No identifiers in it are resolved, however.
-- This is important as it allows the disabled expression to still be displayed
-  in the visual syntax.
+```ruby
+x = y + z # here is some commented text
+```
+
+Disable comments are _not_ allowed inside textual interpolations.
+
+## Freeze Comments
+
+Freeze comments are a special type of comment used to enable the 'freezing' or
+caching of expensive computations in Enso. When used, they cache the result of
+an expression, reusing the value instead of recomputing it even if the
+underlying data changes.
+
+A portion of code that is frozen has the following properties:
+
+- It is still lexed as if it were code, and validated by the parser to check for
+  validity.
+- No identifier resolution takes place.
+
+These are very important as they still allow the frozen expression to be
+displayed properly in the visual syntax.
+
+> The actionables for this section are:
+>
+> - Work out what they should look like visually.
+> - Work out how best to implement this.
 
 ## Documentation Comments
 
@@ -65,6 +88,8 @@ for more information). By way of example:
    continues all the way down
    until I unindent again.
 ```
+
+Documentation comments are _not_ allowed inside textual interpolations.
 
 The tool that generates this documentation aims to be fairly robust, and tries
 to assign produce sensible results even if the user makes a mistake. Such

@@ -93,7 +93,11 @@ case class ResponseError(id: Option[Id], error: Error)
   * @param code the error code.
   * @param message the error message.
   */
-abstract class Error(val code: Int, val message: String)
+abstract class Error(val code: Int, val message: String) {
+
+  /** An optional additional payload that may be attached with the error. */
+  def payload: Option[Json] = None
+}
 
 /** Builtin error types, defined by JSON RPC.
   */
@@ -103,8 +107,13 @@ object Errors {
   case object MethodNotFound extends Error(-32601, "Method not found")
   case object InvalidParams  extends Error(-32602, "Invalid params")
   case object ServiceError   extends Error(1, "Service error")
-  case class UnknownError(override val code: Int, override val message: String)
-      extends Error(code, message)
+  case object NotImplementedError
+      extends Error(10, "The requested method is not implemented")
+  case class UnknownError(
+    override val code: Int,
+    override val message: String,
+    override val payload: Option[Json] = None
+  ) extends Error(code, message)
 }
 
 object Protocol {

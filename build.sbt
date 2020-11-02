@@ -471,6 +471,45 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
 
+lazy val `lexer-bench` =
+  (project in file("lib/scala/syntax/specialization/lexer-bench"))
+    .settings(
+      commands += WithDebugCommand.withDebug,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
+      parallelExecution in Test := false,
+      logBuffered in Test := false,
+      Test / fork := true,
+      libraryDependencies ++= jmh
+    )
+    .configs(Test)
+    .configs(Benchmark)
+    .dependsOn(syntax.jvm)
+    .dependsOn(flexer.jvm)
+    .settings(
+      javaOptions ++= Seq(
+          "-Xms4096m",
+          "-Xmx4096m",
+          "-XX:+FlightRecorder",
+      ),
+      mainClass in Benchmark := Some("org.openjdk.jmh.Main"),
+      bench := Def.task {
+          (run in Benchmark).toTask("").value
+        },
+      benchOnly := Def.inputTaskDyn {
+          import complete.Parsers.spaceDelimited
+          val name = spaceDelimited("<name>").parsed match {
+            case List(name) => name
+            case _ =>
+              throw new IllegalArgumentException("Expected one argument.")
+          }
+          Def.task {
+            (testOnly in Benchmark).toTask(" -- -z " + name).value
+          }
+        }.evaluated,
+      parallelExecution in Benchmark := false
+    )
+
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
   .settings(

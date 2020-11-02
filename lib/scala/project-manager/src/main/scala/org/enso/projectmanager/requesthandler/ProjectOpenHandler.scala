@@ -7,7 +7,10 @@ import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.data.LanguageServerSockets
+import org.enso.projectmanager.data.{
+  LanguageServerSockets,
+  MissingComponentAction
+}
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
@@ -37,7 +40,14 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
 
   private def requestStage: Receive = {
     case Request(ProjectOpen, id, params: ProjectOpen.Params) =>
-      Exec[F].exec(service.openProject(clientId, params.projectId)).pipeTo(self)
+      val missingComponentAction =
+        params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
+      Exec[F]
+        .exec(
+          service
+            .openProject(clientId, params.projectId, missingComponentAction)
+        )
+        .pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)

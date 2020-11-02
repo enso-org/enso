@@ -51,7 +51,15 @@ class ClientController[F[+_, +_]: Exec](
       ProjectList -> ProjectListHandler
         .props[F](clientId, projectService, config.requestTimeout),
       ProjectRename -> ProjectRenameHandler
-        .props[F](projectService, config.requestTimeout)
+        .props[F](projectService, config.requestTimeout),
+      EngineListInstalled       -> NotImplementedHandler.props,
+      EngineListAvailable       -> NotImplementedHandler.props,
+      EngineInstall             -> NotImplementedHandler.props,
+      EngineUninstall           -> NotImplementedHandler.props,
+      ConfigGet                 -> NotImplementedHandler.props,
+      ConfigSet                 -> NotImplementedHandler.props,
+      ConfigDelete              -> NotImplementedHandler.props,
+      LoggingServiceGetEndpoint -> NotImplementedHandler.props
     )
 
   override def receive: Receive = {
