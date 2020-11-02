@@ -123,6 +123,32 @@ class ProjectManagementApiSpec
       meta shouldBe Symbol("file")
     }
 
+    "create project with specific version" in {
+      // TODO [RW] this is just a stub test for parsing, it should be replaced
+      //  with actual tests once this functionality is implemented
+      implicit val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": "foo",
+                "version": "1.2.3"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code":10,
+              "message":"The requested method is not implemented"
+            }
+          }
+          """)
+    }
+
     "create a project dir with a suffix if a directory is taken" in {
       val projectName           = "foo"
       val projectDir            = new File(userProjectDir, projectName)
@@ -741,6 +767,33 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
+  }
+
+  "engine/install" must {
+    "parse correctly (despite not being implemented)" in {
+      // TODO [RW] this is just a stub test for parsing, it should be replaced
+      //  with actual tests once this functionality is implemented
+      implicit val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "engine/install",
+              "id": 0,
+              "params": {
+                "version": "0.1.0-rc3"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code":10,
+              "message":"The requested method is not implemented"
+            }
+          }
+          """)
+    }
   }
 
 }

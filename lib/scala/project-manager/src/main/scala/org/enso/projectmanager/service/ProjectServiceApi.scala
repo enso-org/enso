@@ -2,7 +2,12 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
-import org.enso.projectmanager.data.{LanguageServerSockets, ProjectMetadata}
+import org.enso.pkg.EnsoVersion
+import org.enso.projectmanager.data.{
+  LanguageServerSockets,
+  MissingComponentAction,
+  ProjectMetadata
+}
 
 /** A contract for the Project Service.
   *
@@ -13,9 +18,15 @@ trait ProjectServiceApi[F[+_, +_]] {
   /** Creates a user project.
     *
     * @param name the name of th project
+    * @param version Enso version to use for the new project
+    * @param missingComponentAction specifies how to handle missing components
     * @return projectId
     */
-  def createUserProject(name: String): F[ProjectServiceFailure, UUID]
+  def createUserProject(
+    name: String,
+    version: EnsoVersion,
+    missingComponentAction: MissingComponentAction
+  ): F[ProjectServiceFailure, UUID]
 
   /** Deletes a user project.
     *
@@ -43,7 +54,8 @@ trait ProjectServiceApi[F[+_, +_]] {
     */
   def openProject(
     clientId: UUID,
-    projectId: UUID
+    projectId: UUID,
+    missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, LanguageServerSockets]
 
   /** Closes a project. Tries to shut down the Language Server.
