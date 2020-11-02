@@ -969,11 +969,21 @@ impl GraphEditorModelWithNetwork {
 
             // === Visualizations ===
 
+            let vis_changed    =  node.model.visualization.frp.visualisation.clone_ref();
             let vis_visible    =  node.model.visualization.frp.set_visibility.clone_ref();
             let vis_fullscreen =  node.model.visualization.frp.enable_fullscreen.clone_ref();
+
             vis_enabled        <- vis_visible.gate(&vis_visible);
             vis_disabled       <- vis_visible.gate_not(&vis_visible);
 
+            // Ensure the graph editor knows about internal changes to the visualisation. If the
+            // visualisation changes that should indicate that the old one has been disabled and a
+            // new one has been enabled.
+            // TODO: Create a better API for updating the controller about visualisation changes
+            // (see #896)
+            output.visualization_disabled          <+ vis_changed.constant(node_id);
+            output.visualization_enabled           <+ vis_changed.constant(node_id);
+            
             output.visualization_enabled           <+ vis_enabled.constant(node_id);
             output.visualization_disabled          <+ vis_disabled.constant(node_id);
             output.visualization_enable_fullscreen <+ vis_fullscreen.constant(node_id);
@@ -2314,18 +2324,15 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
      nodes_to_cycle <= inputs.cycle_visualization_for_selected_node.map(f_!(model.selected_nodes()));
      node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
 
-     let cycle_count = Rc::new(Cell::new(0));
-     def _cycle_visualization = node_to_cycle.map(f!([nodes,visualizations,logger](node_id) {
+    let cycle_count = Rc::new(Cell::new(0));
+    def _cycle_visualization = node_to_cycle.map(f!([inputs,visualizations,logger](node_id) {
         let visualizations = visualizations.valid_sources(&"Any".into());
         cycle_count.set(cycle_count.get() % visualizations.len());
-        let vis  = visualizations.get(cycle_count.get());
-        let node = nodes.get_cloned_ref(node_id);
-        match (vis, node) {
-            (Some(vis), Some(node))  => {
-                node.model.visualization.frp.set_visualization.emit(vis.clone());
-            },
-            (None, _) => logger.warning(|| "Failed to get visualization while cycling.".to_string()),
-            _         => {}
+        if let Some(vis) = visualizations.get(cycle_count.get()) {
+            let path = vis.signature.path.clone();
+            inputs.set_visualization.emit((*node_id,Some(path)));
+        } else {
+            logger.warning(|| "Failed to get visualization while cycling.".to_string());
         };
         cycle_count.set(cycle_count.get() + 1);
     }));
