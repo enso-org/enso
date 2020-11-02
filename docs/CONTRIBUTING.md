@@ -475,13 +475,27 @@ Interpreter is started with the `distribution/bin/enso` script and requires
 [Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
 to be built and copied (or linked) to the `distribution/component` directory.
 
+##### Bash
+
 ```bash
 # build runtime.jar and runner.jar
 sbt engine-runner/assembly
 # link or copy jars to the distributiong
+mkdir -p distribution/component
 cd distribution/component
 ln -s ../../runtime.jar .
 ln -s ../../runner.jar .
+```
+
+##### PowerShell
+
+```powershell
+# build runtime.jar and runner.jar
+sbt.bat engine-runner/assembly
+# copy jars to the distributiong
+mkdir -p .\distribution\component
+cp .\runtime.jar .\distribution\component\
+cp .\runner.jar .\distribution\component\
 ```
 
 Detailed information on the flags it supports is shown by the `--help` flag, but
@@ -492,9 +506,19 @@ the primary functionality is as follows:
   In this case, `PATH` must point to either a standalone Enso file or an Enso
   project.
 
+##### Bash
+
 ```bash
 distribution/bin/enso --new ~/Hello
 distribution/bin/enso --run ~/Hello
+Hello, World!
+```
+
+##### PowerShell
+
+```bash
+distribution/bin/enso.bat --new ~/Hello
+distribution/bin/enso.bat --run ~/Hello
 Hello, World!
 ```
 
@@ -507,20 +531,42 @@ Project manager is required to run the
 [Building the Project Manager Fat Jar](#building-the-project-manager-fat-jar))
 to be built and copied (or linked) to the `distribution/component` directory.
 
+##### Bash
+
 ```bash
 # build project-manager.jar and runtime.jar
 sbt project-manager/assembly
 # link or copy jars to the distribution
+mkdir -p distribution/component
 cd distribution/component
 ln -s ../../runtime.jar .
 ln -s ../../project-manager.jar .
 ```
 
+##### PowerShell
+
+```powershell
+# build project-manager.jar and runtime.jar
+sbt.bat project-manager/assembly
+# copy jars to the distribution
+mkdir -p .\distribution\component
+cp .\runtime.jar .\distribution\component\
+cp .\project-manager.jar .\distribution\component\
+```
+
 Detailed information on the flags it supports is shown by the `--help` flag. To
 run the Project Manager, execute the following script:
 
+##### Bash
+
 ```bash
 distribution/bin/project-manager
+```
+
+##### PowerShell
+
+```powershell
+distribution/bin/project-manager.bat
 ```
 
 #### Language Server Mode
