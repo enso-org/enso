@@ -104,7 +104,7 @@ object EnsoRepository {
     FakeReleaseProvider(
       fakeRepositoryRoot,
       lockManagerForAssets =
-        if (shouldWaitForAssets) Some(DefaultManagers.DefaultFileLockManager)
+        if (shouldWaitForAssets) Some(DefaultManagers.defaultFileLockManager)
         else None
     )
 }

@@ -20,15 +20,12 @@ import scala.util.control.NonFatal
   * currently support (Linux, macOS, Windows), do support shared locks, so this
   * should not be an issue for us. However, if a shared lock request returns an
   * exclusive lock, a warning is issued, just in case.
+  *
+  * @param locksRoot the directory in which lockfiles should be kept
   */
-abstract class FileLockManager extends LockManager {
+class FileLockManager(locksRoot: Path) extends LockManager {
 
-  /** Specifies the directory in which lockfiles should be created.
-    */
-  def locksRoot: Path
-
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val channel = openChannel(resourceName)
     try {
@@ -40,8 +37,7 @@ abstract class FileLockManager extends LockManager {
     }
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def tryAcquireLock(
     resourceName: String,
     lockType: LockType
