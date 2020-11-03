@@ -623,7 +623,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build module" in {
+    "build module with atom" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type MyType a b
@@ -653,6 +653,60 @@ class SuggestionBuilderTest extends CompilerTest {
           selfType      = "Test",
           returnType    = "Any",
           documentation = None
+        )
+      )
+    }
+
+    "build module with overloaded functions" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type A
+          |    type A
+          |    quux : A -> A
+          |    quux x = x
+          |
+          |quux : A -> A
+          |quux x = x
+          |
+          |main = 
+          |    here.quux A
+          |    A.quux A""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Atom(None, "Unnamed.Test", "A", List(), "A", None),
+        Suggestion.Method(
+          None,
+          "Unnamed.Test",
+          "quux",
+          Vector(
+            Suggestion.Argument("this", "A", false, false, None),
+            Suggestion.Argument("x", "A", false, false, None)
+          ),
+          "A",
+          "A",
+          None
+        ),
+        Suggestion.Method(
+          None,
+          "Unnamed.Test",
+          "quux",
+          Vector(
+            Suggestion.Argument("this", "Test", false, false, None),
+            Suggestion.Argument("x", "A", false, false, None)
+          ),
+          "Test",
+          "A",
+          None
+        ),
+        Suggestion.Method(
+          None,
+          "Unnamed.Test",
+          "main",
+          List(Suggestion.Argument("this", "Any", false, false, None)),
+          "Test",
+          "Any",
+          None
         )
       )
     }
