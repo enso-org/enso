@@ -42,6 +42,14 @@ object Suggestion {
   sealed trait Kind
   object Kind {
 
+    def apply(suggestion: Suggestion): Kind =
+      suggestion match {
+        case _: Atom     => Atom
+        case _: Method   => Method
+        case _: Function => Function
+        case _: Local    => Local
+      }
+
     /** The atom suggestion. */
     case object Atom extends Kind
 
