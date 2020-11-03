@@ -228,8 +228,7 @@
 
 .CodeBlock {
     background-color: #fefefe;
-    margin: 10px 20px;
-    display: none;
+    margin: 10px 0;
 }
 .CodeBlock code {
     font-family: monospace;
