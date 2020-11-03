@@ -1,47 +1,18 @@
-#![feature(test)]
-#![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
+//! This library contains the implementation of the Enso parser.
 
-//! This module exports the implementation of parser for the Enso language.
+pub mod data;
+pub mod macros;
+pub mod operators;
 
-mod jni;
+/// The prelude for the parser.
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use enso_logger::AnyLogger;
 
-pub use crate::jni::*;
-
-use ast::AnyAst;
-use ast::Ast;
-
-
-
-// =======================
-// === Parser Rust API ===
-// =======================
-
-/// Parse a content of a single source file.
-pub fn parse_str(input:String) -> AnyAst {
-    Ast::new(ast::txt::Text{text:input})
-}
-
-/// Parse a single source file.
-pub fn parse_file(filename:String) -> AnyAst {
-    parse_str(filename)
-}
-
-
-// === Tokens ===
-
-/// Parse a content of single source file.
-pub fn lexe_str(input:String) -> AnyAst {
-    parse_str(input)
-}
-
-/// Parse a single source file.
-pub fn lexe_file(filename:String) -> AnyAst {
-    parse_str(filename)
+    /// The Enso logging library.
+    pub mod logger {
+        pub use enso_logger::*;
+        pub use enso_logger::disabled::Logger as Disabled;
+        pub use enso_logger::enabled::Logger as Enabled;
+    }
 }

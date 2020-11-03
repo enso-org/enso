@@ -6,6 +6,7 @@ members = [
     "lib/rust/lexer/definition",
     "lib/rust/lexer/generation",
     "lib/rust/parser",
+    "lib/rust/parser-jni",
 ]
 
 # These patch versions exist to allow local development of these libraries alongside Enso. It

@@ -4,23 +4,23 @@ version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
 
-description  = "A parser for the Enso language"
-readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso/lib/rust/parser"
-repository   = "https://github.com/enso-org/enso"
-license-file = "../../../LICENSE"
-
-keywords   = ["parser"]
-categories = ["parsing"]
-
 publish = false
 
 [lib]
-name       = "parser"
 crate-type = ["cdylib", "rlib"]
 test       = true
 bench      = true
 
 [dependencies]
-jni = { version = "0.17.0"                  }
-ast = { version = "0.1.0",  path = "../ast" }
+enso-logger  = { version = "0.1.3"                               }
+enso-prelude = { version = "0.1.7"                               }
+lexer        = { version = "0.1.0", path = "../lexer/generation" }
+
+[build-dependencies]
+
+[dev-dependencies]
+criterion = "0.3"
+
+#[[bench]]
+#name = "macro_query_bench"
+#harness = false
