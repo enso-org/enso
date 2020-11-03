@@ -102,7 +102,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             scopes += Scope(expr.children, expr.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
-            acc += buildAtom(
+            acc ++= buildAtom(
               module,
               name.name,
               arguments,
@@ -213,8 +213,18 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         Suggestion.Local(externalId, module, name, Any, buildScope(location))
     }
 
-  /** Build an atom suggestion. */
+  /** Build suggestions of an atom definition. */
   private def buildAtom(
+    module: String,
+    name: String,
+    arguments: Seq[IR.DefinitionArgument],
+    doc: Option[String]
+  ): Seq[Suggestion] =
+    buildAtomConstructor(module, name, arguments, doc) +:
+    buildAtomGetters(module, name, arguments)
+
+  /** Build an atom constructor. */
+  private def buildAtomConstructor(
     module: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
@@ -228,6 +238,30 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       returnType    = name,
       documentation = doc
     )
+
+  /** Build getter methods from atom arguments. */
+  private def buildAtomGetters(
+    module: String,
+    name: String,
+    arguments: Seq[IR.DefinitionArgument]
+  ): Seq[Suggestion] =
+    arguments.map { argument =>
+      val thisArg = IR.DefinitionArgument.Specified(
+        name         = IR.Name.This(argument.name.location),
+        defaultValue = None,
+        suspended    = false,
+        location     = argument.location
+      )
+      buildMethod(
+        externalId    = None,
+        module        = module,
+        name          = argument.name,
+        selfType      = name,
+        args          = Seq(thisArg),
+        doc           = None,
+        typeSignature = None
+      )
+    }
 
   /** Build self type from the method definitions metadata.
     *

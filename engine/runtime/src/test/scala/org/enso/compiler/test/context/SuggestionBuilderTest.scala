@@ -384,6 +384,26 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           returnType    = "MyType",
           documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "a",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "MyType",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "b",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "MyType",
+          returnType    = "Any",
+          documentation = None
         )
       )
     }
@@ -407,6 +427,26 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           returnType    = "MyType",
           documentation = Some(" My sweet type")
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "a",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "MyType",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "b",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "MyType",
+          returnType    = "Any",
+          documentation = None
         )
       )
     }
@@ -437,6 +477,16 @@ class SuggestionBuilderTest extends CompilerTest {
             Suggestion.Argument("a", "Any", false, false, None)
           ),
           returnType    = "Just",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "a",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "Just",
+          returnType    = "Any",
           documentation = None
         )
       )
@@ -472,6 +522,16 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           returnType    = "Just",
           documentation = Some(" Something there")
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "a",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "Just",
+          returnType    = "Any",
+          documentation = None
         )
       )
     }
@@ -532,7 +592,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build type with methods" in {
+    "build type with methods, without type signatures" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type Maybe
@@ -561,6 +621,16 @@ class SuggestionBuilderTest extends CompilerTest {
             Suggestion.Argument("a", "Any", false, false, None)
           ),
           returnType    = "Just",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "a",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "Just",
+          returnType    = "Any",
           documentation = None
         ),
         Suggestion.Method(
@@ -641,6 +711,26 @@ class SuggestionBuilderTest extends CompilerTest {
             Suggestion.Argument("b", "Any", false, false, None)
           ),
           returnType    = "MyType",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "a",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "MyType",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Unnamed.Test",
+          name       = "b",
+          arguments =
+            List(Suggestion.Argument("this", "Any", false, false, None)),
+          selfType      = "MyType",
+          returnType    = "Any",
           documentation = None
         ),
         Suggestion.Method(
