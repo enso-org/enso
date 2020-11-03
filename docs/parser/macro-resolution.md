@@ -60,7 +60,7 @@ Consider, for example, the macros defined as follows:
 
 ```rust
 let if_then      = "if" >> Matcher::Expr >> "then" >> Matcher::Expr
-let if_then_else = "if" >> Matcher::Expr >> "then" >> Matcher::Expr >> "else" Matcher::Expr
+let if_then_else = "if" >> Matcher::Expr >> "then" >> Matcher::Expr >> "else" >> Matcher::Expr
 ```
 
 These generate a tree as follows:
@@ -122,7 +122,8 @@ Macros are described in terms of _segments_. A segment consists of three main
 components:
 
 1.  An optional _preceding section_ that uses [matchers](#macro-matchers) to
-    describe what they match until encountering the _literal_ in 2.
+    describe what they match until encountering the _literal_ in 2. This can
+    only occur with the first segment.
 2.  A _literal_ that must be matched for that segment to apply.
 3.  An optional associated [matcher](#macro-matchers) that consumes certain
     _types_ of token.
@@ -146,13 +147,14 @@ macro definition. These fall across a set of categories as follows.
 
 The boundary matchers are:
 
-- `Start`: ???
-- `End`: ???
+- `Start`: Matches the start of the line.
+- `End`: Matches the end of the line.
 
 Structural matchers:
 
 - `Nothing`: Never matches on any token.
-- `Any`: Matches on any token.
+- `Any`: Matches on any token. This may become a family of tokens (e.g.
+  `AnyExpr`), and so on, for performance.
 - `Seq`: Matches on the contained matches in sequence.
 - `Or`: Matches on one of the contained matches.
 - `Many`: Matches on multiple of the given match.
@@ -160,9 +162,12 @@ Structural matchers:
 
 Meta matchers:
 
-- `Build`: ???
+- `Build`: Performs AST resolution on the match, but this must become implicit.
 - `Err`: Allows ascribing a user-defined error to the failure of the contained
   matcher.
+- `Tag`: Does nothing, but attaches string metadata to the result. This is very
+  useful for syntax highlighting.
+- `Exact`: Matches on an explicit AST.
 
 Identifier matchers:
 
@@ -177,6 +182,7 @@ Identifier matchers:
 Literal matchers:
 
 - `Number`: Matches on a literal number.
+- `Text`: Any text literal.
 - `TextLine`: Matches a single-line textual literal.
 - `TextInlineBlock`: Matches an inline-block textual literal.
 - `TextBlock`: Matches a block text literal.
@@ -213,6 +219,11 @@ In addition to the basic matcher described above, we also need a `Named`,
 matcher. The intent behind this matcher is that it allows you to refer to
 existing macro definitions by name, and also provides for better error messages.
 
+By convention, we aim for these names to be treated as qualified, based on the
+package in which they're declared. This convention should be followed for the
+built-in macros as well, even if they can't be overridden, as they may appear in
+error messages.
+
 ## Macro Resolution Errors
 
 Due to the incredibly structured nature of the resolver it is quite possible for
@@ -228,7 +239,10 @@ use of the `Err` matcher mentioned [above](#macro-matchers).
 The wealth of information in a failed macro resolution brings the necessary
 tools for the compiler to produce informative and detailed parsing errors.
 
-????
+> The actionables for this section are:
+>
+> - Determine how we ensure provision of failure information to the engine in a
+>   useful format.
 
 ## User-Defined Macros
 
