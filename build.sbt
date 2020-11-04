@@ -493,25 +493,25 @@ lazy val `lexer-bench` =
     .dependsOn(flexer.jvm)
     .settings(
       javaOptions ++= Seq(
-          "-Xms4096m",
-          "-Xmx4096m",
-          "-XX:+FlightRecorder",
+        "-Xms4096m",
+        "-Xmx4096m",
+        "-XX:+FlightRecorder"
       ),
       mainClass in Benchmark := Some("org.openjdk.jmh.Main"),
       bench := Def.task {
-          (run in Benchmark).toTask("").value
-        },
+        (run in Benchmark).toTask("").value
+      },
       benchOnly := Def.inputTaskDyn {
-          import complete.Parsers.spaceDelimited
-          val name = spaceDelimited("<name>").parsed match {
-            case List(name) => name
-            case _ =>
-              throw new IllegalArgumentException("Expected one argument.")
-          }
-          Def.task {
-            (testOnly in Benchmark).toTask(" -- -z " + name).value
-          }
-        }.evaluated,
+        import complete.Parsers.spaceDelimited
+        val name = spaceDelimited("<name>").parsed match {
+          case List(name) => name
+          case _ =>
+            throw new IllegalArgumentException("Expected one argument.")
+        }
+        Def.task {
+          (testOnly in Benchmark).toTask(" -- -z " + name).value
+        }
+      }.evaluated,
       parallelExecution in Benchmark := false
     )
 
@@ -1217,6 +1217,7 @@ lazy val `runtime-version-manager-test` = project
   .settings(parallelExecution in Test := false)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
+  .dependsOn(testkit)
 
 val `std-lib-root`          = file("distribution/std-lib/")
 val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"

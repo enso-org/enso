@@ -23,7 +23,10 @@ import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.Span
+import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Try
@@ -34,7 +37,10 @@ class ConcurrencyTest
     with WithTemporaryDirectory
     with FakeEnvironment
     with BeforeAndAfterEach
-    with DropLogs {
+    with DropLogs
+    with TimeLimitedTests {
+
+  val timeLimit: Span = 30.seconds
 
   case class WrapEngineRelease(
     originalRelease: EngineRelease,
@@ -54,16 +60,14 @@ class ConcurrencyTest
     }
   }
 
-  var testLocalLockManager: Option[TestLocalLockManager] = None
+  var testLocalLockManager: Option[LockManager] = None
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     testLocalLockManager = Some(new TestLocalLockManager)
   }
 
-  /** A separate [[LockManager]] for each test case.
-    * @return
-    */
+  /** A separate [[LockManager]] for each test case. */
   def lockManager: LockManager = testLocalLockManager.get
 
   /** Each call creates a distinct [[ResourceManager]], but all resource

@@ -48,7 +48,10 @@ class TestSynchronizer {
     val acquired =
       getSemaphore(event).tryAcquire(timeOutSeconds, TimeUnit.SECONDS)
     if (!acquired) {
-      throw new RuntimeException(s"$threadName waitFor($event) has timed out.")
+      throw new TestFailedException(
+        s"$threadName waitFor($event) has timed out.",
+        1
+      )
     }
     if (enableDebugOutput) {
       System.err.println(s"$threadName has been woken up by $event.")

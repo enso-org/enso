@@ -59,10 +59,11 @@ class FileLockManager(locksRoot: Path) extends LockManager {
     }
 
   private def lockPath(resourceName: String): Path =
-    locksRoot.resolve(resourceName + ".lock")
+    FileLockManager.lockPath(locksRoot, resourceName)
 
   private def openChannel(resourceName: String): FileChannel = {
-    val path   = lockPath(resourceName)
+    val path = lockPath(resourceName)
+    println(s"channel ${path.toAbsolutePath.normalize()}")
     val parent = path.getParent
     if (!Files.exists(parent)) {
       try Files.createDirectories(parent)
@@ -112,4 +113,9 @@ class FileLockManager(locksRoot: Path) extends LockManager {
       channel.close()
     }
   }
+}
+
+object FileLockManager {
+  def lockPath(locksRoot: Path, resourceName: String): Path =
+    locksRoot.resolve(resourceName + ".lock")
 }
