@@ -63,6 +63,18 @@ object Suggestion {
     case object Local extends Kind
   }
 
+  /** Self type extractor. */
+  object SelfType {
+
+    def apply(suggestion: Suggestion): Option[String] =
+      suggestion match {
+        case _: Atom        => None
+        case method: Method => Some(method.selfType)
+        case _: Function    => None
+        case _: Local       => None
+      }
+  }
+
   /** An argument of an atom or a function.
     *
     * @param name the argument name

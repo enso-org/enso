@@ -24,6 +24,7 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
@@ -292,6 +293,29 @@ final class SuggestionsHandler(
     }
   }
 
+  def applyDatabaseUpdates(
+    msg: Api.SuggestionsDatabaseModuleUpdateNotification1
+  ): Future[SuggestionsDatabaseUpdateNotification] =
+    for {
+      (version, results) <- suggestionsRepo.applyTree(msg.updates)
+      _                  <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
+    } yield {
+      val updates = results.toVector.flatMap {
+        case QueryResult(ids, _: Api.SuggestionsDatabaseUpdate.Clean) =>
+          ids.map(SuggestionsDatabaseUpdate.Remove)
+        case QueryResult(ids, m: Api.SuggestionsDatabaseUpdate.Add) =>
+          if (ids.isEmpty) log.error(s"Failed to apply update: $m")
+          ids.map(id => SuggestionsDatabaseUpdate.Add(id, m.suggestion))
+        case QueryResult(ids, m: Api.SuggestionsDatabaseUpdate.Remove) =>
+          if (ids.isEmpty) log.error(s"Failed to apply update: $m")
+          ids.map(SuggestionsDatabaseUpdate.Remove)
+        case QueryResult(ids, m: Api.SuggestionsDatabaseUpdate.Modify) =>
+          if (ids.isEmpty) log.error(s"Failed to apply update: $m")
+          ???
+      }
+      SuggestionsDatabaseUpdateNotification(version, updates)
+    }
+
   /** Handle the suggestions database update.
     *
     * Function applies notification updates on the suggestions database and
@@ -313,6 +337,7 @@ final class SuggestionsHandler(
           (add, remove :+ m.suggestion, clean)
         case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Clean) =>
           (add, remove, clean :+ m.module)
+        case _ => ???
       }
     log.debug(
       s"Applying suggestion updates: Add(${addCmds.map(_.name).mkString(",")}); Remove(${removeCmds

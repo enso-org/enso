@@ -497,6 +497,8 @@ object SuggestionBuilder {
   def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
     new SuggestionBuilder[A](source)
 
+  type Tree = org.enso.polyglot.data.Tree[Suggestion]
+
   /** A single level of an `IR`.
     *
     * @param queue the nodes in the scope

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.Tree
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.{Range, TextEdit}
 
@@ -331,6 +332,10 @@ object Runtime {
         new JsonSubTypes.Type(
           value = classOf[SuggestionsDatabaseUpdate.Clean],
           name  = "suggestionsDatabaseUpdateClean"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Modify],
+          name  = "suggestionsDatabaseUpdateModify"
         )
       )
     )
@@ -355,6 +360,9 @@ object Runtime {
         * @param module the module name
         */
       case class Clean(module: String) extends SuggestionsDatabaseUpdate
+
+      case class Modify(scope: Option[Suggestion.Scope])
+          extends SuggestionsDatabaseUpdate
     }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -802,6 +810,12 @@ object Runtime {
       file: File,
       version: ContentVersion,
       updates: Seq[SuggestionsDatabaseUpdate]
+    ) extends ApiNotification
+
+    case class SuggestionsDatabaseModuleUpdateNotification1(
+      file: File,
+      version: ContentVersion,
+      updates: Tree[SuggestionsDatabaseUpdate]
     ) extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
