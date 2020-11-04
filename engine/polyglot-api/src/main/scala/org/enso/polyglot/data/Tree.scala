@@ -18,9 +18,6 @@ import scala.collection.mutable
 )
 sealed trait Tree[+A] {
 
-  final def map[B](f: A => B): Tree[B] =
-    Tree.map(this)(f)
-
   final def fold[B](acc: B)(f: (B, A) => B): B =
     Tree.fold(this, acc)(f)
 
@@ -36,7 +33,23 @@ object Tree {
       include = JsonTypeInfo.As.PROPERTY
     )
     children: Vector[Leaf[A]]
-  ) extends Tree[A]
+  ) extends Tree[A] {
+
+    final def map[B](f: A => B): Root[B] =
+      Tree.map(this)(f)
+
+    final def filter(p: A => Boolean): Root[A] =
+      Tree.filter(this)(p)
+
+    final def zip[B](that: Root[B]): Root[These[A, B]] =
+      Tree.zip(this, that)
+
+    final def zipBy[B](that: Root[B])(p: (A, B) => Boolean): Root[These[A, B]] =
+      Tree.zipBy(this, that)(p)
+
+    final def isEmpty: Boolean =
+      children.isEmpty
+  }
 
   case class Leaf[+A](
     @JsonTypeInfo(
@@ -51,31 +64,14 @@ object Tree {
     children: Vector[Leaf[A]]
   ) extends Tree[A]
 
-  def fold[A, B](tree: Tree[A], acc: B)(f: (B, A) => B): B = {
-    @scala.annotation.tailrec
-    def go(acc: B, queue: mutable.Queue[Leaf[A]]): B =
-      if (queue.isEmpty) {
-        acc
-      } else {
-        val leaf = queue.dequeue()
-        queue.enqueueAll(leaf.children)
-        go(f(acc, leaf.element), queue)
-      }
+  def empty[A]: Root[A] = Root(Vector())
 
-    tree match {
-      case Root(children) =>
-        go(acc, mutable.Queue(children: _*))
-      case Leaf(element, children) =>
-        go(f(acc, element), mutable.Queue(children: _*))
-    }
-  }
-
-  def zip[A, B](t1: Tree.Root[A], t2: Tree.Root[B]): Tree[These[A, B]] =
+  def zip[A, B](t1: Root[A], t2: Root[B]): Root[These[A, B]] =
     zipBy(t1, t2)(_ == _)
 
-  def zipBy[A, B](t1: Tree.Root[A], t2: Tree.Root[B])(
+  def zipBy[A, B](t1: Root[A], t2: Root[B])(
     p: (A, B) => Boolean
-  ): Tree[These[A, B]] = {
+  ): Root[These[A, B]] = {
     type TreeBuilder =
       mutable.Builder[Tree.Leaf[These[A, B]], Vector[Tree.Leaf[These[A, B]]]]
     def go(
@@ -121,11 +117,37 @@ object Tree {
   private def mapLeaf[A, B](tree: Leaf[A])(f: A => B): Leaf[B] =
     Leaf(f(tree.element), tree.children.map(mapLeaf(_)(f)))
 
-  private def map[A, B](tree: Tree[A])(f: A => B): Tree[B] =
+  private def map[A, B](tree: Root[A])(f: A => B): Root[B] =
+    Root(tree.children.map(mapLeaf(_)(f)))
+
+  private def filter[A](tree: Tree.Root[A])(p: A => Boolean): Root[A] = {
+    def filterLeaf(leaf: Tree.Leaf[A]): Option[Tree.Leaf[A]] =
+      if (p(leaf.element)) {
+        val childrenFiltered = leaf.children.flatMap(filterLeaf)
+        Some(leaf.copy(children = childrenFiltered))
+      } else None
+
+    Root(tree.children.flatMap(filterLeaf))
+  }
+
+  private def fold[A, B](tree: Tree[A], acc: B)(f: (B, A) => B): B = {
+    @scala.annotation.tailrec
+    def go(acc: B, queue: mutable.Queue[Leaf[A]]): B =
+      if (queue.isEmpty) {
+        acc
+      } else {
+        val leaf = queue.dequeue()
+        queue.enqueueAll(leaf.children)
+        go(f(acc, leaf.element), queue)
+      }
+
     tree match {
-      case Root(children)    => Root(children.map(mapLeaf(_)(f)))
-      case leaf @ Leaf(_, _) => mapLeaf(leaf)(f)
+      case Root(children) =>
+        go(acc, mutable.Queue(children: _*))
+      case Leaf(element, children) =>
+        go(f(acc, element), mutable.Queue(children: _*))
     }
+  }
 
   private def toVector[A](tree: Tree[A]): Vector[A] = {
     val b = Vector.newBuilder[A]

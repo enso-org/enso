@@ -4,7 +4,12 @@ import java.io.{File, IOException}
 import java.util.logging.Level
 
 import cats.implicits._
-import org.enso.compiler.context.{Changeset, ModuleContext, SuggestionBuilder}
+import org.enso.compiler.context.{
+  Changeset,
+  ModuleContext,
+  SuggestionBuilder,
+  SuggestionDiff
+}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.phase.ImportResolver
@@ -12,6 +17,7 @@ import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.{Position, Range, TextEdit}
@@ -133,16 +139,16 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         .finest(s"Analyzing imported ${module.getName}")
       val moduleName = module.getName.toString
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
-        .build(module.getName.toString, module.getIr)
+        .buildTree(module.getName.toString, module.getIr)
         .filter(isSuggestionGlobal)
       val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
-      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
-        new File(module.getPath),
-        version,
-        Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
-        addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
+      val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
+        file    = new File(module.getPath),
+        version = version,
+        actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+        updates = SuggestionDiff.compute(Tree.empty, addedSuggestions)
       )
-      sendModuleUpdate(update)
+      sendModuleUpdate(notification)
       module.setIndexed(true)
     }
   }
@@ -167,17 +173,17 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.executionService.getLogger
         .finest(s"Analyzing module in scope ${module.getName}")
       val moduleName = module.getName.toString
-      val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
-        .build(moduleName, module.getIr)
+      val newSuggestions = SuggestionBuilder(module.getLiteralSource)
+        .buildTree(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
       val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
-      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
-        new File(module.getPath),
-        version,
-        Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
-        addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
+      val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
+        file    = new File(module.getPath),
+        version = version,
+        actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+        updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
-      sendModuleUpdate(update)
+      sendModuleUpdate(notification)
       module.setIndexed(true)
     }
   }
@@ -191,35 +197,38 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     if (module.isIndexed) {
       ctx.executionService.getLogger
         .finest(s"Analyzing indexed module ${module.getName}")
-      val removedSuggestions = SuggestionBuilder(changeset.source)
-        .build(moduleName, changeset.ir)
-      val addedSuggestions =
+      val prevSuggestions = SuggestionBuilder(changeset.source)
+        .buildTree(moduleName, changeset.ir)
+      val newSuggestions =
         SuggestionBuilder(module.getLiteralSource)
-          .build(moduleName, module.getIr)
-      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
-        new File(module.getPath),
-        version,
-        removedSuggestions
-          .diff(addedSuggestions)
-          .map(Api.SuggestionsDatabaseUpdate.Remove) :++
-        addedSuggestions
-          .diff(removedSuggestions)
-          .map(Api.SuggestionsDatabaseUpdate.Add)
+          .buildTree(moduleName, module.getIr)
+      val diff = SuggestionDiff
+        .compute(prevSuggestions, newSuggestions)
+        .filter {
+          case Api.SuggestionUpdate(_, m: Api.SuggestionAction.Modify) =>
+            !m.isEmpty
+          case _ => true
+        }
+      val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
+        file    = new File(module.getPath),
+        version = version,
+        actions = Vector(),
+        updates = diff
       )
-      sendModuleUpdate(update)
+      sendModuleUpdate(notification)
     } else {
       ctx.executionService.getLogger
         .finest(s"Analyzing not-indexed module ${module.getName}")
-      val addedSuggestions =
+      val newSuggestions =
         SuggestionBuilder(module.getLiteralSource)
-          .build(moduleName, module.getIr)
-      val update = Api.SuggestionsDatabaseModuleUpdateNotification(
-        new File(module.getPath),
-        version,
-        Api.SuggestionsDatabaseUpdate.Clean(moduleName) +:
-        addedSuggestions.map(Api.SuggestionsDatabaseUpdate.Add)
+          .buildTree(moduleName, module.getIr)
+      val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
+        file    = new File(module.getPath),
+        version = version,
+        actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+        updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
-      sendModuleUpdate(update)
+      sendModuleUpdate(notification)
       module.setIndexed(true)
     }
   }
@@ -382,7 +391,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendModuleUpdate(
     payload: Api.SuggestionsDatabaseModuleUpdateNotification
   )(implicit ctx: RuntimeContext): Unit =
-    if (payload.updates.nonEmpty) {
+    if (payload.actions.nonEmpty && !payload.updates.isEmpty) {
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
 

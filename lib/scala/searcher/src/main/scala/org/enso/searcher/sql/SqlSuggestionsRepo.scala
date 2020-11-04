@@ -5,7 +5,10 @@ import java.util.UUID
 
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
-import org.enso.polyglot.runtime.Runtime.Api.SuggestionsDatabaseUpdate
+import org.enso.polyglot.runtime.Runtime.Api.{
+  SuggestionUpdate,
+  SuggestionsDatabaseAction
+}
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile
@@ -74,8 +77,10 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** @inheritdoc */
   override def applyTree(
-    tree: Tree[SuggestionsDatabaseUpdate]
-  ): Future[(Long, Tree[QueryResult[SuggestionsDatabaseUpdate]])] = ???
+    tree: Tree[SuggestionUpdate]
+  ): Future[(Long, Tree[QueryResult[SuggestionUpdate]])] = ???
+
+  def applyActions(actions: Seq[SuggestionsDatabaseAction]): Future[Unit] = ???
 
   /** @inheritdoc */
   override def remove(suggestion: Suggestion): Future[Option[Long]] =

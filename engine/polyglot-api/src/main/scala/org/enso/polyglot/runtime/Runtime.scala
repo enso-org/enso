@@ -317,53 +317,76 @@ object Runtime {
       expression: String
     )
 
-    /** A change in the suggestions database. */
+    /** An operation applied to the update */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Add],
-          name  = "suggestionsDatabaseUpdateAdd"
+          value = classOf[SuggestionAction.Add],
+          name  = "suggestionActionAdd"
         ),
         new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Remove],
-          name  = "suggestionsDatabaseUpdateRemove"
+          value = classOf[SuggestionAction.Remove],
+          name  = "suggestionActionRemove"
         ),
         new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Clean],
-          name  = "suggestionsDatabaseUpdateClean"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Modify],
-          name  = "suggestionsDatabaseUpdateModify"
+          value = classOf[SuggestionAction.Modify],
+          name  = "suggestionActionModify"
         )
       )
     )
-    sealed trait SuggestionsDatabaseUpdate
-    object SuggestionsDatabaseUpdate {
+    sealed trait SuggestionAction
+    object SuggestionAction {
 
-      /** Create or replace the database entry.
-        *
-        * @param suggestion the new suggestion
-        */
-      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
+      case class Add() extends SuggestionAction
 
-      /** Remove the database entry.
-        *
-        * @param suggestion the suggestion to remove
-        */
-      case class Remove(suggestion: Suggestion)
-          extends SuggestionsDatabaseUpdate
+      case class Remove() extends SuggestionAction
+
+      case class Modify(
+        externalId: Option[Option[Suggestion.ExternalId]] = None,
+        arguments: Option[Seq[Suggestion.Argument]]       = None,
+        returnType: Option[String]                        = None,
+        documentation: Option[Option[String]]             = None,
+        scope: Option[Suggestion.Scope]                   = None
+      ) extends SuggestionAction {
+
+        def isEmpty: Boolean =
+          arguments.isEmpty &&
+          returnType.isEmpty &&
+          documentation.isEmpty &&
+          scope.isEmpty
+      }
+    }
+
+    /** An action to apply to the suggestions database. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseAction.Clean],
+          name  = "suggestionsDatabaseActionClean"
+        )
+      )
+    )
+    sealed trait SuggestionsDatabaseAction
+    object SuggestionsDatabaseAction {
 
       /** Remove all module entries from the database.
         *
         * @param module the module name
         */
-      case class Clean(module: String) extends SuggestionsDatabaseUpdate
-
-      case class Modify(scope: Option[Suggestion.Scope])
-          extends SuggestionsDatabaseUpdate
+      case class Clean(module: String) extends SuggestionsDatabaseAction
     }
+
+    /** A suggestion update.
+      *
+      * @param suggestion the original suggestion
+      * @param action the operation that is applied to the update
+      */
+    case class SuggestionUpdate(
+      suggestion: Suggestion,
+      action: SuggestionAction
+    )
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
@@ -804,18 +827,14 @@ object Runtime {
       *
       * @param file the module file path
       * @param version the version of the module
+      * @param actions the list of actions to apply to the suggestions database
       * @param updates the list of suggestions extracted from module
       */
     case class SuggestionsDatabaseModuleUpdateNotification(
       file: File,
       version: ContentVersion,
-      updates: Seq[SuggestionsDatabaseUpdate]
-    ) extends ApiNotification
-
-    case class SuggestionsDatabaseModuleUpdateNotification1(
-      file: File,
-      version: ContentVersion,
-      updates: Tree[SuggestionsDatabaseUpdate]
+      actions: Vector[SuggestionsDatabaseAction],
+      updates: Tree.Root[SuggestionUpdate]
     ) extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */

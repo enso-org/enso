@@ -2,7 +2,10 @@ package org.enso.searcher
 
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
-import org.enso.polyglot.runtime.Runtime.Api.SuggestionsDatabaseUpdate
+import org.enso.polyglot.runtime.Runtime.Api.{
+  SuggestionUpdate,
+  SuggestionsDatabaseAction
+}
 import org.enso.searcher.data.QueryResult
 
 /** The object for accessing the suggestions database. */
@@ -63,8 +66,10 @@ trait SuggestionsRepo[F[_]] {
   def insertAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
 
   def applyTree(
-    tree: Tree[SuggestionsDatabaseUpdate]
-  ): F[(Long, Tree[QueryResult[SuggestionsDatabaseUpdate]])]
+    tree: Tree[SuggestionUpdate]
+  ): F[(Long, Tree[QueryResult[SuggestionUpdate]])]
+
+  def applyActions(actions: Seq[SuggestionsDatabaseAction]): F[Unit]
 
   /** Remove the suggestion.
     *

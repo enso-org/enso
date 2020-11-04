@@ -175,7 +175,8 @@ final class SuggestionsHandler(
         .map { case (version, updatedIds) =>
           val updates = types.zip(updatedIds).collect {
             case ((_, typeValue), Some(suggestionId)) =>
-              SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
+              SuggestionsDatabaseUpdate
+                .Modify(id = suggestionId, returnType = Some(typeValue))
           }
           SuggestionsDatabaseUpdateNotification(version, updates)
         }
@@ -293,29 +294,6 @@ final class SuggestionsHandler(
     }
   }
 
-  def applyDatabaseUpdates(
-    msg: Api.SuggestionsDatabaseModuleUpdateNotification1
-  ): Future[SuggestionsDatabaseUpdateNotification] =
-    for {
-      (version, results) <- suggestionsRepo.applyTree(msg.updates)
-      _                  <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
-    } yield {
-      val updates = results.toVector.flatMap {
-        case QueryResult(ids, _: Api.SuggestionsDatabaseUpdate.Clean) =>
-          ids.map(SuggestionsDatabaseUpdate.Remove)
-        case QueryResult(ids, m: Api.SuggestionsDatabaseUpdate.Add) =>
-          if (ids.isEmpty) log.error(s"Failed to apply update: $m")
-          ids.map(id => SuggestionsDatabaseUpdate.Add(id, m.suggestion))
-        case QueryResult(ids, m: Api.SuggestionsDatabaseUpdate.Remove) =>
-          if (ids.isEmpty) log.error(s"Failed to apply update: $m")
-          ids.map(SuggestionsDatabaseUpdate.Remove)
-        case QueryResult(ids, m: Api.SuggestionsDatabaseUpdate.Modify) =>
-          if (ids.isEmpty) log.error(s"Failed to apply update: $m")
-          ???
-      }
-      SuggestionsDatabaseUpdateNotification(version, updates)
-    }
-
   /** Handle the suggestions database update.
     *
     * Function applies notification updates on the suggestions database and
@@ -324,55 +302,38 @@ final class SuggestionsHandler(
     * @param msg the suggestions database update notification from runtime
     * @return the API suggestions database update notification
     */
-  private def applyDatabaseUpdates(
+  def applyDatabaseUpdates(
     msg: Api.SuggestionsDatabaseModuleUpdateNotification
-  ): Future[SuggestionsDatabaseUpdateNotification] = {
-    val (addCmds, removeCmds, cleanCmds) = msg.updates
-      .foldLeft(
-        (Vector[Suggestion](), Vector[Suggestion](), Vector[String]())
-      ) {
-        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Add) =>
-          (add :+ m.suggestion, remove, clean)
-        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Remove) =>
-          (add, remove :+ m.suggestion, clean)
-        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Clean) =>
-          (add, remove, clean :+ m.module)
-        case _ => ???
-      }
-    log.debug(
-      s"Applying suggestion updates: Add(${addCmds.map(_.name).mkString(",")}); Remove(${removeCmds
-        .map(_.name)
-        .mkString(",")}); Clean(${cleanCmds.mkString(",")})"
-    )
+  ): Future[SuggestionsDatabaseUpdateNotification] =
     for {
-      (_, cleanedIds)     <- suggestionsRepo.removeAllByModule(cleanCmds)
-      (_, removedIds)     <- suggestionsRepo.removeAll(removeCmds)
-      (version, addedIds) <- suggestionsRepo.insertAll(addCmds)
-      _                   <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
+      _                  <- suggestionsRepo.applyActions(msg.actions)
+      (version, results) <- suggestionsRepo.applyTree(msg.updates)
+      _                  <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
     } yield {
-      val updatesCleaned = cleanedIds.map(SuggestionsDatabaseUpdate.Remove)
-      val updatesRemoved =
-        (removedIds zip removeCmds).flatMap {
-          case (Some(id), _) =>
-            Some(SuggestionsDatabaseUpdate.Remove(id))
-          case (None, suggestion) =>
-            log.error("Failed to remove suggestion: {}", suggestion)
-            None
-        }
-      val updatesAdded =
-        (addedIds zip addCmds).flatMap {
-          case (Some(id), suggestion) =>
-            Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
-          case (None, suggestion) =>
-            log.error("Failed to insert suggestion: {}", suggestion)
-            None
-        }
-      SuggestionsDatabaseUpdateNotification(
-        version,
-        updatesCleaned :++ updatesRemoved :++ updatesAdded
-      )
+      val updates = results.toVector.flatMap {
+        case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
+          val verb = action.getClass.getSimpleName
+          if (ids.isEmpty) log.error(s"Failed to $verb update: $suggestion")
+          action match {
+            case Api.SuggestionAction.Add() =>
+              ids.map(id => SuggestionsDatabaseUpdate.Add(id, suggestion))
+            case Api.SuggestionAction.Remove() =>
+              ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
+            case m: Api.SuggestionAction.Modify =>
+              ids.map { id =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id            = id,
+                  externalId    = m.externalId,
+                  arguments     = m.arguments,
+                  returnType    = m.returnType,
+                  documentation = m.documentation,
+                  scope         = m.scope
+                )
+              }
+          }
+      }
+      SuggestionsDatabaseUpdateNotification(version, updates)
     }
-  }
 
   /** Build the module name from the requested file path.
     *

@@ -48,6 +48,23 @@ class TreeTest extends AnyWordSpec with Matchers {
       tree.map(_ * 10) shouldEqual expected
     }
 
+    "filter root" in {
+      val expected = Tree.Root(Vector())
+
+      tree.filter(_ > 4) shouldEqual expected
+    }
+
+    "filter leaves" in {
+      val expected = Tree.Root(
+        Vector(
+          Tree.Leaf(1, Vector()),
+          Tree.Leaf(2, Vector())
+        )
+      )
+
+      tree.filter(_ < 3) shouldEqual expected
+    }
+
     "fold" in {
       tree.fold(0L)(_ + _) shouldEqual 21L
     }

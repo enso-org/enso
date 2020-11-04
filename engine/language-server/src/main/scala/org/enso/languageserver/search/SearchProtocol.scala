@@ -103,13 +103,20 @@ object SearchProtocol {
       */
     case class Remove(id: SuggestionId) extends SuggestionsDatabaseUpdate
 
+    // TODO: [DB] Removed/Modified
     /** Modify the database entry.
       *
       * @param id the suggestion id
       * @param returnType the new return type
       */
-    case class Modify(id: SuggestionId, returnType: String)
-        extends SuggestionsDatabaseUpdate
+    case class Modify(
+      id: SuggestionId,
+      externalId: Option[Option[Suggestion.ExternalId]] = None,
+      arguments: Option[Seq[Suggestion.Argument]]       = None,
+      returnType: Option[String]                        = None,
+      documentation: Option[Option[String]]             = None,
+      scope: Option[Suggestion.Scope]                   = None
+    ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
       Decoder.instance { cursor =>
