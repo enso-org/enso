@@ -1,8 +1,6 @@
 from Base import all
 import Table.Io.Csv
 
-polyglot java import java.util.Random
-
 type Table
     type Table java_table
 
@@ -43,13 +41,13 @@ column_type_string = 3
 
 string_storage_to_json storage =
     Vector.new (storage.size []) ix->
-        if col.isNa [ix] then Json.Null else
-            Json.String (col.getItem [ix])
+        if storage.isNa [ix] then Json.Null else
+            Json.String (storage.getItem [ix])
 
 numeric_storage_to_json storage =
     Vector.new (storage.size []) ix->
-        if col.isNa [ix] then Json.Null else
-            Json.Number (col.getItem [ix])
+        if storage.isNa [ix] then Json.Null else
+            Json.Number (storage.getItem [ix])
 
 column_to_json col =
     name = col.getName []

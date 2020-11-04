@@ -117,3 +117,12 @@ Any.to_json =
            instead define their own `to_json` implementations.
         Meta.Polyglot _ -> Null
         Meta.Primitive _ -> Null
+
+Text.to_json_key = this
+
+make_object contents =
+    fs = contents.fold Map.empty map-> kv_pair->
+        key = kv_pair . at 0 . to_json_key
+        val = kv_pair . at 1 . to_json
+        map.insert key val
+    Object fs
