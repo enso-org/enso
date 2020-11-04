@@ -86,6 +86,19 @@ object SearchProtocol {
       }
     }
 
+  sealed trait ModifyAction extends EnumEntry
+  object ModifyAction
+      extends Enum[SuggestionKind]
+      with CirceEnum[SuggestionKind] {
+
+    case object Remove extends ModifyAction
+    case object Set    extends ModifyAction
+
+    override def values = findValues
+  }
+
+  case class ModifyField[A](tag: ModifyAction, value: Option[A])
+
   sealed trait SuggestionsDatabaseUpdate
   object SuggestionsDatabaseUpdate {
 
@@ -103,7 +116,6 @@ object SearchProtocol {
       */
     case class Remove(id: SuggestionId) extends SuggestionsDatabaseUpdate
 
-    // TODO: [DB] Removed/Modified
     /** Modify the database entry.
       *
       * @param id the suggestion id
@@ -111,11 +123,11 @@ object SearchProtocol {
       */
     case class Modify(
       id: SuggestionId,
-      externalId: Option[Option[Suggestion.ExternalId]] = None,
-      arguments: Option[Seq[Suggestion.Argument]]       = None,
-      returnType: Option[String]                        = None,
-      documentation: Option[Option[String]]             = None,
-      scope: Option[Suggestion.Scope]                   = None
+      externalId: Option[ModifyField[Suggestion.ExternalId]]   = None,
+      arguments: Option[ModifyField[Seq[Suggestion.Argument]]] = None,
+      returnType: Option[ModifyField[String]]                  = None,
+      documentation: Option[ModifyField[String]]               = None,
+      scope: Option[ModifyField[Suggestion.Scope]]             = None
     ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =

@@ -175,8 +175,10 @@ final class SuggestionsHandler(
         .map { case (version, updatedIds) =>
           val updates = types.zip(updatedIds).collect {
             case ((_, typeValue), Some(suggestionId)) =>
-              SuggestionsDatabaseUpdate
-                .Modify(id = suggestionId, returnType = Some(typeValue))
+              SuggestionsDatabaseUpdate.Modify(
+                id         = suggestionId,
+                returnType = Some(typeValue).map(modifyField)
+              )
           }
           SuggestionsDatabaseUpdateNotification(version, updates)
         }
@@ -323,17 +325,26 @@ final class SuggestionsHandler(
               ids.map { id =>
                 SuggestionsDatabaseUpdate.Modify(
                   id            = id,
-                  externalId    = m.externalId,
-                  arguments     = m.arguments,
-                  returnType    = m.returnType,
-                  documentation = m.documentation,
-                  scope         = m.scope
+                  externalId    = m.externalId.map(modifyFieldOption),
+                  arguments     = m.arguments.map(modifyField),
+                  returnType    = m.returnType.map(modifyField),
+                  documentation = m.documentation.map(modifyFieldOption),
+                  scope         = m.scope.map(modifyField)
                 )
               }
           }
       }
       SuggestionsDatabaseUpdateNotification(version, updates)
     }
+
+  private def modifyFieldOption[A](value: Option[A]): ModifyField[A] =
+    value match {
+      case Some(value) => ModifyField(ModifyAction.Set, Some(value))
+      case None        => ModifyField(ModifyAction.Remove, None)
+    }
+
+  private def modifyField[A](value: A): ModifyField[A] =
+    ModifyField(ModifyAction.Set, Some(value))
 
   /** Build the module name from the requested file path.
     *
