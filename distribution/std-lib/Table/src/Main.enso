@@ -1,0 +1,12 @@
+from Base import all
+
+import Table.Table
+import Table.Io.Csv
+
+main =
+    occupancy_csv = File.new "/Users/marcinkostrzewa/Downloads/LADOT_Parking_Meter_Occupancy.csv"
+    meters_csv = File.new "/Users/marcinkostrzewa/Downloads/LADOT_Metered_Parking_Inventory___Policies.csv"
+    occupancy = occupancy_csv.read_csv
+    meters = meters_csv.read_csv
+    IO.println (occupancy.display show_rows=20)
+    IO.println (meters.display show_rows=20)

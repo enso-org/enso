@@ -143,3 +143,6 @@ Text.contains sequence = Text_Utils.contains [this, sequence]
 ## Text to JSON conversion.
 Text.to_json : Json.String
 Text.to_json = Json.String this
+
+Text.repeat n =
+    0.upto n . fold "" acc-> _-> acc + this

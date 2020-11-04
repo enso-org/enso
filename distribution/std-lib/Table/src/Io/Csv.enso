@@ -1,0 +1,10 @@
+from Base import all
+import Table.Table
+
+polyglot java import org.enso.table.serialization.Parser
+
+File.File.read_csv has_header=True prefix='C' =
+    parser_inst = Parser.create [has_header, prefix]
+    this.with_input_stream [File.Option.Read] stream->
+        stream.with_java_stream java_stream->
+            Table.Table (parser_inst.parse [java_stream])

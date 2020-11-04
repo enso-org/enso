@@ -106,6 +106,8 @@ type Input_Stream
     close : Unit
     close = Managed_Resource.finalize this.stream_resource
 
+    with_java_stream f = Managed_Resource.with this.stream_resource f
+
 type File
     type File prim_file
 
