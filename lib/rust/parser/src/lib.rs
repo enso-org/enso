@@ -3,6 +3,9 @@
 pub mod data;
 pub mod macros;
 pub mod operators;
+pub mod parser;
+
+pub use crate::parser::*;
 
 /// The prelude for the parser.
 pub mod prelude {
@@ -18,6 +21,8 @@ pub mod prelude {
 
     /// The lexer types.
     pub mod lexer {
+        pub use ::lexer::*;
+
         /// The lexer tokens.
         pub mod token {
             pub use lexer::library::token::*;

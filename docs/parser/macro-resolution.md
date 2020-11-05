@@ -300,9 +300,9 @@ There are two main tuning points for this:
 1. The _sizes_ of inputs being executed on, where relevant.
 2. The benchmarks being executed.
 
-While it is _possible_ to tune the benchmarking config (`bench_config` in
-`lexer_bench_sources.rs`) to decrease benchmarking time, this is not
-recommended. The current settings are tuned to provide reliable results.
+While it is _possible_ to tune the benchmarking config to decrease benchmarking
+time, this is not recommended. The current settings are tuned to provide
+reliable results.
 
 ### Changing the Macro Resolver
 

@@ -10,7 +10,10 @@
 
 //! This module exports the interface to the generated Enso lexer.
 
+pub mod lexer;
 pub mod generated;
+
+pub use crate::lexer::*;
 
 /// Support libraries for the lexer definition.
 ///
