@@ -290,11 +290,19 @@ sbt "engine-runner/assembly"
 
 This will produce an executable `runner.jar` fat jar and a `runtime.jar` fat jar
 in the repository root. The `runner.jar` depends only on the `runtime.jar` and a
-vanilla GraalVM distribution. To run it, use:
+vanilla GraalVM distribution.
+
+#### Building the Project Manager Fat Jar
+
+In order to build a fat jar with the Project Manager component, run the
+`assembly` task on the `project-manager` subproject:
 
 ```bash
-JAVA_HOME=<PATH_TO_GRAAL_HOME> ./runner.jar <CLI_ARGS>
+sbt "project-manager/assembly"
 ```
+
+This will produce a `project-manager` fat jar and a `runtime.jar` fat jar in the
+repository root.
 
 #### Building the Launcher Native Binary
 
@@ -458,13 +466,108 @@ interpreter. It can be run using the sbt `run` command in the project `runner`
 and provides a rudimentary command-line interface to the basic capabilities of
 the interpreter.
 
-Detailed information on the flags it supports can be obtained by executing
-`run --help`, but the primary functionality is as follows:
+Enso should be launched using the `distribution/bin` scripts.
+
+#### Interpreter
+
+Interpreter is started with the `distribution/bin/enso` script and requires
+`runner.jar` and `runtime.jar` (see
+[Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
+to be built and copied (or linked) to the `distribution/component` directory.
+
+##### Bash
+
+```bash
+# build runtime.jar and runner.jar
+sbt engine-runner/assembly
+# link or copy jars to the distributiong
+mkdir -p distribution/component
+cd distribution/component
+ln -s ../../runtime.jar .
+ln -s ../../runner.jar .
+```
+
+##### PowerShell
+
+```powershell
+# build runtime.jar and runner.jar
+sbt.bat engine-runner/assembly
+# copy jars to the distributiong
+mkdir -p .\distribution\component
+cp .\runtime.jar .\distribution\component\
+cp .\runner.jar .\distribution\component\
+```
+
+Detailed information on the flags it supports is shown by the `--help` flag, but
+the primary functionality is as follows:
 
 - `--new PATH`: Creates a new Enso project at the location spcified by `PATH`.
 - `--run PATH`: Executes the interpreter on the Enso source specified by `PATH`.
   In this case, `PATH` must point to either a standalone Enso file or an Enso
   project.
+
+##### Bash
+
+```bash
+distribution/bin/enso --new ~/Hello
+distribution/bin/enso --run ~/Hello
+Hello, World!
+```
+
+##### PowerShell
+
+```bash
+distribution/bin/enso.bat --new ~/Hello
+distribution/bin/enso.bat --run ~/Hello
+Hello, World!
+```
+
+#### Project Manager
+
+Project manager is required to run the
+[Enso IDE](https://github.com/enso-org/ide). It is started with the
+`distribution/bin/project-manager` script and requires `runtime.jar` and
+`project-manager.jar` (see
+[Building the Project Manager Fat Jar](#building-the-project-manager-fat-jar))
+to be built and copied (or linked) to the `distribution/component` directory.
+
+##### Bash
+
+```bash
+# build project-manager.jar and runtime.jar
+sbt project-manager/assembly
+# link or copy jars to the distribution
+mkdir -p distribution/component
+cd distribution/component
+ln -s ../../runtime.jar .
+ln -s ../../project-manager.jar .
+```
+
+##### PowerShell
+
+```powershell
+# build project-manager.jar and runtime.jar
+sbt.bat project-manager/assembly
+# copy jars to the distribution
+mkdir -p .\distribution\component
+cp .\runtime.jar .\distribution\component\
+cp .\project-manager.jar .\distribution\component\
+```
+
+Detailed information on the flags it supports is shown by the `--help` flag. To
+run the Project Manager, execute the following script:
+
+##### Bash
+
+```bash
+distribution/bin/project-manager
+```
+
+##### PowerShell
+
+```powershell
+distribution/bin/project-manager.bat
+```
 
 #### Language Server Mode
 
