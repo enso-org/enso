@@ -1,7 +1,8 @@
 //! Macro definitions in Enso.
 
 use crate::prelude::*;
-
+use crate::macros::literal::Literal;
+use itertools::Itertools;
 
 
 // ==================
@@ -40,6 +41,14 @@ impl Definition {
     pub fn sections(&self) -> &[Section] {
         self.sections.as_slice()
     }
+
+    /// Get the path for the definition.
+    ///
+    /// The definition's path consists of the headers of each of the sections that make it up, and
+    /// describes the literals that must be matched for the macro to match.
+    pub fn path(&self) -> Vec<Literal> {
+        self.sections.iter().map(|s| s.symbol.clone()).collect_vec()
+    }
 }
 
 
@@ -53,28 +62,22 @@ impl Definition {
 ///
 /// The literal is the _most_ important portion of a section, as they are constants that allow the
 /// macro resolver to divide up the input token stream based on these constants.
-#[derive(Clone,Debug,Default,Eq,PartialEq)]
+#[derive(Clone,Debug,Eq,PartialEq)]
 pub struct Section {
     /// The literal that begins the section.
-    literal : String,
-    // TODO [AA] Pattern
+    symbol : Literal,
+    // TODO [AA] Pattern (later)
 }
 
 impl Section {
     /// Constructor.
-    pub fn new(literal:impl Str) -> Self {
-        let literal = literal.into();
-        Self{literal}
-    }
-
-    /// Get the name of the section.
-    pub fn name(&self) -> &str {
-        self.literal()
+    pub fn new(symbol:Literal) -> Self {
+        Self{ symbol }
     }
 
     /// Get a reference to the literal that heads the section.
-    pub fn literal(&self) -> &str {
-        self.literal.as_str()
+    pub fn literal(&self) -> &Literal {
+        &self.symbol
     }
 }
 

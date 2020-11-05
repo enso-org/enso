@@ -15,4 +15,12 @@ pub mod prelude {
         pub use enso_logger::disabled::Logger as Disabled;
         pub use enso_logger::enabled::Logger as Enabled;
     }
+
+    /// The lexer types.
+    pub mod lexer {
+        /// The lexer tokens.
+        pub mod token {
+            pub use lexer::library::token::*;
+        }
+    }
 }

@@ -15,7 +15,7 @@ pub type Branches<K,V> = HashMap<K,Tree<K,V>>;
 #[derive(Derivative)]
 #[derivative(Clone)]
 #[derivative(Debug(bound="K:Debug+Eq+Hash+PartialEq, V:Debug+Eq+PartialEq"))]
-#[derivative(Default(bound="K:Default+Eq+Hash"))]
+#[derivative(Default(bound="K:Eq+Hash"))]
 #[derivative(PartialEq(bound="K:Eq+Hash, V:PartialEq"))]
 #[derivative(Eq(bound="K:Eq+Hash, V:Eq"))]
 pub struct Tree<K,V> {
@@ -37,10 +37,7 @@ impl<K,V> Tree<K,V> {
     }
 }
 
-impl<K,V> Tree<K,V>
-where K : Clone+Default+Eq+Hash+PartialEq,
-      V : Default
-{
+impl<K,V> Tree<K,V> where K:Clone+Eq+Hash+PartialEq {
     /// Create an empty tree.
     pub fn empty() -> Self {
         default()
@@ -95,6 +92,10 @@ where K : Clone+Default+Eq+Hash+PartialEq,
     }
 
     /// Drop all values from the tree, replacing them with unit.
+    ///
+    /// ## NOTE
+    /// This function is only suitable for use on trees with small depths as it is implemented in a
+    /// recursive fashion.
     pub fn drop_values(self) -> Tree<K,()> {
         self.map(|_| ())
     }
@@ -141,7 +142,7 @@ where K : Clone+Default+Eq+Hash+PartialEq,
 // =============
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]

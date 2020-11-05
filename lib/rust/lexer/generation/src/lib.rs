@@ -15,7 +15,7 @@ pub mod generated;
 /// Support libraries for the lexer definition.
 ///
 /// This is an intentional re-export in this crate's namespace.
-mod library {
+pub mod library {
     pub use lexer_definition::library::*;
 }
 
