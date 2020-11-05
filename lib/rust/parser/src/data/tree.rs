@@ -1,7 +1,7 @@
 //! A map-based tree for use in the macro resolver.
 
 use crate::prelude::*;
-use std::collections::VecDeque;
+
 
 
 // ============
@@ -17,7 +17,7 @@ pub type Branches<K,V> = HashMap<K,Tree<K,V>>;
 #[derivative(Debug(bound="K:Debug+Eq+Hash+PartialEq, V:Debug+Eq+PartialEq"))]
 #[derivative(Default(bound="K:Default+Eq+Hash"))]
 #[derivative(PartialEq(bound="K:Eq+Hash, V:PartialEq"))]
-#[derivative(PartialEq(bound="K:Eq+Hash, V:Eq"))]
+#[derivative(Eq(bound="K:Eq+Hash, V:Eq"))]
 pub struct Tree<K,V> {
     /// The value at the current node.
     pub value : Option<V>,
@@ -37,7 +37,10 @@ impl<K,V> Tree<K,V> {
     }
 }
 
-impl<K:Clone+Default+Eq+Hash+PartialEq,V:Default> Tree<K,V> {
+impl<K,V> Tree<K,V>
+where K : Clone+Default+Eq+Hash+PartialEq,
+      V : Default
+{
     /// Create an empty tree.
     pub fn empty() -> Self {
         default()
@@ -68,28 +71,27 @@ impl<K:Clone+Default+Eq+Hash+PartialEq,V:Default> Tree<K,V> {
     /// Map the provided `f` over `self`, mutating the tree.
     ///
     /// This may change the value type stored in the tree.
-    // TODO [AA] I don't like that this requires the closure to be `Clone`.
-    pub fn map<S,F:Clone+Fn(V) -> S>(self, f:F) -> Tree<K,S> {
-        let value         = self.value.map(f.clone());
-        let branches_iter = self.branches.into_iter().map(|(k,v)| (k,v.map(f.clone())));
+    ///
+    /// ## NOTE
+    /// This function is only suitable for use on trees with small depths as it is implemented in a
+    /// recursive fashion.
+    pub fn map<S,F:Copy+Fn(V) -> S>(self, f:F) -> Tree<K,S> {
+        let value         = self.value.map(f);
+        let branches_iter = self.branches.into_iter().map(|(k,v)| (k,v.map(f)));
         let branches      = branches_iter.collect::<Branches<K,S>>();
         Tree{value,branches}
     }
 
     /// Map the provided `f` over `self`, mutating the tree in place.
-    // TODO [AA] I don't like that this requires the closure to be `Clone`.
-    pub fn map_in_place<F:Clone+Fn(&mut V) -> V>(&mut self, f:F) {
+    ///
+    /// ## NOTE
+    /// This function is only suitable for use on trees with small depths as it is implemented in a
+    /// recursive fashion.
+    pub fn map_in_place<F:Copy+Fn(&mut V) -> V>(&mut self, f:F) {
         self.value.iter_mut().for_each(|value| *value = f(value));
         for value in self.branches.values_mut() {
-            value.map_in_place(f.clone());
+            value.map_in_place(f);
         }
-    }
-
-    pub fn foo<F:Fn(usize)>(f:F) {
-        let t : Option<usize> = None;
-        t.map(&f);
-        t.map(&f);
-        t.map(&f);
     }
 
     /// Drop all values from the tree, replacing them with unit.
@@ -129,45 +131,6 @@ impl<K:Clone+Default+Eq+Hash+PartialEq,V:Default> Tree<K,V> {
     /// Get the value at the provided path.
     pub fn get_value_mut(&mut self, path:&[K]) -> Option<&mut V> {
         self.get_mut(path).map(|n| n.value.as_mut()).flatten()
-    }
-
-    /*
-map tree =
-  stack = stack.empty
-  stack.push tree
-  working_nodes = queue.empty
-  while (!stack.empty) {
-    it = stack.pop
-    case it of
-      end(parent, old_working) ->
-        cur_node = do_shit_to_parent, set children to working_nodes, relink working_nodes to cur_node
-        working_nodes = old_working
-        working_nodes.append cur_node
-      node(n) ->
-        stack.push(end(n, working_nodes))
-        stack.push_all_children_of_n
-        working_nodes = queue.empty
-   }
-   return queue.get_the_only_element
-     */
-
-    /// Do the thing
-    pub fn map_2<S,F:Fn(V) -> S>(self, f:F) -> Tree<K,S> {
-        let mut queue:VecDeque<MapEvent<K,V>> = VecDeque::new();
-        while Some(node) = queue.pop_front() {
-        }
-
-        unimplemented!()
-    }
-}
-
-#[allow(missing_docs)]
-enum MapEvent<K,V> {
-    SubtreeStart,
-    SubtreeEnd,
-    Node {
-        key : K,
-        node : Tree<K,V>
     }
 }
 
