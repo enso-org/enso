@@ -1,7 +1,5 @@
 package org.enso.projectmanager.versionmanagement
 
-import java.nio.file.Path
-
 import org.enso.runtimeversionmanager.distribution.{
   DistributionManager,
   TemporaryDirectoryManager
@@ -14,12 +12,10 @@ object Managers {
   //  the distribution root?
   val distributionManager = new DistributionManager(DefaultEnvironment)
 
-  object LockManager extends FileLockManager {
-    override def locksRoot: Path = distributionManager.paths.locks
-  }
+  lazy val lockManager = new FileLockManager(distributionManager.paths.locks)
 
-  val resourceManager = new ResourceManager(LockManager)
+  lazy val resourceManager = new ResourceManager(lockManager)
 
-  val temporaryDirectoryManager =
+  lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, resourceManager)
 }

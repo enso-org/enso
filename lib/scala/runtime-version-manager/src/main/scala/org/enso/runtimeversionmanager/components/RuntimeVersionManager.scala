@@ -93,7 +93,8 @@ class RuntimeVersionManager(
   ): R = {
     val engine = findOrInstallEngine(version = engineVersion)
     resourceManager.withResources(
-      (Resource.Engine(engineVersion), LockType.Shared)
+      userInterface,
+      Resource.Engine(engineVersion) -> LockType.Shared
     ) {
       engine
         .ensureValid()
@@ -126,8 +127,9 @@ class RuntimeVersionManager(
     val engine  = findOrInstallEngine(version = engineVersion)
     val runtime = findOrInstallGraalRuntime(engine)
     resourceManager.withResources(
-      (Resource.Engine(engineVersion), LockType.Shared),
-      (Resource.Runtime(runtime.version), LockType.Shared)
+      userInterface,
+      Resource.Engine(engineVersion)    -> LockType.Shared,
+      Resource.Runtime(runtime.version) -> LockType.Shared
     ) {
       engine
         .ensureValid()
@@ -171,8 +173,9 @@ class RuntimeVersionManager(
         val version = engine.manifest.runtimeVersion
         if (userInterface.shouldInstallMissingRuntime(version)) {
           resourceManager.withResources(
-            (Resource.AddOrRemoveComponents, LockType.Shared),
-            (Resource.Runtime(version), LockType.Exclusive)
+            userInterface,
+            Resource.AddOrRemoveComponents -> LockType.Shared,
+            Resource.Runtime(version)      -> LockType.Exclusive
           ) {
             installGraalRuntime(version)
           }
@@ -240,8 +243,9 @@ class RuntimeVersionManager(
       case None =>
         if (userInterface.shouldInstallMissingEngine(version)) {
           resourceManager.withResources(
-            (Resource.AddOrRemoveComponents, LockType.Shared),
-            (Resource.Engine(version), LockType.Exclusive)
+            userInterface,
+            Resource.AddOrRemoveComponents -> LockType.Shared,
+            Resource.Engine(version)       -> LockType.Exclusive
           ) {
             findEngine(version) match {
               case Some(engine) =>
@@ -306,8 +310,9 @@ class RuntimeVersionManager(
     */
   def uninstallEngine(version: SemVer): Unit =
     resourceManager.withResources(
-      (Resource.AddOrRemoveComponents, LockType.Exclusive),
-      (Resource.Engine(version), LockType.Exclusive)
+      userInterface,
+      Resource.AddOrRemoveComponents -> LockType.Exclusive,
+      Resource.Engine(version)       -> LockType.Exclusive
     ) {
       val engine = getEngine(version).getOrElse {
         logger.warn(s"Enso Engine $version is not installed.")
@@ -458,6 +463,7 @@ class RuntimeVersionManager(
           */
         def getEngineIfRuntimeIsInstalled: Option[Engine] =
           resourceManager.withResource(
+            userInterface,
             Resource.Runtime(runtimeVersion),
             LockType.Shared
           ) {
@@ -472,6 +478,7 @@ class RuntimeVersionManager(
           */
         def getEngineOtherwise: Engine =
           resourceManager.withResource(
+            userInterface,
             Resource.Runtime(runtimeVersion),
             LockType.Exclusive
           ) {

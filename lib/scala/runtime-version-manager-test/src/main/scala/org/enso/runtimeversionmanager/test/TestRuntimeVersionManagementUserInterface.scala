@@ -7,6 +7,7 @@ import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
+import org.enso.runtimeversionmanager.locking.Resource
 
 /** [[RuntimeVersionManagementUserInterface]] for usage in testing.
   *
@@ -38,6 +39,11 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
 
   /** @inheritdoc */
   override def logInfo(message: => String): Unit = logger.debug(message)
+
+  override def startWaitingForResource(resource: Resource): Unit =
+    logger.debug(s"Waiting on ${resource.name}")
+
+  override def finishWaitingForResource(resource: Resource): Unit = ()
 }
 
 object TestRuntimeVersionManagementUserInterface {

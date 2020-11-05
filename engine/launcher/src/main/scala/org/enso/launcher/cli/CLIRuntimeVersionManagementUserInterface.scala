@@ -8,6 +8,7 @@ import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface
 }
 import org.enso.launcher.InfoLogger
+import org.enso.runtimeversionmanager.locking.Resource
 
 /** [[RuntimeVersionManagementUserInterface]] that reports information and progress
   * to the command line.
@@ -71,4 +72,11 @@ class CLIRuntimeVersionManagementUserInterface(
 
   /** @inheritdoc */
   override def logInfo(message: => String): Unit = InfoLogger.info(message)
+
+  /** @inheritdoc */
+  override def startWaitingForResource(resource: Resource): Unit =
+    logger.warn(resource.waitMessage)
+
+  /** @inheritdoc */
+  override def finishWaitingForResource(resource: Resource): Unit = ()
 }

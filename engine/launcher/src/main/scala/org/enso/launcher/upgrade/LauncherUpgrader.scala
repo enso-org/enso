@@ -13,6 +13,7 @@ import org.enso.runtimeversionmanager.distribution.DistributionManager
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
 import org.enso.runtimeversionmanager.locking.{
   LockType,
+  LockUserInterface,
   Resource,
   ResourceManager
 }
@@ -52,10 +53,16 @@ class LauncherUpgrader(
     * thrown.
     */
   def upgrade(targetVersion: SemVer): Unit = {
+    val failIfAnotherUpgradeIsRunning = new LockUserInterface {
+      override def startWaitingForResource(resource: Resource): Unit =
+        throw AnotherUpgradeInProgressError()
+
+      override def finishWaitingForResource(resource: Resource): Unit = ()
+    }
     resourceManager.withResource(
+      failIfAnotherUpgradeIsRunning,
       Resource.LauncherExecutable,
-      LockType.Exclusive,
-      waitingAction = Some(_ => throw AnotherUpgradeInProgressError())
+      LockType.Exclusive
     ) {
       runCleanup(isStartup = true)
       val release = releaseProvider.fetchRelease(targetVersion).get

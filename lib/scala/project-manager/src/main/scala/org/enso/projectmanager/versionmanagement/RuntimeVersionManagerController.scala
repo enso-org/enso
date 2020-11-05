@@ -17,6 +17,7 @@ import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
+import org.enso.runtimeversionmanager.locking.Resource
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRepository
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
@@ -93,6 +94,10 @@ class RuntimeVersionManagerController
       allowBroken
 
     override def logInfo(message: => String): Unit = log.info(message)
+
+    override def startWaitingForResource(resource: Resource): Unit = ???
+
+    override def finishWaitingForResource(resource: Resource): Unit = ???
   }
 
   private val engineProvider = EngineRepository.defaultEngineReleaseProvider

@@ -101,15 +101,20 @@ class ConcurrencyTest
     val env = fakeInstalledEnvironment()
     val resourceManager = new ResourceManager(lockManager) {
       override def withResource[R](
+        waitingInterface: LockUserInterface,
         resource: Resource,
-        lockType: LockType,
-        waitingAction: Option[Resource => Unit]
+        lockType: LockType
       )(action: => R): R = {
-        val overriddenWaitingAction = (resource: Resource) => {
-          lockWaitsCallback(resource.name)
-          waitingAction.foreach(_.apply(resource))
+        val overriddenWaitingAction = new LockUserInterface {
+          override def startWaitingForResource(resource: Resource): Unit = {
+            lockWaitsCallback(resource.name)
+            waitingInterface.startWaitingForResource(resource)
+          }
+
+          override def finishWaitingForResource(resource: Resource): Unit =
+            waitingInterface.finishWaitingForResource(resource)
         }
-        super.withResource(resource, lockType, Some(overriddenWaitingAction))(
+        super.withResource(overriddenWaitingAction, resource, lockType)(
           action
         )
       }
