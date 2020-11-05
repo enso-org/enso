@@ -30,8 +30,8 @@ import java.nio.file.Path
   * @param locksRoot the directory in which lockfiles should be kept
   */
 class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
-  private val fileLockManager = new FileLockManager(locksRoot)
-  private val localLocks =
+  val fileLockManager = new FileLockManager(locksRoot)
+  val localLocks =
     collection.concurrent.TrieMap.empty[String, ThreadSafeLock]
 
   /** A thread-safe wrapper for a file lock - ensures that the process holds at
@@ -60,7 +60,7 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
     * waiting to acquire the actual file lock, to guarantee [[tryAcquireLock]]
     * returning without blocking.
     */
-  private class ThreadSafeLock(name: String) { self =>
+  class ThreadSafeLock(name: String) { self =>
     var busy: Boolean          = false
     var writers: Int           = 0
     var readers: Int           = 0

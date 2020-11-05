@@ -64,9 +64,7 @@ class ConcurrencyTest
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    testLocalLockManager = Some(
-      new ThreadSafeFileLockManager(getTestDirectory.resolve("test-locks"))
-    )
+    testLocalLockManager = Some(new TestLocalLockManager)
   }
 
   /** A separate [[LockManager]] for each test case. */

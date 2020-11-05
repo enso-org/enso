@@ -10,7 +10,7 @@ import org.enso.runtimeversionmanager.test.{
 
 class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
 
-  "ComponentManager" should {
+  "RuntimeVersionManager" should {
     "find the latest engine version in semver ordering " +
     "(skipping broken releases)" in {
       val componentsManager = makeRuntimeVersionManager()
