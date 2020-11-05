@@ -4,26 +4,32 @@ import org.enso.runtimeversionmanager.distribution.{
   PortableDistributionManager,
   TemporaryDirectoryManager
 }
-import org.enso.runtimeversionmanager.locking.{FileLockManager, ResourceManager}
+import org.enso.runtimeversionmanager.locking.{
+  ResourceManager,
+  ThreadSafeFileLockManager
+}
 
 /** Gathers default managers used in the launcher. */
 object DefaultManagers {
 
-  /** Default distribution manager that is capable of detecting portable mode.
-    */
+  /** Default distribution manager that is capable of detecting portable mode. */
   val distributionManager = new PortableDistributionManager(LauncherEnvironment)
 
-  /** Default [[FileLockManager]] storing lock files in a directory defined by
+  /** Default [[LockManager]] storing lock files in a directory defined by
     * the distribution manager.
+    *
+    * It is lazily initialized, because initializing it triggers path detection
+    * and this cannot happen within static initialization, because with Native
+    * Image, static initialization is done at build-time, so the paths would be
+    * set at build time and not actual runtime, leading to very wrong results.
     */
-  val defaultFileLockManager = new FileLockManager(
-    distributionManager.paths.locks
-  )
+  lazy val defaultFileLockManager =
+    new ThreadSafeFileLockManager(distributionManager.paths.locks)
 
   /** Default [[ResourceManager]] using the [[defaultFileLockManager]]. */
-  object DefaultResourceManager extends ResourceManager(defaultFileLockManager)
+  lazy val defaultResourceManager = new ResourceManager(defaultFileLockManager)
 
   /** Default [[TemporaryDirectoryManager]]. */
-  val temporaryDirectoryManager =
-    new TemporaryDirectoryManager(distributionManager, DefaultResourceManager)
+  lazy val temporaryDirectoryManager =
+    new TemporaryDirectoryManager(distributionManager, defaultResourceManager)
 }
