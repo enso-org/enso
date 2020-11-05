@@ -13,7 +13,7 @@ type Table
     display show_rows=10 =
         cols = Vector (this.java_table.getColumns [])
         col_names = cols.map (_.getName [])
-        col_vals = cols.map (_.getColumn [])
+        col_vals = cols.map (_.getStorage [])
         num_rows = this.java_table.nrows []
         display_rows = min num_rows show_rows
         rows = Vector.new display_rows row_num->
@@ -34,18 +34,18 @@ type Table
 
 ## PRIVATE
 
-   Keep this in sync with `org.enso.table.data.Column.Type.LONG`
-column_type_long = 1
+   Keep this in sync with `org.enso.table.data.Storage.Type.LONG`
+storage_type_long = 1
 
 ## PRIVATE
 
-   Keep this in sync with `org.enso.table.data.Column.Type.DOUBLE`
-column_type_double = 2
+   Keep this in sync with `org.enso.table.data.Storage.Type.DOUBLE`
+storage_type_double = 2
 
 ## PRIVATE
 
-   Keep this in sync with `org.enso.table.data.Column.Type.STRING`
-column_type_string = 3
+   Keep this in sync with `org.enso.table.data.Storage.Type.STRING`
+storage_type_string = 3
 
 ## PRIVATE
 string_storage_to_json storage =
@@ -62,9 +62,9 @@ numeric_storage_to_json storage =
 ## PRIVATE
 column_to_json col =
     name = col.getName []
-    storage = col.getColumn []
+    storage = col.getStorage []
     storage_type = storage.getType []
-    storage_jsons = if storage_type == Column_Type_String then here.string_storage_to_json storage else
+    storage_jsons = if storage_type == Storage_Type_String then here.string_storage_to_json storage else
         here.numeric_storage_to_json storage
     fields = Map.singleton "name" (Json.String name) . insert "data" (Json.Array storage_jsons)
     Json.Object fields
@@ -73,7 +73,7 @@ column_to_json col =
 ## PRIVATE
 get_item_string column ix =
     tp = column.getType []
-    if tp == Column_Type_String then column.getItem [ix] else
+    if tp == Storage_Type_String then column.getItem [ix] else
         column.getItem [ix] . to_text
 
 ## PRIVATE

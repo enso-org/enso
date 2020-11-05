@@ -1,43 +1,30 @@
 package org.enso.table.data.table;
 
-import org.enso.table.data.column.Column;
-
-import java.util.Arrays;
-
+/** A representation of a table structure. */
 public class Table {
-  public static class TableColumn {
-    private final String name;
-    private final Column column;
 
-    public TableColumn(String name, Column column) {
-      this.name = name;
-      this.column = column;
-    }
+  private final Column[] columns;
 
-    public String getName() {
-      return name;
-    }
-
-    public Column getColumn() {
-      return column;
-    }
-  }
-
-  private final TableColumn[] columns;
-
-  public Table(TableColumn[] columns) {
+  /**
+   * Creates a new table
+   *
+   * @param columns the columns contained in this table.
+   */
+  public Table(Column[] columns) {
     this.columns = columns;
   }
 
+  /** @return the number of rows in this table */
   public long nrows() {
     if (columns == null || columns.length == 0) {
       return 0;
     } else {
-      return columns[0].column.size();
+      return columns[0].getStorage().size();
     }
   }
 
-  public TableColumn[] getColumns() {
+  /** @return the columns of this table */
+  public Column[] getColumns() {
     return columns;
   }
 }

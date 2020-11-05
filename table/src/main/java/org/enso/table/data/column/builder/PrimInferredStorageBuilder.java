@@ -1,12 +1,17 @@
 package org.enso.table.data.column.builder;
 
-import org.enso.table.data.column.Column;
-import org.enso.table.data.column.DoubleColumn;
-import org.enso.table.data.column.LongColumn;
+import org.enso.table.data.column.DoubleStorage;
+import org.enso.table.data.column.LongStorage;
+import org.enso.table.data.column.Storage;
 
 import java.util.BitSet;
 
-public class PrimInferredColumnBuilder extends ColumnBuilder {
+/**
+ * A column builder for numeric types. Tries to interpret all data as 64-bit integers. If that
+ * becomes impossible, retypes itself to store 64-bit floats. When even that fails, falls back to a
+ * {@link StringStorageBuilder}.
+ */
+public class PrimInferredStorageBuilder extends StorageBuilder {
   private enum Type {
     LONG,
     DOUBLE
@@ -18,8 +23,9 @@ public class PrimInferredColumnBuilder extends ColumnBuilder {
   private final BitSet isMissing = new BitSet();
   private Type type = Type.LONG;
 
+  /** @inheritDoc */
   @Override
-  public ColumnBuilder parseAndAppend(String value) {
+  public StorageBuilder parseAndAppend(String value) {
     if (value == null) {
       ensureAppendable();
       isMissing.set(size);
@@ -36,7 +42,7 @@ public class PrimInferredColumnBuilder extends ColumnBuilder {
     }
   }
 
-  private ColumnBuilder appendLong(String value) {
+  private StorageBuilder appendLong(String value) {
     try {
       long l = Long.parseLong(value);
       ensureAppendable();
@@ -49,7 +55,7 @@ public class PrimInferredColumnBuilder extends ColumnBuilder {
     }
   }
 
-  private ColumnBuilder appendDouble(String value) {
+  private StorageBuilder appendDouble(String value) {
     try {
       double d = Double.parseDouble(value);
       ensureAppendable();
@@ -62,7 +68,7 @@ public class PrimInferredColumnBuilder extends ColumnBuilder {
     }
   }
 
-  private ColumnBuilder failedLong(String value) {
+  private StorageBuilder failedLong(String value) {
     try {
       double d = Double.parseDouble(value);
       retypeToDouble();
@@ -76,8 +82,8 @@ public class PrimInferredColumnBuilder extends ColumnBuilder {
     }
   }
 
-  private ColumnBuilder failedDouble(String value) {
-    StringColumnBuilder newBuilder = new StringColumnBuilder(rawData, size, isMissing);
+  private StorageBuilder failedDouble(String value) {
+    StringStorageBuilder newBuilder = new StringStorageBuilder(rawData, size);
     newBuilder.parseAndAppend(value);
     return newBuilder;
   }
@@ -101,12 +107,13 @@ public class PrimInferredColumnBuilder extends ColumnBuilder {
     }
   }
 
+  /** @inheritDoc */
   @Override
-  public Column seal() {
+  public Storage seal() {
     if (type == Type.LONG) {
-      return new LongColumn(data, size, isMissing);
+      return new LongStorage(data, size, isMissing);
     } else {
-      return new DoubleColumn(data, size, isMissing);
+      return new DoubleStorage(data, size, isMissing);
     }
   }
 }
