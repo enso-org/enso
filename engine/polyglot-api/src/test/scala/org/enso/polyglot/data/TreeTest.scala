@@ -49,9 +49,19 @@ class TreeTest extends AnyWordSpec with Matchers {
     }
 
     "filter root" in {
-      val expected = Tree.Root(Vector())
+      val expected = Tree.Root(
+        Vector(
+          Tree.Leaf(
+            1,
+            Vector(
+              Tree.Leaf(5, Vector()),
+              Tree.Leaf(6, Vector())
+            )
+          )
+        )
+      )
 
-      tree.filter(_ > 4) shouldEqual expected
+      tree.deepFilter(_ > 4) shouldEqual expected
     }
 
     "filter leaves" in {
@@ -62,7 +72,7 @@ class TreeTest extends AnyWordSpec with Matchers {
         )
       )
 
-      tree.filter(_ < 3) shouldEqual expected
+      tree.deepFilter(_ < 3) shouldEqual expected
     }
 
     "fold" in {

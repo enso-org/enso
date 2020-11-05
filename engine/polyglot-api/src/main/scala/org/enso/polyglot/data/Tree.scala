@@ -46,9 +46,6 @@ object Tree {
 
     final def zipBy[B](that: Root[B])(p: (A, B) => Boolean): Root[These[A, B]] =
       Tree.zipBy(this, that)(p)
-
-    final def isEmpty: Boolean =
-      children.isEmpty
   }
 
   case class Leaf[+A](
@@ -65,6 +62,12 @@ object Tree {
   ) extends Tree[A]
 
   def empty[A]: Root[A] = Root(Vector())
+
+  def isEmpty[A](tree: Tree[A]): Boolean =
+    tree match {
+      case Root(children)    => children.isEmpty
+      case Leaf(_, children) => children.isEmpty
+    }
 
   def zip[A, B](t1: Root[A], t2: Root[B]): Root[These[A, B]] =
     zipBy(t1, t2)(_ == _)
@@ -121,11 +124,16 @@ object Tree {
     Root(tree.children.map(mapLeaf(_)(f)))
 
   private def filter[A](tree: Tree.Root[A])(p: A => Boolean): Root[A] = {
-    def filterLeaf(leaf: Tree.Leaf[A]): Option[Tree.Leaf[A]] =
+    def filterLeaf(leaf: Tree.Leaf[A]): Option[Tree.Leaf[A]] = {
+      val childrenFiltered = leaf.children.flatMap(filterLeaf)
       if (p(leaf.element)) {
-        val childrenFiltered = leaf.children.flatMap(filterLeaf)
         Some(leaf.copy(children = childrenFiltered))
-      } else None
+      } else if (childrenFiltered.nonEmpty)
+        Some(leaf.copy(children = childrenFiltered))
+      else {
+        None
+      }
+    }
 
     Root(tree.children.flatMap(filterLeaf))
   }

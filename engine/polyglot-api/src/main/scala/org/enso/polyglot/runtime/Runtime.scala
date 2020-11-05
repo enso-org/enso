@@ -348,14 +348,7 @@ object Runtime {
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
         scope: Option[Suggestion.Scope]                   = None
-      ) extends SuggestionAction {
-
-        def isEmpty: Boolean =
-          arguments.isEmpty &&
-          returnType.isEmpty &&
-          documentation.isEmpty &&
-          scope.isEmpty
-      }
+      ) extends SuggestionAction
     }
 
     /** An action to apply to the suggestions database. */

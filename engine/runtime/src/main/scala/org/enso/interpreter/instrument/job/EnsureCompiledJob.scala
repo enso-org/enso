@@ -205,9 +205,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
         .filter {
-          case Api.SuggestionUpdate(_, m: Api.SuggestionAction.Modify) =>
-            !m.isEmpty
-          case _ => true
+          case Api.SuggestionUpdate(
+                _,
+                Api.SuggestionAction.Modify(None, None, None, None, None)
+              ) =>
+            false
+          case _ =>
+            true
         }
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = new File(module.getPath),
@@ -391,7 +395,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendModuleUpdate(
     payload: Api.SuggestionsDatabaseModuleUpdateNotification
   )(implicit ctx: RuntimeContext): Unit =
-    if (payload.actions.nonEmpty && !payload.updates.isEmpty) {
+    if (payload.actions.nonEmpty || !Tree.isEmpty(payload.updates)) {
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
 

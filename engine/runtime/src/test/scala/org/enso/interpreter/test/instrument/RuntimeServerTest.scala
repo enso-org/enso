@@ -3,13 +3,13 @@ package org.enso.interpreter.test.instrument
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.nio.file.Files
-import java.util
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
+import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
@@ -460,34 +460,46 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "foo",
-                Seq(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("a", "Any", false, false, None),
-                  Suggestion.Argument("b", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("a", "Any", false, false, None),
+                      Suggestion.Argument("b", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                List(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -566,34 +578,46 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "foo",
-                Seq(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("a", "Any", false, false, None),
-                  Suggestion.Argument("b", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("a", "Any", false, false, None),
+                      Suggestion.Argument("b", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                List(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -672,30 +696,40 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "bar",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "bar",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -776,30 +810,40 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "bar",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "bar",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -880,34 +924,46 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "foo",
-                Seq(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("a", "Any", false, false, None),
-                  Suggestion.Argument("b", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("a", "Any", false, false, None),
+                      Suggestion.Argument("b", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                List(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -967,84 +1023,128 @@ class RuntimeServerTest
       idMainUpdate,
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "foo",
-                Seq(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("x", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Number",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainX),
-                moduleName,
-                "x",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainY),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainZ),
-                moduleName,
-                "z",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idFooY),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idFooZ),
-                moduleName,
-                "z",
-                "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(9, 17),
-                  Suggestion.Position(12, 5)
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainX),
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainY),
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainZ),
+                        moduleName,
+                        "z",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Number",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idFooY),
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(9, 17),
+                            Suggestion.Position(12, 5)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idFooZ),
+                        moduleName,
+                        "z",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(9, 17),
+                          Suggestion.Position(12, 5)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
                 )
               )
             )
@@ -1160,30 +1260,41 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(idResult),
-                moduleName,
-                "result",
-                "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(2, 6),
-                  Suggestion.Position(4, 21)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(idResult),
+                        moduleName,
+                        "result",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(4, 21)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
                 )
               )
             )
@@ -1297,78 +1408,111 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idPie),
-                moduleName,
-                "pie",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idUwu),
-                moduleName,
-                "uwu",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idHie),
-                moduleName,
-                "hie",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idXxx),
-                moduleName,
-                "x",
-                Seq(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("y", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Number",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(idMainA),
-                moduleName,
-                "a",
-                "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(2, 6),
-                  Suggestion.Position(5, 0)
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(idMainA),
+                        moduleName,
+                        "a",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(5, 0)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
                 )
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idPie),
+                    moduleName,
+                    "pie",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idUwu),
+                    moduleName,
+                    "uwu",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idHie),
+                    moduleName,
+                    "hie",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idXxx),
+                    moduleName,
+                    "x",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("y", "Any", false, false, None)
+                    ),
+                    "Number",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -1643,59 +1787,78 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "overloaded",
-                Seq(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("arg", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Text",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "overloaded",
-                Seq(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("arg", "Any", false, false, None)
-                ),
-                "Number",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(id1),
-                moduleName,
-                "x",
-                "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(2, 6),
-                  Suggestion.Position(7, 0)
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(id1),
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(7, 0)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
                 )
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "overloaded",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("arg", "Any", false, false, None)
+                    ),
+                    "Text",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "overloaded",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("arg", "Any", false, false, None)
+                    ),
+                    "Number",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -1923,19 +2086,25 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                "Test.Main",
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.Main",
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -2023,19 +2192,25 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                "Test.Main",
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    "Test.Main",
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -2073,6 +2248,7 @@ class RuntimeServerTest
           Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
         )
       )
+    val version = contentsVersion(context.Main.code)
 
     val mainFile = context.writeMain(context.Main.code)
 
@@ -2111,83 +2287,129 @@ class RuntimeServerTest
       idMainUpdate,
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          contentsVersion(context.Main.code),
-          List(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                Some(idMain),
-                moduleName,
-                "main",
-                List(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "foo",
-                List(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("x", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    Some(idMain),
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Number",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainX),
-                moduleName,
-                "x",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainY),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainZ),
-                moduleName,
-                "z",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idFooY),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idFooZ),
-                moduleName,
-                "z",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainX),
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainY),
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainZ),
+                        moduleName,
+                        "z",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Number",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idFooY),
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(9, 17),
+                            Suggestion.Position(12, 5)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idFooZ),
+                        moduleName,
+                        "z",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(9, 17),
+                          Suggestion.Position(12, 5)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
               )
             )
           )
@@ -2285,19 +2507,25 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "main",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -2335,18 +2563,25 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          contentsVersion(codeModified),
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "lucky",
-                Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "Number",
-                "Any",
-                None
+          file    = mainFile,
+          version = contentsVersion(codeModified),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "lucky",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Number",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
               )
             )
           )
@@ -3474,36 +3709,47 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          visualisationFile,
-          contentsVersion(context.Visualisation.code),
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean("Test.Visualisation"),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                "Test.Visualisation",
-                "encode",
-                List(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("x", "Any", false, false, None)
+          file    = visualisationFile,
+          version = contentsVersion(context.Visualisation.code),
+          actions =
+            Vector(Api.SuggestionsDatabaseAction.Clean("Test.Visualisation")),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "encode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Visualisation",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                "Test.Visualisation",
-                "incAndEncode",
-                List(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("x", "Any", false, false, None)
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "incAndEncode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Visualisation",
-                "Any",
-                None
+                Vector()
               )
             )
           )
@@ -3643,36 +3889,47 @@ class RuntimeServerTest
       context.Main.Update.mainZ(contextId),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          visualisationFile,
-          contentsVersion(context.Visualisation.code),
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean("Test.Visualisation"),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                "Test.Visualisation",
-                "encode",
-                List(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("x", "Any", false, false, None)
+          file    = visualisationFile,
+          version = contentsVersion(context.Visualisation.code),
+          actions =
+            Vector(Api.SuggestionsDatabaseAction.Clean("Test.Visualisation")),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "encode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Visualisation",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                "Test.Visualisation",
-                "incAndEncode",
-                List(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("x", "Any", false, false, None)
+                Vector()
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.Visualisation",
+                    "incAndEncode",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Visualisation",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Visualisation",
-                "Any",
-                None
+                Vector()
               )
             )
           )
@@ -3680,83 +3937,129 @@ class RuntimeServerTest
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          mainFile,
-          version,
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Clean(moduleName),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "main",
-                List(Suggestion.Argument("this", "Any", false, false, None)),
-                "Main",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Method(
-                None,
-                moduleName,
-                "foo",
-                List(
-                  Suggestion.Argument("this", "Any", false, false, None),
-                  Suggestion.Argument("x", "Any", false, false, None)
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
                 ),
-                "Number",
-                "Any",
-                None
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainX),
-                "Test.Main",
-                "x",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainY),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idMainZ),
-                moduleName,
-                "z",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idFooY),
-                moduleName,
-                "y",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
-              )
-            ),
-            Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(context.Main.idFooZ),
-                moduleName,
-                "z",
-                "Any",
-                Suggestion
-                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainX),
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainY),
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idMainZ),
+                        moduleName,
+                        "z",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(3, 6),
+                            Suggestion.Position(8, 0)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    Seq(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Number",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idFooY),
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion
+                          .Scope(
+                            Suggestion.Position(9, 17),
+                            Suggestion.Position(12, 5)
+                          )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        Some(context.Main.idFooZ),
+                        moduleName,
+                        "z",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(9, 17),
+                          Suggestion.Position(12, 5)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
               )
             )
           )
@@ -3800,7 +4103,7 @@ class RuntimeServerTest
           ) =>
         data
     }
-    util.Arrays.equals(data, "6".getBytes) shouldBe true
+    data.sameElements("6".getBytes) shouldBe true
 
     // Modify the file
     context.send(
@@ -3833,7 +4136,7 @@ class RuntimeServerTest
           ) =>
         data
     }
-    util.Arrays.equals(data1, "5".getBytes) shouldBe true
+    data1.sameElements("5".getBytes) shouldBe true
   }
 
   it should "be able to modify visualisations" in {
@@ -4050,7 +4353,7 @@ class RuntimeServerTest
             ) =>
           data
       }
-    util.Arrays.equals(data, "6".getBytes) shouldEqual true
+    data.sameElements("6".getBytes) shouldBe true
 
     // detach visualisation
     context.send(

@@ -15,7 +15,9 @@ object SuggestionDiff {
     prev: Tree.Root[Suggestion],
     current: Tree.Root[Suggestion]
   ): Tree.Root[Api.SuggestionUpdate] =
-    Tree.zipBy(prev, current)(compare).map(diff)
+    Tree
+      .zipBy(prev, current)(compare)
+      .map(diff)
 
   private def compare(a: Suggestion, b: Suggestion): Boolean =
     a.name == b.name &&
@@ -38,8 +40,8 @@ object SuggestionDiff {
       case These.Both(e1: Suggestion.Local, e2: Suggestion.Local) =>
         diffLocals(e1, e2)
       case These.Both(e1, e2) =>
-        // this case is not possible because we group suggestions by kind in
-        // `compare` method.
+        // this case is not possible because suggestions are grouped by kind
+        // in the `compare` method.
         throw new IllegalStateException(s"Illegal diff: $e1, $e2")
     }
 

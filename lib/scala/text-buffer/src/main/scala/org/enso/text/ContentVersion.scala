@@ -6,7 +6,7 @@ import org.bouncycastle.util.encoders.Hex
 case class ContentVersion(toHexString: String) {
 
   /** Calculate digest. */
-  lazy val toDigest: Array[Byte] =
+  def toDigest: Array[Byte] =
     Hex.decode(toHexString)
 }
 

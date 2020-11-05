@@ -9,6 +9,7 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
+import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
@@ -191,9 +192,9 @@ class StdlibRuntimeServerTest
     val collected = response.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, _, xs)
           ) =>
-        xs.nonEmpty shouldBe true
+        Tree.isEmpty(xs) shouldBe false
     }
     collected.nonEmpty shouldBe true
 
