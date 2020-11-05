@@ -27,6 +27,10 @@ import java.nio.file.Path
   * unlikely (why uninstall an engine and at the same time try to open a project
   * using it).
   *
+  * Functions that acquire locks in this class may throw (for example if the
+  * underlying file lock fails with an IOException), but if a non-fatal
+  * exception is thrown, the function is guaranteed to not have acquired a lock.
+  *
   * @param locksRoot the directory in which lockfiles should be kept
   */
 class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
@@ -59,12 +63,33 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
     * The purpose of the busy bit is to avoid long blocking the monitor while
     * waiting to acquire the actual file lock, to guarantee [[tryAcquireLock]]
     * returning without blocking.
+    *
+    * The busy bit is guaranteed to be reset eventually (it will either reset
+    * once the acquireLock operation completes or when it fails and throws an
+    * exception).
+    *
+    * If a release operation fails, we cannot guarantee anything about the
+    * status of the resource, so any pending and future operations fail with an
+    * exception immediately. If failed == true, the invariants may no longer
+    * hold - every operation (besides release) should run `checkFailed` first.
     */
   class ThreadSafeLock(name: String) { self =>
-    var busy: Boolean          = false
-    var writers: Int           = 0
-    var readers: Int           = 0
-    var fileLock: Option[Lock] = None
+    @volatile var busy: Boolean   = false
+    @volatile var failed: Boolean = false
+    var writers: Int              = 0
+    var readers: Int              = 0
+    var fileLock: Option[Lock]    = None
+
+    /** Checks if the lock has been set to failed state and throws an exception
+      * if that is the case.
+      */
+    def checkFailed(): Unit = {
+      if (failed)
+        throw new IllegalStateException(
+          "A release operation has failed and the resource is in an unknown " +
+          "state."
+        )
+    }
 
     /** Decrements the reader count and releases the lock if it was the last
       * reader.
@@ -74,11 +99,20 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
     def releaseReader(): Unit = this.synchronized {
       assert(writers == 0)
       assert(readers > 0)
+      assert(fileLock.isDefined)
       assert(!busy)
       readers -= 1
+
       if (readers == 0) {
-        fileLock.get.release()
-        fileLock = None
+        try {
+          fileLock.get.release()
+          fileLock = None
+        } catch {
+          case e: Throwable =>
+            failed = true
+            this.notifyAll()
+            throw e
+        }
       }
 
       this.notifyAll()
@@ -91,10 +125,18 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
     def releaseWriter(): Unit = this.synchronized {
       assert(readers == 0)
       assert(writers == 1)
+      assert(fileLock.isDefined)
       assert(!busy)
       writers -= 1
-      fileLock.get.release()
-      fileLock = None
+      try {
+        fileLock.get.release()
+        fileLock = None
+      } catch {
+        case e: Throwable =>
+          failed = true
+          this.notifyAll()
+          throw e
+      }
 
       this.notifyAll()
     }
@@ -103,7 +145,9 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
       * else is using the resource.
       */
     def tryAcquireWriter(): Option[Lock] = this.synchronized {
+      checkFailed()
       if (!busy && readers == 0 && writers == 0) {
+        assert(fileLock.isEmpty)
         fileLock = fileLockManager.tryAcquireLock(name, LockType.Exclusive)
         if (fileLock.isDefined) {
           writers += 1
@@ -116,9 +160,11 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
       * else is using the resource.
       */
     def tryAcquireReader(): Option[Lock] = this.synchronized {
+      checkFailed()
       if (!busy && writers == 0) {
         val noOtherReaders = readers == 0
         if (noOtherReaders) {
+          assert(fileLock.isEmpty)
           fileLock = fileLockManager.tryAcquireLock(name, LockType.Shared)
         }
 
@@ -141,18 +187,27 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
       */
     def acquireWriter(): Lock = {
       this.synchronized {
-        while (busy || (readers + writers) > 0) {
+        while ({ checkFailed(); busy || (readers + writers) > 0 }) {
           this.wait()
         }
         assert(!busy)
         assert(readers + writers == 0)
+        assert(fileLock.isEmpty)
         busy = true
       }
 
-      val lock = fileLockManager.acquireLock(name, LockType.Exclusive)
+      val lock =
+        try { fileLockManager.acquireLock(name, LockType.Exclusive) }
+        catch {
+          case e: Throwable =>
+            busy = false
+            throw e
+        }
+
       this.synchronized {
         assert(busy)
         assert(readers + writers == 0)
+        assert(fileLock.isEmpty)
         busy = false
         writers += 1
         fileLock = Some(lock)
@@ -171,7 +226,7 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
       */
     def acquireReader(): Lock = {
       this.synchronized {
-        while (busy || writers > 0) {
+        while ({ checkFailed(); busy || writers > 0 }) {
           this.wait()
         }
         assert(!busy)
@@ -181,14 +236,23 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
           readers += 1
           return new ReaderReleaser
         } else {
+          assert(fileLock.isEmpty)
           busy = true
         }
       }
 
-      val lock = fileLockManager.acquireLock(name, LockType.Shared)
+      val lock =
+        try { fileLockManager.acquireLock(name, LockType.Shared) }
+        catch {
+          case e: Throwable =>
+            busy = false
+            throw e
+        }
+
       this.synchronized {
         assert(busy)
         assert(readers + writers == 0)
+        assert(fileLock.isEmpty)
         busy = false
         readers += 1
         fileLock = Some(lock)

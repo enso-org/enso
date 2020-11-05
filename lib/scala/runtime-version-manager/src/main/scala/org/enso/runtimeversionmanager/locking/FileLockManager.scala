@@ -33,7 +33,11 @@ class FileLockManager(locksRoot: Path) extends LockManager {
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val channel = openChannel(resourceName)
     try {
-      lockChannel(channel, lockType)
+      WrapLock(
+        channel.lock(0L, Long.MaxValue, isShared(lockType)),
+        channel,
+        lockType
+      )
     } catch {
       case NonFatal(e) =>
         channel.close()
@@ -48,7 +52,13 @@ class FileLockManager(locksRoot: Path) extends LockManager {
   ): Option[Lock] = {
     val channel = openChannel(resourceName)
     try {
-      tryLockChannel(channel, lockType)
+      val lock = channel.tryLock(0L, Long.MaxValue, isShared(lockType))
+      if (lock == null) {
+        channel.close()
+        None
+      } else {
+        Some(WrapLock(lock, channel, lockType))
+      }
     } catch {
       case NonFatal(e) =>
         channel.close()
@@ -81,21 +91,9 @@ class FileLockManager(locksRoot: Path) extends LockManager {
     )
   }
 
-  private def lockChannel(channel: FileChannel, lockType: LockType): Lock = {
-    WrapLock(
-      channel.lock(0L, Long.MaxValue, isShared(lockType)),
-      channel,
-      lockType
-    )
-  }
-
-  private def tryLockChannel(
-    channel: FileChannel,
-    lockType: LockType
-  ): Option[Lock] =
-    Option(channel.tryLock(0L, Long.MaxValue, isShared(lockType)))
-      .map(WrapLock(_, channel, lockType))
-
+  /** Wraps a [[FileLock]] and the [[FileChannel]] that owns it, so that when
+    * the lock is released, the owning channel is closed.
+    */
   private case class WrapLock(
     fileLock: FileLock,
     channel: FileChannel,
