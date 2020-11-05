@@ -57,14 +57,14 @@ class ExpressionIdTest extends InterpreterTest {
         """
           |from Builtins import all
           |
-          |Unit.method =
+          |None.method =
           |    foo = a -> b ->
           |        IO.println a
           |        add = a -> b -> a + b
           |        add a b
           |    foo 10 20
           |
-          |main = Unit.method
+          |main = None.method
           |""".stripMargin
       val meta = new Metadata
       val id1  = meta.addItem(106, 5)
@@ -108,7 +108,7 @@ class ExpressionIdTest extends InterpreterTest {
 
       instrumenter.assertNodeExists(id1, "9")
       instrumenter.assertNodeExists(id2, "3")
-      instrumenter.assertNodeExists(id3, "Unit")
+      instrumenter.assertNodeExists(id3, "None")
       instrumenter.assertNodeExists(id4, "25")
       eval(meta.appendToCode(code))
     }

@@ -258,7 +258,7 @@ type Http
                 proxy_selector = ProxySelector.getDefault []
                 Polyglot.invoke builder "proxy" [proxy_selector].to_array
             Proxy.None ->
-                Unit
+                None
         # version
         http_client_version = Polyglot.get_member HttpClient "Version"
         case this.version of

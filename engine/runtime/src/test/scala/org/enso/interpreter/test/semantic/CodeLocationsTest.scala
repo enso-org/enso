@@ -90,14 +90,14 @@ class CodeLocationsTest extends InterpreterTest {
         """
           |from Builtins import all
           |
-          |Unit.method =
+          |None.method =
           |    foo = a -> b ->
           |        IO.println a
           |        add = a -> b -> a + b
           |        add a b
           |    foo 10 20
           |
-          |main = Unit.method
+          |main = None.method
           |""".stripMargin
 
       instrumenter.assertNodeExists(106, 5, classOf[ApplicationNode])
