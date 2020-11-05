@@ -139,7 +139,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         .finest(s"Analyzing imported ${module.getName}")
       val moduleName = module.getName.toString
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
-        .buildTree(module.getName.toString, module.getIr)
+        .build(module.getName.toString, module.getIr)
         .filter(isSuggestionGlobal)
       val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -174,7 +174,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         .finest(s"Analyzing module in scope ${module.getName}")
       val moduleName = module.getName.toString
       val newSuggestions = SuggestionBuilder(module.getLiteralSource)
-        .buildTree(moduleName, module.getIr)
+        .build(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
       val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -198,10 +198,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.executionService.getLogger
         .finest(s"Analyzing indexed module ${module.getName}")
       val prevSuggestions = SuggestionBuilder(changeset.source)
-        .buildTree(moduleName, changeset.ir)
+        .build(moduleName, changeset.ir)
       val newSuggestions =
         SuggestionBuilder(module.getLiteralSource)
-          .buildTree(moduleName, module.getIr)
+          .build(moduleName, module.getIr)
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
         .filter {
@@ -225,7 +225,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         .finest(s"Analyzing not-indexed module ${module.getName}")
       val newSuggestions =
         SuggestionBuilder(module.getLiteralSource)
-          .buildTree(moduleName, module.getIr)
+          .build(moduleName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = new File(module.getPath),
         version = version,

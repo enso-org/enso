@@ -12,7 +12,6 @@ import org.enso.polyglot.data.Tree
 import org.enso.syntax.text.Location
 import org.enso.text.editing.IndexedSource
 
-import scala.collection.immutable.VectorBuilder
 import scala.collection.mutable
 
 /** Module that extracts [[Suggestion]] entries from the [[IR]].
@@ -28,9 +27,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     *
     * @param module the module name
     * @param ir the input `IR`
-    * @return the list of suggestion entries extracted from the given `IR`
+    * @return the tree of suggestion entries extracted from the given `IR`
     */
-  def buildTree(module: String, ir: IR): Tree.Root[Suggestion] = {
+  def build(module: String, ir: IR): Tree.Root[Suggestion] = {
     type TreeBuilder =
       mutable.Builder[Tree.Leaf[Suggestion], Vector[Tree.Leaf[Suggestion]]]
     def go(tree: TreeBuilder, scope: Scope): Vector[Tree.Leaf[Suggestion]] = {
@@ -118,104 +117,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
     Tree.Root(
       go(Vector.newBuilder, Scope(ir.children, ir.location.map(_.location)))
-    )
-  }
-
-  /** Build suggestions from the given `ir`.
-    *
-    * @param module the module name
-    * @param ir the input `IR`
-    * @return the list of suggestion entries extracted from the given `IR`
-    */
-  def build(module: String, ir: IR): Vector[Suggestion] = {
-    @scala.annotation.tailrec
-    def go(
-      scope: Scope,
-      scopes: mutable.Queue[Scope],
-      acc: mutable.Builder[Suggestion, Vector[Suggestion]]
-    ): Vector[Suggestion] =
-      if (scope.queue.isEmpty) {
-        if (scopes.isEmpty) {
-          acc.result()
-        } else {
-          val scope = scopes.dequeue()
-          go(scope, scopes, acc)
-        }
-      } else {
-        val ir  = scope.queue.dequeue()
-        val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
-        ir match {
-          case IR.Module.Scope.Definition.Method
-                .Explicit(
-                  IR.Name.MethodReference(typePtr, methodName, _, _, _),
-                  IR.Function.Lambda(args, body, _, _, _, _),
-                  _,
-                  _,
-                  _
-                ) =>
-            val typeSignature = ir.getMetadata(TypeSignatures)
-            val selfTypeOpt =
-              typePtr.getMetadata(MethodDefinitions).flatMap(buildSelfType)
-            selfTypeOpt.foreach { selfType =>
-              acc += buildMethod(
-                body.getExternalId,
-                module,
-                methodName,
-                selfType,
-                args,
-                doc,
-                typeSignature
-              )
-            }
-            scopes += Scope(body.children, body.location.map(_.location))
-            go(scope, scopes, acc)
-          case IR.Expression.Binding(
-                name,
-                IR.Function.Lambda(args, body, _, _, _, _),
-                _,
-                _,
-                _
-              ) if name.location.isDefined =>
-            val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildFunction(
-              body.getExternalId,
-              module,
-              name,
-              args,
-              scope.location.get,
-              typeSignature
-            )
-            scopes += Scope(body.children, body.location.map(_.location))
-            go(scope, scopes, acc)
-          case IR.Expression.Binding(name, expr, _, _, _)
-              if name.location.isDefined =>
-            val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildLocal(
-              expr.getExternalId,
-              module,
-              name.name,
-              scope.location.get,
-              typeSignature
-            )
-            scopes += Scope(expr.children, expr.location.map(_.location))
-            go(scope, scopes, acc)
-          case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
-            acc ++= buildAtom(
-              module,
-              name.name,
-              arguments,
-              doc
-            )
-            go(scope, scopes, acc)
-          case _ =>
-            go(scope, scopes, acc)
-        }
-      }
-
-    go(
-      Scope(ir.children, ir.location.map(_.location)),
-      mutable.Queue(),
-      new VectorBuilder()
     )
   }
 
