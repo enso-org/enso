@@ -4,7 +4,7 @@ from Base import all
 type Proxy
 
     ## Proxy is disabled.
-    type None
+    type Nothing
 
     ## Use a sysem proxy settings.
     type System

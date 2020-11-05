@@ -14,10 +14,10 @@ class GlobalScopeTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |None.a = 10
-          |None.addTen = b -> a None + b
+          |Nothing.a = 10
+          |Nothing.addTen = b -> a Nothing + b
           |
-          |main = addTen None 5
+          |main = addTen Nothing 5
         """.stripMargin
 
       eval(code) shouldEqual 15
@@ -27,11 +27,11 @@ class GlobalScopeTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |None.adder = a -> b -> a + b
+          |Nothing.adder = a -> b -> a + b
           |
           |main =
           |    fn = multiply ->
-          |        res = adder None 1 2
+          |        res = adder Nothing 1 2
           |        doubled = res * multiply
           |        doubled
           |    fn 2
@@ -44,13 +44,13 @@ class GlobalScopeTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |None.adder = a -> b -> a + b
+          |Nothing.adder = a -> b -> a + b
           |
-          |None.binaryFn = a -> b -> function ->
+          |Nothing.binaryFn = a -> b -> function ->
           |  result = function a b
           |  result
           |
-          |main = None.binaryFn 1 2 (a -> b -> None.adder a b)
+          |main = Nothing.binaryFn 1 2 (a -> b -> Nothing.adder a b)
         """.stripMargin
 
       eval(code) shouldEqual 3
@@ -60,14 +60,14 @@ class GlobalScopeTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |None.decrementCall = number ->
+          |Nothing.decrementCall = number ->
           |  res = number - 1
-          |  None.fn1 res
+          |  Nothing.fn1 res
           |
-          |None.fn1 = number ->
-          |  if (number % 3) == 0 then number else None.decrementCall number
+          |Nothing.fn1 = number ->
+          |  if (number % 3) == 0 then number else Nothing.decrementCall number
           |
-          |main = None.fn1 5
+          |main = Nothing.fn1 5
         """.stripMargin
 
       eval(code) shouldEqual 3
@@ -77,9 +77,9 @@ class GlobalScopeTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |None.a = 10/0
+          |Nothing.a = 10/0
           |
-          |None.b = None.a
+          |Nothing.b = Nothing.a
           |main = b
         """.stripMargin
 

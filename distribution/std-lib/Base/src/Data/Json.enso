@@ -126,9 +126,9 @@ Text.to_json_key = this
 Base.Boolean.to_json : Boolean
 Base.Boolean.to_json = Boolean this
 
-## None to JSON conversion.
-None.to_json : Null
-None.to_json = Null
+## Nothing to JSON conversion.
+Nothing.to_json : Null
+Nothing.to_json = Null
 
 ## A smart constructor, building an object representation based on a vector
    of key-value pairs.

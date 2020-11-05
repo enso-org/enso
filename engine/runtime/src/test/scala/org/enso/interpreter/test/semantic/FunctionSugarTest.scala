@@ -24,9 +24,9 @@ class FunctionSugarTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |None.foo a b = a * b - a
+          |Nothing.foo a b = a * b - a
           |
-          |main = None.foo 2 3
+          |main = Nothing.foo 2 3
           |""".stripMargin
 
       eval(code) shouldEqual 4

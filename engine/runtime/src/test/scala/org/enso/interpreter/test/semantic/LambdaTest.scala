@@ -91,11 +91,11 @@ class LambdaTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |None.myMethod = 1
+          |Nothing.myMethod = 1
           |
           |main =
           |    f = x -> myMethod
-          |    t = f 10 None
+          |    t = f 10 Nothing
           |    t
           |""".stripMargin
 

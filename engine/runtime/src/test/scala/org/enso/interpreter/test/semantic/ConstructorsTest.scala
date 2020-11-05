@@ -89,15 +89,15 @@ class ConstructorsTest extends InterpreterTest {
           |
           |type Cons2 a b
           |
-          |None.genList = i -> if i == 0 then Nil2 else Cons2 i (genList None (i - 1))
+          |Nothing.genList = i -> if i == 0 then Nil2 else Cons2 i (genList Nothing (i - 1))
           |
           |type Nil2
           |
-          |None.sumList = list -> case list of
-          |  Cons2 h t -> h + sumList None t
+          |Nothing.sumList = list -> case list of
+          |  Cons2 h t -> h + sumList Nothing t
           |  Nil2 -> 0
           |
-          |main = sumList None (genList None 10)
+          |main = sumList Nothing (genList Nothing 10)
       """.stripMargin
       eval(testCode) shouldEqual 55
     }

@@ -37,22 +37,22 @@ spec =
             "32.5e1".should parse_as 325.0
             "false".should parse_as False
             "true".should parse_as True
-            "null".should parse_as None
+            "null".should parse_as Nothing
             "[null, null, true, false]".should parse_as <|
-                [None, None, True, False]
+                [Nothing, Nothing, True, False]
             "[]".should parse_as []
             '[[1, 3], [5 , "foo"], 7, 8]'.should parse_as <|
                 [[1, 3], [5, 'foo'], 7, 8]
             '"foo"'.should parse_as 'foo'
             '"foo\\n\\t\\u20AC\\u20AC"'.should parse_as 'foo\n\t€€'
             '["foo", "foo\\n\\u00aB", null, true]'.should parse_as <|
-                ["foo", 'foo\n\u{AB}', None, True]
+                ["foo", 'foo\n\u{AB}', Nothing, True]
             object_json = '''
                 { "foo": "bar",
                   "baz": ["foo", "x", false],
                   "y": {"z": null, "w": null} }
             object_json.should parse_as <|
-                y_v = Json.from_pairs [["z", None], ["w", None]]
+                y_v = Json.from_pairs [["z", Nothing], ["w", Nothing]]
                 Json.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
         it "should report meaningful parsing errors" <|
             "foo".should fail_parsing_with "Expected a false"

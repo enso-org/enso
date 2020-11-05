@@ -281,7 +281,7 @@ public class Context {
    * @return the builtin {@code Unit} atom constructor
    */
   public AtomConstructor getUnit() {
-    return getBuiltins().none();
+    return getBuiltins().nothing();
   }
 
   /**

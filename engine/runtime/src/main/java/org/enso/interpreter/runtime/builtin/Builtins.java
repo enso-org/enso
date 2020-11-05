@@ -40,7 +40,7 @@ public class Builtins {
 
   private final Module module;
   private final ModuleScope scope;
-  private final AtomConstructor none;
+  private final AtomConstructor nothing;
   private final AtomConstructor any;
   private final Number number;
   private final AtomConstructor function;
@@ -65,7 +65,7 @@ public class Builtins {
 
     module = Module.empty(QualifiedName.fromString(MODULE_NAME).get());
     scope = module.compileScope(context);
-    none = new AtomConstructor("None", scope).initializeFields();
+    nothing = new AtomConstructor("Nothing", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
     error = new Error(language, scope);
@@ -101,7 +101,7 @@ public class Builtins {
     AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
 
     AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
-    scope.registerConstructor(none);
+    scope.registerConstructor(nothing);
     scope.registerConstructor(any);
     scope.registerConstructor(function);
 
@@ -159,12 +159,12 @@ public class Builtins {
   }
 
   /**
-   * Returns the {@code None} atom constructor.
+   * Returns the {@code Nothing} atom constructor.
    *
-   * @return the {@code None} atom constructor
+   * @return the {@code Nothing} atom constructor
    */
-  public AtomConstructor none() {
-    return none;
+  public AtomConstructor nothing() {
+    return nothing;
   }
 
   /**
