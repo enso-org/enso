@@ -90,7 +90,10 @@ class ScatterPlot extends Visualization {
         const divElem       = this.createDivElem(width,height);
         this.dom.appendChild(divElem);
 
-        let parsedData = JSON.parse(data);
+        let parsedData = data;
+        if (typeof data === "string") {
+            parsedData = JSON.parse(data);
+        }
         let axis       = parsedData.axis || {x:{scale:linear_scale},y:{scale:linear_scale}};
         let focus      = parsedData.focus;
         let points     = parsedData.points || {labels:"invisible"};
