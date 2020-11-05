@@ -2010,7 +2010,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }));
     out.source.node_added <+ new_node;
 
-    node_with_position <- add_node_at_cursor.map3(&new_node,&mouse.position,|_,id,pos| (*id,*pos));
+    node_with_position <- add_node_at_cursor.map3(&new_node,&cursor_pos_in_scene,|_,id,pos| (*id,*pos));
     out.source.node_position_set         <+ node_with_position;
     out.source.node_position_set_batched <+ node_with_position;
 
