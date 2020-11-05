@@ -3,6 +3,16 @@ import Table.Table
 
 polyglot java import org.enso.table.serialization.Parser
 
+## Reads the contents of `this` and parses them as a CSV dataframe.
+
+   Arguments
+     - has_header: Specifies whether the first line of the file should be
+       interpreted as a header, containing column names. If set to `False`,
+       column names will be automatically generated.
+     - prefix: text that should be prepended to automatically generated column
+       names. For example, if `prefix` is set to `X`, the columns will be named
+       `X0`, `X1`, etc. This argument has no effect if the column name is
+       inferred from the CSV header row or set manually.
 File.File.read_csv has_header=True prefix='C' =
     parser_inst = Parser.create [has_header, prefix]
     this.with_input_stream [File.Option.Read] stream->

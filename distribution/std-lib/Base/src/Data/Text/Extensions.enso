@@ -144,5 +144,8 @@ Text.contains sequence = Text_Utils.contains [this, sequence]
 Text.to_json : Json.String
 Text.to_json = Json.String this
 
-Text.repeat n =
-    0.upto n . fold "" acc-> _-> acc + this
+## Takes a non-negative integer and returns a new text, consisting of `count`
+   concatenated copies of `this`.
+Text.repeat : Integer -> Text
+Text.repeat count =
+    0.upto count . fold "" acc-> _-> acc + this

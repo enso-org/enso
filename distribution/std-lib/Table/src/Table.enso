@@ -1,9 +1,15 @@
 from Base import all
 import Table.Io.Csv
 
+## Represents a column-oriented table data structure.
 type Table
     type Table java_table
 
+    ## Returns a text containing an ASCII-art table displaying this data.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    display : Integer -> Text
     display show_rows=10 =
         cols = Vector (this.java_table.getColumns [])
         col_names = cols.map (_.getName [])
@@ -18,6 +24,8 @@ type Table
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
 
+    ## Converts this table to a JSON structure.
+    to_json : Json
     to_json =
         col_jsons = Vector (this.java_table.getColumns []) . map here.column_to_json
         cols_json = Json.Array col_jsons
@@ -39,16 +47,19 @@ column_type_double = 2
    Keep this in sync with `org.enso.table.data.Column.Type.STRING`
 column_type_string = 3
 
+## PRIVATE
 string_storage_to_json storage =
     Vector.new (storage.size []) ix->
         if storage.isNa [ix] then Json.Null else
             Json.String (storage.getItem [ix])
 
+## PRIVATE
 numeric_storage_to_json storage =
     Vector.new (storage.size []) ix->
         if storage.isNa [ix] then Json.Null else
             Json.Number (storage.getItem [ix])
 
+## PRIVATE
 column_to_json col =
     name = col.getName []
     storage = col.getColumn []
@@ -59,15 +70,18 @@ column_to_json col =
     Json.Object fields
 
 
+## PRIVATE
 get_item_string column ix =
     tp = column.getType []
     if tp == Column_Type_String then column.getItem [ix] else
         column.getItem [ix] . to_text
 
+## PRIVATE
 pad txt len =
     true_len = txt.characters.length
     txt + (" ".repeat (len - true_len))
 
+## PRIVATE
 print_table header rows =
     content_lengths = Vector.new header.length i->
         max_row = 0.upto rows.length . fold 0 a-> j-> max a (rows.at j . at i . characters . length)
