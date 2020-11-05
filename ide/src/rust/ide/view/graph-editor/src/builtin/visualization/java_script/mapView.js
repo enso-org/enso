@@ -62,12 +62,21 @@ class MapViewVisualization extends Visualization {
         mapElem.setAttributeNS(null,"style","width:" + width + "px;height: " + height + "px;");
         this.dom.appendChild(mapElem);
 
-        const parsedData = eval('('+data+')' );
+        let parsedData = data;
+        if (typeof data === "string") {
+            parsedData = JSON.parse(data);
+        }
+
+        let defaultMapStyle = 'mapbox://styles/mapbox/light-v9';
+        if (document.getElementById("root").classList.contains("dark")){
+            defaultMapStyle = 'mapbox://styles/mapbox/dark-v9';
+        }
+
 
         const deckgl = new deck.DeckGL({
             container: 'map',
             mapboxApiAccessToken: 'pk.eyJ1IjoiZW5zby1vcmciLCJhIjoiY2tmNnh5MXh2MGlyOTJ5cWdubnFxbXo4ZSJ9.3KdAcCiiXJcSM18nwk09-Q',
-            mapStyle: parsedData.mapStyle || 'mapbox://styles/mapbox/light-v9',
+            mapStyle: parsedData.mapStyle || defaultMapStyle,
             initialViewState: {
                 longitude: parsedData.longitude || 0.0,
                 latitude: parsedData.latitude || 0.0,

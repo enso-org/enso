@@ -233,10 +233,17 @@ class TableViewVisualization extends Visualization {
         tabElem.setAttributeNS(null,"style"  ,tblViewStyle);
         this.dom.appendChild(tabElem);
 
-        let parsedData    = JSON.parse(data);
-        let table         = genTable(parsedData.data || parsedData, 0, parsedData.header);
-        tabElem.innerHTML = style_light + table;
+        let parsedData = data;
+        if (typeof data === "string") {
+            parsedData = JSON.parse(data);
+        }
 
+        let style = style_light
+        if (document.getElementById("root").classList.contains("dark")){
+            style = style_dark + table;
+        }
+        let table         = genTable(parsedData.data || parsedData, 0, parsedData.header);
+        tabElem.innerHTML = style + table;
     }
 
     setSize(size) {
