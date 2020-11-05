@@ -1,13 +1,10 @@
 package org.enso.runtimeversionmanager.locking
 
-import java.lang.ProcessBuilder.Redirect
-import java.util.concurrent.TimeUnit
-
 import org.enso.runtimeversionmanager.test.{
+  NativeTestHelper,
   TestSynchronizer,
   WithTemporaryDirectory
 }
-import org.enso.testkit.OsSpec
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers
@@ -21,7 +18,7 @@ class ThreadSafeFileLockManagerTest
     with WithTemporaryDirectory
     with TimeLimitedTests
     with OptionValues
-    with OsSpec {
+    with NativeTestHelper {
 
   val timeLimit: Span = 30.seconds
 
@@ -126,9 +123,7 @@ class ThreadSafeFileLockManagerTest
       lockManager.tryAcquireLock(name, LockType.Exclusive) shouldEqual None
     }
 
-    /** TODO [RW] document
-      */
-    "immediately fail try* if waiting for another process" taggedAs OsLinux in {
+    "immediately fail try* if waiting for another process" in {
       val sync = new TestSynchronizer
 
       val name = "resource1"
@@ -136,35 +131,20 @@ class ThreadSafeFileLockManagerTest
         .lockPath(getTestDirectory, name)
         .toAbsolutePath
         .normalize
-      println(lockFilePath)
-      val otherProcess = {
-        // FIXME [RW] flock does not have to work as it has a different
-        //  underlying mechanism from Java's FileLock which uses fcntl
-        val pb = new ProcessBuilder(
-          "flock",
-          "--shared",
-          "--nonblock",
-          lockFilePath.toString,
-          "-c",
-          "cat"
-        )
-        pb.redirectInput(Redirect.PIPE)
-        println(pb.command())
-        pb.start()
-      }
+
+      val otherProcess = start(
+        Seq("java", "-jar", "locking-test-helper.jar", lockFilePath.toString),
+        Seq()
+      )
 
       try {
-        Thread.sleep(200) // we need to ensure that flock has started already
-
-        otherProcess.getOutputStream.close()
-        println(otherProcess.waitFor())
+        otherProcess.waitForMessageOnErrorStream("Lock acquired", 5)
 
         sync.startThread("exclusive-waiting") {
           assert(
             otherProcess.isAlive,
             "Other process should have acquired lock successfully and be waiting"
           )
-          println("tryin to acquire")
           withClue(
             "The exclusive lock should not be acquired immediately as the " +
             "other process is holding a shared lock."
@@ -174,7 +154,6 @@ class ThreadSafeFileLockManagerTest
               LockType.Exclusive
             ) shouldEqual None
           }
-          println("well we treid")
           sync.signal("waited")
           val lock = lockManager.acquireLock(name, LockType.Exclusive)
           sync.report("exclusive-acquired")
@@ -196,16 +175,9 @@ class ThreadSafeFileLockManagerTest
 
         sync.report("try-acquire-was-busy")
 
-        otherProcess.getOutputStream
-          .close() // by closing the stream, we ensure that the `cat` finishes
+        otherProcess.sendToInputStream("Close lock\n")
 
-        assert(
-          otherProcess.waitFor(2, TimeUnit.SECONDS),
-          "The flock process should terminate quickly"
-        )
-        withClue("The flock process should succeed") {
-          otherProcess.waitFor() shouldEqual 0
-        }
+        otherProcess.join(timeoutSeconds = 2).exitCode shouldEqual 0
 
         sync.join()
         sync.summarizeReports() shouldEqual Seq(
@@ -213,7 +185,7 @@ class ThreadSafeFileLockManagerTest
           "exclusive-acquired"
         )
       } finally {
-        otherProcess.destroy()
+        otherProcess.kill()
       }
     }
 

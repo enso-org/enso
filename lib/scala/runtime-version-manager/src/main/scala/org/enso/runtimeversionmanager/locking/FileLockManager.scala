@@ -62,8 +62,7 @@ class FileLockManager(locksRoot: Path) extends LockManager {
     FileLockManager.lockPath(locksRoot, resourceName)
 
   private def openChannel(resourceName: String): FileChannel = {
-    val path = lockPath(resourceName)
-    println(s"channel ${path.toAbsolutePath.normalize()}")
+    val path   = lockPath(resourceName)
     val parent = path.getParent
     if (!Files.exists(parent)) {
       try Files.createDirectories(parent)

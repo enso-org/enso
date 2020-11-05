@@ -1215,9 +1215,21 @@ lazy val `runtime-version-manager-test` = project
     )
   )
   .settings(parallelExecution in Test := false)
+  .settings(
+    (Test / test) := (Test / test)
+      .dependsOn(`locking-test-helper` / assembly)
+      .value
+  )
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
   .dependsOn(testkit)
+
+lazy val `locking-test-helper` = project
+  .in(file("lib/scala/locking-test-helper"))
+  .settings(
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("locking-test-helper.jar")
+  )
 
 val `std-lib-root`          = file("distribution/std-lib/")
 val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
