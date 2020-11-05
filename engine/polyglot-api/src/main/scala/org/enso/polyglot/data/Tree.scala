@@ -1,5 +1,5 @@
 package org.enso.polyglot.data
-import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonSubTypes, JsonTypeInfo}
 
 import scala.collection.mutable
 
@@ -20,6 +20,10 @@ sealed trait Tree[+A] {
 
   final def fold[B](acc: B)(f: (B, A) => B): B =
     Tree.fold(this, acc)(f)
+
+  @JsonIgnore
+  final def isEmpty: Boolean =
+    Tree.isEmpty(this)
 
   final def toVector: Vector[A] =
     Tree.toVector(this)
@@ -62,12 +66,6 @@ object Tree {
   ) extends Tree[A]
 
   def empty[A]: Root[A] = Root(Vector())
-
-  def isEmpty[A](tree: Tree[A]): Boolean =
-    tree match {
-      case Root(children)    => children.isEmpty
-      case Leaf(_, children) => children.isEmpty
-    }
 
   def zip[A, B](t1: Root[A], t2: Root[B]): Root[These[A, B]] =
     zipBy(t1, t2)(_ == _)
@@ -116,6 +114,12 @@ object Tree {
       )
     )
   }
+
+  private def isEmpty[A](tree: Tree[A]): Boolean =
+    tree match {
+      case Root(children)    => children.isEmpty
+      case Leaf(_, children) => children.isEmpty
+    }
 
   private def mapLeaf[A, B](tree: Leaf[A])(f: A => B): Leaf[B] =
     Leaf(f(tree.element), tree.children.map(mapLeaf(_)(f)))

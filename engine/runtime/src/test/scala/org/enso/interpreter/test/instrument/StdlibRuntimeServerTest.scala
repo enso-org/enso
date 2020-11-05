@@ -9,7 +9,6 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
-import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
@@ -194,9 +193,9 @@ class StdlibRuntimeServerTest
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(_, _, _, xs)
           ) =>
-        Tree.isEmpty(xs) shouldBe false
+        xs.isEmpty shouldBe false
     }
-    collected.nonEmpty shouldBe true
+    collected.isEmpty shouldBe false
 
     context.consumeOut shouldEqual List("Hello World!")
   }

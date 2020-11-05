@@ -395,7 +395,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendModuleUpdate(
     payload: Api.SuggestionsDatabaseModuleUpdateNotification
   )(implicit ctx: RuntimeContext): Unit =
-    if (payload.actions.nonEmpty || !Tree.isEmpty(payload.updates)) {
+    if (payload.actions.nonEmpty || !payload.updates.isEmpty) {
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
 
