@@ -74,8 +74,7 @@ class TestSynchronizer {
     getSemaphore(event).release()
   }
 
-  /** Timeout used by [[waitFor]].
-    */
+  /** Timeout of variouse blocking operations. */
   val timeOutSeconds: Long = 20
 
   /** Reports that the event has happened now.

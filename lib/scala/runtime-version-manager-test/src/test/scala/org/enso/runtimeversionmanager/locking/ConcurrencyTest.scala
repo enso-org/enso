@@ -40,7 +40,7 @@ class ConcurrencyTest
     with DropLogs
     with TimeLimitedTests {
 
-  val timeLimit: Span = 30.seconds
+  val timeLimit: Span = 120.seconds
 
   case class WrapEngineRelease(
     originalRelease: EngineRelease,
@@ -58,6 +58,10 @@ class ConcurrencyTest
       callback(packageFileName)
       originalRelease.downloadPackage(destination)
     }
+  }
+
+  class SlowTestSynchronizer extends TestSynchronizer {
+    override val timeOutSeconds: Long = 90
   }
 
   var testLocalLockManager: Option[LockManager] = None
@@ -172,7 +176,7 @@ class ConcurrencyTest
         * startup, but only if it is safe to do so (so other processes are not
         * using it).
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
 
       val engine1 = SemVer(0, 0, 1)
       val engine2 = engine1.withPreRelease("pre")
@@ -238,7 +242,7 @@ class ConcurrencyTest
         * downloading the package. The second thread then tries to use it, but
         * it should wait until the installation is finished.
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
 
       val engineVersion = SemVer(0, 0, 1)
 
@@ -296,7 +300,7 @@ class ConcurrencyTest
         * another thread starts uninstalling it. The second thread has to wait
         * with uninstalling until the first one finishes using it.
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
 
       val engineVersion = SemVer(0, 0, 1)
 
@@ -355,7 +359,7 @@ class ConcurrencyTest
         * the two threads finish and after that the third one is able to acquire
         * the exclusive lock.
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
       sync.startThread("t1") {
         val resourceManager = makeNewResourceManager()
         resourceManager.initializeMainLock()
