@@ -19,7 +19,7 @@ fn bench_config() -> Criterion {
         .measurement_time(Duration::from_secs(60))
         .warm_up_time(Duration::from_secs(3))
         .sample_size(25)
-        .retain_baseline("TreeQuery".to_string())
+        .retain_baseline("Tree".to_string())
 }
 
 /// Create a tree where each node has `width` branches, up to a maximum depth of `depth`.
