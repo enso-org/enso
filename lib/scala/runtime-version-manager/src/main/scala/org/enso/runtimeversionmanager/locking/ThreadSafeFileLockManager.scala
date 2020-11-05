@@ -3,7 +3,7 @@ package org.enso.runtimeversionmanager.locking
 import java.nio.file.Path
 
 /** A class that allows to manage locks which synchronize access both between
-  * different processes and threads of the current process.
+  * different processes and multiple threads of the current process.
   *
   * It does not have as strong fairness guarantees as [[FileLockManager]], for
   * example, when other processes are holding a shared lock on a resource and
@@ -38,26 +38,27 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
     * most one file lock for the file, but it can be shared by multiple threads
     * which are properly synchronized.
     *
-    * The structure maintains the following invariants:
+    * The structure maintains the following invariants (they should always be
+    * valid before entering and after exiting the monitor):
     * - either writers or readers can be nonzero, but never both at the same
     *   time
     * - there can be at most 1 writer
     * - the fileLock is Some iff writers + readers > 0
-    * - waiting means that one of the threads is waiting to acquire the proper
-    *   file lock
-    * - any `try` operations should fail if waiting is set to true
+    * - busy == true indicates that one of the threads is waiting to acquire the
+    *   proper file lock - no other operations should be taken during that time:
+    *   they should either wait or fail immediately, depending on the operation
+    *   type
+    * - any `try*` operations should fail if busy is set to true
     * - busy == true implies readers + writers == 0
     *   - because the writer lock is only tried to be acquired if
     *     readers + writers == 0
     *   - and the reader filelock is only tried to be acquired if readers == 0
     *    (and writers == 0), as if readers > 0, the filelock is already held
     *   - conversely, readers + writers > 0 implies busy == false
-    * - any thread entering the monitor should exit or start waiting immediately
-    *   if it encounters busy == true
     *
     * The purpose of the busy bit is to avoid long blocking the monitor while
-    * waiting to acquire the actual file lock, as to guarantee
-    * [[tryAcquireLock]] returning without blocking.
+    * waiting to acquire the actual file lock, to guarantee [[tryAcquireLock]]
+    * returning without blocking.
     */
   private class ThreadSafeLock(name: String) { self =>
     var busy: Boolean          = false
@@ -71,6 +72,7 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
       * Should be called at most once by each reader.
       */
     def releaseReader(): Unit = this.synchronized {
+      assert(writers == 0)
       assert(readers > 0)
       assert(!busy)
       readers -= 1
@@ -87,6 +89,7 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
       * Should be called at most once by each writer.
       */
     def releaseWriter(): Unit = this.synchronized {
+      assert(readers == 0)
       assert(writers == 1)
       assert(!busy)
       writers -= 1
@@ -204,11 +207,17 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
 
   /** A simple wrapper that ensures that the lock is released at most once.
     *
-    * This is to ensure the invariants of [[ThreadSafeLock]].
+    * This is to ensure the invariants of [[ThreadSafeLock]] without relying on
+    * the user calling `release` not more than once. Instead, this wrapper can
+    * be called multiple times, but the actual lock is only released the first
+    * time.
     */
   abstract private class ReleaseOnceLockWrapper extends Lock {
 
-    /** Perform the actual release. */
+    /** Actually release the lock.
+      *
+      * This function is called at most once.
+      */
     protected def doRelease(): Unit
 
     private var released: Boolean = false
@@ -216,8 +225,8 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
     /** @inheritdoc */
     override def release(): Unit = this.synchronized {
       if (!released) {
-        doRelease()
         released = true
+        doRelease()
       }
     }
   }

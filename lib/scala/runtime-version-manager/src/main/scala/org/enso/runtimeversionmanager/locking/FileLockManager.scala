@@ -7,10 +7,8 @@ import com.typesafe.scalalogging.Logger
 
 import scala.util.control.NonFatal
 
-/** [[LockManager]] using file-based locks.
-  *
-  * This is the [[LockManager]] that should be used in production as it is able
-  * to synchronize locks between different processes.
+/** [[LockManager]] using file-based locks - allowing to synchornize locks
+  * between different processes.
   *
   * Under the hood, it uses the [[FileLock]] mechanism. This mechanism specifies
   * that on some platforms shared locks may not be supported and all shared
@@ -20,6 +18,12 @@ import scala.util.control.NonFatal
   * currently support (Linux, macOS, Windows), do support shared locks, so this
   * should not be an issue for us. However, if a shared lock request returns an
   * exclusive lock, a warning is issued, just in case.
+  *
+  * The [[FileLock]] is not supposed to be used for synchronization of threads
+  * within a single process. In fact using this manager to synchronize locks to
+  * the same resources at the same time from different threads may result in
+  * errors. Use-cases that may require access from multiple threads of a single
+  * process should use [[ThreadSafeFileLockManager]] instead.
   *
   * @param locksRoot the directory in which lockfiles should be kept
   */
@@ -115,6 +119,14 @@ class FileLockManager(locksRoot: Path) extends LockManager {
 }
 
 object FileLockManager {
+
+  /** Resolves the path to the file that is used to synchronize access to a
+    * resource between processes.
+    *
+    * @param locksRoot path to the root directory where locks are kept
+    * @param resourceName name of the resource
+    * @return path to the file which is locked to synchronize that resource
+    */
   def lockPath(locksRoot: Path, resourceName: String): Path =
     locksRoot.resolve(resourceName + ".lock")
 }

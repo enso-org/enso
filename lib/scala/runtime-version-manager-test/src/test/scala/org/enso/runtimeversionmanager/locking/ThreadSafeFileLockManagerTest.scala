@@ -190,8 +190,8 @@ class ThreadSafeFileLockManagerTest
     }
 
     "handle distinct resources independently" in {
-      val r1 = lockManager.acquireLock("resource1", LockType.Shared)
-      val r2 = lockManager.acquireLock("resource2", LockType.Shared)
+      val r1 = lockManager.acquireLock("resource1", LockType.Exclusive)
+      val r2 = lockManager.acquireLock("resource2", LockType.Exclusive)
       r1.release()
       r2.release()
     }

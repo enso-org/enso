@@ -17,6 +17,11 @@ import scala.concurrent.TimeoutException
 import scala.jdk.CollectionConverters._
 import scala.jdk.StreamConverters._
 
+/** A mix-in providing helper functions for running native commands in tests.
+  *
+  * It provides multiple ways to start a command, inspect its exit code and
+  * interact with its streams.
+  */
 trait NativeTestHelper {
 
   /** A result of running the native launcher binary.
