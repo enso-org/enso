@@ -129,10 +129,11 @@ Text.to_json_key = this
 
    > Example
      The following code:
-         Json.make_object [["foo", 533], ["bar", False]]
+         Json.from_pairs [["foo", 533], ["bar", False]]
      Returns a JSON object, that after serialization becomes:
          { "foo": 533, "bar": false }
-make_object contents =
+from_pairs : Vector -> Object
+from_pairs contents =
     fs = contents.fold Map.empty map-> kv_pair->
         key = kv_pair . at 0 . to_json_key
         val = kv_pair . at 1 . to_json

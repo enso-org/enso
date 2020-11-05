@@ -11,7 +11,8 @@ public class LongStorage extends Storage {
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isMissing a bit set denoting whether or not a value is missing.
+   * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code
+   *     i} is missing.
    */
   public LongStorage(long[] data, int size, BitSet isMissing) {
     this.data = data;

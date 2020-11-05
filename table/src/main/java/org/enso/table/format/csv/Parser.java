@@ -1,4 +1,4 @@
-package org.enso.table.serialization;
+package org.enso.table.format.csv;
 
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
