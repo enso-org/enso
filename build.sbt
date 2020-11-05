@@ -59,6 +59,11 @@ GatherLicenses.distributions := Seq(
     "std-lib-Base",
     file("distribution/std-lib/Base/THIRD-PARTY"),
     Distribution.sbtProjects(`std-bits`)
+  ),
+  Distribution(
+    "std-lib-Table",
+    file("distribution/std-lib/Table/THIRD-PARTY"),
+    Distribution.sbtProjects(`table`)
   )
 )
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -996,6 +1001,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-bits` / Compile / packageBin)
+      .dependsOn(table / Compile / packageBin)
       .value
   )
   .settings(
@@ -1214,6 +1220,7 @@ lazy val `runtime-version-manager-test` = project
 
 val `std-lib-root`          = file("distribution/std-lib/")
 val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
+val `table-polyglot-root`   = `std-lib-root` / "Table" / "polyglot" / "java"
 
 lazy val `std-bits` = project
   .in(file("std-bits"))
@@ -1230,6 +1237,28 @@ lazy val `std-bits` = project
         .copyDependencies(
           `std-lib-polyglot-root`,
           "std-bits.jar",
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+lazy val `table` = project
+  .in(file("table"))
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `table-polyglot-root` / "table.jar",
+    libraryDependencies ++= Seq(
+      "com.univocity" % "univocity-parsers" % "2.9.0"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `table-polyglot-root`,
+          "table.jar",
           ignoreScalaLibrary = true
         )
         .value
