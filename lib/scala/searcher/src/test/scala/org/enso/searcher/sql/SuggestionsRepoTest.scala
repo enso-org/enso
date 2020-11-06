@@ -187,41 +187,6 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       inserted should contain theSameElementsAs removed
     }
 
-    "remove all suggestions by module name" taggedAs Retry in withRepo { repo =>
-      val action = for {
-        (_, idsIns) <- repo.insertAll(
-          Seq(
-            suggestion.atom,
-            suggestion.method,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (_, idsRem) <- repo.removeAllByModule(Seq(suggestion.atom.module))
-      } yield (idsIns.flatten, idsRem)
-
-      val (inserted, removed) = Await.result(action, Timeout)
-      inserted should contain theSameElementsAs removed
-    }
-
-    "remove all suggestions by empty module" taggedAs Retry in withRepo {
-      repo =>
-        val action = for {
-          (_, idsIns) <- repo.insertAll(
-            Seq(
-              suggestion.atom,
-              suggestion.method,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (_, idsRem) <- repo.removeAllByModule(Seq())
-        } yield (idsIns.flatten, idsRem)
-
-        val (_, removed) = Await.result(action, Timeout)
-        removed.isEmpty shouldBe true
-    }
-
     "remove all suggestions" taggedAs Retry in withRepo { repo =>
       val action = for {
         (_, Seq(id1, _, _, id4)) <- repo.insertAll(
@@ -326,37 +291,6 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           _       <- repo.removeByModule(suggestion.local.module)
           v3      <- repo.currentVersion
           (v4, _) <- repo.removeByModule(suggestion.local.module)
-        } yield (v1, v2, v3, v4)
-
-        val (v1, v2, v3, v4) = Await.result(action, Timeout)
-        v1 should not equal v2
-        v2 should not equal v3
-        v3 shouldEqual v4
-    }
-
-    "change version after remove all by module name" taggedAs Retry in withRepo {
-      repo =>
-        val action = for {
-          v1      <- repo.currentVersion
-          _       <- repo.insert(suggestion.local)
-          v2      <- repo.currentVersion
-          (v3, _) <- repo.removeAllByModule(Seq(suggestion.local.module))
-        } yield (v1, v2, v3)
-
-        val (v1, v2, v3) = Await.result(action, Timeout)
-        v1 should not equal v2
-        v2 should not equal v3
-    }
-
-    "not change version after failed remove all by module name" taggedAs Retry in withRepo {
-      repo =>
-        val action = for {
-          v1      <- repo.currentVersion
-          _       <- repo.insert(suggestion.local)
-          v2      <- repo.currentVersion
-          _       <- repo.removeAllByModule(Seq(suggestion.local.module))
-          v3      <- repo.currentVersion
-          (v4, _) <- repo.removeAllByModule(Seq(suggestion.local.module))
         } yield (v1, v2, v3, v4)
 
         val (v1, v2, v3, v4) = Await.result(action, Timeout)

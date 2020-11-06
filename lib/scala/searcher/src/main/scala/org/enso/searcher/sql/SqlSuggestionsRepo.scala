@@ -97,17 +97,12 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(removeByModuleQuery(name))
 
   /** @inheritdoc */
-  override def removeAllByModule(
-    modules: Seq[String]
-  ): Future[(Long, Seq[Long])] =
-    db.run(removeAllByModuleQuery(modules))
-
-  /** @inheritdoc */
   override def removeAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
     db.run(removeAllQuery(suggestions))
 
+  /** @inheritdoc */
   override def update(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
@@ -172,7 +167,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield ()
   }
 
-  /** Get all suggestions.
+  /** The query to get all suggestions.
     *
     * @return the current database version with the list of suggestion entries
     */
@@ -298,6 +293,11 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     query
   }
 
+  /** The query to apply the suggestion updates.
+    *
+    * @param tree the sequence of updates
+    * @return the result of applying updates with the new database version
+    */
   private def applyTreeQuery(
     tree: Tree[SuggestionUpdate]
   ): DBIO[(Long, Seq[QueryResult[SuggestionUpdate]])] = {
@@ -326,6 +326,11 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield (version, results)
   }
 
+  /** The query to apply the sequence of actions on the database.
+    *
+    * @param actions the list of actions
+    * @return the result of applying actions
+    */
   private def applyActionsQuery(
     actions: Seq[SuggestionsDatabaseAction]
   ): DBIO[Seq[QueryResult[SuggestionsDatabaseAction]]] = {
@@ -338,6 +343,11 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     DBIO.sequence(queries)
   }
 
+  /** The query to select the suggestion.
+    *
+    * @param raw the suggestion converted to the row form
+    * @return the database query
+    */
   private def selectSuggestionQuery(
     raw: SuggestionRow
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
@@ -383,28 +393,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     deleteQuery
   }
 
-  /** The query to remove all suggestions by module names.
-    *
-    * @param modules the list of modules to remove
-    * @return the current database version and a list of removed suggestion ids
-    */
-  private def removeAllByModuleQuery(
-    modules: Seq[String]
-  ): DBIO[(Long, Seq[Long])] = {
-    if (modules.nonEmpty) {
-      val selectQuery = Suggestions.filter(_.module inSet modules)
-      for {
-        rows    <- selectQuery.result
-        n       <- selectQuery.delete
-        version <- if (n > 0) incrementVersionQuery else currentVersionQuery
-      } yield version -> rows.flatMap(_.id)
-    } else {
-      for {
-        version <- currentVersionQuery
-      } yield (version, Seq())
-    }
-  }
-
   /** The query to remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
@@ -441,6 +429,15 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield id
   }
 
+  /** The query to update the suggestion.
+    *
+    * @param suggestion the key suggestion
+    * @param externalId the external id to update
+    * @param arguments the arguments to update
+    * @param returnType the return type to update
+    * @param documentation the documentation string to update
+    * @param scope the scope to update
+    */
   private def updateQuery(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
@@ -461,6 +458,15 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       version <- currentVersionQuery
     } yield (version, idOpt)
 
+  /** The query to update the suggestion.
+    *
+    * @param suggestion the key suggestion
+    * @param externalId the external id to update
+    * @param arguments the arguments to update
+    * @param returnType the return type to update
+    * @param documentation the documentation string to update
+    * @param scope the scope to update
+    */
   private def updateSuggestionQuery(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
