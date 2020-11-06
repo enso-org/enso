@@ -41,8 +41,11 @@ use ensogl_theme as theme;
 
 const DEFAULT_SIZE      : (f32,f32) = (200.0,200.0);
 const CORNER_RADIUS     : f32       = super::super::node::CORNER_RADIUS;
-const SHADOW_SIZE       : f32       = super::super::node::SHADOW_SIZE;
+// Note[mm]: at the moment we use a CSS replacement shadow defined in the .visualization class of
+// `src/js/lib/content/src/index.html`. While that is in use this shadow is deactivated.
+const SHADOW_SIZE       : f32       = 0.0 * super::super::node::SHADOW_SIZE;
 const ACTION_BAR_HEIGHT : f32       = 2.0 * CORNER_RADIUS;
+
 
 
 // =============
