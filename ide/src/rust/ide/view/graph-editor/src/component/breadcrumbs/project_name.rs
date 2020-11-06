@@ -30,8 +30,10 @@ use logger::enabled::Logger;
 // === Constants ===
 // =================
 
-/// Project name used as a placeholder in `ProjectName` view when it's initialized.
-pub const UNKNOWN_PROJECT_NAME : &str = "Unknown";
+// This is a default value for the project name when it is created. The project name should
+// always be initialized externally for the current project. If this value is visible in the UI,
+// it was not set to the correct project name due to some bug.
+const UNINITIALIZED_PROJECT_NAME: &str = "Project Name Uninitialized";
 /// Default line height for project names.
 pub const LINE_HEIGHT          : f32  = TEXT_SIZE * 1.5;
 
@@ -61,7 +63,7 @@ mod background {
 ensogl::define_endpoints! {
     Input {
        /// Set the project name.
-       name (String),
+       set_name (String),
        /// Reset the project name to the one before editing.
        cancel_editing (),
        /// Commit current project name.
@@ -148,7 +150,7 @@ impl ProjectNameModel {
         scene.views.main.remove_shape_view(&view);
         scene.views.breadcrumbs.add_shape_view(&view);
 
-        let project_name          = Rc::new(RefCell::new(UNKNOWN_PROJECT_NAME.to_string()));
+        let project_name          = default();
         Self{app,logger,view,style,display_object,text_field,project_name}.init()
     }
 
@@ -198,6 +200,7 @@ impl ProjectNameModel {
 
     fn rename(&self, name:impl Str) {
         let name = name.into();
+        debug!(self.logger, "Renaming: '{name}'.");
         self.update_text_field_content(&name);
     }
 
@@ -281,8 +284,8 @@ impl ProjectName {
             // === Input Commands ===
 
             eval_ frp.input.cancel_editing(model.reset_name());
-            eval  frp.input.name((name) {model.rename(name)});
-            frp.output.source.name <+ frp.input.name;
+            eval  frp.input.set_name((name) {model.rename(name)});
+            frp.output.source.name <+ frp.input.set_name;
 
 
             // === Commit ===
@@ -332,6 +335,7 @@ impl ProjectName {
         }
 
         frp.deselect();
+        frp.input.set_name.emit(UNINITIALIZED_PROJECT_NAME.to_string());
 
         Self{frp,model}
     }
