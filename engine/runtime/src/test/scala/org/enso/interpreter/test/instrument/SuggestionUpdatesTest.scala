@@ -115,7 +115,6 @@ class SuggestionUpdatesTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
-    val newline    = System.lineSeparator()
 
     val code =
       """from Builtins import all
@@ -193,7 +192,7 @@ class SuggestionUpdatesTest
           Seq(
             TextEdit(
               model.Range(model.Position(2, 6), model.Position(2, 32)),
-              s"$newline    x = 42$newline    IO.println x$newline"
+              "\n    x = 42\n    IO.println x"
             )
           )
         )
@@ -209,7 +208,7 @@ class SuggestionUpdatesTest
               |main =
               |    x = 42
               |    IO.println x
-              |""".stripMargin
+              |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
           updates = Tree.Root(
@@ -239,7 +238,7 @@ class SuggestionUpdatesTest
                         "Any",
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
-                          Suggestion.Position(4, 17)
+                          Suggestion.Position(4, 16)
                         )
                       ),
                       Api.SuggestionAction.Add()
@@ -264,7 +263,7 @@ class SuggestionUpdatesTest
           Seq(
             TextEdit(
               model.Range(model.Position(3, 10), model.Position(3, 10)),
-              s"$newline    y = 9"
+              "\n    y = 9"
             ),
             TextEdit(
               model.Range(model.Position(5, 15), model.Position(5, 16)),
@@ -285,7 +284,7 @@ class SuggestionUpdatesTest
               |    x = 42
               |    y = 9
               |    IO.println x+y
-              |""".stripMargin
+              |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
           updates = Tree.Root(
@@ -315,14 +314,14 @@ class SuggestionUpdatesTest
                         "Any",
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
-                          Suggestion.Position(4, 17)
+                          Suggestion.Position(4, 16)
                         )
                       ),
                       Api.SuggestionAction.Modify(scope =
                         Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
-                            Suggestion.Position(5, 19)
+                            Suggestion.Position(5, 18)
                           )
                         )
                       )
@@ -338,7 +337,7 @@ class SuggestionUpdatesTest
                         "Any",
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
-                          Suggestion.Position(5, 19)
+                          Suggestion.Position(5, 18)
                         )
                       ),
                       Api.SuggestionAction.Add()
@@ -363,7 +362,7 @@ class SuggestionUpdatesTest
           Seq(
             TextEdit(
               model.Range(model.Position(3, 10), model.Position(3, 10)),
-              s"$newline    y : Number"
+              "\n    y : Number"
             )
           )
         )
@@ -381,7 +380,7 @@ class SuggestionUpdatesTest
               |    y : Number
               |    y = 9
               |    IO.println x+y
-              |""".stripMargin
+              |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
           updates = Tree.Root(
@@ -411,14 +410,14 @@ class SuggestionUpdatesTest
                         "Any",
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
-                          Suggestion.Position(5, 19)
+                          Suggestion.Position(5, 18)
                         )
                       ),
                       Api.SuggestionAction.Modify(scope =
                         Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
-                            Suggestion.Position(6, 19)
+                            Suggestion.Position(6, 18)
                           )
                         )
                       )
@@ -434,7 +433,7 @@ class SuggestionUpdatesTest
                         "Any",
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
-                          Suggestion.Position(5, 19)
+                          Suggestion.Position(5, 18)
                         )
                       ),
                       Api.SuggestionAction.Modify(
@@ -442,7 +441,7 @@ class SuggestionUpdatesTest
                         scope = Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
-                            Suggestion.Position(6, 19)
+                            Suggestion.Position(6, 18)
                           )
                         )
                       )
@@ -459,6 +458,127 @@ class SuggestionUpdatesTest
     )
     context.consumeOut shouldEqual List("51")
 
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 0), model.Position(1, 0)),
+              "\nfoo x = x * 10\n"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |foo x = x * 10
+              |
+              |main =
+              |    x = 42
+              |    y : Number
+              |    y = 9
+              |    IO.println x+y
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(6, 18)
+                        )
+                      ),
+                      Api.SuggestionAction.Modify(scope =
+                        Some(
+                          Suggestion.Scope(
+                            Suggestion.Position(4, 6),
+                            Suggestion.Position(8, 18)
+                          )
+                        )
+                      )
+                    ),
+                    Vector()
+                  ),
+                  Tree.Leaf(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "y",
+                        "Number",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(6, 18)
+                        )
+                      ),
+                      Api.SuggestionAction.Modify(scope =
+                        Some(
+                          Suggestion.Scope(
+                            Suggestion.Position(4, 6),
+                            Suggestion.Position(8, 18)
+                          )
+                        )
+                      )
+                    ),
+                    Vector()
+                  )
+                )
+              ),
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
   }
 
 }
