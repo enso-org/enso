@@ -64,8 +64,8 @@ pub struct ViewModel {
     logger : Logger,
     dom    : DomSymbol,
     size   : Rc<Cell<Vector2>>,
-    /// The purpose of this overlay is stop propagating events under the documentation panel.
-    //FIXME[ao] This mechanism should be shared between all html elements displayed over the canvas.
+    /// The purpose of this overlay is stop propagating mouse events under the documentation panel
+    /// to EnsoGL shapes, and pass them to the DOM instead.
     overlay        : component::ShapeView<overlay::Shape>,
     display_object : display::object::Instance,
 }
@@ -246,10 +246,10 @@ impl View {
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
         let model             = ViewModel::new(scene);
         model.load_waiting_screen();
-        Self {model,visualization_frp,frp} . init()
+        Self {model,visualization_frp,frp} . init(scene)
     }
 
-    fn init(self) -> Self {
+    fn init(self, scene:&Scene) -> Self {
         let network       = &self.frp.network;
         let model         = &self.model;
         let visualization = &self.visualization_frp;
@@ -258,7 +258,7 @@ impl View {
 
             // === Displaying documentation ===
 
-            eval frp.display_documentation ((cont) model.display_doc(cont,InputFormat::AST ));
+            eval frp.display_documentation ((cont) model.display_doc(cont,InputFormat::AST      ));
             eval frp.display_docstring     ((cont) model.display_doc(cont,InputFormat::Docstring));
             eval visualization.send_data([visualization,model](data) {
                 if let Err(error) = model.receive_data(data) {
@@ -270,7 +270,20 @@ impl View {
             // === Size and position ===
 
             eval visualization.set_size  ((size) model.set_size(*size));
+
+
+            // === Activation ===
+
+            mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
+            eval mouse_down_target ([model,visualization] (target){
+                if !model.overlay.shape.is_this_target(*target) {
+                    visualization.deactivate.emit(())
+                } else {
+                    visualization.activate.emit(())
+                }
+            });
         }
+        visualization.pass_events_to_dom_if_active(scene,network);
         self
     }
 }
