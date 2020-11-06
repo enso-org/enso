@@ -3,6 +3,9 @@ import com.fasterxml.jackson.annotation.{JsonIgnore, JsonSubTypes, JsonTypeInfo}
 
 import scala.collection.mutable
 
+/** A rose-tree like data structure that distinguishes between root and leaf
+  * elements.
+  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(
   Array(
@@ -18,13 +21,24 @@ import scala.collection.mutable
 )
 sealed trait Tree[+A] {
 
+  /** Fold the elements using the specified associative binary operator.
+    *
+    * @param acc the neutral element for the fold operation
+    * @param f a binary operator
+    * @return the result of applying the fold operator f between all the
+    * elements and `acc`
+    */
+  @JsonIgnore
   final def fold[B](acc: B)(f: (B, A) => B): B =
     Tree.fold(this, acc)(f)
 
+  /** Check whether the tree is empty. */
   @JsonIgnore
   final def isEmpty: Boolean =
     Tree.isEmpty(this)
 
+  /** Convert tree to vector. */
+  @JsonIgnore
   final def toVector: Vector[A] =
     Tree.toVector(this)
 }
@@ -39,15 +53,48 @@ object Tree {
     children: Vector[Leaf[A]]
   ) extends Tree[A] {
 
+    /** Build a new tree by applying a function to all elements of this tree.
+      *
+      * @param f the function to apply to each element
+      * @return the new tree after applying the function `f` to elements
+      */
+    @JsonIgnore
     final def map[B](f: A => B): Root[B] =
       Tree.map(this)(f)
 
+    /** Selects all elements which satisfy a predicate.
+      *
+      * @param p the predicate used to test elements
+      * @return a new tree consisting of all elements of this tree that satisfy
+      * the given predicate p.
+      */
+    @JsonIgnore
     final def filter(p: A => Boolean): Root[A] =
       Tree.filter(this)(p)
 
+    /** Join this and that trees using the equality function.
+      *
+      * @param that the tree to join with
+      * @return the result of joining this and that trees
+      */
+    @JsonIgnore
     final def zip[B](that: Root[B]): Root[These[A, B]] =
       Tree.zip(this, that)
 
+    /** Join this and that trees using the binary function p to tests the
+      * matching element.
+      *
+      * For each node on the corresponding tree level:
+      * - return `Here` if the node presents in this tree
+      * - return `There` if the node presents in that tree
+      * - return `Both` if the node presents in both trees according to the
+      *   predicate p
+      *
+      * @param that the tree to join with
+      * @param p the predicate comparing the elements
+      * @return the result of joining this and that trees
+      */
+    @JsonIgnore
     final def zipBy[B](that: Root[B])(p: (A, B) => Boolean): Root[These[A, B]] =
       Tree.zipBy(this, that)(p)
   }
@@ -65,11 +112,31 @@ object Tree {
     children: Vector[Leaf[A]]
   ) extends Tree[A]
 
+  /** An empty tree. */
   def empty[A]: Root[A] = Root(Vector())
 
+  /** Join this and that trees using the equality function.
+    *
+    * @param t1 the first tree to join
+    * @param t2 the second tree to join
+    * @return the result of joining two trees
+    */
   def zip[A, B](t1: Root[A], t2: Root[B]): Root[These[A, B]] =
     zipBy(t1, t2)(_ == _)
 
+  /** Join two trees using the binary function p to tests the matching element.
+    *
+    * For each node on the corresponding tree level:
+    * - return `Here` if the node presents in the first tree
+    * - return `There` if the node presents in the second tree
+    * - return `Both` if the node presents in both trees according to the
+    *   predicate p
+    *
+    * @param t1 the first tree to join
+    * @param t2 the second tree to join
+    * @param p the predicate comparing the elements
+    * @return the result of joining two trees
+    */
   def zipBy[A, B](t1: Root[A], t2: Root[B])(
     p: (A, B) => Boolean
   ): Root[These[A, B]] = {

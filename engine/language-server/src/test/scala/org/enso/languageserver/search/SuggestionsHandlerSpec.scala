@@ -292,7 +292,7 @@ class SuggestionsHandlerSpec
           SearchProtocol.SuggestionsDatabaseUpdate.Modify(
             1L,
             arguments = Some(
-              SearchProtocol.ModifyField(
+              SearchProtocol.FieldUpdate(
                 SearchProtocol.ModifyAction.Set,
                 Some(Suggestions.function.arguments)
               )
@@ -301,7 +301,7 @@ class SuggestionsHandlerSpec
           SearchProtocol.SuggestionsDatabaseUpdate.Modify(
             3L,
             scope = Some(
-              SearchProtocol.ModifyField(
+              SearchProtocol.FieldUpdate(
                 SearchProtocol.ModifyAction.Set,
                 Some(Suggestions.local.scope)
               )

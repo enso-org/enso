@@ -5,7 +5,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 object SuggestionDiff {
 
-  /** Compute difference between the two trees.
+  /** Compute difference between the two suggestion trees.
     *
     * @param prev the tree before
     * @param current the tree after
@@ -19,12 +19,18 @@ object SuggestionDiff {
       .zipBy(prev, current)(compare)
       .map(diff)
 
+  /** Compare two suggestions for equality. */
   private def compare(a: Suggestion, b: Suggestion): Boolean =
     a.name == b.name &&
     a.module == b.module &&
     Suggestion.Kind(a) == Suggestion.Kind(b) &&
     Suggestion.SelfType(a) == Suggestion.SelfType(b)
 
+  /** Build the suggestion update from the result of tree joining operation.
+    *
+    * @param elem the result of joining two trees
+    * @return the suggestion update
+    */
   private def diff(elem: These[Suggestion, Suggestion]): Api.SuggestionUpdate =
     elem match {
       case These.Here(e) =>

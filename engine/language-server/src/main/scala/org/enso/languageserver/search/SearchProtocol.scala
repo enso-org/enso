@@ -86,6 +86,7 @@ object SearchProtocol {
       }
     }
 
+  /** The modifying action. */
   sealed trait ModifyAction extends EnumEntry
   object ModifyAction extends Enum[ModifyAction] with CirceEnum[ModifyAction] {
 
@@ -95,8 +96,14 @@ object SearchProtocol {
     override def values = findValues
   }
 
-  case class ModifyField[A](tag: ModifyAction, value: Option[A])
+  /** The object representing a field modification.
+    *
+    * @param tag the modifying action
+    * @param value the updated value
+    */
+  case class FieldUpdate[A](tag: ModifyAction, value: Option[A])
 
+  /** Base trait for suggestion database updaetes. */
   sealed trait SuggestionsDatabaseUpdate
   object SuggestionsDatabaseUpdate {
 
@@ -117,15 +124,19 @@ object SearchProtocol {
     /** Modify the database entry.
       *
       * @param id the suggestion id
-      * @param returnType the new return type
+      * @param externalId the external id to update
+      * @param arguments the arguments to update
+      * @param returnType the return type to update
+      * @param documentation the documentation string to update
+      * @param scope the scope to update
       */
     case class Modify(
       id: SuggestionId,
-      externalId: Option[ModifyField[Suggestion.ExternalId]]   = None,
-      arguments: Option[ModifyField[Seq[Suggestion.Argument]]] = None,
-      returnType: Option[ModifyField[String]]                  = None,
-      documentation: Option[ModifyField[String]]               = None,
-      scope: Option[ModifyField[Suggestion.Scope]]             = None
+      externalId: Option[FieldUpdate[Suggestion.ExternalId]]   = None,
+      arguments: Option[FieldUpdate[Seq[Suggestion.Argument]]] = None,
+      returnType: Option[FieldUpdate[String]]                  = None,
+      documentation: Option[FieldUpdate[String]]               = None,
+      scope: Option[FieldUpdate[Suggestion.Scope]]             = None
     ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
@@ -299,7 +310,7 @@ object SearchProtocol {
     tags: Option[Seq[SuggestionKind]]
   )
 
-  /** Te reply to the [[Completion]] request.
+  /** The reply to the [[Completion]] request.
     *
     * @param currentVersion current version of the suggestions database
     * @param results the list of suggestion ids matched the search query

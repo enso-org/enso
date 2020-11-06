@@ -338,10 +338,20 @@ object Runtime {
     sealed trait SuggestionAction
     object SuggestionAction {
 
+      /** Add the suggestion. */
       case class Add() extends SuggestionAction
 
+      /** Remove the suggestion. */
       case class Remove() extends SuggestionAction
 
+      /** Modify the suggestion.
+        *
+        * @param externalId the external id to update
+        * @param arguments the arguments to update
+        * @param returnType the return type to update
+        * @param documentation the documentation string to update
+        * @param scope the scope to update
+        */
       case class Modify(
         externalId: Option[Option[Suggestion.ExternalId]] = None,
         arguments: Option[Seq[Suggestion.Argument]]       = None,

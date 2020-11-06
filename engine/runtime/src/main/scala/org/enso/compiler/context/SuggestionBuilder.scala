@@ -67,7 +67,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             }
             val subforest = go(
               Vector.newBuilder,
-              Scope(body.children, body.location.map(_.location))
+              Scope(body.children, body.location)
             )
             go(tree ++= methodOpt.map(Tree.Leaf(_, subforest)), scope)
 
@@ -89,7 +89,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             )
             val subforest = go(
               Vector.newBuilder,
-              Scope(body.children, body.location.map(_.location))
+              Scope(body.children, body.location)
             )
             go(tree += Tree.Leaf(function, subforest), scope)
 
@@ -105,7 +105,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             )
             val subforest = go(
               Vector.newBuilder,
-              Scope(expr.children, expr.location.map(_.location))
+              Scope(expr.children, expr.location)
             )
             go(tree += Tree.Leaf(local, subforest), scope)
 
@@ -116,7 +116,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     }
 
     Tree.Root(
-      go(Vector.newBuilder, Scope(ir.children, ir.location.map(_.location)))
+      go(Vector.newBuilder, Scope(ir.children, ir.location))
     )
   }
 
@@ -505,13 +505,14 @@ object SuggestionBuilder {
 
   private object Scope {
 
-    /** Create new scope from the list of items. */
-    def apply(items: Seq[IR], location: Option[Location]): Scope =
-      new Scope(mutable.Queue(items: _*), location)
-
-//    def apply(items: Seq[IR], location: Option[IR.IdentifiedLocation]): Scope =
-//      new Scope(mutable.Queue(items: _*), location.map(_.location))
-
+    /** Create new scope from the list of items.
+      *
+      * @param items the list of IR nodes
+      * @param location the identified IR location
+      * @return new scope
+      */
+    def apply(items: Seq[IR], location: Option[IR.IdentifiedLocation]): Scope =
+      new Scope(mutable.Queue(items: _*), location.map(_.location))
   }
 
   /** The base trait for argument types. */

@@ -177,7 +177,7 @@ final class SuggestionsHandler(
             case ((_, typeValue), Some(suggestionId)) =>
               SuggestionsDatabaseUpdate.Modify(
                 id         = suggestionId,
-                returnType = Some(typeValue).map(modifyField)
+                returnType = Some(typeValue).map(fieldUpdate)
               )
           }
           SuggestionsDatabaseUpdateNotification(version, updates)
@@ -316,7 +316,7 @@ final class SuggestionsHandler(
         case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
           ids.map(SuggestionsDatabaseUpdate.Remove)
       }
-      val updates = results.flatMap {
+      val treeUpdates = results.flatMap {
         case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
           val verb = action.getClass.getSimpleName
           action match {
@@ -330,26 +330,39 @@ final class SuggestionsHandler(
               ids.map { id =>
                 SuggestionsDatabaseUpdate.Modify(
                   id            = id,
-                  externalId    = m.externalId.map(modifyFieldOption),
-                  arguments     = m.arguments.map(modifyField),
-                  returnType    = m.returnType.map(modifyField),
-                  documentation = m.documentation.map(modifyFieldOption),
-                  scope         = m.scope.map(modifyField)
+                  externalId    = m.externalId.map(fieldUpdateOption),
+                  arguments     = m.arguments.map(fieldUpdate),
+                  returnType    = m.returnType.map(fieldUpdate),
+                  documentation = m.documentation.map(fieldUpdateOption),
+                  scope         = m.scope.map(fieldUpdate)
                 )
               }
           }
       }
-      SuggestionsDatabaseUpdateNotification(version, actionUpdates ++ updates)
+      SuggestionsDatabaseUpdateNotification(
+        version,
+        actionUpdates ++ treeUpdates
+      )
     }
 
-  private def modifyFieldOption[A](value: Option[A]): ModifyField[A] =
+  /** Construct the field update object from an optional value.
+    *
+    * @param value the optional value
+    * @return the field update object representint the value update
+    */
+  private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
     value match {
-      case Some(value) => ModifyField(ModifyAction.Set, Some(value))
-      case None        => ModifyField(ModifyAction.Remove, None)
+      case Some(value) => FieldUpdate(ModifyAction.Set, Some(value))
+      case None        => FieldUpdate(ModifyAction.Remove, None)
     }
 
-  private def modifyField[A](value: A): ModifyField[A] =
-    ModifyField(ModifyAction.Set, Some(value))
+  /** Construct the field update object from and update value.
+    *
+    * @param value the update value
+    * @return the field update object representing the value update
+    */
+  private def fieldUpdate[A](value: A): FieldUpdate[A] =
+    FieldUpdate(ModifyAction.Set, Some(value))
 
   /** Build the module name from the requested file path.
     *

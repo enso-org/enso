@@ -1,6 +1,7 @@
 package org.enso.polyglot.data
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 
+/** An either-or-both data type. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(
   Array(
