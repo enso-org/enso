@@ -318,4 +318,7 @@ object ProjectManagementApi {
 
   case class LanguageServerError(msg: String) extends Error(4010, msg)
 
+  case class GlobalConfigurationAccessError(msg: String)
+      extends Error(4011, msg)
+
 }

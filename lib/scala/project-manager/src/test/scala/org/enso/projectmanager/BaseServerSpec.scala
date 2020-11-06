@@ -24,6 +24,7 @@ import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
+import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import pureconfig.ConfigSource
@@ -56,6 +57,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
+
+  val testDistributionRoot = Files.createTempDirectory(null).toFile
+  sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
@@ -118,10 +122,15 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       languageServerGateway
     )
 
+  lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
+    TestDistributionConfiguration.withoutReleases(testDistributionRoot.toPath)
+  )
+
   override def clientControllerFactory: ClientControllerFactory = {
     new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
       system,
       projectService,
+      globalConfigService,
       timeoutConfig
     )
   }
