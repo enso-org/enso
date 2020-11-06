@@ -304,7 +304,7 @@ final class SuggestionsHandler(
     * @param msg the suggestions database update notification from runtime
     * @return the API suggestions database update notification
     */
-  def applyDatabaseUpdates(
+  private def applyDatabaseUpdates(
     msg: Api.SuggestionsDatabaseModuleUpdateNotification
   ): Future[SuggestionsDatabaseUpdateNotification] =
     for {
