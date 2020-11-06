@@ -322,9 +322,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     }
     for {
       results <- DBIO.sequence(query)
-      version <-
-        if (results.exists(_.ids.nonEmpty)) incrementVersionQuery
-        else currentVersionQuery
+      version <- currentVersionQuery
     } yield (version, results)
   }
 
@@ -460,8 +458,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         documentation,
         scope
       )
-      version <-
-        if (idOpt.nonEmpty) incrementVersionQuery else currentVersionQuery
+      version <- currentVersionQuery
     } yield (version, idOpt)
 
   private def updateSuggestionQuery(
@@ -527,6 +524,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     for {
       id <- query.map(_.id).result.headOption
       n  <- updateQ
+      _  <- if (n > 0) incrementVersionQuery else DBIO.successful(())
     } yield if (n > 0) id else None
   }
 

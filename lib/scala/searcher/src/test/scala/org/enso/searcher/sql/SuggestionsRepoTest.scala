@@ -442,7 +442,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     "update suggestion removing external id" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          (v1, Seq(_, id1, _, _)) <- repo.insertAll(
+          (v1, Seq(_, _, id1, _)) <- repo.insertAll(
             Seq(
               suggestion.atom,
               suggestion.method,
@@ -451,7 +451,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             )
           )
           (v2, id2) <- repo.update(
-            suggestion.method,
+            suggestion.function,
             Some(None),
             None,
             None,
@@ -463,7 +463,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
         v1 should not equal v2
         id1 shouldEqual id2
-        s shouldEqual Some(suggestion.method.copy(externalId = None))
+        s shouldEqual Some(suggestion.function.copy(externalId = None))
     }
 
     "update suggestion return type" taggedAs Retry in withRepo { repo =>

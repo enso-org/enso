@@ -17,6 +17,7 @@ import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
+import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -78,7 +79,13 @@ class SuggestionsHandlerSpec
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
           contentsVersion(""),
-          Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add)
+          Vector(),
+          Tree.Root(Suggestions.all.toVector.map { suggestion =>
+            Tree.Leaf(
+              Api.SuggestionUpdate(suggestion, Api.SuggestionAction.Add()),
+              Vector()
+            )
+          })
         )
 
         val updates = Suggestions.all.zipWithIndex.map {
@@ -114,24 +121,300 @@ class SuggestionsHandlerSpec
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
           contentsVersion(""),
-          Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add) ++
-          Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Remove)
+          Vector(),
+          Tree.Root(
+            Suggestions.all.toVector
+              .map { suggestion =>
+                Tree.Leaf(
+                  Api
+                    .SuggestionUpdate(suggestion, Api.SuggestionAction.Add()),
+                  Vector()
+                )
+              } ++
+            Suggestions.all.map { suggestion =>
+              Tree.Leaf(
+                Api.SuggestionUpdate(
+                  suggestion,
+                  Api.SuggestionAction.Remove()
+                ),
+                Vector()
+              )
+            }
+          )
         )
 
-        val updates = Suggestions.all.zipWithIndex.map {
+        val updatesAdd = Suggestions.all.zipWithIndex.map {
           case (suggestion, ix) =>
             SearchProtocol.SuggestionsDatabaseUpdate.Add(ix + 1L, suggestion)
+        }
+        val updatesRemove = Suggestions.all.zipWithIndex.map { case (_, ix) =>
+          SearchProtocol.SuggestionsDatabaseUpdate.Remove(ix + 1L)
         }
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(4L, updates)
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              8L,
+              updatesAdd ++ updatesRemove
+            )
           )
         )
 
         // check that database entries removed
         val (_, all) = Await.result(repo.getAll, Timeout)
-        all.map(_.suggestion) should contain theSameElementsAs Suggestions.all
+        all shouldEqual Seq()
+    }
+
+    "apply runtime updates tree" taggedAs Retry in withDb {
+      (_, _, router, _, handler) =>
+        val clientId = UUID.randomUUID()
+
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+
+        val tree1 = Tree.Root(
+          Vector(
+            Tree.Leaf(
+              Api.SuggestionUpdate(
+                Suggestions.atom,
+                Api.SuggestionAction.Add()
+              ),
+              Vector()
+            ),
+            Tree.Leaf(
+              Api.SuggestionUpdate(
+                Suggestions.method,
+                Api.SuggestionAction.Add()
+              ),
+              Vector(
+                Tree.Leaf(
+                  Api.SuggestionUpdate(
+                    Suggestions.function,
+                    Api.SuggestionAction.Add()
+                  ),
+                  Vector(
+                    Tree.Leaf(
+                      Api.SuggestionUpdate(
+                        Suggestions.local,
+                        Api.SuggestionAction.Add()
+                      ),
+                      Vector()
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+
+        // add tree
+        handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          contentsVersion(""),
+          Vector(),
+          tree1
+        )
+
+        val updates1 = tree1.toVector.zipWithIndex.map { case (update, ix) =>
+          SearchProtocol.SuggestionsDatabaseUpdate.Add(
+            ix + 1L,
+            update.suggestion
+          )
+        }
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              updates1.size.toLong,
+              updates1
+            )
+          )
+        )
+
+        val tree2 = Tree.Root(
+          Vector(
+            Tree.Leaf(
+              Api.SuggestionUpdate(
+                Suggestions.atom,
+                Api.SuggestionAction.Modify(
+                  arguments = Some(Suggestions.function.arguments)
+                )
+              ),
+              Vector()
+            ),
+            Tree.Leaf(
+              Api.SuggestionUpdate(
+                Suggestions.method,
+                Api.SuggestionAction.Modify()
+              ),
+              Vector(
+                Tree.Leaf(
+                  Api.SuggestionUpdate(
+                    Suggestions.function,
+                    Api.SuggestionAction.Modify(
+                      scope = Some(Suggestions.local.scope)
+                    )
+                  ),
+                  Vector(
+                    Tree.Leaf(
+                      Api.SuggestionUpdate(
+                        Suggestions.local,
+                        Api.SuggestionAction.Remove()
+                      ),
+                      Vector()
+                    ),
+                    Tree.Leaf(
+                      Api.SuggestionUpdate(
+                        Suggestions.local,
+                        Api.SuggestionAction.Add()
+                      ),
+                      Vector()
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+        // update tree
+        handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          contentsVersion("1"),
+          Vector(),
+          tree2
+        )
+
+        val updates2 = Seq(
+          SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+            1L,
+            arguments = Some(
+              SearchProtocol.ModifyField(
+                SearchProtocol.ModifyAction.Set,
+                Some(Suggestions.function.arguments)
+              )
+            )
+          ),
+          SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+            3L,
+            scope = Some(
+              SearchProtocol.ModifyField(
+                SearchProtocol.ModifyAction.Set,
+                Some(Suggestions.local.scope)
+              )
+            )
+          ),
+          SearchProtocol.SuggestionsDatabaseUpdate.Remove(4L),
+          SearchProtocol.SuggestionsDatabaseUpdate.Add(5L, Suggestions.local)
+        )
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              (updates1.size + updates2.size).toLong,
+              updates2
+            )
+          )
+        )
+    }
+
+    "apply runtime actions" taggedAs Retry in withDb {
+      (_, repo, router, _, handler) =>
+        val clientId = UUID.randomUUID()
+
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+
+        val tree1 = Tree.Root(
+          Vector(
+            Tree.Leaf(
+              Api.SuggestionUpdate(
+                Suggestions.atom,
+                Api.SuggestionAction.Add()
+              ),
+              Vector()
+            ),
+            Tree.Leaf(
+              Api.SuggestionUpdate(
+                Suggestions.method,
+                Api.SuggestionAction.Add()
+              ),
+              Vector(
+                Tree.Leaf(
+                  Api.SuggestionUpdate(
+                    Suggestions.function,
+                    Api.SuggestionAction.Add()
+                  ),
+                  Vector(
+                    Tree.Leaf(
+                      Api.SuggestionUpdate(
+                        Suggestions.local,
+                        Api.SuggestionAction.Add()
+                      ),
+                      Vector()
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+
+        // add tree
+        handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          contentsVersion(""),
+          Vector(),
+          tree1
+        )
+
+        val updates1 = tree1.toVector.zipWithIndex.map { case (update, ix) =>
+          SearchProtocol.SuggestionsDatabaseUpdate.Add(
+            ix + 1L,
+            update.suggestion
+          )
+        }
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              updates1.size.toLong,
+              updates1
+            )
+          )
+        )
+
+        // clean module
+        handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          contentsVersion("1"),
+          Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.atom.module)),
+          Tree.Root(Vector())
+        )
+
+        val updates2 = Suggestions.all.zipWithIndex.map { case (_, ix) =>
+          SearchProtocol.SuggestionsDatabaseUpdate.Remove(ix + 1L)
+        }
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              updates1.size + 1L,
+              updates2
+            )
+          )
+        )
+
+        // check that database entries removed
+        val (_, all) = Await.result(repo.getAll, Timeout)
+        all shouldEqual Seq()
     }
 
     "get initial suggestions database version" taggedAs Retry in withDb {

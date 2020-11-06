@@ -87,9 +87,7 @@ object SearchProtocol {
     }
 
   sealed trait ModifyAction extends EnumEntry
-  object ModifyAction
-      extends Enum[SuggestionKind]
-      with CirceEnum[SuggestionKind] {
+  object ModifyAction extends Enum[ModifyAction] with CirceEnum[ModifyAction] {
 
     case object Remove extends ModifyAction
     case object Set    extends ModifyAction
