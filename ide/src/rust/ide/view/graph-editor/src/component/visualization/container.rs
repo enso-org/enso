@@ -605,8 +605,22 @@ impl Container {
             eval_ on_selected ( action_bar.hide_icons.emit(()) );
         }
 
+        // FIXME[mm]: If we set the size right here, we will see spurious shapes in some
+        // computation heavy circumstances (e.g., collapsing nodes #805, or creating an new project
+        // #761). This should not happen anyway, but the following is a hotfix to hide the visible
+        // behaviour. If we leave use the frp api and don't abort the animation, the size will stay
+        // at (0,0) until the animation has run its course and the shape stays invisible during
+        // loads.
+        //
+        // The order of events is like this:
+        // * shape gets created (with size 0 or default size).
+        // * some load happens in the scene, the shape is visible if it has a non-zero size.
+        // * load is resolved and the shape is hidden as it should be.
+        // * the animation finishes running and sets the size to the correct size.
+        //
+        // This is not optimal the optimal solution to this problem, as it also means that we have
+        // an animation on an invisible component running.
         frp.set_size.emit(Vector2(DEFAULT_SIZE.0,DEFAULT_SIZE.1));
-        size.skip();
         frp.set_visualization.emit(Some(visualization::Registry::default_visualisation()));
         self
     }
