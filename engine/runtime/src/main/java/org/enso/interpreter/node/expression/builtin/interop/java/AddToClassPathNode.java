@@ -31,7 +31,7 @@ public abstract class AddToClassPathNode extends Node {
     context
         .getEnvironment()
         .addToHostClassPath(context.getTruffleFile(new File(toJavaStringNode.execute(path))));
-    return context.getBuiltins().unit();
+    return context.getBuiltins().nothing();
   }
 
   abstract Object execute(Object _this, Text path);

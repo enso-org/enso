@@ -13,7 +13,7 @@ spec = describe "Vectors" <|
     it "should have a well-defined text conversion" <|
         [].to_text.should_equal "[]"
         [1,2,3].to_text.should_equal "[1, 2, 3]"
-        [Unit].to_text.should_equal "[Unit]"
+        [Nothing].to_text.should_equal "[Nothing]"
     it "should allow mapping an operation, returning a new vector" <|
         vec = [1, 2, 3, 4]
         mapped = vec.map x-> x * x

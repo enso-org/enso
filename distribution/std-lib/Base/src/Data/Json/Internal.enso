@@ -109,7 +109,7 @@ mk_array_consumer parent =
 ## Creates a new top-level consumer.
 mk_consumer =
     child = Ref.new Nil
-    val = Ref.new Unit
+    val = Ref.new Nothing
     Consumer child val
 
 ## Helper method for printing JSON values to Text.

@@ -9,7 +9,7 @@ import Base.Error.Extensions
 import Base.Polyglot.Java
 import Base.Data.Map
 import Base.Data.Json
-from Builtins import Unit, Number, Integer, Any, True, False, Cons, Boolean
+from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean
 
 export Base.Meta
 from Builtins export all hiding Meta
@@ -35,11 +35,11 @@ type Range
          To print all the numbers from 1 to 100 use:
          1.upto 101 . each IO.println
     each function =
-        it start end = if start == end then Unit else
+        it start end = if start == end then Nothing else
             function start
             @Tail_Call it start+1 end
         it this.start this.end
-        Unit
+        Nothing
 
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
@@ -102,6 +102,3 @@ Any.== that = if Meta.is_same_object this that then True else
            Therefore, there is no more cases to handle in this method.
         _ -> False
 
-## Boolean to JSON conversion.
-Boolean.to_json : Json.Boolean
-Boolean.to_json = Json.Boolean this

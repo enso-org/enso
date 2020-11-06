@@ -122,7 +122,7 @@ Text.it ~behavior pending=False =
 run_spec ~behavior =
     recovery = Panic.recover <|
         behavior
-        Unit
+        Nothing
     maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch ex->

@@ -24,7 +24,7 @@ class RuntimeManagementTest extends InterpreterTest {
         """from Builtins import all
           |
           |foo x =
-          |    if x == 0 then IO.println "Start." else Unit
+          |    if x == 0 then IO.println "Start." else Nothing
           |    @Tail_Call here.foo x+1
           |
           |main =
@@ -124,7 +124,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
           |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.finalize r else Unit
+          |    if i % 2 == 0 then Managed_Resource.finalize r else Nothing
           |
           |main =
           |    here.create_resource 0
@@ -163,7 +163,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
           |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.take r else Unit
+          |    if i % 2 == 0 then Managed_Resource.take r else Nothing
           |
           |main =
           |    here.create_resource 0

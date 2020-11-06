@@ -14,11 +14,11 @@ spec = describe "Meta-Value Manipulation" <|
         object = My_Type 1 2 3
         new_sym object . should equal 6
     it "should allow manipulating atoms" <|
-        atom = My_Type 1 "foo" Unit
+        atom = My_Type 1 "foo" Nothing
         meta_atom = Meta.meta atom
         meta_atom.constructor.should equal My_Type
-        meta_atom.fields.should equal [1, "foo", Unit]
-        Meta.meta (meta_atom.constructor) . new [1, "foo", Unit] . should equal atom
+        meta_atom.fields.should equal [1, "foo", Nothing]
+        Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should equal atom
     it "should correctly return representations of different classes of objects" <|
         Meta.meta 1 . should equal (Meta.Primitive 1)
         Meta.meta "foo" . should equal (Meta.Primitive "foo")

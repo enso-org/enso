@@ -6,8 +6,8 @@ spec = describe "Tables" <|
     it "should parse a simple numeric table and convert it to JSON" <|
         simple_empty = (Enso_Project.data / "simple_empty.csv") . read_csv
         c_1_data = [1, 4, 7, 10]
-        c_2_data = [2, Json.Null, 8, 11]
-        c_3_data = [Json.Null, 6, 9, 12]
+        c_2_data = [2, Nothing, 8, 11]
+        c_3_data = [Nothing, 6, 9, 12]
 
         c_1 = Json.from_pairs [["name", "a"], ["data", c_1_data]]
         c_2 = Json.from_pairs [["name", "b"], ["data", c_2_data]]
@@ -18,9 +18,9 @@ spec = describe "Tables" <|
         simple_empty.to_json.should equal expected
     it "should correctly infer types of varied-type columns" <|
         varied_column = (Enso_Project.data / "varied_column.csv") . read_csv has_header=False
-        c_1_data = ["2005-02-25", "2005-02-28", "4", "2005-03-02", Json.Null, "2005-03-04", "2005-03-07", "2005-03-08"]
-        c_2_data = ["2005-02-25", "2005-02-28", "2005-03-01", Json.Null, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]
-        c_3_data = [1, 2, 3, 4, 5, Json.Null, 7, 8]
+        c_1_data = ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]
+        c_2_data = ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]
+        c_3_data = [1, 2, 3, 4, 5, Nothing, 7, 8]
         c_4_data = [1, 2, 3, 4, 5, 6, 7, 8]
         c_5_data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.25, 7.0, 8.0]
         c_6_data = ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']

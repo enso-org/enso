@@ -5,4 +5,4 @@ type X a
 
 X.method = 10
 
-main = Unit.util (X 1)
+main = Nothing.util (X 1)

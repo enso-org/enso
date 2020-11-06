@@ -555,7 +555,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
         )
       ),
       Api.Response(
@@ -660,7 +660,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
         )
       ),
       Api.Response(
@@ -763,7 +763,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
         )
       ),
       Api.Response(
@@ -1138,13 +1138,13 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idPrintln, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idPrintln, Some("Nothing"), None))
         )
       ),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
         )
       ),
       Api.Response(
@@ -1274,13 +1274,13 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMainP, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMainP, Some("Nothing"), None))
         )
       ),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
         )
       ),
       Api.Response(
@@ -1539,7 +1539,7 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(32, 77)
+    val idMain   = metadata.addItem(32, 80)
     val id1      = metadata.addItem(41, 15)
     val id2      = metadata.addItem(61, 18)
     val id3      = metadata.addItem(84, 15)
@@ -1550,7 +1550,7 @@ class RuntimeServerTest
         |    x = 15.overloaded 1
         |    "foo".overloaded 2
         |    overloaded 10 x
-        |    Unit
+        |    Nothing
         |
         |Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
@@ -1589,7 +1589,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
         )
       ),
       Api.Response(
