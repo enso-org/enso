@@ -56,7 +56,7 @@ object Main {
     */
   def exit(exitCode: Int): Nothing = {
     LauncherLogging.tearDown()
-    DefaultManagers.DefaultResourceManager.releaseMainLock()
+    DefaultManagers.defaultResourceManager.releaseMainLock()
     sys.exit(exitCode)
   }
 }

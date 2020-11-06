@@ -22,8 +22,12 @@ import org.enso.runtimeversionmanager.releases.engine.{
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
+import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.Span
+import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Try
@@ -34,7 +38,14 @@ class ConcurrencyTest
     with WithTemporaryDirectory
     with FakeEnvironment
     with BeforeAndAfterEach
-    with DropLogs {
+    with DropLogs
+    with TimeLimitedTests
+    with RetrySpec {
+
+  /** This is an upper bound to avoid stalling the tests forever, but particular
+    * operations have smaller timeouts usually.
+    */
+  val timeLimit: Span = 240.seconds
 
   case class WrapEngineRelease(
     originalRelease: EngineRelease,
@@ -54,16 +65,18 @@ class ConcurrencyTest
     }
   }
 
-  var testLocalLockManager: Option[TestLocalLockManager] = None
+  class SlowTestSynchronizer extends TestSynchronizer {
+    override val timeOutSeconds: Long = 90
+  }
+
+  var testLocalLockManager: Option[LockManager] = None
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     testLocalLockManager = Some(new TestLocalLockManager)
   }
 
-  /** A separate [[LockManager]] for each test case.
-    * @return
-    */
+  /** A separate [[LockManager]] for each test case. */
   def lockManager: LockManager = testLocalLockManager.get
 
   /** Each call creates a distinct [[ResourceManager]], but all resource
@@ -152,7 +165,7 @@ class ConcurrencyTest
     )._2
 
   "locks" should {
-    "synchronize parallel installations with the same runtime" in {
+    "synchronize parallel installations with the same runtime" taggedAs Retry in {
 
       /** Two threads start installing different engines in parallel, but these
         * engines use the same runtime. The second thread is stalled on
@@ -168,7 +181,7 @@ class ConcurrencyTest
         * startup, but only if it is safe to do so (so other processes are not
         * using it).
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
 
       val engine1 = SemVer(0, 0, 1)
       val engine2 = engine1.withPreRelease("pre")
@@ -228,13 +241,13 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize installation and usage" in {
+    "synchronize installation and usage" taggedAs Retry in {
 
       /** The first thread starts installing the engine, but is suspended when
         * downloading the package. The second thread then tries to use it, but
         * it should wait until the installation is finished.
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
 
       val engineVersion = SemVer(0, 0, 1)
 
@@ -286,13 +299,13 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize uninstallation and usage" in {
+    "synchronize uninstallation and usage" taggedAs Retry in {
 
       /** The first thread starts using the engine, while in the meantime
         * another thread starts uninstalling it. The second thread has to wait
         * with uninstalling until the first one finishes using it.
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
 
       val engineVersion = SemVer(0, 0, 1)
 
@@ -341,7 +354,7 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize main lock" in {
+    "synchronize main lock" taggedAs Retry in {
 
       /** First two threads start and acquire the shared lock, than the third
         * thread tries to acquire an exclusive lock (in practice that will be our
@@ -351,7 +364,7 @@ class ConcurrencyTest
         * the two threads finish and after that the third one is able to acquire
         * the exclusive lock.
         */
-      val sync = new TestSynchronizer
+      val sync = new SlowTestSynchronizer
       sync.startThread("t1") {
         val resourceManager = makeNewResourceManager()
         resourceManager.initializeMainLock()

@@ -21,7 +21,7 @@ object DefaultComponentManager {
       ),
       distributionManager,
       temporaryDirectoryManager,
-      DefaultResourceManager,
+      defaultResourceManager,
       EnsoRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider
     )
