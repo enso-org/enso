@@ -103,6 +103,11 @@ impl<T> SharedVec<T> {
         self.raw.borrow().contains(t)
     }
 
+    /// Return clone of the first element of the slice, or `None` if it is empty.
+    pub fn first_cloned(&self) -> Option<T> where T:Clone {
+        self.raw.borrow().first().cloned()
+    }
+
     /// Return clone of the last element of the slice, or `None` if it is empty.
     pub fn last_cloned(&self) -> Option<T> where T:Clone {
         self.raw.borrow().last().cloned()
@@ -1588,10 +1593,10 @@ impl application::View for GraphEditor {
           , (Release , "" , "shift ctrl alt" , "toggle_node_inverse_select")
 
           // === Navigation ===
-          , (Press       , "" , "ctrl space"        , "cycle_visualization_for_selected_node")
-          , (DoublePress , "" , "left-mouse-button" , "enter_selected_node")
-          , (Press       , "" , "enter"             , "enter_selected_node")
-          , (Press       , "" , "alt enter"         , "exit_node")
+          , (Press       , ""              , "ctrl space"        , "cycle_visualization_for_selected_node")
+          , (DoublePress , ""              , "left-mouse-button" , "enter_selected_node")
+          , (Press       , "!node_editing" , "enter"             , "enter_selected_node")
+          , (Press       , ""              , "alt enter"         , "exit_node")
 
           // === Node Editing ===
           , (Press   , "" , "cmd"                   , "edit_mode_on")
@@ -1846,7 +1851,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     edit_mode               <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
     node_to_select_non_edit <- touch.nodes.selected.gate_not(&edit_mode);
     node_to_select_edit     <- touch.nodes.down.gate(&edit_mode);
-    node_to_select          <- any(&node_to_select_non_edit,&node_to_select_edit);
+    node_to_select          <- any(node_to_select_non_edit,node_to_select_edit,inputs.select_node);
     node_was_selected       <- node_to_select.map(f!((id) model.nodes.selected.contains(id)));
 
     should_select <- node_to_select.map3(&selection_mode,&node_was_selected,
