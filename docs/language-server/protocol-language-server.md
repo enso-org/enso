@@ -302,31 +302,35 @@ type SuggestionEntry =
   | SuggestionEntryLocal;
 
 interface SuggestionEntryAtom {
+  externalId?: UUID;
   name: string;
   module: string;
-  arguments: [SuggestionEntryArgument];
+  arguments: SuggestionEntryArgument[];
   returnType: string;
   documentation?: string;
 }
 
 interface SuggestionEntryMethod {
+  externalId?: UUID;
   name: string;
   module: string;
-  arguments: [SuggestionEntryArgument];
+  arguments: SuggestionEntryArgument[];
   selfType: string;
   returnType: string;
   documentation?: string;
 }
 
 interface SuggestionEntryFunction {
+  externalId?: UUID;
   name: string;
   module: string;
-  arguments: [SuggestionEntryArgument];
+  arguments: SuggestionEntryArgument[];
   returnType: string;
   scope: SuggestionEntryScope;
 }
 
 interface SuggestionEntryLocal {
+  externalId?: UUID;
   name: string;
   module: string;
   returnType: string;
@@ -363,10 +367,45 @@ The entry in the suggestions database.
 
 ```typescript
 interface SuggestionsDatabaseEntry {
-  // suggestion entry id
+  /**
+   * The suggestion entry id.
+   */
   id: SuggestionId;
-  // suggestion entry
+
+  /**
+   * The suggestion entry.
+   */
   suggestion: SuggestionEntry;
+}
+```
+
+### `FieldAction`
+
+The modifying action on a record field.
+
+#### Format
+
+```typescript
+type FieldAction = Remove | Set;
+```
+
+### `FieldUpdate`
+
+An object representing a modification of a field in a record.
+
+#### Format
+
+```typescript
+interface FieldUpdate<T> {
+  /**
+   * The modifying action.
+   */
+  tag: FieldAction;
+
+  /**
+   * The updated value.
+   */
+  value?: T;
 }
 ```
 
@@ -377,26 +416,60 @@ The update of the suggestions database.
 #### Format
 
 ```typescript
-// The kind of the suggestions database update.
+/**
+ * The kind of the suggestions database update.
+ */
 type SuggestionsDatabaseUpdate = Add | Remove | Modify;
 
 interface Add {
-  // suggestion entry id
+  /**
+   * Suggestion entry id.
+   */
   id: SuggestionId;
-  // suggestion entry
+
+  /**
+   * Suggestion entry.
+   */
   suggestion: SuggestionEntry;
 }
 
 interface Remove {
-  // suggestion entry id
+  /**
+   * Suggestion entry id.
+   */
   id: SuggestionId;
 }
 
 interface Modify {
-  // suggestion entry id
+  /**
+   * Suggestion entry id.
+   */
   id: SuggestionId;
-  // new return type
-  returnType: String;
+
+  /**
+   * The external id to update.
+   */
+  externalId?: FieldUpdate<UUID>;
+
+  /**
+   * The list of arguments to update.
+   */
+  arguments?: FieldUpdate<SuggestionEntryArgument[]>;
+
+  /**
+   * The return type to update.
+   */
+  returnType?: FieldUpdate<String>;
+
+  /**
+   * The documentation string to update.
+   */
+  documentation?: FieldUpdate<String>;
+
+  /**
+   * The scope to update.
+   */
+  scope?: FieldUpdate<SuggestionEntryScope>;
 }
 ```
 

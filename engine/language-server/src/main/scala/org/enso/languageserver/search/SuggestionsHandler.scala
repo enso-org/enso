@@ -177,7 +177,7 @@ final class SuggestionsHandler(
             case ((_, typeValue), Some(suggestionId)) =>
               SuggestionsDatabaseUpdate.Modify(
                 id         = suggestionId,
-                returnType = Some(typeValue).map(fieldUpdate)
+                returnType = Some(fieldUpdate(typeValue))
               )
           }
           SuggestionsDatabaseUpdateNotification(version, updates)
@@ -352,8 +352,8 @@ final class SuggestionsHandler(
     */
   private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
     value match {
-      case Some(value) => FieldUpdate(ModifyAction.Set, Some(value))
-      case None        => FieldUpdate(ModifyAction.Remove, None)
+      case Some(value) => FieldUpdate(FieldAction.Set, Some(value))
+      case None        => FieldUpdate(FieldAction.Remove, None)
     }
 
   /** Construct the field update object from and update value.
@@ -362,7 +362,7 @@ final class SuggestionsHandler(
     * @return the field update object representing the value update
     */
   private def fieldUpdate[A](value: A): FieldUpdate[A] =
-    FieldUpdate(ModifyAction.Set, Some(value))
+    FieldUpdate(FieldAction.Set, Some(value))
 
   /** Build the module name from the requested file path.
     *

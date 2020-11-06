@@ -293,7 +293,7 @@ class SuggestionsHandlerSpec
             1L,
             arguments = Some(
               SearchProtocol.FieldUpdate(
-                SearchProtocol.ModifyAction.Set,
+                SearchProtocol.FieldAction.Set,
                 Some(Suggestions.function.arguments)
               )
             )
@@ -302,7 +302,7 @@ class SuggestionsHandlerSpec
             3L,
             scope = Some(
               SearchProtocol.FieldUpdate(
-                SearchProtocol.ModifyAction.Set,
+                SearchProtocol.FieldAction.Set,
                 Some(Suggestions.local.scope)
               )
             )

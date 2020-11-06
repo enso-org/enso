@@ -86,12 +86,12 @@ object SearchProtocol {
       }
     }
 
-  /** The modifying action. */
-  sealed trait ModifyAction extends EnumEntry
-  object ModifyAction extends Enum[ModifyAction] with CirceEnum[ModifyAction] {
+  /** The modifying action on the field. */
+  sealed trait FieldAction extends EnumEntry
+  object FieldAction extends Enum[FieldAction] with CirceEnum[FieldAction] {
 
-    case object Remove extends ModifyAction
-    case object Set    extends ModifyAction
+    case object Remove extends FieldAction
+    case object Set    extends FieldAction
 
     override def values = findValues
   }
@@ -101,7 +101,7 @@ object SearchProtocol {
     * @param tag the modifying action
     * @param value the updated value
     */
-  case class FieldUpdate[A](tag: ModifyAction, value: Option[A])
+  case class FieldUpdate[A](tag: FieldAction, value: Option[A])
 
   /** Base trait for suggestion database updaetes. */
   sealed trait SuggestionsDatabaseUpdate
