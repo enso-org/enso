@@ -22,6 +22,7 @@ import org.enso.runtimeversionmanager.releases.engine.{
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
+import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers
@@ -38,9 +39,13 @@ class ConcurrencyTest
     with FakeEnvironment
     with BeforeAndAfterEach
     with DropLogs
-    with TimeLimitedTests {
+    with TimeLimitedTests
+    with RetrySpec {
 
-  val timeLimit: Span = 120.seconds
+  /** This is an upper bound to avoid stalling the tests forever, but particular
+    * operations have smaller timeouts usually.
+    */
+  val timeLimit: Span = 240.seconds
 
   case class WrapEngineRelease(
     originalRelease: EngineRelease,
@@ -160,7 +165,7 @@ class ConcurrencyTest
     )._2
 
   "locks" should {
-    "synchronize parallel installations with the same runtime" in {
+    "synchronize parallel installations with the same runtime" taggedAs Retry in {
 
       /** Two threads start installing different engines in parallel, but these
         * engines use the same runtime. The second thread is stalled on
@@ -236,7 +241,7 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize installation and usage" in {
+    "synchronize installation and usage" taggedAs Retry in {
 
       /** The first thread starts installing the engine, but is suspended when
         * downloading the package. The second thread then tries to use it, but
@@ -294,7 +299,7 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize uninstallation and usage" in {
+    "synchronize uninstallation and usage" taggedAs Retry in {
 
       /** The first thread starts using the engine, while in the meantime
         * another thread starts uninstalling it. The second thread has to wait
@@ -349,7 +354,7 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize main lock" in {
+    "synchronize main lock" taggedAs Retry in {
 
       /** First two threads start and acquire the shared lock, than the third
         * thread tries to acquire an exclusive lock (in practice that will be our
