@@ -18,6 +18,15 @@ use ensogl::gui::component::Animation;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// The gap between newly created node and selected one, in pixels.
+pub const NEW_NODE_Y_GAP:f32 = 60.0;
+
+
+
 // =============
 // === Model ===
 // =============
@@ -82,10 +91,20 @@ impl Model {
 
     fn add_node_and_edit(&self) {
         let graph_editor_inputs = &self.graph_editor.frp.input;
-        graph_editor_inputs.add_node_at_cursor.emit(());
-        let created_node_id = self.graph_editor.frp.output.node_added.value();
-        graph_editor_inputs.set_node_expression.emit(&(created_node_id,Expression::default()));
-        graph_editor_inputs.edit_node.emit(&created_node_id);
+        let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned() {
+            let selected_pos = self.graph_editor.model.get_node_position(selected).unwrap_or_default();
+            let y            = selected_pos.y - NEW_NODE_Y_GAP;
+            let pos          = Vector2(selected_pos.x,y);
+            graph_editor_inputs.add_node.emit(());
+            let node_id = self.graph_editor.frp.output.node_added.value();
+            self.graph_editor.set_node_position((node_id,pos));
+            node_id
+        } else {
+            graph_editor_inputs.add_node_at_cursor.emit(());
+            self.graph_editor.frp.output.node_added.value()
+        };
+        graph_editor_inputs.set_node_expression.emit(&(node_id,Expression::default()));
+        graph_editor_inputs.edit_node.emit(&node_id);
     }
 }
 
@@ -173,7 +192,7 @@ impl View {
             // The order of instructions below is important to properly distinguish between
             // committing and aborting node editing.
 
-            // This node is false when received "abort_node_editing" signal, and should get true
+            // This node is true when received "abort_node_editing" signal, and should get false
             // once processing of "node_being_edited" event from graph is performed.
             editing_aborted <- any(...);
             editing_aborted <+ frp.abort_node_editing.constant(true);
@@ -202,10 +221,11 @@ impl View {
             let editing_finished         =  graph.output.node_editing_finished.clone_ref();
             frp.source.editing_committed <+ editing_finished.gate(&editing_not_aborted);
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
-            editing_aborted              <+ graph.output.node_being_edited.constant(false);
+            editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
             frp.source.node_being_edited <+ graph.output.node_being_edited;
             frp.source.editing_node      <+ frp.node_being_edited.map(|n| n.is_some());
+
 
             // === Adding New Node ===
 
@@ -215,7 +235,13 @@ impl View {
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
             frp.source.adding_new_node <+ any(&adding_committed,&adding_aborted).constant(false);
-            eval adding_aborted ((node) graph.remove_node.emit(node));
+
+            eval adding_committed ([graph](node) {
+                graph.deselect_all_nodes();
+                graph.select_node(node);
+            });
+            eval adding_aborted  ((node) graph.remove_node(node));
+
 
             // === Style toggle ===
 

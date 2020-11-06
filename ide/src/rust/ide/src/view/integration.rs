@@ -127,7 +127,7 @@ const COLLAPSED_FUNCTION_NAME:&str = "func";
 
 /// The gap between nodes in pixels on default node layout (when user did not set any position of
 /// node - possibly when node was added by editing text).
-const DEFAULT_GAP_BETWEEN_NODES : f32 = 40.0;
+const DEFAULT_GAP_BETWEEN_NODES : f32 = ide_view::project::NEW_NODE_Y_GAP;
 /// The default X position of the node when user did not set any position of node - possibly when
 /// node was added by editing text.
 const DEFAULT_NODE_X_POSITION   : f32 = -100.0;
