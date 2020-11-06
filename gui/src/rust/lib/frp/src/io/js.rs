@@ -155,9 +155,7 @@ impl CurrentJsEvent {
         let event_source = self.event_source.clone_ref();
         move |event| {
             let js_event = event.as_ref().clone();
-            // Prevent events from propagating ot user agent, so default browser actions will
-            // not be triggered.
-            js_event.prevent_default();
+
             event_source.emit(Some(js_event));
             processing_fn(event);
             event_source.emit(None);
@@ -174,6 +172,9 @@ impl CurrentJsEvent {
         // asked to.
         if let Some(e) = current {
             if !is_passed {
+                // Prevent events from propagating ot user agent, so default browser actions will
+                // not be triggered.
+                e.prevent_default();
                 e.stop_propagation();
             }
         }
