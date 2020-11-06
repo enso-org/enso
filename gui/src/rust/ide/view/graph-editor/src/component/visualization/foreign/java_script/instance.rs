@@ -16,15 +16,17 @@ use crate::component::visualization;
 
 use core::result;
 use enso_frp as frp;
+use ensogl::data::color;
 use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
+use ensogl::display::shape::StyleWatch;
 use ensogl::display;
-use ensogl::system::web;
 use ensogl::system::web::JsValue;
+use ensogl::system::web;
+use ensogl::system::web::StyleSetter;
 use js_sys;
 use std::fmt::Formatter;
-
 
 
 // ==============
@@ -95,11 +97,25 @@ pub struct InstanceModel {
 
 impl InstanceModel {
 
-    fn create_root() -> result::Result<DomSymbol, Error> {
+    fn get_background_color(scene:&Scene) -> color::Rgba {
+        let styles   = StyleWatch::new(&scene.style_sheet);
+        let bg_color = styles.get_color(ensogl_theme::vars::graph_editor::visualization::background::color);
+        color::Rgba::from(bg_color)
+    }
+
+    fn create_root(scene:&Scene,logger:&Logger) -> result::Result<DomSymbol, Error> {
         let div       = web::create_div();
         let root_node = DomSymbol::new(&div);
         root_node.dom().set_attribute("class","visualization")
             .map_err(|js_error|Error::ConstructorError{js_error})?;
+
+        let bg_color = Self::get_background_color(scene);
+        let bg_red   = bg_color.red*255.0;
+        let bg_green = bg_color.green*255.0;
+        let bg_blue  = bg_color.blue*255.0;
+        let bg_hex   = format!("rgba({},{},{},{})",bg_red,bg_green,bg_blue,bg_color.alpha);
+        root_node.dom().set_style_or_warn("background",bg_hex,logger);
+
         Ok(root_node)
     }
 
@@ -136,8 +152,9 @@ impl InstanceModel {
     }
 
     /// Tries to create a InstanceModel from the given visualisation class.
-    pub fn from_class(class:&JsValue) -> result::Result<Self, Error> {
-        let root_node                     = Self::create_root()?;
+    pub fn from_class(class:&JsValue,scene:&Scene) -> result::Result<Self, Error> {
+        let logger                        = Logger::new("Instance");
+        let root_node                     = Self::create_root(scene,&logger)?;
         let (preprocessor_change,closure) = Self::preprocessor_change_callback();
         let init_data                     = JsConsArgs::new(root_node.clone_ref(), closure);
         let object                        = Self::instantiate_class_with_args(class,init_data)?;
@@ -145,7 +162,6 @@ impl InstanceModel {
         let on_data_received              = Rc::new(on_data_received);
         let set_size                      = get_method(&object,method::SET_SIZE).ok();
         let set_size                      = Rc::new(set_size);
-        let logger                        = Logger::new("Instance");
         let object                        = Rc::new(object);
         Ok(InstanceModel{object,on_data_received,set_size,root_node,logger,preprocessor_change})
     }
@@ -213,7 +229,7 @@ impl Instance {
     pub fn new(class:&JsValue, scene:&Scene) -> result::Result<Instance, Error>  {
         let network = default();
         let frp     = visualization::instance::Frp::new(&network);
-        let model   = InstanceModel::from_class(class)?;
+        let model   = InstanceModel::from_class(class,scene)?;
         model.set_dom_layer(&scene.dom.layers.back);
         Ok(Instance{model,frp,network}.init_frp(&scene).inti_preprocessor_change_callback())
     }
