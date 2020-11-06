@@ -61,7 +61,7 @@ class TreeTest extends AnyWordSpec with Matchers {
         )
       )
 
-      tree.deepFilter(_ > 4) shouldEqual expected
+      tree.filter(_ > 4) shouldEqual expected
     }
 
     "filter leaves" in {
@@ -72,7 +72,7 @@ class TreeTest extends AnyWordSpec with Matchers {
         )
       )
 
-      tree.deepFilter(_ < 3) shouldEqual expected
+      tree.filter(_ < 3) shouldEqual expected
     }
 
     "fold" in {
