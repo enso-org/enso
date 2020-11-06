@@ -308,18 +308,23 @@ final class SuggestionsHandler(
     msg: Api.SuggestionsDatabaseModuleUpdateNotification
   ): Future[SuggestionsDatabaseUpdateNotification] =
     for {
-      _                  <- suggestionsRepo.applyActions(msg.actions)
+      actionResults      <- suggestionsRepo.applyActions(msg.actions)
       (version, results) <- suggestionsRepo.applyTree(msg.updates)
       _                  <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
     } yield {
-      val updates = results.toVector.flatMap {
+      val actionUpdates = actionResults.flatMap {
+        case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
+          ids.map(SuggestionsDatabaseUpdate.Remove)
+      }
+      val updates = results.flatMap {
         case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
           val verb = action.getClass.getSimpleName
-          if (ids.isEmpty) log.error(s"Failed to $verb update: $suggestion")
           action match {
             case Api.SuggestionAction.Add() =>
+              if (ids.isEmpty) log.error(s"Failed to $verb: $suggestion")
               ids.map(id => SuggestionsDatabaseUpdate.Add(id, suggestion))
             case Api.SuggestionAction.Remove() =>
+              if (ids.isEmpty) log.error(s"Failed to $verb: $suggestion")
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
             case m: Api.SuggestionAction.Modify =>
               ids.map { id =>
@@ -334,7 +339,7 @@ final class SuggestionsHandler(
               }
           }
       }
-      SuggestionsDatabaseUpdateNotification(version, updates)
+      SuggestionsDatabaseUpdateNotification(version, actionUpdates ++ updates)
     }
 
   private def modifyFieldOption[A](value: Option[A]): ModifyField[A] =

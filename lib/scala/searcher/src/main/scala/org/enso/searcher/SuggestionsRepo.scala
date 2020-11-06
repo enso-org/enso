@@ -67,9 +67,11 @@ trait SuggestionsRepo[F[_]] {
 
   def applyTree(
     tree: Tree[SuggestionUpdate]
-  ): F[(Long, Tree[QueryResult[SuggestionUpdate]])]
+  ): F[(Long, Seq[QueryResult[SuggestionUpdate]])]
 
-  def applyActions(actions: Seq[SuggestionsDatabaseAction]): F[Unit]
+  def applyActions(
+    actions: Seq[SuggestionsDatabaseAction]
+  ): F[Seq[QueryResult[SuggestionsDatabaseAction]]]
 
   /** Remove the suggestion.
     *
@@ -98,6 +100,15 @@ trait SuggestionsRepo[F[_]] {
     * @return the current database version and a list of removed suggestion ids
     */
   def removeAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
+
+  def update(
+    suggestion: Suggestion,
+    externalId: Option[Option[Suggestion.ExternalId]],
+    arguments: Option[Seq[Suggestion.Argument]],
+    returnType: Option[String],
+    documentation: Option[Option[String]],
+    scope: Option[Suggestion.Scope]
+  ): F[(Long, Option[Long])]
 
   /** Update a list of suggestions by external id.
     *

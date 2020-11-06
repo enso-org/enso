@@ -412,6 +412,225 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       result shouldEqual suggestion.local.copy(returnType = newReturnType)
     }
 
+    "update suggestion external id" taggedAs Retry in withRepo { repo =>
+      val newUuid = UUID.randomUUID()
+      val action = for {
+        (v1, Seq(_, id1, _, _)) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.method,
+          Some(Some(newUuid)),
+          None,
+          None,
+          None,
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(suggestion.method.copy(externalId = Some(newUuid)))
+    }
+
+    "update suggestion removing external id" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          (v1, Seq(_, id1, _, _)) <- repo.insertAll(
+            Seq(
+              suggestion.atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          (v2, id2) <- repo.update(
+            suggestion.method,
+            Some(None),
+            None,
+            None,
+            None,
+            None
+          )
+          s <- repo.select(id1.get)
+        } yield (v1, id1, v2, id2, s)
+        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+        v1 should not equal v2
+        id1 shouldEqual id2
+        s shouldEqual Some(suggestion.method.copy(externalId = None))
+    }
+
+    "update suggestion return type" taggedAs Retry in withRepo { repo =>
+      val newReturnType = "NewType"
+      val action = for {
+        (v1, Seq(_, _, id1, _)) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.function,
+          None,
+          None,
+          Some(newReturnType),
+          None,
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(suggestion.function.copy(returnType = newReturnType))
+    }
+
+    "update suggestion documentation" taggedAs Retry in withRepo { repo =>
+      val newDoc = "My Doc"
+      val action = for {
+        (v1, Seq(id1, _, _, _)) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.atom,
+          None,
+          None,
+          None,
+          Some(Some(newDoc)),
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(suggestion.atom.copy(documentation = Some(newDoc)))
+    }
+
+    "update suggestion removing documentation" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          (v1, Seq(id1, _, _, _)) <- repo.insertAll(
+            Seq(
+              suggestion.atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          (v2, id2) <- repo.update(
+            suggestion.atom,
+            None,
+            None,
+            None,
+            Some(None),
+            None
+          )
+          s <- repo.select(id1.get)
+        } yield (v1, id1, v2, id2, s)
+        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+        v1 should not equal v2
+        id1 shouldEqual id2
+        s shouldEqual Some(suggestion.atom.copy(documentation = None))
+    }
+
+    "update suggestion scope" taggedAs Retry in withRepo { repo =>
+      val newScope = Suggestion.Scope(
+        Suggestion.Position(14, 15),
+        Suggestion.Position(42, 43)
+      )
+      val action = for {
+        (v1, Seq(_, _, _, id1)) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.local,
+          None,
+          None,
+          None,
+          None,
+          Some(newScope)
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(suggestion.local.copy(scope = newScope))
+    }
+
+    "update suggestion arguments" taggedAs Retry in withRepo { repo =>
+      val newArgs = Seq(
+        Suggestion.Argument("x", "X", true, false, None),
+        Suggestion.Argument("y", "Y", true, false, Some("YYY"))
+      )
+      val action = for {
+        (v1, Seq(_, id1, _, _)) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.method,
+          None,
+          Some(newArgs),
+          None,
+          None,
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(suggestion.method.copy(arguments = newArgs))
+    }
+
+    "update suggestion empty request" taggedAs Retry in withRepo { repo =>
+      val action = for {
+        (v1, _) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.method,
+          None,
+          None,
+          None,
+          None,
+          None
+        )
+      } yield (v1, v2, id2)
+      val (v1, v2, id2) = Await.result(action, Timeout)
+      v1 shouldEqual v2
+      id2 shouldEqual None
+    }
+
     "change version after updateAll" taggedAs Retry in withRepo { repo =>
       val newReturnType = "Quux"
       val action = for {
