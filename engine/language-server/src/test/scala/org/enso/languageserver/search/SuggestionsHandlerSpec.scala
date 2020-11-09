@@ -81,7 +81,7 @@ class SuggestionsHandlerSpec
           contentsVersion(""),
           Vector(),
           Tree.Root(Suggestions.all.toVector.map { suggestion =>
-            Tree.Leaf(
+            Tree.Node(
               Api.SuggestionUpdate(suggestion, Api.SuggestionAction.Add()),
               Vector()
             )
@@ -125,14 +125,14 @@ class SuggestionsHandlerSpec
           Tree.Root(
             Suggestions.all.toVector
               .map { suggestion =>
-                Tree.Leaf(
+                Tree.Node(
                   Api
                     .SuggestionUpdate(suggestion, Api.SuggestionAction.Add()),
                   Vector()
                 )
               } ++
             Suggestions.all.map { suggestion =>
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   suggestion,
                   Api.SuggestionAction.Remove()
@@ -178,26 +178,26 @@ class SuggestionsHandlerSpec
 
         val tree1 = Tree.Root(
           Vector(
-            Tree.Leaf(
+            Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.atom,
                 Api.SuggestionAction.Add()
               ),
               Vector()
             ),
-            Tree.Leaf(
+            Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.method,
                 Api.SuggestionAction.Add()
               ),
               Vector(
-                Tree.Leaf(
+                Tree.Node(
                   Api.SuggestionUpdate(
                     Suggestions.function,
                     Api.SuggestionAction.Add()
                   ),
                   Vector(
-                    Tree.Leaf(
+                    Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
                         Api.SuggestionAction.Add()
@@ -237,7 +237,7 @@ class SuggestionsHandlerSpec
 
         val tree2 = Tree.Root(
           Vector(
-            Tree.Leaf(
+            Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.atom,
                 Api.SuggestionAction.Modify(
@@ -246,13 +246,13 @@ class SuggestionsHandlerSpec
               ),
               Vector()
             ),
-            Tree.Leaf(
+            Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.method,
                 Api.SuggestionAction.Modify()
               ),
               Vector(
-                Tree.Leaf(
+                Tree.Node(
                   Api.SuggestionUpdate(
                     Suggestions.function,
                     Api.SuggestionAction.Modify(
@@ -260,14 +260,14 @@ class SuggestionsHandlerSpec
                     )
                   ),
                   Vector(
-                    Tree.Leaf(
+                    Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
                         Api.SuggestionAction.Remove()
                       ),
                       Vector()
                     ),
-                    Tree.Leaf(
+                    Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
                         Api.SuggestionAction.Add()
@@ -334,26 +334,26 @@ class SuggestionsHandlerSpec
 
         val tree1 = Tree.Root(
           Vector(
-            Tree.Leaf(
+            Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.atom,
                 Api.SuggestionAction.Add()
               ),
               Vector()
             ),
-            Tree.Leaf(
+            Tree.Node(
               Api.SuggestionUpdate(
                 Suggestions.method,
                 Api.SuggestionAction.Add()
               ),
               Vector(
-                Tree.Leaf(
+                Tree.Node(
                   Api.SuggestionUpdate(
                     Suggestions.function,
                     Api.SuggestionAction.Add()
                   ),
                   Vector(
-                    Tree.Leaf(
+                    Tree.Node(
                       Api.SuggestionUpdate(
                         Suggestions.local,
                         Api.SuggestionAction.Add()

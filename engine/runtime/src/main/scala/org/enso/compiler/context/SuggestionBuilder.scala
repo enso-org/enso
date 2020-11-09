@@ -31,8 +31,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     */
   def build(module: String, ir: IR): Tree.Root[Suggestion] = {
     type TreeBuilder =
-      mutable.Builder[Tree.Leaf[Suggestion], Vector[Tree.Leaf[Suggestion]]]
-    def go(tree: TreeBuilder, scope: Scope): Vector[Tree.Leaf[Suggestion]] = {
+      mutable.Builder[Tree.Node[Suggestion], Vector[Tree.Node[Suggestion]]]
+    def go(tree: TreeBuilder, scope: Scope): Vector[Tree.Node[Suggestion]] = {
       if (scope.queue.isEmpty) {
         tree.result()
       } else {
@@ -41,7 +41,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         ir match {
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
             val suggestions = buildAtom(module, name.name, arguments, doc)
-            go(tree ++= suggestions.map(Tree.Leaf(_, Vector())), scope)
+            go(tree ++= suggestions.map(Tree.Node(_, Vector())), scope)
 
           case IR.Module.Scope.Definition.Method
                 .Explicit(
@@ -69,7 +69,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               Vector.newBuilder,
               Scope(body.children, body.location)
             )
-            go(tree ++= methodOpt.map(Tree.Leaf(_, subforest)), scope)
+            go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
 
           case IR.Expression.Binding(
                 name,
@@ -91,7 +91,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               Vector.newBuilder,
               Scope(body.children, body.location)
             )
-            go(tree += Tree.Leaf(function, subforest), scope)
+            go(tree += Tree.Node(function, subforest), scope)
 
           case IR.Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
@@ -107,7 +107,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               Vector.newBuilder,
               Scope(expr.children, expr.location)
             )
-            go(tree += Tree.Leaf(local, subforest), scope)
+            go(tree += Tree.Node(local, subforest), scope)
 
           case _ =>
             go(tree, scope)

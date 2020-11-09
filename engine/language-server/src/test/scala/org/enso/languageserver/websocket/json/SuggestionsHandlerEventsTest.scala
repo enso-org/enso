@@ -29,7 +29,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           Vector(),
           Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.atom,
                   Api.SuggestionAction.Add()
@@ -78,13 +78,13 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           Vector(),
           Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.atom,
                   Api.SuggestionAction.Modify()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
                       Api.SuggestionAction.Add()
@@ -145,19 +145,19 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           Vector(),
           Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.atom,
                   Api.SuggestionAction.Modify()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
                       Api.SuggestionAction.Modify()
                     ),
                     Vector(
-                      Tree.Leaf(
+                      Tree.Node(
                         Api.SuggestionUpdate(
                           Suggestions.function,
                           Api.SuggestionAction.Add()
@@ -235,25 +235,25 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           Vector(),
           Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.atom,
                   Api.SuggestionAction.Modify()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
                       Api.SuggestionAction.Modify()
                     ),
                     Vector(
-                      Tree.Leaf(
+                      Tree.Node(
                         Api.SuggestionUpdate(
                           Suggestions.function,
                           Api.SuggestionAction.Modify()
                         ),
                         Vector(
-                          Tree.Leaf(
+                          Tree.Node(
                             Api.SuggestionUpdate(
                               Suggestions.local,
                               Api.SuggestionAction.Add()
@@ -432,7 +432,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           Vector(),
           Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestions.atom,
                   Api.SuggestionAction.Modify(
@@ -440,13 +440,13 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   )
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestions.method,
                       Api.SuggestionAction.Modify()
                     ),
                     Vector(
-                      Tree.Leaf(
+                      Tree.Node(
                         Api.SuggestionUpdate(
                           Suggestions.function,
                           Api.SuggestionAction.Modify(
@@ -454,7 +454,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                           )
                         ),
                         Vector(
-                          Tree.Leaf(
+                          Tree.Node(
                             Api.SuggestionUpdate(
                               Suggestions.local,
                               Api.SuggestionAction.Modify(

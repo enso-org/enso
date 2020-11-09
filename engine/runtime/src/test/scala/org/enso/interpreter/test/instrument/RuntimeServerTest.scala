@@ -465,7 +465,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -484,7 +484,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -583,7 +583,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -602,7 +602,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -701,7 +701,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -716,7 +716,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -815,7 +815,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -830,7 +830,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -929,7 +929,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -948,7 +948,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -1028,7 +1028,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -1042,7 +1042,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainX),
@@ -1059,7 +1059,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainY),
@@ -1076,7 +1076,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainZ),
@@ -1095,7 +1095,7 @@ class RuntimeServerTest
                   )
                 )
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -1112,7 +1112,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idFooY),
@@ -1129,7 +1129,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idFooZ),
@@ -1265,7 +1265,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -1279,7 +1279,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(idResult),
@@ -1413,7 +1413,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -1427,7 +1427,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(idMainA),
@@ -1445,7 +1445,7 @@ class RuntimeServerTest
                   )
                 )
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idPie),
@@ -1462,7 +1462,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idUwu),
@@ -1479,7 +1479,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idHie),
@@ -1496,7 +1496,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idXxx),
@@ -1792,7 +1792,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -1806,7 +1806,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(id1),
@@ -1824,7 +1824,7 @@ class RuntimeServerTest
                   )
                 )
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -1842,7 +1842,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -2091,7 +2091,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -2197,7 +2197,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -2292,7 +2292,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     Some(idMain),
@@ -2306,7 +2306,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainX),
@@ -2323,7 +2323,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainY),
@@ -2340,7 +2340,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainZ),
@@ -2359,7 +2359,7 @@ class RuntimeServerTest
                   )
                 )
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -2376,7 +2376,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idFooY),
@@ -2393,7 +2393,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idFooZ),
@@ -2512,7 +2512,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -2568,7 +2568,7 @@ class RuntimeServerTest
           actions = Vector(),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -3715,7 +3715,7 @@ class RuntimeServerTest
             Vector(Api.SuggestionsDatabaseAction.Clean("Test.Visualisation")),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -3733,7 +3733,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -3895,7 +3895,7 @@ class RuntimeServerTest
             Vector(Api.SuggestionsDatabaseAction.Clean("Test.Visualisation")),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -3913,7 +3913,7 @@ class RuntimeServerTest
                 ),
                 Vector()
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -3942,7 +3942,7 @@ class RuntimeServerTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -3956,7 +3956,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainX),
@@ -3973,7 +3973,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainY),
@@ -3990,7 +3990,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idMainZ),
@@ -4009,7 +4009,7 @@ class RuntimeServerTest
                   )
                 )
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -4026,7 +4026,7 @@ class RuntimeServerTest
                   Api.SuggestionAction.Add()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idFooY),
@@ -4043,7 +4043,7 @@ class RuntimeServerTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         Some(context.Main.idFooZ),

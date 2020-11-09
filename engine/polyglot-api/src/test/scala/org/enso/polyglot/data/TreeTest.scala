@@ -7,18 +7,18 @@ class TreeTest extends AnyWordSpec with Matchers {
 
   val tree: Tree.Root[Long] = Tree.Root(
     Vector(
-      Tree.Leaf(
+      Tree.Node(
         1,
         Vector(
-          Tree.Leaf(5, Vector()),
-          Tree.Leaf(6, Vector())
+          Tree.Node(5, Vector()),
+          Tree.Node(6, Vector())
         )
       ),
-      Tree.Leaf(2, Vector()),
-      Tree.Leaf(
+      Tree.Node(2, Vector()),
+      Tree.Node(
         3,
         Vector(
-          Tree.Leaf(4, Vector())
+          Tree.Node(4, Vector())
         )
       )
     )
@@ -29,18 +29,18 @@ class TreeTest extends AnyWordSpec with Matchers {
     "map" in {
       val expected = Tree.Root(
         Vector(
-          Tree.Leaf(
+          Tree.Node(
             10,
             Vector(
-              Tree.Leaf(50, Vector()),
-              Tree.Leaf(60, Vector())
+              Tree.Node(50, Vector()),
+              Tree.Node(60, Vector())
             )
           ),
-          Tree.Leaf(20, Vector()),
-          Tree.Leaf(
+          Tree.Node(20, Vector()),
+          Tree.Node(
             30,
             Vector(
-              Tree.Leaf(40, Vector())
+              Tree.Node(40, Vector())
             )
           )
         )
@@ -51,11 +51,11 @@ class TreeTest extends AnyWordSpec with Matchers {
     "filter root" in {
       val expected = Tree.Root(
         Vector(
-          Tree.Leaf(
+          Tree.Node(
             1,
             Vector(
-              Tree.Leaf(5, Vector()),
-              Tree.Leaf(6, Vector())
+              Tree.Node(5, Vector()),
+              Tree.Node(6, Vector())
             )
           )
         )
@@ -67,8 +67,8 @@ class TreeTest extends AnyWordSpec with Matchers {
     "filter nodes" in {
       val expected = Tree.Root(
         Vector(
-          Tree.Leaf(1, Vector()),
-          Tree.Leaf(2, Vector())
+          Tree.Node(1, Vector()),
+          Tree.Node(2, Vector())
         )
       )
 
@@ -82,18 +82,18 @@ class TreeTest extends AnyWordSpec with Matchers {
     "zip roots" in {
       val tree1 = Tree.Root(
         Vector(
-          Tree.Leaf(
+          Tree.Node(
             1,
-            Vector(Tree.Leaf(10, Vector()))
+            Vector(Tree.Node(10, Vector()))
           ),
-          Tree.Leaf(
+          Tree.Node(
             2,
             Vector(
-              Tree.Leaf(20, Vector()),
-              Tree.Leaf(
+              Tree.Node(20, Vector()),
+              Tree.Node(
                 21,
                 Vector(
-                  Tree.Leaf(210, Vector())
+                  Tree.Node(210, Vector())
                 )
               )
             )
@@ -103,39 +103,39 @@ class TreeTest extends AnyWordSpec with Matchers {
 
       val tree2 = Tree.Root(
         Vector(
-          Tree.Leaf(
+          Tree.Node(
             2,
             Vector(
-              Tree.Leaf(21, Vector()),
-              Tree.Leaf(22, Vector())
+              Tree.Node(21, Vector()),
+              Tree.Node(22, Vector())
             )
           ),
-          Tree.Leaf(
+          Tree.Node(
             3,
-            Vector(Tree.Leaf(30, Vector()))
+            Vector(Tree.Node(30, Vector()))
           )
         )
       )
 
       val expected = Tree.Root(
         Vector(
-          Tree.Leaf(These.Here(1), Vector(Tree.Leaf(These.Here(10), Vector()))),
-          Tree.Leaf(
+          Tree.Node(These.Here(1), Vector(Tree.Node(These.Here(10), Vector()))),
+          Tree.Node(
             These.Both(2, 2),
             Vector(
-              Tree.Leaf(These.Here(20), Vector()),
-              Tree.Leaf(
+              Tree.Node(These.Here(20), Vector()),
+              Tree.Node(
                 These.Both(21, 21),
                 Vector(
-                  Tree.Leaf(These.Here(210), Vector())
+                  Tree.Node(These.Here(210), Vector())
                 )
               ),
-              Tree.Leaf(These.There(22), Vector())
+              Tree.Node(These.There(22), Vector())
             )
           ),
-          Tree.Leaf(
+          Tree.Node(
             These.There(3),
-            Vector(Tree.Leaf(These.There(30), Vector()))
+            Vector(Tree.Node(These.There(30), Vector()))
           )
         )
       )
@@ -146,41 +146,41 @@ class TreeTest extends AnyWordSpec with Matchers {
 
   "zip nodes" in {
     val tree1 =
-      Tree.Leaf(
+      Tree.Node(
         2,
         Vector(
-          Tree.Leaf(20, Vector()),
-          Tree.Leaf(
+          Tree.Node(20, Vector()),
+          Tree.Node(
             21,
             Vector(
-              Tree.Leaf(210, Vector())
+              Tree.Node(210, Vector())
             )
           )
         )
       )
 
     val tree2 =
-      Tree.Leaf(
+      Tree.Node(
         2,
         Vector(
-          Tree.Leaf(21, Vector()),
-          Tree.Leaf(22, Vector())
+          Tree.Node(21, Vector()),
+          Tree.Node(22, Vector())
         )
       )
 
     val expected = Tree.Root(
       Vector(
-        Tree.Leaf(
+        Tree.Node(
           These.Both(2, 2),
           Vector(
-            Tree.Leaf(These.Here(20), Vector()),
-            Tree.Leaf(
+            Tree.Node(These.Here(20), Vector()),
+            Tree.Node(
               These.Both(21, 21),
               Vector(
-                Tree.Leaf(These.Here(210), Vector())
+                Tree.Node(These.Here(210), Vector())
               )
             ),
-            Tree.Leaf(These.There(22), Vector())
+            Tree.Node(These.There(22), Vector())
           )
         )
       )

@@ -159,7 +159,7 @@ class SuggestionUpdatesTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -213,7 +213,7 @@ class SuggestionUpdatesTest
           actions = Vector(),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -229,7 +229,7 @@ class SuggestionUpdatesTest
                   Api.SuggestionAction.Modify()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         None,
@@ -289,7 +289,7 @@ class SuggestionUpdatesTest
           actions = Vector(),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -305,7 +305,7 @@ class SuggestionUpdatesTest
                   Api.SuggestionAction.Modify()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         None,
@@ -328,7 +328,7 @@ class SuggestionUpdatesTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         None,
@@ -385,7 +385,7 @@ class SuggestionUpdatesTest
           actions = Vector(),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -401,7 +401,7 @@ class SuggestionUpdatesTest
                   Api.SuggestionAction.Modify()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         None,
@@ -424,7 +424,7 @@ class SuggestionUpdatesTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         None,
@@ -491,7 +491,7 @@ class SuggestionUpdatesTest
           actions = Vector(),
           updates = Tree.Root(
             Vector(
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
@@ -507,7 +507,7 @@ class SuggestionUpdatesTest
                   Api.SuggestionAction.Modify()
                 ),
                 Vector(
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         None,
@@ -530,7 +530,7 @@ class SuggestionUpdatesTest
                     ),
                     Vector()
                   ),
-                  Tree.Leaf(
+                  Tree.Node(
                     Api.SuggestionUpdate(
                       Suggestion.Local(
                         None,
@@ -555,7 +555,7 @@ class SuggestionUpdatesTest
                   )
                 )
               ),
-              Tree.Leaf(
+              Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
                     None,
