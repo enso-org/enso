@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::constants::keywords;
 use crate::double_representation::module::QualifiedName;
 use crate::model::module::MethodId;
 use crate::notification;
@@ -139,13 +140,13 @@ impl Entry {
     }
 
     /// Returns the code which should be inserted to Searcher input when suggestion is picked.
-    pub fn code_to_insert(&self, this_var:Option<&str>) -> String {
+    pub fn code_to_insert
+    (&self, this_var:Option<&str>, current_module:Option<&QualifiedName>) -> String {
         let module_name = self.module.name();
         if self.has_self_type(&module_name) {
-            format!("{}.{}",this_var.unwrap_or(module_name),self.name)
-        } else if self.self_type.as_ref().contains(&constants::keywords::HERE) {
-            // TODO [mwu] When this happens? The *type* likely should not be "here".
-            format!("{}.{}",constants::keywords::HERE,self.name)
+            let module_var = if current_module.contains(&&self.module) {keywords::HERE}
+                else {module_name};
+            format!("{}.{}",this_var.unwrap_or(module_var),self.name)
         } else if let Some(this_var) = this_var {
             format!("{}.{}",this_var,self.name)
         } else {
@@ -430,11 +431,12 @@ mod test {
 
     #[test]
     fn code_from_entry() {
-        let module = QualifiedName::from_segments("Project",&["Main"]).unwrap();
+        let module         = QualifiedName::from_text("Project.Main").unwrap();
+        let another_module = QualifiedName::from_text("Project.AnotherModule").unwrap();
         let atom_entry = Entry {
             name          : "Atom".to_string(),
             kind          : EntryKind::Atom,
-            module,
+            module        : module.clone(),
             arguments     : vec![],
             return_type   : "Number".to_string(),
             documentation : None,
@@ -454,14 +456,40 @@ mod test {
         };
 
         let this_var = None;
-        assert_eq!(atom_entry.code_to_insert(this_var)         , "Atom");
-        assert_eq!(method_entry.code_to_insert(this_var)       , "method");
-        assert_eq!(module_method_entry.code_to_insert(this_var), "Main.moduleMethod");
+        let current_module = None;
+        assert_eq!(atom_entry.code_to_insert(this_var,current_module)         , "Atom");
+        assert_eq!(method_entry.code_to_insert(this_var,current_module)       , "method");
+        assert_eq!(module_method_entry.code_to_insert(this_var,current_module), "Main.moduleMethod");
 
         let this_var = Some("var");
-        assert_eq!(atom_entry.code_to_insert(this_var)         , "var.Atom");
-        assert_eq!(method_entry.code_to_insert(this_var)       , "var.method");
-        assert_eq!(module_method_entry.code_to_insert(this_var), "var.moduleMethod");
+        let current_module = None;
+        assert_eq!(atom_entry.code_to_insert(this_var,current_module)         , "var.Atom");
+        assert_eq!(method_entry.code_to_insert(this_var,current_module)       , "var.method");
+        assert_eq!(module_method_entry.code_to_insert(this_var,current_module), "var.moduleMethod");
+
+        let this_var = None;
+        let current_module = Some(&module);
+        assert_eq!(atom_entry.code_to_insert(this_var,current_module)         , "Atom");
+        assert_eq!(method_entry.code_to_insert(this_var,current_module)       , "method");
+        assert_eq!(module_method_entry.code_to_insert(this_var,current_module), "here.moduleMethod");
+
+        let this_var = Some("var");
+        let current_module = Some(&module);
+        assert_eq!(atom_entry.code_to_insert(this_var,current_module)         , "var.Atom");
+        assert_eq!(method_entry.code_to_insert(this_var,current_module)       , "var.method");
+        assert_eq!(module_method_entry.code_to_insert(this_var,current_module), "var.moduleMethod");
+
+        let this_var = None;
+        let current_module = Some(&another_module);
+        assert_eq!(atom_entry.code_to_insert(this_var,current_module)         , "Atom");
+        assert_eq!(method_entry.code_to_insert(this_var,current_module)       , "method");
+        assert_eq!(module_method_entry.code_to_insert(this_var,current_module), "Main.moduleMethod");
+
+        let this_var = Some("var");
+        let current_module = Some(&another_module);
+        assert_eq!(atom_entry.code_to_insert(this_var,current_module)         , "var.Atom");
+        assert_eq!(method_entry.code_to_insert(this_var,current_module)       , "var.method");
+        assert_eq!(module_method_entry.code_to_insert(this_var,current_module), "var.moduleMethod");
     }
 
     #[test]

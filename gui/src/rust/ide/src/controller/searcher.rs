@@ -311,8 +311,10 @@ pub struct FragmentAddedByPickingSuggestion {
 
 impl FragmentAddedByPickingSuggestion {
     /// Check if the picked fragment is still unmodified by user.
-    fn is_still_unmodified(&self, input:&ParsedInput, this_var:Option<&str>) -> bool {
-        input.completed_fragment(self.id).contains(&self.picked_suggestion.code_to_insert(this_var))
+    fn is_still_unmodified
+    (&self, input:&ParsedInput, this_var:Option<&str>, current_module:&QualifiedName) -> bool {
+        let expected_code = &self.picked_suggestion.code_to_insert(this_var,Some(current_module));
+        input.completed_fragment(self.id).contains(expected_code)
     }
 }
 
@@ -336,9 +338,13 @@ impl Data {
     /// Additionally searcher should restore information about intended method, so we will be able
     /// to suggest arguments.
     fn new_with_edited_node
-    (graph:&controller::Graph, database:&model::SuggestionDatabase, edited_node_id:ast::Id)
-    -> FallibleResult<Self> {
+    ( project_name   : &str
+    , graph          : &controller::Graph
+    , database       : &model::SuggestionDatabase
+    , edited_node_id : ast::Id
+    ) -> FallibleResult<Self> {
         let edited_node      = graph.node(edited_node_id)?;
+        let current_module   = graph.module.path().qualified_module_name(project_name);
         let input            = ParsedInput::new_from_ast(edited_node.info.expression());
         let suggestions      = default();
         let intended_method  = edited_node.metadata.and_then(|md| md.intended_method);
@@ -351,7 +357,7 @@ impl Data {
             // When editing node, we don't have any special handling for "this" node.
             // This might be revisited in the future.
             let this_var = None;
-            fragment.is_still_unmodified(&input,this_var).and_option(Some(fragment))
+            fragment.is_still_unmodified(&input,this_var,&current_module).and_option(Some(fragment))
         });
         let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
         initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
@@ -408,7 +414,7 @@ impl Searcher {
         let logger   = Logger::sub(parent,"Searcher Controller");
         let database = project.suggestion_db();
         let data     = if let Mode::EditNode{node_id} = mode {
-            Data::new_with_edited_node(&graph.graph(),&*database,node_id)?
+            Data::new_with_edited_node(&*project.name(),&graph.graph(),&*database,node_id)?
         } else {
             default()
         };
@@ -479,7 +485,8 @@ impl Searcher {
     /// Code depends on the location, as the first fragment can introduce `this` variable access.
     fn code_to_insert(&self, suggestion:&suggestion::Completion, id:CompletedFragmentId) -> String {
         let var = self.this_var_for(id);
-        suggestion.code_to_insert(var)
+        let current_module = self.module_qualified_name();
+        suggestion.code_to_insert(var,Some(&current_module))
     }
 
     /// Pick a completion suggestion.
@@ -539,11 +546,12 @@ impl Searcher {
     ///
     /// False if it was modified after picking or if it wasn't picked at all.
     pub fn is_function_fragment_unmodified(&self) -> bool {
-        let this_var = self.this_var();
+        let this_var       = self.this_var();
+        let current_module = self.module_qualified_name();
         with(self.data.borrow(), |data| {
             data.fragments_added_by_picking.first().contains_if(|frag| {
                 let is_function = frag.id == CompletedFragmentId::Function;
-                is_function && frag.is_still_unmodified(&data.input,this_var)
+                is_function && frag.is_still_unmodified(&data.input,this_var,&current_module)
             })
         })
     }
@@ -583,12 +591,13 @@ impl Searcher {
     }
 
     fn invalidate_fragments_added_by_picking(&self) {
-        let mut data = self.data.borrow_mut();
-        let data     = data.deref_mut();
-        let input    = &data.input;
+        let mut data       = self.data.borrow_mut();
+        let data           = data.deref_mut();
+        let input          = &data.input;
+        let current_module = self.module_qualified_name();
         data.fragments_added_by_picking.drain_filter(|frag| {
             let this = self.this_var_for(frag.id);
-            !frag.is_still_unmodified(input,this)
+            !frag.is_still_unmodified(input,this,&current_module)
         });
     }
 
@@ -830,6 +839,7 @@ pub mod test {
     use crate::model::suggestion_database::Scope;
     use crate::model::suggestion_database::Argument;
     use crate::test::mock::data::MAIN_FINISH;
+    use crate::test::mock::data::PROJECT_NAME;
 
     use enso_protocol::language_server::types::test::value_update_with_type;
     use json_rpc::expect_call;
@@ -870,10 +880,10 @@ pub mod test {
 
         fn expect_completion
         ( &self
-        , client:&mut language_server::MockClient
-        , self_type:Option<&str>
-        , return_type:Option<&str>
-        , result:&[SuggestionId]
+        , client      : &mut language_server::MockClient
+        , self_type   : Option<&str>
+        , return_type : Option<&str>
+        , result      : &[SuggestionId]
         ) {
             let completion_response = completion_response(result);
             expect_call!(client.completion(
@@ -1431,7 +1441,7 @@ pub mod test {
         let database = searcher.database;
 
         // Node had not intended method.
-        let searcher_data = Data::new_with_edited_node(&graph,&database,node_id).unwrap();
+        let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
         assert!(searcher_data.suggestions.is_loading());
@@ -1445,7 +1455,7 @@ pub mod test {
         graph.module.with_node_metadata(node_id, Box::new(|md| {
             md.intended_method = Some(intended_method);
         })).unwrap();
-        let searcher_data = Data::new_with_edited_node(&graph,&database,node_id).unwrap();
+        let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
         assert!(searcher_data.suggestions.is_loading());
@@ -1453,7 +1463,7 @@ pub mod test {
         // Node had up-to-date intended method.
         graph.set_expression(node_id,"Test.testMethod1 12").unwrap();
         // We set metadata in previous section.
-        let searcher_data = Data::new_with_edited_node(&graph,&database,node_id).unwrap();
+        let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), "Test.testMethod1 12");
         assert!(searcher_data.suggestions.is_loading());
         let (initial_fragment,) = searcher_data.fragments_added_by_picking.expect_tuple();

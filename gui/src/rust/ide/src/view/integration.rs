@@ -1135,7 +1135,7 @@ impl DataProviderForView {
             EntryKind::Local    => "Local variable",
             EntryKind::Method   => "Method",
         };
-        format!("{} `{}`\n\nNo documentation available", title,suggestion.code_to_insert(None))
+        format!("{} `{}`\n\nNo documentation available", title,suggestion.code_to_insert(None,None))
     }
 }
 
