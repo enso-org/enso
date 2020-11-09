@@ -141,7 +141,7 @@ object Tree {
   ): Tree[These[A, B]] = {
     type TreeBuilder =
       mutable.Builder[Tree.Node[These[A, B]], Vector[Tree.Node[These[A, B]]]]
-    def go(
+    def zipImpl(
       res: TreeBuilder,
       t1: mutable.Queue[Tree.Node[A]],
       t2: mutable.Queue[Tree.Node[B]]
@@ -156,18 +156,18 @@ object Tree {
         val l1 = t1.dequeue()
         t2.dequeueFirst(l => p(l1.element, l.element)) match {
           case Some(l2) =>
-            val subforest = go(
+            val subforest = zipImpl(
               Vector.newBuilder,
               mutable.Queue(l1.children: _*),
               mutable.Queue(l2.children: _*)
             )
-            go(
+            zipImpl(
               res += Node(These.Both(l1.element, l2.element), subforest),
               t1,
               t2
             )
           case None =>
-            go(res += mapNode(l1)(These.Here(_)), t1, t2)
+            zipImpl(res += mapNode(l1)(These.Here(_)), t1, t2)
         }
       }
     }
@@ -175,14 +175,14 @@ object Tree {
     ((t1, t2): @unchecked) match {
       case (r1: Root[A] @unchecked, r2: Root[B] @unchecked) =>
         Root(
-          go(
+          zipImpl(
             Vector.newBuilder,
             mutable.Queue(r1.children: _*),
             mutable.Queue(r2.children: _*)
           )
         )
       case (l1: Node[A] @unchecked, l2: Node[B] @unchecked) =>
-        Root(go(Vector.newBuilder, mutable.Queue(l1), mutable.Queue(l2)))
+        Root(zipImpl(Vector.newBuilder, mutable.Queue(l1), mutable.Queue(l2)))
     }
   }
 
