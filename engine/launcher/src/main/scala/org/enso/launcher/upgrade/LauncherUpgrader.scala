@@ -437,7 +437,7 @@ object LauncherUpgrader {
       } else {
         logger.warn(
           s"A more recent launcher version (at least " +
-          s"${upgradeRequiredError.expectedLauncherVersion}) is required to " +
+          s"${upgradeRequiredError.expectedVersion}) is required to " +
           s"continue."
         )
         CLIOutput.askConfirmation(

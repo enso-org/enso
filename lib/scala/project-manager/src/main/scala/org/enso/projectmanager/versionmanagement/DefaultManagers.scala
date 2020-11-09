@@ -9,7 +9,11 @@ import org.enso.runtimeversionmanager.distribution.{
   TemporaryDirectoryManager
 }
 import org.enso.runtimeversionmanager.locking.{FileLockManager, ResourceManager}
-import org.enso.runtimeversionmanager.releases.engine.EngineRepository
+import org.enso.runtimeversionmanager.releases.ReleaseProvider
+import org.enso.runtimeversionmanager.releases.engine.{
+  EngineRelease,
+  EngineRepository
+}
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 
 object DefaultManagers extends DistributionManagementConfiguration {
@@ -25,6 +29,9 @@ object DefaultManagers extends DistributionManagementConfiguration {
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, resourceManager)
 
+  lazy val engineReleaseProvider: ReleaseProvider[EngineRelease] =
+    EngineRepository.defaultEngineReleaseProvider
+
   def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager =
@@ -33,7 +40,7 @@ object DefaultManagers extends DistributionManagementConfiguration {
       distributionManager       = distributionManager,
       temporaryDirectoryManager = temporaryDirectoryManager,
       resourceManager           = resourceManager,
-      engineReleaseProvider     = EngineRepository.defaultEngineReleaseProvider,
+      engineReleaseProvider     = engineReleaseProvider,
       runtimeReleaseProvider    = GraalCEReleaseProvider
     )
 }

@@ -1,5 +1,7 @@
 package org.enso.projectmanager.service
 
+import nl.gn0s1s.bump.SemVer
+
 /** Base interface for project service failures.
   */
 sealed trait ProjectServiceFailure
@@ -61,4 +63,20 @@ object ProjectServiceFailure {
     */
   case class LanguageServerFailure(msg: String) extends ProjectServiceFailure
 
+  case class MissingComponentFailure(msg: String) extends ProjectServiceFailure
+
+  case class BrokenComponentFailure(msg: String) extends ProjectServiceFailure
+
+  case class ProjectManagerUpgradeRequiredFailure(
+    minimumRequiredVersion: SemVer
+  ) extends ProjectServiceFailure
+
+  case class ComponentInstallationFailure(msg: String)
+      extends ProjectServiceFailure
+
+  case class ComponentUninstallationFailure(msg: String)
+      extends ProjectServiceFailure
+
+  case class ComponentRepositoryAccessFailure(msg: String)
+      extends ProjectServiceFailure
 }

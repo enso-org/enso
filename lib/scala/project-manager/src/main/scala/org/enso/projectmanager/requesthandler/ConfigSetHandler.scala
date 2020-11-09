@@ -16,7 +16,10 @@ import scala.concurrent.duration.FiniteDuration
 class ConfigSetHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: GlobalConfigServiceApi[F],
   requestTimeout: FiniteDuration
-) extends TimedRequestHandler[F, GlobalConfigServiceFailure](requestTimeout) {
+) extends RequestHandler[F, GlobalConfigServiceFailure](
+      ConfigSet,
+      Some(requestTimeout)
+    ) {
   override def handleRequest
     : PartialFunction[Any, F[GlobalConfigServiceFailure, Any]] = {
     case Request(ConfigSet, id, params: ConfigSet.Params) =>

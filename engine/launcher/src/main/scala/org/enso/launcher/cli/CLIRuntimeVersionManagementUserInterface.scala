@@ -21,9 +21,11 @@ class CLIRuntimeVersionManagementUserInterface(
 ) extends RuntimeVersionManagementUserInterface {
 
   /** @inheritdoc */
-  override def trackProgress(task: TaskProgress[_]): Unit =
+  override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
+    logInfo(message)
     if (cliOptions.hideProgress) ()
     else ProgressBar.waitWithProgress(task)
+  }
 
   private val logger = Logger[CLIRuntimeVersionManagementUserInterface]
 

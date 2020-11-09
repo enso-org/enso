@@ -22,6 +22,7 @@ import org.enso.projectmanager.protocol.{
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service.{
   MonadicProjectValidator,
   ProjectService,
@@ -105,12 +106,16 @@ class MainModule[
 
   lazy val globalConfigService = new GlobalConfigService[F](DefaultManagers)
 
+  lazy val runtimeVersionManagementService =
+    new RuntimeVersionManagementService[F](DefaultManagers)
+
   lazy val clientControllerFactory =
     new ManagerClientControllerFactory[F](
-      system,
-      projectService,
-      globalConfigService,
-      config.timeout
+      system                          = system,
+      projectService                  = projectService,
+      globalConfigService             = globalConfigService,
+      runtimeVersionManagementService = runtimeVersionManagementService,
+      timeoutConfig                   = config.timeout
     )
 
   lazy val server = new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)

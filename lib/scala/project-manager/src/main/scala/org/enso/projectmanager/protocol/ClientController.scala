@@ -15,6 +15,7 @@ import org.enso.projectmanager.protocol.ProjectManagementApi._
 import org.enso.projectmanager.requesthandler._
 import org.enso.projectmanager.service.ProjectServiceApi
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.annotation.unused
@@ -31,6 +32,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap](
   clientId: UUID,
   projectService: ProjectServiceApi[F],
   globalConfigService: GlobalConfigServiceApi[F],
+  runtimeVersionManagementService: RuntimeVersionManagementServiceApi[F],
   timeoutConfig: TimeoutConfig
 ) extends Actor
     with ActorLogging
@@ -55,10 +57,20 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap](
         .props[F](clientId, projectService, timeoutConfig.requestTimeout),
       ProjectRename -> ProjectRenameHandler
         .props[F](projectService, timeoutConfig.requestTimeout),
-      EngineListInstalled -> NotImplementedHandler.props,
-      EngineListAvailable -> NotImplementedHandler.props,
-      EngineInstall       -> NotImplementedHandler.props,
-      EngineUninstall     -> NotImplementedHandler.props,
+      EngineListInstalled -> EngineListInstalledHandler.props(
+        runtimeVersionManagementService,
+        timeoutConfig.requestTimeout
+      ),
+      EngineListAvailable -> EngineListAvailableHandler.props(
+        runtimeVersionManagementService,
+        timeoutConfig.requestTimeout
+      ),
+      EngineInstall -> EngineInstallHandler.props(
+        runtimeVersionManagementService
+      ),
+      EngineUninstall -> EngineUninstallHandler.props(
+        runtimeVersionManagementService
+      ),
       ConfigGet -> ConfigGetHandler
         .props(globalConfigService, timeoutConfig.requestTimeout),
       ConfigSet -> ConfigSetHandler
@@ -104,14 +116,16 @@ object ClientController {
     clientId: UUID,
     projectService: ProjectServiceApi[F],
     globalConfigService: GlobalConfigServiceApi[F],
+    runtimeVersionManagementService: RuntimeVersionManagementServiceApi[F],
     config: TimeoutConfig
   ): Props =
     Props(
       new ClientController(
-        clientId            = clientId,
-        projectService      = projectService,
-        globalConfigService = globalConfigService,
-        timeoutConfig       = config: TimeoutConfig
+        clientId                        = clientId,
+        projectService                  = projectService,
+        globalConfigService             = globalConfigService,
+        runtimeVersionManagementService = runtimeVersionManagementService,
+        timeoutConfig                   = config: TimeoutConfig
       )
     )
 

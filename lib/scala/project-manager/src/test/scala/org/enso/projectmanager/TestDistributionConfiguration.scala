@@ -34,7 +34,7 @@ import scala.util.{Failure, Success, Try}
 
 class TestDistributionConfiguration(
   distributionRoot: Path,
-  engineReleaseProvider: ReleaseProvider[EngineRelease],
+  override val engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
 ) extends DistributionManagementConfiguration
     with FakeEnvironment {

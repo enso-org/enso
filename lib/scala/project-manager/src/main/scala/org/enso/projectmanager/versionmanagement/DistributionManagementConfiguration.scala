@@ -9,11 +9,14 @@ import org.enso.runtimeversionmanager.distribution.{
   TemporaryDirectoryManager
 }
 import org.enso.runtimeversionmanager.locking.ResourceManager
+import org.enso.runtimeversionmanager.releases.ReleaseProvider
+import org.enso.runtimeversionmanager.releases.engine.EngineRelease
 
 trait DistributionManagementConfiguration {
   def distributionManager:       DistributionManager
   def resourceManager:           ResourceManager
   def temporaryDirectoryManager: TemporaryDirectoryManager
+  def engineReleaseProvider:     ReleaseProvider[EngineRelease]
 
   def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface

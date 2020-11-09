@@ -25,6 +25,7 @@ import org.enso.projectmanager.protocol.{
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import pureconfig.ConfigSource
@@ -122,16 +123,25 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       languageServerGateway
     )
 
-  lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
+  lazy val distributionConfiguration =
     TestDistributionConfiguration.withoutReleases(testDistributionRoot.toPath)
+
+  lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
+    distributionConfiguration
   )
+
+  lazy val runtimeVersionManagementService =
+    new RuntimeVersionManagementService[ZIO[ZEnv, +*, +*]](
+      distributionConfiguration
+    )
 
   override def clientControllerFactory: ClientControllerFactory = {
     new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
-      system,
-      projectService,
-      globalConfigService,
-      timeoutConfig
+      system                          = system,
+      projectService                  = projectService,
+      globalConfigService             = globalConfigService,
+      runtimeVersionManagementService = runtimeVersionManagementService,
+      timeoutConfig                   = timeoutConfig
     )
   }
 

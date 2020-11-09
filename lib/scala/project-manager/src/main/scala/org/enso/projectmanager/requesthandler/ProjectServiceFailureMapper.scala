@@ -26,6 +26,17 @@ object ProjectServiceFailureMapper {
     case CannotRemoveOpenProject    => CannotRemoveOpenProjectError
     case ProjectOperationTimeout    => ServiceError
     case LanguageServerFailure(msg) => LanguageServerError(msg)
+    case ProjectManagerUpgradeRequiredFailure(version) =>
+      ProjectManagerUpgradeRequired(version)
+    case MissingComponentFailure(msg)      => MissingComponentError(msg)
+    case BrokenComponentFailure(msg)       => BrokenComponentError(msg)
+    case ComponentInstallationFailure(msg) => ComponentInstallationError(msg)
+    case ComponentRepositoryAccessFailure(msg) =>
+      ComponentRepositoryUnavailable(msg)
+    case ComponentUninstallationFailure(msg) =>
+      ComponentUninstallationError(msg)
   }
 
+  implicit val failureMapper: FailureMapper[ProjectServiceFailure] =
+    (failure: ProjectServiceFailure) => mapFailure(failure)
 }

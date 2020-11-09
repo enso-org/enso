@@ -13,7 +13,7 @@ trait RuntimeVersionManagementUserInterface extends LockUserInterface {
     *
     * Can be used to track its progress.
     */
-  def trackProgress(task: TaskProgress[_]): Unit
+  def trackProgress(message: String, task: TaskProgress[_]): Unit
 
   /** Called when an operation requires an engine that is not available.
     *

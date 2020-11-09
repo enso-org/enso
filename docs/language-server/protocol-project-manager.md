@@ -506,7 +506,7 @@ interface TaskStartNotification {
    * May be missing, as it is not always known, for example when downloading a
    * file of unknown size or waiting on a lock.
    */
-  total?: Int;
+  total?: Long;
 }
 ```
 
@@ -529,7 +529,7 @@ interface TaskUpdateNotification {
   message?: String;
 
   /** Indicates amount of progress, for example: count of processed bytes. */
-  done: Int;
+  done: Long;
 }
 ```
 

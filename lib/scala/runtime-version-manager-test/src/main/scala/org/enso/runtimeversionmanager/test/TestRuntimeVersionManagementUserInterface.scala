@@ -18,7 +18,7 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
   private val logger = Logger[TestRuntimeVersionManagementUserInterface]
 
   /** @inheritdoc */
-  override def trackProgress(task: TaskProgress[_]): Unit = ()
+  override def trackProgress(message: String, task: TaskProgress[_]): Unit = ()
 
   /** @inheritdoc */
   override def shouldInstallBrokenEngine(version: SemVer): Boolean = {

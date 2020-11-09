@@ -355,22 +355,23 @@ class RuntimeVersionManager(
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
       logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
-      userInterface.logInfo(s"Downloading ${enginePackage.getFileName}.")
-      val downloadTask = engineRelease.downloadPackage(enginePackage)
-      userInterface.trackProgress(downloadTask)
+      val downloadTask  = engineRelease.downloadPackage(enginePackage)
+      userInterface.trackProgress(
+        s"Downloading ${enginePackage.getFileName}.",
+        downloadTask
+      )
       downloadTask.force()
 
       val engineDirectoryName =
         engineDirectoryNameForVersion(engineRelease.version)
 
-      userInterface.logInfo(s"Extracting the engine.")
       val extractionTask = Archive
         .extractArchive(
           enginePackage,
           temporaryDirectoryManager.accessTemporaryDirectory(),
           Some(engineDirectoryName)
         )
-      userInterface.trackProgress(extractionTask)
+      userInterface.trackProgress("Extracting the engine.", extractionTask)
       extractionTask.force()
 
       val engineTemporaryPath =
@@ -603,21 +604,22 @@ class RuntimeVersionManager(
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
-      userInterface.logInfo(s"Downloading ${runtimePackage.getFileName}.")
       val downloadTask =
         runtimeReleaseProvider.downloadPackage(runtimeVersion, runtimePackage)
-      userInterface.trackProgress(downloadTask)
+      userInterface.trackProgress(
+        s"Downloading ${runtimePackage.getFileName}.",
+        downloadTask
+      )
       downloadTask.force()
 
       val runtimeDirectoryName = graalDirectoryForVersion(runtimeVersion)
 
-      userInterface.logInfo(s"Extracting the runtime.")
       val extractionTask = Archive.extractArchive(
         runtimePackage,
         temporaryDirectoryManager.accessTemporaryDirectory(),
         Some(runtimeDirectoryName)
       )
-      userInterface.trackProgress(extractionTask)
+      userInterface.trackProgress("Extracting the runtime.", extractionTask)
       extractionTask.force()
 
       val runtimeTemporaryPath =

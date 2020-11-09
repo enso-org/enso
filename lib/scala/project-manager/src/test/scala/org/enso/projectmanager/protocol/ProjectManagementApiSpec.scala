@@ -769,8 +769,30 @@ class ProjectManagementApiSpec
 
   }
 
-  "engine/install" must {
-    "parse correctly (despite not being implemented)" in {
+  "engine/*" must {
+    "report no installed engines" in {
+      implicit val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "engine/list-installed",
+              "id": 0
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result" : {
+              "versions" : []
+            }
+          }
+          """)
+    }
+
+    // TODO [RW] add these tests
+    "report available engines" ignore {}
+
+    "install and uninstall the engine and reflect changes in list" ignore {
       // TODO [RW] this is just a stub test for parsing, it should be replaced
       //  with actual tests once this functionality is implemented
       implicit val client = new WsTestClient(address)
@@ -794,6 +816,8 @@ class ProjectManagementApiSpec
           }
           """)
     }
+
+    "only install broken releases if specifically asked to" ignore {}
   }
 
 }

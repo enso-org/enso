@@ -121,7 +121,7 @@ object ProjectManagementApi {
       taskId: UUID,
       relatedOperation: String,
       unit: ProgressUnit,
-      total: Option[Int]
+      total: Option[Long]
     )
 
     implicit val hasParams = new HasParams[this.type] {
@@ -134,7 +134,7 @@ object ProjectManagementApi {
     case class Params(
       taskId: UUID,
       message: Option[String],
-      done: Int
+      done: Long
     )
 
     implicit val hasParams = new HasParams[this.type] {

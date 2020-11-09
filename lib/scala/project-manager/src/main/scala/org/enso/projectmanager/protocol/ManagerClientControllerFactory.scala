@@ -9,6 +9,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.service.ProjectServiceApi
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
 
 /** Project manager client controller factory.
   *
@@ -18,6 +19,7 @@ class ManagerClientControllerFactory[F[+_, +_]: Exec: CovariantFlatMap](
   system: ActorSystem,
   projectService: ProjectServiceApi[F],
   globalConfigService: GlobalConfigServiceApi[F],
+  runtimeVersionManagementService: RuntimeVersionManagementServiceApi[F],
   timeoutConfig: TimeoutConfig
 ) extends ClientControllerFactory {
 
@@ -29,7 +31,13 @@ class ManagerClientControllerFactory[F[+_, +_]: Exec: CovariantFlatMap](
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
       ClientController
-        .props[F](clientId, projectService, globalConfigService, timeoutConfig),
+        .props[F](
+          clientId,
+          projectService,
+          globalConfigService,
+          runtimeVersionManagementService,
+          timeoutConfig
+        ),
       s"jsonrpc-connection-controller-$clientId"
     )
 

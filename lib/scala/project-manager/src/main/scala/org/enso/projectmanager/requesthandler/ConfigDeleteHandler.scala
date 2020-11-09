@@ -16,7 +16,10 @@ import scala.concurrent.duration.FiniteDuration
 class ConfigDeleteHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: GlobalConfigServiceApi[F],
   requestTimeout: FiniteDuration
-) extends TimedRequestHandler[F, GlobalConfigServiceFailure](requestTimeout) {
+) extends RequestHandler[F, GlobalConfigServiceFailure](
+      ConfigDelete,
+      Some(requestTimeout)
+    ) {
   override def handleRequest
     : PartialFunction[Any, F[GlobalConfigServiceFailure, Any]] = {
     case Request(ConfigDelete, id, params: ConfigDelete.Params) =>
