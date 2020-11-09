@@ -160,7 +160,7 @@ class SuggestionsHandlerSpec
           )
         )
 
-        // check that database entries removed
+        // check that all database entries are removed
         val (_, all) = Await.result(repo.getAll, Timeout)
         all shouldEqual Seq()
     }
@@ -412,7 +412,7 @@ class SuggestionsHandlerSpec
           )
         )
 
-        // check that database entries removed
+        // check that all database entries are removed
         val (_, all) = Await.result(repo.getAll, Timeout)
         all shouldEqual Seq()
     }
