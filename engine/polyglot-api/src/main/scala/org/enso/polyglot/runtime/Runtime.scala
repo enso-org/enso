@@ -317,6 +317,60 @@ object Runtime {
       expression: String
     )
 
+    /** An operation applied to the suggestion argument. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionArgumentAction.Add],
+          name  = "suggestionArgumentActionAdd"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionArgumentAction.Remove],
+          name  = "suggestionArgumentActionRemove"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionArgumentAction.Modify],
+          name  = "suggestionArgumentActionModify"
+        )
+      )
+    )
+    sealed trait SuggestionArgumentAction
+    object SuggestionArgumentAction {
+
+      /** Add the argument to a list.
+        *
+        * @param index the position of the argument
+        * @param argument the argument to add
+        */
+      case class Add(index: Int, argument: Suggestion.Argument)
+          extends SuggestionArgumentAction
+
+      /** Remove the argument from a list.
+        *
+        * @param index the position of the arugment
+        */
+      case class Remove(index: Int) extends SuggestionArgumentAction
+
+      /** Modify the argument at the specified index.
+        *
+        * @param index the position of the argument
+        * @param name the name to update
+        * @param reprType the argument type to update
+        * @param isSuspended the suspended flag to update
+        * @param hasDefault the default flag to update
+        * @param defaultValue the default value to update
+        */
+      case class Modify(
+        index: Int,
+        name: Option[String]                 = None,
+        reprType: Option[String]             = None,
+        isSuspended: Option[Boolean]         = None,
+        hasDefault: Option[Boolean]          = None,
+        defaultValue: Option[Option[String]] = None
+      ) extends SuggestionArgumentAction
+    }
+
     /** An operation applied to the update */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
@@ -354,7 +408,7 @@ object Runtime {
         */
       case class Modify(
         externalId: Option[Option[Suggestion.ExternalId]] = None,
-        arguments: Option[Seq[Suggestion.Argument]]       = None,
+        arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
         scope: Option[Suggestion.Scope]                   = None

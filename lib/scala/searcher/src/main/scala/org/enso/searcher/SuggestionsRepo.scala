@@ -3,6 +3,7 @@ package org.enso.searcher
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
+  SuggestionArgumentAction,
   SuggestionUpdate,
   SuggestionsDatabaseAction
 }
@@ -116,7 +117,7 @@ trait SuggestionsRepo[F[_]] {
   def update(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[Suggestion.Argument]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope]

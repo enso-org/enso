@@ -579,6 +579,81 @@ class SuggestionUpdatesTest
       ),
       context.executionComplete(contextId)
     )
+    context.consumeOut shouldEqual List("51")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(2, 4), model.Position(2, 14)),
+              "a b = a * b"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |foo a b = a * b
+              |
+              |main =
+              |    x = 42
+              |    y : Number
+              |    y = 9
+              |    IO.println x+y
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Modify(
+                    None,
+                    Some(
+                      List(
+                        Api.SuggestionArgumentAction
+                          .Modify(1, Some("a"), None, None, None, None),
+                        Api.SuggestionArgumentAction.Add(
+                          2,
+                          Suggestion.Argument("b", "Any", false, false, None)
+                        )
+                      )
+                    ),
+                    None,
+                    None,
+                    None
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("51")
   }
 
 }

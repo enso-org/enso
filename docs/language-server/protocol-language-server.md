@@ -30,6 +30,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
+  - [`FieldAction`](#fieldaction)
+  - [`FieldUpdate`](#fieldupdate)
+  - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -409,6 +412,67 @@ interface FieldUpdate<T> {
 }
 ```
 
+### `SuggestionArgumentUpdate`
+
+An operation applied to the suggestion argument.
+
+#### Format
+
+```typescript
+type SuggestionArgumentUpdate = Add | Remove | Modify;
+
+interface Add {
+  /**
+   * The position of the argument.
+   */
+  index: int;
+
+  /**
+   * The argument to add.
+   */
+  argument: SuggestionEntryArgument;
+}
+
+interface Remove {
+  /**
+   * The position of the argument.
+   */
+  index: int;
+}
+
+interface Modify {
+  /**
+   * The position of the argument.
+   */
+  index: int;
+
+  /**
+   * The name to update.
+   */
+  name?: FieldUpdate<String>;
+
+  /**
+   * The argument type to update.
+   */
+  reprType?: FieldUpdate<String>;
+
+  /**
+   * The isSuspended flag to update.
+   */
+  isSuspended?: FieldUpdate<Boolean>;
+
+  /**
+   * The hasDefault flag to update.
+   */
+  hasDefault?: FieldUpdate<Boolean>;
+
+  /**
+   * The default value to update.
+   */
+  defaultValue?: FieldUpdate<String>;
+}
+```
+
 ### `SuggestionsDatabaseUpdate`
 
 The update of the suggestions database.
@@ -452,9 +516,9 @@ interface Modify {
   externalId?: FieldUpdate<UUID>;
 
   /**
-   * The list of arguments to update.
+   * The list of argument updates.
    */
-  arguments?: FieldUpdate<SuggestionEntryArgument[]>;
+  arguments?: SuggestionArgumentUpdate[];
 
   /**
    * The return type to update.

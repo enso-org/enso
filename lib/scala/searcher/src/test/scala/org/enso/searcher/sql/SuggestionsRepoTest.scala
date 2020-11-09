@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -511,13 +512,12 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       s shouldEqual Some(suggestion.local.copy(scope = newScope))
     }
 
-    "update suggestion arguments" taggedAs Retry in withRepo { repo =>
+    "remove suggestion arguments" taggedAs Retry in withRepo { repo =>
       val newArgs = Seq(
-        Suggestion.Argument("x", "X", true, false, None),
-        Suggestion.Argument("y", "Y", true, false, Some("YYY"))
+        Api.SuggestionArgumentAction.Remove(1)
       )
       val action = for {
-        (v1, Seq(_, id1, _, _)) <- repo.insertAll(
+        (v1, Seq(id1, _, _, _)) <- repo.insertAll(
           Seq(
             suggestion.atom,
             suggestion.method,
@@ -526,7 +526,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           )
         )
         (v2, id2) <- repo.update(
-          suggestion.method,
+          suggestion.atom,
           None,
           Some(newArgs),
           None,
@@ -538,7 +538,84 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
       v1 should not equal v2
       id1 shouldEqual id2
-      s shouldEqual Some(suggestion.method.copy(arguments = newArgs))
+      s shouldEqual Some(
+        suggestion.atom.copy(arguments = suggestion.atom.arguments.init)
+      )
+    }
+
+    "add suggestion arguments" taggedAs Retry in withRepo { repo =>
+      val newArgs = Seq(
+        Api.SuggestionArgumentAction.Add(2, suggestion.atom.arguments(0)),
+        Api.SuggestionArgumentAction.Add(3, suggestion.atom.arguments(1))
+      )
+      val action = for {
+        (v1, Seq(id1, _, _, _)) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.atom,
+          None,
+          Some(newArgs),
+          None,
+          None,
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(
+        suggestion.atom.copy(arguments =
+          suggestion.atom.arguments ++ suggestion.atom.arguments
+        )
+      )
+    }
+
+    "update suggestion arguments" taggedAs Retry in withRepo { repo =>
+      val newArgs = Seq(
+        Api.SuggestionArgumentAction.Modify(
+          1,
+          Some("c"),
+          Some("C"),
+          Some(true),
+          Some(true),
+          Some(Some("C"))
+        )
+      )
+      val action = for {
+        (v1, Seq(id1, _, _, _)) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.atom,
+          None,
+          Some(newArgs),
+          None,
+          None,
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(
+        suggestion.atom.copy(arguments =
+          suggestion.atom.arguments.init :+
+          Suggestion.Argument("c", "C", true, true, Some("C"))
+        )
+      )
     }
 
     "update suggestion empty request" taggedAs Retry in withRepo { repo =>

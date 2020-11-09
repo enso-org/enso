@@ -18,6 +18,15 @@ object SuggestionDiff {
     Tree
       .zipBy(prev, current)(compare)
       .map(diff)
+      .filter {
+        case Api.SuggestionUpdate(
+              _,
+              Api.SuggestionAction.Modify(None, None, None, None, None)
+            ) =>
+          false
+        case _ =>
+          true
+      }
 
   /** Compare two suggestions for equality.
     *
@@ -57,6 +66,70 @@ object SuggestionDiff {
         throw new IllegalStateException(s"Illegal diff: $e1, $e2")
     }
 
+  private def zipArguments(
+    as: Seq[Suggestion.Argument],
+    bs: Seq[Suggestion.Argument]
+  ): Seq[These[Suggestion.Argument, Suggestion.Argument]] = {
+    val acc = Vector.newBuilder[These[Suggestion.Argument, Suggestion.Argument]]
+    val (b, unmatched) =
+      as.foldLeft((acc, bs)) {
+        case ((acc, b +: bs), a) =>
+          (acc += These.Both(a, b), bs)
+        case ((acc, Seq()), a) =>
+          (acc += These.Here(a), Seq())
+      }
+    unmatched.foreach(arg => b += These.There(arg))
+    b.result()
+  }
+
+  private def diffArguments(
+    as: Seq[Suggestion.Argument],
+    bs: Seq[Suggestion.Argument]
+  ): Seq[Api.SuggestionArgumentAction] =
+    zipArguments(as, bs).zipWithIndex
+      .map {
+        case (These.Here(_), idx)    => Api.SuggestionArgumentAction.Remove(idx)
+        case (These.There(a), idx)   => Api.SuggestionArgumentAction.Add(idx, a)
+        case (These.Both(a, b), idx) => diffArgument(idx, a, b)
+      }
+      .filter {
+        case Api.SuggestionArgumentAction.Modify(
+              _,
+              None,
+              None,
+              None,
+              None,
+              None
+            ) =>
+          false
+        case _ =>
+          true
+      }
+
+  private def diffArgument(
+    index: Int,
+    a: Suggestion.Argument,
+    b: Suggestion.Argument
+  ): Api.SuggestionArgumentAction = {
+    var op = Api.SuggestionArgumentAction.Modify(index)
+    if (a.name != b.name) {
+      op = op.copy(name = Some(b.name))
+    }
+    if (a.reprType != b.reprType) {
+      op = op.copy(reprType = Some(b.reprType))
+    }
+    if (a.isSuspended != b.isSuspended) {
+      op.copy(isSuspended = Some(b.isSuspended))
+    }
+    if (a.hasDefault != b.hasDefault) {
+      op.copy(hasDefault = Some(b.hasDefault))
+    }
+    if (a.defaultValue != b.defaultValue) {
+      op.copy(defaultValue = Some(b.defaultValue))
+    }
+    op
+  }
+
   private def diffAtoms(
     e1: Suggestion.Atom,
     e2: Suggestion.Atom
@@ -66,7 +139,7 @@ object SuggestionDiff {
       op = op.copy(externalId = Some(e2.externalId))
     }
     if (e1.arguments != e2.arguments) {
-      op = op.copy(arguments = Some(e2.arguments))
+      op = op.copy(arguments = Some(diffArguments(e1.arguments, e2.arguments)))
     }
     if (e1.returnType != e2.returnType) {
       op = op.copy(returnType = Some(e2.returnType))
@@ -86,7 +159,7 @@ object SuggestionDiff {
       op = op.copy(externalId = Some(e2.externalId))
     }
     if (e1.arguments != e2.arguments) {
-      op = op.copy(arguments = Some(e2.arguments))
+      op = op.copy(arguments = Some(diffArguments(e1.arguments, e2.arguments)))
     }
     if (e1.returnType != e2.returnType) {
       op = op.copy(returnType = Some(e2.returnType))
@@ -106,7 +179,7 @@ object SuggestionDiff {
       op = op.copy(externalId = Some(e2.externalId))
     }
     if (e1.arguments != e2.arguments) {
-      op = op.copy(arguments = Some(e2.arguments))
+      op = op.copy(arguments = Some(diffArguments(e1.arguments, e2.arguments)))
     }
     if (e1.returnType != e2.returnType) {
       op = op.copy(returnType = Some(e2.returnType))

@@ -436,7 +436,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 Api.SuggestionUpdate(
                   Suggestions.atom,
                   Api.SuggestionAction.Modify(
-                    arguments = Some(Suggestions.function.arguments)
+                    arguments = Some(
+                      Seq(
+                        Api.SuggestionArgumentAction
+                          .Modify(0, reprType = Some("A")),
+                        Api.SuggestionArgumentAction
+                          .Add(1, Suggestions.function.arguments(1))
+                      )
+                    )
                   )
                 ),
                 Vector(
@@ -482,32 +489,27 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
               {
                 "type" : "Modify",
                 "id" : 1,
-                "arguments" : {
-                  "tag" : "Set",
-                  "value" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null
-                    },
-                    {
+                "arguments" : [
+                  {
+                    "type" : "Modify",
+                    "index" : 0,
+                    "reprType" : {
+                      "tag" : "Set",
+                      "value" : "A"
+                    }
+                  },
+                  {
+                    "type" : "Add",
+                    "index" : 1,
+                    "argument" : {
                       "name" : "b",
                       "reprType" : "Any",
                       "isSuspended" : true,
                       "hasDefault" : false,
                       "defaultValue" : null
-                    },
-                    {
-                      "name" : "c",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : true,
-                      "defaultValue" : "C"
                     }
-                  ]
-                }
+                  }
+                ]
               },
               {
                 "type" : "Modify",

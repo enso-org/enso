@@ -7,6 +7,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
   SuggestionAction,
+  SuggestionArgumentAction,
   SuggestionUpdate,
   SuggestionsDatabaseAction
 }
@@ -106,7 +107,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   override def update(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[Suggestion.Argument]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope]
@@ -441,7 +442,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def updateQuery(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[Suggestion.Argument]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope]
@@ -470,7 +471,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def updateSuggestionQuery(
     suggestion: Suggestion,
     externalId: Option[Option[Suggestion.ExternalId]],
-    arguments: Option[Seq[Suggestion.Argument]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope]
@@ -515,15 +516,14 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       }
       r5 <- DBIO.sequenceOption {
         arguments.map { args =>
-          def argRows(suggestionId: Long): Seq[ArgumentRow] =
-            args.zipWithIndex.map { case (arg, idx) =>
-              toArgumentRow(suggestionId, idx, arg)
-            }
+          def updateArgs(suggestionId: Long): DBIO[Seq[Int]] =
+            DBIO.sequence(
+              args.map(updateSuggestionArgumentQuery(suggestionId, _))
+            )
           for {
             idOpt <- query.map(_.id).result.headOption
-            _     <- Arguments.filter(_.suggestionId === idOpt).delete
-            r     <- DBIO.sequenceOption(idOpt.map(id => Arguments ++= argRows(id)))
-          } yield r.map(_.size)
+            r     <- DBIO.sequenceOption(idOpt.map(updateArgs))
+          } yield r.map(_.sum)
         }
       }
     } yield (r1 ++ r2 ++ r3 ++ r4 ++ r5.flatten).sum
@@ -532,6 +532,54 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       n  <- updateQ
       _  <- if (n > 0) incrementVersionQuery else DBIO.successful(())
     } yield if (n > 0) id else None
+  }
+
+  private def updateSuggestionArgumentQuery(
+    suggestionId: Long,
+    action: SuggestionArgumentAction
+  ): DBIO[Int] = {
+    val argsQuery = Arguments.filter(_.suggestionId === suggestionId)
+    action match {
+      case SuggestionArgumentAction.Add(index, argument) =>
+        for {
+          _ <- argsQuery.filter(_.index === index).delete
+          n <- Arguments += toArgumentRow(suggestionId, index, argument)
+        } yield n
+      case SuggestionArgumentAction.Remove(index) =>
+        for {
+          n <- argsQuery.filter(_.index === index).delete
+        } yield n
+      case SuggestionArgumentAction.Modify(
+            index,
+            nameOpt,
+            tpeOpt,
+            suspendedOpt,
+            defaultOpt,
+            valueOpt
+          ) =>
+        val argQuery = argsQuery.filter(_.index === index)
+        for {
+          r1 <- DBIO.sequenceOption {
+            nameOpt.map(name => argQuery.map(_.name).update(name))
+          }
+          r2 <- DBIO.sequenceOption {
+            tpeOpt.map(tpe => argQuery.map(_.tpe).update(tpe))
+          }
+          r3 <- DBIO.sequenceOption {
+            suspendedOpt.map(suspended =>
+              argQuery.map(_.isSuspended).update(suspended)
+            )
+          }
+          r4 <- DBIO.sequenceOption {
+            defaultOpt.map(default =>
+              argQuery.map(_.hasDefault).update(default)
+            )
+          }
+          r5 <- DBIO.sequenceOption {
+            valueOpt.map(value => argQuery.map(_.defaultValue).update(value))
+          }
+        } yield Seq(r1, r2, r3, r4, r5).flatten.sum
+    }
   }
 
   /** The query to update a list of suggestions by external id.

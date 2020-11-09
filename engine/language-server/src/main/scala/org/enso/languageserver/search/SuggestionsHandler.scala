@@ -331,7 +331,7 @@ final class SuggestionsHandler(
                 SuggestionsDatabaseUpdate.Modify(
                   id            = id,
                   externalId    = m.externalId.map(fieldUpdateOption),
-                  arguments     = m.arguments.map(fieldUpdate),
+                  arguments     = m.arguments.map(_.map(toApiArgumentAction)),
                   returnType    = m.returnType.map(fieldUpdate),
                   documentation = m.documentation.map(fieldUpdateOption),
                   scope         = m.scope.map(fieldUpdate)
@@ -363,6 +363,37 @@ final class SuggestionsHandler(
     */
   private def fieldUpdate[A](value: A): FieldUpdate[A] =
     FieldUpdate(FieldAction.Set, Some(value))
+
+  /** Construct [[SuggestionArgumentUpdate]] from the runtime message.
+    *
+    * @param action the runtime message
+    * @return the [[SuggestionArgumentUpdate]] message
+    */
+  private def toApiArgumentAction(
+    action: Api.SuggestionArgumentAction
+  ): SuggestionArgumentUpdate =
+    action match {
+      case Api.SuggestionArgumentAction.Add(index, argument) =>
+        SuggestionArgumentUpdate.Add(index, argument)
+      case Api.SuggestionArgumentAction.Remove(index) =>
+        SuggestionArgumentUpdate.Remove(index)
+      case Api.SuggestionArgumentAction.Modify(
+            index,
+            name,
+            reprType,
+            isSuspended,
+            hasDefault,
+            defaultValue
+          ) =>
+        SuggestionArgumentUpdate.Modify(
+          index,
+          name.map(fieldUpdate),
+          reprType.map(fieldUpdate),
+          isSuspended.map(fieldUpdate),
+          hasDefault.map(fieldUpdate),
+          defaultValue.map(fieldUpdateOption)
+        )
+    }
 
   /** Build the module name from the requested file path.
     *

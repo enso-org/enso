@@ -204,15 +204,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           .build(moduleName, module.getIr)
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
-        .filter {
-          case Api.SuggestionUpdate(
-                _,
-                Api.SuggestionAction.Modify(None, None, None, None, None)
-              ) =>
-            false
-          case _ =>
-            true
-        }
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = new File(module.getPath),
         version = version,

@@ -241,7 +241,12 @@ class SuggestionsHandlerSpec
               Api.SuggestionUpdate(
                 Suggestions.atom,
                 Api.SuggestionAction.Modify(
-                  arguments = Some(Suggestions.function.arguments)
+                  arguments = Some(
+                    Seq(
+                      Api.SuggestionArgumentAction
+                        .Modify(0, reprType = Some("A"))
+                    )
+                  )
                 )
               ),
               Vector()
@@ -292,9 +297,15 @@ class SuggestionsHandlerSpec
           SearchProtocol.SuggestionsDatabaseUpdate.Modify(
             1L,
             arguments = Some(
-              SearchProtocol.FieldUpdate(
-                SearchProtocol.FieldAction.Set,
-                Some(Suggestions.function.arguments)
+              Seq(
+                SearchProtocol.SuggestionArgumentUpdate
+                  .Modify(
+                    0,
+                    reprType = Some(
+                      SearchProtocol
+                        .FieldUpdate(SearchProtocol.FieldAction.Set, Some("A"))
+                    )
+                  )
               )
             )
           ),
