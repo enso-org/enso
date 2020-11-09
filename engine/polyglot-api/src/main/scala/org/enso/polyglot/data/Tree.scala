@@ -21,6 +21,25 @@ import scala.collection.mutable
 )
 sealed trait Tree[+A] {
 
+  /** Build a new tree by applying a function to all elements of this tree.
+    *
+    * @param f the function to apply to each element
+    * @return the new tree after applying the function `f` to elements
+    */
+  @JsonIgnore
+  final def map[B](f: A => B): Tree[B] =
+    Tree.map(this)(f)
+
+  /** Selects all elements which satisfy a predicate.
+    *
+    * @param p the predicate used to test elements
+    * @return a new tree consisting of all elements of this tree that satisfy
+    * the given predicate p.
+    */
+  @JsonIgnore
+  final def filter(p: A => Boolean): Tree[A] =
+    Tree.filter(this)(p)
+
   /** Fold the elements using the specified associative binary operator.
     *
     * @param acc the neutral element for the fold operation
@@ -31,6 +50,32 @@ sealed trait Tree[+A] {
   @JsonIgnore
   final def fold[B](acc: B)(f: (B, A) => B): B =
     Tree.fold(this, acc)(f)
+
+  /** Join this and that trees using the equality function.
+    *
+    * @param that the tree to join with
+    * @return the result of joining this and that trees
+    */
+  @JsonIgnore
+  final def zip[B](that: Tree[B]): Tree[These[A, B]] =
+    Tree.zip(this, that)
+
+  /** Join this and that trees using the binary function p to tests the
+    * matching element.
+    *
+    * For each node on the corresponding tree level:
+    * - return `Here` if the node presents in this tree
+    * - return `There` if the node presents in that tree
+    * - return `Both` if the node presents in both trees according to the
+    *   predicate p
+    *
+    * @param that the tree to join with
+    * @param p the predicate comparing the elements
+    * @return the result of joining this and that trees
+    */
+  @JsonIgnore
+  final def zipBy[B](that: Tree[B])(p: (A, B) => Boolean): Tree[These[A, B]] =
+    Tree.zipBy(this, that)(p)
 
   /** Check whether the tree is empty. */
   @JsonIgnore
@@ -51,53 +96,7 @@ object Tree {
       include = JsonTypeInfo.As.PROPERTY
     )
     children: Vector[Leaf[A]]
-  ) extends Tree[A] {
-
-    /** Build a new tree by applying a function to all elements of this tree.
-      *
-      * @param f the function to apply to each element
-      * @return the new tree after applying the function `f` to elements
-      */
-    @JsonIgnore
-    final def map[B](f: A => B): Root[B] =
-      Tree.map(this)(f)
-
-    /** Selects all elements which satisfy a predicate.
-      *
-      * @param p the predicate used to test elements
-      * @return a new tree consisting of all elements of this tree that satisfy
-      * the given predicate p.
-      */
-    @JsonIgnore
-    final def filter(p: A => Boolean): Root[A] =
-      Tree.filter(this)(p)
-
-    /** Join this and that trees using the equality function.
-      *
-      * @param that the tree to join with
-      * @return the result of joining this and that trees
-      */
-    @JsonIgnore
-    final def zip[B](that: Root[B]): Root[These[A, B]] =
-      Tree.zip(this, that)
-
-    /** Join this and that trees using the binary function p to tests the
-      * matching element.
-      *
-      * For each node on the corresponding tree level:
-      * - return `Here` if the node presents in this tree
-      * - return `There` if the node presents in that tree
-      * - return `Both` if the node presents in both trees according to the
-      *   predicate p
-      *
-      * @param that the tree to join with
-      * @param p the predicate comparing the elements
-      * @return the result of joining this and that trees
-      */
-    @JsonIgnore
-    final def zipBy[B](that: Root[B])(p: (A, B) => Boolean): Root[These[A, B]] =
-      Tree.zipBy(this, that)(p)
-  }
+  ) extends Tree[A]
 
   case class Leaf[+A](
     @JsonTypeInfo(
@@ -113,7 +112,7 @@ object Tree {
   ) extends Tree[A]
 
   /** An empty tree. */
-  def empty[A]: Root[A] = Root(Vector())
+  def empty[A]: Tree[A] = Root(Vector())
 
   /** Join this and that trees using the equality function.
     *
@@ -121,7 +120,7 @@ object Tree {
     * @param t2 the second tree to join
     * @return the result of joining two trees
     */
-  def zip[A, B](t1: Root[A], t2: Root[B]): Root[These[A, B]] =
+  def zip[A, B, T[_] <: Tree[_]](t1: T[A], t2: T[B]): Tree[These[A, B]] =
     zipBy(t1, t2)(_ == _)
 
   /** Join two trees using the binary function p to tests the matching element.
@@ -137,9 +136,9 @@ object Tree {
     * @param p the predicate comparing the elements
     * @return the result of joining two trees
     */
-  def zipBy[A, B](t1: Root[A], t2: Root[B])(
+  def zipBy[A, B, T[_] <: Tree[_]](t1: T[A], t2: T[B])(
     p: (A, B) => Boolean
-  ): Root[These[A, B]] = {
+  ): Tree[These[A, B]] = {
     type TreeBuilder =
       mutable.Builder[Tree.Leaf[These[A, B]], Vector[Tree.Leaf[These[A, B]]]]
     def go(
@@ -173,13 +172,18 @@ object Tree {
       }
     }
 
-    Root(
-      go(
-        Vector.newBuilder,
-        mutable.Queue(t1.children: _*),
-        mutable.Queue(t2.children: _*)
-      )
-    )
+    ((t1, t2): @unchecked) match {
+      case (r1: Root[A] @unchecked, r2: Root[B] @unchecked) =>
+        Root(
+          go(
+            Vector.newBuilder,
+            mutable.Queue(r1.children: _*),
+            mutable.Queue(r2.children: _*)
+          )
+        )
+      case (l1: Leaf[A] @unchecked, l2: Leaf[B] @unchecked) =>
+        Root(go(Vector.newBuilder, mutable.Queue(l1), mutable.Queue(l2)))
+    }
   }
 
   private def isEmpty[A](tree: Tree[A]): Boolean =
@@ -191,10 +195,15 @@ object Tree {
   private def mapLeaf[A, B](tree: Leaf[A])(f: A => B): Leaf[B] =
     Leaf(f(tree.element), tree.children.map(mapLeaf(_)(f)))
 
-  private def map[A, B](tree: Root[A])(f: A => B): Root[B] =
-    Root(tree.children.map(mapLeaf(_)(f)))
+  private def map[A, B](tree: Tree[A])(f: A => B): Tree[B] =
+    tree match {
+      case Root(cx) =>
+        Root(cx.map(mapLeaf(_)(f)))
+      case Leaf(a, cx) =>
+        Leaf(f(a), cx.map(mapLeaf(_)(f)))
+    }
 
-  private def filter[A](tree: Tree.Root[A])(p: A => Boolean): Root[A] = {
+  private def filter[A](tree: Tree[A])(p: A => Boolean): Tree[A] = {
     def filterLeaf(leaf: Tree.Leaf[A]): Option[Tree.Leaf[A]] = {
       val childrenFiltered = leaf.children.flatMap(filterLeaf)
       if (p(leaf.element)) {
@@ -206,7 +215,12 @@ object Tree {
       }
     }
 
-    Root(tree.children.flatMap(filterLeaf))
+    tree match {
+      case Root(cx) =>
+        Root(cx.flatMap(filterLeaf))
+      case l @ Leaf(_, _) =>
+        Root(filterLeaf(l).toVector)
+    }
   }
 
   private def fold[A, B](tree: Tree[A], acc: B)(f: (B, A) => B): B = {

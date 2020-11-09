@@ -64,7 +64,7 @@ class TreeTest extends AnyWordSpec with Matchers {
       tree.filter(_ > 4) shouldEqual expected
     }
 
-    "filter leaves" in {
+    "filter nodes" in {
       val expected = Tree.Root(
         Vector(
           Tree.Leaf(1, Vector()),
@@ -79,7 +79,7 @@ class TreeTest extends AnyWordSpec with Matchers {
       tree.fold(0L)(_ + _) shouldEqual 21L
     }
 
-    "zip" in {
+    "zip roots" in {
       val tree1 = Tree.Root(
         Vector(
           Tree.Leaf(
@@ -142,6 +142,51 @@ class TreeTest extends AnyWordSpec with Matchers {
 
       Tree.zip(tree1, tree2) shouldEqual expected
     }
+  }
+
+  "zip nodes" in {
+    val tree1 =
+      Tree.Leaf(
+        2,
+        Vector(
+          Tree.Leaf(20, Vector()),
+          Tree.Leaf(
+            21,
+            Vector(
+              Tree.Leaf(210, Vector())
+            )
+          )
+        )
+      )
+
+    val tree2 =
+      Tree.Leaf(
+        2,
+        Vector(
+          Tree.Leaf(21, Vector()),
+          Tree.Leaf(22, Vector())
+        )
+      )
+
+    val expected = Tree.Root(
+      Vector(
+        Tree.Leaf(
+          These.Both(2, 2),
+          Vector(
+            Tree.Leaf(These.Here(20), Vector()),
+            Tree.Leaf(
+              These.Both(21, 21),
+              Vector(
+                Tree.Leaf(These.Here(210), Vector())
+              )
+            ),
+            Tree.Leaf(These.There(22), Vector())
+          )
+        )
+      )
+    )
+
+    Tree.zip(tree1, tree2) shouldEqual expected
   }
 
 }

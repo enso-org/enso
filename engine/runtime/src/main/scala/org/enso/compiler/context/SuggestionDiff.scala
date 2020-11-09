@@ -12,9 +12,9 @@ object SuggestionDiff {
     * @return the tree with updates
     */
   def compute(
-    prev: Tree.Root[Suggestion],
-    current: Tree.Root[Suggestion]
-  ): Tree.Root[Api.SuggestionUpdate] =
+    prev: Tree[Suggestion],
+    current: Tree[Suggestion]
+  ): Tree[Api.SuggestionUpdate] =
     Tree
       .zipBy(prev, current)(compare)
       .map(diff)

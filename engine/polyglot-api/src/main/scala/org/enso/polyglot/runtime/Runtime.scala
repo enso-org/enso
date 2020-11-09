@@ -837,7 +837,7 @@ object Runtime {
       file: File,
       version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
-      updates: Tree.Root[SuggestionUpdate]
+      updates: Tree[SuggestionUpdate]
     ) extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
