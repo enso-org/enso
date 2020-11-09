@@ -11,7 +11,7 @@ use crate::prelude::logger::*;
 use crate::macros::definition::Definition;
 use crate::prelude::lexer::token;
 use crate::macros::registry::Registry;
-
+use crate::macros::builder::Builder;
 
 
 // ================
@@ -23,6 +23,10 @@ use crate::macros::registry::Registry;
 pub struct Resolver<Logger> {
     /// The macro registry.
     registry : Registry,
+    /// The stack of macro builders.
+    builder_stack : Vec<Builder>,
+    /// Whether or not the resolver's process is at the start of the line.
+    at_line_start : bool,
     /// The logger for the macro resolver.
     logger : Logger
 }
@@ -30,14 +34,37 @@ pub struct Resolver<Logger> {
 impl<Logger:AnyLogger<Owned=Logger>> Resolver<Logger> {
     /// Constructor.
     pub fn new(macros:Vec<Definition>, parent_logger:&Logger) -> Self {
-        let registry = Registry::from(macros);
-        let logger = <Logger>::sub(parent_logger,"Resolver");
-        Self{logger,registry}
+        let registry      = Registry::from(macros);
+        let builder_stack = default();
+        let at_line_start = true;
+        let logger        = <Logger>::sub(parent_logger,"Resolver");
+        Self{logger,builder_stack,at_line_start,registry}
     }
 
     /// Define the macro described by `definition` in the macro resolver `self`.
     pub fn define_macro(&mut self, definition:Definition) {
+        trace!(self.logger,"Define Macro: {&definition:?}.");
         self.registry.insert(definition)
+    }
+
+    /// Get a reference to the current builder.
+    pub fn current_builder(&self) -> Option<&Builder> {
+        self.builder_stack.last()
+    }
+
+    /// Get a mutable reference to the current builder.
+    pub fn current_builder_mut(&mut self) -> Option<&mut Builder> {
+        self.builder_stack.last_mut()
+    }
+
+    /// Push `builder` onto the builder stack.
+    pub fn push_builder(&mut self, builder:Builder) {
+        self.builder_stack.push(builder)
+    }
+
+    /// Pop the top builder off the stack.
+    pub fn pop_builder(&mut self) -> Option<Builder> {
+        self.builder_stack.pop()
     }
 
     /// Execute the macro resolver, returning the chunked token stream.
