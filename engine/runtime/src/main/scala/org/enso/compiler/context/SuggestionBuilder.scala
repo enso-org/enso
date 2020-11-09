@@ -212,7 +212,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         Suggestion.Local(externalId, module, name, Any, buildScope(location))
     }
 
-  /** Build suggestions of an atom definition. */
+  /** Build suggestions for an atom definition. */
   private def buildAtom(
     module: String,
     name: String,

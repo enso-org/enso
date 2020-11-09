@@ -19,7 +19,13 @@ object SuggestionDiff {
       .zipBy(prev, current)(compare)
       .map(diff)
 
-  /** Compare two suggestions for equality. */
+  /** Compare two suggestions for equality.
+    *
+    * It is used to find a matching suggestion when joining the previous and
+    * the current suggestion trees. Since there is no stable identifier between
+    * the two trees, we assume that there are no two suggestions in the same
+    * module in the same scope with the same name of the same kind.
+    */
   private def compare(a: Suggestion, b: Suggestion): Boolean =
     a.name == b.name &&
     a.module == b.module &&
