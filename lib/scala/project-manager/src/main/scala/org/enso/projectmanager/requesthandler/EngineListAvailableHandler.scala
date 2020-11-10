@@ -24,10 +24,11 @@ class EngineListAvailableHandler[F[+_, +_]: Exec: CovariantFlatMap](
     case Request(EngineListAvailable, id, Unused) =>
       for {
         result <- service.listAvailableEngines()
+        sorted = result.sortBy(_.version).reverse
       } yield ResponseResult(
         EngineListAvailable,
         id,
-        EngineListAvailable.Result(result)
+        EngineListAvailable.Result(sorted)
       )
   }
 }

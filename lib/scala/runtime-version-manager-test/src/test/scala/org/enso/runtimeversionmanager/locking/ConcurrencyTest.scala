@@ -121,7 +121,7 @@ class ConcurrencyTest
     }
 
     val distributionManager = new DistributionManager(env)
-    val fakeReleasesRoot    = FakeReleases.path
+    val fakeReleasesRoot    = FakeReleases.releaseRoot
     val engineProvider = new EngineReleaseProvider(
       FakeReleaseProvider(
         fakeReleasesRoot.resolve("enso"),

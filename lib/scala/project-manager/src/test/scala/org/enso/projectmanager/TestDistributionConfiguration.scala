@@ -83,4 +83,15 @@ object TestDistributionConfiguration {
     )
   }
 
+  def apply(
+    distributionRoot: Path,
+    engineReleaseProvider: ReleaseProvider[EngineRelease],
+    runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
+  ): TestDistributionConfiguration =
+    new TestDistributionConfiguration(
+      distributionRoot,
+      engineReleaseProvider,
+      runtimeReleaseProvider
+    )
+
 }
