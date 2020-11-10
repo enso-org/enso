@@ -60,7 +60,7 @@ jobs:
       #          override: true
 
       - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
+        uses: ayltai/setup-graalvm@03e7b7557
         with:
           graalvm-version: ${{ env.graalVersion }}
           java-version: ${{ env.javaVersion }}

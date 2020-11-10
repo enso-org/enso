@@ -79,7 +79,7 @@ jobs:
       - name: Install FlatBuffers Compiler
         run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
+        uses: ayltai/setup-graalvm@03e7b7557
         with:
           graalvm-version: ${{ env.graalVersion }}
           java-version: ${{ env.javaVersion }}
