@@ -161,6 +161,6 @@ Suite.run ~specs =
                  it "should define multiplication" <|
                      2*3 . should_equal 6
 Suite.runMain ~specs =
-   r = this.run specs
-   code = if r.is_fail then 1 else 0
-   System.exit code
+    r = this.run specs
+    code = if r.is_fail then 1 else 0
+    System.exit code

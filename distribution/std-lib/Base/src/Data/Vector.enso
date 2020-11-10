@@ -226,6 +226,13 @@ type Vector
     to_json : Json.Array
     to_json = Json.Array (this.map to_json)
 
+    ## Get the first element from the vector.
+    head : Any | Nothing
+    head = if this.length >= 1 then this.at 0 else Nothing
+
+    ## Get the tail of the vector.
+    tail : Vector
+    tail = this.drop 1
 
 ## A builder type for Enso vectors.
 

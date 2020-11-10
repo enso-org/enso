@@ -47,3 +47,14 @@ spec = describe "Vectors" <|
         vec.filter (ix -> ix > 3) . should_equal [4, 5]
         vec.filter (ix -> ix == 1) . should_equal [1]
         vec.filter (ix -> ix < 0) . should_equal []
+    it "should allow getting the head element" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        empty_vec = []
+        non_empty_vec.head . should_equal 1
+        empty_vec.head . should_equal Nothing
+    it "should allow getting the tail of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        empty_vec = []
+        non_empty_vec.tail . should_equal [2, 3, 4, 5]
+        empty_vec.head . should_equal Nothing
+
