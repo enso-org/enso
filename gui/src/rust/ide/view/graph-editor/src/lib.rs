@@ -1342,12 +1342,13 @@ impl GraphEditorModel {
         edges
     }
 
-    pub fn clear_all_detached_edges(&self) {
-        let edges = self.edges.detached_source.mem_take();
-        edges.iter().for_each(|edge| {self.edges.all.remove(edge);});
-        let edges = self.edges.detached_target.mem_take();
-        edges.iter().for_each(|edge| {self.edges.all.remove(edge);});
+    pub fn clear_all_detached_edges(&self) -> Vec<EdgeId>{
+        let source_edges = self.edges.detached_source.mem_take();
+        source_edges.iter().for_each(|edge| {self.edges.all.remove(edge);});
+        let target_edges = self.edges.detached_target.mem_take();
+        target_edges.iter().for_each(|edge| {self.edges.all.remove(edge);});
         self.check_edge_attachment_status_and_emit_events();
+        source_edges.into_iter().chain(target_edges).collect()
     }
 
     fn check_edge_attachment_status_and_emit_events(&self) {
@@ -2396,7 +2397,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     node_to_enter           <= inputs.enter_selected_node.map(f_!(model.last_selected_node()));
     out.source.node_entered <+ node_to_enter;
+    removed_edges_on_enter  <= out.node_entered.map(f_!(model.model.clear_all_detached_edges()));
     out.source.node_exited  <+ inputs.exit_node;
+    removed_edges_on_exit   <= out.node_exited.map(f_!(model.model.clear_all_detached_edges()));
+    out.source.edge_removed <+ any(removed_edges_on_enter,removed_edges_on_exit);
 
 
     // === OUTPUTS REBIND ===
