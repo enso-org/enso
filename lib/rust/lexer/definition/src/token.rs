@@ -761,6 +761,11 @@ impl Stream {
     pub fn tokens_len(&self) -> usize {
         self.tokens.iter().map(|token|token.length + token.offset).sum()
     }
+
+    /// Get a consuming iterator over the token stream.
+    pub fn into_iter(self) -> std::vec::IntoIter<Token> {
+        self.tokens.into_iter()
+    }
 }
 
 impl Deref for Stream {

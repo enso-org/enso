@@ -11,7 +11,7 @@ use crate::macros::literal::Literal;
 // ================
 
 /// The type of the tree that underlies the registry.
-type Tree = crate::data::tree::Tree<Literal,Definition>;
+pub type Tree = crate::data::tree::Tree<Literal,Definition>;
 
 /// The registry is responsible for the registration of macro definitions, and the querying of said
 /// definitions.
@@ -27,8 +27,26 @@ impl Registry {
         self.tree.insert(definition.path().as_slice(),definition);
     }
 
+    /// Get a reference to the root of the registry.
+    pub fn root(&self) -> &Tree {
+        &self.tree
+    }
+
+    /// Query the registry for a tree.
+    pub fn query_tree(&self, path:&[Literal]) -> Option<&Tree> {
+        self.tree.get(path)
+    }
+
+    /// Query the registry for a tree, assuming such a tree is present.
+    ///
+    /// # Panics
+    /// If no tree exists at `path`.
+    pub fn unsafe_query_tree(&self, path:&[Literal]) -> &Tree {
+        self.query_tree(path).expect("A tree exists at the input path.")
+    }
+
     /// Query the registry for a definition.
-    pub fn query(&self, path:&[Literal]) -> Option<&Definition> {
+    pub fn query_definition(&self, path:&[Literal]) -> Option<&Definition> {
         self.tree.get_value(path)
     }
 
@@ -36,8 +54,8 @@ impl Registry {
     ///
     /// # Panics
     /// If no definition exists at `path`.
-    pub fn unsafe_query(&self, path:&[Literal]) -> &Definition {
-        self.query(path).expect("A definition exists at the input path.")
+    pub fn unsafe_query_definition(&self, path:&[Literal]) -> &Definition {
+        self.query_definition(path).expect("A definition exists at the input path.")
     }
 }
 
@@ -74,8 +92,8 @@ mod tests {
         let path_1 = &[Literal::variable("if"),Literal::variable("then"),Literal::variable("else")];
         let path_2 = &[Literal::variable("if"),Literal::variable("then")];
         registry.insert(definition.clone());
-        let result_1 = registry.query(path_1);
-        let result_2 = registry.query(path_2);
+        let result_1 = registry.query_definition(path_1);
+        let result_2 = registry.query_definition(path_2);
         assert!(result_1.is_some());
         assert_eq!(result_1.unwrap(),&definition);
         assert_eq!(result_2,None);
@@ -103,10 +121,10 @@ mod tests {
         let path_2   = &[Literal::variable("if"),Literal::variable("then")];
         let path_3   = &[Literal::variable("if"),Literal::variable("let")];
         let path_4   = &[Literal::variable("if")];
-        let result_1 = registry.query(path_1);
-        let result_2 = registry.query(path_2);
-        let result_3 = registry.query(path_3);
-        let result_4 = registry.query(path_4);
+        let result_1 = registry.query_definition(path_1);
+        let result_2 = registry.query_definition(path_2);
+        let result_3 = registry.query_definition(path_3);
+        let result_4 = registry.query_definition(path_4);
         assert!(result_1.is_some());
         assert!(result_2.is_some());
         assert!(result_3.is_some());

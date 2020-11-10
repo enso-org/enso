@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::prelude::lexer::token;
 
 
-
 // ===============
 // === Literal ===
 // ===============
@@ -66,6 +65,22 @@ impl From<Literal> for token::Shape {
             Literal::Blank           => token::Shape::Blank,
             Literal::Operator(str)   => token::Shape::Operator(str),
             Literal::Annotation(str) => token::Shape::Annotation(str),
+        }
+    }
+}
+
+impl TryFrom<token::Shape> for Literal {
+    type Error = token::Shape;
+
+    fn try_from(shape:token::Shape) -> Result<Self, Self::Error> {
+        match shape {
+            token::Shape::Referent(name)   => Ok(Literal::Referent(name)),
+            token::Shape::Variable(name)   => Ok(Literal::Variable(name)),
+            token::Shape::External(name)   => Ok(Literal::External(name)),
+            token::Shape::Blank            => Ok(Literal::Blank),
+            token::Shape::Operator(name)   => Ok(Literal::Operator(name)),
+            token::Shape::Annotation(name) => Ok(Literal::Annotation(name)),
+            _                              => Err(shape)
         }
     }
 }
