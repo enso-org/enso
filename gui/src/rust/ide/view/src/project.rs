@@ -217,9 +217,8 @@ impl View {
                     }
                 })
             );
-            editing_not_aborted          <- editing_aborted.map(|b| !b);
             let editing_finished         =  graph.output.node_editing_finished.clone_ref();
-            frp.source.editing_committed <+ editing_finished.gate(&editing_not_aborted);
+            frp.source.editing_committed <+ editing_finished.gate_not(&editing_aborted);
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
             editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
