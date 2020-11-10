@@ -527,9 +527,10 @@ lazy val `text-buffer` = project
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-      "org.typelevel"  %% "cats-core"  % catsVersion,
-      "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
-      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
+      "org.typelevel"   %% "cats-core"      % catsVersion,
+      "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
+      "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
+      "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
     )
   )
 
@@ -870,7 +871,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
-      "org.bouncycastle"            % "bcpkix-jdk15on"       % bcpkixJdk15Version,
       "dev.zio"                    %% "zio"                  % zioVersion,
       "io.methvin"                  % "directory-watcher"    % directoryWatcherVersion,
       "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,

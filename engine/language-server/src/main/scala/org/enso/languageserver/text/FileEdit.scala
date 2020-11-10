@@ -13,6 +13,6 @@ import org.enso.text.editing.model.TextEdit
 case class FileEdit(
   path: Path,
   edits: List[TextEdit],
-  oldVersion: Buffer.Version,
-  newVersion: Buffer.Version
+  oldVersion: TextApi.Version,
+  newVersion: TextApi.Version
 )

@@ -191,11 +191,11 @@ class StdlibRuntimeServerTest
     val collected = response.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, _, xs)
           ) =>
-        xs.nonEmpty shouldBe true
+        xs.isEmpty shouldBe false
     }
-    collected.nonEmpty shouldBe true
+    collected.isEmpty shouldBe false
 
     context.consumeOut shouldEqual List("Hello World!")
   }

@@ -8,10 +8,10 @@ import org.enso.compiler.pass.resolve.{
   TypeSignatures
 }
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.Tree
 import org.enso.syntax.text.Location
 import org.enso.text.editing.IndexedSource
 
-import scala.collection.immutable.VectorBuilder
 import scala.collection.mutable
 
 /** Module that extracts [[Suggestion]] entries from the [[IR]].
@@ -27,26 +27,22 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     *
     * @param module the module name
     * @param ir the input `IR`
-    * @return the list of suggestion entries extracted from the given `IR`
+    * @return the tree of suggestion entries extracted from the given `IR`
     */
-  def build(module: String, ir: IR): Vector[Suggestion] = {
-    @scala.annotation.tailrec
-    def go(
-      scope: Scope,
-      scopes: mutable.Queue[Scope],
-      acc: mutable.Builder[Suggestion, Vector[Suggestion]]
-    ): Vector[Suggestion] =
+  def build(module: String, ir: IR): Tree.Root[Suggestion] = {
+    type TreeBuilder =
+      mutable.Builder[Tree.Node[Suggestion], Vector[Tree.Node[Suggestion]]]
+    def go(tree: TreeBuilder, scope: Scope): Vector[Tree.Node[Suggestion]] = {
       if (scope.queue.isEmpty) {
-        if (scopes.isEmpty) {
-          acc.result()
-        } else {
-          val scope = scopes.dequeue()
-          go(scope, scopes, acc)
-        }
+        tree.result()
       } else {
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
+          case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
+            val suggestions = buildAtom(module, name.name, arguments, doc)
+            go(tree ++= suggestions.map(Tree.Node(_, Vector())), scope)
+
           case IR.Module.Scope.Definition.Method
                 .Explicit(
                   IR.Name.MethodReference(typePtr, methodName, _, _, _),
@@ -58,8 +54,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             val typeSignature = ir.getMetadata(TypeSignatures)
             val selfTypeOpt =
               typePtr.getMetadata(MethodDefinitions).flatMap(buildSelfType)
-            selfTypeOpt.foreach { selfType =>
-              acc += buildMethod(
+            val methodOpt = selfTypeOpt.map { selfType =>
+              buildMethod(
                 body.getExternalId,
                 module,
                 methodName,
@@ -69,8 +65,12 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                 typeSignature
               )
             }
-            scopes += Scope(body.children, body.location.map(_.location))
-            go(scope, scopes, acc)
+            val subforest = go(
+              Vector.newBuilder,
+              Scope(body.children, body.location)
+            )
+            go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
+
           case IR.Expression.Binding(
                 name,
                 IR.Function.Lambda(args, body, _, _, _, _),
@@ -79,7 +79,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                 _
               ) if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildFunction(
+            val function = buildFunction(
               body.getExternalId,
               module,
               name,
@@ -87,37 +87,36 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               scope.location.get,
               typeSignature
             )
-            scopes += Scope(body.children, body.location.map(_.location))
-            go(scope, scopes, acc)
+            val subforest = go(
+              Vector.newBuilder,
+              Scope(body.children, body.location)
+            )
+            go(tree += Tree.Node(function, subforest), scope)
+
           case IR.Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildLocal(
+            val local = buildLocal(
               expr.getExternalId,
               module,
               name.name,
               scope.location.get,
               typeSignature
             )
-            scopes += Scope(expr.children, expr.location.map(_.location))
-            go(scope, scopes, acc)
-          case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
-            acc += buildAtom(
-              module,
-              name.name,
-              arguments,
-              doc
+            val subforest = go(
+              Vector.newBuilder,
+              Scope(expr.children, expr.location)
             )
-            go(scope, scopes, acc)
+            go(tree += Tree.Node(local, subforest), scope)
+
           case _ =>
-            go(scope, scopes, acc)
+            go(tree, scope)
         }
       }
+    }
 
-    go(
-      Scope(ir.children, ir.location.map(_.location)),
-      mutable.Queue(),
-      new VectorBuilder()
+    Tree.Root(
+      go(Vector.newBuilder, Scope(ir.children, ir.location))
     )
   }
 
@@ -213,8 +212,18 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         Suggestion.Local(externalId, module, name, Any, buildScope(location))
     }
 
-  /** Build an atom suggestion. */
+  /** Build suggestions for an atom definition. */
   private def buildAtom(
+    module: String,
+    name: String,
+    arguments: Seq[IR.DefinitionArgument],
+    doc: Option[String]
+  ): Seq[Suggestion] =
+    buildAtomConstructor(module, name, arguments, doc) +:
+    buildAtomGetters(module, name, arguments)
+
+  /** Build an atom constructor. */
+  private def buildAtomConstructor(
     module: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
@@ -228,6 +237,30 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       returnType    = name,
       documentation = doc
     )
+
+  /** Build getter methods from atom arguments. */
+  private def buildAtomGetters(
+    module: String,
+    name: String,
+    arguments: Seq[IR.DefinitionArgument]
+  ): Seq[Suggestion] =
+    arguments.map { argument =>
+      val thisArg = IR.DefinitionArgument.Specified(
+        name         = IR.Name.This(argument.name.location),
+        defaultValue = None,
+        suspended    = false,
+        location     = argument.location
+      )
+      buildMethod(
+        externalId    = None,
+        module        = module,
+        name          = argument.name,
+        selfType      = name,
+        args          = Seq(thisArg),
+        doc           = None,
+        typeSignature = None
+      )
+    }
 
   /** Build self type from the method definitions metadata.
     *
@@ -472,9 +505,14 @@ object SuggestionBuilder {
 
   private object Scope {
 
-    /** Create new scope from the list of items. */
-    def apply(items: Seq[IR], location: Option[Location]): Scope =
-      new Scope(mutable.Queue(items: _*), location)
+    /** Create new scope from the list of items.
+      *
+      * @param items the list of IR nodes
+      * @param location the identified IR location
+      * @return new scope
+      */
+    def apply(items: Seq[IR], location: Option[IR.IdentifiedLocation]): Scope =
+      new Scope(mutable.Queue(items: _*), location.map(_.location))
   }
 
   /** The base trait for argument types. */

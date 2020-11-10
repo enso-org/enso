@@ -1,0 +1,659 @@
+package org.enso.interpreter.test.instrument
+
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
+import org.enso.pkg.{Package, PackageManager}
+import org.enso.polyglot._
+import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
+import org.enso.text.editing.model
+import org.enso.text.editing.model.TextEdit
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.io.MessageEndpoint
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+@scala.annotation.nowarn("msg=multiarg infix syntax")
+class SuggestionUpdatesTest
+    extends AnyFlatSpec
+    with Matchers
+    with BeforeAndAfterEach {
+
+  var context: TestContext = _
+
+  class TestContext(packageName: String) {
+    var endPoint: MessageEndpoint = _
+    val messageQueue: LinkedBlockingQueue[Api.Response] =
+      new LinkedBlockingQueue()
+
+    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
+
+    val pkg: Package[File] =
+      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val executionContext = new PolyglotContext(
+      Context
+        .newBuilder(LanguageInfo.ID)
+        .allowExperimentalOptions(true)
+        .allowAllAccess(true)
+        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
+        .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .out(out)
+        .serverTransport { (uri, peer) =>
+          if (uri.toString == RuntimeServerInfo.URI) {
+            endPoint = peer
+            new MessageEndpoint {
+              override def sendText(text: String): Unit = {}
+
+              override def sendBinary(data: ByteBuffer): Unit =
+                Api.deserializeResponse(data).foreach(messageQueue.add)
+
+              override def sendPing(data: ByteBuffer): Unit = {}
+
+              override def sendPong(data: ByteBuffer): Unit = {}
+
+              override def sendClose(): Unit = {}
+            }
+          } else null
+        }
+        .build()
+    )
+    executionContext.context.initialize(LanguageInfo.ID)
+
+    def writeMain(contents: String): File =
+      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
+
+    def writeFile(file: File, contents: String): File =
+      Files.write(file.toPath, contents.getBytes).toFile
+
+    def writeInSrcDir(moduleName: String, contents: String): File = {
+      val file = new File(pkg.sourceDir, s"$moduleName.enso")
+      Files.write(file.toPath, contents.getBytes).toFile
+    }
+
+    def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
+
+    def receiveNone: Option[Api.Response] = {
+      Option(messageQueue.poll())
+    }
+
+    def receive: Option[Api.Response] = {
+      Option(messageQueue.poll(3, TimeUnit.SECONDS))
+    }
+
+    def receive(n: Int): List[Api.Response] = {
+      Iterator.continually(receive).take(n).flatten.toList
+    }
+
+    def consumeOut: List[String] = {
+      val result = out.toString
+      out.reset()
+      result.linesIterator.toList
+    }
+
+    def executionComplete(contextId: UUID): Api.Response =
+      Api.Response(Api.ExecutionComplete(contextId))
+  }
+
+  def contentsVersion(content: String): ContentVersion =
+    Sha3_224VersionCalculator.evalVersion(content)
+
+  override protected def beforeEach(): Unit = {
+    context = new TestContext("Test")
+    val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+  }
+
+  it should "send suggestion updates after file modification" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val code =
+      """from Builtins import all
+        |
+        |main = IO.println "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val version  = contentsVersion(code)
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, code, false))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(2, 6), model.Position(2, 32)),
+              "\n    x = 42\n    IO.println x"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |main =
+              |    x = 42
+              |    IO.println x
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(4, 16)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 10), model.Position(3, 10)),
+              "\n    y = 9"
+            ),
+            TextEdit(
+              model.Range(model.Position(5, 15), model.Position(5, 16)),
+              "x+y"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |main =
+              |    x = 42
+              |    y = 9
+              |    IO.println x+y
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(4, 16)
+                        )
+                      ),
+                      Api.SuggestionAction.Modify(scope =
+                        Some(
+                          Suggestion.Scope(
+                            Suggestion.Position(2, 6),
+                            Suggestion.Position(5, 18)
+                          )
+                        )
+                      )
+                    ),
+                    Vector()
+                  ),
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(5, 18)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("51")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 10), model.Position(3, 10)),
+              "\n    y : Number"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |main =
+              |    x = 42
+              |    y : Number
+              |    y = 9
+              |    IO.println x+y
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(5, 18)
+                        )
+                      ),
+                      Api.SuggestionAction.Modify(scope =
+                        Some(
+                          Suggestion.Scope(
+                            Suggestion.Position(2, 6),
+                            Suggestion.Position(6, 18)
+                          )
+                        )
+                      )
+                    ),
+                    Vector()
+                  ),
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "y",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(5, 18)
+                        )
+                      ),
+                      Api.SuggestionAction.Modify(
+                        returnType = Some("Number"),
+                        scope = Some(
+                          Suggestion.Scope(
+                            Suggestion.Position(2, 6),
+                            Suggestion.Position(6, 18)
+                          )
+                        )
+                      )
+                    ),
+                    Vector()
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("51")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 0), model.Position(1, 0)),
+              "\nfoo x = x * 10\n"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |foo x = x * 10
+              |
+              |main =
+              |    x = 42
+              |    y : Number
+              |    y = 9
+              |    IO.println x+y
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "x",
+                        "Any",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(6, 18)
+                        )
+                      ),
+                      Api.SuggestionAction.Modify(scope =
+                        Some(
+                          Suggestion.Scope(
+                            Suggestion.Position(4, 6),
+                            Suggestion.Position(8, 18)
+                          )
+                        )
+                      )
+                    ),
+                    Vector()
+                  ),
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "y",
+                        "Number",
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(6, 18)
+                        )
+                      ),
+                      Api.SuggestionAction.Modify(scope =
+                        Some(
+                          Suggestion.Scope(
+                            Suggestion.Position(4, 6),
+                            Suggestion.Position(8, 18)
+                          )
+                        )
+                      )
+                    ),
+                    Vector()
+                  )
+                )
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("51")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(2, 4), model.Position(2, 14)),
+              "a b = a * b"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |foo a b = a * b
+              |
+              |main =
+              |    x = 42
+              |    y : Number
+              |    y = 9
+              |    IO.println x+y
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "foo",
+                    List(
+                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion.Argument("x", "Any", false, false, None)
+                    ),
+                    "Main",
+                    "Any",
+                    None
+                  ),
+                  Api.SuggestionAction.Modify(
+                    None,
+                    Some(
+                      List(
+                        Api.SuggestionArgumentAction
+                          .Modify(1, Some("a"), None, None, None, None),
+                        Api.SuggestionArgumentAction.Add(
+                          2,
+                          Suggestion.Argument("b", "Any", false, false, None)
+                        )
+                      )
+                    ),
+                    None,
+                    None,
+                    None
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("51")
+  }
+
+}

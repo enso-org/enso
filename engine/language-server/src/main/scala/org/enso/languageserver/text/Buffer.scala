@@ -2,7 +2,7 @@ package org.enso.languageserver.text
 
 import java.io.File
 
-import org.enso.languageserver.data.ContentBasedVersioning
+import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.buffer.Rope
 
 /** A buffer state representation.
@@ -11,10 +11,9 @@ import org.enso.text.buffer.Rope
   * @param contents the contents of the buffer.
   * @param version the current version of the buffer contents.
   */
-case class Buffer(file: File, contents: Rope, version: Buffer.Version)
+case class Buffer(file: File, contents: Rope, version: ContentVersion)
 
 object Buffer {
-  type Version = String
 
   /** Creates a new buffer with a freshly generated version.
     *

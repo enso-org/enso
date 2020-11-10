@@ -1,7 +1,5 @@
 package org.enso.languageserver.search
 
-import java.util
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.pipe
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -14,7 +12,6 @@ import org.enso.languageserver.data.{
   CapabilityRegistration,
   ClientId,
   Config,
-  ContentBasedVersioning,
   ReceivesSuggestionsDatabaseUpdates
 }
 import org.enso.languageserver.event.InitializedEvent
@@ -27,7 +24,9 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
 
 import scala.concurrent.Future
@@ -76,8 +75,7 @@ final class SuggestionsHandler(
   fileVersionsRepo: FileVersionsRepo[Future],
   sessionRouter: ActorRef,
   runtimeConnector: ActorRef
-)(implicit versionCalculator: ContentBasedVersioning)
-    extends Actor
+) extends Actor
     with Stash
     with ActorLogging
     with UnhandledLogging {
@@ -141,10 +139,8 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
       val isVersionChanged =
-        fileVersionsRepo.getVersion(msg.file).map { versionOpt =>
-          versionOpt.fold(true)(
-            !util.Arrays.equals(_, versionCalculator.evalDigest(msg.contents))
-          )
+        fileVersionsRepo.getVersion(msg.file).map { digestOpt =>
+          !digestOpt.map(ContentVersion(_)).contains(msg.version)
         }
       val applyUpdatesIfVersionChanged =
         isVersionChanged.flatMap { isChanged =>
@@ -179,7 +175,10 @@ final class SuggestionsHandler(
         .map { case (version, updatedIds) =>
           val updates = types.zip(updatedIds).collect {
             case ((_, typeValue), Some(suggestionId)) =>
-              SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
+              SuggestionsDatabaseUpdate.Modify(
+                id         = suggestionId,
+                returnType = Some(fieldUpdate(typeValue))
+              )
           }
           SuggestionsDatabaseUpdateNotification(version, updates)
         }
@@ -307,53 +306,94 @@ final class SuggestionsHandler(
     */
   private def applyDatabaseUpdates(
     msg: Api.SuggestionsDatabaseModuleUpdateNotification
-  ): Future[SuggestionsDatabaseUpdateNotification] = {
-    val (addCmds, removeCmds, cleanCmds) = msg.updates
-      .foldLeft(
-        (Vector[Suggestion](), Vector[Suggestion](), Vector[String]())
-      ) {
-        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Add) =>
-          (add :+ m.suggestion, remove, clean)
-        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Remove) =>
-          (add, remove :+ m.suggestion, clean)
-        case ((add, remove, clean), m: Api.SuggestionsDatabaseUpdate.Clean) =>
-          (add, remove, clean :+ m.module)
-      }
-    val fileVersion = versionCalculator.evalDigest(msg.contents)
-    log.debug(
-      s"Applying suggestion updates: Add(${addCmds.map(_.name).mkString(",")}); Remove(${removeCmds
-        .map(_.name)
-        .mkString(",")}); Clean(${cleanCmds.mkString(",")})"
-    )
+  ): Future[SuggestionsDatabaseUpdateNotification] =
     for {
-      (_, cleanedIds)     <- suggestionsRepo.removeAllByModule(cleanCmds)
-      (_, removedIds)     <- suggestionsRepo.removeAll(removeCmds)
-      (version, addedIds) <- suggestionsRepo.insertAll(addCmds)
-      _                   <- fileVersionsRepo.setVersion(msg.file, fileVersion)
+      actionResults      <- suggestionsRepo.applyActions(msg.actions)
+      (version, results) <- suggestionsRepo.applyTree(msg.updates)
+      _                  <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
     } yield {
-      val updatesCleaned = cleanedIds.map(SuggestionsDatabaseUpdate.Remove)
-      val updatesRemoved =
-        (removedIds zip removeCmds).flatMap {
-          case (Some(id), _) =>
-            Some(SuggestionsDatabaseUpdate.Remove(id))
-          case (None, suggestion) =>
-            log.error("Failed to remove suggestion: {}", suggestion)
-            None
-        }
-      val updatesAdded =
-        (addedIds zip addCmds).flatMap {
-          case (Some(id), suggestion) =>
-            Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
-          case (None, suggestion) =>
-            log.error("Failed to insert suggestion: {}", suggestion)
-            None
-        }
+      val actionUpdates = actionResults.flatMap {
+        case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
+          ids.map(SuggestionsDatabaseUpdate.Remove)
+      }
+      val treeUpdates = results.flatMap {
+        case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
+          val verb = action.getClass.getSimpleName
+          action match {
+            case Api.SuggestionAction.Add() =>
+              if (ids.isEmpty) log.error(s"Failed to $verb: $suggestion")
+              ids.map(id => SuggestionsDatabaseUpdate.Add(id, suggestion))
+            case Api.SuggestionAction.Remove() =>
+              if (ids.isEmpty) log.error(s"Failed to $verb: $suggestion")
+              ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
+            case m: Api.SuggestionAction.Modify =>
+              ids.map { id =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id            = id,
+                  externalId    = m.externalId.map(fieldUpdateOption),
+                  arguments     = m.arguments.map(_.map(toApiArgumentAction)),
+                  returnType    = m.returnType.map(fieldUpdate),
+                  documentation = m.documentation.map(fieldUpdateOption),
+                  scope         = m.scope.map(fieldUpdate)
+                )
+              }
+          }
+      }
       SuggestionsDatabaseUpdateNotification(
         version,
-        updatesCleaned :++ updatesRemoved :++ updatesAdded
+        actionUpdates ++ treeUpdates
       )
     }
-  }
+
+  /** Construct the field update object from an optional value.
+    *
+    * @param value the optional value
+    * @return the field update object representint the value update
+    */
+  private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
+    value match {
+      case Some(value) => FieldUpdate(FieldAction.Set, Some(value))
+      case None        => FieldUpdate(FieldAction.Remove, None)
+    }
+
+  /** Construct the field update object from and update value.
+    *
+    * @param value the update value
+    * @return the field update object representing the value update
+    */
+  private def fieldUpdate[A](value: A): FieldUpdate[A] =
+    FieldUpdate(FieldAction.Set, Some(value))
+
+  /** Construct [[SuggestionArgumentUpdate]] from the runtime message.
+    *
+    * @param action the runtime message
+    * @return the [[SuggestionArgumentUpdate]] message
+    */
+  private def toApiArgumentAction(
+    action: Api.SuggestionArgumentAction
+  ): SuggestionArgumentUpdate =
+    action match {
+      case Api.SuggestionArgumentAction.Add(index, argument) =>
+        SuggestionArgumentUpdate.Add(index, argument)
+      case Api.SuggestionArgumentAction.Remove(index) =>
+        SuggestionArgumentUpdate.Remove(index)
+      case Api.SuggestionArgumentAction.Modify(
+            index,
+            name,
+            reprType,
+            isSuspended,
+            hasDefault,
+            defaultValue
+          ) =>
+        SuggestionArgumentUpdate.Modify(
+          index,
+          name.map(fieldUpdate),
+          reprType.map(fieldUpdate),
+          isSuspended.map(fieldUpdate),
+          hasDefault.map(fieldUpdate),
+          defaultValue.map(fieldUpdateOption)
+        )
+    }
 
   /** Build the module name from the requested file path.
     *
@@ -420,7 +460,7 @@ object SuggestionsHandler {
     fileVersionsRepo: FileVersionsRepo[Future],
     sessionRouter: ActorRef,
     runtimeConnector: ActorRef
-  )(implicit versionCalculator: ContentBasedVersioning): Props =
+  ): Props =
     Props(
       new SuggestionsHandler(
         config,

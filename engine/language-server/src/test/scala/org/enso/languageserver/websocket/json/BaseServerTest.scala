@@ -27,6 +27,7 @@ import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -40,6 +41,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val testContentRootId     = UUID.randomUUID()
   val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
+  val versionCalculator     = Sha3_224VersionCalculator
 
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
 
@@ -80,7 +82,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    implicit val versionCalculator = Sha3_224VersionCalculator
 
     val zioExec         = ZioExec(zio.Runtime.default)
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)

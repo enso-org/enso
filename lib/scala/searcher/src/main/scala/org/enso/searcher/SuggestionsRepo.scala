@@ -1,6 +1,13 @@
 package org.enso.searcher
 
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.Runtime.Api.{
+  SuggestionArgumentAction,
+  SuggestionUpdate,
+  SuggestionsDatabaseAction
+}
+import org.enso.searcher.data.QueryResult
 
 /** The object for accessing the suggestions database. */
 trait SuggestionsRepo[F[_]] {
@@ -59,6 +66,24 @@ trait SuggestionsRepo[F[_]] {
     */
   def insertAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
 
+  /** Apply suggestion updates.
+    *
+    * @param tree the sequence of suggestion updates
+    * @return the result of applying the updates
+    */
+  def applyTree(
+    tree: Tree[SuggestionUpdate]
+  ): F[(Long, Seq[QueryResult[SuggestionUpdate]])]
+
+  /** Apply the sequence of actions on the database.
+    *
+    * @param actions the list of actions
+    * @return the result of applying the actions
+    */
+  def applyActions(
+    actions: Seq[SuggestionsDatabaseAction]
+  ): F[Seq[QueryResult[SuggestionsDatabaseAction]]]
+
   /** Remove the suggestion.
     *
     * @param suggestion the suggestion to remove
@@ -73,19 +98,30 @@ trait SuggestionsRepo[F[_]] {
     */
   def removeByModule(name: String): F[(Long, Seq[Long])]
 
-  /** Remove all suggestions by module names.
-    *
-    * @param modules the list of modules to remove
-    * @return the current database version and a list of removed suggestion ids
-    */
-  def removeAllByModule(modules: Seq[String]): F[(Long, Seq[Long])]
-
   /** Remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
     * @return the current database version and a list of removed suggestion ids
     */
   def removeAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
+
+  /** Update the suggestion.
+    *
+    * @param suggestion the key suggestion
+    * @param externalId the external id to update
+    * @param arguments the arguments to update
+    * @param returnType the return type to update
+    * @param documentation the documentation string to update
+    * @param scope the scope to update
+    */
+  def update(
+    suggestion: Suggestion,
+    externalId: Option[Option[Suggestion.ExternalId]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
+    returnType: Option[String],
+    documentation: Option[Option[String]],
+    scope: Option[Suggestion.Scope]
+  ): F[(Long, Option[Long])]
 
   /** Update a list of suggestions by external id.
     *

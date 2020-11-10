@@ -86,6 +86,98 @@ object SearchProtocol {
       }
     }
 
+  /** The object representing a field modification.
+    *
+    * @param tag the modifying action
+    * @param value the updated value
+    */
+  case class FieldUpdate[A](tag: FieldAction, value: Option[A])
+
+  /** The modifying action on the field. */
+  sealed trait FieldAction extends EnumEntry
+  object FieldAction extends Enum[FieldAction] with CirceEnum[FieldAction] {
+
+    case object Remove extends FieldAction
+    case object Set    extends FieldAction
+
+    override def values = findValues
+  }
+
+  /** An operation applied to the suggestion argument. */
+  sealed trait SuggestionArgumentUpdate
+  object SuggestionArgumentUpdate {
+
+    /** Add the argument to a list.
+      *
+      * @param index the position of the argument
+      * @param argument the argument to add
+      */
+    case class Add(index: Int, argument: Suggestion.Argument)
+        extends SuggestionArgumentUpdate
+
+    /** Remove the argument from a list.
+      *
+      * @param index the position of the arugment
+      */
+    case class Remove(index: Int) extends SuggestionArgumentUpdate
+
+    /** Modify the argument at the specified index.
+      *
+      * @param index the position of the argument
+      * @param name the name to update
+      * @param reprType the argument type to update
+      * @param isSuspended the suspended flag to update
+      * @param hasDefault the default flag to update
+      * @param defaultValue the default value to update
+      */
+    case class Modify(
+      index: Int,
+      name: Option[FieldUpdate[String]]         = None,
+      reprType: Option[FieldUpdate[String]]     = None,
+      isSuspended: Option[FieldUpdate[Boolean]] = None,
+      hasDefault: Option[FieldUpdate[Boolean]]  = None,
+      defaultValue: Option[FieldUpdate[String]] = None
+    ) extends SuggestionArgumentUpdate
+
+    implicit val suggestionArgumentActionDecoder
+      : Decoder[SuggestionArgumentUpdate] =
+      Decoder.instance { cursor =>
+        cursor.downField(CodecField.Type).as[String].flatMap {
+          case CodecType.Add =>
+            Decoder[SuggestionArgumentUpdate.Add].tryDecode(cursor)
+
+          case CodecType.Remove =>
+            Decoder[SuggestionArgumentUpdate.Remove].tryDecode(cursor)
+
+          case CodecType.Modify =>
+            Decoder[SuggestionArgumentUpdate.Modify].tryDecode(cursor)
+        }
+      }
+
+    implicit val suggestionArgumentActionEncoder
+      : Encoder[SuggestionArgumentUpdate] =
+      Encoder.instance[SuggestionArgumentUpdate] {
+        case add: SuggestionArgumentUpdate.Add =>
+          Encoder[SuggestionArgumentUpdate.Add]
+            .apply(add)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Add.asJson))
+            .dropNullValues
+
+        case remove: SuggestionArgumentUpdate.Remove =>
+          Encoder[SuggestionArgumentUpdate.Remove]
+            .apply(remove)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Remove.asJson))
+            .dropNullValues
+
+        case modify: SuggestionArgumentUpdate.Modify =>
+          Encoder[SuggestionArgumentUpdate.Modify]
+            .apply(modify)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Modify.asJson))
+            .dropNullValues
+      }
+  }
+
+  /** Base trait for suggestion database updaetes. */
   sealed trait SuggestionsDatabaseUpdate
   object SuggestionsDatabaseUpdate {
 
@@ -106,10 +198,20 @@ object SearchProtocol {
     /** Modify the database entry.
       *
       * @param id the suggestion id
-      * @param returnType the new return type
+      * @param externalId the external id to update
+      * @param arguments the arguments to update
+      * @param returnType the return type to update
+      * @param documentation the documentation string to update
+      * @param scope the scope to update
       */
-    case class Modify(id: SuggestionId, returnType: String)
-        extends SuggestionsDatabaseUpdate
+    case class Modify(
+      id: SuggestionId,
+      externalId: Option[FieldUpdate[Suggestion.ExternalId]] = None,
+      arguments: Option[Seq[SuggestionArgumentUpdate]]       = None,
+      returnType: Option[FieldUpdate[String]]                = None,
+      documentation: Option[FieldUpdate[String]]             = None,
+      scope: Option[FieldUpdate[Suggestion.Scope]]           = None
+    ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
       Decoder.instance { cursor =>
@@ -282,7 +384,7 @@ object SearchProtocol {
     tags: Option[Seq[SuggestionKind]]
   )
 
-  /** Te reply to the [[Completion]] request.
+  /** The reply to the [[Completion]] request.
     *
     * @param currentVersion current version of the suggestions database
     * @param results the list of suggestion ids matched the search query

@@ -4,6 +4,14 @@ import java.io.File
 import java.util.UUID
 
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.Tree
+import org.enso.polyglot.runtime.Runtime.Api.{
+  SuggestionAction,
+  SuggestionArgumentAction,
+  SuggestionUpdate,
+  SuggestionsDatabaseAction
+}
+import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile
 import slick.jdbc.SQLiteProfile.api._
@@ -70,6 +78,18 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(insertAllQuery(suggestions))
 
   /** @inheritdoc */
+  override def applyTree(
+    tree: Tree[SuggestionUpdate]
+  ): Future[(Long, Seq[QueryResult[SuggestionUpdate]])] =
+    db.run(applyTreeQuery(tree))
+
+  /** @inheritdoc */
+  override def applyActions(
+    actions: Seq[SuggestionsDatabaseAction]
+  ): Future[Seq[QueryResult[SuggestionsDatabaseAction]]] =
+    db.run(applyActionsQuery(actions))
+
+  /** @inheritdoc */
   override def remove(suggestion: Suggestion): Future[Option[Long]] =
     db.run(removeQuery(suggestion))
 
@@ -78,16 +98,30 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(removeByModuleQuery(name))
 
   /** @inheritdoc */
-  override def removeAllByModule(
-    modules: Seq[String]
-  ): Future[(Long, Seq[Long])] =
-    db.run(removeAllByModuleQuery(modules))
-
-  /** @inheritdoc */
   override def removeAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
     db.run(removeAllQuery(suggestions))
+
+  /** @inheritdoc */
+  override def update(
+    suggestion: Suggestion,
+    externalId: Option[Option[Suggestion.ExternalId]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
+    returnType: Option[String],
+    documentation: Option[Option[String]],
+    scope: Option[Suggestion.Scope]
+  ): Future[(Long, Option[Long])] =
+    db.run(
+      updateQuery(
+        suggestion,
+        externalId,
+        arguments,
+        returnType,
+        documentation,
+        scope
+      )
+    )
 
   /** @inheritdoc */
   override def updateAll(
@@ -134,7 +168,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield ()
   }
 
-  /** Get all suggestions.
+  /** The query to get all suggestions.
     *
     * @return the current database version with the list of suggestion entries
     */
@@ -260,21 +294,83 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     query
   }
 
+  /** The query to apply the suggestion updates.
+    *
+    * @param tree the sequence of updates
+    * @return the result of applying updates with the new database version
+    */
+  private def applyTreeQuery(
+    tree: Tree[SuggestionUpdate]
+  ): DBIO[(Long, Seq[QueryResult[SuggestionUpdate]])] = {
+    val query = tree.toVector.map {
+      case update @ SuggestionUpdate(suggestion, action) =>
+        val query = action match {
+          case SuggestionAction.Add() =>
+            insertQuery(suggestion)
+          case SuggestionAction.Remove() =>
+            removeQuery(suggestion)
+          case SuggestionAction.Modify(extId, args, returnType, doc, scope) =>
+            updateSuggestionQuery(
+              suggestion,
+              extId,
+              args,
+              returnType,
+              doc,
+              scope
+            )
+        }
+        query.map(rs => QueryResult(rs.toSeq, update))
+    }
+    for {
+      results <- DBIO.sequence(query)
+      version <- currentVersionQuery
+    } yield (version, results)
+  }
+
+  /** The query to apply the sequence of actions on the database.
+    *
+    * @param actions the list of actions
+    * @return the result of applying actions
+    */
+  private def applyActionsQuery(
+    actions: Seq[SuggestionsDatabaseAction]
+  ): DBIO[Seq[QueryResult[SuggestionsDatabaseAction]]] = {
+    val queries = actions.map {
+      case act @ SuggestionsDatabaseAction.Clean(module) =>
+        removeByModuleQuery(module).map { case (_, ids) =>
+          QueryResult[SuggestionsDatabaseAction](ids, act)
+        }
+    }
+    DBIO.sequence(queries)
+  }
+
+  /** The query to select the suggestion.
+    *
+    * @param raw the suggestion converted to the row form
+    * @return the database query
+    */
+  private def selectSuggestionQuery(
+    raw: SuggestionRow
+  ): Query[SuggestionsTable, SuggestionRow, Seq] = {
+    Suggestions
+      .filter(_.module === raw.module)
+      .filter(_.kind === raw.kind)
+      .filter(_.name === raw.name)
+      .filter(_.selfType === raw.selfType)
+      .filter(_.scopeStartLine === raw.scopeStartLine)
+      .filter(_.scopeStartOffset === raw.scopeStartOffset)
+      .filter(_.scopeEndLine === raw.scopeEndLine)
+      .filter(_.scopeEndOffset === raw.scopeEndOffset)
+  }
+
   /** The query to remove the suggestion.
     *
     * @param suggestion the suggestion to remove
     * @return the id of removed suggestion
     */
   private def removeQuery(suggestion: Suggestion): DBIO[Option[Long]] = {
-    val (raw, _) = toSuggestionRow(suggestion)
-    val selectQuery = Suggestions
-      .filter(_.module === raw.module)
-      .filter(_.kind === raw.kind)
-      .filter(_.name === raw.name)
-      .filter(_.scopeStartLine === raw.scopeStartLine)
-      .filter(_.scopeStartOffset === raw.scopeStartOffset)
-      .filter(_.scopeEndLine === raw.scopeEndLine)
-      .filter(_.scopeEndOffset === raw.scopeEndOffset)
+    val (raw, _)    = toSuggestionRow(suggestion)
+    val selectQuery = selectSuggestionQuery(raw)
     val deleteQuery = for {
       rows <- selectQuery.result
       n    <- selectQuery.delete
@@ -298,28 +394,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     deleteQuery
   }
 
-  /** The query to remove all suggestions by module names.
-    *
-    * @param modules the list of modules to remove
-    * @return the current database version and a list of removed suggestion ids
-    */
-  private def removeAllByModuleQuery(
-    modules: Seq[String]
-  ): DBIO[(Long, Seq[Long])] = {
-    if (modules.nonEmpty) {
-      val selectQuery = Suggestions.filter(_.module inSet modules)
-      for {
-        rows    <- selectQuery.result
-        n       <- selectQuery.delete
-        version <- if (n > 0) incrementVersionQuery else currentVersionQuery
-      } yield version -> rows.flatMap(_.id)
-    } else {
-      for {
-        version <- currentVersionQuery
-      } yield (version, Seq())
-    }
-  }
-
   /** The query to remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
@@ -341,7 +415,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     * @param returnType the new return type
     * @return the id of updated suggestion
     */
-  private def updateQuery(
+  private def updateByExternalIdQuery(
     externalId: Suggestion.ExternalId,
     returnType: String
   ): DBIO[Option[Long]] = {
@@ -356,6 +430,158 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield id
   }
 
+  /** The query to update the suggestion.
+    *
+    * @param suggestion the key suggestion
+    * @param externalId the external id to update
+    * @param arguments the arguments to update
+    * @param returnType the return type to update
+    * @param documentation the documentation string to update
+    * @param scope the scope to update
+    */
+  private def updateQuery(
+    suggestion: Suggestion,
+    externalId: Option[Option[Suggestion.ExternalId]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
+    returnType: Option[String],
+    documentation: Option[Option[String]],
+    scope: Option[Suggestion.Scope]
+  ): DBIO[(Long, Option[Long])] =
+    for {
+      idOpt <- updateSuggestionQuery(
+        suggestion,
+        externalId,
+        arguments,
+        returnType,
+        documentation,
+        scope
+      )
+      version <- currentVersionQuery
+    } yield (version, idOpt)
+
+  /** The query to update the suggestion.
+    *
+    * @param suggestion the key suggestion
+    * @param externalId the external id to update
+    * @param arguments the arguments to update
+    * @param returnType the return type to update
+    * @param documentation the documentation string to update
+    * @param scope the scope to update
+    */
+  private def updateSuggestionQuery(
+    suggestion: Suggestion,
+    externalId: Option[Option[Suggestion.ExternalId]],
+    arguments: Option[Seq[SuggestionArgumentAction]],
+    returnType: Option[String],
+    documentation: Option[Option[String]],
+    scope: Option[Suggestion.Scope]
+  ): DBIO[Option[Long]] = {
+    val (raw, _) = toSuggestionRow(suggestion)
+    val query    = selectSuggestionQuery(raw)
+
+    val updateQ = for {
+      r1 <- DBIO.sequenceOption {
+        externalId.map { extIdOpt =>
+          query
+            .map(r => (r.externalIdLeast, r.externalIdMost))
+            .update(
+              (
+                extIdOpt.map(_.getLeastSignificantBits),
+                extIdOpt.map(_.getMostSignificantBits)
+              )
+            )
+        }
+      }
+      r2 <- DBIO.sequenceOption {
+        returnType.map(tpe => query.map(_.returnType).update(tpe))
+      }
+      r3 <- DBIO.sequenceOption {
+        documentation.map(doc => query.map(_.documentation).update(doc))
+      }
+      r4 <- DBIO.sequenceOption {
+        scope.map { s =>
+          query
+            .map(r =>
+              (
+                r.scopeStartLine,
+                r.scopeStartOffset,
+                r.scopeEndLine,
+                r.scopeEndOffset
+              )
+            )
+            .update(
+              (s.start.line, s.start.character, s.end.line, s.end.character)
+            )
+        }
+      }
+      r5 <- DBIO.sequenceOption {
+        arguments.map { args =>
+          def updateArgs(suggestionId: Long): DBIO[Seq[Int]] =
+            DBIO.sequence(
+              args.map(updateSuggestionArgumentQuery(suggestionId, _))
+            )
+          for {
+            idOpt <- query.map(_.id).result.headOption
+            r     <- DBIO.sequenceOption(idOpt.map(updateArgs))
+          } yield r.map(_.sum)
+        }
+      }
+    } yield (r1 ++ r2 ++ r3 ++ r4 ++ r5.flatten).sum
+    for {
+      id <- query.map(_.id).result.headOption
+      n  <- updateQ
+      _  <- if (n > 0) incrementVersionQuery else DBIO.successful(())
+    } yield if (n > 0) id else None
+  }
+
+  private def updateSuggestionArgumentQuery(
+    suggestionId: Long,
+    action: SuggestionArgumentAction
+  ): DBIO[Int] = {
+    val argsQuery = Arguments.filter(_.suggestionId === suggestionId)
+    action match {
+      case SuggestionArgumentAction.Add(index, argument) =>
+        for {
+          _ <- argsQuery.filter(_.index === index).delete
+          n <- Arguments += toArgumentRow(suggestionId, index, argument)
+        } yield n
+      case SuggestionArgumentAction.Remove(index) =>
+        for {
+          n <- argsQuery.filter(_.index === index).delete
+        } yield n
+      case SuggestionArgumentAction.Modify(
+            index,
+            nameOpt,
+            tpeOpt,
+            suspendedOpt,
+            defaultOpt,
+            valueOpt
+          ) =>
+        val argQuery = argsQuery.filter(_.index === index)
+        for {
+          r1 <- DBIO.sequenceOption {
+            nameOpt.map(name => argQuery.map(_.name).update(name))
+          }
+          r2 <- DBIO.sequenceOption {
+            tpeOpt.map(tpe => argQuery.map(_.tpe).update(tpe))
+          }
+          r3 <- DBIO.sequenceOption {
+            suspendedOpt.map(suspended =>
+              argQuery.map(_.isSuspended).update(suspended)
+            )
+          }
+          r4 <- DBIO.sequenceOption {
+            defaultOpt.map(default =>
+              argQuery.map(_.hasDefault).update(default)
+            )
+          }
+          r5 <- DBIO.sequenceOption {
+            valueOpt.map(value => argQuery.map(_.defaultValue).update(value))
+          }
+        } yield Seq(r1, r2, r3, r4, r5).flatten.sum
+    }
+  }
+
   /** The query to update a list of suggestions by external id.
     *
     * @param expressions the list of expressions to update
@@ -365,7 +591,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): DBIO[(Long, Seq[Option[Long]])] = {
     val query = for {
-      ids <- DBIO.sequence(expressions.map(Function.tupled(updateQuery)))
+      ids <- DBIO.sequence(
+        expressions.map(Function.tupled(updateByExternalIdQuery))
+      )
       version <-
         if (ids.exists(_.nonEmpty)) incrementVersionQuery
         else currentVersionQuery
@@ -398,13 +626,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** The query to increment the current version of the repo. */
   private def incrementVersionQuery: DBIO[Long] = {
-    val increment = for {
+    val incrementQuery = for {
       version <- SuggestionsVersions.returning(
         SuggestionsVersions.map(_.id)
       ) += SuggestionsVersionRow(None)
       _ <- SuggestionsVersions.filterNot(_.id === version).delete
     } yield version
-    increment.transactionally
+    incrementQuery
   }
 
   /** The query to insert suggestions in a batch.

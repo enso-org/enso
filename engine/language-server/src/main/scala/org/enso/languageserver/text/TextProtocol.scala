@@ -85,8 +85,8 @@ object TextProtocol {
     * @param serverVersion a version computed by the server
     */
   case class TextEditInvalidVersion(
-    clientVersion: Buffer.Version,
-    serverVersion: Buffer.Version
+    clientVersion: TextApi.Version,
+    serverVersion: TextApi.Version
   ) extends ApplyEditFailure
 
   /** A notification sent by the Language Server, notifying a client about
@@ -105,7 +105,7 @@ object TextProtocol {
   case class SaveFile(
     clientId: ClientId,
     path: Path,
-    currentVersion: Buffer.Version
+    currentVersion: TextApi.Version
   )
 
   /** Signals the result of saving a file.
@@ -127,8 +127,8 @@ object TextProtocol {
     * @param serverVersion a version computed by the server
     */
   case class SaveFileInvalidVersion(
-    clientVersion: Buffer.Version,
-    serverVersion: Buffer.Version
+    clientVersion: TextApi.Version,
+    serverVersion: TextApi.Version
   ) extends SaveFileResult
 
   /** Signals that saving a file failed due to IO error.

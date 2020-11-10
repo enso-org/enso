@@ -6,6 +6,7 @@ import io.circe.literal._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
+import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.FlakySpec
 
@@ -24,8 +25,19 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "1",
-          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.atom))
+          versionCalculator.evalVersion("1"),
+          Vector(),
+          Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestions.atom,
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
         )
       )
       client.expectJson(json"""
@@ -62,8 +74,27 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "2",
-          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.method))
+          versionCalculator.evalVersion("2"),
+          Vector(),
+          Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestions.atom,
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestions.method,
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              )
+            )
+          )
         )
       )
       client.expectJson(json"""
@@ -110,8 +141,35 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "3",
-          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.function))
+          versionCalculator.evalVersion("3"),
+          Vector(),
+          Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestions.atom,
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestions.method,
+                      Api.SuggestionAction.Modify()
+                    ),
+                    Vector(
+                      Tree.Node(
+                        Api.SuggestionUpdate(
+                          Suggestions.function,
+                          Api.SuggestionAction.Add()
+                        ),
+                        Vector()
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
         )
       )
       client.expectJson(json"""
@@ -128,6 +186,27 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "module" : "Test.Main",
                   "name" : "print",
                   "arguments" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    },
+                    {
+                      "name" : "b",
+                      "reprType" : "Any",
+                      "isSuspended" : true,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    },
+                    {
+                      "name" : "c",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : true,
+                      "defaultValue" : "C"
+                    }
                   ],
                   "returnType" : "IO",
                   "scope" : {
@@ -152,8 +231,43 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "4",
-          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.local))
+          versionCalculator.evalVersion("4"),
+          Vector(),
+          Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestions.atom,
+                  Api.SuggestionAction.Modify()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestions.method,
+                      Api.SuggestionAction.Modify()
+                    ),
+                    Vector(
+                      Tree.Node(
+                        Api.SuggestionUpdate(
+                          Suggestions.function,
+                          Api.SuggestionAction.Modify()
+                        ),
+                        Vector(
+                          Tree.Node(
+                            Api.SuggestionUpdate(
+                              Suggestions.local,
+                              Api.SuggestionAction.Add()
+                            ),
+                            Vector()
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
         )
       )
       client.expectJson(json"""
@@ -203,6 +317,27 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "module" : "Test.Main",
                   "name" : "print",
                   "arguments" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    },
+                    {
+                      "name" : "b",
+                      "reprType" : "Any",
+                      "isSuspended" : true,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    },
+                    {
+                      "name" : "c",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : true,
+                      "defaultValue" : "C"
+                    }
                   ],
                   "returnType" : "IO",
                   "scope" : {
@@ -289,22 +424,143 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
         }
         """)
 
-      // remove items
+      // update items
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           new File("/tmp/foo"),
-          "5",
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Remove(Suggestions.method),
-            Api.SuggestionsDatabaseUpdate.Remove(Suggestions.function)
+          versionCalculator.evalVersion("5"),
+          Vector(),
+          Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestions.atom,
+                  Api.SuggestionAction.Modify(
+                    arguments = Some(
+                      Seq(
+                        Api.SuggestionArgumentAction
+                          .Modify(0, reprType = Some("A")),
+                        Api.SuggestionArgumentAction
+                          .Add(1, Suggestions.function.arguments(1))
+                      )
+                    )
+                  )
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestions.method,
+                      Api.SuggestionAction.Modify()
+                    ),
+                    Vector(
+                      Tree.Node(
+                        Api.SuggestionUpdate(
+                          Suggestions.function,
+                          Api.SuggestionAction.Modify(
+                            externalId = Some(None)
+                          )
+                        ),
+                        Vector(
+                          Tree.Node(
+                            Api.SuggestionUpdate(
+                              Suggestions.local,
+                              Api.SuggestionAction.Modify(
+                                scope = Some(Suggestions.function.scope)
+                              )
+                            ),
+                            Vector()
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
           )
         )
       )
       client.expectJson(json"""
-        { "jsonrpc" : "2.0",
+        {
+          "jsonrpc" : "2.0",
           "method" : "search/suggestionsDatabaseUpdates",
           "params" : {
             "updates" : [
+              {
+                "type" : "Modify",
+                "id" : 1,
+                "arguments" : [
+                  {
+                    "type" : "Modify",
+                    "index" : 0,
+                    "reprType" : {
+                      "tag" : "Set",
+                      "value" : "A"
+                    }
+                  },
+                  {
+                    "type" : "Add",
+                    "index" : 1,
+                    "argument" : {
+                      "name" : "b",
+                      "reprType" : "Any",
+                      "isSuspended" : true,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    }
+                  }
+                ]
+              },
+              {
+                "type" : "Modify",
+                "id" : 3,
+                "externalId" : {
+                  "tag" : "Remove",
+                  "value" : null
+                }
+              },
+              {
+                "type" : "Modify",
+                "id" : 4,
+                "scope" : {
+                  "tag" : "Set",
+                  "value" : {
+                    "start" : {
+                      "line" : 1,
+                      "character" : 9
+                    },
+                    "end" : {
+                      "line" : 1,
+                      "character" : 22
+                    }
+                  }
+                }
+              }
+            ],
+            "currentVersion" : 7
+          }
+        }
+        """)
+
+      // remove items
+      system.eventStream.publish(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          versionCalculator.evalVersion("6"),
+          Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.atom.module)),
+          Tree.Root(Vector())
+        )
+      )
+      client.expectJson(json"""
+        {
+          "jsonrpc" : "2.0",
+          "method" : "search/suggestionsDatabaseUpdates",
+          "params" : {
+            "updates" : [
+              {
+                "type" : "Remove",
+                "id" : 1
+              },
               {
                 "type" : "Remove",
                 "id" : 2
@@ -312,9 +568,13 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
               {
                 "type" : "Remove",
                 "id" : 3
+              },
+              {
+                "type" : "Remove",
+                "id" : 4
               }
             ],
-            "currentVersion" : 6
+            "currentVersion" : 8
           }
         }
         """)

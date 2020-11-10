@@ -10,12 +10,14 @@ import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
   */
 object TextApi {
 
+  type Version = String
+
   case object OpenFile extends Method("text/openFile") {
     case class Params(path: Path)
     case class Result(
       writeCapability: Option[CapabilityRegistration],
       content: String,
-      currentVersion: String
+      currentVersion: Version
     )
     implicit val hasParams = new HasParams[this.type] {
       type Params = OpenFile.Params
@@ -56,8 +58,8 @@ object TextApi {
 
   case class TextEditValidationError(msg: String) extends Error(3002, msg)
   case class InvalidVersionError(
-    clientVersion: Buffer.Version,
-    serverVersion: Buffer.Version
+    clientVersion: Version,
+    serverVersion: Version
   ) extends Error(
         3003,
         s"Invalid version [client version: $clientVersion, server version: $serverVersion]"
@@ -65,7 +67,7 @@ object TextApi {
   case object WriteDeniedError extends Error(3004, "Write denied")
 
   case object SaveFile extends Method("text/save") {
-    case class Params(path: Path, currentVersion: Buffer.Version)
+    case class Params(path: Path, currentVersion: Version)
     implicit val hasParams = new HasParams[this.type] {
       type Params = SaveFile.Params
     }

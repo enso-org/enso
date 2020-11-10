@@ -139,6 +139,30 @@ class ChangesetBuilderTest extends CompilerTest {
       )
     }
 
+    "multiline insert line 1" in {
+      val code =
+        """x ->
+          |    y = 5
+          |    IO.println y""".stripMargin.linesIterator.mkString("\n")
+      val edit = TextEdit(Range(Position(2, 0), Position(2, 0)), "    z = 42\n")
+      val ir   = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
+      invalidated(ir, code, edit) should contain theSameElementsAs Seq()
+    }
+
+    "multiline insert line 2" in {
+      val code =
+        """x ->
+          |    y = 5
+          |    IO.println y""".stripMargin.linesIterator.mkString("\n")
+      val edit      = TextEdit(Range(Position(1, 9), Position(1, 9)), "\n    z = 7")
+      val ir        = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
+      val firstLine = ir.body.children(0).asInstanceOf[IR.Expression.Binding]
+      val five      = firstLine.expression
+      invalidated(ir, code, edit) should contain theSameElementsAs Seq(
+        five.getId
+      )
+    }
+
     "multiline across lines" in {
       val code =
         """x ->

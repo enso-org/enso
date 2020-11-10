@@ -33,6 +33,7 @@ import org.enso.languageserver.util.Logging
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.LoggerFactory

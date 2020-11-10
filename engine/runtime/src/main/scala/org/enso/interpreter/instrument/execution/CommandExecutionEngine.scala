@@ -8,6 +8,7 @@ import org.enso.interpreter.instrument.command.Command
 import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.RuntimeOptions
+import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.control.NonFatal
@@ -61,7 +62,8 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
       truffleContext   = interpreterContext.truffleContext,
       jobProcessor     = jobExecutionEngine,
       jobControlPlane  = jobExecutionEngine,
-      locking          = locking
+      locking          = locking,
+      versioning       = Sha3_224VersionCalculator
     )
 
   /** @inheritdoc */

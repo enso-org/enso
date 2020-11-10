@@ -1,17 +1,10 @@
 package org.enso.languageserver.text
 
-import java.util
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
 import akka.pattern.pipe
 import cats.implicits._
 import org.enso.languageserver.capability.CapabilityProtocol._
-import org.enso.languageserver.data.{
-  CanEdit,
-  CapabilityRegistration,
-  ClientId,
-  ContentBasedVersioning
-}
+import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.event.{
   BufferClosed,
   BufferOpened,
@@ -28,12 +21,12 @@ import org.enso.languageserver.filemanager.{
   Path
 }
 import org.enso.languageserver.session.JsonSession
-import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.FileVersionsRepo
+import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
 
@@ -131,7 +124,13 @@ class CollaborativeBuffer(
       edit(buffer, clients, lockHolder, clientId, change)
 
     case SaveFile(clientId, _, clientVersion) =>
-      saveFile(buffer, clients, lockHolder, clientId, clientVersion)
+      saveFile(
+        buffer,
+        clients,
+        lockHolder,
+        clientId,
+        ContentVersion(clientVersion)
+      )
   }
 
   private def saving(
@@ -166,7 +165,7 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
     clientId: ClientId,
-    clientVersion: Version
+    clientVersion: ContentVersion
   ): Unit = {
     val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
@@ -182,7 +181,10 @@ class CollaborativeBuffer(
           saving(buffer, clients, lockHolder, sender(), timeoutCancellable)
         )
       } else {
-        sender() ! SaveFileInvalidVersion(clientVersion, buffer.version)
+        sender() ! SaveFileInvalidVersion(
+          clientVersion.toHexString,
+          buffer.version.toHexString
+        )
       }
     } else {
       sender() ! SaveDenied
@@ -221,19 +223,27 @@ class CollaborativeBuffer(
   ): Either[ApplyEditFailure, Buffer] =
     for {
       _              <- validateAccess(lockHolder, clientId)
-      _              <- validateVersions(change.oldVersion, buffer.version)
+      _              <- validateVersions(ContentVersion(change.oldVersion), buffer.version)
       modifiedBuffer <- doEdit(buffer, change.edits)
-      _              <- validateVersions(change.newVersion, modifiedBuffer.version)
+      _ <- validateVersions(
+        ContentVersion(change.newVersion),
+        modifiedBuffer.version
+      )
     } yield modifiedBuffer
 
   private def validateVersions(
-    clientVersion: Buffer.Version,
-    serverVersion: Buffer.Version
+    clientVersion: ContentVersion,
+    serverVersion: ContentVersion
   ): Either[ApplyEditFailure, Unit] = {
     if (clientVersion == serverVersion) {
       Right(())
     } else {
-      Left(TextEditInvalidVersion(clientVersion, serverVersion))
+      Left(
+        TextEditInvalidVersion(
+          clientVersion.toHexString,
+          serverVersion.toHexString
+        )
+      )
     }
   }
 
@@ -289,12 +299,12 @@ class CollaborativeBuffer(
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
     )
-    val currentVersion = versionCalculator.evalDigest(file.content)
+    val currentVersion = versionCalculator.evalVersion(file.content)
     versionsRepo
-      .setVersion(file.path, currentVersion)
-      .map { prevVersionOpt =>
-        val isIndexed =
-          prevVersionOpt.exists(util.Arrays.equals(_, currentVersion))
+      .setVersion(file.path, currentVersion.toDigest)
+      .map { prevDigestOpt =>
+        val prevVersionOpt = prevDigestOpt.map(ContentVersion(_))
+        val isIndexed      = prevVersionOpt.contains(currentVersion)
         Api.Request(
           Api.OpenFileNotification(file.path, file.content, isIndexed)
         )

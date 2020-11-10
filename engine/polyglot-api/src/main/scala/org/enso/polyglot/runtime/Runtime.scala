@@ -12,6 +12,8 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.Tree
+import org.enso.text.ContentVersion
 import org.enso.text.editing.model.{Range, TextEdit}
 
 import scala.util.Try
@@ -315,46 +317,133 @@ object Runtime {
       expression: String
     )
 
-    /** A change in the suggestions database. */
+    /** An operation applied to the suggestion argument. */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Add],
-          name  = "suggestionsDatabaseUpdateAdd"
+          value = classOf[SuggestionArgumentAction.Add],
+          name  = "suggestionArgumentActionAdd"
         ),
         new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Remove],
-          name  = "suggestionsDatabaseUpdateRemove"
+          value = classOf[SuggestionArgumentAction.Remove],
+          name  = "suggestionArgumentActionRemove"
         ),
         new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Clean],
-          name  = "suggestionsDatabaseUpdateClean"
+          value = classOf[SuggestionArgumentAction.Modify],
+          name  = "suggestionArgumentActionModify"
         )
       )
     )
-    sealed trait SuggestionsDatabaseUpdate
-    object SuggestionsDatabaseUpdate {
+    sealed trait SuggestionArgumentAction
+    object SuggestionArgumentAction {
 
-      /** Create or replace the database entry.
+      /** Add the argument to a list.
         *
-        * @param suggestion the new suggestion
+        * @param index the position of the argument
+        * @param argument the argument to add
         */
-      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
+      case class Add(index: Int, argument: Suggestion.Argument)
+          extends SuggestionArgumentAction
 
-      /** Remove the database entry.
+      /** Remove the argument from a list.
         *
-        * @param suggestion the suggestion to remove
+        * @param index the position of the arugment
         */
-      case class Remove(suggestion: Suggestion)
-          extends SuggestionsDatabaseUpdate
+      case class Remove(index: Int) extends SuggestionArgumentAction
+
+      /** Modify the argument at the specified index.
+        *
+        * @param index the position of the argument
+        * @param name the name to update
+        * @param reprType the argument type to update
+        * @param isSuspended the suspended flag to update
+        * @param hasDefault the default flag to update
+        * @param defaultValue the default value to update
+        */
+      case class Modify(
+        index: Int,
+        name: Option[String]                 = None,
+        reprType: Option[String]             = None,
+        isSuspended: Option[Boolean]         = None,
+        hasDefault: Option[Boolean]          = None,
+        defaultValue: Option[Option[String]] = None
+      ) extends SuggestionArgumentAction
+    }
+
+    /** An operation applied to the update */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionAction.Add],
+          name  = "suggestionActionAdd"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionAction.Remove],
+          name  = "suggestionActionRemove"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionAction.Modify],
+          name  = "suggestionActionModify"
+        )
+      )
+    )
+    sealed trait SuggestionAction
+    object SuggestionAction {
+
+      /** Add the suggestion. */
+      case class Add() extends SuggestionAction
+
+      /** Remove the suggestion. */
+      case class Remove() extends SuggestionAction
+
+      /** Modify the suggestion.
+        *
+        * @param externalId the external id to update
+        * @param arguments the arguments to update
+        * @param returnType the return type to update
+        * @param documentation the documentation string to update
+        * @param scope the scope to update
+        */
+      case class Modify(
+        externalId: Option[Option[Suggestion.ExternalId]] = None,
+        arguments: Option[Seq[SuggestionArgumentAction]]  = None,
+        returnType: Option[String]                        = None,
+        documentation: Option[Option[String]]             = None,
+        scope: Option[Suggestion.Scope]                   = None
+      ) extends SuggestionAction
+    }
+
+    /** An action to apply to the suggestions database. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseAction.Clean],
+          name  = "suggestionsDatabaseActionClean"
+        )
+      )
+    )
+    sealed trait SuggestionsDatabaseAction
+    object SuggestionsDatabaseAction {
 
       /** Remove all module entries from the database.
         *
         * @param module the module name
         */
-      case class Clean(module: String) extends SuggestionsDatabaseUpdate
+      case class Clean(module: String) extends SuggestionsDatabaseAction
     }
+
+    /** A suggestion update.
+      *
+      * @param suggestion the original suggestion
+      * @param action the operation that is applied to the update
+      */
+    case class SuggestionUpdate(
+      suggestion: Suggestion,
+      action: SuggestionAction
+    )
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
@@ -794,13 +883,15 @@ object Runtime {
     /** A notification about the changes in the suggestions database.
       *
       * @param file the module file path
-      * @param contents the module source
+      * @param version the version of the module
+      * @param actions the list of actions to apply to the suggestions database
       * @param updates the list of suggestions extracted from module
       */
     case class SuggestionsDatabaseModuleUpdateNotification(
       file: File,
-      contents: String,
-      updates: Seq[SuggestionsDatabaseUpdate]
+      version: ContentVersion,
+      actions: Vector[SuggestionsDatabaseAction],
+      updates: Tree[SuggestionUpdate]
     ) extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
