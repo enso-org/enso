@@ -32,8 +32,8 @@ type Map
                 to_vector_with_builder l
                 builder.append [k, v]
                 to_vector_with_builder r
-                Unit
-            Tip -> Unit
+                Nothing
+            Tip -> Nothing
         to_vector_with_builder this
         result = builder.to_vector
         result

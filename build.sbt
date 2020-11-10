@@ -493,25 +493,25 @@ lazy val `lexer-bench` =
     .dependsOn(flexer.jvm)
     .settings(
       javaOptions ++= Seq(
-          "-Xms4096m",
-          "-Xmx4096m",
-          "-XX:+FlightRecorder",
+        "-Xms4096m",
+        "-Xmx4096m",
+        "-XX:+FlightRecorder"
       ),
       mainClass in Benchmark := Some("org.openjdk.jmh.Main"),
       bench := Def.task {
-          (run in Benchmark).toTask("").value
-        },
+        (run in Benchmark).toTask("").value
+      },
       benchOnly := Def.inputTaskDyn {
-          import complete.Parsers.spaceDelimited
-          val name = spaceDelimited("<name>").parsed match {
-            case List(name) => name
-            case _ =>
-              throw new IllegalArgumentException("Expected one argument.")
-          }
-          Def.task {
-            (testOnly in Benchmark).toTask(" -- -z " + name).value
-          }
-        }.evaluated,
+        import complete.Parsers.spaceDelimited
+        val name = spaceDelimited("<name>").parsed match {
+          case List(name) => name
+          case _ =>
+            throw new IllegalArgumentException("Expected one argument.")
+        }
+        Def.task {
+          (testOnly in Benchmark).toTask(" -- -z " + name).value
+        }
+      }.evaluated,
       parallelExecution in Benchmark := false
     )
 
@@ -1215,8 +1215,21 @@ lazy val `runtime-version-manager-test` = project
     )
   )
   .settings(parallelExecution in Test := false)
+  .settings(
+    (Test / test) := (Test / test)
+      .dependsOn(`locking-test-helper` / assembly)
+      .value
+  )
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
+  .dependsOn(testkit)
+
+lazy val `locking-test-helper` = project
+  .in(file("lib/scala/locking-test-helper"))
+  .settings(
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("locking-test-helper.jar")
+  )
 
 val `std-lib-root`          = file("distribution/std-lib/")
 val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"

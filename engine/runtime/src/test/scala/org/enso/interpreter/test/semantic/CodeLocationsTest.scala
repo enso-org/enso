@@ -90,20 +90,20 @@ class CodeLocationsTest extends InterpreterTest {
         """
           |from Builtins import all
           |
-          |Unit.method =
+          |Nothing.method =
           |    foo = a -> b ->
           |        IO.println a
           |        add = a -> b -> a + b
           |        add a b
           |    foo 10 20
           |
-          |main = Unit.method
+          |main = Nothing.method
           |""".stripMargin
 
-      instrumenter.assertNodeExists(106, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(124, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(120, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(132, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(109, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(127, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(123, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(135, 9, classOf[ApplicationNode])
       eval(code)
       ()
     }

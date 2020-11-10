@@ -58,7 +58,7 @@ class ErrorsTest extends InterpreterTest {
           |main =
           |    brokenVal = Error.throw MyError
           |    matched = case brokenVal of
-          |        Unit -> 1
+          |        Nothing -> 1
           |        _ -> 0
           |
           |    IO.println matched
@@ -76,10 +76,10 @@ class ErrorsTest extends InterpreterTest {
           |main =
           |    brokenVal = Error.throw MyError
           |    f = case _ of
-          |        Unit -> 1
+          |        Nothing -> 1
           |        _ -> 0
           |
-          |    IO.println (f Unit)
+          |    IO.println (f Nothing)
           |    IO.println (f brokenVal)
           |""".stripMargin
       noException shouldBe thrownBy(eval(code))
@@ -104,11 +104,11 @@ class ErrorsTest extends InterpreterTest {
           |type MyCons err
           |
           |main =
-          |    unitErr = Error.throw Unit
+          |    unitErr = Error.throw Nothing
           |    IO.println (unitErr.catch MyCons)
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("(MyCons Unit)")
+      consumeOut shouldEqual List("(MyCons Nothing)")
     }
 
     "accept a method handle in catch function" in {

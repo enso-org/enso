@@ -25,7 +25,7 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Unit.foo = 0
+          |Nothing.foo = 0
           |
           |main = (IO.println "foo").foo
           |""".stripMargin
@@ -116,8 +116,8 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Unit.testMethod = x -> y -> z -> x + y + z
-          |main = testMethod x=1 y=2 this=Unit z=3
+          |Nothing.testMethod = x -> y -> z -> x + y + z
+          |main = testMethod x=1 y=2 this=Nothing z=3
           |""".stripMargin
       eval(code) shouldEqual 6
     }
@@ -150,7 +150,7 @@ class MethodsTest extends InterpreterTest {
           |    IO.println Foo.method
           |    IO.println Bar.method
           |    IO.println Baz.method
-          |    IO.println Unit.method
+          |    IO.println Nothing.method
           |    IO.println 123.method
           |    IO.println (x -> x).method
           |""".stripMargin

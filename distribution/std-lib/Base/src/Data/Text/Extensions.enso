@@ -13,7 +13,7 @@ polyglot java import org.enso.base.Text_Utils
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
-Text.each : (Text -> Any) -> Unit
+Text.each : (Text -> Any) -> Nothing
 Text.each function =
     iterator = BreakIterator.getCharacterInstance []
     iterator.setText [this]
@@ -21,12 +21,12 @@ Text.each function =
     fst = iterator.first []
     nxt = iterator.next []
 
-    iterate prev nxt = if nxt == -1 then Unit else
+    iterate prev nxt = if nxt == -1 then Nothing else
         function (Text_Utils.substring [this, prev, nxt])
         next_nxt = iterator.next []
         @Tail_Call iterate nxt next_nxt
     iterate fst nxt
-    Unit
+    Nothing
 
 ## Returns a vector containing all characters in the given text.
 

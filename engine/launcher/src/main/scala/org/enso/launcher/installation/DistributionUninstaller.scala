@@ -349,7 +349,7 @@ object DistributionUninstaller {
   def default(globalCLIOptions: GlobalCLIOptions): DistributionUninstaller =
     new DistributionUninstaller(
       DefaultManagers.distributionManager,
-      DefaultManagers.DefaultResourceManager,
+      DefaultManagers.defaultResourceManager,
       globalCLIOptions
     )
 }

@@ -7,10 +7,8 @@ import com.typesafe.scalalogging.Logger
 
 import scala.util.control.NonFatal
 
-/** [[LockManager]] using file-based locks.
-  *
-  * This is the [[LockManager]] that should be used in production as it is able
-  * to synchronize locks between different processes.
+/** [[LockManager]] using file-based locks - allowing to synchornize locks
+  * between different processes.
   *
   * Under the hood, it uses the [[FileLock]] mechanism. This mechanism specifies
   * that on some platforms shared locks may not be supported and all shared
@@ -20,19 +18,26 @@ import scala.util.control.NonFatal
   * currently support (Linux, macOS, Windows), do support shared locks, so this
   * should not be an issue for us. However, if a shared lock request returns an
   * exclusive lock, a warning is issued, just in case.
+  *
+  * The [[FileLock]] is not supposed to be used for synchronization of threads
+  * within a single process. In fact using this manager to synchronize locks to
+  * the same resources at the same time from different threads may result in
+  * errors. Use-cases that may require access from multiple threads of a single
+  * process should use [[ThreadSafeFileLockManager]] instead.
+  *
+  * @param locksRoot the directory in which lockfiles should be kept
   */
-abstract class FileLockManager extends LockManager {
+class FileLockManager(locksRoot: Path) extends LockManager {
 
-  /** Specifies the directory in which lockfiles should be created.
-    */
-  def locksRoot: Path
-
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def acquireLock(resourceName: String, lockType: LockType): Lock = {
     val channel = openChannel(resourceName)
     try {
-      lockChannel(channel, lockType)
+      WrapLock(
+        channel.lock(0L, Long.MaxValue, isShared(lockType)),
+        channel,
+        lockType
+      )
     } catch {
       case NonFatal(e) =>
         channel.close()
@@ -40,15 +45,20 @@ abstract class FileLockManager extends LockManager {
     }
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def tryAcquireLock(
     resourceName: String,
     lockType: LockType
   ): Option[Lock] = {
     val channel = openChannel(resourceName)
     try {
-      tryLockChannel(channel, lockType)
+      val lock = channel.tryLock(0L, Long.MaxValue, isShared(lockType))
+      if (lock == null) {
+        channel.close()
+        None
+      } else {
+        Some(WrapLock(lock, channel, lockType))
+      }
     } catch {
       case NonFatal(e) =>
         channel.close()
@@ -63,7 +73,7 @@ abstract class FileLockManager extends LockManager {
     }
 
   private def lockPath(resourceName: String): Path =
-    locksRoot.resolve(resourceName + ".lock")
+    FileLockManager.lockPath(locksRoot, resourceName)
 
   private def openChannel(resourceName: String): FileChannel = {
     val path   = lockPath(resourceName)
@@ -81,21 +91,9 @@ abstract class FileLockManager extends LockManager {
     )
   }
 
-  private def lockChannel(channel: FileChannel, lockType: LockType): Lock = {
-    WrapLock(
-      channel.lock(0L, Long.MaxValue, isShared(lockType)),
-      channel,
-      lockType
-    )
-  }
-
-  private def tryLockChannel(
-    channel: FileChannel,
-    lockType: LockType
-  ): Option[Lock] =
-    Option(channel.tryLock(0L, Long.MaxValue, isShared(lockType)))
-      .map(WrapLock(_, channel, lockType))
-
+  /** Wraps a [[FileLock]] and the [[FileChannel]] that owns it, so that when
+    * the lock is released, the owning channel is closed.
+    */
   private case class WrapLock(
     fileLock: FileLock,
     channel: FileChannel,
@@ -116,4 +114,17 @@ abstract class FileLockManager extends LockManager {
       channel.close()
     }
   }
+}
+
+object FileLockManager {
+
+  /** Resolves the path to the file that is used to synchronize access to a
+    * resource between processes.
+    *
+    * @param locksRoot path to the root directory where locks are kept
+    * @param resourceName name of the resource
+    * @return path to the file which is locked to synchronize that resource
+    */
+  def lockPath(locksRoot: Path, resourceName: String): Path =
+    locksRoot.resolve(resourceName + ".lock")
 }

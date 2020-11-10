@@ -378,7 +378,7 @@ object LauncherUpgrader {
       globalCLIOptions,
       DefaultManagers.distributionManager,
       EnsoRepository.defaultLauncherReleaseProvider,
-      DefaultManagers.DefaultResourceManager,
+      DefaultManagers.defaultResourceManager,
       originalExecutablePath
     )
 

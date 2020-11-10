@@ -166,7 +166,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     /**
      * Terminates this REPL session.
      *
-     * <p>The last result of {@link #evaluate(String)} (or {@link Builtins#unit()} if {@link
+     * <p>The last result of {@link #evaluate(String)} (or {@link Builtins#nothing()} if {@link
      * #evaluate(String)} was not called before) will be returned from the instrumented node.
      *
      * <p>This function must always be called at the end of REPL session, as otherwise the program

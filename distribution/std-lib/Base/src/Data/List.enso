@@ -52,10 +52,10 @@ type List
          In the following example, we're printing each element of the list
          to the standard output:
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . each IO.println
-    each : (Any -> Any) -> Unit
+    each : (Any -> Any) -> Nothing
     each f =
         go list = case list of
-            Nil -> Unit
+            Nil -> Nothing
             Cons h t ->
                 f h
                 @Tail_Call go t

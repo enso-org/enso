@@ -415,7 +415,7 @@ object DistributionInstaller {
   ): DistributionInstaller =
     new DistributionInstaller(
       DefaultManagers.distributionManager,
-      DefaultManagers.DefaultResourceManager,
+      DefaultManagers.defaultResourceManager,
       globalCLIOptions.autoConfirm,
       removeOldLauncher  = removeOldLauncher,
       bundleActionOption = bundleActionOption

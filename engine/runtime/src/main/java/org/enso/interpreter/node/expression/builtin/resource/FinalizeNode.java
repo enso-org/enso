@@ -24,6 +24,6 @@ public abstract class FinalizeNode extends Node {
   Object doClose(
       Object _this, ManagedResource resource, @CachedContext(Language.class) Context context) {
     context.getResourceManager().close(resource);
-    return context.getBuiltins().unit().newInstance();
+    return context.getBuiltins().nothing().newInstance();
   }
 }

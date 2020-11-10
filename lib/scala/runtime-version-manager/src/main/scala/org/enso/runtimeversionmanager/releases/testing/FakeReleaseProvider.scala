@@ -3,7 +3,7 @@ package org.enso.runtimeversionmanager.releases.testing
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import org.enso.cli.{ProgressListener, TaskProgress}
-import org.enso.runtimeversionmanager.locking.{FileLockManager, LockType}
+import org.enso.runtimeversionmanager.locking.{LockManager, LockType}
 import org.enso.runtimeversionmanager.releases.{
   Asset,
   Release,
@@ -27,8 +27,8 @@ import scala.util.{Success, Try, Using}
   */
 case class FakeReleaseProvider(
   releasesRoot: Path,
-  copyIntoArchiveRoot: Seq[String]              = Seq.empty,
-  lockManagerForAssets: Option[FileLockManager] = None
+  copyIntoArchiveRoot: Seq[String]          = Seq.empty,
+  lockManagerForAssets: Option[LockManager] = None
 ) extends SimpleReleaseProvider {
 
   private val releases =
@@ -56,8 +56,8 @@ case class FakeReleaseProvider(
   */
 case class FakeRelease(
   path: Path,
-  copyIntoArchiveRoot: Seq[String]              = Seq.empty,
-  lockManagerForAssets: Option[FileLockManager] = None
+  copyIntoArchiveRoot: Seq[String]          = Seq.empty,
+  lockManagerForAssets: Option[LockManager] = None
 ) extends Release {
 
   /** @inheritdoc
@@ -88,7 +88,7 @@ case class FakeRelease(
 case class FakeAsset(
   source: Path,
   pathsToCopy: Seq[Path],
-  lockManagerForAssets: Option[FileLockManager] = None
+  lockManagerForAssets: Option[LockManager] = None
 ) extends Asset {
 
   /** @inheritdoc
@@ -124,9 +124,7 @@ case class FakeAsset(
         lockType
       ) match {
         case Some(immediateLock) =>
-          System.err.println(
-            "[TEST] Error: Lock was unexpectedly acquired immediately."
-          )
+          System.err.println(s"[TEST] Lock for $name was acquired immediately.")
           immediateLock
         case None =>
           System.err.println("INTERNAL-TEST-ACQUIRING-LOCK")

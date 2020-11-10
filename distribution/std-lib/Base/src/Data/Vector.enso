@@ -41,7 +41,7 @@ type Vector
                   builder = Vector.new_builder
                   do_read =
                       item = IO.readln
-                      if item == "end" then Unit else
+                      if item == "end" then Nothing else
                           builder.append item
                           do_read
                   do_read
@@ -243,7 +243,7 @@ type Vector
               builder = Vector.new_builder
               do_read =
                   item = IO.readln
-                  if item == "end" then Unit else
+                  if item == "end" then Nothing else
                       builder.append item
                       do_read
               do_read
@@ -260,7 +260,7 @@ type Builder
     capacity = this.to_array.length
 
     ## Appends a new element into this builder.
-    append : Any -> Unit
+    append : Any -> Nothing
     append item = case this.capacity > this.length of
         True ->
             this.to_array.set_at this.length item
@@ -270,10 +270,10 @@ type Builder
             new_array = Array.new old_array.length*2
             0.upto this.length . each i->
                 new_array.set_at i (old_array.at i)
-                Unit
+                Nothing
             Unsafe.set_atom_field this 0 new_array
             this.append item
-            Unit
+            Nothing
 
     ## Converts this builder to a vector containing all the appended elements.
     to_vector : Vector
@@ -282,5 +282,5 @@ type Builder
         new_array = Array.new this.length
         0.upto this.length . each i->
             new_array.set_at i (old_array.at i)
-            Unit
+            Nothing
         Vector new_array

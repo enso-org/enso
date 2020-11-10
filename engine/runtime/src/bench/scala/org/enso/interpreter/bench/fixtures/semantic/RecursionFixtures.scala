@@ -79,7 +79,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |
       |doNTimes = n -> ~block ->
       |    block
-      |    if n == 1 then Unit else @Tail_Call here.doNTimes n-1 block
+      |    if n == 1 then Nothing else @Tail_Call here.doNTimes n-1 block
       |
       |main = n ->
       |    block =

@@ -574,7 +574,7 @@ object LauncherApplication {
     */
   private def initializeApp(): Unit = {
     // Note [Main Lock Initialization]
-    DefaultResourceManager.initializeMainLock()
+    defaultResourceManager.initializeMainLock()
   }
 
   val commands: NonEmptyList[Command[Config => Int]] = NonEmptyList

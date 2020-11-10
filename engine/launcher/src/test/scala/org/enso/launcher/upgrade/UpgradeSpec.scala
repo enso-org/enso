@@ -9,6 +9,7 @@ import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.launcher._
 import org.enso.runtimeversionmanager.locking.{FileLockManager, LockType}
 import org.enso.runtimeversionmanager.test.WithTemporaryDirectory
+import org.enso.testkit.RetrySpec
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 
@@ -18,7 +19,8 @@ class UpgradeSpec
     extends NativeTest
     with WithTemporaryDirectory
     with BeforeAndAfterAll
-    with OptionValues {
+    with OptionValues
+    with RetrySpec {
 
   /** Location of the fake releases root.
     */
@@ -216,7 +218,7 @@ class UpgradeSpec
         .trim shouldEqual "Test license"
     }
 
-    "perform a multi-step upgrade if necessary" in {
+    "perform a multi-step upgrade if necessary" taggedAs Retry in {
       // 0.0.3 can only be upgraded from 0.0.2 which can only be upgraded from
       // 0.0.1, so the upgrade path should be following:
       // 0.0.0 -> 0.0.1 -> 0.0.2 -> 0.0.3
@@ -298,15 +300,14 @@ class UpgradeSpec
       result.stdout should include(message)
     }
 
-    "fail if another upgrade is running in parallel" in {
+    "fail if another upgrade is running in parallel" taggedAs Retry in {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 1))
       )
 
-      val syncLocker = new FileLockManager {
-        override def locksRoot: Path = getTestDirectory / "enso" / "lock"
-      }
+      val syncLocker = new FileLockManager(getTestDirectory / "enso" / "lock")
+
       val launcherManifestAssetName = "launcher-manifest.yaml"
       // The fake release tries to acquire a shared lock on each accessed file,
       // so acquiring this exclusive lock will stall access to that file until
