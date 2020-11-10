@@ -179,11 +179,13 @@ impl ProjectNameModel {
         self
     }
 
+    /// Revert the text field content to the last committed project name.
     fn reset_name(&self) {
         debug!(self.logger, "Resetting project name.");
         self.update_text_field_content(self.project_name.borrow().as_str());
     }
 
+    /// Update the visible content of the text field.
     fn update_text_field_content(&self, content:&str) {
         self.text_field.set_content(content);
         self.update_alignment(content);
@@ -198,12 +200,15 @@ impl ProjectNameModel {
         self.text_field.set_position(value);
     }
 
+    /// Change the text field content and commit the given name.
     fn rename(&self, name:impl Str) {
         let name = name.into();
         debug!(self.logger, "Renaming: '{name}'.");
         self.update_text_field_content(&name);
+        self.commit(name);
     }
 
+    /// Confirm the given name as the current project name.
     fn commit<T:Into<String>>(&self, name:T) {
         let name = name.into();
         debug!(self.logger, "Committing name: '{name}'.");
