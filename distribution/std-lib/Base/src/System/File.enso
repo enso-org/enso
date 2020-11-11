@@ -274,6 +274,17 @@ type File
 new : Text -> File
 new path = File (Prim_Io.get_file path)
 
+## Opens a file object and reads it in one shot.
+# open : Text -> Open_Mode -> Text ! File_Error
+# open path =
+    # file = here.open path
+    # file.read
+
 ## Returns the current working directory (CWD) of the current program.
 current_directory : File
 current_directory = File (Prim_Io.get_cwd)
+
+type Open_Mode
+    type Text
+    type Binary
+

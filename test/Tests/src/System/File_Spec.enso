@@ -54,3 +54,7 @@ spec =
             f.read.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
+        # it "should allow one-shot open and read" <|
+            # result = File.open sample_file
+            # IO.println result
+            # result . should start_with "Cupcake ipsum dolor sit amet"
