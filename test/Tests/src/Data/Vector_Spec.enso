@@ -1,24 +1,63 @@
 from Base import all
+
 import Test
 
 spec = describe "Vectors" <|
+    it "should allow vector creation with a programmatic constructor" <|
+        Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
     it "should allow accessing elements" <|
         [1,2,3].at 2 . should_equal 3
     it "should have a well-defined length" <|
         [1,2,3].length . should_equal 3
     it "should allow folding an operator over its elements" <|
         [1,2,3].fold 0 (+) . should_equal 6
-    it "should allow vector creation with a programmatic constructor" <|
-        Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
-    it "should have a well-defined text conversion" <|
-        [].to_text.should_equal "[]"
-        [1,2,3].to_text.should_equal "[1, 2, 3]"
-        [Nothing].to_text.should_equal "[Nothing]"
+    it "should check exists" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.exists (ix -> ix > 3) . should_be_true
+        vec.exists (ix -> ix < 0) . should_be_false
+    it "should check any" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.any (ix -> ix > 3) . should_be_true
+        vec.any (ix -> ix < 0) . should_be_false
+    it "should check all" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.all (ix -> ix > 0) . should_be_true
+        vec.all (ix -> ix < 5) . should_be_false
+    it "should check contains" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.contains 1 . should_be_true
+        vec.contains 0 . should_be_false
+    it "should check for emptiness" <|
+        non_empty = [1]
+        empty = []
+        non_empty.is_empty . should_be_false
+        empty.is_empty . should_be_true
+    it "should check for non-emptiness" <|
+        non_empty = [1]
+        empty = []
+        non_empty.not_empty . should_be_true
+        empty.not_empty . should_be_false
+    it "should filter elements" <|
+        vec = [1, 2, 3, 4, 5]
+        vec.filter (ix -> ix > 3) . should_equal [4, 5]
+        vec.filter (ix -> ix == 1) . should_equal [1]
+        vec.filter (ix -> ix < 0) . should_equal []
     it "should allow mapping an operation, returning a new vector" <|
         vec = [1, 2, 3, 4]
         mapped = vec.map x-> x * x
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
+    it "should allow applying a function to each element" <|
+        vec = [1, 2, 3, 4]
+        vec_mut = Vector.new_builder
+        vec.each vec_mut.append
+        vec_mut.to_vector . should_equal vec
+    it "should allow reversing" <|
+        [1, 2, 3].reverse . should_equal [3, 2, 1]
+    it "should have a well-defined text conversion" <|
+        [].to_text.should_equal "[]"
+        [1,2,3].to_text.should_equal "[1, 2, 3]"
+        [Nothing].to_text.should_equal "[Nothing]"
     it "should define equality" <|
         [1,2,3]==[1,2] . should_be_false
         [1,2,3]==[1,2,3] . should_be_true
@@ -34,16 +73,46 @@ spec = describe "Vectors" <|
         vec.drop_right 2 . should_equal first_four
         vec.take 4 . should_equal first_four
         vec.take_right 4 . should_equal last_four
-    it "should check exists" <|
-        vec = [1, 2, 3, 4, 5]
-        vec.exists (ix -> ix > 3) . should_be_true
-        vec.exists (ix -> ix < 0) . should_be_false
-    it "should check contains" <|
-        vec = [1, 2, 3, 4, 5]
-        vec.contains 1 . should_be_true
-        vec.contains 0 . should_be_false
-    it "should filter elements" <|
-        vec = [1, 2, 3, 4, 5]
-        vec.filter (ix -> ix > 3) . should_equal [4, 5]
-        vec.filter (ix -> ix == 1) . should_equal [1]
-        vec.filter (ix -> ix < 0) . should_equal []
+    it "should allow getting the head element" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.head . should_equal 1
+        singleton_vec.head . should_equal 1
+        empty_vec.head . should_equal Nothing
+    it "should allow getting the tail of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.tail . should_equal [2, 3, 4, 5]
+        singleton_vec.tail . should_equal []
+        empty_vec.tail . should_equal Nothing
+    it "should allow getting the init of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.init . should_equal [1, 2, 3, 4]
+        singleton_vec.init . should_equal []
+        empty_vec.init . should_equal Nothing
+    it "should allow getting the last element of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.last . should_equal 5
+        singleton_vec.last . should_equal 1
+        empty_vec.last . should_equal Nothing
+    it "should allow getting the first element" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.first . should_equal 1
+        singleton_vec.first . should_equal 1
+        empty_vec.first . should_equal Nothing
+    it "should allow getting the rest of the vector" <|
+        non_empty_vec = [1, 2, 3, 4, 5]
+        singleton_vec = [1]
+        empty_vec = []
+        non_empty_vec.rest . should_equal [2, 3, 4, 5]
+        singleton_vec.rest . should_equal []
+        empty_vec.rest . should_equal Nothing
+

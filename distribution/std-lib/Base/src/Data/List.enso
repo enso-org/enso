@@ -1,5 +1,4 @@
 from Builtins import all
-
 from Builtins export Nil, Cons
 
 ## PRIVATE
@@ -18,14 +17,117 @@ map_helper list cons f = case list of
 ## The basic cons-list type.
 
    A cons-list allows to store an arbitrary number of elements.
+
    Prepending to the list can be achieved by using the `Cons` constructor,
    while an empty list is represented by `Nil`.
+
    > Example
      A list containing the elements `1`, `2`, and `3`, in this order is:
          Cons 1 (Cons 2 (Cons 3 Nil))
 type List
     Nil
     Cons
+
+    ## Computes the number of elements in the list.
+    length : Number
+    length = this.fold 0 (acc -> _ -> acc + 1)
+
+    ## Combines all the elements of the list, by iteratively applying the
+       passed function with next elements of the list.
+
+       In general, the result of
+           (Cons l0 <| Cons l1 <| ... <| Cons ln) . fold init f
+       is the same as
+           f (...(f (f init l0) l1)...) ln
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         list:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . fold 0 (+)
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold init f =
+        go acc list = case list of
+            Nil -> acc
+            Cons h t -> @Tail_Call go (f acc h) t
+        res = go init this
+        res
+
+    ## Checks whether any element of the list matches the given predicate.
+
+       A predicate is a function that takes a list element and returns
+       a Boolean value.
+
+       > Example
+         In the following example, we'll check if any element of the list is
+         larger than `5`:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . exists (> 5)
+    exists : (Any -> Boolean) -> Boolean
+    exists predicate =
+        go list = case list of
+            Nil -> False
+            Cons h t -> if predicate h then True else
+                @Tail_Call go t
+        res = go this
+        res
+
+    ## Checks whether any element of the list matches the given predicate.
+
+       A predicate is a function that takes a list element and returns
+       a Boolean value.
+
+       > Example
+         In the following example, we'll check if any element of the list is
+         larger than `5`:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . any (> 5)
+    any : (Any -> Boolean) -> Boolean
+    any predicate = this.exists predicate
+
+    ## Checks whether a predicate holds for all elements in this list.
+
+       > Example
+         Check if all elements in the list are less than zero.
+             (Cons 1 (Cons 2 Nil)).all (< 0)
+    all : (Any -> Boolean) -> Boolean
+    all predicate = this.fold True (l -> r -> l && predicate r)
+
+    ## Checks whether this list contains a given value as an element.
+
+       > Example
+         Checking if the list contains the number 72.
+             (Cons 1 (Cons 72 Nil)).contains 72
+    contains : Any -> Boolean
+    contains elem = this.exists ix-> ix == elem
+
+    ## Checks if this list is empty.
+
+       > Example
+         Checking for emptiness.
+             Nil.is_empty == true
+             Cons 1 Nil . is_empty == false
+    is_empty : Boolean
+    is_empty = this.length == 0
+
+    ## Checks if the list is not empty.
+
+       > Example
+         Checking for emptiness.
+             Nil.not_empty == false
+             Cons 1 Nil . not_empty == true
+    not_empty : Boolean
+    not_empty = not this.is_empty
+
+    ## Selects all elements of this list which satisfy a predicate.
+
+       > Example
+         Selecting all elements that are greater than 3.
+         (Cons 1 Nil).filter (> 3)
+    filter : (Any -> Boolean) -> List
+    filter predicate =
+        case this of
+            Cons a b ->
+                rest = b.filter predicate
+                if predicate a then Cons a rest else rest
+            Nil -> Nil
 
     ## Applies a function to each element of the list, returning the list of
        results.
@@ -59,52 +161,94 @@ type List
             Cons h t ->
                 f h
                 @Tail_Call go t
-        res = go this
-        res
-
-    ## Combines all the elements of the list, by iteratively applying the
-       passed function with next elements of the list.
-
-       In general, the result of
-           (Cons l0 <| Cons l1 <| ... <| Cons ln) . fold init f
-       is the same as
-           f (...(f (f init l0) l1)...) ln
-
-       > Example
-         In the following example, we'll compute the sum of all elements of a
-         list:
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . fold 0 (+)
-    fold : Any -> (Any -> Any -> Any) -> Any
-    fold init f =
-        go acc list = case list of
-            Nil -> acc
-            Cons h t -> @Tail_Call go (f acc h) t
-        res = go init this
-        res
+        go this
+        Nothing
 
     ## Reverses the list, returning a list with the same elements, but in the
        opposite order.
+
+       > Example
+         Reversing a small list.
+             (Cons 1 (Cons 2 Nil)).reverse == (Cons 2 (Cons 1 Nil))
     reverse : List
     reverse = this.fold Nil (l -> el -> Cons el l)
 
-    ## Computes the number of elements in the list.
-    length : Number
-    length = this.fold 0 (acc -> _ -> acc + 1)
-
-    ## Checks whether any element of the list matches the given predicate.
-
-       A predicate is a function that takes a list element and returns
-       a Boolean value.
+    ## Creates a new list with the first `count` elements on the left of `this`
+       removed.
 
        > Example
-         In the following example, we'll check if any element of the list is
-         larger than `1`:
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . any (> 5)
-    any : (Any -> Boolean) -> Boolean
-    any predicate =
-        go list = case list of
-            Nil -> False
-            Cons h t -> if predicate h then True else
-                @Tail_Call go t
-        res = go this
-        res
+         Removing the first element from a list.
+             (Cons 1 (Cons 2 (Nil))).drop 1
+    drop : Integer -> List
+    drop count = if count <= 0 then this else case this of
+        Cons _ b -> b.drop count-1
+        Nil -> Nil
+
+    ## Creates a new list consisting of the first `count` elements on the left
+       of this.
+
+       > Example
+         Obtaining the first 2 elements of a list.
+             (Cons 1 (Cons 2 (Cons 3 Nil))).take 2
+    take : Integer -> List
+    take count = if count <= 0 then Nil else case this of
+        Cons a b -> Cons a (b.take count-1)
+        Nil -> Nil
+
+    ## Get the first element from the list.
+
+       > Example
+         This returns 1.
+             (Cons 1 (Cons 2 Nil)).head
+    head : Any | Nothing
+    head = case this of
+        Cons a _ -> a
+        Nil -> Nothing
+
+    ## Get all elements from the list except the first.
+
+       > Example
+         This returns (Cons 2 Nil).
+             (Cons 1 (Cons 2 Nil)).tail
+    tail : List | Nothing
+    tail = case this of
+        Cons _ b -> b
+        Nil -> Nothing
+
+    ## Get all elements from the list except the last.
+
+       > Example
+         Removing the last element of the list to give (Cons 1 Nil).
+             (Cons 1 (Cons 2 Nil)).init
+    init : List | Nothing
+    init =
+        init' x y = case y of
+            Nil -> Nil
+            Cons a b -> Cons x (init' a b)
+        case this of
+            Cons a b -> init' a b
+            Nil -> Nothing
+
+    ## Get the last element of the list.
+
+       > Example
+         Getting the final element, in this case 2.
+             (Cons 1 (Cons 2 Nil)).last
+    last : Any | Nothing
+    last = this.fold Nothing (_ -> r -> r)
+
+    ## Get the first element from the list.
+
+       > Example
+         This returns 1.
+             (Cons 1 (Cons 2 Nil)).first
+    first : Any | Nothing
+    first = this.head
+
+    ## Get all elements from the list except the first.
+
+       > Example
+         This returns (Cons 2 Nil).
+             (Cons 1 (Cons 2 Nil)).rest
+    rest : List | Nothing
+    rest = this.tail

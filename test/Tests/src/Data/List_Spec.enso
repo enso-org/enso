@@ -1,16 +1,48 @@
 import Test
+
 from Base import all
 
 spec = describe "List" <|
-    l = Base.Cons 1 <| Base.Cons 2 <| Base.Cons 3 <| Base.Nil
+    l = Cons 1 <| Cons 2 <| Cons 3 <| Nil
+    empty = Nil
     it "should have properly defined length" <|
         l.length.should_equal 3
     it "should have well defined length when empty" <|
         Nil.length.should_equal 0
+    it "should allow folding the list with an arbitrary operation with .fold" <|
+        sum = l.fold 0 (+)
+        prod = l.fold 1 (*)
+        sum.should_equal 6
+        prod.should_equal 6
+    it "should allow checking if an element satisfies a predicate with .exists" <|
+        any_even = l.exists (x -> x % 2 == 0)
+        any_eq_five = l.exists (== 5)
+        any_even.should_be_true
+        any_eq_five.should_be_false
+    it "should allow checking if an element satisfies a predicate with .any" <|
+        any_even = l.any (x -> x % 2 == 0)
+        any_eq_five = l.any (== 5)
+        any_even.should_be_true
+        any_eq_five.should_be_false
+    it "should allow checking if all elements satisfy a predicate with `.all`" <|
+        all_even = l.all(x -> x % 2 == 0)
+        all_less_than_four = l.all (< 4)
+        all_even . should_be_false
+        all_less_than_four . should_be_true
+    it "should allow checking if an element is in the list with `.contains`" <|
+        l.contains 4 . should_be_false
+        l.contains 3 . should_be_true
+        empty.contains 10 . should_be_false
+    it "should allow checking if the list is empty with `.is_empty`" <|
+        l.is_empty . should_be_false
+        empty.is_empty . should_be_true
+    it "should allow checking if the list is not empty `.not_empty`" <|
+        l.not_empty . should_be_true
+        empty.not_empty . should_be_false
+    it "should allow filtering of the list using `.filter`" <|
+        l.filter (> 2) . should_equal (Cons 3 Nil)
     it "should allow mapping a function over its elements with .map" <|
         l.map +1 . head . should_equal 2
-    it "should allow reversing with .reverse" <|
-        l.reverse.head.should_equal 3
     it "should allow executing an action for each element with .each" <|
         sum = State.run Number 0 <|
             l.each el->
@@ -18,13 +50,30 @@ spec = describe "List" <|
                 State.put Number s+el
             State.get Number
         sum.should_equal 6
-    it "should allow folding the list with an arbitrary operation with .fold" <|
-        sum = l.fold 0 (+)
-        prod = l.fold 1 (*)
-        sum.should_equal 6
-        prod.should_equal 6
-    it "should allow checking if an element satisfies a predicate with .any" <|
-        any_even = l.any (x -> x % 2 == 0)
-        any_eq_five = l.any (== 5)
-        any_even.should_be_true
-        any_eq_five.should_be_false
+    it "should allow reversing with .reverse" <|
+        l.reverse.head.should_equal 3
+    it "should allow dropping elements from the left with `.drop`" <|
+        l.drop 1 . should_equal (Cons 2 (Cons 3 Nil))
+        empty.drop 1 . should_equal Nil
+    it "should allow taking elements from the left with `.take`" <|
+        l.take 2 . should_equal (Cons 1 (Cons 2 Nil))
+        empty.take 2 . should_equal Nil
+    it "should allow getting the head of the list with `.head`" <|
+        l.head . should_equal 1
+        empty.head . should_equal Nothing
+    it "should allow getting the tail of the list with `.tail`" <|
+        l.tail . should_equal (Cons 2 (Cons 3 Nil))
+        empty.tail . should_equal Nothing
+    it "should allow getting the init of the list with `.init`" <|
+        l.init . should_equal (Cons 1 (Cons 2 Nil))
+        empty.init . should_equal Nothing
+    it "should allow getting the last element of the list with `.last`" <|
+        l.last . should_equal 3
+        empty.last . should_equal Nothing
+    it "should allow getting the head of the list with `.first`" <|
+        l.first . should_equal 1
+        empty.first . should_equal Nothing
+    it "should allow getting the tail of the list with `.rest`" <|
+        l.rest . should_equal (Cons 2 (Cons 3 Nil))
+        empty.rest . should_equal Nothing
+

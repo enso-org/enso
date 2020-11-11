@@ -1,86 +1,41 @@
-import Base.Data.Number.Extensions
-import Base.Data.Text.Extensions
-import Base.Data.List
-import Base.Data.Vector
-import Base.System.File
-import Base.Meta.Enso_Project
-import Base.Meta
-import Base.Error.Extensions
-import Base.Polyglot.Java
-import Base.Data.Map
 import Base.Data.Json
+import Base.Data.List
+import Base.Data.Map
+import Base.Data.Number.Extensions
+import Base.Data.Pair
+import Base.Data.Range
+import Base.Data.Text.Extensions
+import Base.Data.Vector
+import Base.Error.Extensions
+import Base.Math
+import Base.Meta
+import Base.Meta.Enso_Project
+import Base.Polyglot.Java
+import Base.System.File
+
 from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean
 
-export Base.Meta
-from Builtins export all hiding Meta
-
-export Base.Data.Map
 export Base.Data.Json
-from Base.Data.Number.Extensions export all hiding Math, String
-from Base.Data.Text.Extensions export Text
-from Base.Meta.Enso_Project export all
-from Base.Data.List export Nil, Cons
-from Base.Data.Vector export Vector
-from Base.Error.Extensions export all
-from Base.Polyglot.Java export all
+export Base.Data.Map
+export Base.Math
+export Base.Meta
 export Base.System.File
 
-## Represents a right-exclusive range of integer values.
-type Range
-    type Range start end
-
-    ## Applies a function to each element in the range.
-
-       > Example
-         To print all the numbers from 1 to 100 use:
-         1.upto 101 . each IO.println
-    each function =
-        it start end = if start == end then Nothing else
-            function start
-            @Tail_Call it start+1 end
-        it this.start this.end
-        Nothing
-
-    ## Combines all the elements of the range, by iteratively applying the
-       passed function with next elements of the range.
-
-       In general, the result of
-           Range start end . fold init f
-       is the same as
-           f (...(f (f init start) start+1)...) end-1
-
-       > Example
-         In the following example, we'll compute the sum of all elements of a
-         range:
-             Range 0 100 . fold 0 (+)
-    fold initial function =
-        it acc start end = if start == end then acc else
-            new_acc = function acc start
-            @Tail_Call it new_acc start+1 end
-        res = it initial this.start this.end
-        res
-
-    ## Checks whether `predicate` is satisfied for every number in this range.
-    every predicate =
-        it start end = if start==end then True else
-            r = predicate start
-            if r then (@Tail_Call it start+1 end) else False
-        res = it this.start this.end
-        res
-
-type Math
-
-## The mathematical constant pi, equal to the ratio of a circle circumference
-    to its diameter.
-Math.pi : Decimal
-Math.pi = 3.141592653589793
-
-## A pair of elements.
-type Pair
-
-    type Pair first second
+from Base.Data.List export Nil, Cons
+from Base.Data.Number.Extensions export all hiding Math, String
+from Base.Data.Pair export Pair
+from Base.Data.Range export Range
+from Base.Data.Text.Extensions export Text
+from Base.Data.Vector export Vector
+from Base.Error.Extensions export all
+from Base.Meta.Enso_Project export all
+from Base.Polyglot.Java export all
+from Builtins export all hiding Meta
 
 ## Generic equality of arbitrary values.
+
+   Two values are considered to be equal in Enso when they have the same
+   structure, and each of the values of their fields are recursively equal.
 Any.== : Any -> Boolean
 Any.== that = if Meta.is_same_object this that then True else
     this_meta = Meta.meta this
@@ -92,7 +47,7 @@ Any.== that = if Meta.is_same_object this that then True else
             if not (Meta.is_same_object c_1 c_2) then False else
                 f_1 = this_meta.fields
                 f_2 = that_meta.fields
-                0.upto f_1.length . every i-> (f_1.at i) == (f_2.at i)
+                0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
         Cons (Meta.Error _) (Meta.Error _) -> this_meta.payload == that_meta.payload
         Cons (Meta.Polyglot o_1) (Meta.Polyglot o_2) ->
             langs_match = this_meta.language == Meta.Java && that_meta.language == Meta.Java

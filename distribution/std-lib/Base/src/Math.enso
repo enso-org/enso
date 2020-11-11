@@ -1,0 +1,19 @@
+from Base import all
+
+## The mathematical constant pi, equal to the ratio of a circle circumference
+   to its diameter.
+
+   > Example
+     Calculating the area of a circle.
+         circle_area r = 2 * Math.pi * r^2
+pi : Decimal
+pi = 3.1415926535897932385
+
+## The mathematical constant e, the base of the natural logarithm.
+
+   > Example
+     Calculating the natural logarithm of 3.
+         3.log Math.e
+e : Decimal
+e = 2.718281828459045235360
+

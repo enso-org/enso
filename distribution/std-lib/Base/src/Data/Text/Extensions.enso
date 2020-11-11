@@ -6,6 +6,16 @@ from Builtins export Text
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
 
+## Computes the number of characters in the text.
+
+   A character is defined as an Extended Grapheme Cluster, see
+   [Unicode Standard Annex #29](https://unicode.org/reports/tr29/).
+
+   This is the smallest unit that still has semantic meaning in most
+   text-processing applications.
+Text.length : Integer
+Text.length = this.characters.length
+
 ## Applies `function` to each character in `this`.
 
    A character is defined as an Extended Grapheme Cluster, see
@@ -47,11 +57,11 @@ Text.characters =
    > Example
      In the following example, we'll split the text into a vector of
      comma-separated items:
-         "ham,eggs,cheese,tomatoes".split_at ","
+         "ham,eggs,cheese,tomatoes".split ","
      The code above returns:
          ["ham", "eggs", "cheese", "tomatoes"]
-Text.split_at : Text -> Vector
-Text.split_at separator =
+Text.split : Text -> Vector
+Text.split (separator = " ") =
     Vector.from_polyglot_array (Text_Utils.split_at [this, separator])
 
 ## Checks whether `this` is equal to `that`.
@@ -148,4 +158,4 @@ Text.to_json = Json.String this
    concatenated copies of `this`.
 Text.repeat : Integer -> Text
 Text.repeat count =
-    0.upto count . fold "" acc-> _-> acc + this
+    0.up_to count . fold "" acc-> _-> acc + this
