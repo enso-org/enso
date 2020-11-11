@@ -23,8 +23,8 @@ spec = describe "List" <|
         prod = l.fold 1 (*)
         sum.should_equal 6
         prod.should_equal 6
-    it "should allow checking if an element satisfies a predicate with .any" <|
-        any_even = l.any (x -> x % 2 == 0)
-        any_eq_five = l.any (== 5)
+    it "should allow checking if an element satisfies a predicate with .exists" <|
+        any_even = l.exists (x -> x % 2 == 0)
+        any_eq_five = l.exists (== 5)
         any_even.should_be_true
         any_eq_five.should_be_false

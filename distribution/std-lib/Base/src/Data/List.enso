@@ -98,13 +98,18 @@ type List
 
        > Example
          In the following example, we'll check if any element of the list is
-         larger than `1`:
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . any (> 5)
-    any : (Any -> Boolean) -> Boolean
-    any predicate =
+         larger than `5`:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . exists (> 5)
+    exists : (Any -> Boolean) -> Boolean
+    exists predicate =
         go list = case list of
             Nil -> False
             Cons h t -> if predicate h then True else
                 @Tail_Call go t
         res = go this
         res
+
+    any : (Any -> Boolean) -> Boolean
+    any predicate = this.exists predicate
+
+

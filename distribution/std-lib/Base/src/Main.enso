@@ -102,3 +102,7 @@ Any.== that = if Meta.is_same_object this that then True else
            Therefore, there is no more cases to handle in this method.
         _ -> False
 
+## Generic inequality of arbitrary values.
+Any.!= : Any -> Boolean
+Any.!= that = (this == that)
+

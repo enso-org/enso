@@ -56,6 +56,10 @@ type Vector
     from_polyglot_array arr = Vector.new arr.length arr.at
 
     ## Returns the number of elements stored in this vector.
+
+       > Example
+         Checking the length of a vector.
+             [1, 2, 3, 4].length == 4
     length : Number
     length = this.to_array.length
 
@@ -78,16 +82,68 @@ type Vector
         0.upto this.length . fold initial f
 
     ## Checks whether a predicate holds for at least one element of this vector.
-    exists : (Any -> Any) -> Boolean
-    exists p =
-        check found ix = if found then found else p ix
+
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
+       > Example
+         Checking if any element of the list is larger than 3.
+             [1,2,3,4,5].exists (> 3)
+    exists : (Any -> Boolean) -> Boolean
+    exists predicate =
+        check found ix = if found then found else predicate ix
         this.fold False check
 
+    ## Checks whether a predicate holds for at least one element of this vector.
+
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
+       > Example
+         Checking if any element of the list is larger than 3.
+             [1,2,3,4,5].any (> 3)
+    any : (Any -> Boolean) -> Boolean
+    any predicate = this.exists predicate
+
+    ## Checks whether a predicate holds for all elements in this vector.
+
+       > Example
+         Check if all elements in the vector are less than zero.
+             [-1, 1, 5, 8].all (< 0)
+    all : (Any -> Boolean) -> Boolean
+    all predicate = this.fold True (l -> r -> l && predicate r)
+
     ## Checks whether this vector contains a given value as an element.
+
+       > Example
+         Checking if the vector contains the number 72.
+             [1, 383, 72, 301].contains 72
     contains : Any -> Boolean
     contains elem = this.exists ix-> ix == elem
 
+    ## Checks if this vector is empty.
+
+       > Example
+         Checking for emptiness.
+             [].is_empty == True
+             [1].is_empty == False
+    is_empty : Boolean
+    is_empty = this.length == 0
+
+    ## Checks if this vector is not empty.
+
+       > Example
+         Checking for non-emptiness.
+             [].not_empty == False
+             [1].not_empty == True
+    not_empty : Boolean
+    not_empty = not this.is_empty
+
     ## Selects all elements of this vector which satisfy a predicate.
+
+       > Example
+         Selecting all elements that are greater than 3.
+             [1, 2, 3, 4, 5].filter (> 3)
     filter : (Any -> Boolean) -> Vector
     filter p =
         check acc ix = if p ix then acc + [ix] else acc
@@ -141,6 +197,10 @@ type Vector
         Vector new_arr
 
     ## Generates a human-readable text representation of the vector.
+
+       > Example
+         Converting a vector of numbers to text.
+             [1, 2, 3].to_text == "[1, 2, 3]"
     to_text : Text
     to_text =
         arr = this.to_array
@@ -152,6 +212,10 @@ type Vector
 
     ## Checks whether this vector is equal to `that`. Two vectors are considered
        equal, when they have the same length and their items are pairwise equal.
+
+       > Example
+         Comparing two vectors for equality (this case is false).
+             [1, 2, 3] == [2, 3, 4
     == : Vector -> Boolean
     == that =
         arr1 = this.to_array
@@ -161,6 +225,10 @@ type Vector
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `this`, followed by all the elements of `that`.
+
+       > Example
+         Concatenating two single-element vectors.
+             [1] + [2] == [1, 2]
     + : Vector -> Vector
     + that =
         this_len = this.length
@@ -185,24 +253,40 @@ type Vector
 
     ## Creates a new vector with the first `count` elements on the left of
        `this` removed.
+
+       > Example
+         The following code returns [2, 3, 4, 5]
+             [1, 2, 3, 4, 5].drop 1
     drop : Integer -> Vector
     drop count = if count >= this.length then Vector.new 0 (x -> x) else
         Vector.new (this.length - count) (i -> this.at i+count)
 
     ## Creates a new vector with the last `count` elements on the right of
        `this` removed.
+
+       > Example
+         The following code returns [1, 2, 3]
+             [1, 2, 3, 4, 5].drop_right 2
     drop_right : Integer -> Vector
     drop_right count = if count >= this.length then Vector.new 0 (x -> x) else
         this.take (this.length - count)
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `this`.
+
+       > Example
+         The following code returns [1, 2]
+             [1, 2, 3, 4, 5].take 2
     take : Integer -> Vector
     take count = if count >= this.length then this else
         Vector.new count this.at
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `this`.
+
+       > Example
+         The following code returns [3, 4, 5]
+             [1, 2, 3, 4, 5].take_right 3
     take_right : Integer -> Vector
     take_right count = if count >= this.length then this else
         this.drop (this.length - count)
@@ -227,12 +311,70 @@ type Vector
     to_json = Json.Array (this.map to_json)
 
     ## Get the first element from the vector.
+
+       > Example
+         The following code returns 1.
+             [1, 2, 3, 4].head
+       > Example
+         Empty vectors return `Nothing`.
+             [].head == Nothing
     head : Any | Nothing
     head = if this.length >= 1 then this.at 0 else Nothing
 
-    ## Get the tail of the vector.
-    tail : Vector
-    tail = this.drop 1
+    ## Get all elements in the vector except the first.
+
+       > Example
+         The following code returns [2, 3, 4].
+             [1, 2, 3, 4].tail
+       > Example
+         Empty vectors return `Nothing`.
+             [].tail == Nothing
+    tail : Vector | Nothing
+    tail = if this.length >= 1 then this.drop 1 else Nothing
+
+    ## Get the all elements in the vector except the last.
+
+       > Example
+         The following code returns [1, 2, 3].
+             [1, 2, 3, 4].init
+       > Example
+         Empty vectors return `Nothing`.
+             [].init == Nothing
+    init : Vector | Nothing
+    init = if this.length >= 1 then this.drop_right 1 else Nothing
+
+    ## Get the last element of the vector.
+
+       > Example
+         The following code returns 4.
+             [1, 2, 3, 4].last
+       > Example
+         Empty vectors return `Nothing`.
+             [].last == Nothing
+    last : Vector | Nothing
+    last = if this.length >= 1 then (this.take_right 1).at 0 else Nothing
+
+    ## Get the first element from the vector.
+
+       > Example
+         The following code returns 1.
+             [1, 2, 3, 4].head
+       > Example
+         Empty vectors return `Nothing`.
+             [].head == Nothing
+    first : Vector | Nothing
+    first = this.head
+
+    ## Get all elements in the vector except the first.
+
+       > Example
+         The following code returns [2, 3, 4].
+             [1, 2, 3, 4].tail
+       > Example
+         Empty vectors return `Nothing`.
+             [].tail == Nothing
+    rest : Vector | Nothing
+    rest = this.tail
 
 ## A builder type for Enso vectors.
 
