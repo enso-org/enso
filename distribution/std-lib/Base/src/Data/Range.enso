@@ -4,6 +4,30 @@ from Base import all
 type Range
     type Range start end
 
+    ## Get the number of elements in the range.
+
+       > Example
+         The following range has 100 elements.
+            0.up_to 100
+    length : Number
+    length = this.end - this.start
+
+    ## Checks if this range is empty.
+
+       > Example
+             0.up_to 0 . is_empty == True
+             0.up_to 100 . is_empty == False
+    is_empty : Boolean
+    is_empty = this.end <= this.start
+
+    ## Checks if this range is not empty.
+
+       > Example
+             0.up_to 0 . not_empty == False
+             0.up_to 100 . not_empty == True
+    not_empty : Boolean
+    not_empty = not this.is_empty
+
     ## Applies a function for each element in the range.
 
        > Example
