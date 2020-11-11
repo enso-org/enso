@@ -105,7 +105,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal "UTC"
         it "should parse custom format of local time" <|
-            time = Time.parse_format "06 of May 2020 at 04:30" "dd 'of' MMMM yyyy 'at' hh:mm"
+            time = Time.parse_format "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
             time . year . should_equal 2020
             time . month . should_equal 5
             time . day . should_equal 6
