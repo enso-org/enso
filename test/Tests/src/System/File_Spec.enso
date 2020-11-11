@@ -54,7 +54,3 @@ spec =
             f.read.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
-        # it "should allow one-shot open and read" <|
-            # path = sample_file.path
-            # contents = File.open path
-            # IO.println path

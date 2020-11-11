@@ -274,10 +274,6 @@ type File
 new : Text -> File
 new path = File (Prim_Io.get_file path)
 
-## Open the file at the provided path, and read it in one shot.
-# open : Text -> File
-# open path = (here.new path).read
-
 ## Returns the current working directory (CWD) of the current program.
 current_directory : File
 current_directory = File (Prim_Io.get_cwd)
