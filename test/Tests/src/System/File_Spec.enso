@@ -55,6 +55,6 @@ spec =
             f.delete
             f.exists.should_be_false
         # it "should allow one-shot open and read" <|
-            # result = File.open sample_file
-            # IO.println result
-            # result . should start_with "Cupcake ipsum dolor sit amet"
+            # path = sample_file.path
+            # contents = File.open path
+            # IO.println path
