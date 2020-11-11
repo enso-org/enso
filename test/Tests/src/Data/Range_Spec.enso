@@ -1,0 +1,25 @@
+from Base import all
+import Test
+
+spec = describe "Range" <|
+    it "should be created with a start and an end" <|
+        range = 1.up_to 100
+        range.start . should_equal 1
+        range.end . should_equal 100
+    it "should allow iteration" <|
+        vec_mut = Vector.new_builder
+        1.up_to 6 . each (i -> vec_mut.append i)
+        vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
+    it "should be able to be folded" <|
+        1.up_to 6 . fold 0 (+) . should_equal 15
+    it "should check all" <|
+        1.up_to 10 . all (> 0) . should_be_true
+        1.up_to 10 . all (< 0) . should_be_false
+    it "should check exists" <|
+        1.up_to 10 . exists (> 5) . should_be_true
+        1.up_to 10 . exists (> 10) . should_be_false
+    it "should check any" <|
+        1.up_to 10 . any (> 5) . should_be_true
+        1.up_to 10 . any (> 10) . should_be_false
+    it "should allow conversion to vector" <|
+        1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]

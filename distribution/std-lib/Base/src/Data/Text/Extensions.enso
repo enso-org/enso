@@ -148,4 +148,4 @@ Text.to_json = Json.String this
    concatenated copies of `this`.
 Text.repeat : Integer -> Text
 Text.repeat count =
-    0.upto count . fold "" acc-> _-> acc + this
+    0.up_to count . fold "" acc-> _-> acc + this

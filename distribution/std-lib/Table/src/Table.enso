@@ -84,7 +84,7 @@ pad txt len =
 ## PRIVATE
 print_table header rows =
     content_lengths = Vector.new header.length i->
-        max_row = 0.upto rows.length . fold 0 a-> j-> max a (rows.at j . at i . characters . length)
+        max_row = 0.up_to rows.length . fold 0 a-> j-> max a (rows.at j . at i . characters . length)
         max max_row (header.at i . characters . length)
     header_line = zip header content_lengths here.pad . join ' | '
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'

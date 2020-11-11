@@ -67,16 +67,15 @@ Number.sqrt = Math.sqrt [this.to_decimal]
 Number.log : Number -> Decimal
 Number.log base = this.ln / base.ln
 
+# TODO this should expose a more-user friendly API in the future.
 ## Converts a decimal value to a string, using the Java string formatting
    syntax.
-
-   TODO this should expose a more-user friendly API in the future.
 Decimal.format : Text -> Text
 Decimal.format fmt = String.format [fmt, this]
 
 ## Creates a new right-exclusive range of integers from `this` to `n`.
-Integer.upto : Integer -> Range
-Integer.upto n = Range this n
+Integer.up_to : Integer -> Range
+Integer.up_to n = Range this n
 
 ## Checks equality of numbers, using an `epsilon` value.
 

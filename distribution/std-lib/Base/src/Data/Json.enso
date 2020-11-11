@@ -107,7 +107,7 @@ Any.to_json =
             cons = Meta.Constructor m.constructor
             fs = m.fields
             fnames = cons.fields
-            json_fs = 0.upto fnames.length . fold Map.empty m-> i->
+            json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
                 m.insert (fnames.at i) (fs.at i . to_json)
             with_tp = json_fs . insert "type" (String cons.name)
             Object with_tp

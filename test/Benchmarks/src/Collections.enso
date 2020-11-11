@@ -4,7 +4,7 @@ import Test.Bench
 
 polyglot java import java.util.Random
 
-gen_list len = 0.upto len . fold Nil (l -> i -> Cons i+1 l)
+gen_list len = 0.up_to len . fold Nil (l -> i -> Cons i+1 l)
 
 sum_list_meta list =
     nil_cons = Meta.meta Nil . constructor
@@ -20,7 +20,7 @@ sum_recur n = if n == 0 then 0 else 1 + here.sum_recur n-1
 
 build_map size =
     rand = Random.new [].to_array
-    0.upto size . fold Map.empty (m -> i -> m.insert (rand.nextInt [10000]) i)
+    0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt [10000]) i)
 
 main =
     mil = 1000000

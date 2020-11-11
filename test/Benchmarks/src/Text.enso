@@ -5,13 +5,13 @@ import Test.Bench
 polyglot java import java.lang.StringBuilder
 
 build_long n =
-    res = 1.upto n . fold "" acc-> n-> acc + n.to_text
+    res = 1.up_to n . fold "" acc-> n-> acc + n.to_text
     Prim_Text_Helper.optimize res
     res
 
 build_long_bldr n =
     bldr = new StringBuilder [].to_array
-    1.upto n . each n-> bldr.append [n]
+    1.up_to n . each n-> bldr.append [n]
     res = bldr.toString []
     res
 

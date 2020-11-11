@@ -79,7 +79,7 @@ type Vector
     fold initial function =
         arr = this.to_array
         f = acc -> ix -> function acc (arr.at ix)
-        0.upto this.length . fold initial f
+        0.up_to this.length . fold initial f
 
     ## Checks whether a predicate holds for at least one element of this vector.
 
@@ -165,7 +165,7 @@ type Vector
     new : Number -> (Number -> Any) -> Vector
     new length constructor =
         arr = Array.new length
-        0.upto length . each ix-> arr.set_at ix (constructor ix)
+        0.up_to length . each ix-> arr.set_at ix (constructor ix)
         Vector arr
 
     ## Creates a new vector of the given length, filling the elements with
@@ -178,7 +178,7 @@ type Vector
     fill : Number -> Any -> Vector
     fill length item =
         arr = Array.new length
-        0.upto length . each ix-> arr.set_at ix item
+        0.up_to length . each ix-> arr.set_at ix item
         Vector arr
 
     ## Applies a function to each element of the vector, returning the vector of
@@ -193,8 +193,11 @@ type Vector
     map function =
         arr = this.to_array
         new_arr = Array.new arr.length
-        0.upto arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
+        0.up_to arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
         Vector new_arr
+
+    # each : (Any -> Any) -> Nothing
+     #
 
     ## Generates a human-readable text representation of the vector.
 
@@ -207,7 +210,7 @@ type Vector
         if arr.length == 0 then "[]" else
             if arr.length == 1 then "[" + (arr.at 0 . to_text) + "]" else
                 folder = str -> ix -> str + ", " + (arr.at ix).to_text
-                tail_elems = 1.upto arr.length . fold "" folder
+                tail_elems = 1.up_to arr.length . fold "" folder
                 "[" + (arr.at 0 . to_text) + tail_elems + "]"
 
     ## Checks whether this vector is equal to `that`. Two vectors are considered
@@ -221,7 +224,7 @@ type Vector
         arr1 = this.to_array
         arr2 = that.to_array
         eq_at i = arr1.at i == arr2.at i
-        if arr1.length == arr2.length then 0.upto arr1.length . every eq_at else False
+        if arr1.length == arr2.length then 0.up_to arr1.length . all eq_at else False
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `this`, followed by all the elements of `that`.
@@ -233,9 +236,9 @@ type Vector
     + that =
         this_len = this.length
         arr = Array.new (this_len + that.length)
-        0.upto this_len . each i->
+        0.up_to this_len . each i->
             arr.set_at i (this.at i)
-        this.length.upto arr.length . each i->
+        this.length.up_to arr.length . each i->
             arr.set_at i (that.at i-this_len)
         Vector arr
 
@@ -249,7 +252,7 @@ type Vector
     join separator =
         if this.length == 0 then "" else
             if this.length == 1 then this.at 0 else
-                this.at 0 + (1.upto this.length . fold "" acc-> i-> acc + separator + this.at i)
+                this.at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.at i)
 
     ## Creates a new vector with the first `count` elements on the left of
        `this` removed.
@@ -417,7 +420,7 @@ type Builder
         False ->
             old_array = this.to_array
             new_array = Array.new old_array.length*2
-            0.upto this.length . each i->
+            0.up_to this.length . each i->
                 new_array.set_at i (old_array.at i)
                 Nothing
             Unsafe.set_atom_field this 0 new_array
@@ -429,7 +432,7 @@ type Builder
     to_vector =
         old_array = this.to_array
         new_array = Array.new this.length
-        0.upto this.length . each i->
+        0.up_to this.length . each i->
             new_array.set_at i (old_array.at i)
             Nothing
         Vector new_array
