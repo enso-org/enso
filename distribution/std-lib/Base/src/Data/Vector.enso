@@ -141,12 +141,15 @@ type Vector
 
     ## Selects all elements of this vector which satisfy a predicate.
 
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
        > Example
          Selecting all elements that are greater than 3.
              [1, 2, 3, 4, 5].filter (> 3)
     filter : (Any -> Boolean) -> Vector
-    filter p =
-        check acc ix = if p ix then acc + [ix] else acc
+    filter predicate =
+        check acc ix = if predicate ix then acc + [ix] else acc
         this.fold [] check
 
     ## Creates a new vector of the given length, initializing elements using
@@ -196,8 +199,24 @@ type Vector
         0.up_to arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
         Vector new_arr
 
-    # each : (Any -> Any) -> Nothing
-     #
+    ## Applies a function to each element of the vector.
+
+       Unlike `map`, this method does not return the individual results,
+       therefore it is only useful for side-effecting computations.
+
+       > Example
+         In the following example, we're printing each element of the vector
+         to the standard output:
+             [1, 2, 3, 4, 5] . each IO.println
+    each : (Any -> Any) -> Nothing
+    each f =
+        this.map f
+        Nothing
+
+    ## Reverses the vector, returning a vector with the same elements, but in
+       the opposite order.
+    reverse : Vector
+    reverse = Vector.new this.length (i -> this.at (this.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
 
