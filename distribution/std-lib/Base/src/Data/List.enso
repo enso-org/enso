@@ -1,5 +1,4 @@
 from Builtins import all
-
 from Builtins export Nil, Cons
 
 ## PRIVATE
@@ -162,41 +161,65 @@ type List
             Cons h t ->
                 f h
                 @Tail_Call go t
-        res = go this
+        go this
         Nothing
 
     ## Reverses the list, returning a list with the same elements, but in the
        opposite order.
+
+       > Example
+         Reversing a small list.
+             (Cons 1 (Cons 2 Nil)).reverse == (Cons 2 (Cons 1 Nil))
     reverse : List
     reverse = this.fold Nil (l -> el -> Cons el l)
 
     ## Creates a new list with the first `count` elements on the left of `this`
        removed.
+
+       > Example
+         Removing the first element from a list.
+             (Cons 1 (Cons 2 (Nil))).drop 1
     drop : Integer -> List
-    drop count = if count >= this.length then Nil else case this of
-        Cons a b -> b.drop count-1
+    drop count = if count <= 0 then this else case this of
+        Cons _ b -> b.drop count-1
         Nil -> Nil
 
     ## Creates a new list consisting of the first `count` elements on the left
        of this.
+
+       > Example
+         Obtaining the first 2 elements of a list.
+             (Cons 1 (Cons 2 (Cons 3 Nil))).take 2
     take : Integer -> List
-    take count = if count >= this.length then this else case this of
+    take count = if count <= 0 then Nil else case this of
         Cons a b -> Cons a (b.take count-1)
         Nil -> Nil
 
     ## Get the first element from the list.
+
+       > Example
+         This returns 1.
+             (Cons 1 (Cons 2 Nil)).head
     head : Any | Nothing
     head = case this of
-        Cons a b -> a
+        Cons a _ -> a
         Nil -> Nothing
 
     ## Get all elements from the list except the first.
+
+       > Example
+         This returns (Cons 2 Nil).
+             (Cons 1 (Cons 2 Nil)).tail
     tail : List | Nothing
     tail = case this of
-        Cons a b -> b
+        Cons _ b -> b
         Nil -> Nothing
 
     ## Get all elements from the list except the last.
+
+       > Example
+         Removing the last element of the list to give (Cons 1 Nil).
+             (Cons 1 (Cons 2 Nil)).init
     init : List | Nothing
     init =
         init' x y = case y of
@@ -207,11 +230,25 @@ type List
             Nil -> Nothing
 
     ## Get the last element of the list.
-    last : List | Nothing
-    last = this.fold Nothing (l -> r -> r)
 
+       > Example
+         Getting the final element, in this case 2.
+             (Cons 1 (Cons 2 Nil)).last
+    last : Any | Nothing
+    last = this.fold Nothing (_ -> r -> r)
+
+    ## Get the first element from the list.
+
+       > Example
+         This returns 1.
+             (Cons 1 (Cons 2 Nil)).first
     first : Any | Nothing
     first = this.head
 
+    ## Get all elements from the list except the first.
+
+       > Example
+         This returns (Cons 2 Nil).
+             (Cons 1 (Cons 2 Nil)).rest
     rest : List | Nothing
     rest = this.tail

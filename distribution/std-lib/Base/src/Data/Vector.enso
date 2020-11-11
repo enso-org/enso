@@ -17,6 +17,38 @@ from Base import all
 type Vector
     type Vector to_array
 
+    ## Creates a new vector of the given length, initializing elements using
+       the provided constructor function.
+
+       The constructor function is called with the consecutive indices
+       (0-based) of the vector elements.
+
+       > Example
+         To create a vector containing the numbers 1 through 50:
+             Vector.new 50 (ix -> ix + 1)
+
+       > Example
+         To create a copy of the given vector (`my_vec`):
+             Vector.new my_vec.length (ix -> my_vec.at ix)
+    new : Number -> (Number -> Any) -> Vector
+    new length constructor =
+        arr = Array.new length
+        0.up_to length . each ix-> arr.set_at ix (constructor ix)
+        Vector arr
+
+    ## Creates a new vector of the given length, filling the elements with
+       the provided constant.
+
+       > Example
+         A vector containing 50 elements, each being the number `42`, can be
+         created by:
+             Vector.fill length=50 item=42
+    fill : Number -> Any -> Vector
+    fill length item =
+        arr = Array.new length
+        0.up_to length . each ix-> arr.set_at ix item
+        Vector arr
+
     ## Gets an element from the vector at a specified index (0-based).
 
        > Example
@@ -151,38 +183,6 @@ type Vector
     filter predicate =
         check acc ix = if predicate ix then acc + [ix] else acc
         this.fold [] check
-
-    ## Creates a new vector of the given length, initializing elements using
-       the provided constructor function.
-
-       The constructor function is called with the consecutive indices
-       (0-based) of the vector elements.
-
-       > Example
-         To create a vector containing the numbers 1 through 50:
-             Vector.new 50 (ix -> ix + 1)
-
-       > Example
-         To create a copy of the given vector (`my_vec`):
-             Vector.new my_vec.length (ix -> my_vec.at ix)
-    new : Number -> (Number -> Any) -> Vector
-    new length constructor =
-        arr = Array.new length
-        0.up_to length . each ix-> arr.set_at ix (constructor ix)
-        Vector arr
-
-    ## Creates a new vector of the given length, filling the elements with
-       the provided constant.
-
-       > Example
-         A vector containing 50 elements, each being the number `42`, can be
-         created by:
-             Vector.fill length=50 item=42
-    fill : Number -> Any -> Vector
-    fill length item =
-        arr = Array.new length
-        0.up_to length . each ix-> arr.set_at ix item
-        Vector arr
 
     ## Applies a function to each element of the vector, returning the vector of
        results.
