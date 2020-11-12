@@ -20,6 +20,11 @@
     padding: 0;
 }
 
+.dark .docVis {
+    color: #fafafa;
+    background-color: #32302E;
+}
+
 .docVis p {
     display: block;
     margin-block-start: 1em;
@@ -41,6 +46,14 @@
     transition: all 0.3s ease;
 }
 
+.dark .docVis a:hover {
+    color: #8dc9fa !important;
+}
+
+.dark .docVis a {
+    color: #fafafa;
+}
+
 .docVis img {
     display: block;
 }
@@ -53,6 +66,10 @@
     line-height: inherit;
     display: inline-block;
     white-space: pre-wrap;
+}
+
+.dark .docVis code {
+    color: #8dc9fa;
 }
 
 .docVis button {
@@ -72,6 +89,16 @@
 .docVis button:hover {
     background-color: #333333;
     color: #e5e5e5;
+}
+
+.dark .docVis button {
+    border: 1px solid #e5e5e5;
+    color: #e5e5e5;
+}
+
+.dark .docVis button:hover {
+    background-color: #e5e5e5;
+    color: #333333;
 }
 
 .docVis b {
@@ -171,13 +198,46 @@
 .Tags .UPCOMING,
 .Tags .REMOVED,
 .Tags .UNRECOGNIZED {
-    border: 1px solid #666666;
-    color: #666666;
+    border: 1px solid #32302E;
+    color: #32302E;
 }
 
 .ExtForTagDetails {
     margin: 0 3px;
-    color: #999999;
+    color: #42403e;
+}
+
+.dark .Tags .UPCOMING,
+.dark .Tags .REMOVED,
+.dark .Tags .UNRECOGNIZED,
+.dark .Tags .DEPRECATED,
+.dark .Tags .MODIFIED,
+.dark .Tags .ADDED{
+    font-weight: 500;
+    background-color: #42403e;
+    border: 0;
+}
+
+.dark .Tags .DEPRECATED {
+    color: rgb(72.49% 41.04% 20.85%);
+}
+.dark .Tags .MODIFIED {
+    color: rgb(54.13% 44.06% 80.36%);
+}
+.dark .Tags .ADDED {
+    color: rgb(25.31% 55.97% 23.72%);
+}
+.dark .Tags .UPCOMING {
+    color: rgb(15.32% 51.59% 84.81%);
+}
+.dark .Tags .REMOVED {
+    color:  rgb(80.24% 34.06% 37.72%);
+}
+.dark .Tags .UNRECOGNIZED {
+    color: #fafafa;
+}
+.dark .ExtForTagDetails {
+    color: #eaeaea;
 }
 
 .Raw,
@@ -203,12 +263,16 @@
     font-style: normal;
 }
 
+.dark .Body .Raw {
+    color: #fafafa;
+}
+
 .Important,
 .Info,
 .CodeBlock,
 .Example {
     font-size: 14px;
-    padding: 15px 10px 15px 20px;
+    padding: 15px 20px 10px 20px;
     border: 0;
     border-radius: 6px;
     margin: 0.7em 0;
@@ -228,17 +292,35 @@
 
 .CodeBlock {
     background-color: #fefefe;
-    margin: 10px 0;
+    margin: 10px 0px;
 }
+
+.dark .Important {
+    background-color: rgb(25.47% 26.23% 36.19%);
+}
+
+.dark .Info {
+    background-color: rgb(17.72% 29.26% 22.78%);
+}
+
+.dark .Example {
+    background-color: #3f3f3f;
+}
+
+.dark .CodeBlock {
+    background-color: #474747;
+}
+
 .CodeBlock code {
     font-family: monospace;
 }
 
 .Def {
     margin: 20px auto auto;
-    padding: 0 5px;
+    padding: 0 15px;
     text-decoration: inherit;
 }
+
 .Def .Synopsis,
 .Def .Body,
 .Def .Tags,
@@ -246,6 +328,7 @@
     padding-left: 0;
     text-decoration: inherit;
 }
+
 .Def .Synopsis {
     margin-top: 10px;
     padding: 0;
@@ -255,6 +338,11 @@
     color: #333333;
     font-style: normal;
 }
+
+.dark .Def .Synopsis {
+    color: #fafafa;
+}
+
 .Def .constr {
     padding: 25px 0 0 0;
     margin: 0;
@@ -310,6 +398,10 @@
     color: #0070c9;
 }
 
+.dark .DefArgs {
+    color: #3e69c5;
+}
+
 .Synopsis,
 .Body {
     margin: 0 auto;
@@ -329,18 +421,18 @@
 }
 .Documentation .ASTData {
     width: 100%;
-    /*background-color: #fafafa;*/
 }
 .Documentation .ASTHead {
     margin: 20px auto 5px;
-    /*background-color: #fafafa;*/
 }
+
+.dark .Documentation .ASTData{
+    background-color: #212121;
+}
+
 .Documentation .ASTHead .DefTitle {
     font-size: 34px;
     margin: 0;
-}
-.Documentation .ASTData .ASTHead {
-    /*background-color: #fafafa;*/
 }
 .Documentation .ASTData .ASTHead .DefTitle {
     font-size: large;
@@ -349,6 +441,9 @@
     margin: 0;
     width: 100%;
     background-color: #ffffff;
+}
+.dark .Documentation .Documented {
+    background-color: #212121;
 }
 .Documentation .DefNoBody {
     text-decoration: inherit;
