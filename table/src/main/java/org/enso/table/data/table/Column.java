@@ -37,4 +37,6 @@ public class Column {
   public Column mask(BitSet mask, int cardinality) {
     return new Column(name, storage.mask(mask, cardinality));
   }
+
+  public void printNull()
 }
