@@ -11,7 +11,7 @@ type Table
          - show_rows: the number of initial rows that should be displayed.
     display : Integer -> Text
     display show_rows=10 =
-        cols = Vector (this.java_table.getColumns [])
+        cols = Vector.Vector (this.java_table.getColumns [])
         col_names = cols.map (_.getName [])
         col_vals = cols.map (_.getStorage [])
         num_rows = this.java_table.nrows []
@@ -27,7 +27,7 @@ type Table
     ## Converts this table to a JSON structure.
     to_json : Json
     to_json =
-        col_jsons = Vector (this.java_table.getColumns []) . map here.column_to_json
+        col_jsons = Vector.Vector (this.java_table.getColumns []) . map here.column_to_json
         cols_json = Json.Array col_jsons
         fields = Map.singleton "columns" cols_json
         Json.Object fields

@@ -134,7 +134,7 @@ render_helper json = case json of
 
    See `Json.into` for semantics documentation.
 into_helper fmt json = case fmt of
-    Base.Vector field -> case json of
+    Base.Vector.Vector field -> case json of
         Array items -> items.map (here.into_helper field)
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     Base.Boolean -> case json of

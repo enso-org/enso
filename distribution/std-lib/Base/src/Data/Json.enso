@@ -140,7 +140,7 @@ Nothing.to_json = Null
          Json.from_pairs [["foo", 533], ["bar", False]]
      Returns a JSON object, that after serialization becomes:
          { "foo": 533, "bar": false }
-from_pairs : Vector -> Object
+from_pairs : Vector.Vector -> Object
 from_pairs contents =
     fs = contents.fold Map.empty map-> kv_pair->
         key = kv_pair . at 0 . to_json_key

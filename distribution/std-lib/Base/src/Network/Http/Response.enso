@@ -12,7 +12,7 @@ type Response
     type Response internal_http_response
 
     ## Get the response headers.
-    headers : Vector
+    headers : Vector.Vector
     headers =
         header_entries = Vector.vector (Http_Utils.get_headers [this.internal_http_response.headers []])
         header_entries.map e-> Header.new (e.getKey []) (e.getValue [])

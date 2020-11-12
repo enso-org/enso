@@ -54,7 +54,7 @@ Text.each function =
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
-Text.characters : Vector
+Text.characters : Vector.Vector
 Text.characters =
     bldr = Vector.new_builder
     this.each bldr.append
@@ -69,7 +69,7 @@ Text.characters =
          "ham,eggs,cheese,tomatoes".split ","
      The code above returns:
          ["ham", "eggs", "cheese", "tomatoes"]
-Text.split : Text -> Vector
+Text.split : Text -> Vector.Vector
 Text.split (separator = " ") =
     Vector.from_polyglot_array (Text_Utils.split_at [this, separator])
 
@@ -123,7 +123,7 @@ Text.> that = Text_Utils.lt [that, this]
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.utf_8 : Vector
+Text.utf_8 : Vector.Vector
 Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
 
 ## Takes an array of bytes and returns Text resulting from decoding it as
@@ -131,7 +131,7 @@ Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_utf_8 : Vector -> Text
+Text.from_utf_8 : Vector.Vector -> Text
 Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]
 
 ## Returns a vector containing integers representing the Unicode codepoints of
@@ -139,7 +139,7 @@ Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.codepoints : Vector
+Text.codepoints : Vector.Vector
 Text.codepoints =
     Vector.from_polyglot_array (Text_Utils.get_codepoints [this])
 
@@ -148,7 +148,7 @@ Text.codepoints =
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_codepoints : Vector -> Text
+Text.from_codepoints : Vector.Vector -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_array]
 
 ## Checks whether `this` starts with `prefix`.

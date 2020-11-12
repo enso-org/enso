@@ -1,6 +1,68 @@
 from Builtins import Array
 from Base import all
 
+## Creates a new vector of the given length, initializing elements using
+   the provided constructor function.
+
+   The constructor function is called with the consecutive indices
+   (0-based) of the vector elements.
+
+   > Example
+     To create a vector containing the numbers 1 through 50:
+         Vector.new 50 (ix -> ix + 1)
+
+   > Example
+     To create a copy of the given vector (`my_vec`):
+         Vector.new my_vec.length (ix -> my_vec.at ix)
+new : Number -> (Number -> Any) -> Vector
+new length constructor =
+    arr = Array.new length
+    0.up_to length . each ix-> arr.set_at ix (constructor ix)
+    Vector arr
+
+## Creates a new vector of the given length, filling the elements with
+   the provided constant.
+
+   > Example
+     A vector containing 50 elements, each being the number `42`, can be
+     created by:
+         Vector.fill length=50 item=42
+fill : Number -> Any -> Vector
+fill length item =
+    arr = Array.new length
+    0.up_to length . each ix-> arr.set_at ix item
+    Vector arr
+
+## Creates a new vector builder instance.
+
+   A vector builder is a mutable data structure, that allows for gathering
+   a number of elements and then converting them into a vector. This is
+   particularly useful when the number of elements is not known upfront.
+
+   > Example
+     In the following example we'll read items from the standard input,
+     until the string "end" is entered by the user and then return a vector
+     containing all items.
+         from Base import all
+
+         main =
+              builder = Vector.new_builder
+              do_read =
+                  item = IO.readln
+                  if item == "end" then Nothing else
+                      builder.append item
+                      do_read
+              do_read
+              vec = builder.to_vector
+              IO.println vec
+new_builder : Builder
+new_builder = Builder.new
+
+## Converts a polyglot value representing an array into a vector. This is
+   useful when wrapping polyglot APIs for further use in Enso.
+from_polyglot_array : Any -> Vector.Vector
+from_polyglot_array arr = here.new arr.length arr.at
+
 ## The basic, immutable, vector type.
 
    A vector allows to store an arbitrary number of elements, in linear memory.
@@ -17,37 +79,13 @@ from Base import all
 type Vector
     type Vector to_array
 
-    ## Creates a new vector of the given length, initializing elements using
-       the provided constructor function.
-
-       The constructor function is called with the consecutive indices
-       (0-based) of the vector elements.
+    ## Returns the number of elements stored in this vector.
 
        > Example
-         To create a vector containing the numbers 1 through 50:
-             Vector.new 50 (ix -> ix + 1)
-
-       > Example
-         To create a copy of the given vector (`my_vec`):
-             Vector.new my_vec.length (ix -> my_vec.at ix)
-    new : Number -> (Number -> Any) -> Vector
-    new length constructor =
-        arr = Array.new length
-        0.up_to length . each ix-> arr.set_at ix (constructor ix)
-        Vector arr
-
-    ## Creates a new vector of the given length, filling the elements with
-       the provided constant.
-
-       > Example
-         A vector containing 50 elements, each being the number `42`, can be
-         created by:
-             Vector.fill length=50 item=42
-    fill : Number -> Any -> Vector
-    fill length item =
-        arr = Array.new length
-        0.up_to length . each ix-> arr.set_at ix item
-        Vector arr
+         Checking the length of a vector.
+             [1, 2, 3, 4].length == 4
+    length : Number
+    length = this.to_array.length
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -56,44 +94,6 @@ type Vector
              [1, 2, 3].at 1
     at : Number -> Any
     at index = this.to_array.at index
-
-    ## Creates a new vector builder instance.
-
-       A vector builder is a mutable data structure, that allows for gathering
-       a number of elements and then converting them into a vector. This is
-       particularly useful when the number of elements is not known upfront.
-
-       > Example
-         In the following example we'll read items from the standard input,
-         until the string "end" is entered by the user and then return a vector
-         containing all items.
-             from Base import all
-
-             main =
-                  builder = Vector.new_builder
-                  do_read =
-                      item = IO.readln
-                      if item == "end" then Nothing else
-                          builder.append item
-                          do_read
-                  do_read
-                  vec = builder.to_vector
-                  IO.println vec
-    new_builder : Builder
-    new_builder = Builder.new
-
-    ## Converts a polyglot value representing an array into a vector. This is
-       useful when wrapping polyglot APIs for further use in Enso.
-    from_polyglot_array : Any -> Vector
-    from_polyglot_array arr = Vector.new arr.length arr.at
-
-    ## Returns the number of elements stored in this vector.
-
-       > Example
-         Checking the length of a vector.
-             [1, 2, 3, 4].length == 4
-    length : Number
-    length = this.to_array.length
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -129,7 +129,6 @@ type Vector
         go 0 False
 
     ## Checks whether a predicate holds for at least one element of this vector.
-
        A predicate is a function that takes an element from the vector and
        returns a boolean value.
 
@@ -218,7 +217,7 @@ type Vector
     ## Reverses the vector, returning a vector with the same elements, but in
        the opposite order.
     reverse : Vector
-    reverse = Vector.new this.length (i -> this.at (this.length - (1 + i)))
+    reverse = here.new this.length (i -> this.at (this.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
 
@@ -282,8 +281,8 @@ type Vector
          The following code returns [2, 3, 4, 5]
              [1, 2, 3, 4, 5].drop 1
     drop : Integer -> Vector
-    drop count = if count >= this.length then Vector.new 0 (x -> x) else
-        Vector.new (this.length - count) (i -> this.at i+count)
+    drop count = if count >= this.length then here.new 0 (x -> x) else
+        here.new (this.length - count) (i -> this.at i+count)
 
     ## Creates a new vector with the last `count` elements on the right of
        `this` removed.
@@ -292,7 +291,7 @@ type Vector
          The following code returns [1, 2, 3]
              [1, 2, 3, 4, 5].drop_right 2
     drop_right : Integer -> Vector
-    drop_right count = if count >= this.length then Vector.new 0 (x -> x) else
+    drop_right count = if count >= this.length then here.new 0 (x -> x) else
         this.take (this.length - count)
 
     ## Creates a new vector, consisting of the first `count` elements on the
@@ -303,7 +302,7 @@ type Vector
              [1, 2, 3, 4, 5].take 2
     take : Integer -> Vector
     take count = if count >= this.length then this else
-        Vector.new count this.at
+        here.new count this.at
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `this`.
@@ -328,7 +327,7 @@ type Vector
     zip : Vector -> (Any -> Any -> Any) -> Vector
     zip that function=[_,_] =
         len = min this.length that.length
-        Vector.new len i-> function (this.at i) (that.at i)
+        here.new len i-> function (this.at i) (that.at i)
 
     ## Vector to JSON conversion.
     to_json : Json.Array
