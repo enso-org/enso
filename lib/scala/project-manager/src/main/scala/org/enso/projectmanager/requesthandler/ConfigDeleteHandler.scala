@@ -13,6 +13,11 @@ import org.enso.projectmanager.service.config.{
 
 import scala.concurrent.duration.FiniteDuration
 
+/** A request handler for `global-config/delete` commands.
+  *
+  * @param service a project service
+  * @param requestTimeout timeout
+  */
 class ConfigDeleteHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: GlobalConfigServiceApi[F],
   requestTimeout: FiniteDuration
@@ -20,6 +25,8 @@ class ConfigDeleteHandler[F[+_, +_]: Exec: CovariantFlatMap](
       ConfigDelete,
       Some(requestTimeout)
     ) {
+
+  /** @inheritdoc */
   override def handleRequest
     : PartialFunction[Any, F[GlobalConfigServiceFailure, Any]] = {
     case Request(ConfigDelete, id, params: ConfigDelete.Params) =>
@@ -30,6 +37,14 @@ class ConfigDeleteHandler[F[+_, +_]: Exec: CovariantFlatMap](
 }
 
 object ConfigDeleteHandler {
+
+  /** Creates a configuration object used to create a
+    * [[ConfigDeleteHandler]].
+    *
+    * @param service a runtime version management service
+    * @param requestTimeout timeout
+    * @return a configuration object
+    */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
     service: GlobalConfigServiceApi[F],
     requestTimeout: FiniteDuration

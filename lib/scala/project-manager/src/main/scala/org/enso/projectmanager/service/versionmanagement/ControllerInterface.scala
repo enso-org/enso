@@ -14,11 +14,22 @@ import org.enso.runtimeversionmanager.locking.Resource
 
 import scala.util.{Failure, Success, Try}
 
+/** A [[RuntimeVersionManagementUserInterface]] that sends
+  * [[ProgressNotification]] to the specified actors (both for usual tasks and
+  * indeterminate progress when waiting on locks).
+  *
+  * @param progressTracker the actor to send progress updates to
+  * @param allowMissingComponents specifies if missing components should be
+  *                               automatically installed
+  * @param allowBrokenComponents specifies if broken components can be installed
+  */
 class ControllerInterface(
   progressTracker: ActorRef,
   allowMissingComponents: Boolean,
   allowBrokenComponents: Boolean
 ) extends RuntimeVersionManagementUserInterface {
+
+  /** @inheritdoc */
   override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
     var uuid: Option[UUID] = None
 
@@ -39,6 +50,8 @@ class ControllerInterface(
         generated
     }
     task.addProgressListener(new ProgressListener[Any] {
+
+      /** @inheritdoc */
       override def progressUpdate(
         done: Long,
         total: Option[Long]
@@ -51,6 +64,7 @@ class ControllerInterface(
         )
       }
 
+      /** @inheritdoc */
       override def done(result: Try[Any]): Unit = result match {
         case Failure(exception) =>
           val uuid = initializeTask(None)
@@ -62,20 +76,25 @@ class ControllerInterface(
     })
   }
 
+  /** @inheritdoc */
   override def shouldInstallMissingEngine(version: SemVer): Boolean =
     allowMissingComponents
 
+  /** @inheritdoc */
   override def shouldInstallMissingRuntime(version: GraalVMVersion): Boolean =
     allowMissingComponents
 
+  /** @inheritdoc */
   override def shouldInstallBrokenEngine(version: SemVer): Boolean =
     allowBrokenComponents
 
+  /** @inheritdoc */
   override def logInfo(message: => String): Unit = ()
 
   private val waitingForResources =
     collection.concurrent.TrieMap[String, UUID]()
 
+  /** @inheritdoc */
   override def startWaitingForResource(resource: Resource): Unit = {
     val uuid = UUID.randomUUID()
     progressTracker ! ProgressNotification.TaskStarted(
@@ -91,6 +110,7 @@ class ControllerInterface(
     waitingForResources.put(resource.name, uuid)
   }
 
+  /** @inheritdoc */
   override def finishWaitingForResource(resource: Resource): Unit = {
     for (uuid <- waitingForResources.remove(resource.name)) {
       progressTracker ! ProgressNotification.TaskSuccess(uuid)

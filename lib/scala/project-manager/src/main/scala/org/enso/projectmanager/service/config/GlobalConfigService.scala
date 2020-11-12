@@ -7,6 +7,10 @@ import org.enso.projectmanager.service.versionmanagement.NoOpInterface
 import org.enso.projectmanager.versionmanagement.DistributionManagementConfiguration
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 
+/** Implementation of global configuration management logic.
+  *
+  * @param managers a distribution configuration
+  */
 class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel](
   managers: DistributionManagementConfiguration
 ) extends GlobalConfigServiceApi[F] {

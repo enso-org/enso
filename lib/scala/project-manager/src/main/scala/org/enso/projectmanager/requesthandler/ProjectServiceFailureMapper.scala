@@ -37,6 +37,7 @@ object ProjectServiceFailureMapper {
       ComponentUninstallationError(msg)
   }
 
+  /** [[FailureMapper]] instance for [[ProjectServiceFailure]]. */
   implicit val failureMapper: FailureMapper[ProjectServiceFailure] =
     (failure: ProjectServiceFailure) => mapFailure(failure)
 }

@@ -14,6 +14,10 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagemen
 /** Project manager client controller factory.
   *
   * @param system the actor system
+  * @param projectService a project service
+  * @param globalConfigService global configuration service
+  * @param runtimeVersionManagementService version management service
+  * @param timeoutConfig a request timeout config
   */
 class ManagerClientControllerFactory[F[+_, +_]: Exec: CovariantFlatMap](
   system: ActorSystem,

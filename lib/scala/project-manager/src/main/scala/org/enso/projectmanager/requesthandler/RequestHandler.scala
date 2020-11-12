@@ -3,18 +3,26 @@ package org.enso.projectmanager.requesthandler
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Stash, Status}
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Id, Method, Notification, Request, ResponseError}
+import org.enso.jsonrpc.{Id, Method, Request, ResponseError}
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.protocol.ProjectManagementApi.{
-  TaskFinished,
-  TaskProgressUpdate,
-  TaskStarted
-}
 import org.enso.projectmanager.service.versionmanagement.ProgressNotification
+import org.enso.projectmanager.service.versionmanagement.ProgressNotification.translateProgressNotification
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
+/** A helper class that gathers common request handling logic.
+  *
+  * It manages timeouts and sending the request result (in case of success but
+  * also failure or timeout).
+  *
+  * @param handledMethod method that this handler deals with; used in logging
+  *                      and to relate progress updates to the method
+  * @param requestTimeout timeout for the request; if set, the request will be
+  *                       marked as failed after the specified time; the request
+  *                       logic is however NOT cancelled as this is not possible
+  *                       to do in a general way
+  */
 abstract class RequestHandler[
   F[+_, +_]: Exec,
   FailureType: FailureMapper: Manifest
@@ -29,7 +37,10 @@ abstract class RequestHandler[
 
   import context.dispatcher
 
-  def requestStage: Receive = {
+  /** Waits for the request, tries to pass it into the [[handleRequest]]
+    * function, sets up the timeout and routing of the result.
+    */
+  private def requestStage: Receive = {
     val composition: Any => Option[Unit] = {
       case request @ Request(_, id, _) =>
         val result = handleRequest.lift(request)
@@ -51,8 +62,16 @@ abstract class RequestHandler[
     Function.unlift(composition)
   }
 
+  /** Defines the actual logic for handling the request.
+    *
+    * The partial function should only be defined by requests that are meant to
+    * be handled by this instance.
+    */
   def handleRequest: PartialFunction[Any, F[FailureType, Any]]
 
+  /** Waits for the routed result or a failure/timeout and reports the result to
+    * the user.
+    */
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
@@ -82,36 +101,6 @@ abstract class RequestHandler[
       context.stop(self)
 
     case notification: ProgressNotification =>
-      replyTo ! translateProgressNotification(notification)
-  }
-
-  private def translateProgressNotification(
-    progressNotification: ProgressNotification
-  ): Notification[_, _] = progressNotification match {
-    case ProgressNotification.TaskStarted(taskId, total, unit) =>
-      Notification(
-        TaskStarted,
-        TaskStarted.Params(
-          taskId           = taskId,
-          relatedOperation = handledMethod.name,
-          unit             = unit,
-          total            = total
-        )
-      )
-    case ProgressNotification.TaskUpdate(taskId, message, done) =>
-      Notification(
-        TaskProgressUpdate,
-        TaskProgressUpdate.Params(taskId, message, done)
-      )
-    case ProgressNotification.TaskSuccess(taskId) =>
-      Notification(
-        TaskFinished,
-        TaskFinished.Params(taskId, None, success = true)
-      )
-    case ProgressNotification.TaskFailure(taskId, throwable) =>
-      Notification(
-        TaskFinished,
-        TaskFinished.Params(taskId, Some(throwable.getMessage), success = false)
-      )
+      replyTo ! translateProgressNotification(handledMethod.name, notification)
   }
 }

@@ -12,6 +12,11 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagemen
 
 import scala.concurrent.duration.FiniteDuration
 
+/** A request handler for `engine/list-available` commands.
+  *
+  * @param service a project service
+  * @param requestTimeout timeout
+  */
 class EngineListAvailableHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: RuntimeVersionManagementServiceApi[F],
   requestTimeout: FiniteDuration
@@ -19,6 +24,8 @@ class EngineListAvailableHandler[F[+_, +_]: Exec: CovariantFlatMap](
       EngineListAvailable,
       Some(requestTimeout)
     ) {
+
+  /** @inheritdoc */
   override def handleRequest
     : PartialFunction[Any, F[ProjectServiceFailure, Any]] = {
     case Request(EngineListAvailable, id, Unused) =>
@@ -34,6 +41,14 @@ class EngineListAvailableHandler[F[+_, +_]: Exec: CovariantFlatMap](
 }
 
 object EngineListAvailableHandler {
+
+  /** Creates a configuration object used to create a
+    * [[EngineListAvailableHandler]].
+    *
+    * @param service a runtime version management service
+    * @param requestTimeout timeout
+    * @return a configuration object
+    */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
     service: RuntimeVersionManagementServiceApi[F],
     requestTimeout: FiniteDuration

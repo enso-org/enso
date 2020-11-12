@@ -12,6 +12,11 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagemen
 
 import scala.concurrent.duration.FiniteDuration
 
+/** A request handler for `engine/list-installed` commands.
+  *
+  * @param service a project service
+  * @param requestTimeout timeout
+  */
 class EngineListInstalledHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: RuntimeVersionManagementServiceApi[F],
   requestTimeout: FiniteDuration
@@ -19,6 +24,8 @@ class EngineListInstalledHandler[F[+_, +_]: Exec: CovariantFlatMap](
       EngineListInstalled,
       Some(requestTimeout)
     ) {
+
+  /** @inheritdoc */
   override def handleRequest
     : PartialFunction[Any, F[ProjectServiceFailure, Any]] = {
     case Request(EngineListInstalled, id, Unused) =>
@@ -34,6 +41,14 @@ class EngineListInstalledHandler[F[+_, +_]: Exec: CovariantFlatMap](
 }
 
 object EngineListInstalledHandler {
+
+  /** Creates a configuration object used to create a
+    * [[EngineListInstalledHandler]].
+    *
+    * @param service a runtime version management service
+    * @param requestTimeout timeout
+    * @return a configuration object
+    */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
     service: RuntimeVersionManagementServiceApi[F],
     requestTimeout: FiniteDuration

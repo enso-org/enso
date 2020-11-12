@@ -10,9 +10,15 @@ import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failur
 import org.enso.projectmanager.service.ProjectServiceFailure
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
 
+/** A request handler for `engine/install` commands.
+  *
+  * @param service a project service
+  */
 class EngineInstallHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: RuntimeVersionManagementServiceApi[F]
 ) extends RequestHandler[F, ProjectServiceFailure](EngineInstall, None) {
+
+  /** @inheritdoc */
   override def handleRequest
     : PartialFunction[Any, F[ProjectServiceFailure, Any]] = {
     case Request(EngineInstall, id, params: EngineInstall.Params) =>
@@ -28,6 +34,12 @@ class EngineInstallHandler[F[+_, +_]: Exec: CovariantFlatMap](
 }
 
 object EngineInstallHandler {
+
+  /** Creates a configuration object used to create a [[EngineInstallHandler]].
+    *
+    * @param service a runtime version management service
+    * @return a configuration object
+    */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
     service: RuntimeVersionManagementServiceApi[F]
   ): Props = Props(new EngineInstallHandler[F](service))

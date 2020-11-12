@@ -26,6 +26,8 @@ import scala.concurrent.duration._
   *
   * @param clientId the internal client id.
   * @param projectService a project service
+  * @param globalConfigService global configuration service
+  * @param runtimeVersionManagementService version management service
   * @param timeoutConfig a request timeout config
   */
 class ClientController[F[+_, +_]: Exec: CovariantFlatMap](
@@ -110,6 +112,10 @@ object ClientController {
   /** Creates a configuration object used to create a [[ClientController]].
     *
     * @param clientId the internal client id.
+    * @param projectService a project service
+    * @param globalConfigService global configuration service
+    * @param runtimeVersionManagementService version management service
+    * @param timeoutConfig a request timeout config
     * @return a configuration object
     */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
@@ -117,7 +123,7 @@ object ClientController {
     projectService: ProjectServiceApi[F],
     globalConfigService: GlobalConfigServiceApi[F],
     runtimeVersionManagementService: RuntimeVersionManagementServiceApi[F],
-    config: TimeoutConfig
+    timeoutConfig: TimeoutConfig
   ): Props =
     Props(
       new ClientController(
@@ -125,7 +131,7 @@ object ClientController {
         projectService                  = projectService,
         globalConfigService             = globalConfigService,
         runtimeVersionManagementService = runtimeVersionManagementService,
-        timeoutConfig                   = config: TimeoutConfig
+        timeoutConfig                   = timeoutConfig
       )
     )
 

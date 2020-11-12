@@ -10,9 +10,15 @@ import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failur
 import org.enso.projectmanager.service.ProjectServiceFailure
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
 
+/** A request handler for `engine/uninstall` commands.
+  *
+  * @param service a project service
+  */
 class EngineUninstallHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: RuntimeVersionManagementServiceApi[F]
 ) extends RequestHandler[F, ProjectServiceFailure](EngineUninstall, None) {
+
+  /** @inheritdoc */
   override def handleRequest
     : PartialFunction[Any, F[ProjectServiceFailure, Any]] = {
     case Request(EngineUninstall, id, params: EngineUninstall.Params) =>
@@ -24,6 +30,13 @@ class EngineUninstallHandler[F[+_, +_]: Exec: CovariantFlatMap](
 }
 
 object EngineUninstallHandler {
+
+  /** Creates a configuration object used to create a
+    * [[EngineUninstallHandler]].
+    *
+    * @param service a runtime version management service
+    * @return a configuration object
+    */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
     service: RuntimeVersionManagementServiceApi[F]
   ): Props = Props(new EngineUninstallHandler[F](service))

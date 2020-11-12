@@ -13,11 +13,17 @@ import org.enso.projectmanager.service.ProjectServiceFailure.{
 import org.enso.projectmanager.versionmanagement.DistributionManagementConfiguration
 import org.enso.runtimeversionmanager.components.ComponentMissingError
 
+/** A facade for runtime version management logic that processes the requests
+  * using the [[RuntimeVersionManager]].
+  *
+  * @param managers a distribution configuration
+  */
 class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   override val managers: DistributionManagementConfiguration
 ) extends RuntimeVersionManagementServiceApi[F]
     with RuntimeVersionManagerMixin {
 
+  /** @inheritdoc */
   override def installEngine(
     progressTracker: ActorRef,
     version: SemVer,
@@ -37,6 +43,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
       )
   }
 
+  /** @inheritdoc */
   override def uninstallEngine(
     progressTracker: ActorRef,
     version: SemVer
@@ -56,6 +63,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
       ComponentUninstallationFailure(throwable.getMessage)
     )
 
+  /** @inheritdoc */
   override def listInstalledEngines()
     : F[ProjectServiceFailure, Seq[EngineVersion]] = Sync[F]
     .blockingOp {
@@ -68,6 +76,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
       ComponentRepositoryAccessFailure(throwable.getMessage)
     )
 
+  /** @inheritdoc */
   override def listAvailableEngines()
     : F[ProjectServiceFailure, Seq[EngineVersion]] = Sync[F]
     .blockingOp {
