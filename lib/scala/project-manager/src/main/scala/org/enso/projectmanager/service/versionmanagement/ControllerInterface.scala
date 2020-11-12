@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.{ProgressListener, TaskProgress}
+import org.enso.cli.task.{ProgressListener, TaskProgress}
 import org.enso.projectmanager.data.ProgressUnit
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
@@ -92,7 +92,7 @@ class ControllerInterface(
   }
 
   override def finishWaitingForResource(resource: Resource): Unit = {
-    for (uuid <- waitingForResources.get(resource.name)) {
+    for (uuid <- waitingForResources.remove(resource.name)) {
       progressTracker ! ProgressNotification.TaskSuccess(uuid)
     }
   }

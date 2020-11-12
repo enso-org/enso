@@ -623,7 +623,7 @@ interface EngineVersionListResponse {
 ### `engine/install`
 
 Requests to install the specified engine version. If that version is already
-installed, does nothing.
+installed, it has no effect.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -668,7 +668,7 @@ null;
 
 Requests to uninstall the specified engine version.
 
-If that version was not installed, does nothing.
+If that version was not installed, it has no effect.
 
 - **Type:** Request
 - **Direction:** Client -> Server

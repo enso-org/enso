@@ -11,7 +11,7 @@ import akka.stream.scaladsl.{FileIO, Sink}
 import akka.util.ByteString
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import com.typesafe.scalalogging.Logger
-import org.enso.cli.{TaskProgress, TaskProgressImplementation}
+import org.enso.cli.task.{TaskProgress, TaskProgressImplementation}
 
 import scala.concurrent.Future
 

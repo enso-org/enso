@@ -2,12 +2,12 @@ package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.{CLIOutput, ProgressBar, TaskProgress}
+import org.enso.cli.CLIOutput
+import org.enso.launcher.InfoLogger
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
-import org.enso.launcher.InfoLogger
 import org.enso.runtimeversionmanager.locking.Resource
 
 /** [[RuntimeVersionManagementUserInterface]] that reports information and progress
@@ -18,14 +18,8 @@ import org.enso.runtimeversionmanager.locking.Resource
 class CLIRuntimeVersionManagementUserInterface(
   cliOptions: GlobalCLIOptions,
   alwaysInstallMissing: Boolean
-) extends RuntimeVersionManagementUserInterface {
-
-  /** @inheritdoc */
-  override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
-    logInfo(message)
-    if (cliOptions.hideProgress) ()
-    else ProgressBar.waitWithProgress(task)
-  }
+) extends CLIProgressReporter(cliOptions)
+    with RuntimeVersionManagementUserInterface {
 
   private val logger = Logger[CLIRuntimeVersionManagementUserInterface]
 

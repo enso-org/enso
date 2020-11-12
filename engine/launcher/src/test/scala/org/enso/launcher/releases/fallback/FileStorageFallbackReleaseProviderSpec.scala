@@ -75,7 +75,7 @@ class FileStorageFallbackReleaseProviderSpec
       val provider = makeProvider(Provider.Available)
       val assets   = provider.releaseForTag("enso-0.0.0").get.assets
       val asset    = assets.find(_.fileName == "data.txt").value
-      asset.fetchAsText().waitForResult().get.trim shouldEqual "Older Broken"
+      asset.fetchAsText().force().trim shouldEqual "Older Broken"
     }
 
     "download files from given release" in {
@@ -85,7 +85,7 @@ class FileStorageFallbackReleaseProviderSpec
 
       FileSystem.withTemporaryDirectory("enso-test") { temporaryDirectory =>
         val destination = temporaryDirectory.resolve("file.txt")
-        asset.downloadTo(destination).waitForResult().get
+        asset.downloadTo(destination).force()
         TestHelpers.readFileContent(destination).trim shouldEqual "Newer"
       }
 
