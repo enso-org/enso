@@ -58,6 +58,6 @@ spec =
             f.exists.should_be_false
         it "should open and read the file in one shot" <|
             path_name = sample_file.path
-            contents = File.open path_name
+            contents = File.read path_name
             contents.should start_with "Cupcake ipsum dolor sit amet."
 

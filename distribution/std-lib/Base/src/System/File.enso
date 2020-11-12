@@ -290,8 +290,8 @@ new path = File (Prim_Io.get_file path)
    > Example
      Read the `data.csv` file in the project directory.
          File.open (Enso_Project.data / "data.csv")
-open : Text -> Text
-open path = (here.new path).read
+read : Text -> Text
+read path = (here.new path).read
 
 ## Returns the current working directory (CWD) of the current program.
 current_directory : File
