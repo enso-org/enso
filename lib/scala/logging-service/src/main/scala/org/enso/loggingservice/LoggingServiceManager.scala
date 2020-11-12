@@ -9,7 +9,7 @@ import org.enso.loggingservice.internal.{
 }
 import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /** Manages the logging service.
   */
@@ -47,9 +47,11 @@ object LoggingServiceManager {
   def setup[InitializationResult](
     mode: LoggerMode[InitializationResult],
     logLevel: LogLevel
+  )(implicit
+    executionContext: ExecutionContext =
+      scala.concurrent.ExecutionContext.Implicits.global
   ): Future[InitializationResult] = {
     currentLevel = logLevel
-    import scala.concurrent.ExecutionContext.Implicits.global
     Future(doSetup(mode, logLevel))
   }
 

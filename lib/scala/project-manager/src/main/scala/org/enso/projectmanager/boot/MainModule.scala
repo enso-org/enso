@@ -119,5 +119,4 @@ class MainModule[
     )
 
   lazy val server = new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
-
 }

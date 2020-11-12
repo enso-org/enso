@@ -194,7 +194,7 @@ object ProjectManagementApi {
     }
   }
 
-  case object EngineUninstall extends Method("engine/install") {
+  case object EngineUninstall extends Method("engine/uninstall") {
 
     case class Params(version: SemVer)
 

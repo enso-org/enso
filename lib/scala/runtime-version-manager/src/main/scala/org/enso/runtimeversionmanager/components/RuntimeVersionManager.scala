@@ -346,7 +346,7 @@ class RuntimeVersionManager(
     if (engineRelease.isBroken) {
       val continue = userInterface.shouldInstallBrokenEngine(version)
       if (!continue) {
-        throw InstallationError(
+        throw BrokenComponentError(
           "Installation has been cancelled by the user because the " +
           "requested engine release is marked as broken."
         )

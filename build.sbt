@@ -240,7 +240,7 @@ val akka =
     akkaHttp,
     akkaSpray,
     akkaTyped
-  ) ++ akkaTest
+  )
 
 // === Cats ===================================================================
 
@@ -518,7 +518,7 @@ lazy val `lexer-bench` =
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
   .settings(
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ akkaTest,
     mainClass := Some("org.enso.ParserServiceMain")
   )
 
@@ -660,7 +660,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"              % typesafeConfigVersion,
       "com.github.pureconfig"      %% "pureconfig"          % pureconfigVersion,
-      "ch.qos.logback"              % "logback-classic"     % logbackClassicVersion,
       "com.typesafe.scala-logging" %% "scala-logging"       % scalaLoggingVersion,
       "dev.zio"                    %% "zio"                 % zioVersion,
       "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
@@ -736,7 +735,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
 lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
   .settings(
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ akkaTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
       "io.circe"      %% "circe-literal" % circeVersion,
@@ -868,7 +867,7 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
-    libraryDependencies ++= akka ++ circe ++ Seq(
+    libraryDependencies ++= akka ++ akkaTest ++ circe ++ Seq(
       "ch.qos.logback"              % "logback-classic"      % logbackClassicVersion,
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,

@@ -6,7 +6,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
-import org.enso.languageserver.util.Logging
+import org.enso.loggingservice.LogLevel
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -126,21 +126,18 @@ object ProjectManager extends App with LazyLogging {
     }
   }
 
-  private def setupLogging(verbosityLevel: Int): UIO[Unit] =
+  private def setupLogging(verbosityLevel: Int): ZIO[Console, Nothing, Unit] = {
+    val level = verbosityLevel match {
+      case 0 => LogLevel.Info
+      case 1 => LogLevel.Debug
+      case _ => LogLevel.Trace
+    }
     ZIO
-      .effectTotal {
-        val level = verbosityLevel match {
-          case 0 => Logging.LogLevel.Info
-          case 1 => Logging.LogLevel.Debug
-          case _ => Logging.LogLevel.Trace
-        }
-        Logging.setLogLevel(level) match {
-          case Right(level) =>
-            logger.info(s"Set log level $level")
-          case Left(error) =>
-            logger.error(s"Failed to set log level $level", error)
-        }
+      .fromFuture(executionContext => Logging.setup(level, executionContext))
+      .catchAll { exception =>
+        putStrLnErr(s"Failed to setup the logger: $exception")
       }
+  }
 
   private def displayVersion(
     useJson: Boolean

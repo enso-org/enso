@@ -22,9 +22,9 @@ trait RuntimeVersionManagerMixin {
   ): RuntimeVersionManager =
     managers.makeRuntimeVersionManager(
       new ControllerInterface(
-        progressTracker,
-        allowMissingComponents,
-        allowBrokenComponents
+        progressTracker        = progressTracker,
+        allowMissingComponents = allowMissingComponents,
+        allowBrokenComponents  = allowBrokenComponents
       )
     )
 
@@ -34,27 +34,25 @@ trait RuntimeVersionManagerMixin {
   implicit class ErrorRecovery[F[+_, +_]: ErrorChannel, A](
     fa: F[Throwable, A]
   ) {
-    def recoverAccessErrors(
+    def mapRuntimeManagerErrors(
       wrapDefault: Throwable => ProjectServiceFailure
-    ): F[ProjectServiceFailure, A] = {
-      ErrorChannel[F].mapError(fa) {
-        case componentsException: ComponentsException =>
-          componentsException match {
-            case InstallationError(message, _) =>
-              ComponentInstallationFailure(message)
-            case BrokenComponentError(message, _) =>
-              BrokenComponentFailure(message)
-            case ComponentMissingError(message, _) =>
-              MissingComponentFailure(message)
-            case upgradeRequired: UpgradeRequiredError =>
-              ProjectManagerUpgradeRequiredFailure(
-                upgradeRequired.expectedVersion
-              )
-            case _ => wrapDefault(componentsException)
-          }
-        case other: Throwable =>
-          wrapDefault(other)
-      }
+    ): F[ProjectServiceFailure, A] = ErrorChannel[F].mapError(fa) {
+      case componentsException: ComponentsException =>
+        componentsException match {
+          case InstallationError(message, _) =>
+            ComponentInstallationFailure(message)
+          case BrokenComponentError(message, _) =>
+            BrokenComponentFailure(message)
+          case ComponentMissingError(message, _) =>
+            MissingComponentFailure(message)
+          case upgradeRequired: UpgradeRequiredError =>
+            ProjectManagerUpgradeRequiredFailure(
+              upgradeRequired.expectedVersion
+            )
+          case _ => wrapDefault(componentsException)
+        }
+      case other: Throwable =>
+        wrapDefault(other)
     }
   }
 }

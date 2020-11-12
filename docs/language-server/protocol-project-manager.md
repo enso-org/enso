@@ -668,6 +668,8 @@ null;
 
 Requests to uninstall the specified engine version.
 
+If that version was not installed, does nothing.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol

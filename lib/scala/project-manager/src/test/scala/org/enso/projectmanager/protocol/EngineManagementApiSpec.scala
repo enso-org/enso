@@ -10,7 +10,7 @@ class EngineManagementApiSpec
     with ProjectManagementOps {
 
   "engine/*" must {
-    "report no installed engines" in {
+    "report no installed engines by default" in {
       implicit val client = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -53,7 +53,7 @@ class EngineManagementApiSpec
           """)
     }
 
-    "install and uninstall the engine and reflect changes in list" ignore {
+    "install and uninstall the engine and reflect changes in list" in {
       implicit val client = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -67,7 +67,8 @@ class EngineManagementApiSpec
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
-            "id":0
+            "id":0,
+            "result": null
           }
           """)
 
@@ -83,7 +84,8 @@ class EngineManagementApiSpec
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
-            "id":1
+            "id":1,
+            "result": null
           }
           """)
 
@@ -118,7 +120,8 @@ class EngineManagementApiSpec
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
-            "id":3
+            "id":3,
+            "result": null
           }
           """)
 
@@ -141,6 +144,42 @@ class EngineManagementApiSpec
           """)
     }
 
-    "only install broken releases if specifically asked to" ignore {}
+    "only install broken releases if specifically asked to" in {
+      implicit val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "engine/install",
+              "id": 0,
+              "params": {
+                "version": "0.999.0-broken"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error": { "code": 4021, "message": "Installation has been cancelled by the user because the requested engine release is marked as broken." }
+          }
+          """)
+
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "engine/install",
+              "id": 1,
+              "params": {
+                "version": "0.999.0-broken",
+                "forceInstallBroken": true
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":1,
+            "result": null
+          }
+          """)
+    }
   }
 }

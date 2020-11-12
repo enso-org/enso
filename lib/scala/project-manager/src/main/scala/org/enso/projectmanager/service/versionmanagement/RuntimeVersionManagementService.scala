@@ -11,6 +11,7 @@ import org.enso.projectmanager.service.ProjectServiceFailure.{
   ComponentUninstallationFailure
 }
 import org.enso.projectmanager.versionmanagement.DistributionManagementConfiguration
+import org.enso.runtimeversionmanager.components.ComponentMissingError
 
 class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   override val managers: DistributionManagementConfiguration
@@ -23,7 +24,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
     forceInstallBroken: Boolean
   ): F[ProjectServiceFailure, Unit] = {
     Sync[F]
-      .blockingIO {
+      .blockingOp {
         makeRuntimeVersionManager(
           progressTracker,
           allowMissingComponents = true,
@@ -31,7 +32,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
         ).findOrInstallEngine(version)
         ()
       }
-      .recoverAccessErrors(throwable =>
+      .mapRuntimeManagerErrors(throwable =>
         ComponentInstallationFailure(throwable.getMessage)
       )
   }
@@ -40,38 +41,42 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
     progressTracker: ActorRef,
     version: SemVer
   ): F[ProjectServiceFailure, Unit] = Sync[F]
-    .blockingIO {
-      makeRuntimeVersionManager(
-        progressTracker,
-        allowMissingComponents = false,
-        allowBrokenComponents  = false
-      ).uninstallEngine(version)
+    .blockingOp {
+      try {
+        makeRuntimeVersionManager(
+          progressTracker,
+          allowMissingComponents = false,
+          allowBrokenComponents  = false
+        ).uninstallEngine(version)
+      } catch {
+        case _: ComponentMissingError =>
+      }
     }
-    .recoverAccessErrors(throwable =>
+    .mapRuntimeManagerErrors(throwable =>
       ComponentUninstallationFailure(throwable.getMessage)
     )
 
   override def listInstalledEngines()
     : F[ProjectServiceFailure, Seq[EngineVersion]] = Sync[F]
-    .blockingIO {
+    .blockingOp {
       makeReadOnlyVersionManager().listInstalledEngines().map {
         installedEngine =>
           EngineVersion(installedEngine.version, installedEngine.isMarkedBroken)
       }
     }
-    .recoverAccessErrors(throwable =>
+    .mapRuntimeManagerErrors(throwable =>
       ComponentRepositoryAccessFailure(throwable.getMessage)
     )
 
   override def listAvailableEngines()
     : F[ProjectServiceFailure, Seq[EngineVersion]] = Sync[F]
-    .blockingIO {
+    .blockingOp {
       val engineReleaseProvider = managers.engineReleaseProvider
       engineReleaseProvider.fetchAllVersions().get.map { availableEngine =>
         EngineVersion(availableEngine.version, availableEngine.markedAsBroken)
       }
     }
-    .recoverAccessErrors(throwable =>
+    .mapRuntimeManagerErrors(throwable =>
       ComponentRepositoryAccessFailure(throwable.getMessage)
     )
 }
