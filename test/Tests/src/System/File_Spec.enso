@@ -35,6 +35,7 @@ spec =
             f_2.normalize.should_equal f_1
         it "should allow reading a file byte by byte" <|
             f = Enso_Project.data / "short.txt"
+            f.delete_if_exists
             f.exists.should_be_false
             f.write "Cup"
             f.with_input_stream stream->
@@ -46,6 +47,7 @@ spec =
             f.exists.should_be_false
         it "should write and append to files" <|
             f = Enso_Project.data / "work.txt"
+            f.delete_if_exists
             f.exists.should_be_false
             f.write "line 1!"
             f.exists.should_be_true
