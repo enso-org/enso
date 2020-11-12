@@ -5,7 +5,7 @@ import java.io.File
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.instrument.job.EnsureCompiledJob.CompilationStatus
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.jdk.OptionConverters._
@@ -19,10 +19,10 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
 ) extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
 
   /** @inheritdoc */
-  override protected def ensureIndexedModules(
-    modules: Iterable[Module]
-  )(implicit ctx: RuntimeContext): Unit = {
-    super.ensureIndexedModules(modules)
+  override protected def ensureCompiledFiles(
+    files: Iterable[File]
+  )(implicit ctx: RuntimeContext): CompilationStatus = {
+    val compilationStatus = super.ensureCompiledFiles(files)
     getCacheMetadata(stack).foreach { metadata =>
       CacheInvalidation.run(
         stack,
@@ -32,6 +32,7 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
         )
       )
     }
+    compilationStatus
   }
 
   private def getCacheMetadata(
