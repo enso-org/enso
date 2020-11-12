@@ -1,4 +1,4 @@
-package org.enso.table.data.column;
+package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 
@@ -44,5 +44,27 @@ public class DoubleStorage extends Storage {
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
+  }
+
+  @Override
+  public boolean isOpVectorized(VectorizedOp op) {
+    return false;
+  }
+
+  @Override
+  public DoubleStorage mask(BitSet mask, int cardinality) {
+    BitSet newMissing = new BitSet();
+    long[] newData = new long[cardinality];
+    int resIx = 0;
+    for (int i = 0; i < size; i++) {
+      if (mask.get(i)) {
+        if (isMissing.get(i)) {
+          newMissing.set(resIx++);
+        } else {
+          newData[resIx++] = data[i];
+        }
+      }
+    }
+    return new DoubleStorage(newData, cardinality, newMissing);
   }
 }

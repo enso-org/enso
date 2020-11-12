@@ -1,4 +1,6 @@
-package org.enso.table.data.column;
+package org.enso.table.data.column.storage;
+
+import java.util.BitSet;
 
 /** An abstract representation of a data column. */
 public abstract class Storage {
@@ -27,5 +29,14 @@ public abstract class Storage {
     public static final long LONG = 1;
     public static final long DOUBLE = 2;
     public static final long STRING = 3;
+    public static final long BOOL = 4;
   }
+
+  public abstract boolean isOpVectorized(VectorizedOp op);
+
+  public enum VectorizedOp {
+    EQ;
+  }
+
+  public abstract Storage mask(BitSet mask, int cardinality);
 }

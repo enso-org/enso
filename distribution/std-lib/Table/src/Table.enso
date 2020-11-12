@@ -1,6 +1,40 @@
 from Base import all
 import Table.Io.Csv
 
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+type Column
+    type Column java_column
+
+    display : Integer -> Text
+    display show_rows=10 =
+        java_col = this.java_column
+        col_name = java_col.getName []
+        storage = java_col.getStorage []
+        num_rows = java_col.getSize []
+        display_rows = min num_rows show_rows
+        items = Vector.new display_rows num->
+            [if storage.isNa [num] then "NA" else here.get_item_string storage num]
+        table = here.print_table [col_name] items
+        if num_rows - display_rows <= 0 then table else
+            missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
+            table + missing
+
+    print show_rows=10 =
+        IO.println (this.display show_rows)
+
+    == other =
+        storage = this.java_column.getStorage []
+        res_storage = storage.eq [other, False]
+        Column (Java_Column.new ["Result", res_storage].to_array)
+
+    not =
+        storage = this.java_column.getStorage []
+        name = this.java_column.getName []
+        Column (Java_Column.new [name, storage.not []].to_array)
+
+
+
 ## Represents a column-oriented table data structure.
 type Table
     type Table java_table
@@ -24,6 +58,9 @@ type Table
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
 
+    print show_rows=10 =
+        IO.println (this.display show_rows)
+
     ## Converts this table to a JSON structure.
     to_json : Json
     to_json =
@@ -31,6 +68,11 @@ type Table
         cols_json = Json.Array col_jsons
         fields = Map.singleton "columns" cols_json
         Json.Object fields
+
+    at name = Column (this.java_table.getColumnByName [name])
+
+    where indexes =
+        Table (this.java_table.mask [indexes.java_column, False])
 
 ## PRIVATE
 

@@ -1,10 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 
 /**
@@ -14,6 +16,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 @ReportPolymorphism
 @GenerateUncached
 public abstract class HostValueToEnsoNode extends Node {
+
   public static HostValueToEnsoNode build() {
     return HostValueToEnsoNodeGen.create();
   }
@@ -54,6 +57,14 @@ public abstract class HostValueToEnsoNode extends Node {
   @Specialization
   Text doString(String txt) {
     return Text.create(txt);
+  }
+
+  @Specialization(guards = "nulls.isNull(o)")
+  Atom doNull(
+      Object o,
+      @CachedLibrary(limit="3") InteropLibrary nulls,
+      @CachedContext(Language.class) Context ctx) {
+    return ctx.getBuiltins().nothing().newInstance();
   }
 
   @Fallback

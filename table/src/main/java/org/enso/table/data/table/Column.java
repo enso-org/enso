@@ -1,6 +1,8 @@
 package org.enso.table.data.table;
 
-import org.enso.table.data.column.Storage;
+import org.enso.table.data.column.storage.Storage;
+
+import java.util.BitSet;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
@@ -26,5 +28,13 @@ public class Column {
   /** @return the underlying storage */
   public Storage getStorage() {
     return storage;
+  }
+
+  public long getSize() {
+    return getStorage().size();
+  }
+
+  public Column mask(BitSet mask, int cardinality) {
+    return new Column(name, storage.mask(mask, cardinality));
   }
 }
