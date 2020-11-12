@@ -131,22 +131,32 @@ case class BindingsMap(
     * @param name the name to resolve
     * @return a resolution for `name`
     */
+
   def resolveQualifiedName(
     name: List[String]
   ): Either[ResolutionError, ResolvedName] =
     name match {
       case List()     => Left(ResolutionNotFound)
       case List(item) => resolveUppercaseName(item)
-      case List(module, cons) =>
-        resolveUppercaseName(module).flatMap {
+      case firstModuleName :: rest =>
+        val consName = rest.last
+        val modNames = rest.init
+        resolveUppercaseName(firstModuleName).flatMap {
           case ResolvedModule(mod) =>
-            getBindingsFrom(mod).resolveExportedName(cons)
+            val firstModBindings: BindingsMap = getBindingsFrom(mod)
+            var currentModule                 = firstModBindings
+            for (modName <- modNames) {
+              val resolution = currentModule.resolveExportedName(modName)
+              resolution match {
+                case Left(err) => return Left(err)
+                case Right(ResolvedModule(mod)) =>
+                  currentModule = getBindingsFrom(mod)
+                case _ => return Left(ResolutionNotFound)
+              }
+            }
+            currentModule.resolveExportedName(consName)
           case _ => Left(ResolutionNotFound)
         }
-      case _ =>
-        // TODO[MK] Implement when exports possible. Currently this has
-        // no viable interpretation.
-        Left(ResolutionNotFound)
     }
 
   private def findExportedSymbolsFor(
