@@ -10,16 +10,16 @@ import org.enso.projectmanager.service.ProjectServiceFailure.{
   ComponentRepositoryAccessFailure,
   ComponentUninstallationFailure
 }
-import org.enso.projectmanager.versionmanagement.DistributionManagementConfiguration
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.ComponentMissingError
 
 /** A facade for runtime version management logic that processes the requests
   * using the [[RuntimeVersionManager]].
   *
-  * @param managers a distribution configuration
+  * @param distributionConfiguration a distribution configuration
   */
 class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
-  override val managers: DistributionManagementConfiguration
+  override val distributionConfiguration: DistributionConfiguration
 ) extends RuntimeVersionManagementServiceApi[F]
     with RuntimeVersionManagerMixin {
 
@@ -80,7 +80,8 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   override def listAvailableEngines()
     : F[ProjectServiceFailure, Seq[EngineVersion]] = Sync[F]
     .blockingOp {
-      val engineReleaseProvider = managers.engineReleaseProvider
+      val engineReleaseProvider =
+        distributionConfiguration.engineReleaseProvider
       engineReleaseProvider.fetchAllVersions().get.map { availableEngine =>
         EngineVersion(availableEngine.version, availableEngine.markedAsBroken)
       }

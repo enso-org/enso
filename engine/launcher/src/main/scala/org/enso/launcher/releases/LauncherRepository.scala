@@ -18,7 +18,7 @@ import org.enso.runtimeversionmanager.releases.{
   SimpleReleaseProvider
 }
 
-/** Represents the default Enso repository providing releases for the launcher.
+/** Represents the default Enso repository providing releases of the launcher.
   *
   * In test mode, the default GitHub repository can be overridden with a local
   * filesystem-backed repository.

@@ -2,7 +2,7 @@ package org.enso.projectmanager
 
 import java.nio.file.Path
 
-import org.enso.projectmanager.versionmanagement.DistributionManagementConfiguration
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
@@ -32,11 +32,18 @@ import org.enso.runtimeversionmanager.test.{
 
 import scala.util.{Failure, Success, Try}
 
+/** A distribution configuration for use in tests.
+  *
+  * @param distributionRoot root of the test distribution, should be located
+  *                         within some temporary directory
+  * @param engineReleaseProvider provider of (fake) engine releases
+  * @param runtimeReleaseProvider provider of (fake) Graal releases
+  */
 class TestDistributionConfiguration(
   distributionRoot: Path,
   override val engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
-) extends DistributionManagementConfiguration
+) extends DistributionConfiguration
     with FakeEnvironment {
 
   def getTestDirectory: Path = distributionRoot

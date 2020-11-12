@@ -4,20 +4,20 @@ import io.circe.Json
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
 import org.enso.projectmanager.service.versionmanagement.NoOpInterface
-import org.enso.projectmanager.versionmanagement.DistributionManagementConfiguration
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 
 /** Implementation of global configuration management logic.
   *
-  * @param managers a distribution configuration
+  * @param distributionConfiguration a distribution configuration
   */
 class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel](
-  managers: DistributionManagementConfiguration
+  distributionConfiguration: DistributionConfiguration
 ) extends GlobalConfigServiceApi[F] {
 
   val configurationManager = new GlobalConfigurationManager(
-    managers.makeRuntimeVersionManager(new NoOpInterface),
-    managers.distributionManager
+    distributionConfiguration.makeRuntimeVersionManager(new NoOpInterface),
+    distributionConfiguration.distributionManager
   )
 
   override def getKey(

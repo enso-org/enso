@@ -18,7 +18,7 @@ import org.enso.runtimeversionmanager.releases.engine.EngineRelease
   * a distribution located in a specific place within the filesystem. It can
   * also be overridden in tests.
   */
-trait DistributionManagementConfiguration {
+trait DistributionConfiguration {
 
   /** A [[DistributionManager]] instance. */
   def distributionManager: DistributionManager

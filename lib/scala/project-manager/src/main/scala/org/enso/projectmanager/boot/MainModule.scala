@@ -29,7 +29,7 @@ import org.enso.projectmanager.service.{
   ProjectServiceFailure,
   ValidationFailure
 }
-import org.enso.projectmanager.versionmanagement.DefaultManagers
+import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 
 import scala.concurrent.ExecutionContext
 
@@ -104,10 +104,11 @@ class MainModule[
       languageServerGateway
     )
 
-  lazy val globalConfigService = new GlobalConfigService[F](DefaultManagers)
+  lazy val globalConfigService =
+    new GlobalConfigService[F](DefaultDistributionConfiguration)
 
   lazy val runtimeVersionManagementService =
-    new RuntimeVersionManagementService[F](DefaultManagers)
+    new RuntimeVersionManagementService[F](DefaultDistributionConfiguration)
 
   lazy val clientControllerFactory =
     new ManagerClientControllerFactory[F](

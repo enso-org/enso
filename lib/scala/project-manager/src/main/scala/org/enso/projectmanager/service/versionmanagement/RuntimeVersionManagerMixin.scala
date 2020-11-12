@@ -9,17 +9,17 @@ import org.enso.projectmanager.service.ProjectServiceFailure.{
   MissingComponentFailure,
   ProjectManagerUpgradeRequiredFailure
 }
-import org.enso.projectmanager.versionmanagement.DistributionManagementConfiguration
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components._
 
 /** A helper class that defines methods for creating the
   * [[RuntimeVersionManager]] based on a
-  * [[DistributionManagementConfiguration]].
+  * [[DistributionConfiguration]].
   */
 trait RuntimeVersionManagerMixin {
 
   /** The distribution configuration to use. */
-  def managers: DistributionManagementConfiguration
+  def distributionConfiguration: DistributionConfiguration
 
   /** Creates a [[RuntimeVersionManager]] that will send
     * [[ProgressNotification]] to the specified [[ActorRef]] and with the
@@ -30,7 +30,7 @@ trait RuntimeVersionManagerMixin {
     allowMissingComponents: Boolean,
     allowBrokenComponents: Boolean
   ): RuntimeVersionManager =
-    managers.makeRuntimeVersionManager(
+    distributionConfiguration.makeRuntimeVersionManager(
       new ControllerInterface(
         progressTracker        = progressTracker,
         allowMissingComponents = allowMissingComponents,
@@ -45,7 +45,7 @@ trait RuntimeVersionManagerMixin {
     * It is useful for simple queries, like listing installed versions.
     */
   def makeReadOnlyVersionManager(): RuntimeVersionManager =
-    managers.makeRuntimeVersionManager(new NoOpInterface)
+    distributionConfiguration.makeRuntimeVersionManager(new NoOpInterface)
 
   implicit class ErrorRecovery[F[+_, +_]: ErrorChannel, A](
     fa: F[Throwable, A]

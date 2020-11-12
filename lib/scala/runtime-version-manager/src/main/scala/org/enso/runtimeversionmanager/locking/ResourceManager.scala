@@ -194,15 +194,3 @@ class ResourceManager(lockManager: LockManager) {
       "distribution. Please wait until that finishes."
   }
 }
-
-object ResourceManager {
-  object WarnWhenWaiting extends LockUserInterface {
-
-    /** @inheritdoc */
-    override def startWaitingForResource(resource: Resource): Unit =
-      Logger[WarnWhenWaiting.type].warn(resource.waitMessage)
-
-    /** @inheritdoc */
-    override def finishWaitingForResource(resource: Resource): Unit = ()
-  }
-}

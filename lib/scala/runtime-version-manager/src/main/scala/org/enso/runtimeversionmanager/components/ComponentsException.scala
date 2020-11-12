@@ -9,8 +9,7 @@ sealed class ComponentsException(
   cause: Throwable = null
 ) extends RuntimeException(message, cause) {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String = {
     val causeMessage = if (cause != null) s" (Caused by: $cause)" else ""
     message + causeMessage
@@ -21,8 +20,7 @@ sealed class ComponentsException(
 case class InstallationError(message: String, cause: Throwable = null)
     extends ComponentsException(message, cause) {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String = s"Installation failed: $message"
 }
 
@@ -32,8 +30,7 @@ case class InstallationError(message: String, cause: Throwable = null)
 case class BrokenComponentError(message: String, cause: Throwable = null)
     extends ComponentsException(message, cause) {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String =
     s"Installation was cancelled as the component to install was marked as " +
     s"broken."
