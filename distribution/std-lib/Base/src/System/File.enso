@@ -271,9 +271,22 @@ type File
         Nothing
 
 ## Creates a new file object, pointing to the given path.
+
+   > Example
+     Create a new file pointing to the `data.csv` file in the project directory.
+         File.new (Enso_Project.data / "data.csv").path
 new : Text -> File
 new path = File (Prim_Io.get_file path)
+
+## Open and read the file at `path`.
+
+   > Example
+     Read the `data.csv` file in the project directory.
+         File.open (Enso_Project.data / "data.csv")
+open : Text -> Text
+open path = (here.new path).read
 
 ## Returns the current working directory (CWD) of the current program.
 current_directory : File
 current_directory = File (Prim_Io.get_cwd)
+

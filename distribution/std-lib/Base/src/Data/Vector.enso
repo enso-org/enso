@@ -123,8 +123,10 @@ type Vector
              [1,2,3,4,5].exists (> 3)
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
-        check found ix = if found then found else predicate ix
-        this.fold False check
+        len = this.length
+        go idx found = if found || (idx >= len) then found else
+            @Tail_Call go idx+1 (predicate (this.at idx))
+        go 0 False
 
     ## Checks whether a predicate holds for at least one element of this vector.
 

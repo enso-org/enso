@@ -54,3 +54,8 @@ spec =
             f.read.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
+        it "should open and read the file in one shot" <|
+            path_name = sample_file.path
+            contents = File.open path_name
+            contents.should start_with "Cupcake ipsum dolor sit amet."
+

@@ -14,7 +14,16 @@ polyglot java import org.enso.base.Text_Utils
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
 Text.length : Integer
-Text.length = this.characters.length
+Text.length =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    nxt = iterator.next []
+
+    count accum iter = if iter == -1 then accum else
+        counter = accum + 1
+        next_nxt = iterator.next []
+        @Tail_Call count counter next_nxt
+    count 0 nxt
 
 ## Applies `function` to each character in `this`.
 
