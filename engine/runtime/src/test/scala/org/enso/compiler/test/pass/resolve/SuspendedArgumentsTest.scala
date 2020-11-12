@@ -83,6 +83,19 @@ class SuspendedArgumentsTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Suspended arguments resolution in modules" should {
+    "test for bad sig" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |File.with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+          |File.with_output_stream open_options action = undefined
+          |""".stripMargin.preprocessModule
+
+      val ir_before = ir.bindings.head.asInstanceOf[Method]
+      val ir_after = ir.resolve.bindings.head.asInstanceOf[Method]
+    }
+
     "correctly mark arguments as suspended based on their type signatures" in {
       implicit val ctx: ModuleContext = mkModuleContext
 

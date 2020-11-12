@@ -86,6 +86,19 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
     }
 
+    // TODO [AA] This isn't consistent.
+    "allow dotted paths in type signatures" in {
+      val ir =
+        """
+          |File.with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+          |File.with_output_stream open_options action = undefined
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 1
+      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
+//      println(ir.bindings.head.getMetadata(TypeSignatures).get.signature.pretty)
+    }
+
     "raise an error if a signature is divorced from its definition" in {
       val ir =
         """

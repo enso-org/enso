@@ -61,7 +61,9 @@ case object UppercaseNames extends IRPass {
         "No fresh name supply passed to UppercaseNames resolver."
       )
     )
-    ir.mapExpressions(processExpression(_, scopeMap, freshNameSupply))
+    val new_bindings =
+      ir.bindings.map(processModuleDefinition(_, scopeMap, freshNameSupply))
+    ir.copy(bindings = new_bindings)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -87,6 +89,18 @@ case object UppercaseNames extends IRPass {
       )
     )
     processExpression(ir, scopeMap, freshNameSupply)
+  }
+
+  private def processModuleDefinition(
+    definition: IR.Module.Scope.Definition,
+    bindings: BindingsMap,
+    freshNameSupply: FreshNameSupply
+  ): IR.Module.Scope.Definition = {
+    definition match {
+      case asc: IR.Type.Ascription => asc
+      case a =>
+        a.mapExpressions(processExpression(_, bindings, freshNameSupply))
+    }
   }
 
   private def processExpression(

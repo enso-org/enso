@@ -42,8 +42,16 @@ case object OperatorToFunction extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module =
-    ir.mapExpressions(runExpression(_, new InlineContext(moduleContext.module)))
+  ): IR.Module = {
+    val new_bindings = ir.bindings.map {
+      case asc: IR.Type.Ascription => asc
+      case a =>
+        a.mapExpressions(
+          runExpression(_, new InlineContext(moduleContext.module))
+        )
+    }
+    ir.copy(bindings = new_bindings)
+  }
 
   /** Executes the conversion pass in an inline context.
     *
@@ -58,6 +66,7 @@ case object OperatorToFunction extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     ir.transformExpressions {
+      case asc: IR.Type.Ascription => asc
       case IR.Application.Operator.Binary(l, op, r, loc, passData, diag) =>
         IR.Application.Prefix(
           op,

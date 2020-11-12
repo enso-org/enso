@@ -543,7 +543,7 @@ class AstToIrTest extends CompilerTest with Inside {
         """
           |type My
           |    type My a
-          |    
+          |
           |    + : My -> My
           |    + that = My this.a+that.a
           |""".stripMargin.toIrModule.bindings.head
@@ -735,6 +735,18 @@ class AstToIrTest extends CompilerTest with Inside {
         .reason shouldBe an[Syntax.InvalidStandaloneSignature.type]
     }
 
+    "properly support dotted operators in ascriptions" in {
+      val ir =
+        """with_output_stream : Vector.Vector -> Any ! File_Error
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Operator.Binary]
+
+      ir.right.value
+        .asInstanceOf[IR.Application.Operator.Binary]
+        .left
+        .value shouldBe an[IR.Name.Qualified]
+    }
+
     "work inside type bodies" in {
       val ir =
         """
@@ -794,6 +806,20 @@ class AstToIrTest extends CompilerTest with Inside {
         .asInstanceOf[IR.Application.Operator.Binary]
         .left
         .value shouldBe an[IR.Application.Operator.Binary]
+    }
+
+    // TODO [AA] Syntax error with `f a ->`
+
+    "properly support dotted operators in ascriptions" in {
+      val ir =
+        """with_output_stream : Vector.Vector -> Any ! File_Error
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Operator.Binary]
+
+      ir.right.value
+        .asInstanceOf[IR.Application.Operator.Binary]
+        .left
+        .value shouldBe an[IR.Name.Qualified]
     }
 
     "properly support the `in` context ascription operator" in {
