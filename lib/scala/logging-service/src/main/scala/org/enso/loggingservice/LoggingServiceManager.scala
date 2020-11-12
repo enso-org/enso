@@ -43,6 +43,13 @@ object LoggingServiceManager {
     * now on owned by the setup function and the created service, so if service
     * creation fails, they will be shutdown alongside service termination. Any
     * printers passed to this function must not be reused.
+    *
+    * @param mode [[LoggerMode]] to setup
+    * @param logLevel specifies which log level should be used for logs from
+    *                 this instance; this log level does not affect remote log
+    *                 levels in server mode
+    * @param executionContext execution context to run the initialization in
+    * @return a future that will complete once the logger is initialized
     */
   def setup[InitializationResult](
     mode: LoggerMode[InitializationResult],

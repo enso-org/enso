@@ -22,6 +22,9 @@ trait TaskProgress[A] {
     */
   def force(): A = TaskProgress.waitForTask(this).get
 
+  /** Specifies unit associated with progress of this task. */
+  def unit: ProgressUnit = ProgressUnit.Unspecified
+
   /** Alters the task by transforming its result with a function `f` that may
     * fail.
     *

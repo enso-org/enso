@@ -18,4 +18,6 @@ private class MappedTask[A, B](source: TaskProgress[A], f: A => Try[B])
       override def done(result: Try[A]): Unit =
         listener.done(result.flatMap(f))
     })
+
+  override def unit: ProgressUnit = source.unit
 }

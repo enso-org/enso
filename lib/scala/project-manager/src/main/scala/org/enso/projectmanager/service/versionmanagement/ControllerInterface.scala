@@ -30,7 +30,7 @@ class ControllerInterface(
       case None =>
         val generated = UUID.randomUUID()
         uuid = Some(generated)
-        val unit = ProgressUnit.Other // TODO [RW] unit handling
+        val unit = ProgressUnit.fromTask(task)
         progressTracker ! ProgressNotification.TaskStarted(
           generated,
           total,

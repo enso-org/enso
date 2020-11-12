@@ -5,7 +5,9 @@ import scala.util.Try
 /** A simple implementation of [[TaskProgress]] that can be used to report
   * progress updates and mark completion of a task.
   */
-class TaskProgressImplementation[A] extends TaskProgress[A] {
+class TaskProgressImplementation[A](
+  override val unit: ProgressUnit = ProgressUnit.Unspecified
+) extends TaskProgress[A] {
   @volatile private var listeners: List[ProgressListener[A]] = Nil
   private var result: Option[Try[A]]                         = None
 
