@@ -179,7 +179,11 @@ object Doc {
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val htmlStyle    = HTML.`style` := "display: block"
-        val elemsHTML    = elems.toList.map(elem => elem.html)
+        val firstIndent  = elems.head.indent
+        val elemsHTML = elems.toList.map(elem => {
+          elem.indent -= firstIndent
+          elem.html
+        })
         val btnAction = onclick :=
           s"""var code = document.getElementById("$uniqueIDCode");
              |var btn  = document.getElementById("$uniqueIDBtn").firstChild;
