@@ -3,12 +3,21 @@ package org.enso.projectmanager.requesthandler
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Stash, Status}
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Id, Method, Request, ResponseError}
+import org.enso.jsonrpc.{
+  HasParams,
+  HasResult,
+  Id,
+  Method,
+  Request,
+  ResponseError,
+  ResponseResult
+}
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.service.versionmanagement.ProgressNotification
 import org.enso.projectmanager.service.versionmanagement.ProgressNotification.translateProgressNotification
 import org.enso.projectmanager.util.UnhandledLogging
 
+import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 /** A helper class that gathers common request handling logic.
@@ -16,7 +25,7 @@ import scala.concurrent.duration.FiniteDuration
   * It manages timeouts and sending the request result (in case of success but
   * also failure or timeout).
   *
-  * @param handledMethod method that this handler deals with; used in logging
+  * @param method method that this handler deals with; used in logging
   *                      and to relate progress updates to the method
   * @param requestTimeout timeout for the request; if set, the request will be
   *                       marked as failed after the specified time; the request
@@ -25,10 +34,16 @@ import scala.concurrent.duration.FiniteDuration
   */
 abstract class RequestHandler[
   F[+_, +_]: Exec,
-  FailureType: FailureMapper: Manifest
+  FailureType: FailureMapper: Manifest,
+  M <: Method,
+  -Params,
+  +Result
 ](
-  handledMethod: Method,
+  method: M,
   requestTimeout: Option[FiniteDuration]
+)(implicit
+  @unused evParams: HasParams.Aux[M, Params],
+  @unused evResult: HasResult.Aux[M, Result]
 ) extends Actor
     with ActorLogging
     with Stash
@@ -40,26 +55,22 @@ abstract class RequestHandler[
   /** Waits for the request, tries to pass it into the [[handleRequest]]
     * function, sets up the timeout and routing of the result.
     */
-  private def requestStage: Receive = {
-    val composition: Any => Option[Unit] = {
-      case request @ Request(_, id, _) =>
-        val result = handleRequest.lift(request)
-        result.map { f =>
-          Exec[F].exec(f).pipeTo(self)
-          val cancellable = {
-            requestTimeout.map { timeout =>
-              context.system.scheduler.scheduleOnce(
-                timeout,
-                self,
-                RequestTimeout
-              )
-            }
-          }
-          context.become(responseStage(id, sender(), cancellable))
-        }
-      case _ => None
+  private def requestStage: Receive = { case request: Request[M, Params] =>
+    val result = handleRequest(request.params)
+    Exec[F]
+      .exec(result)
+      .map(_.map(ResponseResult(method, request.id, _)))
+      .pipeTo(self)
+    val cancellable = {
+      requestTimeout.map { timeout =>
+        context.system.scheduler.scheduleOnce(
+          timeout,
+          self,
+          RequestTimeout
+        )
+      }
     }
-    Function.unlift(composition)
+    context.become(responseStage(request.id, sender(), cancellable))
   }
 
   /** Defines the actual logic for handling the request.
@@ -67,7 +78,7 @@ abstract class RequestHandler[
     * The partial function should only be defined by requests that are meant to
     * be handled by this instance.
     */
-  def handleRequest: PartialFunction[Any, F[FailureType, Any]]
+  def handleRequest: Params => F[FailureType, Result]
 
   /** Waits for the routed result or a failure/timeout and reports the result to
     * the user.
@@ -78,13 +89,13 @@ abstract class RequestHandler[
     cancellable: Option[Cancellable]
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, s"Failure during $handledMethod operation:")
+      log.error(ex, s"Failure during $method operation:")
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.foreach(_.cancel())
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $handledMethod with $id timed out")
+      log.error(s"Request $method with $id timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -101,6 +112,6 @@ abstract class RequestHandler[
       context.stop(self)
 
     case notification: ProgressNotification =>
-      replyTo ! translateProgressNotification(handledMethod.name, notification)
+      replyTo ! translateProgressNotification(method.name, notification)
   }
 }

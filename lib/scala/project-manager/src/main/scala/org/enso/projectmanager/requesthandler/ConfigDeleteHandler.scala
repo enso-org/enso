@@ -1,7 +1,7 @@
 package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
-import org.enso.jsonrpc.{Request, ResponseResult, Unused}
+import org.enso.jsonrpc.Unused
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
@@ -21,18 +21,22 @@ import scala.concurrent.duration.FiniteDuration
 class ConfigDeleteHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: GlobalConfigServiceApi[F],
   requestTimeout: FiniteDuration
-) extends RequestHandler[F, GlobalConfigServiceFailure](
+) extends RequestHandler[
+      F,
+      GlobalConfigServiceFailure,
+      ConfigDelete.type,
+      ConfigDelete.Params,
+      Unused.type
+    ](
       ConfigDelete,
       Some(requestTimeout)
     ) {
 
   /** @inheritdoc */
-  override def handleRequest
-    : PartialFunction[Any, F[GlobalConfigServiceFailure, Any]] = {
-    case Request(ConfigDelete, id, params: ConfigDelete.Params) =>
-      for {
-        _ <- service.deleteKey(params.key)
-      } yield ResponseResult(ConfigDelete, id, Unused)
+  override def handleRequest = { params =>
+    for {
+      _ <- service.deleteKey(params.key)
+    } yield Unused
   }
 }
 

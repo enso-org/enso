@@ -1,7 +1,8 @@
 package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
-import org.enso.jsonrpc.{Request, ResponseResult, Unused}
+import nl.gn0s1s.bump.SemVer
+import org.enso.jsonrpc.Unused
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
@@ -20,23 +21,23 @@ import scala.concurrent.duration.FiniteDuration
 class EngineListAvailableHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: RuntimeVersionManagementServiceApi[F],
   requestTimeout: FiniteDuration
-) extends RequestHandler[F, ProjectServiceFailure](
+) extends RequestHandler[
+      F,
+      ProjectServiceFailure,
+      EngineListAvailable.type,
+      Unused.type,
+      EngineListAvailable.Result
+    ](
       EngineListAvailable,
       Some(requestTimeout)
     ) {
 
   /** @inheritdoc */
-  override def handleRequest
-    : PartialFunction[Any, F[ProjectServiceFailure, Any]] = {
-    case Request(EngineListAvailable, id, Unused) =>
-      for {
-        result <- service.listAvailableEngines()
-        sorted = result.sortBy(_.version).reverse
-      } yield ResponseResult(
-        EngineListAvailable,
-        id,
-        EngineListAvailable.Result(sorted)
-      )
+  override def handleRequest = { _ =>
+    for {
+      result <- service.listAvailableEngines()
+      sorted = result.sortBy(_.version)(Ordering[SemVer].reverse)
+    } yield EngineListAvailable.Result(sorted)
   }
 }
 

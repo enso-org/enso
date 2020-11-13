@@ -1,7 +1,7 @@
 package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
-import org.enso.jsonrpc.{Request, ResponseResult, Unused}
+import org.enso.jsonrpc.Unused
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
@@ -16,20 +16,24 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagemen
   */
 class EngineInstallHandler[F[+_, +_]: Exec: CovariantFlatMap](
   service: RuntimeVersionManagementServiceApi[F]
-) extends RequestHandler[F, ProjectServiceFailure](EngineInstall, None) {
+) extends RequestHandler[
+      F,
+      ProjectServiceFailure,
+      EngineInstall.type,
+      EngineInstall.Params,
+      Unused.type
+    ](EngineInstall, None) {
 
   /** @inheritdoc */
-  override def handleRequest
-    : PartialFunction[Any, F[ProjectServiceFailure, Any]] = {
-    case Request(EngineInstall, id, params: EngineInstall.Params) =>
-      val progressTracker = sender()
-      for {
-        _ <- service.installEngine(
-          progressTracker,
-          params.version,
-          params.forceInstallBroken.getOrElse(false)
-        )
-      } yield ResponseResult(EngineInstall, id, Unused)
+  override def handleRequest = { params =>
+    val progressTracker = sender()
+    for {
+      _ <- service.installEngine(
+        progressTracker,
+        params.version,
+        params.forceInstallBroken.getOrElse(false)
+      )
+    } yield Unused
   }
 }
 
