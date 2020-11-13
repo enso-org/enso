@@ -16,6 +16,20 @@ empty = Tip
 singleton : Any -> Any -> Map
 singleton key value = Bin 1 key value Tip Tip
 
+## Builds a map from a vector of key-value pairs.
+
+   > Example
+     Building a map containing two key-value pairs.
+         Map.from_vector [[1, 2], [3, 4]]
+from_vector : Vector.Vector -> Map
+from_vector vec =
+    stop = vec.length
+    go map index = if index >= stop then map else
+        pair = vec.at index
+        new_map = map.insert (pair.at 0) (pair.at 1)
+        @Tail_Call go new_map (index + 1)
+    go Map.empty 0
+
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
 type Map
@@ -29,8 +43,8 @@ type Map
         Tip -> True
 
     ## Checks if the map is not empty.
-    non_empty : Boolean
-    non_empty = not this.is_empty
+    not_empty : Boolean
+    not_empty = not this.is_empty
 
     ## Returns the number of entries in this map.
     size : Integer
@@ -65,12 +79,10 @@ type Map
     == : Map -> Boolean
     == that = this.to_vector == that.to_vector
 
-    ## Maps a function over each value in this map.
-    map : (Any -> Any) -> Map
-    map function = case this of
-        Bin s k v l r ->
-            Bin s k (function v) (l.map function) (r.map function)
-        Tip -> Tip
+    ## Inserts a key-value mapping into this map. If `key` is already present,
+       it will be overriden with the new `value`.
+    insert : Any -> Any -> Map
+    insert key value = Internal.insert this key value
 
     ## Gets the value associated with `key` in this map, or returns a
        `Nothing`, if `key` is not present.
@@ -84,8 +96,143 @@ type Map
         result = go this
         result
 
-    ## Inserts a key-value mapping into this map. If `key` is already present,
-       it will be overriden with the new `value`.
-    insert : Any -> Any -> Map
-    insert key value = Internal.insert this key value
+    ## Transform the map's keys and values to create a new map.
+
+       > Example
+         Turn all keys into `Text` and double the values for a map `m`.
+             m.transform (k -> v -> [k.to_text, v*2])
+    transform : (Any -> Any -> [Any, Any]) -> Map
+    transform function =
+        func_pairs = p -> function (p.at 0) (p.at 1)
+        vec_transformed = this.to_vector.map func_pairs
+        here.from_vector vec_transformed
+
+    ## Maps a function over each value in this map.
+
+       > Example
+         Turn all values into `Text` for a map `m`.
+             m.map (v -> v.to_text)
+    map : (Any -> Any) -> Map
+    map function =
+        go map = case map of
+            Bin s k v l r ->
+                Bin s k (function v) (go l) (go r)
+            Tip -> Tip
+        go this
+
+    ## Maps a function over each key in this map.
+
+       > Example
+         Doubling all keys in the map `m`.
+             m.map_keys (k -> k*2)
+    map_keys : (Any -> Any) -> Map
+    map_keys function =
+        trans_function = k -> v -> [function k, v]
+        this.transform trans_function
+
+    ## Map a function over each key-value pair in the map, transforming the
+       value.
+
+       > Example
+         Adding the key to the value in a map `m`.
+             m.map_with_key (k -> v -> k + v)
+    map_with_key : (Any -> Any -> Any) -> Map
+    map_with_key function =
+        go map = case map of
+            Bin s k v l r ->
+                Bin s k (function k v) (go l) (go r)
+            Tip -> Tip
+        go this
+
+    ## Apply a function to each value in the map.
+
+       This method does not return the results, so is only useful for performing
+       computations with side-effects.
+
+       > Example
+         Printing each value in the map `m`.
+             m.each IO.println
+    each : (Any -> Any) -> Nothing
+    each function =
+        this.map function
+        Nothing
+
+    ## Apply a function to each key-value pair in the map.
+
+       This method does not return the results, so is only useful for performing
+       computations with side-effects.
+
+       > Example
+         Printing each key and value in the map `m`.
+             m.each (k -> v -> IO.println (k.to_text + v.to_text))
+    each_with_key : (Any -> Any -> Any) -> Nothing
+    each_with_key function =
+        this.map_with_key function
+        Nothing
+
+    ## Fold over the values in the map.
+
+       > Example
+         Summing all of the values in the map `m`.
+             m.fold (+)
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold init function =
+        go map init = case map of
+            Bin _ _ v l r ->
+                y = go l init
+                z = function y v
+                go r z
+            Tip -> init
+        go this init
+
+    ## Fold over the key-value pairs in the map.
+
+       > Example
+         Sum the keys and values in the map `m`.
+             m.fold_with_key (l -> k -> v -> l + k + v)
+    fold_with_key : Any -> (Any -> Any -> Any -> Any) -> Any
+    fold_with_key init function =
+        go map init = case map of
+            Bin _ k v l r ->
+                y = go l init
+                z = function y k v
+                go r z
+            Tip -> init
+        go this init
+
+    ## Get a vector containing the keys in the map.
+
+       > Example
+         Get the keys from the map `m`.
+             m.keys
+    keys : Vector
+    keys =
+        builder = Vector.new_builder
+        to_vector_with_builder m = case m of
+            Bin _ k _ l r ->
+                to_vector_with_builder l
+                builder.append k
+                to_vector_with_builder r
+                Nothing
+            Tip -> Nothing
+        to_vector_with_builder this
+        builder.to_vector
+
+    ## Get a vector containing the values in the map.
+
+       > Example
+         Get the values from the map `m`.
+             m.values
+    values : Vector
+    values =
+        builder = Vector.new_builder
+        to_vector_with_builder m = case m of
+            Bin _ _ v l r ->
+                to_vector_with_builder l
+                builder.append v
+                to_vector_with_builder r
+                Nothing
+            Tip -> Nothing
+        to_vector_with_builder this
+        builder.to_vector
 
