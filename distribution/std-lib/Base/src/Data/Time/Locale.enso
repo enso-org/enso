@@ -1,0 +1,56 @@
+from Base import all
+
+polyglot java import java.util.Locale as JavaLocale
+
+# Constants
+
+default : Locale
+default = here.from_java (Polyglot.get_member JavaLocale "ROOT")
+
+## Construct a new locale.
+
+   > Example
+     A locale representing en-GB.UTF-8.
+         Locale.new "en" "GB" "UTF-8"
+new : Text -> Text | Nothing -> Text | Nothing -> Locale
+new language country=Nothing variant=Nothing =
+    country_text = if country == Nothing then "" else country
+    variant_text = if variant == Nothing then "" else variant
+    java_locale = JavaLocale.new [language, country_text, variant_text].to_array
+    here.from_java java_locale
+
+## A type representing a locale.
+
+   A locale consists of three parts:
+   - A language, which is mandatory.
+   - A country code, which is optional.
+   - A variant, which is optional.
+type Locale
+    type Locale java_locale
+
+    ## Get the language from the locale.
+    language : Text | Nothing
+    language =
+        lang = this.java_locale.getLanguage []
+        if lang.is_empty then Nothing else lang
+
+    ## Get the country from the locale.
+    country : Text | Nothing
+    country =
+        place = this.java_locale.getCountry []
+        if place.is_empty then Nothing else lang
+
+    ## Get the country from the locale.
+    variant : Text | Nothing
+    variant =
+        var = this.java_locale.getVariant []
+        if var.is_empty then Nothing else lang
+
+    ## Convert the locale to text.
+    to_text : Text | Nothing
+    to_text = this.java_locale.toString []
+
+## PRIVATE
+from_java : JavaLocale -> Locale
+from_java java = Locale java
+

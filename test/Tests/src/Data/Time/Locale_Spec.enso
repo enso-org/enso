@@ -1,0 +1,9 @@
+from Base import all
+
+import Base.Data.Time.Locale
+import Test
+
+spec = describe "Locale" <|
+    en_gb_utf8 = Locale.new "en" "GB" "UTF-8"
+    it "allow constructing a locale with optional parts" <|
+        IO.println Locale.default

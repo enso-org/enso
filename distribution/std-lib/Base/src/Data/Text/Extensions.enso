@@ -118,6 +118,14 @@ Text.< that = Text_Utils.lt [this, that]
 Text.> : Text -> Boolean
 Text.> that = Text_Utils.lt [that, this]
 
+## Check if `this` is empty.
+Text.is_empty : Boolean
+Text.is_empty = this == ""
+
+## Check if `this` is not empty.
+Text.not_empty : Boolean
+Text.not_empty = not this.is_empty
+
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
