@@ -178,7 +178,7 @@ object Doc {
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
-        val htmlStyle    = HTML.`style` := "display: inline-block"
+        val htmlStyle    = HTML.`style` := "display: block"
         val elemsHTML    = elems.toList.map(elem => elem.html)
         val btnAction = onclick :=
           s"""var code = document.getElementById("$uniqueIDCode");
@@ -194,8 +194,9 @@ object Doc {
              |range.select().createTextRange();
              |document.execCommand("copy");""".stripMargin
             .replaceAll("\n", "")
-        val btn     = HTML.button(btnAction)(htmlIdBtn)("Show")
-        val copyBtn = HTML.button(copyAction)("Copy")
+        val btnStyle = HTML.`style` := "display: flex"
+        val btn      = HTML.button(btnAction)(htmlIdBtn)("Show")
+        val copyBtn  = HTML.button(copyAction)(btnStyle)("Copy")
         if (isInGui) {
           Seq(HTML.div(HTML.div(htmlCls())(htmlStyle)(elemsHTML), copyBtn))
         } else {
@@ -221,7 +222,7 @@ object Doc {
       }
       final case class Line(indent: Int, elem: String) extends Elem {
         val repr: Repr.Builder = R + indent + elem
-        val html: HTML         = Seq(HTML.code(elem), HTML.br)
+        val html: HTML         = Seq(HTML.code(" " * indent + elem), HTML.br)
       }
     }
 
