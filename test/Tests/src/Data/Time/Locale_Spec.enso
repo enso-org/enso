@@ -6,4 +6,22 @@ import Test
 spec = describe "Locale" <|
     en_gb_utf8 = Locale.new "en" "GB" "UTF-8"
     it "allow constructing a locale with optional parts" <|
-        IO.println Locale.default
+        loc = Locale.new "en"
+        loc.language . should_equal "en"
+        loc.country . should_equal Nothing
+        loc.variant . should_equal Nothing
+    it "should have a well-defined text conversion" <|
+        en_gb_utf8.to_text . should_equal "en_GB_UTF-8"
+    it "should have some common locale constants" <|
+        Locale.default.to_text . should_equal ""
+        Locale.canada.to_text . should_equal "en_CA"
+        Locale.china.to_text . should_equal "zh_CN"
+        Locale.france.to_text . should_equal "fr_FR"
+        Locale.germany.to_text . should_equal "de_DE"
+        Locale.italy.to_text . should_equal "it_IT"
+        Locale.japan.to_text . should_equal "ja_JP"
+        Locale.korea.to_text . should_equal "ko_KR"
+        Locale.prc.to_text . should_equal "zh_CN"
+        Locale.taiwan.to_text . should_equal "zh_TW"
+        Locale.uk.to_text . should_equal "en_GB"
+        Locale.us.to_text . should_equal "en_US"

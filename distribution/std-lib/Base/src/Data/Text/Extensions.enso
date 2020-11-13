@@ -85,7 +85,7 @@ Text.split (separator = " ") =
      ACUTE) is canonically the same as the string 'e\u0301' (i.e. the letter
      `e` followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
          ('é' == 'e\u0301') == True
-Text.== : Text -> Boolean
+Text.== : Any -> Boolean
 Text.== that = Text_Utils.equals [this, that]
 
 ## Checks whether `this` is equal to `that`, ignoring case considerations.

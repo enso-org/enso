@@ -7,6 +7,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
+import java.util.Locale;
 
 /** Utils for standard library operations on Time. */
 public class Time_Utils {
@@ -86,9 +87,10 @@ public class Time_Utils {
    * @param pattern the format string.
    * @return parsed ZonedDateTime instance.
    */
-  public static ZonedDateTime parse_time_format(String text, String pattern) {
+  public static ZonedDateTime parse_time_format(String text, String pattern, Locale locale) {
     TemporalAccessor time =
         DateTimeFormatter.ofPattern(pattern)
+            .withLocale(locale)
             .parseBest(text, ZonedDateTime::from, LocalDateTime::from);
     if (time instanceof ZonedDateTime) {
       return (ZonedDateTime) time;

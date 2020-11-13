@@ -43,7 +43,11 @@ spec = describe "Maps" <|
         m.get "foo" . should equal 134
         m.get "bar" . should equal 654
         m.get "baz" . should equal "spam"
-        m.get "nope" . catch e->e . should_equal (Map.No_Value_For_Key "nope")
+        m.get "nope" . should_equal Nothing
+    it "should support get_or_else" <|
+        m = Map.empty . insert 2 3
+        m.get_or_else 2 0 . should_equal 3
+        m.get_or_else 1 10 . should_equal 10
     it "should allow transforming the map" <|
         m = Map.empty . insert 1 2 . insert 2 4
         expected = Map.empty . insert "1" 4 . insert "2" 8

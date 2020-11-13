@@ -89,12 +89,19 @@ type Map
     get : Any -> Any ! Nothing
     get key =
         go map = case map of
-            Tip -> Error.throw (No_Value_For_Key key)
+            Tip -> Nothing
             Bin _ k v l r ->
                 if k == key then v else
                     if k > key then @Tail_Call go l else @Tail_Call go r
         result = go this
         result
+
+    ## Get the value associated with `key` in this map, or returns `other` if it
+       isn't present.
+    get_or_else : Any -> Any -> Any
+    get_or_else key other =
+        result = this.get key
+        if result.is_nothing then other else result
 
     ## Transform the map's keys and values to create a new map.
 

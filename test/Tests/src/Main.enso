@@ -41,7 +41,7 @@ main = Test.Suite.runMain <|
     Range_Spec.spec
     Request_Spec.spec
     Text_Spec.spec
-    # Time_Spec.spec
+    Time_Spec.spec
     Locale_Spec.spec
     Uri_Spec.spec
     Vector_Spec.spec
