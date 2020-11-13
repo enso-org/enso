@@ -16,8 +16,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `text/openFile` commands.
+/** A request handler for `text/openFile` commands.
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
@@ -58,7 +57,11 @@ class OpenFileHandler(
         OpenFile,
         id,
         OpenFile
-          .Result(capability, buffer.contents.toString, buffer.version)
+          .Result(
+            capability,
+            buffer.contents.toString,
+            buffer.version.toHexString
+          )
       )
       cancellable.cancel()
       context.stop(self)
@@ -75,8 +78,7 @@ class OpenFileHandler(
 
 object OpenFileHandler {
 
-  /**
-    * Creates a configuration object used to create a [[OpenFileHandler]]
+  /** Creates a configuration object used to create a [[OpenFileHandler]]
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout

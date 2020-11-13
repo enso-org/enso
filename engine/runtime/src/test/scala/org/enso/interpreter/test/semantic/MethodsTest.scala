@@ -1,16 +1,16 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
-  InterpreterTest,
   InterpreterContext,
-  InterpreterException
+  InterpreterException,
+  InterpreterTest
 }
 
 class MethodsTest extends InterpreterTest {
   override def subject: String = "Methods"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
     "be defined in the global scope and dispatched to" in {
       val code =
@@ -23,8 +23,9 @@ class MethodsTest extends InterpreterTest {
     }
     "execute `this` argument once" in {
       val code =
-        """
-          |Unit.foo = 0
+        """from Builtins import all
+          |
+          |Nothing.foo = 0
           |
           |main = (IO.println "foo").foo
           |""".stripMargin
@@ -85,7 +86,8 @@ class MethodsTest extends InterpreterTest {
 
     "be definable as blocks without arguments" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Any.method =
           |    x = this * this
           |    y = x * 2
@@ -98,7 +100,8 @@ class MethodsTest extends InterpreterTest {
 
     "be dispatched to the proper constructor" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Nil.sum = acc -> acc
           |Cons.sum = acc -> case this of
           |  Cons h t -> sum t (h + acc)
@@ -111,9 +114,10 @@ class MethodsTest extends InterpreterTest {
 
     "allow passing the call target by-name" in {
       val code =
-        """
-          |Unit.testMethod = x -> y -> z -> x + y + z
-          |main = testMethod x=1 y=2 this=Unit z=3
+        """from Builtins import all
+          |
+          |Nothing.testMethod = x -> y -> z -> x + y + z
+          |main = testMethod x=1 y=2 this=Nothing z=3
           |""".stripMargin
       eval(code) shouldEqual 6
     }
@@ -123,12 +127,15 @@ class MethodsTest extends InterpreterTest {
         """
           |main = foo 7
           |""".stripMargin
-      the[InterpreterException] thrownBy eval(code) should have message "Object Number does not define method foo."
+      the[InterpreterException] thrownBy eval(
+        code
+      ) should have message "No_Such_Method_Error 7 UnresolvedSymbol<foo>"
     }
 
     "be callable for any type when defined on Any" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type Foo
           |type Bar
           |type Baz
@@ -143,7 +150,7 @@ class MethodsTest extends InterpreterTest {
           |    IO.println Foo.method
           |    IO.println Bar.method
           |    IO.println Baz.method
-          |    IO.println Unit.method
+          |    IO.println Nothing.method
           |    IO.println 123.method
           |    IO.println (x -> x).method
           |""".stripMargin
@@ -153,7 +160,8 @@ class MethodsTest extends InterpreterTest {
 
     "work as expected when defined across different constructors" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Nil.sum = 0
           |Cons.sum = case this of
           |  Cons h t -> h + sum t

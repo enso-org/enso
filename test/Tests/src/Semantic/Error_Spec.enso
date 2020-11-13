@@ -1,0 +1,20 @@
+from Base import all
+import Test
+
+type My_Type foo
+
+spec =
+    describe "No Method Errors" <|
+        it "should be recoverable" <|
+            err_1 = Panic.recover (123 . foobar "baz") . catch e->e
+            err_2 = Panic.recover ("foo" . baz 123) . catch e->e
+            err_3 = Panic.recover (My_Type False . nope) . catch e->e
+
+            err_1.target.should_equal 123
+            err_1.method_name.should_equal "foobar"
+
+            err_2.target.should_equal "foo"
+            err_2.method_name.should_equal "baz"
+
+            err_3.target.to_text.should_equal "(My_Type False)"
+            err_3.method_name.should_equal "nope"

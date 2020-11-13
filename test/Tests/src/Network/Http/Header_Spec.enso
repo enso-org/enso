@@ -1,0 +1,12 @@
+from Base import all
+
+import Test
+import Base.Network.Http.Header
+
+spec =
+    describe "Header" <|
+        it "should check equality" <|
+            Header.new "A" "B" . should_equal (Header.new "A" "B")
+            Header.new "A" "B" . should_equal (Header.new "a" "B")
+            (Header.new "A" "B" == Header.new "A" "b") . should_equal False
+            (Header.new "A" "B" == Header.new "a" "b") . should_equal False

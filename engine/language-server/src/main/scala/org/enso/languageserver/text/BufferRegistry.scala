@@ -7,11 +7,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityReleaseBadRequest,
   ReleaseCapability
 }
-import org.enso.languageserver.data.{
-  CanEdit,
-  CapabilityRegistration,
-  ContentBasedVersioning
-}
+import org.enso.languageserver.data.{CanEdit, CapabilityRegistration}
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
@@ -23,11 +19,11 @@ import org.enso.languageserver.text.TextProtocol.{
   SaveFile
 }
 import org.enso.searcher.FileVersionsRepo
+import org.enso.text.ContentBasedVersioning
 
 import scala.concurrent.Future
 
-/**
-  * An actor that routes request regarding text editing to the right buffer.
+/** An actor that routes request regarding text editing to the right buffer.
   * It creates a buffer actor, if a buffer doesn't exists.
   *
   * == Implementation ==
@@ -140,8 +136,7 @@ class BufferRegistry(
 
 object BufferRegistry {
 
-  /**
-    * Creates a configuration object used to create a [[BufferRegistry]]
+  /** Creates a configuration object used to create a [[BufferRegistry]]
     *
     * @param versionsRepo a repo containing versions of indexed files
     * @param fileManager a file manager actor

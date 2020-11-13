@@ -1,0 +1,17 @@
+from Base import all
+
+## Proxy settings.
+type Proxy
+
+    ## Proxy is disabled.
+    type None
+
+    ## Use a sysem proxy settings.
+    type System
+
+    ## Use provided proxy.
+    type Proxy_Addr proxy_host proxy_port
+
+## Create new proxy settins from host and port.
+new : Text -> Integer -> Proxy
+new host port=80 = Proxy_Addr host port

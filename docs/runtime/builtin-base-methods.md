@@ -42,11 +42,6 @@ should be treated as a builtin method. It takes the following arguments:
 2. `name` **String** the method name.
 3. `description` **String** a summary of the method's behavior, for
    documentation purposes.
-4. `alwaysDirect` **Boolean = `true`** describes whether the function can always
-   be safely called directly. It should be set to `false` for methods that
-   evaluate user code in a tail position (e.g. `if_then_else`). If the method
-   does not take functions or thunks as parameters, or it only evaluates these
-   in a non-tail position, this parameter should be left defaulted.
 
 The annotation will generate a `RootNode` subclass in the same package as the
 declaring node, with a name basing on the declaring node's name. The name of the

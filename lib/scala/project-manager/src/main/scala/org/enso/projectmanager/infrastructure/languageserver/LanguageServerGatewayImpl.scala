@@ -20,8 +20,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivat
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.model.Project
 
-/**
-  * It is a proxy to actor based language subsystem. It a bridge between
+/** It is a proxy to actor based language subsystem. It a bridge between
   * actor interface and pure functional effects.
   *
   * @param registry a lang. server registry
@@ -37,7 +36,7 @@ class LanguageServerGatewayImpl[
   timeoutConfig: TimeoutConfig
 ) extends LanguageServerGateway[F] {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def start(
     clientId: UUID,
     project: Project
@@ -55,7 +54,7 @@ class LanguageServerGatewayImpl[
       }
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def stop(
     clientId: UUID,
     projectId: UUID
@@ -72,7 +71,7 @@ class LanguageServerGatewayImpl[
       }
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean] = {
     implicit val timeout: Timeout = Timeout(timeoutConfig.requestTimeout)
 
@@ -83,7 +82,7 @@ class LanguageServerGatewayImpl[
       .mapError(_ => CheckTimeout)
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def renameProject(
     projectId: UUID,
     oldName: String,

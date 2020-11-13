@@ -1,0 +1,78 @@
+from Base import all
+import Base.Network.Uri
+import Base.Network.Http.Form
+import Base.Network.Http.Header
+import Base.Network.Http.Method
+import Base.Network.Http.Request.Body as Request_Body
+import Base.System.File
+
+polyglot java import org.enso.base.Text_Utils
+
+type Request
+
+    type Request method uri headers body
+
+    ## Set header.
+    with_header : Text -> Text -> Request
+    with_header key val =
+       new_header = Header.new key val
+       update_header p h = case p of
+           Pair acc True -> Pair (acc + [h]) True
+           Pair acc False ->
+               if Text_Utils.equals_ignore_case [h.name, key] then Pair (acc + [new_header]) True else Pair (acc + [h]) False
+       new_headers = case this.headers.fold (Pair [] False) update_header of
+           Pair acc True -> acc
+           Pair acc False -> acc + [new_header]
+       Request this.method this.uri new_headers this.body
+
+    ## Set headers.
+    with_headers : [Header] -> Request
+    with_headers new_headers =
+        update_header req new_header = req.with_header new_header.name new_header.value
+        new_headers.fold this update_header
+
+    ## Set body.
+    with_body : Request_Body -> Request
+    with_body new_body = Request this.method this.uri this.headers new_body
+
+    ## Set body encoded as "application/json".
+    with_json : Text -> Request
+    with_json json_body =
+        new_body = Request_Body.Json json_body
+        Request this.method this.uri this.headers new_body . with_headers [Header.application_json]
+
+    ## Set body as vector of parts encoded as
+       "application/x-www-form-urlencoded".
+    with_form : To_Form -> Request
+    with_form parts =
+        new_body = Request_Body.Form parts.to_form
+        Request this.method this.uri this.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
+
+## Create new HTTP request.
+new : Method -> To_Uri -> Vector -> Request_Body -> Request
+new method addr (headers = []) (body = Request_Body.Empty) =
+    Request method (Uri.panic_on_error (addr.to_uri)) headers body
+
+## Create an Options request.
+options : To_Uri -> Vector -> Request
+options addr (headers = []) = here.new Method.Options addr headers
+
+## Create a Get request.
+get : To_Uri -> Vector -> Request
+get addr (headers = []) = here.new Method.Get addr headers
+
+## Create a Head request.
+head : To_Uri -> Vector -> Request
+head addr (headers = []) = here.new Method.Head addr headers
+
+## Create a Post request.
+post : To_Uri -> Request_Body -> Vector -> Request
+post addr body (headers = []) = here.new Method.Post addr headers body
+
+## Create a Put request.
+put : To_Uri -> Request_Body -> Vector -> Request
+put addr body (headers = []) = here.new Method.Put addr headers body
+
+## Create a Delete request.
+delete : To_Uri -> Vector -> Request
+delete addr (headers = []) = here.new Method.Delete addr headers

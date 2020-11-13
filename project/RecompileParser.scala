@@ -5,8 +5,7 @@ import sbtcrossproject.CrossPlugin.autoImport._
 
 object RecompileParser {
 
-  /**
-    * Ensures that the project is recompiled whenever the project from
+  /** Ensures that the project is recompiled whenever the project from
     * `syntaxDefinition` is changed. Should be attached to the `compile` task as
     * a dependency.
     */

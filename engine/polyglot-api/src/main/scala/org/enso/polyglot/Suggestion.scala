@@ -26,7 +26,14 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
     )
   )
 )
-sealed trait Suggestion
+sealed trait Suggestion {
+
+  def externalId: Option[Suggestion.ExternalId]
+  def module:     String
+  def name:       String
+  def returnType: String
+}
+
 object Suggestion {
 
   type ExternalId = UUID
@@ -34,6 +41,14 @@ object Suggestion {
   /** The type of a suggestion. */
   sealed trait Kind
   object Kind {
+
+    def apply(suggestion: Suggestion): Kind =
+      suggestion match {
+        case _: Atom     => Atom
+        case _: Method   => Method
+        case _: Function => Function
+        case _: Local    => Local
+      }
 
     /** The atom suggestion. */
     case object Atom extends Kind
@@ -46,6 +61,18 @@ object Suggestion {
 
     /** The suggestion of a local value. */
     case object Local extends Kind
+  }
+
+  /** Self type extractor. */
+  object SelfType {
+
+    def apply(suggestion: Suggestion): Option[String] =
+      suggestion match {
+        case _: Atom        => None
+        case method: Method => Some(method.selfType)
+        case _: Function    => None
+        case _: Local       => None
+      }
   }
 
   /** An argument of an atom or a function.

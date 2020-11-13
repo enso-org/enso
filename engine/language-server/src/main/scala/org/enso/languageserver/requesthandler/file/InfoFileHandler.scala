@@ -13,8 +13,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `file/info` command.
+/** A request handler for `file/info` command.
   *
   * @param requestTimeout a request timeout
   * @param fileManager a file system manager actor
@@ -69,8 +68,7 @@ class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
 
 object InfoFileHandler {
 
-  /**
-    * Creates a configuration object used to create a [[InfoFileHandler]]
+  /** Creates a configuration object used to create a [[InfoFileHandler]]
     *
     * @param requestTimeout a request timeout
     * @param fileManager a file system manager actor

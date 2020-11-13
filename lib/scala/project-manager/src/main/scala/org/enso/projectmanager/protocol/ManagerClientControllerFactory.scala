@@ -8,8 +8,7 @@ import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.service.ProjectServiceApi
 
-/**
-  * Project manager client controller factory.
+/** Project manager client controller factory.
   *
   * @param system the actor system
   */
@@ -19,8 +18,7 @@ class ManagerClientControllerFactory[F[+_, +_]: Exec](
   timeoutConfig: TimeoutConfig
 ) extends ClientControllerFactory {
 
-  /**
-    * Creates a client controller actor.
+  /** Creates a client controller actor.
     *
     * @param clientId the internal client id.
     * @return an actor ref to the client controller

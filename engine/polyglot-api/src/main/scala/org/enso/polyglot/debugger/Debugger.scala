@@ -18,8 +18,7 @@ import org.enso.polyglot.debugger.protocol.{
 
 object Debugger {
 
-  /**
-    * Deserializes a byte buffer into a Request message.
+  /** Deserializes a byte buffer into a Request message.
     *
     * @param bytes the buffer to deserialize
     * @return the deserialized message, if the byte buffer can be deserialized.
@@ -53,8 +52,7 @@ object Debugger {
         )
     }
 
-  /**
-    * Deserializes a byte buffer into a Response message.
+  /** Deserializes a byte buffer into a Response message.
     *
     * @param bytes the buffer to deserialize
     * @return the deserialized message, if the byte buffer can be deserialized.
@@ -101,8 +99,7 @@ object Debugger {
         )
     }
 
-  /**
-    * Creates an EvaluationRequest message in the form of a ByteBuffer that can
+  /** Creates an EvaluationRequest message in the form of a ByteBuffer that can
     * be sent to the debugger.
     *
     * @param expression expression to evaluate
@@ -120,8 +117,7 @@ object Debugger {
     builder.dataBuffer()
   }
 
-  /**
-    * Creates a ListBindingsRequest message in the form of a ByteBuffer that can
+  /** Creates a ListBindingsRequest message in the form of a ByteBuffer that can
     * be sent to the debugger.
     *
     * @return the serialized message
@@ -138,8 +134,7 @@ object Debugger {
     builder.dataBuffer()
   }
 
-  /**
-    * Creates a ExitRequest message in the form of a ByteBuffer that can be sent
+  /** Creates a ExitRequest message in the form of a ByteBuffer that can be sent
     * to the debugger.
     *
     * @return the serialized message
@@ -156,8 +151,7 @@ object Debugger {
     builder.dataBuffer()
   }
 
-  /**
-    * Creates an EvaluationSuccess message in the form of a ByteBuffer that can
+  /** Creates an EvaluationSuccess message in the form of a ByteBuffer that can
     * be sent from the debugger.
     *
     * @param result evaluation result
@@ -175,8 +169,7 @@ object Debugger {
     builder.dataBuffer()
   }
 
-  /**
-    * Creates an EvaluationFailure message in the form of a ByteBuffer that can
+  /** Creates an EvaluationFailure message in the form of a ByteBuffer that can
     * be sent from the debugger.
     *
     * @param exception the exception that caused the failure
@@ -194,8 +187,7 @@ object Debugger {
     builder.dataBuffer()
   }
 
-  /**
-    * Creates a ListBindingsResult message in the form of a ByteBuffer that can
+  /** Creates a ListBindingsResult message in the form of a ByteBuffer that can
     * be sent from the debugger.
     *
     * @param bindings mapping from names to bound values
@@ -213,8 +205,7 @@ object Debugger {
     builder.dataBuffer()
   }
 
-  /**
-    * Creates a ListBindingsResult message in the form of a ByteBuffer that can
+  /** Creates a ListBindingsResult message in the form of a ByteBuffer that can
     * be sent from the debugger.
     * Alternative version that is more friendly to Java code.
     *
@@ -226,8 +217,7 @@ object Debugger {
   ): ByteBuffer =
     createListBindingsResult(bindings.asScala.toMap)
 
-  /**
-    * Creates an SessionStartNotification message in the form of a ByteBuffer
+  /** Creates an SessionStartNotification message in the form of a ByteBuffer
     * that can be sent from the debugger.
     *
     * @return the serialized message
@@ -255,8 +245,7 @@ object Debugger {
     )
   }
 
-  /**
-    * Creates an instance of java.lang.Exception based on the
+  /** Creates an instance of java.lang.Exception based on the
     * ExceptionRepresentation.
     *
     * The created Exception has the same stack trace as the original. The

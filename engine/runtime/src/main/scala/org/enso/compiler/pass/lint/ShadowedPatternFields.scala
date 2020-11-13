@@ -71,8 +71,8 @@ case object ShadowedPatternFields extends IRPass {
     ir: IR.Expression,
     @unused inlineContext: InlineContext
   ): IR.Expression = {
-    ir.transformExpressions {
-      case x => lintExpression(x)
+    ir.transformExpressions { case x =>
+      lintExpression(x)
     }
   }
 
@@ -86,8 +86,8 @@ case object ShadowedPatternFields extends IRPass {
   def lintExpression(
     expression: IR.Expression
   ): IR.Expression = {
-    expression.transformExpressions {
-      case cse: IR.Case => lintCase(cse)
+    expression.transformExpressions { case cse: IR.Case =>
+      lintCase(cse)
     }
   }
 
@@ -148,9 +148,11 @@ case object ShadowedPatternFields extends IRPass {
                 name = IR.Name.Blank(location = name.location)
               )
               .addDiagnostic(warning)
-          } else {
+          } else if (!name.isInstanceOf[IR.Name.Blank]) {
             lastSeen(name.name) = named
             seenNames += name.name
+            named
+          } else {
             named
           }
         case cons @ Pattern.Constructor(_, fields, _, _, _) =>

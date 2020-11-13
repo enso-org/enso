@@ -13,8 +13,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `search/completion` command.
+/** A request handler for `search/completion` command.
   *
   * @param timeout request timeout
   * @param suggestionsHandler a reference to the suggestions handler
@@ -80,8 +79,7 @@ class CompletionHandler(
 
 object CompletionHandler {
 
-  /**
-    * Creates configuration object used to create a [[CompletionHandler]].
+  /** Creates configuration object used to create a [[CompletionHandler]].
     *
     * @param timeout request timeout
     * @param suggestionsHandler a reference to the suggestions handler

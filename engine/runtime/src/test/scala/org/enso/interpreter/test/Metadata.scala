@@ -7,15 +7,13 @@ private case class Item(start: Int, len: Int, id: UUID) {
     s"""[{"index": {"value": $start}, "size": {"value": $len}}, "$id"]"""
 }
 
-/**
-  * A helper class for decorating source code with expression IDs.
+/** A helper class for decorating source code with expression IDs.
   */
 class Metadata {
 
   private var items: List[Item] = List()
 
-  /**
-    * Adds another entry to this metadata container.
+  /** Adds another entry to this metadata container.
     *
     * @param start the start position of the entry.
     * @param len the length of the entry.
@@ -30,8 +28,7 @@ class Metadata {
   private def toJsonString: String =
     "[" + items.map(_.toJsonString).mkString(",") + "]"
 
-  /**
-    * Appends a serialized version of this at the end of a source code string.
+  /** Appends a serialized version of this at the end of a source code string.
     *
     * @param code the code to append metadata to.
     * @return the code decorated with this metadata.

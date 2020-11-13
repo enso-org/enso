@@ -2,30 +2,25 @@ package org.enso.projectmanager.infrastructure.http
 
 import akka.actor.ActorRef
 
-/**
-  * An abstraction representing web socket connection.
+/** An abstraction representing web socket connection.
   */
 trait WebSocketConnection {
 
-  /**
-    * Connects to the server.
+  /** Connects to the server.
     */
   def connect(): Unit
 
-  /**
-    * Disconnects from the server.
+  /** Disconnects from the server.
     */
   def disconnect(): Unit
 
-  /**
-    * Sends a message to the server.
+  /** Sends a message to the server.
     *
     * @param message a message to sent
     */
   def send(message: String): Unit
 
-  /**
-    * Attaches a listener of incoming messages.
+  /** Attaches a listener of incoming messages.
     *
     * @param listener a message listener for inbound channel
     */
@@ -35,25 +30,21 @@ trait WebSocketConnection {
 
 object WebSocketConnection {
 
-  /**
-    * Signals that a connection was established.
+  /** Signals that a connection was established.
     */
   case object WebSocketConnected
 
-  /**
-    * An envelope for text messages.
+  /** An envelope for text messages.
     *
     * @param payload a text message
     */
   case class WebSocketMessage(payload: String)
 
-  /**
-    * Signals that connection was closed.
+  /** Signals that connection was closed.
     */
   case object WebSocketStreamClosed
 
-  /**
-    * Signals a connection failure.
+  /** Signals a connection failure.
     *
     * @param th a throwable
     */

@@ -9,8 +9,7 @@ import org.enso.languageserver.effect.BlockingIO
 
 import scala.collection.mutable.ArrayBuffer
 
-/**
-  * File manipulation API.
+/** File manipulation API.
   *
   * @tparam F represents target monad
   */
@@ -18,8 +17,7 @@ trait FileSystemApi[F[_, _]] {
 
   import FileSystemApi._
 
-  /**
-    * Writes textual content to a file.
+  /** Writes textual content to a file.
     *
     * @param file path to the file
     * @param content a textual content of the file
@@ -30,8 +28,7 @@ trait FileSystemApi[F[_, _]] {
     content: String
   ): F[FileSystemFailure, Unit]
 
-  /**
-    * Writes binary content to a file.
+  /** Writes binary content to a file.
     *
     * @param file path to the file
     * @param contents a binary content of the file
@@ -42,16 +39,14 @@ trait FileSystemApi[F[_, _]] {
     contents: Array[Byte]
   ): BlockingIO[FileSystemFailure, Unit]
 
-  /**
-    * Reads the contents of a textual file.
+  /** Reads the contents of a textual file.
     *
     * @param file path to the file
     * @return either [[FileSystemFailure]] or the content of a file as a String
     */
   def read(file: File): F[FileSystemFailure, String]
 
-  /**
-    * Reads the contents of a binary file.
+  /** Reads the contents of a binary file.
     *
     * @param file path to the file
     * @return either [[FileSystemFailure]] or the content of a file as a byte
@@ -59,24 +54,21 @@ trait FileSystemApi[F[_, _]] {
     */
   def readBinary(file: File): BlockingIO[FileSystemFailure, Array[Byte]]
 
-  /**
-    * Deletes the specified file or directory recursively.
+  /** Deletes the specified file or directory recursively.
     *
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or Unit
     */
   def delete(file: File): F[FileSystemFailure, Unit]
 
-  /**
-    * Creates an empty file with parent directory.
+  /** Creates an empty file with parent directory.
     *
     * @param file path to the file
     * @return
     */
   def createFile(file: File): F[FileSystemFailure, Unit]
 
-  /**
-    * Creates a directory, including any necessary but nonexistent parent
+  /** Creates a directory, including any necessary but nonexistent parent
     * directories.
     *
     * @param file path to the file
@@ -84,8 +76,7 @@ trait FileSystemApi[F[_, _]] {
     */
   def createDirectory(file: File): F[FileSystemFailure, Unit]
 
-  /**
-    * Copy a file or directory recursively
+  /** Copy a file or directory recursively
     *
     * @param from a path to the source
     * @param to a path to the destination
@@ -96,8 +87,7 @@ trait FileSystemApi[F[_, _]] {
     to: File
   ): F[FileSystemFailure, Unit]
 
-  /**
-    * Move a file or directory recursively
+  /** Move a file or directory recursively
     *
     * @param from a path to the source
     * @param to a path to the destination
@@ -108,24 +98,21 @@ trait FileSystemApi[F[_, _]] {
     to: File
   ): F[FileSystemFailure, Unit]
 
-  /**
-    * Checks if the specified file exists.
+  /** Checks if the specified file exists.
     *
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or file existence flag
     */
   def exists(file: File): F[FileSystemFailure, Boolean]
 
-  /**
-    * List contents of a given path.
+  /** List contents of a given path.
     *
     * @param path to the file system object
     * @return either [[FileSystemFailure]] or list of entries
     */
   def list(path: File): F[FileSystemFailure, Vector[Entry]]
 
-  /**
-    * Returns contents of a given path.
+  /** Returns contents of a given path.
     *
     * @param path to the file system object
     * @param depth maximum depth of a directory tree
@@ -136,8 +123,7 @@ trait FileSystemApi[F[_, _]] {
     depth: Option[Int]
   ): F[FileSystemFailure, DirectoryEntry]
 
-  /**
-    * Returns attributes of a given path.
+  /** Returns attributes of a given path.
     *
     * @param path to the file system object
     * @return either [[FileSystemFailure]] or file attributes
@@ -147,8 +133,7 @@ trait FileSystemApi[F[_, _]] {
 
 object FileSystemApi {
 
-  /**
-    * An object representing abstract file system entry.
+  /** An object representing abstract file system entry.
     */
   sealed trait Entry {
     def path: Path
@@ -156,8 +141,7 @@ object FileSystemApi {
 
   object Entry {
 
-    /**
-      * Creates [[Entry]] from file system attributes.
+    /** Creates [[Entry]] from file system attributes.
       *
       * @param path a path to the file system object
       * @param attrs a file system attributes
@@ -173,8 +157,7 @@ object FileSystemApi {
       }
   }
 
-  /**
-    * An entry representing a directory.
+  /** An entry representing a directory.
     *
     * @param path to the directory
     * @param children a paths to the children entries
@@ -188,35 +171,30 @@ object FileSystemApi {
       DirectoryEntry(path, ArrayBuffer())
   }
 
-  /**
-    * An entry representing a directory with contents truncated.
+  /** An entry representing a directory with contents truncated.
     *
     * @param path to the directory
     */
   case class DirectoryEntryTruncated(path: Path) extends Entry
 
-  /**
-    * An entry representing a symbolic link.
+  /** An entry representing a symbolic link.
     *
     * @param path to the symlink
     * @param target of the symlink.
     */
   case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
 
-  /**
-    * An entry representing a file.
+  /** An entry representing a file.
     *
     * @param path to the file
     */
   case class FileEntry(path: Path) extends Entry
 
-  /**
-    * Unrecognized file system entry. Example is a broken symlink.
+  /** Unrecognized file system entry. Example is a broken symlink.
     */
   case class OtherEntry(path: Path) extends Entry
 
-  /**
-    * Basic attributes of an [[Entry]].
+  /** Basic attributes of an [[Entry]].
     *
     * @param creationTime creation time
     * @param lastAccessTime last access time
@@ -234,8 +212,7 @@ object FileSystemApi {
 
   object Attributes {
 
-    /**
-      * Creates attributes using the `FileTime` time.
+    /** Creates attributes using the `FileTime` time.
       *
       * @param creationTime creation time
       * @param lastAccessTime last access time
@@ -259,8 +236,7 @@ object FileSystemApi {
         byteSize         = byteSize
       )
 
-    /**
-      * Creates [[Attributes]] from file system attributes
+    /** Creates [[Attributes]] from file system attributes
       *
       * @param path to the file system object
       * @param attributes of a file system object

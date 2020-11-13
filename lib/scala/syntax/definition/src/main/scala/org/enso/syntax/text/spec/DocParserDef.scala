@@ -418,8 +418,8 @@ case class DocParserDef() extends Parser[Doc] {
         ')'
       ).many1 >> newline
     val invalidPatternEOF: Pattern = (imageNameTrigger | urlNameTrigger) >> not(
-        ')'
-      ).many1 >> eof
+      ')'
+    ).many1 >> eof
   }
 
   ROOT || link.imagePattern          || link.onCreatingImage()
@@ -751,11 +751,11 @@ case class DocParserDef() extends Parser[Doc] {
             section.current match {
               case Some(marker) =>
                 section.stack +:= Section.Marked(
-                    indentBeforeMarker,
-                    indentAfterMarker,
-                    marker,
-                    result.stack
-                  )
+                  indentBeforeMarker,
+                  indentAfterMarker,
+                  marker,
+                  result.stack
+                )
               case None =>
                 section.stack +:= Section.Raw(currentIndentRaw, result.stack)
             }

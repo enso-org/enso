@@ -4,8 +4,7 @@ import zio._
 
 import scala.concurrent.{Future, Promise}
 
-/**
-  * ZIO executor.
+/** ZIO executor.
   *
   * @param runtime a ZIO runtime
   */

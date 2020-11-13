@@ -26,8 +26,6 @@ below:
   the implementation technologies for the parser.
 - [**Parser Architecture:**](./architecture.md) An overview of the architecture
   of the parser as a whole.
-- [**Flexer:**](./flexer.md) An overview of the design and architecture of the
-  flexer, a generic, DFA-based lexing engine.
 - [**Lexer:**](./lexer.md) The Enso lexer, responsible for tokenising the input
   stream of source code.
 - [**Macro Resolution:**](./macro-resolution.md) The system for defining and

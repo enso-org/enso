@@ -64,17 +64,18 @@ object Pattern {
   final case class Cls     (cls  : Class , pat    : P)              extends P
 
   /** Token Patterns */
-  final case class Tok     (spaced : Spaced, ast  : AST)            extends P
-  final case class Blank   (spaced : Spaced)                        extends P
-  final case class Var     (spaced : Spaced)                        extends P
-  final case class Cons    (spaced : Spaced)                        extends P
-  final case class Opr     (spaced : Spaced, maxPrec: Option[Int])  extends P
-  final case class Mod     (spaced : Spaced)                        extends P
-  final case class Num     (spaced : Spaced)                        extends P
-  final case class Text    (spaced : Spaced)                        extends P
-  final case class Block   (spaced : Spaced)                        extends P
-  final case class Macro   (spaced : Spaced)                        extends P
-  final case class Invalid (spaced : Spaced)                        extends P
+  final case class Tok       (spaced : Spaced, ast  : AST)            extends P
+  final case class Blank     (spaced : Spaced)                        extends P
+  final case class Var       (spaced : Spaced)                        extends P
+  final case class Cons      (spaced : Spaced)                        extends P
+  final case class Opr       (spaced : Spaced, maxPrec: Option[Int])  extends P
+  final case class Annotation(spaced : Spaced)                        extends P
+  final case class Mod       (spaced : Spaced)                        extends P
+  final case class Num       (spaced : Spaced)                        extends P
+  final case class Text      (spaced : Spaced)                        extends P
+  final case class Block     (spaced : Spaced)                        extends P
+  final case class Macro     (spaced : Spaced)                        extends P
+  final case class Invalid   (spaced : Spaced)                        extends P
   // format: on
 
   //// Smart Constructors ////
@@ -95,6 +96,10 @@ object Pattern {
     def apply(spaced: Spaced): Opr  = Opr(spaced, None)
     def apply(spaced: Boolean): Opr = Opr(Some(spaced))
   }
+  object Annotation {
+    def apply(): Annotation                = Annotation(None)
+    def apply(spaced: Boolean): Annotation = Annotation(Some(spaced))
+  }
   object Num {
     def apply(): Num                = Num(None)
     def apply(spaced: Boolean): Num = Num(Some(spaced))
@@ -113,6 +118,7 @@ object Pattern {
     Var(spaced) |
     Cons(spaced) |
     Opr(spaced) |
+    Annotation(spaced) |
     Mod(spaced) |
     Num(spaced) |
     Text(spaced) |
@@ -183,17 +189,18 @@ object Pattern {
     final case class Cls   [T](pat:P.Cls   , elem:M[T])             extends M[T]
 
     /** Token Matches */
-    final case class Tok     [T](pat:P.Tok     , elem:T)            extends M[T]
-    final case class Blank   [T](pat:P.Blank   , elem:T)            extends M[T]
-    final case class Var     [T](pat:P.Var     , elem:T)            extends M[T]
-    final case class Cons    [T](pat:P.Cons    , elem:T)            extends M[T]
-    final case class Opr     [T](pat:P.Opr     , elem:T)            extends M[T]
-    final case class Mod     [T](pat:P.Mod     , elem:T)            extends M[T]
-    final case class Num     [T](pat:P.Num     , elem:T)            extends M[T]
-    final case class Text    [T](pat:P.Text    , elem:T)            extends M[T]
-    final case class Block   [T](pat:P.Block   , elem:T)            extends M[T]
-    final case class Macro   [T](pat:P.Macro   , elem:T)            extends M[T]
-    final case class Invalid [T](pat:P.Invalid , elem:T)            extends M[T]
+    final case class Tok       [T](pat:P.Tok        , elem:T) extends M[T]
+    final case class Blank     [T](pat:P.Blank      , elem:T) extends M[T]
+    final case class Var       [T](pat:P.Var        , elem:T) extends M[T]
+    final case class Cons      [T](pat:P.Cons       , elem:T) extends M[T]
+    final case class Opr       [T](pat:P.Opr        , elem:T) extends M[T]
+    final case class Annotation[T](pat:P.Annotation , elem:T) extends M[T]
+    final case class Mod       [T](pat:P.Mod        , elem:T) extends M[T]
+    final case class Num       [T](pat:P.Num        , elem:T) extends M[T]
+    final case class Text      [T](pat:P.Text       , elem:T) extends M[T]
+    final case class Block     [T](pat:P.Block      , elem:T) extends M[T]
+    final case class Macro     [T](pat:P.Macro      , elem:T) extends M[T]
+    final case class Invalid   [T](pat:P.Invalid    , elem:T) extends M[T]
     // format: on
 
     //// Smart Constructors ////
@@ -228,28 +235,29 @@ object Pattern {
     @nowarn("cat=unchecked")
     def mapStructShallow(f: MatchOf[T] => MatchOf[T]): MatchOf[T] =
       this match {
-        case m: M.Begin[T]   => m
-        case m: M.End[T]     => m
-        case m: M.Nothing[T] => m
-        case m: M.Seq[T]     => m.copy(elem = m.elem.bimap(f, f))
-        case m: M.Or[T]      => m.copy(elem = m.elem.bimap(f, f))
-        case m: M.Many[T]    => m.copy(elem = m.elem.map(f))
-        case m: M.Except[T]  => m.copy(elem = f(m.elem))
-        case m: M.Build[T]   => m
-        case m: M.Err[T]     => m
-        case m: M.Tag[T]     => m.copy(elem = f(m.elem))
-        case m: M.Cls[T]     => m.copy(elem = f(m.elem))
-        case m: M.Tok[T]     => m
-        case m: M.Blank[T]   => m
-        case m: M.Var[T]     => m
-        case m: M.Cons[T]    => m
-        case m: M.Opr[T]     => m
-        case m: M.Mod[T]     => m
-        case m: M.Num[T]     => m
-        case m: M.Text[T]    => m
-        case m: M.Block[T]   => m
-        case m: M.Macro[T]   => m
-        case m: M.Invalid[T] => m
+        case m: M.Begin[T]      => m
+        case m: M.End[T]        => m
+        case m: M.Nothing[T]    => m
+        case m: M.Seq[T]        => m.copy(elem = m.elem.bimap(f, f))
+        case m: M.Or[T]         => m.copy(elem = m.elem.bimap(f, f))
+        case m: M.Many[T]       => m.copy(elem = m.elem.map(f))
+        case m: M.Except[T]     => m.copy(elem = f(m.elem))
+        case m: M.Build[T]      => m
+        case m: M.Err[T]        => m
+        case m: M.Tag[T]        => m.copy(elem = f(m.elem))
+        case m: M.Cls[T]        => m.copy(elem = f(m.elem))
+        case m: M.Tok[T]        => m
+        case m: M.Blank[T]      => m
+        case m: M.Var[T]        => m
+        case m: M.Cons[T]       => m
+        case m: M.Opr[T]        => m
+        case m: M.Annotation[T] => m
+        case m: M.Mod[T]        => m
+        case m: M.Num[T]        => m
+        case m: M.Text[T]       => m
+        case m: M.Block[T]      => m
+        case m: M.Macro[T]      => m
+        case m: M.Invalid[T]    => m
       }
 
     @nowarn("cat=unchecked")
@@ -304,6 +312,8 @@ object Pattern {
         case m: M.Cons[T] =>
           (m.copy(elem = f(off, m.elem)), off + m.elem.span())
         case m: M.Opr[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Annotation[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
         case m: M.Mod[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
         case m: M.Num[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
         case m: M.Text[T] =>
@@ -534,6 +544,8 @@ sealed trait Pattern {
           matchByCls[AST.Opr](spaced) { sast =>
             Option.when(maxPrec.forall(_ >= sast.wrapped.prec))(M.Opr(p, sast))
           }
+        case p @ P.Annotation(spaced) =>
+          matchByCls_[AST.Annotation](spaced, M.Annotation(p, _))
         case p @ P.Mod(spaced) => matchByCls_[AST.Mod](spaced, M.Mod(p, _))
 
         case p @ P.Macro(spaced) =>

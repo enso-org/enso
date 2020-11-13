@@ -2,22 +2,29 @@ package org.enso.compiler
 
 import java.io.StringReader
 
-import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIr, IrToTruffle}
+import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Expression, Module}
+import org.enso.compiler.core.IR.Expression
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
+import org.enso.compiler.phase.{
+  ExportCycleException,
+  ExportsResolution,
+  ImportResolver
+}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
+import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
+
+import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -25,48 +32,110 @@ import org.enso.syntax.text.{AST, Parser}
   *
   * @param context the language context
   */
-class Compiler(private val context: Context) {
+class Compiler(val context: Context) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes
   private val passManager: PassManager         = passes.passManager
+  private val importResolver: ImportResolver   = new ImportResolver(this)
+  private val stubsGenerator: RuntimeStubsGenerator =
+    new RuntimeStubsGenerator()
 
-  /**
-    * Processes the provided language sources, registering any bindings in the
+  /** Processes the provided language sources, registering any bindings in the
     * given scope.
     *
-    * @param source the source code to be processed
-    * @param scope the scope into which new bindings are registered
+    * @param module the scope into which new bindings are registered
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): IR = {
+  def run(module: Module): Unit = {
+    parseModule(module)
+    val importedModules = importResolver.mapImports(module)
+    val requiredModules =
+      try { new ExportsResolution().run(importedModules) }
+      catch { case e: ExportCycleException => reportCycle(e) }
+    requiredModules.foreach { module =>
+      if (
+        !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_STATIC_PASSES
+        )
+      ) {
+
+        val moduleContext = ModuleContext(
+          module          = module,
+          freshNameSupply = Some(freshNameSupply)
+        )
+        val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
+        module.unsafeSetIr(compilerOutput)
+        module.unsafeSetCompilationStage(
+          Module.CompilationStage.AFTER_STATIC_PASSES
+        )
+      }
+    }
+
+    runErrorHandling(requiredModules)
+
+    requiredModules.foreach { module =>
+      if (
+        !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_RUNTIME_STUBS
+        )
+      ) {
+        stubsGenerator.run(module)
+        module.unsafeSetCompilationStage(
+          Module.CompilationStage.AFTER_RUNTIME_STUBS
+        )
+      }
+    }
+    requiredModules.foreach { module =>
+      if (
+        !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_CODEGEN
+        )
+      ) {
+        truffleCodegen(module.getIr, module.getSource, module.getScope)
+        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+      }
+    }
+  }
+
+  private def parseModule(module: Module): Unit = {
+    module.ensureScopeExists()
+    module.getScope.reset()
     val moduleContext = ModuleContext(
-      moduleScope     = Some(scope),
+      module          = module,
       freshNameSupply = Some(freshNameSupply)
     )
-    val parsedAST      = parse(source)
-    val expr           = generateIR(parsedAST)
-    val compilerOutput = runCompilerPhases(expr, moduleContext)
-    runErrorHandling(compilerOutput, source, moduleContext)
-    truffleCodegen(compilerOutput, source, scope)
-    compilerOutput
+    val parsedAST        = parse(module.getSource)
+    val expr             = generateIR(parsedAST)
+    val discoveredModule = recognizeBindings(expr, moduleContext)
+    module.unsafeSetIr(discoveredModule)
+    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
   }
 
-  /**
-    * Processes the language sources in the provided file, registering any
-    * bindings in the given scope.
+  /** Gets a module definition by name.
     *
-    * @param file the file containing the source code
-    * @param scope the scope into which new bindings are registered
-    * @return an interpreter node whose execution corresponds to the top-level
-    *         executable functionality in the module corresponding to `source`.
+    * @param name the name of module to look up
+    * @return the module corresponding to the provided name, if exists
     */
-  def run(file: TruffleFile, scope: ModuleScope): IR = {
-    run(Source.newBuilder(LanguageInfo.ID, file).build, scope)
+  def getModule(name: String): Option[Module] = {
+    context.getTopScope.getModule(name).toScala
   }
 
-  /**
-    * Processes the language source, interpreting it as an expression.
+  /** Ensures the passed module is in at least the parsed compilation stage.
+    *
+    * @param module the module to ensure is parsed.
+    */
+  def ensureParsed(module: Module): Unit = {
+    if (
+      !module.getCompilationStage.isAtLeast(
+        Module.CompilationStage.AFTER_PARSING
+      )
+    ) {
+      parseModule(module)
+    }
+  }
+
+  /** Processes the language source, interpreting it as an expression.
     * Processes the source in the context of given local and module scopes.
     *
     * @param srcString string representing the expression to process
@@ -95,8 +164,7 @@ class Compiler(private val context: Context) {
     }
   }
 
-  /**
-    * Finds and processes a language source by its qualified name.
+  /** Finds and processes a language source by its qualified name.
     *
     * The results of this operation are cached internally so we do not need to
     * process the same source file multiple times.
@@ -105,16 +173,23 @@ class Compiler(private val context: Context) {
     * @return the scope containing all definitions in the requested module
     */
   def processImport(qualifiedName: String): ModuleScope = {
-    val module = context.getTopScope.getModule(qualifiedName)
-    if (module.isPresent) {
-      module.get().parseScope(context)
-    } else {
-      throw new ModuleDoesNotExistException(qualifiedName)
+    val module = context.getTopScope
+      .getModule(qualifiedName)
+      .toScala
+      .getOrElse(throw new ModuleDoesNotExistException(qualifiedName))
+    if (
+      !module.getCompilationStage.isAtLeast(
+        Module.CompilationStage.AFTER_RUNTIME_STUBS
+      )
+    ) {
+      throw new CompilerError(
+        "Trying to use a module in codegen without generating runtime stubs"
+      )
     }
+    module.getScope
   }
 
-  /**
-    * Parses the provided language sources.
+  /** Parses the provided language sources.
     *
     * @param source the code to parse
     * @return an AST representation of `source`
@@ -122,8 +197,7 @@ class Compiler(private val context: Context) {
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
 
-  /**
-    * Parses the metadata of the provided language sources.
+  /** Parses the metadata of the provided language sources.
     *
     * @param source the code to parse
     * @return the source metadata
@@ -131,18 +205,27 @@ class Compiler(private val context: Context) {
   def parseMeta(source: CharSequence): IDMap =
     Parser().splitMeta(source.toString)._2
 
-  /**
-    * Lowers the input AST to the compiler's high-level intermediate
+  /** Lowers the input AST to the compiler's high-level intermediate
     * representation.
     *
     * @param sourceAST the parser AST input
     * @return an IR representation of the program represented by `sourceAST`
     */
-  def generateIR(sourceAST: AST): Module =
+  def generateIR(sourceAST: AST): IR.Module =
     AstToIr.translate(sourceAST)
 
-  /**
-    * Lowers the input AST to the compiler's high-level intermediate
+  private def recognizeBindings(
+    module: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
+    passManager.runPassesOnModule(
+      module,
+      moduleContext,
+      passes.moduleDiscoveryPasses
+    )
+  }
+
+  /** Lowers the input AST to the compiler's high-level intermediate
     * representation.
     *
     * @param sourceAST the parser AST representing the program source
@@ -160,7 +243,7 @@ class Compiler(private val context: Context) {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    passManager.runPassesOnModule(ir, moduleContext)
+    passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
   /** Runs the various compiler passes in an inline context.
@@ -177,8 +260,7 @@ class Compiler(private val context: Context) {
     passManager.runPassesInline(ir, inlineContext)
   }
 
-  /**
-    * Runs the strict error handling mechanism (if enabled in the language
+  /** Runs the strict error handling mechanism (if enabled in the language
     * context) for the inline compiler flow.
     *
     * @param ir the IR after compilation passes.
@@ -198,44 +280,91 @@ class Compiler(private val context: Context) {
           "No diagnostics metadata right after the gathering pass."
         )
         .diagnostics
-      reportDiagnostics(errors, source)
+      if (reportDiagnostics(errors, source)) {
+        throw new CompilationAbortedException
+      }
     }
 
-  /**
-    * Runs the strict error handling mechanism (if enabled in the language
+  /** Runs the strict error handling mechanism (if enabled in the language
     * context) for the module-level compiler flow.
     *
-    * @param ir the IR after compilation passes.
-    * @param source the original source code.
-    * @param moduleContext the module context
+    * @param modules the modules to check against errors
     */
   def runErrorHandling(
-    ir: IR.Module,
-    source: Source,
-    moduleContext: ModuleContext
-  ): Unit =
+    modules: List[Module]
+  ): Unit = {
     if (context.isStrictErrors) {
-      val errors = GatherDiagnostics
-        .runModule(ir, moduleContext)
-        .unsafeGetMetadata(
-          GatherDiagnostics,
-          "No diagnostics metadata right after the gathering pass."
-        )
-        .diagnostics
-      reportDiagnostics(errors, source)
+      val diagnostics = modules.map { module =>
+        val errors = GatherDiagnostics
+          .runModule(module.getIr, new ModuleContext(module))
+          .unsafeGetMetadata(
+            GatherDiagnostics,
+            "No diagnostics metadata right after the gathering pass."
+          )
+          .diagnostics
+        (module, errors)
+      }
+      if (reportDiagnostics(diagnostics)) {
+        throw new CompilationAbortedException
+      }
     }
+  }
 
-  /**
-    * Reports compilation diagnostics to the standard output and throws an
+  private def reportCycle(exception: ExportCycleException): Nothing = {
+    if (context.isStrictErrors) {
+      context.getOut.println("Compiler encountered errors:")
+      context.getOut.println("Export statements form a cycle:")
+      exception.modules match {
+        case List(mod) =>
+          context.getOut.println(s"    ${mod.getName} exports itself.")
+        case first :: second :: rest =>
+          context.getOut.println(
+            s"    ${first.getName} exports ${second.getName}"
+          )
+          rest.foreach { mod =>
+            context.getOut.println(s"    which exports ${mod.getName}")
+          }
+          context.getOut.println(
+            s"    which exports ${first.getName}, forming a cycle."
+          )
+        case _ =>
+      }
+      throw new CompilationAbortedException
+    } else {
+      throw exception
+    }
+  }
+
+  /** Reports diagnostics from multiple modules.
+    *
+    * @param diagnostics the mapping between modules and existing diagnostics.
+    * @return whether any errors were encountered.
+    */
+  def reportDiagnostics(
+    diagnostics: List[(Module, List[IR.Diagnostic])]
+  ): Boolean = {
+    val results = diagnostics.map { case (mod, diags) =>
+      if (diags.nonEmpty) {
+        context.getOut.println(s"In module ${mod.getName}:")
+        reportDiagnostics(diags, mod.getSource)
+      } else {
+        false
+      }
+    }
+    results.exists(r => r)
+  }
+
+  /** Reports compilation diagnostics to the standard output and throws an
     * exception breaking the execution flow if there are errors.
     *
     * @param diagnostics all the diagnostics found in the program IR.
     * @param source the original source code.
+    * @return whether any errors were encountered.
     */
   def reportDiagnostics(
     diagnostics: List[IR.Diagnostic],
     source: Source
-  ): Unit = {
+  ): Boolean = {
     val errors   = diagnostics.collect { case e: IR.Error => e }
     val warnings = diagnostics.collect { case w: IR.Warning => w }
 
@@ -251,7 +380,9 @@ class Compiler(private val context: Context) {
       errors.foreach { error =>
         context.getOut.println(formatDiagnostic(error, source))
       }
-      throw new CompilationAbortedException
+      true
+    } else {
+      false
     }
   }
 
@@ -310,11 +441,7 @@ class Compiler(private val context: Context) {
     new IrToTruffle(
       context,
       source,
-      inlineContext.moduleScope.getOrElse(
-        throw new CompilerError(
-          "Cannot perform inline codegen with a missing module scope."
-        )
-      )
+      inlineContext.module.getScope
     ).runInline(
       ir,
       inlineContext.localScope.getOrElse(LocalScope.root),

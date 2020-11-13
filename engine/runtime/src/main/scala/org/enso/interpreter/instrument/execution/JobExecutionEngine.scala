@@ -8,12 +8,12 @@ import java.util.logging.Level
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.Job
 import org.enso.polyglot.RuntimeServerInfo
+import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
 
-/**
-  * This component schedules the execution of jobs. It keep a queue of
+/** This component schedules the execution of jobs. It keep a queue of
   * pending jobs and activates job execution in FIFO order.
   *
   * @param interpreterContext suppliers of services that provide interpreter
@@ -49,7 +49,8 @@ class JobExecutionEngine(
       truffleContext   = interpreterContext.truffleContext,
       jobProcessor     = this,
       jobControlPlane  = this,
-      locking          = locking
+      locking          = locking,
+      versioning       = Sha3_224VersionCalculator
     )
 
   /** @inheritdoc * */

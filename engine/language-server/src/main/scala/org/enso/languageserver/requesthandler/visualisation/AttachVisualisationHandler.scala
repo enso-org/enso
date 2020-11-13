@@ -14,8 +14,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `executionContext/attachVisualisation` commands.
+/** A request handler for `executionContext/attachVisualisation` commands.
   *
   * @param clientId an unique identifier of the client
   * @param timeout request timeout
@@ -71,8 +70,7 @@ class AttachVisualisationHandler(
 
 object AttachVisualisationHandler {
 
-  /**
-    * Creates configuration object used to create a [[AttachVisualisationHandler]].
+  /** Creates configuration object used to create a [[AttachVisualisationHandler]].
     *
     * @param clientId an unique identifier of the client
     * @param timeout request timeout

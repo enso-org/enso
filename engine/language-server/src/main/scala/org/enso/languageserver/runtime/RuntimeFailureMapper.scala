@@ -8,8 +8,7 @@ import org.enso.jsonrpc.Error
 
 object RuntimeFailureMapper {
 
-  /**
-    * Maps registry error into JSON RPC error.
+  /** Maps registry error into JSON RPC error.
     *
     * @param error registry error
     * @return JSON RPC error
@@ -34,8 +33,7 @@ object RuntimeFailureMapper {
         VisualisationExpressionError(msg)
     }
 
-  /**
-    * Maps runtime Api error into a registry error.
+  /** Maps runtime Api error into a registry error.
     *
     * @param error runtime Api error
     * @return registry error

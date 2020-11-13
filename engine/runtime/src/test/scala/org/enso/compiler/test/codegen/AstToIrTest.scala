@@ -797,19 +797,17 @@ class AstToIrTest extends CompilerTest with Inside {
 
       inside(ir.bindings(1)) {
         case binding: IR.Module.Scope.Definition.Method.Binding =>
-          inside(binding.body) {
-            case block: IR.Expression.Block =>
-              inside(block.returnValue) {
-                case application: IR.Application.Prefix =>
-                  inside(application.arguments.head) {
-                    case argument: IR.CallArgument.Specified =>
-                      inside(argument.value) {
-                        case error: IR.Error.Syntax =>
-                          error.reason shouldBe
-                          IR.Error.Syntax.AmbiguousExpression
-                      }
-                  }
-              }
+          inside(binding.body) { case block: IR.Expression.Block =>
+            inside(block.returnValue) {
+              case application: IR.Application.Prefix =>
+                inside(application.arguments.head) {
+                  case argument: IR.CallArgument.Specified =>
+                    inside(argument.value) { case error: IR.Error.Syntax =>
+                      error.reason shouldBe
+                      IR.Error.Syntax.AmbiguousExpression
+                    }
+                }
+            }
           }
       }
     }
@@ -824,9 +822,8 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
       inside(ir.bindings.head) {
         case definition: IR.Module.Scope.Definition.Type =>
-          inside(definition.body(2)) {
-            case error: IR.Error.Syntax =>
-              error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
+          inside(definition.body(2)) { case error: IR.Error.Syntax =>
+            error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
           }
       }
     }
@@ -843,25 +840,21 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
       inside(ir.bindings(1)) {
         case main: IR.Module.Scope.Definition.Method.Binding =>
-          inside(main.body) {
-            case block: IR.Expression.Block =>
-              inside(block.returnValue) {
-                case f: IR.Expression.Binding =>
-                  inside(f.expression) {
-                    case app: IR.Application.Prefix =>
-                      inside(app.arguments(1)) {
-                        case arg: IR.CallArgument.Specified =>
-                          inside(arg.value) {
-                            case argBlock: IR.Expression.Block =>
-                              inside(argBlock.expressions.head) {
-                                case error: IR.Error.Syntax =>
-                                  error.reason shouldBe
-                                  IR.Error.Syntax.AmbiguousExpression
-                              }
-                          }
+          inside(main.body) { case block: IR.Expression.Block =>
+            inside(block.returnValue) { case f: IR.Expression.Binding =>
+              inside(f.expression) { case app: IR.Application.Prefix =>
+                inside(app.arguments(1)) {
+                  case arg: IR.CallArgument.Specified =>
+                    inside(arg.value) { case argBlock: IR.Expression.Block =>
+                      inside(argBlock.expressions.head) {
+                        case error: IR.Error.Syntax =>
+                          error.reason shouldBe
+                          IR.Error.Syntax.AmbiguousExpression
                       }
-                  }
+                    }
+                }
               }
+            }
           }
       }
     }

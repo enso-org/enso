@@ -8,14 +8,13 @@ import org.enso.languageserver.protocol.binary.factory.EnsoUuidFactory
 
 object PathFactory {
 
-  def create(rootId: UUID, segments: Seq[String])(
-    implicit builder: FlatBufferBuilder
+  def create(rootId: UUID, segments: Seq[String])(implicit
+    builder: FlatBufferBuilder
   ): Int = {
     val segmentOffsets =
-      segments.foldRight(List.empty[Int]) {
-        case (segment, tail) =>
-          val offset = builder.createString(segment)
-          offset :: tail
+      segments.foldRight(List.empty[Int]) { case (segment, tail) =>
+        val offset = builder.createString(segment)
+        offset :: tail
       }
     val segmentsOffset =
       Path.createSegmentsVector(builder, segmentOffsets.toArray)

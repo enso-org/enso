@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class PolyglotTest extends InterpreterTest {
   override def subject: String = "Polyglot"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "allow calling methods on static objects" in {

@@ -535,8 +535,8 @@ object CoreGraph {
       def addParent(
         node: Node[CoreGraph],
         link: Link[CoreGraph]
-      )(
-        implicit graph: PrimGraph.GraphData[CoreGraph],
+      )(implicit
+        graph: PrimGraph.GraphData[CoreGraph],
         map: ParentStorage
       ): Unit = {
         import Node.ParentLinks._
@@ -551,8 +551,8 @@ object CoreGraph {
         * @tparam V the shape to set the node to
         * @return a refined node reference
         */
-      def addRefined[V <: Node.Shape](
-        implicit graph: PrimGraph.GraphData[CoreGraph],
+      def addRefined[V <: Node.Shape](implicit
+        graph: PrimGraph.GraphData[CoreGraph],
         ev: VariantIndexed[Node.Shape, V]
       ): PrimGraph.Component.Refined[Node.Shape, V, Node[CoreGraph]] = {
         val node = graph.addNode()
@@ -570,8 +570,8 @@ object CoreGraph {
         */
       def setShape[NodeShape <: Node.Shape](
         node: Node[CoreGraph]
-      )(
-        implicit ev: VariantIndexed[Node.Shape, NodeShape],
+      )(implicit
+        ev: VariantIndexed[Node.Shape, NodeShape],
         graph: PrimGraph.GraphData[CoreGraph]
       ): Unit = {
         graph.unsafeSetVariantCase[Nodes, Node.Shape, NodeShape](node)

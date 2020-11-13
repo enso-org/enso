@@ -16,7 +16,8 @@ public class RedefinedMethodException extends RuntimeException implements Truffl
     super("Methods cannot be overloaded, but you have tried to overload " + atom + "." + method);
   }
 
-  /** Gets the location where the exception occurred.
+  /**
+   * Gets the location where the exception occurred.
    *
    * @return the location where the exception occurred
    */

@@ -3,7 +3,7 @@ layout: developer-doc
 title: Reading Source Code
 category: parser
 tags: [parser, reader]
-order: 11
+order: 10
 ---
 
 # Reading Source Code
@@ -15,9 +15,14 @@ project is going to use, as well as backing formats for the stream.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Reader Functionality](#reader-functionality)
-- [Provided Readers](#provided-readers)
-  - [UTF-8 Reader](#utf-8-reader)
-  - [UTF-16 Reader](#utf-16-reader)
+- [Reader Structure](#reader-structure)
+  - [Read](#read)
+  - [Decoder](#decoder)
+- [Provided Encodings](#provided-encodings)
+  - [UTF-8](#utf-8)
+  - [UTF-16](#utf-16)
+  - [UTF-32](#utf-32)
+  - [Benchmarks](#benchmarks)
 
 <!-- /MarkdownTOC -->
 

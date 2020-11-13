@@ -5,8 +5,7 @@ import java.util.concurrent.Future
 
 import org.enso.interpreter.instrument.job.Job
 
-/**
-  * Represents a running job.
+/** Represents a running job.
   *
   * @param id a job id
   * @param job a job

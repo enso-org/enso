@@ -48,8 +48,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration._
 
-/**
-  * A language server controller responsible for managing the server lifecycle.
+/** A language server controller responsible for managing the server lifecycle.
   * It delegates all tasks to other actors like bootloader or supervisor.
   *
   * @param project a project open by the server
@@ -80,8 +79,8 @@ class LanguageServerController(
     )
 
   override def supervisorStrategy: SupervisorStrategy =
-    OneForOneStrategy(10) {
-      case _ => SupervisorStrategy.Restart
+    OneForOneStrategy(10) { case _ =>
+      SupervisorStrategy.Restart
     }
 
   override def preStart(): Unit = {
@@ -259,11 +258,10 @@ class LanguageServerController(
       sender() ! PreviousInstanceNotShutDown
   }
 
-  private def waitingForChildren(): Receive = {
-    case Terminated(_) =>
-      if (context.children.isEmpty) {
-        context.stop(self)
-      }
+  private def waitingForChildren(): Receive = { case Terminated(_) =>
+    if (context.children.isEmpty) {
+      context.stop(self)
+    }
   }
 
   private def stop(): Unit = {
@@ -282,8 +280,7 @@ class LanguageServerController(
 
 object LanguageServerController {
 
-  /**
-    * Creates a configuration object used to create a [[LanguageServerController]].
+  /** Creates a configuration object used to create a [[LanguageServerController]].
     *
     * @param project a project open by the server
     * @param networkConfig a net config
@@ -311,18 +308,15 @@ object LanguageServerController {
 
   case object ShutDownServer
 
-  /**
-    * Signals boot timeout.
+  /** Signals boot timeout.
     */
   case object BootTimeout
 
-  /**
-    * Boot command.
+  /** Boot command.
     */
   case object Boot
 
-  /**
-    * Signals shutdown timeout.
+  /** Signals shutdown timeout.
     */
   case object ShutdownTimeout
 

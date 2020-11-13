@@ -2,8 +2,7 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
-/**
-  * A configuration object for properties of the visualisation.
+/** A configuration object for properties of the visualisation.
   *
   * @param executionContextId an execution context of the visualisation
   * @param visualisationModule a qualified name of the module containing

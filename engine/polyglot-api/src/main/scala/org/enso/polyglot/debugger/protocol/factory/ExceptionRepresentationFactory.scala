@@ -9,8 +9,7 @@ import java.lang.{StackTraceElement => JStackTraceElement}
 
 object ExceptionRepresentationFactory {
 
-  /**
-    * Creates ExceptionRepresentation inside a [[FlatBufferBuilder]].
+  /** Creates ExceptionRepresentation inside a [[FlatBufferBuilder]].
     *
     * @param ex an exception (any Throwable) to serialize
     * @param builder a class that helps build a FlatBuffer representation of

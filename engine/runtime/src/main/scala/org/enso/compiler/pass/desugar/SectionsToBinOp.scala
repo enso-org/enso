@@ -69,9 +69,8 @@ case object SectionsToBinOp extends IRPass {
       )
     )
 
-    ir.transformExpressions {
-      case sec: IR.Application.Operator.Section =>
-        desugarSections(sec, freshNameSupply)
+    ir.transformExpressions { case sec: IR.Application.Operator.Section =>
+      desugarSections(sec, freshNameSupply)
     }
   }
 

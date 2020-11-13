@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class FunctionSugarTest extends InterpreterTest {
   override def subject: String = "Function Definition Sugar"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "work for local functions" in {
@@ -22,10 +22,11 @@ class FunctionSugarTest extends InterpreterTest {
 
     "work for methods" in {
       val code =
-        """
-          |Unit.foo a b = a * b - a
+        """from Builtins import all
           |
-          |main = Unit.foo 2 3
+          |Nothing.foo a b = a * b - a
+          |
+          |main = Nothing.foo 2 3
           |""".stripMargin
 
       eval(code) shouldEqual 4

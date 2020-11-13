@@ -37,70 +37,59 @@ object TextProtocol {
     */
   case class CloseFile(clientId: ClientId, path: Path)
 
-  /**
-    * Signals file close status.
+  /** Signals file close status.
     */
   sealed trait CloseFileResult
 
-  /**
-    * Confirms that a file was successfully closed.
+  /** Confirms that a file was successfully closed.
     */
   case object FileClosed extends CloseFileResult
 
-  /**
-    * Signals that a file wasn't opened.
+  /** Signals that a file wasn't opened.
     */
   case object FileNotOpened
 
-  /**
-    * Requests the language server to apply a series of edits to the buffer.
+  /** Requests the language server to apply a series of edits to the buffer.
     *
     * @param clientId the client closing the file.
     * @param edit a diff describing changes made to a file
     */
   case class ApplyEdit(clientId: ClientId, edit: FileEdit)
 
-  /**
-    * Signals the result of applying a series of edits.
+  /** Signals the result of applying a series of edits.
     */
   sealed trait ApplyEditResult
 
-  /**
-    * Signals that all edits were applied successfully.
+  /** Signals that all edits were applied successfully.
     */
   case object ApplyEditSuccess extends ApplyEditResult
 
-  /**
-    * A base trait for all failures regarding editing.
+  /** A base trait for all failures regarding editing.
     */
   sealed trait ApplyEditFailure extends ApplyEditResult
 
-  /**
-    * Signals that the client doesn't hold write lock to the buffer.
+  /** Signals that the client doesn't hold write lock to the buffer.
     */
   case object WriteDenied extends ApplyEditFailure
 
-  /**
-    * Signals that validation has failed for a series of edits.
+  /** Signals that validation has failed for a series of edits.
     *
     * @param msg a validation message
     */
   case class TextEditValidationFailed(msg: String) extends ApplyEditFailure
 
-  /**
-    * Signals that version provided by a client doesn't match to the version
+  /** Signals that version provided by a client doesn't match to the version
     * computed by the server.
     *
     * @param clientVersion a version send by the client
     * @param serverVersion a version computed by the server
     */
   case class TextEditInvalidVersion(
-    clientVersion: Buffer.Version,
-    serverVersion: Buffer.Version
+    clientVersion: TextApi.Version,
+    serverVersion: TextApi.Version
   ) extends ApplyEditFailure
 
-  /**
-    * A notification sent by the Language Server, notifying a client about
+  /** A notification sent by the Language Server, notifying a client about
     * edits made by the write lock holder.
     *
     * @param changes a series of edits
@@ -116,38 +105,33 @@ object TextProtocol {
   case class SaveFile(
     clientId: ClientId,
     path: Path,
-    currentVersion: Buffer.Version
+    currentVersion: TextApi.Version
   )
 
-  /**
-    * Signals the result of saving a file.
+  /** Signals the result of saving a file.
     */
   sealed trait SaveFileResult
 
-  /**
-    * Signals that saving a file was executed successfully.
+  /** Signals that saving a file was executed successfully.
     */
   case object FileSaved extends SaveFileResult
 
-  /**
-    * Signals that the client doesn't hold write lock to the buffer.
+  /** Signals that the client doesn't hold write lock to the buffer.
     */
   case object SaveDenied extends SaveFileResult
 
-  /**
-    * Signals that version provided by a client doesn't match to the version
+  /** Signals that version provided by a client doesn't match to the version
     * computed by the server.
     *
     * @param clientVersion a version send by the client
     * @param serverVersion a version computed by the server
     */
   case class SaveFileInvalidVersion(
-    clientVersion: Buffer.Version,
-    serverVersion: Buffer.Version
+    clientVersion: TextApi.Version,
+    serverVersion: TextApi.Version
   ) extends SaveFileResult
 
-  /**
-    * Signals that saving a file failed due to IO error.
+  /** Signals that saving a file failed due to IO error.
     *
     * @param fsFailure a filesystem failure
     */

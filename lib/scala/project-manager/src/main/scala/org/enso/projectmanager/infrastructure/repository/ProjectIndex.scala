@@ -5,15 +5,13 @@ import java.util.UUID
 import org.enso.projectmanager.data.Default
 import org.enso.projectmanager.model.Project
 
-/**
-  * A helper data object enabling indexing of projects.
+/** A helper data object enabling indexing of projects.
   *
   * @param projects user projects index
   */
 case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
 
-  /**
-    * Upserts a project to the index.
+  /** Upserts a project to the index.
     *
     * @param project the project to add
     * @return an updated project
@@ -21,8 +19,7 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
   def upsert(project: Project): ProjectIndex =
     ProjectIndex(projects + (project.id -> project))
 
-  /**
-    * Updates a project inside the index using a modifcation function.
+  /** Updates a project inside the index using a modifcation function.
     *
     * @param id the project id
     * @param f the modification functionProjectRenameHandler
@@ -30,8 +27,7 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
   def update(id: UUID)(f: Project => Project): ProjectIndex =
     ProjectIndex(projects + (id -> f(projects(id))))
 
-  /**
-    * Removes a project.
+  /** Removes a project.
     *
     * @param projectId the project id to remove
     * @return an updated project
@@ -39,8 +35,7 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
   def remove(projectId: UUID): ProjectIndex =
     ProjectIndex(projects - projectId)
 
-  /**
-    * Finds user project by ID.
+  /** Finds user project by ID.
     *
     * @param projectId a project id
     * @return optional project
@@ -48,8 +43,7 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
   def findById(projectId: UUID): Option[Project] =
     projects.get(projectId)
 
-  /**
-    * Queries index using a function that specifies criteria of result set.
+  /** Queries index using a function that specifies criteria of result set.
     *
     * @param predicate a predicate function
     * @return projects that meet the criteria
@@ -57,8 +51,7 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
   def find(predicate: Project => Boolean): List[Project] =
     projects.values.filter(predicate).toList
 
-  /**
-    * Checks if project with the provided name is in the index.
+  /** Checks if project with the provided name is in the index.
     *
     * @param name a project name
     * @return true if exists

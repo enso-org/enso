@@ -7,8 +7,7 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that pops an item from a stack.
+/** A command that pops an item from a stack.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service

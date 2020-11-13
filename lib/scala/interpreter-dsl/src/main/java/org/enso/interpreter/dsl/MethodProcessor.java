@@ -122,11 +122,6 @@ public class MethodProcessor extends AbstractProcessor {
       out.println("  public static Function makeFunction(Language language) {");
       out.println("    return Function." + functionBuilderMethod + "(");
       out.println("        new " + methodDefinition.getClassName() + "(language),");
-      if (methodDefinition.isAlwaysDirect()) {
-        out.println("        FunctionSchema.CallStrategy.ALWAYS_DIRECT,");
-      } else {
-        out.println("        FunctionSchema.CallStrategy.DIRECT_WHEN_TAIL,");
-      }
       List<String> argumentDefs = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         if (arg.isPositional()) {

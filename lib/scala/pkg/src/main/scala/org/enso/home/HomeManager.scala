@@ -4,8 +4,7 @@ import org.enso.filesystem.FileSystem
 import org.enso.pkg.{Package, PackageManager}
 import java.util.stream.Stream
 
-/**
-  * Helper class for accessing files in the language home directory.
+/** Helper class for accessing files in the language home directory.
   *
   * @param languageHomePath path to language home `component` directory.
   * @param fs file system to use in this object's operations.
@@ -19,8 +18,7 @@ class HomeManager[F](languageHomePath: F, implicit val fs: FileSystem[F]) {
   val rootPath: F = languageHomePath.getParent
   val libPath: F  = rootPath.getChild("std-lib")
 
-  /**
-    * @return a stream of packages found in the `std-lib` home directory.
+  /** @return a stream of packages found in the `std-lib` home directory.
     */
   def loadStdLib: Stream[Package[F]] = {
     if (libPath.exists)

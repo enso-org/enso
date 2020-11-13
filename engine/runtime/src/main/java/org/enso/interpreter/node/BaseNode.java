@@ -11,7 +11,17 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 @NodeInfo(shortName = "Base", description = "A base node for the Enso AST")
 @ReportPolymorphism
 public abstract class BaseNode extends Node {
-  private @CompilationFinal boolean isTail = false;
+  /** Represents the tail-position status of the node. */
+  public enum TailStatus {
+    /** Node is in a tail position, but not marked as a tail call. */
+    TAIL_DIRECT,
+    /** Node is in a tail position and marked as a tail call. */
+    TAIL_LOOP,
+    /** Node is not in a tail position. */
+    NOT_TAIL
+  }
+
+  private @CompilationFinal TailStatus tailStatus = TailStatus.NOT_TAIL;
   private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
 
   /**
@@ -28,30 +38,16 @@ public abstract class BaseNode extends Node {
   }
 
   /**
-   * Sets whether the node is tail-recursive.
+   * Sets the new tail position status for this node.
    *
-   * @param isTail whether or not the node is tail-recursive.
+   * @param tailStatus the new tail status.
    */
-  public void setTail(boolean isTail) {
-    this.isTail = isTail;
+  public void setTailStatus(TailStatus tailStatus) {
+    this.tailStatus = tailStatus;
   }
 
-  /** Marks the node as tail-recursive. */
-  public final void markTail() {
-    setTail(true);
-  }
-
-  /** Marks the node as not tail-recursive. */
-  public final void markNotTail() {
-    setTail(false);
-  }
-
-  /**
-   * Checks if the node is tail-recursive.
-   *
-   * @return {@code true} if the node is tail-recursive, otherwise {@code false}
-   */
-  public boolean isTail() {
-    return isTail;
+  /** @return the tail position status of this node. */
+  public TailStatus getTailStatus() {
+    return tailStatus;
   }
 }

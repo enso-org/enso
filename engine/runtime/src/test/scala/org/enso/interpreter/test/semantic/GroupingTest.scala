@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class GroupingTest extends InterpreterTest {
   override def subject: String = "Parentheses"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "work with arbitrary lambdas" in {
@@ -34,7 +34,7 @@ class GroupingTest extends InterpreterTest {
         """
           |main =
           |    ifTest = c -> (~ifT) -> ~ifF -> if c == 0 then ifT else ifF
-          |    sum = c -> acc -> ifTest c acc (sum c-1 acc+c)
+          |    sum = c -> acc -> ifTest c acc (@Tail_Call sum c-1 acc+c)
           |    sum 10000 0
           |""".stripMargin
 

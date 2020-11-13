@@ -1,40 +1,35 @@
 package org.enso.interpreter.runtime.builtin;
 
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.generic.*;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
+import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
+import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.*;
-import org.enso.interpreter.node.expression.builtin.number.*;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
-import org.enso.interpreter.node.expression.builtin.state.*;
-import org.enso.interpreter.node.expression.builtin.system.ExitMethodGen;
-import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.java.*;
-import org.enso.interpreter.node.expression.builtin.text.*;
+import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
-  public static final String MODULE_NAME = "Builtins";
+  public static final String MODULE_NAME = "Builtins.Main";
 
   /** Container for method names needed outside this class. */
   public static class MethodNames {
@@ -45,18 +40,20 @@ public class Builtins {
 
   private final Module module;
   private final ModuleScope scope;
-  private final AtomConstructor unit;
+  private final AtomConstructor nothing;
   private final AtomConstructor any;
-  private final AtomConstructor number;
+  private final Number number;
   private final AtomConstructor function;
-  private final AtomConstructor text;
   private final AtomConstructor debug;
+  private final AtomConstructor ensoProject;
+  private final Text text;
   private final Error error;
   private final Bool bool;
-
-  private final RootCallTarget interopDispatchRoot;
-  private final FunctionSchema interopDispatchSchema;
-  private final Function newInstanceFunction;
+  private final System system;
+  private final Mutable mutable;
+  private final Polyglot polyglot;
+  private final Resource resource;
+  private final Meta meta;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -66,16 +63,26 @@ public class Builtins {
   public Builtins(Context context) {
     Language language = context.getLanguage();
 
-    module = Module.empty(QualifiedName.simpleName(MODULE_NAME));
-    scope = module.parseScope(context);
-    unit = new AtomConstructor("Unit", scope).initializeFields();
+    module = Module.empty(QualifiedName.fromString(MODULE_NAME).get());
+    scope = module.compileScope(context);
+    nothing = new AtomConstructor("Nothing", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
-    number = new AtomConstructor("Number", scope).initializeFields();
     bool = new Bool(language, scope);
     error = new Error(language, scope);
+    mutable = new Mutable(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
-    text = new AtomConstructor("Text", scope).initializeFields();
+    text = new Text(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
+    ensoProject =
+        new AtomConstructor("Enso_Project", scope)
+            .initializeFields(
+                new ArgumentDefinition(
+                    0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE));
+    system = new System(language, scope);
+    number = new Number(language, scope);
+    polyglot = new Polyglot(language, scope);
+    resource = new Resource(language, scope);
+    meta = new Meta(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -84,7 +91,7 @@ public class Builtins {
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
-    AtomConstructor system = new AtomConstructor("System", scope).initializeFields();
+    AtomConstructor primIo = new AtomConstructor("Prim_Io", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
@@ -94,21 +101,19 @@ public class Builtins {
     AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
 
     AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
-
-    scope.registerConstructor(unit);
+    scope.registerConstructor(nothing);
     scope.registerConstructor(any);
-    scope.registerConstructor(number);
     scope.registerConstructor(function);
-    scope.registerConstructor(text);
 
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
     scope.registerConstructor(io);
+    scope.registerConstructor(primIo);
     scope.registerConstructor(panic);
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
-    scope.registerConstructor(system);
+    scope.registerConstructor(ensoProject);
     scope.registerConstructor(runtime);
 
     scope.registerConstructor(java);
@@ -116,14 +121,12 @@ public class Builtins {
 
     scope.registerConstructor(unsafe);
 
-    createPolyglot(language);
-
     scope.registerMethod(io, "println", PrintlnMethodGen.makeFunction(language));
     scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_file", GetFileMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_cwd", GetCwdMethodGen.makeFunction(language));
 
-    scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
-    scope.registerMethod(system, "exit", ExitMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
@@ -131,14 +134,6 @@ public class Builtins {
     scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
     scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch", CatchErrorMethodGen.makeFunction(language));
-
-    scope.registerMethod(number, "+", AddMethodGen.makeFunction(language));
-    scope.registerMethod(number, "-", SubtractMethodGen.makeFunction(language));
-    scope.registerMethod(number, "*", MultiplyMethodGen.makeFunction(language));
-    scope.registerMethod(number, "/", DivideMethodGen.makeFunction(language));
-    scope.registerMethod(number, "%", ModMethodGen.makeFunction(language));
-    scope.registerMethod(number, "negate", NegateMethodGen.makeFunction(language));
-    scope.registerMethod(number, "==", EqualsMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
@@ -150,9 +145,7 @@ public class Builtins {
     scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
     scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
-    scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
-    scope.registerMethod(any, "json_serialize", JsonSerializeMethodGen.makeFunction(language));
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));
@@ -162,49 +155,24 @@ public class Builtins {
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
 
-    interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
-    interopDispatchSchema =
-        new FunctionSchema(
-            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
-            FunctionSchema.CallerFrameAccess.NONE,
-            new ArgumentDefinition[] {
-              new ArgumentDefinition(1, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
-              new ArgumentDefinition(2, "method_name", ArgumentDefinition.ExecutionMode.EXECUTE),
-              new ArgumentDefinition(3, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE)
-            },
-            new boolean[] {false, true, false},
-            new CallArgumentInfo[0]);
-    newInstanceFunction = ConstructorDispatchNode.makeFunction(language);
-  }
-
-  private void createPolyglot(Language language) {
-    AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
-    scope.registerConstructor(polyglot);
-    scope.registerMethod(polyglot, "execute", ExecuteMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "invoke", InvokeMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "new", InstantiateMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "get_member", GetMemberMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "get_members", GetMembersMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "get_array_size", GetArraySizeMethodGen.makeFunction(language));
-    scope.registerMethod(
-        polyglot, "get_array_element", GetArrayElementMethodGen.makeFunction(language));
+    module.unsafeBuildIrStub();
   }
 
   /**
-   * Returns the {@code Unit} atom constructor.
+   * Returns the {@code Nothing} atom constructor.
    *
-   * @return the {@code Unit} atom constructor
+   * @return the {@code Nothing} atom constructor
    */
-  public AtomConstructor unit() {
-    return unit;
+  public AtomConstructor nothing() {
+    return nothing;
   }
 
   /**
-   * Returns the {@code Text} atom constructor.
+   * Returns the {@code Text} part of builtins.
    *
-   * @return the {@code Text} atom constructor
+   * @return the {@code Text} part of builtins.
    */
-  public AtomConstructor text() {
+  public Text text() {
     return text;
   }
 
@@ -218,11 +186,11 @@ public class Builtins {
   }
 
   /**
-   * Returns the {@code Number} atom constructor.
+   * Returns the number-related entities.
    *
-   * @return the {@code Number} atom constructor
+   * @return the number-related part of builtins.
    */
-  public AtomConstructor number() {
+  public Number number() {
     return number;
   }
 
@@ -254,6 +222,26 @@ public class Builtins {
     return debug;
   }
 
+  /** @return the {@code Enso_Project} atom constructor */
+  public AtomConstructor getEnsoProject() {
+    return ensoProject;
+  }
+
+  /** @return the {@code System} atom constructor. */
+  public System system() {
+    return system;
+  }
+
+  /** @return the container for mutable memory related builtins. */
+  public Mutable mutable() {
+    return mutable;
+  }
+
+  /** @return the container for polyglot-related builtins. */
+  public Polyglot polyglot() {
+    return polyglot;
+  }
+
   /**
    * Returns the builtin module scope.
    *
@@ -265,21 +253,5 @@ public class Builtins {
 
   public Module getModule() {
     return module;
-  }
-
-  /**
-   * Builds a function dispatching to a polyglot method call.
-   *
-   * @param method the name of the method this function will dispatch to.
-   * @return a function calling {@code method} with given arguments.
-   */
-  public Function buildPolyglotMethodDispatch(String method) {
-    Object[] preAppliedArr = new Object[] {null, method, null};
-    return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
-  }
-
-  /** @return a function executing a constructor with given arguments. */
-  public Function getConstructorDispatch() {
-    return newInstanceFunction;
   }
 }

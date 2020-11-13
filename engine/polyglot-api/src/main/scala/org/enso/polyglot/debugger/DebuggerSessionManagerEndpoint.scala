@@ -4,8 +4,7 @@ import java.nio.ByteBuffer
 
 import org.graalvm.polyglot.io.MessageEndpoint
 
-/**
-  * Class that can be returned by serverTransport to establish communication
+/** Class that can be returned by serverTransport to establish communication
   * with the ReplDebuggerInstrument.
   */
 class DebuggerSessionManagerEndpoint(

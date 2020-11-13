@@ -17,8 +17,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 import org.enso.projectmanager.infrastructure.net.Tcp
 import org.enso.projectmanager.util.UnhandledLogging
 
-/**
-  * It boots a Language Sever described by the `descriptor`. Upon boot failure
+/** It boots a Language Sever described by the `descriptor`. Upon boot failure
   * looks up new available port and retries to boot the server.
   *
   * @param descriptor a LS descriptor
@@ -112,8 +111,7 @@ class LanguageServerBootLoader(
 
 object LanguageServerBootLoader {
 
-  /**
-    * Creates a configuration object used to create a [[LanguageServerBootLoader]].
+  /** Creates a configuration object used to create a [[LanguageServerBootLoader]].
     *
     * @param descriptor a LS descriptor
     * @param config a bootloader config
@@ -125,25 +123,21 @@ object LanguageServerBootLoader {
   ): Props =
     Props(new LanguageServerBootLoader(descriptor, config))
 
-  /**
-    * Find free socket command.
+  /** Find free socket command.
     */
   case object FindFreeSocket
 
-  /**
-    * Boot command.
+  /** Boot command.
     */
   case object Boot
 
-  /**
-    * Signals that server boot failed.
+  /** Signals that server boot failed.
     *
     * @param th a throwable
     */
   case class ServerBootFailed(th: Throwable)
 
-  /**
-    * Signals that server booted successfully.
+  /** Signals that server booted successfully.
     *
     * @param config a server config
     * @param server a server lifecycle component

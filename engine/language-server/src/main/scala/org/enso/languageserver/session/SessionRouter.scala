@@ -14,8 +14,7 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToJsonController
 }
 
-/**
-  * A content based router that routes arbitrary messages to the session
+/** A content based router that routes arbitrary messages to the session
   * controller identified by the client id.
   */
 class SessionRouter extends Actor {
@@ -71,8 +70,7 @@ class SessionRouter extends Actor {
 
 object SessionRouter {
 
-  /**
-    * A command used to deliver an arbitrary `payload` to a rpc controller
+  /** A command used to deliver an arbitrary `payload` to a rpc controller
     * identified by the client id.
     *
     * @param clientId the internal client identifier
@@ -81,8 +79,7 @@ object SessionRouter {
     */
   case class DeliverToJsonController[A](clientId: ClientId, payload: A)
 
-  /**
-    * A command used to deliver an arbitrary `payload` to a data controller
+  /** A command used to deliver an arbitrary `payload` to a data controller
     * identified by the client id.
     *
     * @param clientId the internal client identifier
@@ -91,8 +88,7 @@ object SessionRouter {
     */
   case class DeliverToBinaryController[A](clientId: ClientId, payload: A)
 
-  /**
-    * Creates configuration object used to create a [[SessionRouter]].
+  /** Creates configuration object used to create a [[SessionRouter]].
     *
     * @return a configuration object
     */

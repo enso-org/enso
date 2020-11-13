@@ -21,7 +21,6 @@ import java.util.concurrent.locks.Lock;
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
 @NodeInfo(description = "Handles runtime currying and eta-expansion")
 public class CurryNode extends BaseNode {
-  private final FunctionSchema preApplicationSchema;
   private final FunctionSchema postApplicationSchema;
   private final boolean appliesFully;
   private @Child InvokeCallableNode oversaturatedCallableNode;
@@ -31,14 +30,12 @@ public class CurryNode extends BaseNode {
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
 
   private CurryNode(
-      FunctionSchema originalSchema,
       FunctionSchema postApplicationSchema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      boolean isTail) {
-    setTail(isTail);
+      BaseNode.TailStatus isTail) {
+    setTailStatus(isTail);
     this.defaultsExecutionMode = defaultsExecutionMode;
-    this.preApplicationSchema = originalSchema;
     this.postApplicationSchema = postApplicationSchema;
     appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionMode);
     initializeCallNodes();
@@ -48,32 +45,27 @@ public class CurryNode extends BaseNode {
   /**
    * Creates a new instance of this node.
    *
-   * @param preApplicationSchema the schema of all functions being used in the {@link
-   *     #execute(VirtualFrame, Function, CallerInfo, Object, Object[], Object[])} method.
    * @param argumentMapping the argument mapping for moving from the original schema to the argument
    *     schema expected by the function.
    * @param defaultsExecutionMode the mode of handling defaulted arguments for this call.
    * @param argumentsExecutionMode the mode of executing lazy arguments for this call.
-   * @param isTail is this a tail call position?
+   * @param tailStatus is this a tail call position?
    * @return an instance of this node.
    */
   public static CurryNode build(
-      FunctionSchema preApplicationSchema,
       CallArgumentInfo.ArgumentMapping argumentMapping,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      boolean isTail) {
+      BaseNode.TailStatus tailStatus) {
     return new CurryNode(
-        preApplicationSchema,
         argumentMapping.getPostApplicationSchema(),
         defaultsExecutionMode,
         argumentsExecutionMode,
-        isTail);
+        tailStatus);
   }
 
   private void initializeCallNodes() {
-    if (postApplicationSchema.hasOversaturatedArgs()
-        || !preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
+    if (postApplicationSchema.hasOversaturatedArgs() || getTailStatus() == TailStatus.NOT_TAIL) {
       this.loopingCall = CallOptimiserNode.build();
     } else {
       this.directCall = ExecuteCallNode.build();
@@ -88,7 +80,7 @@ public class CurryNode extends BaseNode {
               postApplicationSchema.getOversaturatedArguments(),
               defaultsExecutionMode,
               argumentsExecutionMode);
-      oversaturatedCallableNode.setTail(isTail());
+      oversaturatedCallableNode.setTailStatus(getTailStatus());
     }
   }
 
@@ -159,12 +151,13 @@ public class CurryNode extends BaseNode {
 
   private Stateful doCall(
       Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
-    if (preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
-      return directCall.executeCall(function, callerInfo, state, arguments);
-    } else if (isTail()) {
-      throw new TailCallException(function, callerInfo, state, arguments);
-    } else {
-      return loopingCall.executeDispatch(function, callerInfo, state, arguments);
+    switch (getTailStatus()) {
+      case TAIL_DIRECT:
+        return directCall.executeCall(function, callerInfo, state, arguments);
+      case TAIL_LOOP:
+        throw new TailCallException(function, callerInfo, state, arguments);
+      default:
+        return loopingCall.executeDispatch(function, callerInfo, state, arguments);
     }
   }
 }

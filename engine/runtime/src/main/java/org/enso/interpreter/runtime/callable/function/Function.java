@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -80,14 +81,12 @@ public final class Function implements TruffleObject {
    * Creates a Function object from a {@link BuiltinRootNode} and argument definitions.
    *
    * @param node the {@link RootNode} for the function logic
-   * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
    * @param args argument definitons
    * @return a Function object with specified behavior and arguments
    */
-  public static Function fromBuiltinRootNode(
-      BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
+  public static Function fromBuiltinRootNode(BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    FunctionSchema schema = new FunctionSchema(callStrategy, args);
+    FunctionSchema schema = new FunctionSchema(args);
     return new Function(callTarget, null, schema);
   }
 
@@ -98,15 +97,13 @@ public final class Function implements TruffleObject {
    * will be non-null.
    *
    * @param node the {@link RootNode} for the function logic
-   * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
    * @param args argument definitons
    * @return a Function object with specified behavior and arguments
    */
   public static Function fromBuiltinRootNodeWithCallerFrameAccess(
-      BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
+      BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    FunctionSchema schema =
-        new FunctionSchema(callStrategy, FunctionSchema.CallerFrameAccess.FULL, args);
+    FunctionSchema schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, args);
     return new Function(callTarget, null, schema);
   }
 
@@ -127,15 +124,6 @@ public final class Function implements TruffleObject {
   /** @return the source section this function was defined in. */
   public SourceSection getSourceSection() {
     return getCallTarget().getRootNode().getSourceSection();
-  }
-
-  /**
-   * Gets the call strategy that should be used for this function.
-   *
-   * @return this function's call strategy
-   */
-  public FunctionSchema.CallStrategy getCallStrategy() {
-    return getSchema().getCallStrategy();
   }
 
   /**
@@ -297,6 +285,19 @@ public final class Function implements TruffleObject {
     public static Object[] buildArguments(
         Function function, CallerInfo callerInfo, Object state, Object[] positionalArguments) {
       return new Object[] {function.getScope(), callerInfo, state, positionalArguments};
+    }
+
+    /**
+     * Generates an array of arguments using the schema to be passed to a call target.
+     *
+     * @param frame the frame becoming the lexical scope
+     * @param state the state to execute the thunk with
+     * @param positionalArguments the positional arguments to the call target
+     * @return an array containing the necessary information to call an Enso function
+     */
+    public static Object[] buildArguments(
+        MaterializedFrame frame, Object state, Object[] positionalArguments) {
+      return new Object[] {frame, null, state, positionalArguments};
     }
 
     /**

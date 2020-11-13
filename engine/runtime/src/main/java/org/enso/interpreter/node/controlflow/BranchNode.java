@@ -15,7 +15,8 @@ public abstract class BranchNode extends BaseNode {
    * Executes the case branch.
    *
    * @param frame the stack frame in which to execute
+   * @param state current monadic state
    * @param target the object to match against
    */
-  public abstract void execute(VirtualFrame frame, Object target);
+  public abstract void execute(VirtualFrame frame, Object state, Object target);
 }

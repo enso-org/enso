@@ -36,9 +36,13 @@ object Suggestions {
     Suggestion.Function(
       externalId =
         Some(UUID.fromString("78d452ce-ed48-48f1-b4f2-b7f45f8dff89")),
-      module     = "Test.Main",
-      name       = "print",
-      arguments  = Vector(),
+      module = "Test.Main",
+      name   = "print",
+      arguments = Vector(
+        Suggestion.Argument("a", "Any", false, false, None),
+        Suggestion.Argument("b", "Any", true, false, None),
+        Suggestion.Argument("c", "Any", false, true, Some("C"))
+      ),
       returnType = "IO",
       scope =
         Suggestion.Scope(Suggestion.Position(1, 9), Suggestion.Position(1, 22))

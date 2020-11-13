@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class StateTest extends InterpreterTest {
   override def subject: String = "State"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "be accessible from functions" in {
@@ -64,7 +64,7 @@ class StateTest extends InterpreterTest {
         """
           |run =
           |    matcher = x -> case x of
-          |        Unit ->
+          |        Nothing ->
           |            y = State.get Number
           |            State.put Number (y + 5)
           |        Nil ->
@@ -74,7 +74,7 @@ class StateTest extends InterpreterTest {
           |    State.put Number 1
           |    matcher Nil
           |    IO.println (State.get Number)
-          |    matcher Unit
+          |    matcher Nothing
           |    IO.println (State.get Number)
           |    0
           |
@@ -89,7 +89,7 @@ class StateTest extends InterpreterTest {
         """
           |panicker =
           |    State.put Number 400
-          |    Panic.throw Unit
+          |    Panic.throw Nothing
           |
           |stater =
           |    State.put Number 5

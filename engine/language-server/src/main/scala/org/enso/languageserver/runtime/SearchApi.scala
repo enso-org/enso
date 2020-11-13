@@ -10,8 +10,7 @@ import org.enso.languageserver.runtime.SearchProtocol.{
 import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
-/**
-  * The execution JSON RPC API provided by the language server.
+/** The execution JSON RPC API provided by the language server.
   *
   * @see `docs/language-server/protocol-language-server.md`
   */

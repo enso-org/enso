@@ -33,8 +33,8 @@ class State(val label: String, val ix: Int, val finish: () => Unit) {
   private def buildAutomata(): NFA = {
     val nfa   = new NFA
     val start = nfa.addState()
-    val endpoints = rules.zipWithIndex.map {
-      case (rule, ix) => buildRuleAutomata(nfa, start, ix, rule)
+    val endpoints = rules.zipWithIndex.map { case (rule, ix) =>
+      buildRuleAutomata(nfa, start, ix, rule)
     }
     val end = nfa.addState()
     nfa.state(end).rule = Some("")
@@ -88,10 +88,9 @@ class State(val label: String, val ix: Int, val finish: () => Unit) {
     val nfa   = buildAutomata()
     val dfa   = nfa.toDFA()
     val state = Spec[c.type](c, dfa).generate(ix)
-    val rs = rules.zipWithIndex.map {
-      case (rule, ruleIx) =>
-        val tree = c.parse(rule.tree)
-        q"def ${TermName(ruleName(ruleIx))}() = $tree"
+    val rs = rules.zipWithIndex.map { case (rule, ruleIx) =>
+      val tree = c.parse(rule.tree)
+      q"def ${TermName(ruleName(ruleIx))}() = $tree"
     }
     q"..$state; ..$rs"
   }

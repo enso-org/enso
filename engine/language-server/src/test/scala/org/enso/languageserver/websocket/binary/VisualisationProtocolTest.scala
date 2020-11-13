@@ -24,7 +24,7 @@ class VisualisationProtocolTest
 
   "A visualisation binary protocol" must {
 
-    "push visualisation updates when controller receives notification" taggedAs(Flaky) in {
+    "push visualisation updates when controller receives notification" taggedAs Flaky in {
       //given
       val client = newWsClient()
       val data   = Array[Byte](1, 2, 3)

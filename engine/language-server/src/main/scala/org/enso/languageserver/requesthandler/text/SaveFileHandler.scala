@@ -18,8 +18,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `text/save` commands.
+/** A request handler for `text/save` commands.
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
@@ -94,8 +93,7 @@ class SaveFileHandler(
 
 object SaveFileHandler {
 
-  /**
-    * Creates a configuration object used to create a [[SaveFileHandler]].
+  /** Creates a configuration object used to create a [[SaveFileHandler]].
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout

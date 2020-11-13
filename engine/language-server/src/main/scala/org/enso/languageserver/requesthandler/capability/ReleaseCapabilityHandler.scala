@@ -20,8 +20,7 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * A request handler for `capability/release` commands.
+/** A request handler for `capability/release` commands.
   *
   * @param capabilityRouter a router that dispatches capability requests
   * @param timeout a request timeout
@@ -75,8 +74,7 @@ class ReleaseCapabilityHandler(
 
 object ReleaseCapabilityHandler {
 
-  /**
-    * Creates a configuration object used to create a [[ReleaseCapabilityHandler]]
+  /** Creates a configuration object used to create a [[ReleaseCapabilityHandler]]
     *
     * @param capabilityRouter a router that dispatches capability requests
     * @param requestTimeout a request timeout

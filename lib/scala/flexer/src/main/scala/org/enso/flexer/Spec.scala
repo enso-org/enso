@@ -49,11 +49,10 @@ case class Spec[C <: Context](c: C, dfa: DFA) {
   }
 
   def genSwitch(branchs: Seq[Branch]): Seq[CaseDef] = {
-    branchs.map {
-      case Branch(range, body) =>
-        val pattern =
-          Alternative(range.map(i => q"${Literal(Constant(i))}").toList)
-        cq"$pattern => $body"
+    branchs.map { case Branch(range, body) =>
+      val pattern =
+        Alternative(range.map(i => q"${Literal(Constant(i))}").toList)
+      cq"$pattern => $body"
     }
   }
 
@@ -72,19 +71,18 @@ case class Spec[C <: Context](c: C, dfa: DFA) {
     val state    = dfa.endStatePriorityMap.get(stateIx)
     var trgState = dfa.links(stateIx)(0)
     var rStart   = Int.MinValue
-    val branches = dfa.vocabulary.toVector.flatMap {
-      case (range, vocIx) =>
-        val newTrgState = dfa.links(stateIx)(vocIx)
-        if (newTrgState != trgState) {
-          val rEnd      = range.start - 1
-          val xtrgState = trgState
-          val xrStart   = rStart
-          trgState = newTrgState
-          rStart   = range.start
-          Some(
-            Branch(xrStart to rEnd, genBranchBody(xtrgState, state, overlaps))
-          )
-        } else None
+    val branches = dfa.vocabulary.toVector.flatMap { case (range, vocIx) =>
+      val newTrgState = dfa.links(stateIx)(vocIx)
+      if (newTrgState != trgState) {
+        val rEnd      = range.start - 1
+        val xtrgState = trgState
+        val xrStart   = rStart
+        trgState = newTrgState
+        rStart   = range.start
+        Some(
+          Branch(xrStart to rEnd, genBranchBody(xtrgState, state, overlaps))
+        )
+      } else None
     }
 
     val allBranches = branches :+
@@ -119,11 +117,14 @@ case class Spec[C <: Context](c: C, dfa: DFA) {
       dfa.links.indices.toList
         .map(st => (st, TermName(s"state${i}_${st}")))
 
-    val stateMatch = Match(q"state", stateNames.map {
-      case (st, fun) => cq"$st => $fun"
-    })
-    val stateBodies = stateNames.map {
-      case (st, fun) => q"def $fun = {${generateCaseBody(st)}}"
+    val stateMatch = Match(
+      q"state",
+      stateNames.map { case (st, fun) =>
+        cq"$st => $fun"
+      }
+    )
+    val stateBodies = stateNames.map { case (st, fun) =>
+      q"def $fun = {${generateCaseBody(st)}}"
     }
     q"""
       stateDefs($i) = ${TermName(s"nextState$i")}

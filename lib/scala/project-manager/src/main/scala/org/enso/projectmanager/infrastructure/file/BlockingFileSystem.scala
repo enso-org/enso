@@ -10,8 +10,7 @@ import org.enso.projectmanager.infrastructure.file.FileSystemFailure._
 
 import scala.concurrent.duration.FiniteDuration
 
-/**
-  * ZIO implementation of [[FileSystem]]. This implementation uses blocking
+/** ZIO implementation of [[FileSystem]]. This implementation uses blocking
   * API to access data on the disk.
   *
   * @param ioTimeout a timeout for IO operations
@@ -20,8 +19,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
   ioTimeout: FiniteDuration
 ) extends FileSystem[F] {
 
-  /**
-    * Reads the contents of a textual file.
+  /** Reads the contents of a textual file.
     *
     * @param file path to the file
     * @return either [[FileSystemFailure]] or the content of a file as a String
@@ -32,8 +30,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
-  /**
-    * Writes textual content to a file.
+  /** Writes textual content to a file.
     *
     * @param file path to the file
     * @param contents a textual contents of the file
@@ -48,8 +45,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
-  /**
-    * Deletes the specified directory recursively.
+  /** Deletes the specified directory recursively.
     *
     * @param path a path to the directory
     * @return either [[FileSystemFailure]] or Unit

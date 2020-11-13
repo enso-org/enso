@@ -4,23 +4,20 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 
-/**
-  * A representation of filesystem object.
+/** A representation of filesystem object.
   */
 sealed trait FileSystemObject
 
 object FileSystemObject {
 
-  /**
-    * Represents a directory.
+  /** Represents a directory.
     *
     * @param name a name of the directory
     * @param path a path to the directory
     */
   case class Directory(name: String, path: Path) extends FileSystemObject
 
-  /**
-    * Represents a symbolic link that creates a loop.
+  /** Represents a symbolic link that creates a loop.
     *
     * @param name a name of the symlink
     * @param path a path to the symlink
@@ -30,16 +27,14 @@ object FileSystemObject {
   case class SymlinkLoop(name: String, path: Path, target: Path)
       extends FileSystemObject
 
-  /**
-    * Represents a file.
+  /** Represents a file.
     *
     * @param name a name of the file
     * @param path a path to the file
     */
   case class File(name: String, path: Path) extends FileSystemObject
 
-  /**
-    * Represents unrecognized object. Example is a broken symlink.
+  /** Represents unrecognized object. Example is a broken symlink.
     */
   case class Other(name: String, path: Path) extends FileSystemObject
 

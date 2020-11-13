@@ -2,8 +2,7 @@ package org.enso.languageserver.session
 
 import org.enso.languageserver.data.ClientId
 
-/**
-  * An object representing a client connected to the language server via both
+/** An object representing a client connected to the language server via both
   * rpc and data protocol.
   *
   * @param clientId the internal id of this client

@@ -9,8 +9,7 @@ import org.enso.polyglot.debugger.protocol.{
 
 object RequestFactory {
 
-  /**
-    * Creates EvaluationRequest inside a [[FlatBufferBuilder]].
+  /** Creates EvaluationRequest inside a [[FlatBufferBuilder]].
     *
     * @param expression expression to evaluate
     * @param builder a class that helps build a FlatBuffer representation of
@@ -25,8 +24,7 @@ object RequestFactory {
     EvaluationRequest.createEvaluationRequest(builder, exprOffset)
   }
 
-  /**
-    * Creates ListBindingsRequest inside a [[FlatBufferBuilder]].
+  /** Creates ListBindingsRequest inside a [[FlatBufferBuilder]].
     *
     * @param builder a class that helps build a FlatBuffer representation of
     *                complex objects
@@ -38,8 +36,7 @@ object RequestFactory {
     ListBindingsRequest.endListBindingsRequest(builder)
   }
 
-  /**
-    * Creates SessionExitRequest inside a [[FlatBufferBuilder]].
+  /** Creates SessionExitRequest inside a [[FlatBufferBuilder]].
     *
     * @param builder a class that helps build a FlatBuffer representation of
     *                complex objects

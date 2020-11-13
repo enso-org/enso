@@ -3,13 +3,11 @@ package org.enso.text.editing
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.TextEdit
 
-/**
-  * Instance of the [[TextEditor]] type class for the [[Rope]] type.
+/** Instance of the [[TextEditor]] type class for the [[Rope]] type.
   */
 object RopeTextEditor extends TextEditor[Rope] {
 
-  /**
-    * Edits a buffer.
+  /** Edits a buffer.
     *
     * @param buffer a text buffer
     * @param diff a change to the buffer
@@ -43,16 +41,14 @@ object RopeTextEditor extends TextEditor[Rope] {
       .codePoints
       .drop(diff.range.end.character)
 
-  /**
-    * Returns a number of lines in a buffer.
+  /** Returns a number of lines in a buffer.
     *
     * @param buffer a text buffer
     * @return a number of lines in the buffer
     */
   override def getLineCount(buffer: Rope): Int = buffer.lines.length
 
-  /**
-    * Cuts out one line from the buffer.
+  /** Cuts out one line from the buffer.
     *
     * @param buffer a text buffer
     * @param lineNumber a number of line

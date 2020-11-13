@@ -92,11 +92,14 @@ class MessageHandlerSpec
         MyNotificationParams("test")
       )
 
-      expectJson(out, json"""
+      expectJson(
+        out,
+        json"""
           { "jsonrpc": "2.0",
             "method": "NotificationMethod",
             "params": { "spam": "test" }
-          }""")
+          }"""
+      )
     }
 
     "receive notifications" in {

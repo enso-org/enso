@@ -4,6 +4,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.dsl.Suspend;
+import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -13,8 +15,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @BuiltinMethod(
     type = "Function",
     name = "<|",
-    description = "Takes a function and an argument and applies the function to the argument.",
-    alwaysDirect = false)
+    description = "Takes a function and an argument and applies the function to the argument.")
 public class ApplicationOperator extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
@@ -24,10 +25,11 @@ public class ApplicationOperator extends Node {
             new CallArgumentInfo[] {new CallArgumentInfo()},
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
-    invokeCallableNode.markTail();
+    invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Stateful execute(VirtualFrame frame, @MonadicState Object state, Function _this, Thunk argument) {
+  Stateful execute(
+      VirtualFrame frame, @MonadicState Object state, Function _this, @Suspend Object argument) {
     return invokeCallableNode.execute(_this, frame, state, new Object[] {argument});
   }
 }

@@ -5,18 +5,16 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
-import org.enso.interpreter.runtime.error.TypeError;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * A node representing a pattern match on an arbitrary runtime value.
@@ -30,7 +28,6 @@ import org.enso.interpreter.runtime.error.TypeError;
 public abstract class CaseNode extends ExpressionNode {
 
   @Children private final BranchNode[] cases;
-  private final BranchProfile typeErrorProfile = BranchProfile.create();
 
   CaseNode(BranchNode[] cases) {
     this.cases = cases;
@@ -69,15 +66,16 @@ public abstract class CaseNode extends ExpressionNode {
    * @param ctx the language context reference
    * @return the result of executing the case expression on {@code object}
    */
-  @Specialization
+  @Specialization(guards = "!isError(object)")
   @ExplodeLoop
   public Object doMatch(
       VirtualFrame frame,
       Object object,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     try {
       for (BranchNode branchNode : cases) {
-        branchNode.execute(frame, object);
+        branchNode.execute(frame, state, object);
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
@@ -88,6 +86,10 @@ public abstract class CaseNode extends ExpressionNode {
       frame.setObject(getStateFrameSlot(), e.getResult().getState());
       return e.getResult().getValue();
     }
+  }
+
+  boolean isError(Object error) {
+    return TypesGen.isRuntimeError(error);
   }
 
   /* Note [Branch Selection Control Flow]

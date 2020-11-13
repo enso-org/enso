@@ -5,15 +5,13 @@ import io.circe._
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 
-/**
-  * A superclass for all capabilities in the system.
+/** A superclass for all capabilities in the system.
   * @param method method name used to identify the capability.
   */
 sealed abstract class Capability(val method: String)
 
 //TODO[MK]: Migrate to actual Path, once it is implemented.
-/**
-  * A capability allowing the user to modify a given file.
+/** A capability allowing the user to modify a given file.
   * @param path the file path this capability is granted for.
   */
 case class CanEdit(path: Path) extends Capability(CanEdit.methodName)
@@ -22,8 +20,7 @@ object CanEdit {
   val methodName = "text/canEdit"
 }
 
-/**
-  * A capability allowing user to receive file events.
+/** A capability allowing user to receive file events.
   *
   * @param path path to watch.
   */
@@ -34,8 +31,7 @@ object ReceivesTreeUpdates {
   val methodName = "file/receivesTreeUpdates"
 }
 
-/**
-  * A capability allowing user to modify the execution context.
+/** A capability allowing user to modify the execution context.
   *
   * @param contextId identifier of an execution conatext
   */
@@ -46,8 +42,7 @@ object CanModify {
   val methodName = "executionContext/canModify"
 }
 
-/**
-  * A capability allowing user to receive events from the execution context.
+/** A capability allowing user to receive events from the execution context.
   *
   * @param contextId identifier of an execution conatext
   */
@@ -79,8 +74,7 @@ object ReceivesSuggestionsDatabaseUpdates {
   val methodName = "search/receivesSuggestionsDatabaseUpdates"
 }
 
-/**
-  * A capability registration object, used to identify acquired capabilities.
+/** A capability registration object, used to identify acquired capabilities.
   *
   * @param capability the registered capability.
   */

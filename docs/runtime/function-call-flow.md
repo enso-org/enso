@@ -46,7 +46,7 @@ like a builtin language loop construct.
 In pseudocode, a tail recursive function, like:
 
 ```ruby
-foo x = if x == 0 then print "foo" else foo (x - 1)
+foo x = if x == 0 then print "foo" else @Tail_Call foo (x - 1)
 ```
 
 becomes:

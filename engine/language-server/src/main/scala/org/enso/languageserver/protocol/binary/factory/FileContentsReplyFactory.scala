@@ -10,8 +10,7 @@ import org.enso.languageserver.protocol.binary.EnsoUUID
 
 object FileContentsReplyFactory {
 
-  /**
-    * Creates a [[FileContentsReply]] inside a [[FlatBufferBuilder]].
+  /** Creates a [[FileContentsReply]] inside a [[FlatBufferBuilder]].
     *
     * @param contents the binary contents of a file
     * @param correlationId correlation id used to correlate a response with a

@@ -1,25 +1,23 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.pass.PassConfiguration
-import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.node.BaseNode.TailStatus
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.Module
 
 /** A type containing the information about the execution context for an inline
   * expression.
   *
-  * @param ensoContext the Enso language context
+  * @param module the module in which the expression is being executed
   * @param localScope the local scope in which the expression is being executed
-  * @param moduleScope the module scope in which the expression is being
-  *                    executed
   * @param isInTailPosition whether or not the inline expression occurs in tail
   *                         position ([[None]] indicates no information)
   * @param freshNameSupply the compiler's supply of fresh names
   * @param passConfiguration the pass configuration
   */
 case class InlineContext(
-  ensoContext: Option[Context]                 = None,
+  module: Module,
   localScope: Option[LocalScope]               = None,
-  moduleScope: Option[ModuleScope]             = None,
   isInTailPosition: Option[Boolean]            = None,
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None
@@ -38,12 +36,12 @@ object InlineContext {
   def fromJava(
     localScope: LocalScope,
     moduleScope: ModuleScope,
-    isInTailPosition: Boolean
+    isInTailPosition: TailStatus
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
-      moduleScope      = Option(moduleScope),
-      isInTailPosition = Option(isInTailPosition)
+      module           = moduleScope.getModule,
+      isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL)
     )
   }
 }

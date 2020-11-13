@@ -110,8 +110,8 @@ object Macro {
 
         mTemplate match {
           case Some(template) => {
-            val allVals = template.body.collect {
-              case valDef: ValDef => valDef
+            val allVals = template.body.collect { case valDef: ValDef =>
+              valDef
             }
 
             allVals.filter(t =>
@@ -157,8 +157,8 @@ object Macro {
       ): (Tree, TypeName, TermName) = {
         val (opaqueType, opaqueStorageName) = paramType match {
           case AppliedTypeTree(
-              Ident(_),
-              typeName :: Ident(storageName) :: Nil
+                Ident(_),
+                typeName :: Ident(storageName) :: Nil
               ) =>
             (typeName, storageName.toTypeName)
         }
@@ -187,19 +187,19 @@ object Macro {
 
         for ((subfield, ix) <- subfields.view.zipWithIndex) {
           accessorDefs = accessorDefs :+ genSubfieldGetter(
-              subfield,
-              enclosingName,
-              ix,
-              graphTypeName,
-              isSimple
-            )
+            subfield,
+            enclosingName,
+            ix,
+            graphTypeName,
+            isSimple
+          )
           accessorDefs = accessorDefs :+ genSubfieldSetter(
-              subfield,
-              enclosingName,
-              ix,
-              graphTypeName,
-              isSimple
-            )
+            subfield,
+            enclosingName,
+            ix,
+            graphTypeName,
+            isSimple
+          )
         }
 
         val valClassAccessors = genValClassAccessors(
@@ -647,12 +647,12 @@ object Macro {
             errorTName
           } else {
             val boundsNames = firstTParam.children
-              .collect {
-                case tree: TypeBoundsTree => tree
+              .collect { case tree: TypeBoundsTree =>
+                tree
               }
               .map(_.hi)
-              .collect {
-                case Ident(name) => name.toTypeName
+              .collect { case Ident(name) =>
+                name.toTypeName
               }
 
             boundsNames.head
@@ -704,9 +704,11 @@ object Macro {
         val graphTermName     = graphTypeName.toTermName
         val valClassName      = TypeName(fieldTermName.toString + "Val")
 
-        if (subfields
-              .map(_.name.toString.toLowerCase)
-              .contains(fieldTermName.toString.toLowerCase)) {
+        if (
+          subfields
+            .map(_.name.toString.toLowerCase)
+            .contains(fieldTermName.toString.toLowerCase)
+        ) {
           c.error(
             c.enclosingPosition,
             "YOu cannot define a subfield name that clashes with the field name."
@@ -796,8 +798,8 @@ object Macro {
           .collect {
             case valDef: ValDef if isOpaqueParam(valDef) => valDef.tpt
           }
-          .collect {
-            case AppliedTypeTree(_, _ :: storageName :: Nil) => storageName
+          .collect { case AppliedTypeTree(_, _ :: storageName :: Nil) =>
+            storageName
           }
           .distinct
 
@@ -836,8 +838,10 @@ object Macro {
 
         val subfieldNamesLower = subfields.map(_.name.toString.toLowerCase)
 
-        if (subfieldNamesLower.contains(parentName.toString.toLowerCase) ||
-            subfieldNamesLower.contains(typeName.toString.toLowerCase)) {
+        if (
+          subfieldNamesLower.contains(parentName.toString.toLowerCase) ||
+          subfieldNamesLower.contains(typeName.toString.toLowerCase)
+        ) {
           c.error(
             c.enclosingPosition,
             "You cannot define a variant subfield that clashes with either " +
@@ -956,8 +960,8 @@ object Macro {
             errorName
           } else {
             val firstGName = gNames.head
-            val idents = firstGName.children.collect {
-              case Ident(name) => name.toTypeName
+            val idents = firstGName.children.collect { case Ident(name) =>
+              name.toTypeName
             }
 
             if (idents.length != 1) {
@@ -1024,8 +1028,8 @@ object Macro {
 
         // Note [Encoding Variant Size]
         val numTotalSize = variantResults
-            .map(_._2)
-            .foldLeft(0)((x: Int, y: Int) => Math.max(x, y)) + 1
+          .map(_._2)
+          .foldLeft(0)((x: Int, y: Int) => Math.max(x, y)) + 1
 
         val baseModuleStub: ModuleDef =
           q"""
@@ -1120,7 +1124,6 @@ object Macro {
     *     }
     *   }
     * }}}
-    *
     */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class component extends StaticAnnotation {
@@ -1140,8 +1143,7 @@ object Macro {
 
       val baseBlock: Block = Block(List(), EmptyTree)
 
-      /**
-        * Appends a statement to a block with no return value.
+      /** Appends a statement to a block with no return value.
         *
         * @param block the block to append to
         * @param statement the statement to append to `block`
@@ -1174,18 +1176,18 @@ object Macro {
           (errorTName, errorTName)
         } else {
           val tDef = typeDefs.head
-          val typeParams = tDef.children.collect {
-            case typeDef: TypeDef => typeDef
+          val typeParams = tDef.children.collect { case typeDef: TypeDef =>
+            typeDef
           }
 
           if (typeParams.length == 1) {
             val boundNames = typeParams.head.children
-              .collect {
-                case tree: TypeBoundsTree => tree
+              .collect { case tree: TypeBoundsTree =>
+                tree
               }
               .map(_.hi)
-              .collect {
-                case Ident(name) => name.toTypeName
+              .collect { case Ident(name) =>
+                name.toTypeName
               }
 
             (tDef.name, boundNames.head)

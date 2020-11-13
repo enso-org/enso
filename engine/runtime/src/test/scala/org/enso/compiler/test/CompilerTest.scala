@@ -1,12 +1,15 @@
 package org.enso.compiler.test
 
 import org.enso.compiler.codegen.AstToIr
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.PassManager
+import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.pkg.QualifiedName
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -146,7 +149,7 @@ trait CompilerRunner {
     * @return an IR name representing the name `str`
     */
   def nameFromString(str: String): IR.Name.Literal = {
-    IR.Name.Literal(str, None)
+    IR.Name.Literal(str, isReferent = false, None)
   }
 
   // === IR Testing Utils =====================================================
@@ -164,8 +167,11 @@ trait CompilerRunner {
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition.Method.Explicit(
         IR.Name.MethodReference(
-          List(IR.Name.Literal("TestType", None)),
-          IR.Name.Literal("testMethod", None),
+          IR.Name.Qualified(
+            List(IR.Name.Literal("TestType", isReferent = true, None)),
+            None
+          ),
+          IR.Name.Literal("testMethod", isReferent = false, None),
           None
         ),
         ir,
@@ -179,11 +185,11 @@ trait CompilerRunner {
       */
     def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
       IR.Module.Scope.Definition.Atom(
-        IR.Name.Literal("TestAtom", None),
+        IR.Name.Literal("TestAtom", isReferent = true, None),
         List(
           IR.DefinitionArgument
             .Specified(
-              IR.Name.Literal("arg", None),
+              IR.Name.Literal("arg", isReferent = false, None),
               Some(ir),
               suspended = false,
               None
@@ -203,7 +209,52 @@ trait CompilerRunner {
       * @return a module containing an atom def and method def using `expr`
       */
     def asModuleDefs: IR.Module = {
-      IR.Module(List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
+      IR.Module(List(), List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
     }
+  }
+
+  /** Builds a module context with a mocked module for testing purposes.
+    *
+    * @param moduleName the name of the test module.
+    * @param freshNameSupply the fresh name supply to use in tests.
+    * @param passConfiguration any additional pass configuration.
+    * @return an instance of module context.
+    */
+  def buildModuleContext(
+    moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
+    freshNameSupply: Option[FreshNameSupply]     = None,
+    passConfiguration: Option[PassConfiguration] = None
+  ): ModuleContext = {
+    ModuleContext(
+      module            = Module.empty(moduleName),
+      freshNameSupply   = freshNameSupply,
+      passConfiguration = passConfiguration
+    )
+  }
+
+  /** Builds an inline context with a mocked module for testing purposes.
+    *
+    * @param localScope the local scope for variable resolution.
+    * @param isInTailPosition whether the expression is being evaluated in
+    *                         a tail position.
+    * @param freshNameSupply the fresh name supply to use for name generation.
+    * @param passConfiguration any additional pass configuration.
+    * @return an instance of inline context.
+    */
+  def buildInlineContext(
+    localScope: Option[LocalScope]               = None,
+    isInTailPosition: Option[Boolean]            = None,
+    freshNameSupply: Option[FreshNameSupply]     = None,
+    passConfiguration: Option[PassConfiguration] = None
+  ): InlineContext = {
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"))
+    mod.unsafeBuildIrStub()
+    InlineContext(
+      module            = mod,
+      freshNameSupply   = freshNameSupply,
+      passConfiguration = passConfiguration,
+      localScope        = localScope,
+      isInTailPosition  = isInTailPosition
+    )
   }
 }

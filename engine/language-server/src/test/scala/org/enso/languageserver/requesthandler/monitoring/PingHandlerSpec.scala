@@ -61,7 +61,7 @@ class PingHandlerSpec
     system.stop(actorUnderTest)
   }
 
-  it must "stop without replying when some of subsystems don't reply on time" taggedAs(Flaky) in {
+  it must "stop without replying when some of subsystems don't reply on time" taggedAs Flaky in {
     //given
     val subsystem1 = TestProbe()
     val subsystem2 = TestProbe()

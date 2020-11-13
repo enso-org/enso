@@ -6,13 +6,11 @@ import javax.net.ServerSocketFactory
 import scala.annotation.tailrec
 import scala.util.Random
 
-/**
-  * A namespace for TCP auxiliary functions.
+/** A namespace for TCP auxiliary functions.
   */
 object Tcp {
 
-  /**
-    * Finds first available socket.
+  /** Finds first available socket.
     *
     * @param host a host
     * @param minPort a minimum value of port
@@ -30,8 +28,7 @@ object Tcp {
     }
   }
 
-  /**
-    * Checks if socket is available.
+  /** Checks if socket is available.
     *
     * @param host a host
     * @param port a port

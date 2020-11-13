@@ -6,40 +6,41 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that performs edition of a file.
+/** A command that performs edition of a file.
   *
   * @param request a request for editing
   */
 class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
 
-  /**
-    * Executes a request.
+  /** Executes a request.
     *
     * @param ctx contains suppliers of services to perform a request
     */
-  override def execute(
-    implicit ctx: RuntimeContext,
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     for {
       _ <- Future { ctx.jobControlPlane.abortAllJobs() }
-      _ <- ctx.jobProcessor.run(
-        new EnsureCompiledJob(request.path, request.edits)
+      status <- ctx.jobProcessor.run(
+        EnsureCompiledJob(request.path, request.edits)
       )
-      _ <- Future.sequence(executeJobs.map(ctx.jobProcessor.run))
+      _ <-
+        if (status == EnsureCompiledJob.CompilationStatus.Success)
+          Future.traverse(executeJobs)(ctx.jobProcessor.run)
+        else
+          Future.successful(())
     } yield ()
   }
 
-  private def executeJobs(
-    implicit ctx: RuntimeContext
+  private def executeJobs(implicit
+    ctx: RuntimeContext
   ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
-      .map {
-        case (contextId, stack) =>
-          new ExecuteJob(contextId, stack, Seq())
+      .map { case (contextId, stack) =>
+        new ExecuteJob(contextId, stack, Seq(), sendMethodCallUpdates = false)
       }
   }
 

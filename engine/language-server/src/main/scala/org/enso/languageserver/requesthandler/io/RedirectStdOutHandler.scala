@@ -7,8 +7,7 @@ import org.enso.languageserver.io.InputOutputApi.RedirectStandardOutput
 import org.enso.languageserver.io.InputOutputProtocol
 import org.enso.languageserver.util.UnhandledLogging
 
-/**
-  * A request handler for `io/redirectStandardOutput` commands.
+/** A request handler for `io/redirectStandardOutput` commands.
   *
   * @param stdOutController an output redirection controller
   * @param clientId a client requesting redirection
@@ -29,8 +28,7 @@ class RedirectStdOutHandler(stdOutController: ActorRef, clientId: ClientId)
 
 object RedirectStdOutHandler {
 
-  /**
-    * Creates a configuration object used to create a [[RedirectStdOutHandler]].
+  /** Creates a configuration object used to create a [[RedirectStdOutHandler]].
     *
     * @param stdOutController an output redirection controller
     * @param clientId a client requesting redirection

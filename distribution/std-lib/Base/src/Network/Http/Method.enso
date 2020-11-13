@@ -1,0 +1,10 @@
+type Method
+
+    type Options
+    type Get
+    type Head
+    type Post
+    type Put
+    type Delete
+    type Trace
+    type Connect

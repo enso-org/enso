@@ -3,7 +3,7 @@ layout: developer-doc
 title: Construct Resolution
 category: parser
 tags: [parser, construct, resolution]
-order: 7
+order: 6
 ---
 
 # Construct Resolution

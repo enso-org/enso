@@ -1,7 +1,6 @@
 package org.enso.compiler.pass
 
-/**
-  * A pass is a transformation from source type to sink type.
+/** A pass is a transformation from source type to sink type.
   *
   * Passes may take in additional information when run (e.g. analysis output),
   * and may also output additional information.
@@ -11,8 +10,7 @@ package org.enso.compiler.pass
   */
 trait Pass[In, Out] {
 
-  /**
-    * A class representing the output of a pass.
+  /** A class representing the output of a pass.
     *
     * @param result the result of running the pass
     * @param metadata any metadata produced by the pass
@@ -20,8 +18,7 @@ trait Pass[In, Out] {
     */
   sealed case class Output[TOut](result: Out, metadata: TOut)
 
-  /**
-    * Executes the pass on the source, with optional input metadata.
+  /** Executes the pass on the source, with optional input metadata.
     *
     * @param input the source to transform or analyse
     * @param data metadata necessary foe the pass to execute correctly

@@ -39,12 +39,11 @@ class LanguageServerSupervisorSpec
   "A language supervisor" should "monitor language server by sending ping requests on regular basis" taggedAs Flaky in new TestCtx {
     //given
     val probe = TestProbe()
-    fakeServer.withBehaviour {
-      case ping @ PingMatcher(requestId) =>
-        probe.ref ! ping
-        ReplyWith(
-          s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
-        )
+    fakeServer.withBehaviour { case ping @ PingMatcher(requestId) =>
+      probe.ref ! ping
+      ReplyWith(
+        s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
+      )
     }
     probe.expectNoMessage()
     //when
@@ -70,17 +69,16 @@ class LanguageServerSupervisorSpec
       .thenReturn(Future.successful(ComponentRestarted))
     val probe               = TestProbe()
     @volatile var pingCount = 0
-    fakeServer.withBehaviour {
-      case ping @ PingMatcher(requestId) =>
-        probe.ref ! ping
-        pingCount += 1
-        if (pingCount == 3) {
-          Reject
-        } else {
-          ReplyWith(
-            s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
-          )
-        }
+    fakeServer.withBehaviour { case ping @ PingMatcher(requestId) =>
+      probe.ref ! ping
+      pingCount += 1
+      if (pingCount == 3) {
+        Reject
+      } else {
+        ReplyWith(
+          s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
+        )
+      }
     }
     probe.expectNoMessage()
     //when
@@ -114,10 +112,9 @@ class LanguageServerSupervisorSpec
     //given
     when(serverComponent.restart()).thenReturn(Future.failed(new Exception))
     val probe = TestProbe()
-    fakeServer.withBehaviour {
-      case ping @ PingMatcher(_) =>
-        probe.ref ! ping
-        Reject
+    fakeServer.withBehaviour { case ping @ PingMatcher(_) =>
+      probe.ref ! ping
+      Reject
     }
     probe.expectNoMessage()
     //when
