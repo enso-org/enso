@@ -178,34 +178,42 @@ object Doc {
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
-        val htmlStyle    = HTML.`style` := "display: block"
         val firstIndent  = elems.head.indent
-        val elemsHTML = elems.toList.map(elem => {
-          elem.indent -= firstIndent
-          elem.html
-        })
+        val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
         val btnAction = onclick :=
           s"""var code = document.getElementById("$uniqueIDCode");
              |var btn  = document.getElementById("$uniqueIDBtn").firstChild;
              |btn.data = btn.data == "Show" ? "Hide" : "Show";
-             |code.style.display = code.style.display ==
+             |code.style.display = code.style.display == 
              |"inline-block" ? "none" : "inline-block";""".stripMargin
             .replaceAll("\n", "")
         val copyAction = onclick :=
           s"""var code  = document.getElementById("$uniqueIDCode");
-             |var range = document.body.createTextRange();
-             |range.moveToElementText(code);
-             |range.select().createTextRange();
-             |document.execCommand("copy");""".stripMargin
-            .replaceAll("\n", "")
+             |var range = document.createRange();
+             |range.selectNode(code);
+             |window.getSelection().removeAllRanges();
+             |window.getSelection().addRange(range);
+             |document.execCommand("copy");
+             |window.getSelection().removeAllRanges();""".stripMargin
         val btnStyle = HTML.`style` := "display: flex"
         val btn      = HTML.button(btnAction)(htmlIdBtn)("Show")
         val copyBtn  = HTML.button(copyAction)(btnStyle)("Copy")
         if (isInGui) {
-          Seq(HTML.div(HTML.div(htmlCls())(htmlStyle)(elemsHTML), copyBtn))
-        } else {
+          val htmlStyle = HTML.`style` := "display: block"
           Seq(
-            HTML.div(btn, HTML.div(htmlCls())(htmlIdCode)(elemsHTML), copyBtn)
+            HTML.div(
+              HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
+              copyBtn
+            )
+          )
+        } else {
+          val htmlStyle = HTML.`style` := "display: none"
+          Seq(
+            HTML.div(
+              btn,
+              HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
+              copyBtn
+            )
           )
         }
       }
@@ -227,6 +235,8 @@ object Doc {
       final case class Line(indent: Int, elem: String) extends Elem {
         val repr: Repr.Builder = R + indent + elem
         val html: HTML         = Seq(HTML.code(" " * indent + elem), HTML.br)
+        def htmlOffset(off: Int): HTML =
+          Seq(HTML.code(" " * (indent - off) + elem), HTML.br)
       }
     }
 
