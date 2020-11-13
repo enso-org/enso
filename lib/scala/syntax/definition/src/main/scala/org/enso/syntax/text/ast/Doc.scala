@@ -224,8 +224,8 @@ object Doc {
       def apply(elems: CodeBlock.Line*): CodeBlock =
         CodeBlock(List1(elems.head, elems.tail.toList), isInGui = true)
 
-      /** Inline - line of code which is in line with other elements
-        * Line - elem which is a part of Code Block
+      /** Inline - line of code which is in line with other elements.
+        * Line - elem which is a part of Code Block.
         */
       final case class Inline(str: String) extends Elem {
         val marker             = '`'
