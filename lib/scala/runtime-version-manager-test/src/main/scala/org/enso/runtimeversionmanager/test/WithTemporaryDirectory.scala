@@ -8,7 +8,10 @@ import org.scalatest.{BeforeAndAfterEach, Suite}
 
 /** Creates a separate temporary directory for each test.
   */
-trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
+trait WithTemporaryDirectory
+    extends Suite
+    with BeforeAndAfterEach
+    with HasTestDirectory {
   private var testDirectory: Path = _
 
   /** @inheritdoc
@@ -25,8 +28,7 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
     robustDeleteDirectory(testDirectory.toFile)
   }
 
-  /** Returns the temporary directory for this test.
-    */
+  /** Returns the temporary directory for this test. */
   def getTestDirectory: Path = testDirectory.toAbsolutePath.normalize
 
   /** Tries to remove the directory, retrying every 100ms for 3 seconds.

@@ -27,6 +27,7 @@ import org.enso.runtimeversionmanager.releases.{
 }
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
+  HasTestDirectory,
   TestLocalLockManager
 }
 
@@ -44,7 +45,8 @@ class TestDistributionConfiguration(
   override val engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
 ) extends DistributionConfiguration
-    with FakeEnvironment {
+    with FakeEnvironment
+    with HasTestDirectory {
 
   def getTestDirectory: Path = distributionRoot
 
