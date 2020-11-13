@@ -7,6 +7,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.locking.{
+  Lock,
   LockType,
   Resource,
   ResourceManager
@@ -112,6 +113,13 @@ class RuntimeVersionManager(
       action(engine)
     }
   }
+
+  def lockEngine[R](version: SemVer): Lock =
+    resourceManager.acquireResource(
+      userInterface,
+      Resource.Engine(version),
+      LockType.Shared
+    )
 
   /** Executes the provided action with a requested engine version and its
     * corresponding runtime.

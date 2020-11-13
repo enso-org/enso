@@ -1,6 +1,9 @@
 package org.enso.projectmanager.service.config
 
 import io.circe.Json
+import nl.gn0s1s.bump.SemVer
+import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion, SemVerEnsoVersion}
+import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
 import org.enso.projectmanager.service.versionmanagement.NoOpInterface
@@ -11,7 +14,7 @@ import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
   *
   * @param distributionConfiguration a distribution configuration
   */
-class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel](
+class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   distributionConfiguration: DistributionConfiguration
 ) extends GlobalConfigServiceApi[F] {
 
@@ -23,7 +26,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel](
   override def getKey(
     key: String
   ): F[GlobalConfigServiceFailure, Option[String]] =
-    Sync[F].blockingIO {
+    Sync[F].blockingOp {
       val valueOption = configurationManager.getConfig.original.apply(key)
       valueOption.map(json => json.asString.getOrElse(json.toString()))
     }.recoverAccessErrors
@@ -31,13 +34,18 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel](
   override def setKey(
     key: String,
     value: String
-  ): F[GlobalConfigServiceFailure, Unit] = Sync[F].blockingIO {
+  ): F[GlobalConfigServiceFailure, Unit] = Sync[F].blockingOp {
     configurationManager.updateConfigRaw(key, Json.fromString(value))
   }.recoverAccessErrors
 
   override def deleteKey(key: String): F[GlobalConfigServiceFailure, Unit] =
-    Sync[F].blockingIO {
+    Sync[F].blockingOp {
       configurationManager.removeFromConfig(key)
+    }.recoverAccessErrors
+
+  override def getDefaultEnsoVersion: F[GlobalConfigServiceFailure, SemVer] =
+    Sync[F].blockingOp {
+      configurationManager.defaultVersion
     }.recoverAccessErrors
 
   implicit class AccessErrorRecovery[A](fa: F[Throwable, A]) {
@@ -46,5 +54,12 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel](
         ConfigurationFileAccessFailure(throwable.getMessage)
       }
     }
+  }
+
+  override def resolveEnsoVersion(
+    ensoVersion: EnsoVersion
+  ): F[GlobalConfigServiceFailure, SemVer] = ensoVersion match {
+    case DefaultEnsoVersion         => getDefaultEnsoVersion
+    case SemVerEnsoVersion(version) => CovariantFlatMap[F].pure(version)
   }
 }

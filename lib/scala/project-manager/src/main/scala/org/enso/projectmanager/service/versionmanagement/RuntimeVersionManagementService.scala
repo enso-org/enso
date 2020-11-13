@@ -89,4 +89,29 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
     .mapRuntimeManagerErrors(throwable =>
       ComponentRepositoryAccessFailure(throwable.getMessage)
     )
+//
+//  override def findAndLockEngine(
+//    version: SemVer
+//  ): F[ProjectServiceFailure, (Engine, Lock)] = Sync[F]
+//    .blockingOp {
+//      val mgr  = makeReadOnlyVersionManager() // FIXME
+//      val lock = mgr.lockEngine(version)
+//      try {
+//        val engine = mgr
+//          .findEngine(version)
+//          .getOrElse(
+//            throw ComponentMissingError(s"Engine $version is not installed.")
+//          )
+//        (engine, lock)
+//      } catch {
+//        case e: Throwable =>
+//          lock.release()
+//          throw e
+//      }
+//    }
+//    .mapRuntimeManagerErrors(throwable =>
+//      MissingComponentFailure(
+//        s"Could not find engine version $version: ${throwable.getMessage}"
+//      )
+//    )
 }

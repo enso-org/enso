@@ -2,7 +2,7 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
-import org.enso.pkg.EnsoVersion
+import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{
   LanguageServerSockets,
   MissingComponentAction,
@@ -24,7 +24,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     */
   def createUserProject(
     name: String,
-    version: EnsoVersion,
+    version: SemVer,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, UUID]
 
@@ -50,6 +50,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     *
     * @param clientId the requester id
     * @param projectId the project id
+    * @param missingComponentAction specifies how to handle missing components
     * @return either failure or a socket of the Language Server
     */
   def openProject(

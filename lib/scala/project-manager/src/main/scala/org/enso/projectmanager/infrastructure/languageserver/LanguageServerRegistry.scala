@@ -23,7 +23,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 /** An actor that routes request regarding lang. server lifecycle to the
   * right controller that manages the server.
-  * It creates a controller actor, if a server doesn't exists.
+  * It creates a controller actor, if a server doesn't exist.
   *
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config

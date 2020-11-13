@@ -3,18 +3,19 @@ package org.enso.projectmanager.service
 import java.util.UUID
 
 import cats.MonadError
-import org.enso.pkg.{EnsoVersion, PackageManager}
+import nl.gn0s1s.bump.SemVer
+import org.enso.pkg.PackageManager
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.control.effect.syntax._
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
   LanguageServerSockets,
   MissingComponentAction,
   ProjectMetadata
 }
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerGateway
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
@@ -59,11 +60,11 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   /** @inheritdoc */
   override def createUserProject(
     name: String,
-    version: EnsoVersion,
+    version: SemVer,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, UUID] = {
     // TODO [RW] new component handling
-    val _ = (version, missingComponentAction)
+    val _ = version
     // format: off
     for {
       projectId    <- gen.randomUUID()
@@ -180,8 +181,6 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     projectId: UUID,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, LanguageServerSockets] = {
-    // TODO [RW] new component handling
-    val _ = missingComponentAction
     // format: off
     for {
       _        <- log.debug(s"Opening project $projectId")
@@ -193,6 +192,14 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     } yield sockets
     // format: on
   }
+
+//  override def getProjectEngineVersion(
+//    projectId: UUID
+//  ): F[ProjectServiceFailure, EnsoVersion] = for {
+//    _ <- log.debug(s"Opening project $projectId")
+//    _ <- getUserProject(projectId)
+//    // TODO [RW] get version from definition...
+//  } yield DefaultEnsoVersion
 
   private def startServer(
     clientId: UUID,

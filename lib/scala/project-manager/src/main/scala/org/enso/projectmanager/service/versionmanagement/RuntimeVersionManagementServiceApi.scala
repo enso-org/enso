@@ -39,4 +39,17 @@ trait RuntimeVersionManagementServiceApi[F[+_, +_]] {
 
   /** Lists engine versions available in the associated repository. */
   def listAvailableEngines(): F[ProjectServiceFailure, Seq[EngineVersion]]
+
+//  def handleMissingComponents(
+//    progressTracker: ActorRef,
+//    version: SemVer,
+//    missingComponentAction: MissingComponentAction
+//  )(implicit flatMap: CovariantFlatMap[F]): F[ProjectServiceFailure, Unit] =
+//    missingComponentAction match {
+//      case MissingComponentAction.Fail => CovariantFlatMap[F].pure(())
+//      case MissingComponentAction.Install =>
+//        installEngine(progressTracker, version, forceInstallBroken = false)
+//      case MissingComponentAction.ForceInstallBroken =>
+//        installEngine(progressTracker, version, forceInstallBroken = true)
+//    }
 }

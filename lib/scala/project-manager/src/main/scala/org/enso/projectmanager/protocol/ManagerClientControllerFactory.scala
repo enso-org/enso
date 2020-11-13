@@ -6,7 +6,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
-import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.control.effect.{ErrorChannel, Exec}
 import org.enso.projectmanager.service.ProjectServiceApi
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
@@ -19,7 +19,9 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagemen
   * @param runtimeVersionManagementService version management service
   * @param timeoutConfig a request timeout config
   */
-class ManagerClientControllerFactory[F[+_, +_]: Exec: CovariantFlatMap](
+class ManagerClientControllerFactory[
+  F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel
+](
   system: ActorSystem,
   projectService: ProjectServiceApi[F],
   globalConfigService: GlobalConfigServiceApi[F],

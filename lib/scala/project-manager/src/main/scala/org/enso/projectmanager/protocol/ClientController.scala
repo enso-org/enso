@@ -6,7 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
-import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.control.effect.{ErrorChannel, Exec}
 import org.enso.projectmanager.event.ClientEvent.{
   ClientConnected,
   ClientDisconnected
@@ -30,7 +30,7 @@ import scala.concurrent.duration._
   * @param runtimeVersionManagementService version management service
   * @param timeoutConfig a request timeout config
   */
-class ClientController[F[+_, +_]: Exec: CovariantFlatMap](
+class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
   clientId: UUID,
   projectService: ProjectServiceApi[F],
   globalConfigService: GlobalConfigServiceApi[F],
@@ -44,11 +44,19 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap](
   private val requestHandlers: Map[Method, Props] =
     Map(
       ProjectCreate -> ProjectCreateHandler
-        .props[F](projectService, timeoutConfig.requestTimeout),
+        .props[F](
+          globalConfigService,
+          projectService,
+          timeoutConfig.requestTimeout
+        ),
       ProjectDelete -> ProjectDeleteHandler
         .props[F](projectService, timeoutConfig.requestTimeout),
       ProjectOpen -> ProjectOpenHandler
-        .props[F](clientId, projectService, timeoutConfig.bootTimeout),
+        .props[F](
+          clientId,
+          projectService,
+          timeoutConfig.bootTimeout
+        ),
       ProjectClose -> ProjectCloseHandler
         .props[F](
           clientId,
@@ -118,7 +126,7 @@ object ClientController {
     * @param timeoutConfig a request timeout config
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec: CovariantFlatMap](
+  def props[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
     clientId: UUID,
     projectService: ProjectServiceApi[F],
     globalConfigService: GlobalConfigServiceApi[F],
