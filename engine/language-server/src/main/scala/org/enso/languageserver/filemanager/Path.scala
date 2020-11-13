@@ -5,7 +5,8 @@ import java.nio
 import java.nio.file.Paths
 import java.util.UUID
 
-/** A representation of a path relative to a specified content root.
+/**
+  * A representation of a path relative to a specified content root.
   *
   * @param rootId a content root id that the path is relative to
   * @param segments path segments
@@ -13,8 +14,8 @@ import java.util.UUID
 case class Path(rootId: UUID, segments: Vector[String]) {
 
   def toFile(rootPath: File): File =
-    segments.foldLeft(rootPath) { case (parent, child) =>
-      new File(parent, child)
+    segments.foldLeft(rootPath) {
+      case (parent, child) => new File(parent, child)
     }
 
   def toFile(rootPath: File, fileName: String): File = {
@@ -37,7 +38,8 @@ object Path {
     b.result().filter(_.nonEmpty)
   }
 
-  /** Get path relative to the root.
+  /**
+    * Get path relative to the root.
     *
     * @param root a root path
     * @param base a path relative to the root
@@ -47,7 +49,8 @@ object Path {
   def getRelativePath(root: File, base: Path, path: nio.file.Path): Path =
     Path(base.rootId, root.toPath.relativize(path))
 
-  /** Get path relative to the root, and return a parent path.
+  /**
+    * Get path relative to the root, and return a parent path.
     *
     * @param root a root path
     * @param base a path relative to the root

@@ -2,7 +2,8 @@ package org.enso.projectmanager.control.core
 
 import zio.ZIO
 
-/** Instance of [[CovariantFlatMap]] class for ZIO.
+/**
+  * Instance of [[CovariantFlatMap]] class for ZIO.
   */
 private[core] class ZioCovariantFlatMap[R]
     extends CovariantFlatMap[ZIO[R, +*, +*]] {

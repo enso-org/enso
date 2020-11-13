@@ -4,12 +4,9 @@ import java.util.UUID
 import io.circe.literal._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
-import org.enso.testkit.{FlakySpec, RetrySpec}
+import org.enso.testkit.FlakySpec
 
-class SuggestionsHandlerTest
-    extends BaseServerTest
-    with FlakySpec
-    with RetrySpec {
+class SuggestionsHandlerTest extends BaseServerTest with FlakySpec {
 
   "SuggestionsHandler" must {
 
@@ -28,7 +25,7 @@ class SuggestionsHandlerTest
       """)
     }
 
-    "get initial suggestions database version" taggedAs Retry in {
+    "get initial suggestions database version" in {
       val client = getInitialisedWsClient()
       system.eventStream.publish(ProjectNameChangedEvent("Test"))
 

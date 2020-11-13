@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ArgumentSorterNode;
@@ -46,7 +45,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail);
+      boolean isTail);
 
   @Specialization
   Stateful invokeUncached(
@@ -57,7 +56,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail,
+      boolean isTail,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode,
       @Cached CaptureCallerInfoNode captureCallerInfoNode) {
@@ -86,6 +85,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
         mappedArguments.getState(),
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
+        function.getSchema(),
         argumentMapping.getPostApplicationSchema(),
         defaultsExecutionMode,
         argumentsExecutionMode,

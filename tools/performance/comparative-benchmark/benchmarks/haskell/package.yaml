@@ -15,8 +15,6 @@ library:
   dependencies:
     - base
     - deepseq
-    - containers
-    - random
 
 benchmarks:
   haskell-benchmark:

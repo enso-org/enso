@@ -19,7 +19,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `executionContext/create` commands.
+/**
+  * A request handler for `executionContext/create` commands.
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
@@ -74,7 +75,8 @@ class CreateHandler(
 
 object CreateHandler {
 
-  /** Creates configuration object used to create a [[CreateHandler]].
+  /**
+    * Creates configuration object used to create a [[CreateHandler]].
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.

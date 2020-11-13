@@ -7,7 +7,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.Context;
@@ -86,7 +85,7 @@ public abstract class InteropApplicationNode extends Node {
             buildSchema(arguments.length),
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
-            BaseNode.TailStatus.NOT_TAIL)
+            false)
         .getValue();
   }
 }

@@ -190,7 +190,8 @@ class Parser {
     SourceFile(run(new Reader(input), idmap), metadata)
   }
 
-  /** Parse contents of the program source file, attaching any IDs defined
+  /**
+    * Parse contents of the program source file, attaching any IDs defined
     * in the metadata section and dropping macros resolution data.
     *
     * @param input the code parse.
@@ -204,8 +205,9 @@ class Parser {
   }
 
   private def attachIds(module: AST.Module, ids: IDMap): AST.Module = {
-    val idMap: Map[Location, AST.ID] = ids.map { case (span, id) =>
-      (Location(span.index.value, span.index.value + span.size.value), id)
+    val idMap: Map[Location, AST.ID] = ids.map {
+      case (span, id) =>
+        (Location(span.index.value, span.index.value + span.size.value), id)
     }.toMap
 
     def go(ast: AST): AST = {
@@ -234,7 +236,8 @@ class Parser {
     resolved
   }
 
-  /** Processes an input [[AST.Module]], attaching absolute span information
+  /**
+    * Processes an input [[AST.Module]], attaching absolute span information
     * to it and all its children.
     */
   def attachModuleLocations(ast: AST.Module): AST.Module = {
@@ -253,7 +256,8 @@ class Parser {
     unspannedModule.setLocation(Location(toplevelOffset, ast.span))
   }
 
-  /** Processes an AST block, attaching absolute span information to it
+  /**
+    * Processes an AST block, attaching absolute span information to it
     * and all children.
     *
     * @param ast the AST block to mark with absolute positions
@@ -289,7 +293,8 @@ class Parser {
     )
   }
 
-  /** Attaches absolute span information to arbitrary AST.
+  /**
+    * Attaches absolute span information to arbitrary AST.
     *
     * [[App.Prefix]] nodes are treated specially, since at the stage this
     * method is run, we expect a token-stream-like AST, where App nodes act as
@@ -362,7 +367,8 @@ class Parser {
    * different variants, we can say it is safe and coerce the types.
    */
 
-  /** Automatically derives source location for an AST node, based on its
+  /**
+    * Automatically derives source location for an AST node, based on its
     * children's locations
     *
     * @param ast the AST to derive location for
@@ -380,7 +386,8 @@ class Parser {
       ast
     }
 
-  /** Derives location (see [[deriveLocation]]) for a node and all its
+  /**
+    * Derives location (see [[deriveLocation]]) for a node and all its
     * descendants.
     *
     * @param ast the AST to derive location for

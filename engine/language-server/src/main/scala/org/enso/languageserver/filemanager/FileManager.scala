@@ -9,7 +9,8 @@ import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 import zio._
 
-/** Handles the [[FileManagerProtocol]] messages, executes the [[FileSystem]]
+/**
+  * Handles the [[FileManagerProtocol]] messages, executes the [[FileSystem]]
   * effects and forms the responses.
   *
   * @param config configuration
@@ -95,7 +96,7 @@ class FileManager(
       ()
 
     case FileManagerProtocol.CreateFile(
-          FileSystemObject.Directory(name, path)
+        FileSystemObject.Directory(name, path)
         ) =>
       val result =
         for {

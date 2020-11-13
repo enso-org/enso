@@ -6,7 +6,8 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that creates an execution context.
+/**
+  * A command that creates an execution context.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -16,9 +17,9 @@ class CreateContextCmd(
   request: Api.CreateContextRequest
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc */
-  override def execute(implicit
-    ctx: RuntimeContext,
+  /** @inheritdoc **/
+  override def execute(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     Future {

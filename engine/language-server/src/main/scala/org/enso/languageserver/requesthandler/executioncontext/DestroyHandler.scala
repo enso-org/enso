@@ -14,7 +14,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `executionContext/destroy` commands.
+/**
+  * A request handler for `executionContext/destroy` commands.
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
@@ -35,9 +36,9 @@ class DestroyHandler(
 
   private def requestStage: Receive = {
     case Request(
-          ExecutionContextDestroy,
-          id,
-          params: ExecutionContextDestroy.Params
+        ExecutionContextDestroy,
+        id,
+        params: ExecutionContextDestroy.Params
         ) =>
       contextRegistry ! DestroyContextRequest(session, params.contextId)
       val cancellable =
@@ -69,7 +70,8 @@ class DestroyHandler(
 
 object DestroyHandler {
 
-  /** Creates configuration object used to create a [[DestroyHandler]].
+  /**
+    * Creates configuration object used to create a [[DestroyHandler]].
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.

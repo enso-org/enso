@@ -1,24 +1,23 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Bool;
-import org.enso.interpreter.runtime.builtin.Number;
+import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.RuntimeError;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 /**
  * A node performing lookups of method definitions.
@@ -30,9 +29,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
  */
 @NodeInfo(shortName = "MethodResolver", description = "Resolves method calls to concrete targets")
 @GenerateUncached
-@ReportPolymorphism
 public abstract class MethodResolverNode extends Node {
-  static final int CACHE_SIZE = 10;
+
+  MethodResolverNode() {}
 
   /**
    * Creates an instance of this node.
@@ -52,342 +51,141 @@ public abstract class MethodResolverNode extends Node {
    */
   public abstract Function execute(UnresolvedSymbol symbol, Object self);
 
-  @Specialization(
-      guards = {
-        "!context.isCachingDisabled()",
-        "symbol == cachedSymbol",
-        "_this.getConstructor() == cachedConstructor",
-        "function != null"
-      },
-      limit = "CACHE_SIZE")
-  Function resolveAtomCached(
-      UnresolvedSymbol symbol,
-      Atom _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("_this.getConstructor()") AtomConstructor cachedConstructor,
-      @Cached("resolveMethodOnAtom(context, cachedConstructor, cachedSymbol)") Function function) {
-    return function;
-  }
-
-  @Specialization(replaces = "resolveAtomCached")
+  @Specialization(guards = "isValidAtomCache(symbol, cachedSymbol, atom, cachedConstructor)")
   Function resolveAtom(
-      UnresolvedSymbol symbol, Atom atom, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnAtom(context, atom.getConstructor(), symbol);
-    return throwIfNull(context, function, atom, symbol);
-  }
-
-  @Specialization(
-      guards = {
-        "!context.isCachingDisabled()",
-        "cachedSymbol == symbol",
-        "_this == cachedConstructor",
-        "function != null"
-      },
-      limit = "CACHE_SIZE")
-  Function resolveAtomConstructorCached(
       UnresolvedSymbol symbol,
-      AtomConstructor _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("_this") AtomConstructor cachedConstructor,
-      @Cached("resolveMethodOnAtom(context, cachedConstructor, cachedSymbol)") Function function) {
+      Atom atom,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "atom.getConstructor()", allowUncached = true)
+          AtomConstructor cachedConstructor,
+      @Cached(value = "resolveMethodOnAtom(cachedConstructor, cachedSymbol)", allowUncached = true)
+          Function function) {
     return function;
   }
 
-  @Specialization(replaces = "resolveAtomConstructorCached")
+  @Specialization(guards = {"cachedSymbol == symbol", "atomConstructor == cachedConstructor"})
   Function resolveAtomConstructor(
       UnresolvedSymbol symbol,
-      AtomConstructor _this,
-      @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnAtom(context, _this, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveBigIntegerCached(
-      UnresolvedSymbol symbol,
-      EnsoBigInteger _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnBigInteger(context, cachedSymbol)") Function function) {
+      AtomConstructor atomConstructor,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "atomConstructor", allowUncached = true) AtomConstructor cachedConstructor,
+      @Cached(value = "resolveMethodOnAtom(cachedConstructor, cachedSymbol)", allowUncached = true)
+          Function function) {
     return function;
   }
 
-  @Specialization(replaces = "resolveBigIntegerCached")
-  Function resolveBigInteger(
+  @Specialization(guards = "cachedSymbol == symbol")
+  Function resolveNumber(
       UnresolvedSymbol symbol,
-      EnsoBigInteger _this,
-      @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnBigInteger(context, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveLongCached(
-      UnresolvedSymbol symbol,
-      long _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnLong(context, cachedSymbol)") Function function) {
+      long self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "resolveMethodOnNumber(cachedSymbol)", allowUncached = true)
+          Function function) {
     return function;
   }
 
-  @Specialization(replaces = "resolveLongCached")
-  Function resolveLong(
-      UnresolvedSymbol symbol, long _this, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnLong(context, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveDoubleCached(
-      UnresolvedSymbol symbol,
-      double _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnDouble(context, cachedSymbol)") Function function) {
-    return function;
-  }
-
-  @Specialization(replaces = "resolveDoubleCached")
-  Function resolveDouble(
-      UnresolvedSymbol symbol, double _this, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnDouble(context, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveBooleanCached(
-      UnresolvedSymbol symbol,
-      boolean _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnPrimBoolean(context, cachedSymbol)") Function function) {
-    return function;
-  }
-
-  @Specialization(
-      guards = {
-        "!context.isCachingDisabled()",
-        "cachedSymbol == symbol",
-        "_this",
-        "function != null"
-      },
-      limit = "CACHE_SIZE",
-      replaces = "resolveBooleanCached")
-  Function resolveTrueCached(
-      UnresolvedSymbol symbol,
-      boolean _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnBool(context, true, cachedSymbol)") Function function) {
-    return function;
-  }
-
-  @Specialization(
-      guards = {
-        "!context.isCachingDisabled()",
-        "cachedSymbol == symbol",
-        "!_this",
-        "function != null"
-      },
-      limit = "CACHE_SIZE",
-      replaces = "resolveBooleanCached")
-  Function resolveFalseCached(
-      UnresolvedSymbol symbol,
-      boolean _this,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @CachedContext(Language.class) Context context,
-      @Cached("resolveMethodOnBool(context, false, cachedSymbol)") Function function) {
-    return function;
-  }
-
-  @Specialization(replaces = {"resolveTrueCached", "resolveFalseCached"})
+  @Specialization(guards = {"cachedSymbol == symbol", "function != null"})
   Function resolveBoolean(
-      UnresolvedSymbol symbol, boolean _this, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnBool(context, _this, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveStringCached(
       UnresolvedSymbol symbol,
-      Text _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnString(context, cachedSymbol)") Function function) {
+      boolean self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
+      @Cached(
+              value = "resolveMethodOnPrimBoolean(cachedSymbol, contextReference.get())",
+              allowUncached = true)
+          Function function) {
     return function;
   }
 
-  @Specialization(replaces = "resolveStringCached")
+  @Specialization(
+      guards = {"cachedSymbol == symbol", "self"},
+      replaces = "resolveBoolean")
+  Function resolveTrue(
+      UnresolvedSymbol symbol,
+      boolean self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
+      @Cached(
+              value = "resolveMethodOnBool(true, cachedSymbol, contextReference.get())",
+              allowUncached = true)
+          Function function) {
+    return function;
+  }
+
+  @Specialization(
+      guards = {"cachedSymbol == symbol", "!self"},
+      replaces = "resolveBoolean")
+  Function resolveFalse(
+      UnresolvedSymbol symbol,
+      boolean self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
+      @Cached(
+              value = "resolveMethodOnBool(false, cachedSymbol, contextReference.get())",
+              allowUncached = true)
+          Function function) {
+    return function;
+  }
+
+  @Specialization(guards = "cachedSymbol == symbol")
   Function resolveString(
-      UnresolvedSymbol symbol, Text _this, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnString(context, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveFunctionCached(
       UnresolvedSymbol symbol,
-      Function _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnFunction(context, cachedSymbol)") Function function) {
+      String self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "resolveMethodOnString(cachedSymbol)", allowUncached = true)
+          Function function) {
     return function;
   }
 
-  @Specialization(replaces = "resolveFunctionCached")
+  @Specialization(guards = "cachedSymbol == symbol")
   Function resolveFunction(
-      UnresolvedSymbol symbol, Function _this, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnFunction(context, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveErrorCached(
       UnresolvedSymbol symbol,
-      RuntimeError _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnError(context, cachedSymbol)") Function function) {
+      Function self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "resolveMethodOnFunction(cachedSymbol)", allowUncached = true)
+          Function function) {
     return function;
   }
 
-  @Specialization(replaces = "resolveErrorCached")
+  @Specialization(guards = "cachedSymbol == symbol")
   Function resolveError(
-      UnresolvedSymbol symbol, RuntimeError _this, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnError(context, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-      limit = "CACHE_SIZE")
-  Function resolveArrayCached(
       UnresolvedSymbol symbol,
-      Array _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnArray(context, cachedSymbol)") Function function) {
+      RuntimeError self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @Cached(value = "resolveMethodOnError(cachedSymbol)", allowUncached = true)
+          Function function) {
     return function;
   }
 
-  @Specialization(replaces = "resolveArrayCached")
-  Function resolveArray(
-      UnresolvedSymbol symbol, Array _this, @CachedContext(Language.class) Context context) {
-    Function function = resolveMethodOnArray(context, symbol);
-    return throwIfNull(context, function, _this, symbol);
-  }
-
-  @Specialization(
-      guards = {
-        "!context.isCachingDisabled()",
-        "symbol == cachedSymbol",
-        "isPolyglotArrayMethod(cachedSymbol)",
-        "arrays.hasArrayElements(_this)"
-      },
-      limit = "CACHE_SIZE")
-  Function resolvePolyglotArrayCached(
-      UnresolvedSymbol symbol,
-      Object _this,
-      @CachedContext(Language.class) Context context,
-      @CachedLibrary("_this") InteropLibrary arrays,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveMethodOnPolyglotArray(context, cachedSymbol)") Function function) {
-    return function;
-  }
-
-  @Specialization(
-      guards = {"isPolyglotArrayMethod(symbol)", "arrays.hasArrayElements(_this)"},
-      replaces = "resolvePolyglotArrayCached")
-  Function resolvePolyglotArray(
-      UnresolvedSymbol symbol,
-      Object _this,
-      @CachedContext(Language.class) Context context,
-      @CachedLibrary(limit = "CACHE_SIZE") InteropLibrary arrays) {
-    return resolveMethodOnPolyglotArray(context, symbol);
-  }
-
-  @Specialization(
-      guards = {
-        "!context.isCachingDisabled()",
-        "cachedSymbol == symbol",
-        "context.getEnvironment().isHostObject(_this)"
-      },
-      limit = "CACHE_SIZE")
-  Function resolveHostCached(
-      UnresolvedSymbol symbol,
-      Object _this,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @CachedContext(Language.class) Context context,
-      @Cached("buildHostResolver(context, cachedSymbol)") Function function) {
-    return function;
-  }
-
-  @Specialization(
-      guards = "context.getEnvironment().isHostObject(_this)",
-      replaces = "resolveHostCached")
+  @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})
   Function resolveHost(
-      UnresolvedSymbol symbol, Object _this, @CachedContext(Language.class) Context context) {
-    return buildHostResolver(context, symbol);
+      UnresolvedSymbol symbol,
+      Object target,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) Context ctx,
+      @Cached(value = "buildHostResolver(cachedSymbol, ctx)", allowUncached = true)
+          Function function) {
+    return function;
   }
 
-  @Fallback
-  Function resolveUnknown(UnresolvedSymbol symbol, Object _this) {
-    CompilerDirectives.transferToInterpreter();
-    Context context = lookupContextReference(Language.class).get();
-    throw new PanicException(
-        context.getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+  private Function ensureMethodExists(Function function, Object target, UnresolvedSymbol symbol) {
+    if (function == null) {
+      throw new MethodDoesNotExistException(target, symbol.getName(), this);
+    }
+    return function;
   }
 
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnAtom(Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
-    return symbol.resolveFor(cons, context.getBuiltins().any());
+  Function resolveMethodOnAtom(AtomConstructor cons, UnresolvedSymbol symbol) {
+    return ensureMethodExists(symbol.resolveFor(cons, getBuiltins().any()), cons, symbol);
   }
 
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnLong(Context context, UnresolvedSymbol symbol) {
-    Number number = context.getBuiltins().number();
-    return symbol.resolveFor(
-        number.getSmallInteger(),
-        number.getInteger(),
-        number.getNumber(),
-        context.getBuiltins().any());
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnBigInteger(Context context, UnresolvedSymbol symbol) {
-    Number number = context.getBuiltins().number();
-    return symbol.resolveFor(
-        number.getBigInteger(),
-        number.getInteger(),
-        number.getNumber(),
-        context.getBuiltins().any());
+  Function resolveMethodOnNumber(UnresolvedSymbol symbol) {
+    return ensureMethodExists(
+        symbol.resolveFor(getBuiltins().number(), getBuiltins().any()), "Number", symbol);
   }
 
   @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnDouble(Context context, UnresolvedSymbol symbol) {
-    Number number = context.getBuiltins().number();
-    return symbol.resolveFor(number.getDecimal(), number.getNumber(), context.getBuiltins().any());
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnPrimBoolean(Context context, UnresolvedSymbol symbol) {
+  Function resolveMethodOnPrimBoolean(UnresolvedSymbol symbol, Context context) {
     Bool bool = context.getBuiltins().bool();
     if (symbol.resolveFor(bool.getFalse()) != null) {
       return null;
@@ -395,71 +193,50 @@ public abstract class MethodResolverNode extends Node {
     if (symbol.resolveFor(bool.getTrue()) != null) {
       return null;
     }
-    return symbol.resolveFor(bool.getBool(), context.getBuiltins().any());
+    return ensureMethodExists(
+        symbol.resolveFor(bool.getBool(), context.getBuiltins().any()), "Boolean", symbol);
   }
 
   @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnBool(Context context, boolean self, UnresolvedSymbol symbol) {
+  Function resolveMethodOnBool(boolean self, UnresolvedSymbol symbol, Context context) {
     Bool bool = context.getBuiltins().bool();
     AtomConstructor cons = self ? bool.getTrue() : bool.getFalse();
-    return symbol.resolveFor(cons, bool.getBool(), context.getBuiltins().any());
+    String label = self ? "True" : "False";
+    return ensureMethodExists(
+        symbol.resolveFor(cons, bool.getBool(), context.getBuiltins().any()), label, symbol);
   }
 
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnString(Context context, UnresolvedSymbol symbol) {
-    return symbol.resolveFor(context.getBuiltins().text().getText(), context.getBuiltins().any());
+  Function resolveMethodOnString(UnresolvedSymbol symbol) {
+    return ensureMethodExists(
+        symbol.resolveFor(getBuiltins().text(), getBuiltins().any()), "Text", symbol);
   }
 
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnFunction(Context context, UnresolvedSymbol symbol) {
-    return symbol.resolveFor(context.getBuiltins().function(), context.getBuiltins().any());
+  Function resolveMethodOnFunction(UnresolvedSymbol symbol) {
+    return ensureMethodExists(
+        symbol.resolveFor(getBuiltins().function(), getBuiltins().any()), "Function", symbol);
   }
 
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnError(Context context, UnresolvedSymbol symbol) {
-    return symbol.resolveFor(context.getBuiltins().any());
+  Function resolveMethodOnError(UnresolvedSymbol symbol) {
+    return ensureMethodExists(symbol.resolveFor(getBuiltins().any()), "Error", symbol);
   }
 
-  @CompilerDirectives.TruffleBoundary
-  Function resolveMethodOnArray(Context context, UnresolvedSymbol symbol) {
-    return symbol.resolveFor(
-        context.getBuiltins().mutable().constructor(), context.getBuiltins().any());
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  Function buildHostResolver(Context context, UnresolvedSymbol symbol) {
+  Function buildHostResolver(UnresolvedSymbol symbol, Context context) {
     if (symbol.getName().equals("new")) {
-      return context.getBuiltins().polyglot().getConstructorDispatch();
-    } else if (symbol.getName().equals("to_text")) {
-      return context.getBuiltins().polyglot().getPolyglotToTextFunction();
-    } else if (symbol.getName().equals("catch")) {
-      return symbol.resolveFor(context.getBuiltins().any());
-    } else if (symbol.getName().equals("==")) {
-      return symbol.resolveFor(context.getBuiltins().any());
+      return context.getBuiltins().getConstructorDispatch();
     } else {
-      return context.getBuiltins().polyglot().buildPolyglotMethodDispatch(symbol);
+      return context.getBuiltins().buildPolyglotMethodDispatch(symbol.getName());
     }
   }
 
-  static boolean isPolyglotArrayMethod(UnresolvedSymbol symbol) {
-    return symbol.getName().equals("at") || symbol.getName().equals("length");
+  static boolean isValidAtomCache(
+      UnresolvedSymbol symbol,
+      UnresolvedSymbol cachedSymbol,
+      Atom atom,
+      AtomConstructor cachedConstructor) {
+    return (symbol == cachedSymbol) && (atom.getConstructor() == cachedConstructor);
   }
 
-  Function resolveMethodOnPolyglotArray(Context context, UnresolvedSymbol symbol) {
-    if (symbol.getName().equals("length")) {
-      return context.getBuiltins().polyglot().getPolyglotArrayLengthFunction();
-    } else {
-      return context.getBuiltins().polyglot().getPolyglotArrayAtFunction();
-    }
-  }
-
-  private Function throwIfNull(
-      Context context, Function function, Object _this, UnresolvedSymbol sym) {
-    if (function == null) {
-      CompilerDirectives.transferToInterpreter();
-      throw new PanicException(
-          context.getBuiltins().error().makeNoSuchMethodError(_this, sym), this);
-    }
-    return function;
+  private Builtins getBuiltins() {
+    return lookupContextReference(Language.class).get().getBuiltins();
   }
 }

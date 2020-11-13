@@ -14,7 +14,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `executionContext/detachVisualisation` commands.
+/**
+  * A request handler for `executionContext/detachVisualisation` commands.
   *
   * @param clientId an unique identifier of the client
   * @param timeout request timeout
@@ -70,7 +71,8 @@ class DetachVisualisationHandler(
 
 object DetachVisualisationHandler {
 
-  /** Creates configuration object used to create a [[DetachVisualisationHandler]].
+  /**
+    * Creates configuration object used to create a [[DetachVisualisationHandler]].
     *
     * @param clientId an unique identifier of the client
     * @param timeout request timeout

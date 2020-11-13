@@ -1,10 +1,17 @@
 package org.enso.languageserver.text
 
+import java.util
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
 import akka.pattern.pipe
 import cats.implicits._
 import org.enso.languageserver.capability.CapabilityProtocol._
-import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
+import org.enso.languageserver.data.{
+  CanEdit,
+  CapabilityRegistration,
+  ClientId,
+  ContentBasedVersioning
+}
 import org.enso.languageserver.event.{
   BufferClosed,
   BufferOpened,
@@ -21,12 +28,12 @@ import org.enso.languageserver.filemanager.{
   Path
 }
 import org.enso.languageserver.session.JsonSession
+import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.FileVersionsRepo
-import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
 
@@ -34,7 +41,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-/** An actor enabling multiple users edit collaboratively a file.
+/**
+  * An actor enabling multiple users edit collaboratively a file.
   *
   * @param bufferPath a path to a file
   * @param versionsRepo a repo containing versions of indexed files
@@ -65,10 +73,11 @@ class CollaborativeBuffer(
 
   override def receive: Receive = uninitialized
 
-  private def uninitialized: Receive = { case OpenFile(client, path) =>
-    context.system.eventStream.publish(BufferOpened(path))
-    log.info(s"Buffer opened for $path [client:${client.clientId}]")
-    readFile(client, path)
+  private def uninitialized: Receive = {
+    case OpenFile(client, path) =>
+      context.system.eventStream.publish(BufferOpened(path))
+      log.info(s"Buffer opened for $path [client:${client.clientId}]")
+      readFile(client, path)
   }
 
   private def waitingForFileContent(
@@ -124,13 +133,7 @@ class CollaborativeBuffer(
       edit(buffer, clients, lockHolder, clientId, change)
 
     case SaveFile(clientId, _, clientVersion) =>
-      saveFile(
-        buffer,
-        clients,
-        lockHolder,
-        clientId,
-        ContentVersion(clientVersion)
-      )
+      saveFile(buffer, clients, lockHolder, clientId, clientVersion)
   }
 
   private def saving(
@@ -165,7 +168,7 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
     clientId: ClientId,
-    clientVersion: ContentVersion
+    clientVersion: Version
   ): Unit = {
     val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
@@ -181,10 +184,7 @@ class CollaborativeBuffer(
           saving(buffer, clients, lockHolder, sender(), timeoutCancellable)
         )
       } else {
-        sender() ! SaveFileInvalidVersion(
-          clientVersion.toHexString,
-          buffer.version.toHexString
-        )
+        sender() ! SaveFileInvalidVersion(clientVersion, buffer.version)
       }
     } else {
       sender() ! SaveDenied
@@ -223,27 +223,19 @@ class CollaborativeBuffer(
   ): Either[ApplyEditFailure, Buffer] =
     for {
       _              <- validateAccess(lockHolder, clientId)
-      _              <- validateVersions(ContentVersion(change.oldVersion), buffer.version)
+      _              <- validateVersions(change.oldVersion, buffer.version)
       modifiedBuffer <- doEdit(buffer, change.edits)
-      _ <- validateVersions(
-        ContentVersion(change.newVersion),
-        modifiedBuffer.version
-      )
+      _              <- validateVersions(change.newVersion, modifiedBuffer.version)
     } yield modifiedBuffer
 
   private def validateVersions(
-    clientVersion: ContentVersion,
-    serverVersion: ContentVersion
+    clientVersion: Buffer.Version,
+    serverVersion: Buffer.Version
   ): Either[ApplyEditFailure, Unit] = {
     if (clientVersion == serverVersion) {
       Right(())
     } else {
-      Left(
-        TextEditInvalidVersion(
-          clientVersion.toHexString,
-          serverVersion.toHexString
-        )
-      )
+      Left(TextEditInvalidVersion(clientVersion, serverVersion))
     }
   }
 
@@ -299,12 +291,12 @@ class CollaborativeBuffer(
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
     )
-    val currentVersion = versionCalculator.evalVersion(file.content)
+    val currentVersion = versionCalculator.evalDigest(file.content)
     versionsRepo
-      .setVersion(file.path, currentVersion.toDigest)
-      .map { prevDigestOpt =>
-        val prevVersionOpt = prevDigestOpt.map(ContentVersion(_))
-        val isIndexed      = prevVersionOpt.contains(currentVersion)
+      .setVersion(file.path, currentVersion)
+      .map { prevVersionOpt =>
+        val isIndexed =
+          prevVersionOpt.exists(util.Arrays.equals(_, currentVersion))
         Api.Request(
           Api.OpenFileNotification(file.path, file.content, isIndexed)
         )
@@ -417,7 +409,8 @@ object CollaborativeBuffer {
 
   case object IOTimeout
 
-  /** Creates a configuration object used to create a [[CollaborativeBuffer]]
+  /**
+    * Creates a configuration object used to create a [[CollaborativeBuffer]]
     *
     * @param bufferPath a path to a file
     * @param versionsRepo a repo containing versions of indexed files

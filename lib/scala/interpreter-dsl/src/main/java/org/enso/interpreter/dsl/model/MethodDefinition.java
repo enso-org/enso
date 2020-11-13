@@ -2,7 +2,6 @@ package org.enso.interpreter.dsl.model;
 
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
-import org.enso.interpreter.dsl.Suspend;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -120,10 +119,7 @@ public class MethodDefinition {
               "The execute method does not take `this` argument. At least one positional argument must be named `_this`.",
               element);
     }
-
-    boolean argsValid = arguments.stream().allMatch(arg -> arg.validate(processingEnvironment));
-
-    return definesThis && argsValid;
+    return definesThis;
   }
 
   /** @return the package name this method was declared in. */
@@ -176,6 +172,11 @@ public class MethodDefinition {
     return needsCallerInfo;
   }
 
+  /** @return whether this method can be always safely called directly. */
+  public boolean isAlwaysDirect() {
+    return annotation.alwaysDirect();
+  }
+
   public String getConstructorExpression() {
     return constructorExpression;
   }
@@ -192,9 +193,7 @@ public class MethodDefinition {
     private final boolean isState;
     private final boolean isFrame;
     private final boolean isCallerInfo;
-    private final boolean isSuspended;
     private final int position;
-    private final VariableElement element;
 
     /**
      * Creates a new instance of this class.
@@ -203,30 +202,15 @@ public class MethodDefinition {
      * @param position the position (0-indexed) of this argument in the arguments list.
      */
     public ArgumentDefinition(VariableElement element, int position) {
-      this.element = element;
       type = element.asType();
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
       String originalName = element.getSimpleName().toString();
       name = originalName.equals("_this") ? "this" : originalName;
       isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
-      isSuspended = element.getAnnotation(Suspend.class) != null;
       isFrame = type.toString().equals(VIRTUAL_FRAME);
       isCallerInfo = type.toString().equals(CALLER_INFO);
       this.position = position;
-    }
-
-    public boolean validate(ProcessingEnvironment processingEnvironment) {
-      if (type.toString().equals(THUNK)) {
-        processingEnvironment
-            .getMessager()
-            .printMessage(
-                Diagnostic.Kind.ERROR,
-                "Argument must not be typed as Thunk. Use @Suspend Object instead.",
-                element);
-        return false;
-      }
-      return true;
     }
 
     /** @return whether this argument should be passed the monadic state. */
@@ -286,7 +270,7 @@ public class MethodDefinition {
 
     /** @return whether this argument is expected to be passed suspended. */
     public boolean isSuspended() {
-      return isSuspended;
+      return type.toString().equals(THUNK);
     }
   }
 }

@@ -13,13 +13,14 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
-import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.node.expression.builtin.InstantiateAtomNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.pkg.QualifiedName;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
@@ -75,27 +76,14 @@ public class AtomConstructor implements TruffleObject {
     ExpressionNode instantiateNode = InstantiateNode.build(this, argumentReaders);
     RootNode rootNode = InstantiateAtomNode.build(null, name, instantiateNode);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    return new Function(callTarget, null, new FunctionSchema(args));
+    return new Function(
+        callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.ALWAYS_DIRECT, args));
   }
 
   private void generateMethods(ArgumentDefinition[] args) {
-    generateQualifiedAccessor();
     for (ArgumentDefinition arg : args) {
       definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
     }
-  }
-
-  private void generateQualifiedAccessor() {
-    QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    Function function =
-        new Function(
-            callTarget,
-            null,
-            new FunctionSchema(
-                new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(
-        definitionScope.getAssociatedType(), this.name.toLowerCase(), function);
   }
 
   private Function generateGetter(int position) {
@@ -105,6 +93,7 @@ public class AtomConstructor implements TruffleObject {
         callTarget,
         null,
         new FunctionSchema(
+            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
             new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 
@@ -191,20 +180,5 @@ public class AtomConstructor implements TruffleObject {
       return cachedInstance;
     }
     return newInstance(arguments);
-  }
-
-  @ExportMessage
-  String toDisplayString(boolean allowSideEffects) {
-    return "Constructor<" + name + ">";
-  }
-
-  /** @return the fully qualified name of this constructor. */
-  public QualifiedName getQualifiedName() {
-    return definitionScope.getModule().getName().createChild(getName());
-  }
-
-  /** @return the fields defined by this constructor. */
-  public ArgumentDefinition[] getFields() {
-    return constructorFunction.getSchema().getArgumentInfos();
   }
 }

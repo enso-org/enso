@@ -121,6 +121,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
         Arrays.asList(
             OptionDescriptor.newBuilder(new OptionKey<>(""), RuntimeServerInfo.ENABLE_OPTION)
                 .build(),
-            RuntimeServerInfo.JOB_PARALLELISM_DESCRIPTOR));
+            RuntimeServerInfo.JOB_PARALLELISM_DESCRIPTOR
+        ));
   }
 }

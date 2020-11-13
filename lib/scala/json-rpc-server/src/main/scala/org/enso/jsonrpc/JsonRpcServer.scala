@@ -14,7 +14,8 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
-/** Exposes a multi-client JSON RPC Server instance over WebSocket connections.
+/**
+  * Exposes a multi-client JSON RPC Server instance over WebSocket connections.
   *
   * @param protocol a protocol supported be the server
   * @param clientControllerFactory a factory used to create a client controller
@@ -56,8 +57,7 @@ class JsonRpcServer(
         .to(
           Sink.actorRef[MessageHandler.WebMessage](
             messageHandler,
-            MessageHandler.Disconnected,
-            { _: Any =>
+            MessageHandler.Disconnected, { _: Any =>
               MessageHandler.Disconnected
             }
           )
@@ -84,7 +84,8 @@ class JsonRpcServer(
     get { handleWebSocketMessages(newUser()) }
   }
 
-  /** Binds this server instance to a given port and interface, allowing
+  /**
+    * Binds this server instance to a given port and interface, allowing
     * future connections.
     *
     * @param interface the interface to bind to.
@@ -97,7 +98,8 @@ class JsonRpcServer(
 
 object JsonRpcServer {
 
-  /** A configuration object for properties of the JsonRpcServer.
+  /**
+    * A configuration object for properties of the JsonRpcServer.
     *
     * @param outgoingBufferSize the number of messages buffered internally
     *                           if the downstream connection is lagging behind.
@@ -113,7 +115,8 @@ object JsonRpcServer {
 
   case object Config {
 
-    /** Creates a default instance of [[Config]].
+    /**
+      * Creates a default instance of [[Config]].
       *
       * @return a default config.
       */

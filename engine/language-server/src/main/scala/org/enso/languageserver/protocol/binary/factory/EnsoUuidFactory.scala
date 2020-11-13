@@ -7,7 +7,8 @@ import org.enso.languageserver.protocol.binary.EnsoUUID
 
 object EnsoUuidFactory {
 
-  /** Creates EnsoUUID inside a [[FlatBufferBuilder]].
+  /**
+    * Creates EnsoUUID inside a [[FlatBufferBuilder]].
     *
     * @param uuid a uuid to serialize
     * @param builder a class that helps build a FlatBuffer representation of
@@ -23,7 +24,8 @@ object EnsoUuidFactory {
     )
   }
 
-  /** Creates an [[EnsoUUID]] inside a [[FlatBufferBuilder]].
+  /**
+    * Creates an [[EnsoUUID]] inside a [[FlatBufferBuilder]].
     *
     * @param uuid a uuid to serialize
     * @param builder a class that helps build a FlatBuffer representation of

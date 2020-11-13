@@ -2,7 +2,8 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
-/** An update containing information about expression.
+/**
+  * An update containing information about expression.
   *
   * @param id expression id
   * @param type optional type of expression

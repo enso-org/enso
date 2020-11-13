@@ -33,7 +33,10 @@ public class BenchmarksRunner {
    */
   public BenchmarkItem run(String label) throws RunnerException, JAXBException {
     Options benchmarkOptions =
-        new OptionsBuilder().jvmArgsAppend("-Xss16M").include("^" + label + "$").build();
+        new OptionsBuilder()
+            .jvmArgsAppend("-Xss16M")
+            .include("^" + label + "$")
+            .build();
     RunResult benchmarksResult = new Runner(benchmarkOptions).runSingle();
 
     Report report;

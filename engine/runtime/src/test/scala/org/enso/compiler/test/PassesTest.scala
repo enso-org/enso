@@ -4,16 +4,13 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
+import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
 import org.enso.compiler.pass.resolve.{
-  Annotations,
   DocumentationComments,
   IgnoredBindings,
-  MethodDefinitions,
-  ModuleThisToHere,
   TypeFunctions,
   TypeSignatures
 }
@@ -46,16 +43,12 @@ class PassesTest extends CompilerTest {
     val passes = new Passes
 
     "get the precursors of a given pass" in {
-      passes.getPrecursors(AliasAnalysis).map(_.passes) shouldEqual Some(
+      passes.getPrecursors(AliasAnalysis) shouldEqual Some(
         List(
           DocumentationComments,
-          MainImportAndExport,
           ComplexType,
           FunctionBinding,
           GenerateMethodBodies,
-          BindingAnalysis,
-          MethodDefinitions,
-          ModuleThisToHere,
           SectionsToBinOp,
           OperatorToFunction,
           LambdaShorthandToLambda,
@@ -64,8 +57,7 @@ class PassesTest extends CompilerTest {
           NestedPatternMatch,
           IgnoredBindings,
           TypeFunctions,
-          TypeSignatures,
-          Annotations
+          TypeSignatures
         )
       )
     }

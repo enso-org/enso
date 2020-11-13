@@ -14,7 +14,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `executionContext/push` commands.
+/**
+  * A request handler for `executionContext/push` commands.
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
@@ -35,9 +36,9 @@ class PushHandler(
 
   private def requestStage: Receive = {
     case Request(
-          ExecutionContextPush,
-          id,
-          params: ExecutionContextPush.Params
+        ExecutionContextPush,
+        id,
+        params: ExecutionContextPush.Params
         ) =>
       contextRegistry ! PushContextRequest(
         session,
@@ -73,7 +74,8 @@ class PushHandler(
 
 object PushHandler {
 
-  /** Creates configuration object used to create a [[PushHandler]].
+  /**
+    * Creates configuration object used to create a [[PushHandler]].
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.

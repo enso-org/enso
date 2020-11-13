@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
@@ -43,8 +42,7 @@ public abstract class IndirectArgumentSorterNode extends Node {
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (TypesGen.isThunk(arguments[i]) && mapping.getArgumentShouldExecute()[i]) {
         Stateful result =
-            thunkExecutorNode.executeThunk(
-                TypesGen.asThunk(arguments[i]), state, BaseNode.TailStatus.NOT_TAIL);
+            thunkExecutorNode.executeThunk(TypesGen.asThunk(arguments[i]), state, false);
         arguments[i] = result.getValue();
         state = result.getState();
       }

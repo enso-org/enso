@@ -13,7 +13,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for detach visualisation commands.
+/**
+  * A request handler for detach visualisation commands.
   *
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
@@ -29,11 +30,12 @@ class DetachVisualisationHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = { case msg: Api.DetachVisualisation =>
-    runtime ! Api.Request(UUID.randomUUID(), msg)
-    val cancellable =
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-    context.become(responseStage(sender(), cancellable))
+  private def requestStage: Receive = {
+    case msg: Api.DetachVisualisation =>
+      runtime ! Api.Request(UUID.randomUUID(), msg)
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(sender(), cancellable))
   }
 
   private def responseStage(
@@ -59,7 +61,8 @@ class DetachVisualisationHandler(
 
 object DetachVisualisationHandler {
 
-  /** Creates configuration object used to create a [[DetachVisualisationHandler]].
+  /**
+    * Creates configuration object used to create a [[DetachVisualisationHandler]].
     *
     * @param timeout request timeout
     * @param runtime reference to the runtime connector

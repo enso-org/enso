@@ -4,7 +4,8 @@ import akka.actor.{Actor, ActorRef, Stash}
 import io.circe.Json
 import org.enso.jsonrpc.Errors.InvalidParams
 
-/** An actor responsible for passing parsed massages between the web and
+/**
+  * An actor responsible for passing parsed massages between the web and
   * a controller actor.
   * @param protocol a protocol object describing supported messages and their
   *                 serialization modes.
@@ -14,7 +15,8 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     extends Actor
     with Stash {
 
-  /** A pre-initialization behavior, awaiting a to-web connection end.
+  /**
+    * A pre-initialization behavior, awaiting a to-web connection end.
     * @return the actor behavior.
     */
   override def receive: Receive = {
@@ -24,7 +26,8 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     case _ => stash()
   }
 
-  /** A fully established connection behavior.
+  /**
+    * A fully established connection behavior.
     * @param webConnection the to-web connection end.
     * @param awaitingResponses a list of all requests sent to web, retained for
     *                          response deserialization.
@@ -136,21 +139,18 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
       case Some(JsonProtocol.ResponseError(mayId, bareError)) =>
         val error = protocol
           .resolveError(bareError.code)
-          .getOrElse(
-            Errors
-              .UnknownError(bareError.code, bareError.message, bareError.data)
-          )
+          .getOrElse(Errors.UnknownError(bareError.code, bareError.message))
         controller ! ResponseError(mayId, error)
-        mayId.foreach(id =>
-          context.become(established(webConnection, awaitingResponses - id))
+        mayId.foreach(
+          id =>
+            context.become(established(webConnection, awaitingResponses - id))
         )
 
     }
   }
 
   private def makeError(id: Option[Id], error: Error): String = {
-    val bareError =
-      JsonProtocol.ErrorData(error.code, error.message, data = error.payload)
+    val bareError         = JsonProtocol.ErrorData(error.code, error.message)
     val bareErrorResponse = JsonProtocol.ResponseError(id, bareError)
     JsonProtocol.encode(bareErrorResponse)
   }
@@ -168,22 +168,26 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     } yield decoder
 }
 
-/** Control messages for the [[MessageHandler]] actor.
+/**
+  * Control messages for the [[MessageHandler]] actor.
   */
 object MessageHandler {
 
-  /** A message exchanged on the Web side of the boundary.
+  /**
+    * A message exchanged on the Web side of the boundary.
     *
     * @param message the serialized json contents of the message.
     */
   case class WebMessage(message: String)
 
-  /** A control message used for [[MessageHandler]] initializations
+  /**
+    * A control message used for [[MessageHandler]] initializations
     * @param webConnection the actor representing the web.
     */
   case class Connected(webConnection: ActorRef)
 
-  /** A control message usef to notify the controller about
+  /**
+    * A control message usef to notify the controller about
     * the connection being closed.
     */
   case object Disconnected

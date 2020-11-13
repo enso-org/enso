@@ -1,17 +1,14 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.{
-  EnsureCompiledJob,
-  EnsureCompiledStackJob,
-  ExecuteJob
-}
+import org.enso.interpreter.instrument.job.{EnsureCompiledStackJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that pushes an item onto a stack.
+/**
+  * A command that pushes an item onto a stack.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -80,13 +77,8 @@ class PushContextCmd(
       val stack      = ctx.contextManager.getStack(request.contextId)
       val executable = Executable(request.contextId, stack, Seq())
       for {
-        status <-
-          ctx.jobProcessor.run(new EnsureCompiledStackJob(executable.stack))
-        _ <-
-          if (status == EnsureCompiledJob.CompilationStatus.Success)
-            ctx.jobProcessor.run(new ExecuteJob(executable))
-          else
-            Future.successful(())
+        _ <- ctx.jobProcessor.run(new EnsureCompiledStackJob(executable.stack))
+        _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
       } yield ()
     } else {
       Future.successful(())

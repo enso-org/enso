@@ -6,7 +6,8 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that detaches a visualisation from the expression.
+/**
+  * A command that detaches a visualisation from the expression.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -16,9 +17,9 @@ class DetachVisualisationCmd(
   request: Api.DetachVisualisation
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc */
-  override def execute(implicit
-    ctx: RuntimeContext,
+  /** @inheritdoc **/
+  override def execute(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     Future {

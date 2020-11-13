@@ -1,8 +1,7 @@
-from Builtins import all
 import TestNonImportedOwnMethods.Util
 
 type X a
 
 X.method = 10
 
-main = Nothing.util (X 1)
+Main.main = Unit.util (X 1)

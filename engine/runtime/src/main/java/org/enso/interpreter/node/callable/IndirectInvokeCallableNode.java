@@ -9,7 +9,6 @@ import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -52,7 +51,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail);
+      boolean isTail);
 
   @Specialization
   Stateful invokeFunction(
@@ -63,7 +62,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail,
+      boolean isTail,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     return invokeFunctionNode.execute(
         function,
@@ -85,7 +84,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail,
+      boolean isTail,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     return invokeFunction(
         constructor.getConstructorFunction(),
@@ -108,7 +107,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail,
+      boolean isTail,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode,
       @Cached ThunkExecutorNode thisExecutor,
       @Cached MethodResolverNode methodResolverNode) {
@@ -118,8 +117,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
-        Stateful selfResult =
-            thisExecutor.executeThunk(selfArgument, state, BaseNode.TailStatus.NOT_TAIL);
+        Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state, false);
         selfArgument = selfResult.getValue();
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;
@@ -148,7 +146,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail) {
+      boolean isTail) {
     throw new NotInvokableException(callable, this);
   }
 }

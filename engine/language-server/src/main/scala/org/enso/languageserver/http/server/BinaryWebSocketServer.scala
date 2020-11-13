@@ -28,7 +28,8 @@ import org.enso.languageserver.util.binary.{
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A web socket server using a binary protocol.
+/**
+  * A web socket server using a binary protocol.
   *
   * @param decoder a decoder for inbound packets
   * @param encoder an encoder for outbound packets
@@ -67,7 +68,8 @@ class BinaryWebSocketServer[A, B](
         }
     }
 
-  /** Binds this server instance to a given port and interface, allowing
+  /**
+    * Binds this server instance to a given port and interface, allowing
     * future connections.
     *
     * @param interface the interface to bind to.
@@ -148,7 +150,8 @@ class BinaryWebSocketServer[A, B](
 
 object BinaryWebSocketServer {
 
-  /** A configuration object for properties of the [[BinaryWebSocketServer]].
+  /**
+    * A configuration object for properties of the [[BinaryWebSocketServer]].
     *
     * @param outgoingBufferSize the number of messages buffered internally
     *                           if the downstream connection is lagging behind.
@@ -164,7 +167,8 @@ object BinaryWebSocketServer {
 
   case object Config {
 
-    /** Creates a default instance of [[Config]].
+    /**
+      * Creates a default instance of [[Config]].
       *
       * @return a default config.
       */

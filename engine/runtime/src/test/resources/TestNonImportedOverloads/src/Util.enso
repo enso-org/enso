@@ -1,5 +1,3 @@
-from Builtins import all
-
 type X a
 
-Nothing.util = x -> x.method
+Unit.util = x -> x.method

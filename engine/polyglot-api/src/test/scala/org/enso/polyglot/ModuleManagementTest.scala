@@ -99,12 +99,9 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
                     |main = Foo.foo + 1
                     |""".stripMargin)
 
-    ctx.writeFile(
-      "Foo.enso",
-      """
-        |foo = 10
-        |""".stripMargin
-    )
+    ctx.writeFile("Foo.enso", """
+                                |foo = 10
+                                |""".stripMargin)
 
     val topScope = ctx.executionContext.getTopScope
     topScope.registerModule("MyLib.Foo", ctx.mkFile("Foo.enso").getAbsolutePath)
@@ -123,12 +120,9 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
                     |main = Foo.foo + 1
                     |""".stripMargin)
 
-    ctx.writeFile(
-      "Foo.enso",
-      """
-        |foo = 10
-        |""".stripMargin
-    )
+    ctx.writeFile("Foo.enso", """
+                                |foo = 10
+                                |""".stripMargin)
 
     val topScope = ctx.executionContext.getTopScope
     val fooModule = topScope.registerModule(

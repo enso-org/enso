@@ -70,24 +70,23 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
     def ?=(out: AST) = testBase in { assertExpr(input, out) }
     def ??=(out: Module) = testBase in { assertModule(input, out) }
-    def testIdentity()   = testBase in { assertIdentity(input) }
+    def testIdentity()   = testBase in { assertIdentity(input)    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Identifiers /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "_"           ?= "_"
-  "Name"        ?= "Name"
-  "name"        ?= "name"
-  "name'"       ?= "name'"
-  "name''"      ?= "name''"
-  "name'a"      ?= Ident.InvalidSuffix("name'", "a")
-  "name_"       ?= "name_"
-  "name_'"      ?= "name_'"
-  "name'_"      ?= Ident.InvalidSuffix("name'", "_")
-  "name`"       ?= "name" $ Invalid.Unrecognized("`")
-  "@Annotation" ?= Ident.Annotation("@Annotation")
+  "_"      ?= "_"
+  "Name"   ?= "Name"
+  "name"   ?= "name"
+  "name'"  ?= "name'"
+  "name''" ?= "name''"
+  "name'a" ?= Ident.InvalidSuffix("name'", "a")
+  "name_"  ?= "name_"
+  "name_'" ?= "name_'"
+  "name'_" ?= Ident.InvalidSuffix("name'", "_")
+  "name`"  ?= "name" $ Invalid.Unrecognized("`")
 
   //////////////////////////////////////////////////////////////////////////////
   //// Operators ///////////////////////////////////////////////////////////////
@@ -96,26 +95,22 @@ class ParserTest extends AnyFlatSpec with Matchers {
   import App.Section._
   import App.{Section => Sect}
 
-  "++"    ?= Sides("++")
-  "=="    ?= Sides("==")
-  ":"     ?= Sides(":")
-  ","     ?= Sides(",")
-  "."     ?= Sides(".")
-  ".."    ?= Sides("..")
-  "..."   ?= Sides("...")
-  ">="    ?= Sides(">=")
-  "<="    ?= Sides("<=")
-  "/="    ?= Sides("/=")
-  ".+"    ?= Sect.Right(".", 0, Var("+"))
-  ".<*>"  ?= Sect.Right(".", 0, Var("<*>"))
-  ".=="   ?= Sect.Right(".", 0, Var("=="))
-  "Foo.+" ?= App.Infix(Cons("Foo"), 0, Opr("."), 0, Var("+"))
-  "+="    ?= Mod("+")
-  "-="    ?= Mod("-")
-  "==="   ?= Ident.InvalidSuffix("==", "=")
-  "...."  ?= Ident.InvalidSuffix("...", ".")
-  ">=="   ?= Ident.InvalidSuffix(">=", "=")
-  "+=="   ?= Ident.InvalidSuffix("+", "==")
+  "++"   ?= Sides("++")
+  "=="   ?= Sides("==")
+  ":"    ?= Sides(":")
+  ","    ?= Sides(",")
+  "."    ?= Sides(".")
+  ".."   ?= Sides("..")
+  "..."  ?= Sides("...")
+  ">="   ?= Sides(">=")
+  "<="   ?= Sides("<=")
+  "/="   ?= Sides("/=")
+  "+="   ?= Mod("+")
+  "-="   ?= Mod("-")
+  "==="  ?= Ident.InvalidSuffix("==", "=")
+  "...." ?= Ident.InvalidSuffix("...", ".")
+  ">=="  ?= Ident.InvalidSuffix(">=", "=")
+  "+=="  ?= Ident.InvalidSuffix("+", "==")
 
   //////////////////////////////////////////////////////////////////////////////
   //// Precedence + Associativity //////////////////////////////////////////////
@@ -233,7 +228,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   def escape(code: Text.Segment.RawEscape) = Shape.SegmentRawEscape[AST](code)
 
   Text.Segment.Escape.Character.codes.foreach(i => s"'\\$i'" ?= Text(escape(i)))
-  Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'" ?= Text(escape(i)))
+  Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'"   ?= Text(escape(i)))
 
   "'\\\\'"   ?= Text(escape(Esc.Slash))
   "'\\''"    ?= Text(escape(Esc.Quote))
@@ -258,9 +253,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   }
 
   "say \n  '''\n  Hello\n  `World`\npal" ??= Module(
-    OptLine(
-      "say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))
-    ),
+    OptLine("say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))),
     OptLine("pal")
   )
 
@@ -316,13 +309,13 @@ class ParserTest extends AnyFlatSpec with Matchers {
   def amb(head: AST, lst: List[List[AST]]): Macro.Ambiguous =
     Macro.Ambiguous(
       Shifted.List1(Macro.Ambiguous.Segment(head)),
-      Tree(lst.map(_ -> ()): _*)
+      Tree(lst.map(_ -> (())): _*)
     )
 
   def amb(head: AST, lst: List[List[AST]], body: SAST): Macro.Ambiguous =
     Macro.Ambiguous(
       Shifted.List1(Macro.Ambiguous.Segment(head, Some(body))),
-      Tree(lst.map(_ -> ()): _*)
+      Tree(lst.map(_ -> (())): _*)
     )
 
   def _amb_group_(i: Int)(t: AST): Macro.Ambiguous =

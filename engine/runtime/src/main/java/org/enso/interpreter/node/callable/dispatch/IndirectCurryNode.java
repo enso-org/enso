@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.IndirectInvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -37,6 +36,7 @@ public abstract class IndirectCurryNode extends Node {
    * @param arguments the properly ordered arguments to pass to the function.
    * @param oversaturatedArguments any arguments that should be treated as candidates for an
    *     eta-expanded call.
+   * @param originalSchema function schema before the call.
    * @param postApplicationSchema function schema after the call.
    * @param defaultsExecutionMode should default arguments be used for this call.
    * @param argumentsExecutionMode are arguments pre-executed or suspended.
@@ -50,10 +50,11 @@ public abstract class IndirectCurryNode extends Node {
       Object state,
       Object[] arguments,
       Object[] oversaturatedArguments,
+      FunctionSchema originalSchema,
       FunctionSchema postApplicationSchema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail);
+      boolean isTail);
 
   @Specialization
   Stateful doCurry(
@@ -63,10 +64,11 @@ public abstract class IndirectCurryNode extends Node {
       Object state,
       Object[] arguments,
       Object[] oversaturatedArguments,
+      FunctionSchema preApplicationSchema,
       FunctionSchema postApplicationSchema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      BaseNode.TailStatus isTail,
+      boolean isTail,
       @Cached ExecuteCallNode directCall,
       @Cached LoopingCallOptimiserNode loopingCall,
       @Cached IndirectInvokeCallableNode oversaturatedCallableNode) {
@@ -74,7 +76,15 @@ public abstract class IndirectCurryNode extends Node {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         Stateful result =
-            doCall(function, callerInfo, state, arguments, isTail, directCall, loopingCall);
+            doCall(
+                function,
+                callerInfo,
+                state,
+                arguments,
+                preApplicationSchema,
+                isTail,
+                directCall,
+                loopingCall);
         if (defaultsExecutionMode.isExecute() && TypesGen.isFunction(result.getValue())) {
           return oversaturatedCallableNode.execute(
               result.getValue(),
@@ -118,16 +128,16 @@ public abstract class IndirectCurryNode extends Node {
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
-      BaseNode.TailStatus isTail,
+      FunctionSchema preApplicationSchema,
+      boolean isTail,
       ExecuteCallNode directCall,
       CallOptimiserNode loopingCall) {
-    switch (isTail) {
-      case TAIL_DIRECT:
-        return directCall.executeCall(function, callerInfo, state, arguments);
-      case TAIL_LOOP:
-        throw new TailCallException(function, callerInfo, state, arguments);
-      default:
-        return loopingCall.executeDispatch(function, callerInfo, state, arguments);
+    if (preApplicationSchema.getCallStrategy().shouldCallDirect(isTail)) {
+      return directCall.executeCall(function, callerInfo, state, arguments);
+    } else if (isTail) {
+      throw new TailCallException(function, callerInfo, state, arguments);
+    } else {
+      return loopingCall.executeDispatch(function, callerInfo, state, arguments);
     }
   }
 }

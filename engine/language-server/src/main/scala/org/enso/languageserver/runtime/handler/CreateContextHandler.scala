@@ -13,7 +13,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for create context commands.
+/**
+  * A request handler for create context commands.
   *
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
@@ -29,11 +30,12 @@ final class CreateContextHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = { case msg: Api.CreateContextRequest =>
-    runtime ! Api.Request(UUID.randomUUID(), msg)
-    val cancellable =
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-    context.become(responseStage(sender(), cancellable))
+  private def requestStage: Receive = {
+    case msg: Api.CreateContextRequest =>
+      runtime ! Api.Request(UUID.randomUUID(), msg)
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(sender(), cancellable))
   }
 
   private def responseStage(
@@ -58,7 +60,8 @@ final class CreateContextHandler(
 
 object CreateContextHandler {
 
-  /** Creates configuration object used to create a [[CreateContextHandler]].
+  /**
+    * Creates configuration object used to create a [[CreateContextHandler]].
     *
     * @param timeout request timeout
     * @param runtime reference to the runtime connector

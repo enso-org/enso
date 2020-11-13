@@ -7,10 +7,7 @@ import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.data.{
-  LanguageServerSockets,
-  MissingComponentAction
-}
+import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
@@ -21,7 +18,8 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `project/open` commands.
+/**
+  * A request handler for `project/open` commands.
   *
   * @param clientId the requester id
   * @param service a project service
@@ -40,14 +38,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
 
   private def requestStage: Receive = {
     case Request(ProjectOpen, id, params: ProjectOpen.Params) =>
-      val missingComponentAction =
-        params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
-      Exec[F]
-        .exec(
-          service
-            .openProject(clientId, params.projectId, missingComponentAction)
-        )
-        .pipeTo(self)
+      Exec[F].exec(service.openProject(clientId, params.projectId)).pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
@@ -90,7 +81,8 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
 
 object ProjectOpenHandler {
 
-  /** Creates a configuration object used to create a [[ProjectOpenHandler]].
+  /**
+    * Creates a configuration object used to create a [[ProjectOpenHandler]].
     *
     * @param clientId the requester id
     * @param service a project service

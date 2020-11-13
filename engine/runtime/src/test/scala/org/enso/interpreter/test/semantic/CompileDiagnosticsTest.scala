@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class CompileDiagnosticsTest extends InterpreterTest {
   override def subject: String = "Compile Error Reporting"
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
     "surface ast-processing errors in the language" in {
       val code =
@@ -17,9 +17,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |        case err of
           |            Syntax_Error msg -> "Oopsie, it's a syntax error: " + msg
           |""".stripMargin
-      eval(
-        code
-      ) shouldEqual "Oopsie, it's a syntax error: Parentheses can't be empty."
+      eval(code) shouldEqual "Oopsie, it's a syntax error: Parentheses can't be empty."
     }
 
     "surface parsing errors in the language" in {

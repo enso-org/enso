@@ -2,7 +2,8 @@ package org.enso.projectmanager.infrastructure
 
 package object languageserver {
 
-  /** A stop command.
+  /**
+    * A stop command.
     */
   case object GracefulStop
 

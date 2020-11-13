@@ -3,7 +3,8 @@ package org.enso.languageserver.session
 import akka.actor.ActorRef
 import org.enso.languageserver.data.ClientId
 
-/** An object representing a client connected to the language server via data
+/**
+  * An object representing a client connected to the language server via data
   * protocol.
   *
   * @param clientId the internal id of this client

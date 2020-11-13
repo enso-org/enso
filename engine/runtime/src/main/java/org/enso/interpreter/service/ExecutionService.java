@@ -5,9 +5,8 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.compiler.context.ChangesetBuilder;
+import org.enso.compiler.context.Changeset;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
-import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.Context;
@@ -15,8 +14,6 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.service.error.*;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -26,7 +23,6 @@ import org.enso.text.editing.TextEditor;
 import org.enso.text.editing.model;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -64,21 +60,22 @@ public class ExecutionService {
     return logger;
   }
 
-  private FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
-      Module module, String consName, String methodName)
-      throws ConstructorNotFoundException, MethodNotFoundException {
-    ModuleScope scope = module.compileScope(context);
-    AtomConstructor atomConstructor =
-        scope
-            .getConstructor(consName)
-            .orElseThrow(
-                () -> new ConstructorNotFoundException(module.getName().toString(), consName));
+  private Optional<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
+      Module module, String consName, String methodName) {
+    ModuleScope scope = module.parseScope(context);
+    Optional<AtomConstructor> atomConstructorMay = scope.getConstructor(consName);
+    if (!atomConstructorMay.isPresent()) {
+      return Optional.empty();
+    }
+    AtomConstructor atomConstructor = atomConstructorMay.get();
     Function function = scope.lookupMethodDefinition(atomConstructor, methodName);
     if (function == null) {
-      throw new MethodNotFoundException(module.getName().toString(), atomConstructor, methodName);
+      return Optional.empty();
     }
-    return new FunctionCallInstrumentationNode.FunctionCall(
-        function, EmptyMap.create(), new Object[] {atomConstructor.newInstance()});
+    FunctionCallInstrumentationNode.FunctionCall call =
+        new FunctionCallInstrumentationNode.FunctionCall(
+            function, context.getBuiltins().unit(), new Object[] {atomConstructor.newInstance()});
+    return Optional.of(call);
   }
 
   /**
@@ -86,27 +83,23 @@ public class ExecutionService {
    *
    * @param call the call metadata.
    * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param valueCallback the consumer for expression value events.
+   * @param visualisationCallback the consumer of the node visualisation events.
    * @param funCallCallback the consumer for function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
-      MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<Throwable> onExceptionalCallback)
-      throws ArityException, SourceNotFoundException, UnsupportedMessageException,
-          UnsupportedTypeException {
+      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
+      throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+
     SourceSection src = call.getFunction().getSourceSection();
     if (src == null) {
-      throw new SourceNotFoundException(call.getFunction().getName());
+      return;
     }
     EventBinding<ExecutionEventListener> listener =
         idExecutionInstrument.bind(
@@ -114,12 +107,10 @@ public class ExecutionService {
             src.getCharIndex(),
             src.getCharLength(),
             cache,
-            methodCallsCache,
             nextExecutionItem,
-            funCallCallback,
-            onComputedCallback,
-            onCachedCallback,
-            onExceptionalCallback);
+            valueCallback,
+            visualisationCallback,
+            funCallCallback);
     interopLibrary.execute(call);
     listener.dispose();
   }
@@ -128,43 +119,39 @@ public class ExecutionService {
    * Executes a method described by its name, constructor it's defined on and the module it's
    * defined in.
    *
-   * @param moduleName the module where the method is defined.
+   * @param modulePath the path to the module where the method is defined.
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
-   * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param valueCallback the consumer for expression value events.
+   * @param visualisationCallback the consumer of the node visualisation events.
    * @param funCallCallback the consumer for function call events.
-   * @param onComputedCallback the consumer of the computed value events.
-   * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   public void execute(
-      String moduleName,
+      File modulePath,
       String consName,
       String methodName,
       RuntimeCache cache,
-      MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<Throwable> onExceptionalCallback)
-      throws ArityException, ConstructorNotFoundException, MethodNotFoundException,
-          ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
-    Module module =
-        context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
-    FunctionCallInstrumentationNode.FunctionCall call =
-        prepareFunctionCall(module, consName, methodName);
+      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
+      throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+    Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
+        context
+            .getModuleForFile(modulePath)
+            .flatMap(module -> prepareFunctionCall(module, consName, methodName));
+    if (!callMay.isPresent()) {
+      return;
+    }
     execute(
-        call,
+        callMay.get(),
         cache,
-        methodCallsCache,
         nextExecutionItem,
-        funCallCallback,
-        onComputedCallback,
-        onCachedCallback,
-        onExceptionalCallback);
+        valueCallback,
+        visualisationCallback,
+        funCallCallback);
   }
 
   /**
@@ -202,7 +189,7 @@ public class ExecutionService {
    */
   public void setModuleSources(File path, String contents, boolean isIndexed) {
     Optional<Module> module = context.getModuleForFile(path);
-    if (module.isEmpty()) {
+    if (!module.isPresent()) {
       module = context.createModuleForFile(path);
     }
     module.ifPresent(
@@ -239,29 +226,23 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public ChangesetBuilder<Rope> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public Optional<Changeset<Rope>> modifyModuleSources(File path, List<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
-    if (moduleMay.isEmpty()) {
-      throw new ModuleNotFoundForFileException(path);
+    if (!moduleMay.isPresent()) {
+      return Optional.empty();
     }
     Module module = moduleMay.get();
-    try {
-      module.getSource();
-    } catch (IOException e) {
-      throw new SourceNotFoundException(path, e);
+    if (module.getLiteralSource() == null) {
+      return Optional.empty();
     }
-    ChangesetBuilder<Rope> changesetBuilder =
-        new ChangesetBuilder<>(
+    Changeset<Rope> changeset =
+        new Changeset<>(
             module.getLiteralSource(),
             module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
-    editedSource.ifPresentOrElse(
-        module::setLiteralSource,
-        () -> {
-          throw new FailedToApplyEditsException(path);
-        });
-    return changesetBuilder;
+    editedSource.ifPresent(module::setLiteralSource);
+    return Optional.of(changeset);
   }
 }

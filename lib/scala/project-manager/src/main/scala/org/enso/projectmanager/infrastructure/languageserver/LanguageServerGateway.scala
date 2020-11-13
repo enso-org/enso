@@ -12,13 +12,15 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.model.Project
 
-/** A gateway to lang. server subsystem.
+/**
+  * A gateway to lang. server subsystem.
   *
   * @tparam F a effectful context
   */
 trait LanguageServerGateway[F[+_, +_]] {
 
-  /** Starts a language server.
+  /**
+    * Starts a language server.
     *
     * @param clientId a requester id
     * @param project a project to start
@@ -29,7 +31,8 @@ trait LanguageServerGateway[F[+_, +_]] {
     project: Project
   ): F[ServerStartupFailure, LanguageServerSockets]
 
-  /** Stops a lang. server.
+  /**
+    * Stops a lang. server.
     *
     * @param clientId a requester id
     * @param projectId a project id to stop
@@ -40,14 +43,16 @@ trait LanguageServerGateway[F[+_, +_]] {
     projectId: UUID
   ): F[ServerShutdownFailure, Unit]
 
-  /** Checks if server is running for project.
+  /**
+    * Checks if server is running for project.
     *
     * @param projectId a project id
     * @return true if project is open
     */
   def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean]
 
-  /** Request a language server to rename project.
+  /**
+    * Request a language server to rename project.
     *
     * @param projectId the project id
     * @param oldName the old project name
@@ -60,13 +65,15 @@ trait LanguageServerGateway[F[+_, +_]] {
     newName: String
   ): F[ProjectRenameFailure, Unit]
 
-  /** Kills all running servers.
+  /**
+    * Kills all running servers.
     *
     * @return true if servers are killed, false otherwise
     */
   def killAllServers(): F[Throwable, Boolean]
 
-  /** Registers a shutdown hook.
+  /**
+    * Registers a shutdown hook.
     *
     * @param projectId the project for which the hook will be registered
     * @param hook the shutdown hook to register
@@ -77,7 +84,8 @@ trait LanguageServerGateway[F[+_, +_]] {
     hook: ShutdownHook[F]
   ): F[Nothing, Unit]
 
-  /** Waits until all shutdown hooks will be fired.
+  /**
+    * Waits until all shutdown hooks will be fired.
     *
     * @return
     */

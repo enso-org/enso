@@ -9,7 +9,8 @@ import zio.internal.{Executor, Platform, Tracing}
 
 import scala.concurrent.ExecutionContext
 
-/** An environment needed to execute ZIO actions.
+/**
+  * An environment needed to execute ZIO actions.
   *
   * @param computeExecutionContext compute thread pool
   */

@@ -20,7 +20,8 @@ import org.enso.languageserver.text.TextApi._
 
 object JsonRpc {
 
-  /** A description of supported JSON RPC messages.
+  /**
+    * A description of supported JSON RPC messages.
     */
   val protocol: Protocol = Protocol.empty
     .registerRequest(Ping)
@@ -64,7 +65,6 @@ object JsonRpc {
     .registerNotification(EventFile)
     .registerNotification(ExecutionContextExpressionValuesComputed)
     .registerNotification(ExecutionContextExecutionFailed)
-    .registerNotification(ExecutionContextExecutionStatus)
     .registerNotification(StandardOutputAppended)
     .registerNotification(StandardErrorAppended)
     .registerNotification(WaitingForStandardInput)

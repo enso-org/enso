@@ -4,7 +4,8 @@ import java.time.OffsetDateTime
 
 import org.enso.projectmanager.model.Project
 
-/** Defines ordering for `project/listRecent` command. The precedence in
+/**
+  * Defines ordering for `project/listRecent` command. The precedence in
   * defining the order has `lastOpened` time, if both times are equal then the
   * creation time is taken into account.
   */

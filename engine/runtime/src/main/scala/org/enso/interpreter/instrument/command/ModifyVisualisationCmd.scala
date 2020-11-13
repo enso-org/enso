@@ -11,7 +11,8 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that modifies a visualisation.
+/**
+  * A command that modifies a visualisation.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -21,9 +22,9 @@ class ModifyVisualisationCmd(
   request: Api.ModifyVisualisation
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc */
-  override def execute(implicit
-    ctx: RuntimeContext,
+  /** @inheritdoc **/
+  override def execute(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     if (doesContextExist) {
@@ -33,8 +34,8 @@ class ModifyVisualisationCmd(
     }
   }
 
-  private def modifyVisualisation()(implicit
-    ctx: RuntimeContext,
+  private def modifyVisualisation()(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     val maybeVisualisation = ctx.contextManager.getVisualisationById(
@@ -79,8 +80,8 @@ class ModifyVisualisationCmd(
     )
   }
 
-  private def replyWithContextNotExistError()(implicit
-    ctx: RuntimeContext,
+  private def replyWithContextNotExistError()(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     Future {

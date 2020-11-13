@@ -3,7 +3,7 @@ layout: developer-doc
 title: Operator Resolution
 category: parser
 tags: [parser, operator, resolution]
-order: 5
+order: 6
 ---
 
 # Operator Resolution

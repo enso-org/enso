@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class LambdaTest extends InterpreterTest {
   override def subject: String = "Lambdas"
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
 
     "take arguments and use them in their bodies" in {
@@ -75,8 +75,7 @@ class LambdaTest extends InterpreterTest {
 
     "be able to return atoms that are evaluated with oversaturated args" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |main =
           |    f = x -> Cons
           |    myCons = f 1 2 3
@@ -89,13 +88,12 @@ class LambdaTest extends InterpreterTest {
 
     "support the use of oversaturated args in methods" in {
       val code =
-        """from Builtins import all
-          |
-          |Nothing.myMethod = 1
+        """
+          |Unit.myMethod = 1
           |
           |main =
           |    f = x -> myMethod
-          |    t = f 10 Nothing
+          |    t = f 10 Unit
           |    t
           |""".stripMargin
 
@@ -117,8 +115,7 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated returned lambdas" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |main =
           |    fn = a -> b ->
           |        IO.println (a + b)
@@ -134,8 +131,7 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated lambdas returned with TCO" in {
       val code =
-        """from Builtins import all
-          |
+        """
           |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
           |main =

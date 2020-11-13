@@ -1,17 +1,17 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
+  InterpreterTest,
   InterpreterContext,
-  InterpreterException,
-  InterpreterTest
+  InterpreterException
 }
 
 class PatternMatchTest extends InterpreterTest {
 
   override def subject = "Pattern Matching"
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
 
     "work for simple patterns" in {

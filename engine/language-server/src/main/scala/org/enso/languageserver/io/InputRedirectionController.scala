@@ -23,7 +23,8 @@ import org.enso.languageserver.io.ObservablePipedInputStream.{
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 
-/** A stdin redirection controller responsible for feeding stdin and notifying
+/**
+  * A stdin redirection controller responsible for feeding stdin and notifying
   * execution context owners that executed program is blocked on `IO.readln`.
   *
   * @param stdIn a stream from which programs read its input data
@@ -69,15 +70,16 @@ class InputRedirectionController(
 
     case ReadBlocked =>
       log.debug("Blocked read detected")
-      liveContexts foreach { case ContextData(_, owner) =>
-        sessionRouter ! DeliverToJsonController(
-          owner,
-          WaitingForStandardInput
-        )
+      liveContexts foreach {
+        case ContextData(_, owner) =>
+          sessionRouter ! DeliverToJsonController(
+            owner,
+            WaitingForStandardInput
+          )
       }
   }
 
-  /** @inheritdoc */
+  /** @inheritdoc **/
   override def update(event: InputStreamEvent): Unit = { self ! event }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -95,7 +97,8 @@ object InputRedirectionController {
 
   private case class ContextData(contextId: UUID, owner: ClientId)
 
-  /** Creates a configuration object used to create a
+  /**
+    * Creates a configuration object used to create a
     * [[InputRedirectionController]].
     *
     * @param stdIn a stream from which programs read its input data

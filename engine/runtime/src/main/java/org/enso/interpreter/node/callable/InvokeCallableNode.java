@@ -185,7 +185,7 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        Stateful selfResult = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
+        Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state, false);
         selfArgument = selfResult.getValue();
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;
@@ -233,9 +233,9 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @param isTail whether or not the node is tail-recursive.
    */
   @Override
-  public void setTailStatus(TailStatus isTail) {
-    super.setTailStatus(isTail);
-    invokeFunctionNode.setTailStatus(isTail);
+  public void setTail(boolean isTail) {
+    super.setTail(isTail);
+    invokeFunctionNode.setTail(isTail);
   }
 
   /** @return the source section for this node. */

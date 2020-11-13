@@ -13,7 +13,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for recompute commands.
+/**
+  * A request handler for recompute commands.
   *
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
@@ -29,11 +30,12 @@ final class RecomputeContextHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = { case msg: Api.RecomputeContextRequest =>
-    runtime ! Api.Request(UUID.randomUUID(), msg)
-    val cancellable =
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-    context.become(responseStage(sender(), cancellable))
+  private def requestStage: Receive = {
+    case msg: Api.RecomputeContextRequest =>
+      runtime ! Api.Request(UUID.randomUUID(), msg)
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(sender(), cancellable))
   }
 
   private def responseStage(
@@ -58,7 +60,8 @@ final class RecomputeContextHandler(
 
 object RecomputeContextHandler {
 
-  /** Creates configuration object used to create a [[RecomputeContextHandler]].
+  /**
+    * Creates configuration object used to create a [[RecomputeContextHandler]].
     *
     * @param timeout request timeout
     * @param runtime reference to the runtime connector

@@ -1,7 +1,8 @@
 package org.enso.languageserver.io
 import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
-/** The input/output JSON RPC API provided by the language server.
+/**
+  * The input/output JSON RPC API provided by the language server.
   *
   * @see [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
   */

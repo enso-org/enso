@@ -8,26 +8,29 @@ import io.circe.{Decoder, Encoder}
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
+import org.enso.projectmanager.data.Default
 import org.enso.projectmanager.infrastructure.file.FileStorage._
+import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
 import shapeless.{:+:, CNil, _}
 
-/** ZIO implementation of [[FileStorage]]. It uses circe [[Encoder]] and
+/**
+  * ZIO implementation of [[FileStorage]]. It uses circe [[Encoder]] and
   * [[Decoder]] to encode/decode objects.
   *
   * @param path a path to a file that stores serialized object
   * @param fileSystem a filesystem algebra
   * @tparam A a datatype to store
   */
-class JsonFileStorage[
-  A: Encoder: Decoder,
-  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
-](
+class SynchronizedFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   path: File,
   fileSystem: FileSystem[F]
 ) extends FileStorage[A, F] {
 
-  /** Loads the serialized object from the file.
+  private val semaphore = Semaphore.unsafeMake[F](1)
+
+  /**
+    * Loads the serialized object from the file.
     *
     * @return either [[LoadFailure]] or the object
     */
@@ -36,6 +39,9 @@ class JsonFileStorage[
       .readFile(path)
       .mapError(Coproduct[LoadFailure](_))
       .flatMap(tryDecodeFileContents)
+      .recover {
+        case Inr(Inl(FileNotFound)) => Default[A].value
+      }
 
   private def tryDecodeFileContents(contents: String): F[LoadFailure, A] = {
     decode[A](contents) match {
@@ -48,7 +54,8 @@ class JsonFileStorage[
     }
   }
 
-  /** Persists the provided object on the disk.
+  /**
+    * Persists the provided object on the disk.
     *
     * @param data a data object
     * @return either [[FileSystemFailure]] or success
@@ -56,7 +63,8 @@ class JsonFileStorage[
   override def persist(data: A): F[FileSystemFailure, Unit] =
     fileSystem.overwriteFile(path, data.asJson.spaces2)
 
-  /** Atomically modifies persisted object using function `f`.
+  /**
+    * Atomically modifies persisted object using function `f`.
     *
     * @param f the update function that takes the current version of the object
     *          loaded from the disk and returns a tuple containing the new
@@ -68,11 +76,13 @@ class JsonFileStorage[
     f: A => (A, B)
   ): F[CannotDecodeData :+: FileSystemFailure :+: CNil, B] =
     // format: off
-    for {
-      index             <- load()
-      (updated, output)  = f(index)
-      _                 <- persist(updated).mapError(Coproduct[LoadFailure](_))
-    } yield output
+    semaphore.withPermit {
+      for {
+        index             <- load()
+        (updated, output)  = f(index)
+        _                 <- persist(updated).mapError(Coproduct[LoadFailure](_))
+      } yield output
+    }
     // format: on
 
 }

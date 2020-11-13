@@ -5,7 +5,8 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 
-/** Language server client controller factory.
+/**
+  * Language server client controller factory.
   *
   * @param bufferRegistry the buffer registry actor ref
   * @param capabilityRouter the capability router actor ref
@@ -24,7 +25,8 @@ class JsonConnectionControllerFactory(
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
 
-  /** Creates a client controller actor.
+  /**
+    * Creates a client controller actor.
     *
     * @param clientId the internal client id.
     * @return

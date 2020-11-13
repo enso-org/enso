@@ -63,7 +63,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration._
 
-/** An actor handling communications between a single client and the language
+/**
+  * An actor handling communications between a single client and the language
   * server.
   *
   * @param connectionId the internal connection id.
@@ -177,26 +178,10 @@ class JsonConnectionController(
         ExecutionContextExpressionValuesComputed.Params(contextId, updates)
       )
 
-    case ContextRegistryProtocol.ExecutionFailedNotification(
-          contextId,
-          failure
-        ) =>
+    case ContextRegistryProtocol.ExecutionFailedNotification(contextId, msg) =>
       webActor ! Notification(
         ExecutionContextExecutionFailed,
-        ExecutionContextExecutionFailed.Params(
-          contextId,
-          failure.message,
-          failure.path
-        )
-      )
-
-    case ContextRegistryProtocol.ExecutionDiagnosticNotification(
-          contextId,
-          diagnostics
-        ) =>
-      webActor ! Notification(
-        ExecutionContextExecutionStatus,
-        ExecutionContextExecutionStatus.Params(contextId, diagnostics)
+        ExecutionContextExecutionFailed.Params(contextId, msg)
       )
 
     case SearchProtocol.SuggestionsDatabaseUpdateNotification(
@@ -308,7 +293,8 @@ class JsonConnectionController(
 
 object JsonConnectionController {
 
-  /** Creates a configuration object used to create a [[JsonConnectionController]].
+  /**
+    * Creates a configuration object used to create a [[JsonConnectionController]].
     *
     * @param connectionId the internal connection id.
     * @param bufferRegistry a router that dispatches text editing requests

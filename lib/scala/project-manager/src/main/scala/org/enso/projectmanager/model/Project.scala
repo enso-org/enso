@@ -3,7 +3,8 @@ package org.enso.projectmanager.model
 import java.time.OffsetDateTime
 import java.util.UUID
 
-/** Project entity.
+/**
+  * Project entity.
   *
   * @param id a project id
   * @param name a project name

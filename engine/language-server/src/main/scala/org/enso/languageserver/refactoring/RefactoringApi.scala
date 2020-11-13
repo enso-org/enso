@@ -2,7 +2,8 @@ package org.enso.languageserver.refactoring
 
 import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
-/** The refactoring  JSON RPC API provided by the language server.
+/**
+  * The refactoring  JSON RPC API provided by the language server.
   * See [[https://github.com/luna/enso/blob/main/docs/language-server/README.md]]
   * for message specifications.
   */

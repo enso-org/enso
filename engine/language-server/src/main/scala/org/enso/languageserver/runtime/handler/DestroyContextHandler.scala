@@ -13,7 +13,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for destroy context commands.
+/**
+  * A request handler for destroy context commands.
   *
   * @param timeout request timeout
   * @param runtime reference to the runtime conector
@@ -29,11 +30,12 @@ final class DestroyContextHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = { case msg: Api.DestroyContextRequest =>
-    runtime ! Api.Request(UUID.randomUUID(), msg)
-    val cancellable =
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-    context.become(responseStage(sender(), cancellable))
+  private def requestStage: Receive = {
+    case msg: Api.DestroyContextRequest =>
+      runtime ! Api.Request(UUID.randomUUID(), msg)
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(sender(), cancellable))
   }
 
   private def responseStage(
@@ -58,7 +60,8 @@ final class DestroyContextHandler(
 
 object DestroyContextHandler {
 
-  /** Creates a configuration object used to create [[DestroyContextHandler]].
+  /**
+    * Creates a configuration object used to create [[DestroyContextHandler]].
     *
     * @param timeout request timeout
     * @param runtime reference to the runtime conector

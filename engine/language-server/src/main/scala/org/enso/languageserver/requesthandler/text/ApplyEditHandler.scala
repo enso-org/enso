@@ -12,7 +12,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `text/applyEdit` commands.
+/**
+  * A request handler for `text/applyEdit` commands.
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
@@ -80,7 +81,8 @@ class ApplyEditHandler(
 
 object ApplyEditHandler {
 
-  /** Creates a configuration object used to create a [[ApplyEditHandler]]
+  /**
+    * Creates a configuration object used to create a [[ApplyEditHandler]]
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout

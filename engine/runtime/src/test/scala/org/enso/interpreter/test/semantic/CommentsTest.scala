@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class CommentsTest extends InterpreterTest {
   override def subject: String = "All Comments"
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
     "be ignored in execution" in {
       val code =

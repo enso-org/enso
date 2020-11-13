@@ -16,13 +16,9 @@ trait EitherValue {
     def rightValue: B = either match {
       case Right(value) => value
       case Left(_) =>
-        throw new TestFailedException(
-          { _: StackDepthException =>
-            Some(s"Either right value was expected, but it was $either")
-          },
-          None,
-          pos
-        )
+        throw new TestFailedException({ _: StackDepthException =>
+          Some(s"Either right value was expected, but it was $either")
+        }, None, pos)
     }
   }
 }

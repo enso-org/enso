@@ -11,7 +11,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `session/initProtocolConnection` commands.
+/**
+  * A request handler for `session/initProtocolConnection` commands.
   *
   * @param fileManager a file manager reference
   * @param timeout a request timeout
@@ -59,7 +60,8 @@ class InitProtocolConnectionHandler(
 
 object InitProtocolConnectionHandler {
 
-  /** Creates a configuration object used to create a [[InitProtocolConnectionHandler]]
+  /**
+    * Creates a configuration object used to create a [[InitProtocolConnectionHandler]]
     *
     * @param fileManager a file manager reference
     * @param timeout a request timeout

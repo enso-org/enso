@@ -46,5 +46,6 @@ public abstract class ConstructorNode extends ExpressionNode {
       return constructor.newInstance();
     }
     return constructor;
+
   }
 }

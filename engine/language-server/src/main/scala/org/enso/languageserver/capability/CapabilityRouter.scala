@@ -14,7 +14,8 @@ import org.enso.languageserver.data.{
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 
-/** A content based router that routes each capability request to the
+/**
+  * A content based router that routes each capability request to the
   * correct recipient based on the capability object.
   *
   * @param bufferRegistry the recipient of buffer capability requests
@@ -70,7 +71,8 @@ class CapabilityRouter(
 
 object CapabilityRouter {
 
-  /** Creates a configuration object used to create a [[CapabilityRouter]]
+  /**
+    * Creates a configuration object used to create a [[CapabilityRouter]]
     *
     * @param bufferRegistry a buffer registry ref
     * @param receivesTreeUpdatesHandler the recipient of `receivesTreeUpdates`

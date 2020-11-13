@@ -1,29 +1,20 @@
 name: "CodeQL"
 
-# CodeQL is temporarily disabled because it seems that it is unable to discover
-# code compiled with SBT.
 on:
   push:
-    branches-ignore:
-      - "**"
-  #    branches:
-  #      - main
-  #      - "release/*"
+    branches:
+      - main
+      - "release/*"
   pull_request:
-    branches-ignore:
-      - "**"
-#    branches:
-#      - "*"
+    branches:
+      - "*"
 
 env:
-  # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 20.2.0
-  # Please ensure that this is in sync with javaVersion in build.sbt
-  javaVersion: 11
+  # Please ensure that this is in sync with graalAPIVersion in build.sbt
+  graalVersion: 20.1.0
+  javaVersion: java11
   # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.4.1
-  # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2019-11-04
+  sbtVersion: 1.3.13
 
 jobs:
   vuln-scan:
@@ -50,28 +41,22 @@ jobs:
           languages: java
 
       # Set Up Environment
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: ${{ env.rustToolchain }}
-          override: true
       - name: Setup conda
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
       - name: Install FlatBuffers Compiler
         run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
+        uses: DeLaGuardo/setup-graalvm@2.0
         with:
-          graalvm-version: ${{ env.graalVersion }}
-          java-version: ${{ env.javaVersion }}
+          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
       - name: Set Up SBT
         run: |
-          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
-          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
       # Caches
       - name: Cache SBT

@@ -13,7 +13,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for push commands.
+/**
+  * A request handler for push commands.
   *
   * @param timeout request timeout
   * @param runtime reference to the runtime conector
@@ -29,11 +30,12 @@ final class PushContextHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = { case msg: Api.PushContextRequest =>
-    runtime ! Api.Request(UUID.randomUUID(), msg)
-    val cancellable =
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-    context.become(responseStage(sender(), cancellable))
+  private def requestStage: Receive = {
+    case msg: Api.PushContextRequest =>
+      runtime ! Api.Request(UUID.randomUUID(), msg)
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(sender(), cancellable))
   }
 
   private def responseStage(
@@ -58,7 +60,8 @@ final class PushContextHandler(
 
 object PushContextHandler {
 
-  /** Creates a configuration object used to create [[PushContextHandler]].
+  /**
+    * Creates a configuration object used to create [[PushContextHandler]].
     *
     * @param timeout request timeout
     * @param runtime reference to the runtime conector

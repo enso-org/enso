@@ -1,6 +1,7 @@
 package org.enso.syntax.text
 
-/** A dirty hack that replaces all disable comments with whitespace.
+/**
+  * A dirty hack that replaces all disable comments with whitespace.
   * Documentation comments are left untouched.
   *
   * @param input the original input file

@@ -79,10 +79,7 @@ case object LambdaConsolidate extends IRPass {
     ir.mapExpressions(
       runExpression(
         _,
-        new InlineContext(
-          moduleContext.module,
-          freshNameSupply = moduleContext.freshNameSupply
-        )
+        new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
       )
     )
 
@@ -103,8 +100,9 @@ case object LambdaConsolidate extends IRPass {
         "A fresh name supply is required for lambda consolidation."
       )
     )
-    ir.transformExpressions { case fn: IR.Function =>
-      collapseFunction(fn, inlineContext, freshNameSupply)
+    ir.transformExpressions {
+      case fn: IR.Function =>
+        collapseFunction(fn, inlineContext, freshNameSupply)
     }
   }
 
@@ -151,10 +149,6 @@ case object LambdaConsolidate extends IRPass {
         val (processedArgList, newBody) =
           computeReplacedExpressions(newArgNames, lastBody, usageIdsForShadowed)
 
-        val consolidatedArgs = processedArgList.map(
-          _.mapExpressions(runExpression(_, inlineContext))
-        )
-
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
             Some(
@@ -170,7 +164,7 @@ case object LambdaConsolidate extends IRPass {
         }
 
         lam.copy(
-          arguments = consolidatedArgs,
+          arguments = processedArgList,
           body      = runExpression(newBody, inlineContext),
           location  = newLocation,
           canBeTCO  = chainedLambdas.last.canBeTCO
@@ -199,29 +193,30 @@ case object LambdaConsolidate extends IRPass {
     val argsWithIndex =
       argsWithShadowed.zipWithIndex.map(t => (t._1._1, t._1._2, t._2))
 
-    argsWithIndex.map { case (arg, isShadowed, ix) =>
-      if (isShadowed) {
-        val restArgs = args.drop(ix + 1)
-        arg match {
-          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
-            val mShadower = restArgs.collectFirst {
-              case s @ IR.DefinitionArgument.Specified(sName, _, _, _, _, _)
-                  if sName.name == argName.name =>
-                s
-            }
+    argsWithIndex.map {
+      case (arg, isShadowed, ix) =>
+        if (isShadowed) {
+          val restArgs = args.drop(ix + 1)
+          arg match {
+            case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
+              val mShadower = restArgs.collectFirst {
+                case s @ IR.DefinitionArgument.Specified(sName, _, _, _, _, _)
+                    if sName.name == argName.name =>
+                  s
+              }
 
-            val shadower: IR = mShadower.getOrElse(IR.Empty(spec.location))
+              val shadower: IR = mShadower.getOrElse(IR.Empty(spec.location))
 
-            spec.diagnostics.add(
-              IR.Warning.Shadowed
-                .FunctionParam(argName.name, shadower, spec.location)
-            )
+              spec.diagnostics.add(
+                IR.Warning.Shadowed
+                  .FunctionParam(argName.name, shadower, spec.location)
+              )
 
-            (spec, isShadowed)
+              (spec, isShadowed)
+          }
+        } else {
+          (arg, isShadowed)
         }
-      } else {
-        (arg, isShadowed)
-      }
     }
   }
 
@@ -283,8 +278,9 @@ case object LambdaConsolidate extends IRPass {
     argument: IR.DefinitionArgument,
     toReplaceExpressionIds: Set[IR.Identifier]
   ): IR.Expression = {
-    expr.transformExpressions { case name: IR.Name =>
-      replaceInName(name, argument, toReplaceExpressionIds)
+    expr.transformExpressions {
+      case name: IR.Name =>
+        replaceInName(name, argument, toReplaceExpressionIds)
     }
   }
 
@@ -309,13 +305,10 @@ case object LambdaConsolidate extends IRPass {
               case defSpec: IR.DefinitionArgument.Specified => defSpec.name.name
             }
           )
-        case ths: IR.Name.This              => ths
-        case here: IR.Name.Here             => here
-        case blank: IR.Name.Blank           => blank
-        case ref: IR.Name.MethodReference   => ref
-        case qual: IR.Name.Qualified        => qual
-        case err: IR.Error.Resolution       => err
-        case annotation: IR.Name.Annotation => annotation
+        case ths: IR.Name.This            => ths
+        case here: IR.Name.Here           => here
+        case blank: IR.Name.Blank         => blank
+        case ref: IR.Name.MethodReference => ref
       }
     } else {
       name
@@ -332,18 +325,19 @@ case object LambdaConsolidate extends IRPass {
     args: List[IR.DefinitionArgument]
   ): Set[AliasAnalysis.Graph.Id] = {
     args
-      .map { case spec: IR.DefinitionArgument.Specified =>
-        val aliasInfo =
-          spec
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "Missing aliasing information for an argument definition."
-            )
-            .unsafeAs[AliasAnalysis.Info.Occurrence]
-        aliasInfo.graph
-          .getOccurrence(aliasInfo.id)
-          .flatMap(occ => Some(aliasInfo.graph.knownShadowedDefinitions(occ)))
-          .getOrElse(Set())
+      .map {
+        case spec: IR.DefinitionArgument.Specified =>
+          val aliasInfo =
+            spec
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "Missing aliasing information for an argument definition."
+              )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
+          aliasInfo.graph
+            .getOccurrence(aliasInfo.id)
+            .flatMap(occ => Some(aliasInfo.graph.knownShadowedDefinitions(occ)))
+            .getOrElse(Set())
       }
       .foldLeft(Set[AliasAnalysis.Graph.Occurrence]())(_ ++ _)
       .map(_.id)

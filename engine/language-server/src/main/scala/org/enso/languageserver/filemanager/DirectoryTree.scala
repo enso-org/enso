@@ -2,7 +2,8 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 
-/** A representation of tree structures of files and directories.
+/**
+  * A representation of tree structures of files and directories.
   *
   * @param path to the directory
   * @param name of the directory
@@ -18,7 +19,8 @@ case class DirectoryTree(
 
 object DirectoryTree {
 
-  /** Create [[DirectoryTree]] from [[FileSystemApi.DirectoryEntry]]
+  /**
+    * Create [[DirectoryTree]] from [[FileSystemApi.DirectoryEntry]]
     * converting absolute pathes to ones relative to project root.
     *
     * @param root path to the project root

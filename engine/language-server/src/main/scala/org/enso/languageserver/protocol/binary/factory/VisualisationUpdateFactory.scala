@@ -12,7 +12,8 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
 
 object VisualisationUpdateFactory {
 
-  /** Creates a [[VisualisationUpdate]] inside a [[FlatBufferBuilder]].
+  /**
+    * Creates a [[VisualisationUpdate]] inside a [[FlatBufferBuilder]].
     *
     * @param update a visualisation update
     * @param builder a class that helps build a FlatBuffer representation of
@@ -20,8 +21,8 @@ object VisualisationUpdateFactory {
     * @return an offset pointing to the FlatBuffer representation of the
     *         created object
     */
-  def create(update: VisualisationUpdate)(implicit
-    builder: FlatBufferBuilder
+  def create(update: VisualisationUpdate)(
+    implicit builder: FlatBufferBuilder
   ): Int = {
     val ctx = createVisualisationCtx(update.visualisationContext)
     val data =
@@ -33,7 +34,8 @@ object VisualisationUpdateFactory {
     )
   }
 
-  /** Creates a [[VisualisationContext]] inside a [[FlatBufferBuilder]].
+  /**
+    * Creates a [[VisualisationContext]] inside a [[FlatBufferBuilder]].
     *
     * @param ctx a VisualisationContext
     * @param builder a class that helps build a FlatBuffer representation of
@@ -41,8 +43,8 @@ object VisualisationUpdateFactory {
     * @return an offset pointing to the FlatBuffer representation of the
     *         created object
     */
-  def createVisualisationCtx(ctx: VisualisationContext)(implicit
-    builder: FlatBufferBuilder
+  def createVisualisationCtx(ctx: VisualisationContext)(
+    implicit builder: FlatBufferBuilder
   ): Int = {
     BinaryVisualisationContext.startVisualisationContext(builder)
     BinaryVisualisationContext.addContextId(

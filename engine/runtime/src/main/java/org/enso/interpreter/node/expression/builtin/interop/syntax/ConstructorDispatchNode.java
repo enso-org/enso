@@ -13,20 +13,19 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @NodeInfo(shortName = "<new>", description = "Instantiates a polyglot constructor.")
 public class ConstructorDispatchNode extends BuiltinRootNode {
-
   private ConstructorDispatchNode(Language language) {
     super(language);
   }
 
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
-  private @Child HostValueToEnsoNode hostValueToEnsoNode = HostValueToEnsoNode.build();
   private final BranchProfile err = BranchProfile.create();
 
   /**
@@ -38,6 +37,7 @@ public class ConstructorDispatchNode extends BuiltinRootNode {
   public static Function makeFunction(Language language) {
     return Function.fromBuiltinRootNode(
         new ConstructorDispatchNode(language),
+        CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
@@ -54,8 +54,8 @@ public class ConstructorDispatchNode extends BuiltinRootNode {
     Object cons = args[0];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
-      Object[] arguments = TypesGen.expectArray(args[1]).getItems();
-      Object res = hostValueToEnsoNode.execute(library.instantiate(cons, arguments));
+      Object[] arguments = TypesGen.expectVector(args[1]).getItems();
+      Object res = library.instantiate(cons, arguments);
       return new Stateful(state, res);
     } catch (UnsupportedMessageException
         | ArityException

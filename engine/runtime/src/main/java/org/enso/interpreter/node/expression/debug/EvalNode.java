@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.debug;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.context.InlineContext;
@@ -13,18 +12,15 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
-@ReportPolymorphism
 public abstract class EvalNode extends BaseNode {
   private final boolean shouldCaptureResultScope;
 
@@ -58,11 +54,13 @@ public abstract class EvalNode extends BaseNode {
    * @param expression the string containing expression to evaluate
    * @return the result of evaluating {@code expression} in the {@code callerInfo} context
    */
-  public abstract Stateful execute(CallerInfo callerInfo, Object state, Text expression);
+  public abstract Stateful execute(CallerInfo callerInfo, Object state, String expression);
 
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     LocalScope localScope = scope.createChild();
-    InlineContext inlineContext = InlineContext.fromJava(localScope, moduleScope, getTailStatus());
+    InlineContext inlineContext =
+        InlineContext.fromJava(
+            localScope, moduleScope, isTail());
     ExpressionNode expr =
         lookupContextReference(Language.class)
             .get()
@@ -83,7 +81,8 @@ public abstract class EvalNode extends BaseNode {
             moduleScope,
             expr,
             null,
-            "<eval>");
+            "<dynamic_eval>",
+            null);
     return Truffle.getRuntime().createCallTarget(framedNode);
   }
 
@@ -97,32 +96,26 @@ public abstract class EvalNode extends BaseNode {
   Stateful doCached(
       CallerInfo callerInfo,
       Object state,
-      Text expression,
-      @Cached("expression") Text cachedExpression,
-      @Cached("build()") ToJavaStringNode toJavaStringNode,
-      @Cached("toJavaStringNode.execute(expression)") String expressionStr,
+      String expression,
+      @Cached("expression") String cachedExpression,
       @Cached("callerInfo") CallerInfo cachedCallerInfo,
       @Cached(
-              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expressionStr)")
+              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expression)")
           RootCallTarget cachedCallTarget,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Thunk thunk = new Thunk(cachedCallTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
+    return thunkExecutorNode.executeThunk(thunk, state, isTail());
   }
 
   @Specialization
   Stateful doUncached(
       CallerInfo callerInfo,
       Object state,
-      Text expression,
-      @Cached("build()") ThunkExecutorNode thunkExecutorNode,
-      @Cached("build()") ToJavaStringNode toJavaStringNode) {
+      String expression,
+      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     RootCallTarget callTarget =
-        parseExpression(
-            callerInfo.getLocalScope(),
-            callerInfo.getModuleScope(),
-            toJavaStringNode.execute(expression));
+        parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expression);
     Thunk thunk = new Thunk(callTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
+    return thunkExecutorNode.executeThunk(thunk, state, isTail());
   }
 }

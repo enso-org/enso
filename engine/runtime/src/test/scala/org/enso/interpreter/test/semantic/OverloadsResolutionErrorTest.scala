@@ -1,9 +1,9 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
+  InterpreterTest,
   InterpreterContext,
-  InterpreterException,
-  InterpreterTest
+  InterpreterException
 }
 import org.enso.polyglot.RuntimeOptions
 import org.graalvm.polyglot.Context
@@ -14,16 +14,15 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
   override def contextModifiers: Context#Builder => Context#Builder =
     _.option(RuntimeOptions.STRICT_ERRORS, "true")
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
 
     "result in an error at runtime for methods" in {
       val code =
-        """from Builtins import all
-          |
-          |Nothing.foo = 10
-          |Nothing.foo = 20
+        """
+          |Unit.foo = 10
+          |Unit.foo = 20
           |""".stripMargin.linesIterator.mkString("\n")
 
       the[InterpreterException] thrownBy eval(code) should have message
@@ -32,9 +31,8 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       val diagnostics = consumeOut
       diagnostics
         .filterNot(_.contains("Compiler encountered"))
-        .filterNot(_.contains("In module"))
         .toSet shouldEqual Set(
-        "Test[4:1-4:16]: Method overloads are not supported: Nothing.foo is defined multiple times in this module."
+        "Test[3:1-3:13]: Method overloads are not supported: Unit.foo is defined multiple times in this module."
       )
     }
 
@@ -51,7 +49,6 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
       val diagnostics = consumeOut
       diagnostics
         .filterNot(_.contains("Compiler encountered"))
-        .filterNot(_.contains("In module"))
         .toSet shouldEqual Set(
         "Test[3:1-3:11]: Redefining atoms is not supported: MyAtom is defined multiple times in this module."
       )

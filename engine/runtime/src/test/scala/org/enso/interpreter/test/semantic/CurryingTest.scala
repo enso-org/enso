@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class CurryingTest extends InterpreterTest {
   override def subject: String = "Functions"
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
 
     "allow partial application" in {
@@ -66,12 +66,11 @@ class CurryingTest extends InterpreterTest {
 
     "allow default arguments to be suspended in method call syntax" in {
       val code =
-        """from Builtins import all
-          |
-          |Nothing.fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
+        """
+          |Unit.fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
           |
           |main =
-          |    fn1 = Nothing.fn ...
+          |    fn1 = Unit.fn ...
           |    fn2 = fn1 1 2 ...
           |    fn3 = fn2 3 ...
           |

@@ -304,7 +304,7 @@ public class Module implements TruffleObject {
               .getScope()
               .lookupMethodDefinition(debug, Builtins.MethodNames.Debug.EVAL);
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
-      Object state = context.getBuiltins().nothing().newInstance();
+      Object state = context.getBuiltins().unit().newInstance();
       return callOptimiserNode
           .executeDispatch(eval, callerInfo, state, new Object[] {debug, expr})
           .getValue();
