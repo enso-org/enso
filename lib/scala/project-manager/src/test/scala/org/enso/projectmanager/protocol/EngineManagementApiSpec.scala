@@ -1,13 +1,13 @@
 package org.enso.projectmanager.protocol
 
+import akka.testkit.TestDuration
 import io.circe.literal._
-import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
+import org.enso.projectmanager.BaseServerSpec
 import org.enso.testkit.FlakySpec
 
-class EngineManagementApiSpec
-    extends BaseServerSpec
-    with FlakySpec
-    with ProjectManagementOps {
+import scala.concurrent.duration.DurationInt
+
+class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
 
   "engine/*" must {
     "report no installed engines by default" in {
@@ -64,13 +64,16 @@ class EngineManagementApiSpec
               }
             }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {
             "jsonrpc":"2.0",
             "id":0,
             "result": null
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
 
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -81,13 +84,16 @@ class EngineManagementApiSpec
               }
             }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {
             "jsonrpc":"2.0",
             "id":1,
             "result": null
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
 
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -117,13 +123,16 @@ class EngineManagementApiSpec
               }
             }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {
             "jsonrpc":"2.0",
             "id":3,
             "result": null
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
 
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -173,13 +182,16 @@ class EngineManagementApiSpec
               }
             }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {
             "jsonrpc":"2.0",
             "id":1,
             "result": null
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
     }
   }
 }
