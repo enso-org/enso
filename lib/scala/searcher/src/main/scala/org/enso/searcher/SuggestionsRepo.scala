@@ -132,6 +132,12 @@ trait SuggestionsRepo[F[_]] {
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): F[(Long, Seq[Option[Long]])]
 
+  def updateExports(
+    exportingModule: String,
+    exportedModule: String,
+    exportedSymbol: String
+  ): F[Seq[Long]]
+
   /** Cleans the repo resetting the version. */
   def clean: F[Unit]
 
