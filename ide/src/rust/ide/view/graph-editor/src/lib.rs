@@ -1709,7 +1709,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Commit project name edit ===
 
     frp::extend! { network
-        eval_ touch.background.selected(model.breadcrumbs.outside_press.emit(()));
+        deactivate_breadcrumbs <- any3_(&touch.background.selected,&inputs.edit_mode_on,&inputs.add_node_at_cursor);
+        eval_ deactivate_breadcrumbs(model.breadcrumbs.outside_press());
     }
 
 
