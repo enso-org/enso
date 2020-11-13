@@ -41,6 +41,12 @@ function makeHandler(elem, data, file, action) {
 }
 
 $(function () {
+  $("body").prepend(
+    '<div style="color:red">This review helper tool does not regenerate the ' +
+      "report - to see the changes that are applied using this tool after " +
+      "refreshing the page, you need to regenerate the report using the " +
+      "`gatherLicenses` command.</div>"
+  );
   $("body").append(
     '<div id="status" ' +
       'style="position: fixed;left:4pt;bottom:4pt">' +

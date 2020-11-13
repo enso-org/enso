@@ -124,12 +124,18 @@ object GatherLicenses {
   lazy val verifyReports = Def.task {
     val configRoot = configurationRoot.value
     val log        = streams.value.log
+    val targetRoot = target.value
+
     def warnAndThrow(exceptionMessage: String): Nothing = {
       log.error(exceptionMessage)
       log.warn(
         "Please make sure to run `enso / gatherLicenses` " +
-        "and review any changed dependencies, " +
-        "ensuring that the review is complete and there are no warnings."
+        s"and review the reports generated at $targetRoot, " +
+        "ensuring that the legal review is complete and there are no warnings."
+      )
+      log.warn(
+        "See docs/distribution/licenses.md#review-process for a more detailed" +
+        "explanation."
       )
       throw LegalReviewException(exceptionMessage)
     }
