@@ -75,7 +75,7 @@ spec =
 
             json_string = (Enso_Project.data / "books.json").read
             parsed = Json.parse json_string
-            domain = parsed.into (Vector (Book title=Text (Author name=Text year_of_birth=Number)))
+            domain = parsed.into (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
             domain.should equal books
     describe "JSON Serialization" <|
         it "should print JSON structures to valid json" <|

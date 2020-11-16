@@ -14,7 +14,16 @@ polyglot java import org.enso.base.Text_Utils
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
 Text.length : Integer
-Text.length = this.characters.length
+Text.length =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    nxt = iterator.next []
+
+    count accum iter = if iter == -1 then accum else
+        counter = accum + 1
+        next_nxt = iterator.next []
+        @Tail_Call count counter next_nxt
+    count 0 nxt
 
 ## Applies `function` to each character in `this`.
 
@@ -45,7 +54,7 @@ Text.each function =
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
-Text.characters : Vector
+Text.characters : Vector.Vector
 Text.characters =
     bldr = Vector.new_builder
     this.each bldr.append
@@ -60,7 +69,7 @@ Text.characters =
          "ham,eggs,cheese,tomatoes".split ","
      The code above returns:
          ["ham", "eggs", "cheese", "tomatoes"]
-Text.split : Text -> Vector
+Text.split : Text -> Vector.Vector
 Text.split (separator = " ") =
     Vector.from_polyglot_array (Text_Utils.split_at [this, separator])
 
@@ -76,7 +85,7 @@ Text.split (separator = " ") =
      ACUTE) is canonically the same as the string 'e\u0301' (i.e. the letter
      `e` followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
          ('é' == 'e\u0301') == True
-Text.== : Text -> Boolean
+Text.== : Any -> Boolean
 Text.== that = Text_Utils.equals [this, that]
 
 ## Checks whether `this` is equal to `that`, ignoring case considerations.
@@ -109,12 +118,20 @@ Text.< that = Text_Utils.lt [this, that]
 Text.> : Text -> Boolean
 Text.> that = Text_Utils.lt [that, this]
 
+## Check if `this` is empty.
+Text.is_empty : Boolean
+Text.is_empty = this == ""
+
+## Check if `this` is not empty.
+Text.not_empty : Boolean
+Text.not_empty = not this.is_empty
+
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.utf_8 : Vector
+Text.utf_8 : Vector.Vector
 Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
 
 ## Takes an array of bytes and returns Text resulting from decoding it as
@@ -122,7 +139,7 @@ Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_utf_8 : Vector -> Text
+Text.from_utf_8 : Vector.Vector -> Text
 Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]
 
 ## Returns a vector containing integers representing the Unicode codepoints of
@@ -130,7 +147,7 @@ Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.codepoints : Vector
+Text.codepoints : Vector.Vector
 Text.codepoints =
     Vector.from_polyglot_array (Text_Utils.get_codepoints [this])
 
@@ -139,7 +156,7 @@ Text.codepoints =
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_codepoints : Vector -> Text
+Text.from_codepoints : Vector.Vector -> Text
 Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_array]
 
 ## Checks whether `this` starts with `prefix`.

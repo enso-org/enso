@@ -1,3 +1,4 @@
+import Base.Data.Any.Extensions
 import Base.Data.Json
 import Base.Data.List
 import Base.Data.Map
@@ -17,43 +18,19 @@ from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean
 
 export Base.Data.Json
 export Base.Data.Map
+export Base.Data.Vector
 export Base.Math
 export Base.Meta
 export Base.System.File
 
+from Base.Data.Any.Extensions export all
 from Base.Data.List export Nil, Cons
 from Base.Data.Number.Extensions export all hiding Math, String
 from Base.Data.Pair export Pair
 from Base.Data.Range export Range
 from Base.Data.Text.Extensions export Text
-from Base.Data.Vector export Vector
 from Base.Error.Extensions export all
 from Base.Meta.Enso_Project export all
 from Base.Polyglot.Java export all
 from Builtins export all hiding Meta
-
-## Generic equality of arbitrary values.
-
-   Two values are considered to be equal in Enso when they have the same
-   structure, and each of the values of their fields are recursively equal.
-Any.== : Any -> Boolean
-Any.== that = if Meta.is_same_object this that then True else
-    this_meta = Meta.meta this
-    that_meta = Meta.meta that
-    case Cons this_meta that_meta of
-        Cons (Meta.Atom _) (Meta.Atom _) ->
-            c_1 = this_meta.constructor
-            c_2 = that_meta.constructor
-            if not (Meta.is_same_object c_1 c_2) then False else
-                f_1 = this_meta.fields
-                f_2 = that_meta.fields
-                0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
-        Cons (Meta.Error _) (Meta.Error _) -> this_meta.payload == that_meta.payload
-        Cons (Meta.Polyglot o_1) (Meta.Polyglot o_2) ->
-            langs_match = this_meta.language == Meta.Java && that_meta.language == Meta.Java
-            if not langs_match then False else o_1.equals [o_2]
-        ## Constructor comparison is covered by the identity equality.
-           Primitive objects should define their own equality.
-           Therefore, there is no more cases to handle in this method.
-        _ -> False
 

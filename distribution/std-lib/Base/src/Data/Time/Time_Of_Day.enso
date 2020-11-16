@@ -1,6 +1,7 @@
 from Base import all
 import Base.Data.Time.Date
 import Base.Data.Time.Duration
+import Base.Data.Time.Locale
 import Base.Data.Time.Time
 import Base.Data.Time.Zone
 
@@ -139,9 +140,9 @@ parse text =
    > Example
      Parse "4:30AM" as Time_Of_Day
          Date.parse_format "4:30AM" "h:mma"
-parse_format : Text -> Text -> Time_Of_Day
-parse_format text pattern =
-    format = DateTimeFormatter.ofPattern [pattern]
+parse_format : Text -> Text -> Locale -> Time_Of_Day
+parse_format text pattern locale=Locale.default =
+    format = (DateTimeFormatter.ofPattern [pattern]).withLocale [locale.java_locale]
     Panic.recover (Time_Of_Day (LocalTime.parse [text, format])) . catch <| case _ of
         Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
         x -> x

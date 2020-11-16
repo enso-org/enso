@@ -69,10 +69,10 @@ spec = describe "Vectors" <|
         vec = [1, 2, 3, 4, 5, 6]
         first_four = [1, 2, 3, 4]
         last_four = [3, 4, 5, 6]
-        vec.drop 2 . should_equal last_four
-        vec.drop_right 2 . should_equal first_four
-        vec.take 4 . should_equal first_four
-        vec.take_right 4 . should_equal last_four
+        vec.drop_start 2 . should_equal last_four
+        vec.drop_end 2 . should_equal first_four
+        vec.take_start 4 . should_equal first_four
+        vec.take_end 4 . should_equal last_four
     it "should allow getting the head element" <|
         non_empty_vec = [1, 2, 3, 4, 5]
         singleton_vec = [1]

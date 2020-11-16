@@ -75,7 +75,7 @@ type Duration
        > Example
          Convert duration of 800 nanoseconds to a vector returning `[0, 0, 0, 0, 0, 0, 800]`
              800.nanoseconds . to_vector
-    to_vector : Vector
+    to_vector : Vector.Vector
     to_vector = [this.years, this.months, this.days, this.hours, this.minutes, this.seconds, this.nanoseconds]
 
     ## Check if this duration is date-based.

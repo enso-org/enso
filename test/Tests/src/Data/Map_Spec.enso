@@ -3,12 +3,89 @@ from Base import all
 import Test
 
 spec = describe "Maps" <|
+    m = Map.empty . insert 1 2 . insert 2 4
+    expected = Map.empty . insert "1" 4 . insert "2" 8
+    m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
+    it "should allow checking for emptiness" <|
+        empty_map = Map.empty
+        non_empty = Map.empty . insert "foo" 1234
+        empty_map.is_empty . should_be_true
+        non_empty.is_empty . should_be_false
+    it "should allow checking for non emptiness" <|
+        empty_map = Map.empty
+        non_empty = Map.empty . insert "foo" 1234
+        empty_map.not_empty . should_be_false
+        non_empty.not_empty . should_be_true
+    it "should allow checking its size" <|
+        empty_map = Map.empty
+        non_empty = Map.singleton "a" "b" . insert "x" "y"
+        empty_map.size . should_equal 0
+        non_empty.size . should_equal 2
+    it "should convert the whole map to a vector" <|
+        m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
+        m.to_vector.should equal [[0, 0], [1, 2], [3, -5]]
+    it "should allow building the map from a vector" <|
+        expected = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
+        vec = [[0, 0], [3, -5], [1, 2]]
+        Map.from_vector vec . should_equal expected
+    it "should define a well-defined text conversion" <|
+        m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
+        m.to_text . should_equal "[[0, 0], [1, 2], [3, -5]]"
+    it "should define structural equality" <|
+        map_1 = Map.empty . insert "1" 2 . insert "2" "1"
+        map_2 = Map.empty . insert "1" 2 . insert "2" "1"
+        map_3 = Map.empty
+        map_1==map_2 . should_be_true
+        map_1==map_3 . should_be_false
+        map_2==map_3 . should_be_false
     it "should allow inserting and looking up values" <|
         m = Map.empty . insert "foo" 134 . insert "bar" 654 . insert "baz" "spam"
         m.get "foo" . should equal 134
         m.get "bar" . should equal 654
         m.get "baz" . should equal "spam"
-        m.get "nope" . catch e->e . should_equal (Map.No_Value_For_Key "nope")
-    it "should convert the whole map to a vector" <|
-        m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
-        m.to_vector.should equal [[0, 0], [1, 2], [3, -5]]
+        m.get "nope" . should_equal Nothing
+    it "should support get_or_else" <|
+        m = Map.empty . insert 2 3
+        m.get_or_else 2 0 . should_equal 3
+        m.get_or_else 1 10 . should_equal 10
+    it "should allow transforming the map" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        expected = Map.empty . insert "1" 4 . insert "2" 8
+        m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
+    it "should allow mapping over values" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        expected = Map.empty . insert 1 4 . insert 2 8
+        m.map (v -> v*2) . should_equal expected
+    it "should allow mapping over keys" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        expected = Map.empty . insert 2 2 . insert 4 4
+        m.map_keys (k -> k*2) . should_equal expected
+    it "should allow mapping with keys" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        expected = Map.empty . insert 1 3 . insert 2 6
+        m.map_with_key (k -> v -> k + v) . should_equal expected
+    it "should allow iterating over each value" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        vec = Vector.new_builder
+        expected_vec = [2, 4]
+        m.each (v -> vec.append v)
+        vec.to_vector . should_equal expected_vec
+    it "should allow iterating over each key-value pair" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        vec = Vector.new_builder
+        expected_vec = [3, 6]
+        m.each_with_key (k -> v -> vec.append (k+v))
+        vec.to_vector . should_equal expected_vec
+    it "should allow folding over the values" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        m.fold 0 (+) . should_equal 6
+    it "should allow folding over the key-value pairs" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        m.fold_with_key 0 (l -> k -> v -> l + k + v) . should_equal 9
+    it "should allow getting a vector of the keys" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        m.keys . should_equal [1, 2]
+    it "should allow getting a vector of the values" <|
+        m = Map.empty . insert 1 2 . insert 2 4
+        m.values . should_equal [2, 4]
+

@@ -59,10 +59,14 @@ public class Text_Utils {
    * @param str2 the second string
    * @return the result of comparison
    */
-  public static boolean equals(String str1, String str2) {
-    return Normalizer2.getNFDInstance()
-        .normalize(str1)
-        .equals(Normalizer2.getNFDInstance().normalize(str2));
+  public static boolean equals(String str1, Object str2) {
+    if (str2 instanceof String) {
+      return Normalizer2.getNFDInstance()
+              .normalize(str1)
+              .equals(Normalizer2.getNFDInstance().normalize((String) str2));
+    } else {
+      return false;
+    }
   }
 
   /**

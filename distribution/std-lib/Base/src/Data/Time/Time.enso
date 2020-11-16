@@ -1,6 +1,7 @@
 from Base import all
 import Base.Data.Time.Date
 import Base.Data.Time.Duration
+import Base.Data.Time.Locale
 import Base.Data.Time.Time_Of_Day
 import Base.Data.Time.Zone
 
@@ -160,7 +161,7 @@ type Time
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as "2020-10-08T16:41:13+03:00[Europe/Moscow]"
-         Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['VV']'"
+             Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['VV']'"
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as "Thursday October 8 4:41 PM"
@@ -224,9 +225,9 @@ parse text =
    > Example
      Parse "06 of May 2020 at 04:30AM" as Time
          Date.parse_format "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
-parse_format : Text -> Text -> Time_Of_Day
-parse_format text pattern =
-    Panic.recover (Time (Time_Utils.parse_time_format [text, pattern])) . catch <| case _ of
+parse_format : Text -> Text -> Locale -> Time_Of_Day
+parse_format text pattern locale=Locale.default =
+    Panic.recover (Time (Time_Utils.parse_time_format [text, pattern, locale.java_locale])) . catch <| case _ of
         Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
         x -> x
 

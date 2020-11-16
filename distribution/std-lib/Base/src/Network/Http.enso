@@ -31,7 +31,7 @@ type Http
        > Example
          Send an Options request.
              Http.new.options "http://httpbin.org"
-    options : To_Uri -> Vector -> Response
+    options : To_Uri -> Vector.Vector -> Response
     options uri (headers = []) =
         req = Request.options uri headers
         this.request req
@@ -51,7 +51,7 @@ type Http
              out_file = File.new "/tmp/out.bin"
              res = Http.new.get "http://httpbin.org/bytes/1024"
              res.body.to_file out_file
-    get : To_Uri -> Vector -> Response
+    get : To_Uri -> Vector.Vector -> Response
     get uri (headers = []) =
         req = Request.get uri headers
         this.request req
@@ -62,7 +62,7 @@ type Http
          Send a Head request.
              res = Http.new.head "http://httpbin.org"
              IO.println res.headers
-    head : To_Uri -> Vector -> Response
+    head : To_Uri -> Vector.Vector -> Response
     head uri (headers = []) =
         req = Request.head uri headers
         this.request req
@@ -74,7 +74,7 @@ type Http
              body = Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
              Http.new.post "http://httpbin.org/post" body [header_binary]
-    post : To_Uri -> Request_Body -> Vector -> Respoonse
+    post : To_Uri -> Request_Body -> Vector.Vector -> Respoonse
     post uri body (headers = []) =
         req = Request.post uri body headers
         this.request req
@@ -98,7 +98,7 @@ type Http
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              http = Http.new (timeout = 30.seconds)
              http.post_form "http://httpbin.org/post" form
-    post_form : To_Uri -> To_Form -> Vector -> Response
+    post_form : To_Uri -> To_Form -> Vector.Vector -> Response
     post_form uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
         req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
@@ -111,7 +111,7 @@ type Http
              json = Json.parse <| '''
                  {"key":"val"}
              Http.new.post_json "http://httpbin.org/post" json
-    post_json : To_Uri -> Json -> Vector -> Response
+    post_json : To_Uri -> Json -> Vector.Vector -> Response
     post_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -124,7 +124,7 @@ type Http
              body = Body.Bytes "contents".utf_8
              header_binary = Header.content_type "application/octet-stream"
              Http.new.put "http://httpbin.org/post" body [header_binary]
-    put : To_Uri -> Request_Body -> Vector -> Respoonse
+    put : To_Uri -> Request_Body -> Vector.Vector -> Respoonse
     put uri body (headers = []) =
         req = Request.put uri body headers
         this.request req
@@ -136,7 +136,7 @@ type Http
              json = Json.parse <| '''
                  {"key":"val"}
              Http.new.put_json "http://httpbin.org/put" json
-    put_json : To_Uri -> Json -> Vector -> Response
+    put_json : To_Uri -> Json -> Vector.Vector -> Response
     put_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -147,7 +147,7 @@ type Http
        > Example
          Send a Delete request.
              Http.new.delete "http://httpbin.org/delete"
-    delete : To_Uri -> Vector -> Response
+    delete : To_Uri -> Vector.Vector -> Response
     delete uri (headers = []) =
         req = Request.delete uri headers
         this.request req
@@ -291,7 +291,7 @@ new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (ver
    > Example
      Send an Options request.
          Http.options "http://httpbin.org"
-options : To_Uri -> Vector -> Response
+options : To_Uri -> Vector.Vector -> Response
 options uri (headers = []) = here.new.options uri headers
 
 ## Send a Get request.
@@ -309,7 +309,7 @@ options uri (headers = []) = here.new.options uri headers
          out_file = File.new "/tmp/out.bin"
          res = Http.get "http://httpbin.org/bytes/1024"
          res.body.to_file out_file
-get : To_Uri -> Vector -> Response
+get : To_Uri -> Vector.Vector -> Response
 get uri (headers = []) = here.new.get uri headers
 
 ## Send a Head request.
@@ -318,7 +318,7 @@ get uri (headers = []) = here.new.get uri headers
      Send a Head request.
          res = Http.head "http://httpbin.org"
          IO.println res.headers
-head : To_Uri -> Vector -> Response
+head : To_Uri -> Vector.Vector -> Response
 head uri (headers = []) = here.new.options uri headers
 
 ## Send a Post request.
@@ -328,7 +328,7 @@ head uri (headers = []) = here.new.options uri headers
          body = Body.Bytes "Hello".utf_8
          header_binary = Header.content_type "application/octet-stream"
          Http.post "http://httpbin.org/post" body [header_binary]
-post : To_Uri -> Request_Body -> Vector -> Respoonse
+post : To_Uri -> Request_Body -> Vector.Vector -> Respoonse
 post uri body (headers = []) = here.new.post uri body headers
 
 ## Send a Post request with the form. By default it will be encoded as
@@ -344,7 +344,7 @@ post uri body (headers = []) = here.new.post uri body headers
      Send a Post request with form encoded as "multipart/form-data".
          form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
          Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
-post_form : To_Uri -> To_Form -> Vector -> Response
+post_form : To_Uri -> To_Form -> Vector.Vector -> Response
 post_form uri parts (headers = []) = here.new.post_form uri parts headers
 
 ## Send a Post request with body with content-type "application/json".
@@ -354,5 +354,5 @@ post_form uri parts (headers = []) = here.new.post_form uri parts headers
          json = Json.parse <| '''
              {"key":"val"}
          Http.post_json "http://httpbin.org/post" json
-post_json : To_Uri -> Json -> Vector -> Response
+post_json : To_Uri -> Json -> Vector.Vector -> Response
 post_json uri body_json (headers = []) = here.new.post_json uri body_json headers

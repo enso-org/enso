@@ -51,7 +51,7 @@ type Output_Stream
     type Output_Stream file stream_resource
 
     ## Writes a vector of bytes into the file at the current stream position.
-    write_bytes : Vector -> Nothing ! File_Error
+    write_bytes : Vector.Vector -> Nothing ! File_Error
     write_bytes contents = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
             java_stream.write [contents.to_array]
@@ -72,7 +72,7 @@ type Input_Stream
     type Input_Stream file stream_resource
 
     ## Reads all the bytes in this file into a vector of bytes.
-    read_all_bytes : Vector ! File_Error
+    read_all_bytes : Vector.Vector ! File_Error
     read_all_bytes = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
             Vector.from_polyglot_array (java_stream.readAllBytes [])
@@ -84,7 +84,7 @@ type Input_Stream
 
        The length of the returned vector is the same as the number of bytes
        read.
-    read_n_bytes : Integer -> Vector ! File_Error
+    read_n_bytes : Integer -> Vector.Vector ! File_Error
     read_n_bytes n = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
             bytes = java_stream.readNBytes [n]
@@ -124,7 +124,7 @@ type File
 
        The `open_options` argument is a vector of `File.Option` objects,
        describing the access properties of the created stream.
-    new_input_stream : Vector -> Input_Stream ! File_Error
+    new_input_stream : Vector.Vector -> Input_Stream ! File_Error
     new_input_stream open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = here.handle_java_exceptions this <|
@@ -139,7 +139,7 @@ type File
 
        The `open_options` argument is a vector of `File.Option` objects,
        describing the access properties of the created stream.
-    new_output_stream : Vector -> Output_Stream ! File_Error
+    new_output_stream : Vector.Vector -> Output_Stream ! File_Error
     new_output_stream open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = here.handle_java_exceptions this <|
@@ -155,7 +155,7 @@ type File
 
        The `open_options` argument is a vector of `File.Option` objects,
        describing the properties of the created stream.
-    with_output_stream : Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream open_options action =
         Resource.bracket (this.new_output_stream open_options) (_.close) action
 
@@ -167,12 +167,12 @@ type File
 
        The `open_options` argument is a vector of `File.Option` objects,
        describing the properties of the created stream.
-    with_input_stream : Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream open_options action =
         Resource.bracket (this.new_input_stream open_options) (_.close) action
 
     ## Reads all bytes in this file into a byte vector.
-    read_bytes : Vector ! File_Error
+    read_bytes : Vector.Vector ! File_Error
     read_bytes =
         opts = [Option.Read]
         this.with_input_stream opts (_.read_all_bytes)
@@ -184,7 +184,7 @@ type File
         Text.from_utf_8 bytes
 
     ## Appends a number of bytes at the end of this file.
-    append_bytes : Vector -> Nothing ! File_Error
+    append_bytes : Vector.Vector -> Nothing ! File_Error
     append_bytes contents =
         opts = [Option.Append, Option.Create]
         this.with_output_stream opts (_.write_bytes contents)
@@ -196,7 +196,7 @@ type File
     ## Writes a number of bytes into this file, removing any existing contents.
 
        If the file does not exist, it will be created.
-    write_bytes : Vector -> Nothing ! File_Error
+    write_bytes : Vector.Vector -> Nothing ! File_Error
     write_bytes contents =
         opts = [Option.Write, Option.Create, Option.Truncate_Existing]
         this.with_output_stream opts (_.write_bytes contents)
@@ -270,10 +270,30 @@ type File
             this.prim_file.delete []
         Nothing
 
+    ## Deletes the file if it exists on disk.
+
+       If the file is a directory, it must be empty, otherwise a `Panic` will
+       be thrown.
+    delete_if_exists : Nothing ! File_Error
+    delete_if_exists = if this.exists then this.delete else Nothing
+
 ## Creates a new file object, pointing to the given path.
+
+   > Example
+     Create a new file pointing to the `data.csv` file in the project directory.
+         File.new (Enso_Project.data / "data.csv").path
 new : Text -> File
 new path = File (Prim_Io.get_file path)
+
+## Open and read the file at `path`.
+
+   > Example
+     Read the `data.csv` file in the project directory.
+         File.open (Enso_Project.data / "data.csv")
+read : Text -> Text
+read path = (here.new path).read
 
 ## Returns the current working directory (CWD) of the current program.
 current_directory : File
 current_directory = File (Prim_Io.get_cwd)
+

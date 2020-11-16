@@ -64,16 +64,22 @@ case object LambdaShorthandToLambda extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module =
-    ir.mapExpressions(
-      runExpression(
-        _,
-        InlineContext(
-          moduleContext.module,
-          freshNameSupply = moduleContext.freshNameSupply
+  ): IR.Module = {
+    val new_bindings = ir.bindings.map {
+      case asc: IR.Type.Ascription => asc
+      case a =>
+        a.mapExpressions(
+          runExpression(
+            _,
+            InlineContext(
+              moduleContext.module,
+              freshNameSupply = moduleContext.freshNameSupply
+            )
+          )
         )
-      )
-    )
+    }
+    ir.copy(bindings = new_bindings)
+  }
 
   /** Desugars underscore arguments to lambdas for an arbitrary expression.
     *
@@ -110,9 +116,10 @@ case object LambdaShorthandToLambda extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     ir.transformExpressions {
-      case app: IR.Application    => desugarApplication(app, freshNameSupply)
-      case caseExpr: IR.Case.Expr => desugarCaseExpr(caseExpr, freshNameSupply)
-      case name: IR.Name          => desugarName(name, freshNameSupply)
+      case asc: IR.Type.Ascription => asc
+      case app: IR.Application     => desugarApplication(app, freshNameSupply)
+      case caseExpr: IR.Case.Expr  => desugarCaseExpr(caseExpr, freshNameSupply)
+      case name: IR.Name           => desugarName(name, freshNameSupply)
     }
   }
 

@@ -54,8 +54,13 @@ case object TypeFunctions extends IRPass {
   override def runModule(
     ir: IR.Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module =
-    ir.mapExpressions(resolveExpression)
+  ): IR.Module = {
+    val new_bindings = ir.bindings.map {
+      case asc:IR.Type.Ascription => asc
+      case a => a.mapExpressions(resolveExpression)
+    }
+    ir.copy(bindings = new_bindings)
+  }
 
   /** Performs typing function resolution on an expression.
     *
@@ -94,12 +99,14 @@ case object TypeFunctions extends IRPass {
     * @return `expr`, with any typing functions resolved
     */
   def resolveExpression(expr: IR.Expression): IR.Expression = {
-    expr.transformExpressions { case app: IR.Application =>
-      val result = resolveApplication(app)
-      app
-        .getMetadata(DocumentationComments)
-        .map(doc => result.updateMetadata(DocumentationComments -->> doc))
-        .getOrElse(result)
+    expr.transformExpressions {
+      case asc: IR.Type.Ascription => asc
+      case app: IR.Application =>
+        val result = resolveApplication(app)
+        app
+          .getMetadata(DocumentationComments)
+          .map(doc => result.updateMetadata(DocumentationComments -->> doc))
+          .getOrElse(result)
     }
   }
 

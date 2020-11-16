@@ -14,6 +14,7 @@ import Tests.Data.Numbers_Spec
 import Tests.Data.Range_Spec
 import Tests.Data.Text_Spec
 import Tests.Data.Time.Spec as Time_Spec
+import Tests.Data.Time.Locale_Spec
 import Tests.Data.Vector_Spec
 import Tests.Network.Http.Header_Spec
 import Tests.Network.Http.Request_Spec
@@ -41,5 +42,6 @@ main = Test.Suite.runMain <|
     Request_Spec.spec
     Text_Spec.spec
     Time_Spec.spec
+    Locale_Spec.spec
     Uri_Spec.spec
     Vector_Spec.spec
