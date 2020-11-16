@@ -1,5 +1,6 @@
 import Test
 
+import Tests.Semantic.Case_Spec
 import Tests.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import Tests.Semantic.Error_Spec
 import Tests.Semantic.Import_Loop.Spec as Import_Loop_Spec
@@ -27,6 +28,7 @@ import Tests.System.File_Spec
 import Tests.System.Process_Spec
 
 main = Test.Suite.runMain <|
+    Case_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
     File_Spec.spec

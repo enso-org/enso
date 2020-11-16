@@ -1,20 +1,11 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.ExecuteCallNode;
-import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
-import org.enso.interpreter.node.callable.function.CreateFunctionNode;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This node represents an explicit catch-call case in a pattern match, as provided by the user. It
