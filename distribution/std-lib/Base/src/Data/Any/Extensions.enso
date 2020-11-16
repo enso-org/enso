@@ -34,11 +34,3 @@ Any.is_nothing : Boolean
 Any.is_nothing = case this of
     Nothing -> True
     _ -> False
-
-## Checks if the type is not an instance of `Nothing`.
-
-   > Example
-     Checking if a variable `a` is not nothing.
-         a.not_nothing
-Any.not_nothing : Boolean
-Any.not_nothing = not this.is_nothing

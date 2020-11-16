@@ -5,10 +5,6 @@ import Base.Data.Map.Internal
 type No_Value_For_Key key
 
 ## Returns an empty map.
-
-   > Example
-     Create an empty map.
-         Map.empty
 empty : Map
 empty = Tip
 
@@ -22,13 +18,13 @@ singleton key value = Bin 1 key value Tip Tip
      Building a map containing two key-value pairs.
          Map.from_vector [[1, 2], [3, 4]]
 from_vector : Vector.Vector -> Map
-from_vector vec =
-    stop = vec.length
-    go map index = if index >= stop then map else
-        pair = vec.at index
-        new_map = map.insert (pair.at 0) (pair.at 1)
-        @Tail_Call go new_map (index + 1)
-    go Map.empty 0
+from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
+    # stop = vec.length
+    # go map index = if index >= stop then map else
+        # pair = vec.at index
+        # new_map = map.insert (pair.at 0) (pair.at 1)
+        # @Tail_Call go new_map (index + 1)
+    # go Map.empty 0
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
@@ -44,7 +40,7 @@ type Map
 
     ## Checks if the map is not empty.
     not_empty : Boolean
-    not_empty = not this.is_empty
+    not_empty = this.is_empty.not
 
     ## Returns the number of entries in this map.
     size : Integer
@@ -86,7 +82,7 @@ type Map
 
     ## Gets the value associated with `key` in this map, or returns a
        `Nothing`, if `key` is not present.
-    get : Any -> Any ! Nothing
+    get : Any -> Any | Nothing
     get key =
         go map = case map of
             Tip -> Nothing
@@ -96,14 +92,14 @@ type Map
         result = go this
         result
 
-    ## Get the value associated with `key` in this map, or returns `other` if it
-       isn't present.
+    ## Gets the value associated with `key` in this map, or returns `other` if
+       it isn't present.
     get_or_else : Any -> Any -> Any
     get_or_else key other =
         result = this.get key
         if result.is_nothing then other else result
 
-    ## Transform the map's keys and values to create a new map.
+    ## Transforms the map's keys and values to create a new map.
 
        > Example
          Turn all keys into `Text` and double the values for a map `m`.
@@ -121,23 +117,10 @@ type Map
              m.map (v -> v.to_text)
     map : (Any -> Any) -> Map
     map function =
-        go map = case map of
-            Bin s k v l r ->
-                Bin s k (function v) (go l) (go r)
-            Tip -> Tip
-        go this
+        kv_func = _ -> function
+        this.map_with_key kv_func
 
-    ## Maps a function over each key in this map.
-
-       > Example
-         Doubling all keys in the map `m`.
-             m.map_keys (k -> k*2)
-    map_keys : (Any -> Any) -> Map
-    map_keys function =
-        trans_function = k -> v -> [function k, v]
-        this.transform trans_function
-
-    ## Map a function over each key-value pair in the map, transforming the
+    ## Maps a function over each key-value pair in the map, transforming the
        value.
 
        > Example
@@ -151,7 +134,17 @@ type Map
             Tip -> Tip
         go this
 
-    ## Apply a function to each value in the map.
+    ## Maps a function over each key in this map.
+
+       > Example
+         Doubling all keys in the map `m`.
+             m.map_keys (k -> k*2)
+    map_keys : (Any -> Any) -> Map
+    map_keys function =
+        trans_function = k -> v -> [function k, v]
+        this.transform trans_function
+
+    ## Applies a function to each value in the map.
 
        This method does not return the results, so is only useful for performing
        computations with side-effects.
@@ -161,10 +154,10 @@ type Map
              m.each IO.println
     each : (Any -> Any) -> Nothing
     each function =
-        this.map function
-        Nothing
+        kv_func = _ -> function
+        this.each_with_key kv_func
 
-    ## Apply a function to each key-value pair in the map.
+    ## Applies a function to each key-value pair in the map.
 
        This method does not return the results, so is only useful for performing
        computations with side-effects.
@@ -174,10 +167,16 @@ type Map
              m.each (k -> v -> IO.println (k.to_text + v.to_text))
     each_with_key : (Any -> Any -> Any) -> Nothing
     each_with_key function =
-        this.map_with_key function
-        Nothing
+        go map = case map of
+            Bin _ k v l r ->
+                function k v
+                go l
+                go r
+                Nothing
+            Tip -> Nothing
+        go this
 
-    ## Fold over the values in the map.
+    ## Combines the values in the map.
 
        > Example
          Summing all of the values in the map `m`.
@@ -192,7 +191,7 @@ type Map
             Tip -> init
         go this init
 
-    ## Fold over the key-value pairs in the map.
+    ## Combines the key-value pairs in the map.
 
        > Example
          Sum the keys and values in the map `m`.

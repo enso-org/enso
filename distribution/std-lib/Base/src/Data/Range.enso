@@ -86,7 +86,7 @@ type Range
          Checking that at least one number in the range is greater than 10.
              1.up_to 100 . exists (> 10)
     exists : (Number -> Boolean) -> Boolean
-    exists predicate = #this.fold False (l -> r -> l || predicate r)
+    exists predicate =
         limit = this.end
         go n found = if found || (n >= limit) then found else
             @Tail_Call go n+1 (predicate n)
