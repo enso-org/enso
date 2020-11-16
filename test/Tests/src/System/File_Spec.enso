@@ -10,7 +10,7 @@ spec =
             contents.should start_with "Cupcake ipsum dolor sit amet."
         it "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
-            contents.take 6 . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
         it "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
             successfully_failed = Panic.recover file.read . catch <| case _ of

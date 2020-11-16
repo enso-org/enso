@@ -19,12 +19,6 @@ singleton key value = Bin 1 key value Tip Tip
          Map.from_vector [[1, 2], [3, 4]]
 from_vector : Vector.Vector -> Map
 from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
-    # stop = vec.length
-    # go map index = if index >= stop then map else
-        # pair = vec.at index
-        # new_map = map.insert (pair.at 0) (pair.at 1)
-        # @Tail_Call go new_map (index + 1)
-    # go Map.empty 0
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.

@@ -53,11 +53,11 @@ spec = describe "List" <|
     it "should allow reversing with .reverse" <|
         l.reverse.head.should_equal 3
     it "should allow dropping elements from the left with `.drop`" <|
-        l.drop 1 . should_equal (Cons 2 (Cons 3 Nil))
-        empty.drop 1 . should_equal Nil
-    it "should allow taking elements from the left with `.take`" <|
-        l.take 2 . should_equal (Cons 1 (Cons 2 Nil))
-        empty.take 2 . should_equal Nil
+        l.drop_start 1 . should_equal (Cons 2 (Cons 3 Nil))
+        empty.drop_start 1 . should_equal Nil
+    it "should allow taking elements from the left with `.take_start`" <|
+        l.take_start 2 . should_equal (Cons 1 (Cons 2 Nil))
+        empty.take_start 2 . should_equal Nil
     it "should allow getting the head of the list with `.head`" <|
         l.head . should_equal 1
         empty.head . should_equal Nothing

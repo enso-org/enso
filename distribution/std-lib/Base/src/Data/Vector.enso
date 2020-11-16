@@ -274,34 +274,32 @@ type Vector
             if this.length == 1 then this.at 0 else
                 this.at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.at i)
 
-    ## Creates a new vector with the first `count` elements on the left of
-       `this` removed.
+    ## Creates a new vector with the first `count` elements in `this` removed.
 
        > Example
          The following code returns [2, 3, 4, 5]
-             [1, 2, 3, 4, 5].drop 1
-    drop : Integer -> Vector
-    drop count = if count >= this.length then here.new 0 (x -> x) else
+             [1, 2, 3, 4, 5].drop_start 1
+    drop_start : Integer -> Vector
+    drop_start count = if count >= this.length then here.new 0 (x -> x) else
         here.new (this.length - count) (i -> this.at i+count)
 
-    ## Creates a new vector with the last `count` elements on the right of
-       `this` removed.
+    ## Creates a new vector with the last `count` elements in `this` removed.
 
        > Example
          The following code returns [1, 2, 3]
-             [1, 2, 3, 4, 5].drop_right 2
-    drop_right : Integer -> Vector
-    drop_right count = if count >= this.length then here.new 0 (x -> x) else
-        this.take (this.length - count)
+             [1, 2, 3, 4, 5].drop_end 2
+    drop_end : Integer -> Vector
+    drop_end count = if count >= this.length then here.new 0 (x -> x) else
+        this.take_start (this.length - count)
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `this`.
 
        > Example
          The following code returns [1, 2]
-             [1, 2, 3, 4, 5].take 2
-    take : Integer -> Vector
-    take count = if count >= this.length then this else
+             [1, 2, 3, 4, 5].take_start 2
+    take_start : Integer -> Vector
+    take_start count = if count >= this.length then this else
         here.new count this.at
 
     ## Creates a new vector, consisting of the last `count` elements on the
@@ -309,10 +307,10 @@ type Vector
 
        > Example
          The following code returns [3, 4, 5]
-             [1, 2, 3, 4, 5].take_right 3
-    take_right : Integer -> Vector
-    take_right count = if count >= this.length then this else
-        this.drop (this.length - count)
+             [1, 2, 3, 4, 5].take_end 3
+    take_end : Integer -> Vector
+    take_end count = if count >= this.length then this else
+        this.drop_start (this.length - count)
 
     ## Performs a pair-wise operation passed in `function` on consecutive
        elements of `this` and `that`.
@@ -353,7 +351,7 @@ type Vector
          Empty vectors return `Nothing`.
              [].tail == Nothing
     tail : Vector | Nothing
-    tail = if this.length >= 1 then this.drop 1 else Nothing
+    tail = if this.length >= 1 then this.drop_start 1 else Nothing
 
     ## Get the all elements in the vector except the last.
 
@@ -364,7 +362,7 @@ type Vector
          Empty vectors return `Nothing`.
              [].init == Nothing
     init : Vector | Nothing
-    init = if this.length >= 1 then this.drop_right 1 else Nothing
+    init = if this.length >= 1 then this.drop_end 1 else Nothing
 
     ## Get the last element of the vector.
 
@@ -375,7 +373,7 @@ type Vector
          Empty vectors return `Nothing`.
              [].last == Nothing
     last : Vector | Nothing
-    last = if this.length >= 1 then (this.take_right 1).at 0 else Nothing
+    last = if this.length >= 1 then (this.take_end 1).at 0 else Nothing
 
     ## Get the first element from the vector.
 
