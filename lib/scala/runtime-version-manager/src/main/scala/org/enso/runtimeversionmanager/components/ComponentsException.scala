@@ -9,22 +9,31 @@ sealed class ComponentsException(
   cause: Throwable = null
 ) extends RuntimeException(message, cause) {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String = {
     val causeMessage = if (cause != null) s" (Caused by: $cause)" else ""
     message + causeMessage
   }
 }
 
-/** Represents an installation failure.
-  */
+/** Represents an installation failure. */
 case class InstallationError(message: String, cause: Throwable = null)
     extends ComponentsException(message, cause) {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String = s"Installation failed: $message"
+}
+
+/** Indicates that the installation was cancelled due to component being marked
+  * as broken.
+  */
+case class BrokenComponentError(message: String, cause: Throwable = null)
+    extends ComponentsException(message, cause) {
+
+  /** @inheritdoc */
+  override def toString: String =
+    s"Installation was cancelled as the component to install was marked as " +
+    s"broken."
 }
 
 /** Indicates a component is not recognized.
@@ -41,18 +50,18 @@ case class UnrecognizedComponentError(message: String, cause: Throwable = null)
 case class CorruptedComponentError(message: String, cause: Throwable = null)
     extends ComponentsException(message, cause)
 
-/** Indicates the requested component is not installed.
-  */
+/** Indicates the requested component is not installed. */
 case class ComponentMissingError(message: String, cause: Throwable = null)
     extends ComponentsException(message, cause)
 
-/** Indicates that a requested engine version requires a newer launcher version.
+/** Indicates that a requested engine version requires a newer launcher/project
+  * manager version.
   *
-  * @param expectedLauncherVersion the minimum launcher version that is required
+  * @param expectedVersion the minimum version that is required to run the engine
   */
 case class UpgradeRequiredError(
-  expectedLauncherVersion: SemVer
+  expectedVersion: SemVer
 ) extends ComponentsException(
       s"Minimum version required to use this engine is " +
-      s"$expectedLauncherVersion."
+      s"$expectedVersion."
     )

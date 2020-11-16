@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.test
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
@@ -13,10 +14,6 @@ import org.enso.runtimeversionmanager.distribution.{
   PortableDistributionManager,
   TemporaryDirectoryManager
 }
-import org.enso.runtimeversionmanager.releases.engine.EngineReleaseProvider
-import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
-import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
-import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -46,16 +43,6 @@ class RuntimeVersionManagerTest
   ): (DistributionManager, RuntimeVersionManager, Environment) = {
     val env                 = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager = new PortableDistributionManager(env)
-    val fakeReleasesRoot    = FakeReleases.path
-    val engineProvider = new EngineReleaseProvider(
-      FakeReleaseProvider(
-        fakeReleasesRoot.resolve("enso"),
-        copyIntoArchiveRoot = Seq("manifest.yaml")
-      )
-    )
-    val runtimeProvider = new GraalCEReleaseProvider(
-      FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))
-    )
 
     val resourceManager = TestLocalResourceManager.create()
     val temporaryDirectoryManager =
@@ -66,8 +53,8 @@ class RuntimeVersionManagerTest
       distributionManager,
       temporaryDirectoryManager,
       resourceManager,
-      engineProvider,
-      runtimeProvider
+      FakeReleases.engineReleaseProvider,
+      FakeReleases.runtimeReleaseProvider
     )
 
     (distributionManager, runtimeVersionManager, env)

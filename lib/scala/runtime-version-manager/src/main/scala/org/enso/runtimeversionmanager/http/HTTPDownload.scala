@@ -11,7 +11,11 @@ import akka.stream.scaladsl.{FileIO, Sink}
 import akka.util.ByteString
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import com.typesafe.scalalogging.Logger
-import org.enso.cli.{TaskProgress, TaskProgressImplementation}
+import org.enso.cli.task.{
+  ProgressUnit,
+  TaskProgress,
+  TaskProgressImplementation
+}
 
 import scala.concurrent.Future
 
@@ -152,7 +156,7 @@ object HTTPDownload {
     sink: Sink[ByteString, Future[A]],
     resultMapping: (HttpResponse, A) => B
   ): TaskProgress[B] = {
-    val taskProgress = new TaskProgressImplementation[B]
+    val taskProgress = new TaskProgressImplementation[B](ProgressUnit.Bytes)
     val total        = new java.util.concurrent.atomic.AtomicLong(0)
     import actorSystem.dispatcher
 

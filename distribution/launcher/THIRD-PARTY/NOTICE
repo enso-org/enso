@@ -16,7 +16,7 @@ licensed under the MIT license. Its copyright notice is included in file `COPYRI
 
 
 'commons-compress', licensed under the Apache License, Version 2.0, is distributed with the launcher.
-The license information can be found along with the copyright notices.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-compress-1.20`.
 
 

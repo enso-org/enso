@@ -3,17 +3,6 @@ package org.enso.launcher.releases
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
-import org.enso.runtimeversionmanager.http.URIBuilder
-import org.enso.runtimeversionmanager.releases.engine.{
-  EngineRelease,
-  EngineReleaseProvider
-}
-import org.enso.runtimeversionmanager.releases.github.GithubReleaseProvider
-import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
-import org.enso.runtimeversionmanager.releases.{
-  ReleaseProvider,
-  SimpleReleaseProvider
-}
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.launcher.releases.fallback.SimpleReleaseProviderWithFallback
 import org.enso.launcher.releases.fallback.staticwebsite.StaticWebsiteFallbackReleaseProvider
@@ -21,20 +10,20 @@ import org.enso.launcher.releases.launcher.{
   LauncherRelease,
   LauncherReleaseProvider
 }
+import org.enso.runtimeversionmanager.http.URIBuilder
+import org.enso.runtimeversionmanager.releases.engine.EngineRepository
+import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
+import org.enso.runtimeversionmanager.releases.{
+  ReleaseProvider,
+  SimpleReleaseProvider
+}
 
-/** Represents the default Enso repository providing releases for the engine and
-  * the launcher.
+/** Represents the default Enso repository providing releases of the launcher.
   *
   * In test mode, the default GitHub repository can be overridden with a local
   * filesystem-backed repository.
   */
-object EnsoRepository {
-  // TODO [RW] The release provider will be moved from staging to the main
-  //  repository, when the first official Enso release is released.
-  private val githubRepository = new GithubReleaseProvider(
-    "enso-org",
-    "enso-staging"
-  )
+object LauncherRepository {
 
   /** Defines the URL of the fallback mechanism.
     *
@@ -57,13 +46,7 @@ object EnsoRepository {
     launcherFallbackReleaseDirectory
   )
 
-  /** Default provider of engine releases.
-    */
-  def defaultEngineReleaseProvider: ReleaseProvider[EngineRelease] =
-    new EngineReleaseProvider(defaultEngineRepository)
-
-  /** Default provider of launcher releases.
-    */
+  /** Default provider of launcher releases. */
   def defaultLauncherReleaseProvider: ReleaseProvider[LauncherRelease] =
     new LauncherReleaseProvider(launcherRepository)
 
@@ -89,9 +72,8 @@ object EnsoRepository {
         makeFakeRepository(fakeRepositoryRoot, shouldWaitForAssets)
     }
 
-  private val defaultEngineRepository = githubRepository
   private val defaultLauncherRepository = new SimpleReleaseProviderWithFallback(
-    baseProvider     = githubRepository,
+    baseProvider     = EngineRepository.githubRepository,
     fallbackProvider = launcherS3Fallback
   )
   private var launcherRepository: SimpleReleaseProvider =

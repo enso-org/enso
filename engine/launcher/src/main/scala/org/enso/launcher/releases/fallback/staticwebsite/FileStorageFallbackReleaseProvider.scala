@@ -61,7 +61,7 @@ class FileStorageFallbackReleaseProvider(
     } else cachedReleaseList
 
   private def fetchAsString(fileName: String): String =
-    storage.fetchString(Seq(fileName)).waitForResult().get
+    storage.fetchString(Seq(fileName)).force()
 
   private lazy val isEnabledCached = queryIsEnabled()
   private def queryIsEnabled(): Boolean =

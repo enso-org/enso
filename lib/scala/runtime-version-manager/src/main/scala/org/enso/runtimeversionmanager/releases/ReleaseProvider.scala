@@ -17,6 +17,13 @@ trait ReleaseProvider[ReleaseType] {
     */
   def findLatestVersion(): Try[SemVer]
 
+  /** Returns sequence of all available versions (including ones marked as
+    * broken).
+    *
+    * The sequence does not have to be sorted.
+    */
+  def fetchAllVersions(): Try[Seq[ReleaseProvider.Version]]
+
   /** Returns sequence of available non-broken versions.
     *
     * The sequence does not have to be sorted.
@@ -26,4 +33,8 @@ trait ReleaseProvider[ReleaseType] {
   /** Fetch release metadata for the given version.
     */
   def fetchRelease(version: SemVer): Try[ReleaseType]
+}
+
+object ReleaseProvider {
+  case class Version(version: SemVer, markedAsBroken: Boolean)
 }

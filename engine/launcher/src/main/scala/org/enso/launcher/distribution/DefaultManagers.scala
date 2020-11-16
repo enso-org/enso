@@ -1,5 +1,10 @@
 package org.enso.launcher.distribution
 
+import org.enso.launcher.cli.{
+  CLIRuntimeVersionManagementUserInterface,
+  GlobalCLIOptions
+}
+import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.distribution.{
   PortableDistributionManager,
   TemporaryDirectoryManager
@@ -8,8 +13,10 @@ import org.enso.runtimeversionmanager.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
 }
+import org.enso.runtimeversionmanager.releases.engine.EngineRepository
+import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 
-/** Gathers default managers used in the launcher. */
+/** Gathers default managers related to distribution used in the launcher. */
 object DefaultManagers {
 
   /** Default distribution manager that is capable of detecting portable mode. */
@@ -32,4 +39,21 @@ object DefaultManagers {
   /** Default [[TemporaryDirectoryManager]]. */
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, defaultResourceManager)
+
+  /** Creates a [[RuntimeVersionManager]] that uses the default distribution. */
+  def runtimeVersionManager(
+    globalCLIOptions: GlobalCLIOptions,
+    alwaysInstallMissing: Boolean
+  ): RuntimeVersionManager =
+    new RuntimeVersionManager(
+      new CLIRuntimeVersionManagementUserInterface(
+        globalCLIOptions,
+        alwaysInstallMissing
+      ),
+      distributionManager,
+      temporaryDirectoryManager,
+      defaultResourceManager,
+      EngineRepository.defaultEngineReleaseProvider,
+      GraalCEReleaseProvider
+    )
 }

@@ -38,7 +38,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   private val logger = Logger[Launcher]
 
   private lazy val componentsManager =
-    DefaultComponentManager.make(cliOptions, alwaysInstallMissing = false)
+    runtimeVersionManager(cliOptions, alwaysInstallMissing = false)
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, distributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
@@ -149,7 +149,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def installEngine(version: SemVer): Int = {
     val installingComponentManager =
-      DefaultComponentManager.make(cliOptions, alwaysInstallMissing = true)
+      runtimeVersionManager(cliOptions, alwaysInstallMissing = true)
     val existing = installingComponentManager.findEngine(version)
     if (existing.isDefined) {
       InfoLogger.info(s"Engine $version is already installed.")

@@ -2,7 +2,7 @@ package org.enso.launcher.releases.fallback.staticwebsite
 
 import java.nio.file.Path
 
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.TaskProgress
 
 /** A generic file storage that allows to download files or read them as
   * [[String]].

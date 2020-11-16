@@ -9,7 +9,7 @@ import org.enso.loggingservice.internal.{
 }
 import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /** Manages the logging service.
   */
@@ -43,13 +43,22 @@ object LoggingServiceManager {
     * now on owned by the setup function and the created service, so if service
     * creation fails, they will be shutdown alongside service termination. Any
     * printers passed to this function must not be reused.
+    *
+    * @param mode [[LoggerMode]] to setup
+    * @param logLevel specifies which log level should be used for logs from
+    *                 this instance; this log level does not affect remote log
+    *                 levels in server mode
+    * @param executionContext execution context to run the initialization in
+    * @return a future that will complete once the logger is initialized
     */
   def setup[InitializationResult](
     mode: LoggerMode[InitializationResult],
     logLevel: LogLevel
+  )(implicit
+    executionContext: ExecutionContext =
+      scala.concurrent.ExecutionContext.Implicits.global
   ): Future[InitializationResult] = {
     currentLevel = logLevel
-    import scala.concurrent.ExecutionContext.Implicits.global
     Future(doSetup(mode, logLevel))
   }
 

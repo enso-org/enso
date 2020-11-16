@@ -8,7 +8,7 @@ import org.enso.runtimeversionmanager.{Environment, FileSystem}
   * which points to an Enso installation inside the temporary directory
   * generated for the test.
   */
-trait FakeEnvironment { self: WithTemporaryDirectory =>
+trait FakeEnvironment { self: HasTestDirectory =>
 
   /** Returns a fake path to the Enso executable that is inside the temporary
     * directory for the test.

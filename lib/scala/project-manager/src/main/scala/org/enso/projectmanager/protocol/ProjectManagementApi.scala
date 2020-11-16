@@ -121,7 +121,7 @@ object ProjectManagementApi {
       taskId: UUID,
       relatedOperation: String,
       unit: ProgressUnit,
-      total: Option[Int]
+      total: Option[Long]
     )
 
     implicit val hasParams = new HasParams[this.type] {
@@ -134,7 +134,7 @@ object ProjectManagementApi {
     case class Params(
       taskId: UUID,
       message: Option[String],
-      done: Int
+      done: Long
     )
 
     implicit val hasParams = new HasParams[this.type] {
@@ -194,7 +194,7 @@ object ProjectManagementApi {
     }
   }
 
-  case object EngineUninstall extends Method("engine/install") {
+  case object EngineUninstall extends Method("engine/uninstall") {
 
     case class Params(version: SemVer)
 
@@ -317,5 +317,8 @@ object ProjectManagementApi {
   case class ProjectCloseError(msg: String) extends Error(4009, msg)
 
   case class LanguageServerError(msg: String) extends Error(4010, msg)
+
+  case class GlobalConfigurationAccessError(msg: String)
+      extends Error(4011, msg)
 
 }

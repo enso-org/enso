@@ -1,17 +1,15 @@
 package org.enso.runtimeversionmanager.components
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.ProgressReporter
+import org.enso.runtimeversionmanager.locking.LockUserInterface
 
-/** Encapsulates the communication between [[RuntimeVersionManager]] and its user.
+/** Encapsulates the communication between [[RuntimeVersionManager]] and its
+  * user.
   */
-trait RuntimeVersionManagementUserInterface {
-
-  /** Called when a long-running task is started.
-    *
-    * Can be used to track its progress.
-    */
-  def trackProgress(task: TaskProgress[_]): Unit
+trait RuntimeVersionManagementUserInterface
+    extends LockUserInterface
+    with ProgressReporter {
 
   /** Called when an operation requires an engine that is not available.
     *

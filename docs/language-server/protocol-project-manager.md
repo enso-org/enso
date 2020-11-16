@@ -506,7 +506,7 @@ interface TaskStartNotification {
    * May be missing, as it is not always known, for example when downloading a
    * file of unknown size or waiting on a lock.
    */
-  total?: Int;
+  total?: Long;
 }
 ```
 
@@ -529,7 +529,7 @@ interface TaskUpdateNotification {
   message?: String;
 
   /** Indicates amount of progress, for example: count of processed bytes. */
-  done: Int;
+  done: Long;
 }
 ```
 
@@ -556,7 +556,7 @@ interface TaskFinishedNotification {
 }
 ```
 
-## Components Management
+## Runtime Version Management
 
 ### `engine/list-installed`
 
@@ -623,7 +623,7 @@ interface EngineVersionListResponse {
 ### `engine/install`
 
 Requests to install the specified engine version. If that version is already
-installed, does nothing.
+installed, it has no effect.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -667,6 +667,8 @@ null;
 ### `engine/uninstall`
 
 Requests to uninstall the specified engine version.
+
+If that version was not installed, it has no effect.
 
 - **Type:** Request
 - **Direction:** Client -> Server

@@ -3,7 +3,7 @@ package org.enso.runtimeversionmanager.releases.engine
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.components.Manifest
 
 /** Represents an engine release. */

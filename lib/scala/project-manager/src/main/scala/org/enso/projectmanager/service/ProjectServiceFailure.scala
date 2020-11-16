@@ -1,5 +1,7 @@
 package org.enso.projectmanager.service
 
+import nl.gn0s1s.bump.SemVer
+
 /** Base interface for project service failures.
   */
 sealed trait ProjectServiceFailure
@@ -61,4 +63,37 @@ object ProjectServiceFailure {
     */
   case class LanguageServerFailure(msg: String) extends ProjectServiceFailure
 
+  /** Signals that a component required to complete the action was missing, but
+    * the action did not ask for it to be automatically installed.
+    */
+  case class MissingComponentFailure(msg: String) extends ProjectServiceFailure
+
+  /** Signals that a component that was being installed is marked as broken, but
+    * the option to forcibly install broken components was not set.
+    */
+  case class BrokenComponentFailure(msg: String) extends ProjectServiceFailure
+
+  /** Signals that installation of a missing compoment has been attempted, but
+    * the required engine version requires a newer version of project manager
+    * than what is currently running.
+    */
+  case class ProjectManagerUpgradeRequiredFailure(
+    minimumRequiredVersion: SemVer
+  ) extends ProjectServiceFailure
+
+  /** Signals that installation of a missing component has been attempted but it
+    * has failed.
+    */
+  case class ComponentInstallationFailure(msg: String)
+      extends ProjectServiceFailure
+
+  /** Signals that uninstallation of a component has failed. */
+  case class ComponentUninstallationFailure(msg: String)
+      extends ProjectServiceFailure
+
+  /** Signals that the version repository is unavailable and could not be
+    * queried (usually caused by lack of internet connection).
+    */
+  case class ComponentRepositoryAccessFailure(msg: String)
+      extends ProjectServiceFailure
 }

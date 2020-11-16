@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.releases
 
 import java.nio.file.Path
 
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.TaskProgress
 
 /** Represents a downloadable release asset.
   */

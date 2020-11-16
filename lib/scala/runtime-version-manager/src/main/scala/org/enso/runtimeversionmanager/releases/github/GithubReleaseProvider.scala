@@ -1,5 +1,6 @@
 package org.enso.runtimeversionmanager.releases.github
 
+import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.releases.{Release, SimpleReleaseProvider}
 
 import scala.util.Try
@@ -19,7 +20,7 @@ class GithubReleaseProvider(
   /** @inheritdoc
     */
   override def releaseForTag(tag: String): Try[Release] =
-    GithubAPI.getRelease(repo, tag).waitForResult().map(GithubRelease)
+    TaskProgress.waitForTask(GithubAPI.getRelease(repo, tag)).map(GithubRelease)
 
   /** @inheritdoc
     */
