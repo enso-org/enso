@@ -61,7 +61,7 @@ abstract class RequestHandler[
       .exec(result)
       .map(_.map(ResponseResult(method, request.id, _)))
       .pipeTo(self)
-    val cancellable = {
+    val timeoutCancellable = {
       requestTimeout.map { timeout =>
         context.system.scheduler.scheduleOnce(
           timeout,
@@ -70,7 +70,7 @@ abstract class RequestHandler[
         )
       }
     }
-    context.become(responseStage(request.id, sender(), cancellable))
+    context.become(responseStage(request.id, sender(), timeoutCancellable))
   }
 
   /** Defines the actual logic for handling the request.
@@ -86,12 +86,12 @@ abstract class RequestHandler[
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
-    cancellable: Option[Cancellable]
+    timeoutCancellable: Option[Cancellable]
   ): Receive = {
     case Status.Failure(ex) =>
       log.error(ex, s"Failure during $method operation:")
       replyTo ! ResponseError(Some(id), ServiceError)
-      cancellable.foreach(_.cancel())
+      timeoutCancellable.foreach(_.cancel())
       context.stop(self)
 
     case RequestTimeout =>
@@ -103,15 +103,34 @@ abstract class RequestHandler[
       log.error(s"Request $id failed due to $failure")
       val error = implicitly[FailureMapper[FailureType]].mapFailure(failure)
       replyTo ! ResponseError(Some(id), error)
-      cancellable.foreach(_.cancel())
+      timeoutCancellable.foreach(_.cancel())
       context.stop(self)
 
     case Right(response) =>
       replyTo ! response
-      cancellable.foreach(_.cancel())
+      timeoutCancellable.foreach(_.cancel())
       context.stop(self)
 
     case notification: ProgressNotification =>
+      notification match {
+        case ProgressNotification.TaskStarted(_, _, _) =>
+          abandonTimeout(id, replyTo, timeoutCancellable)
+        case _ =>
+      }
       replyTo ! translateProgressNotification(method.name, notification)
+  }
+
+  /** Cancels the timeout operation.
+    *
+    * Should be called when a long-running task is detected that we do not want
+    * to interrupt.
+    */
+  private def abandonTimeout(
+    id: Id,
+    replyTo: ActorRef,
+    timeoutCancellable: Option[Cancellable]
+  ): Unit = {
+    timeoutCancellable.foreach(_.cancel())
+    context.become(responseStage(id, replyTo, None))
   }
 }

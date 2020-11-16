@@ -50,9 +50,9 @@ class TestDistributionConfiguration(
 
   def getTestDirectory: Path = distributionRoot
 
-  lazy val distributionManager = new DistributionManager(
-    fakeInstalledEnvironment()
-  )
+  lazy val environment = fakeInstalledEnvironment()
+
+  lazy val distributionManager = new DistributionManager(environment)
 
   lazy val lockManager = new TestLocalLockManager
 

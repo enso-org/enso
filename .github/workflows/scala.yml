@@ -133,6 +133,11 @@ jobs:
           # test run. It is built before starting the tests to conserve system
           # memory
           echo "LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD=true" >> $GITHUB_ENV
+      - name: Build the Runner & Runtime Uberjars
+        run: |
+          sleep 1
+          sbt --no-colors engine-runner/assembly
+
       - name: Test Enso
         run: |
           sleep 1
@@ -151,10 +156,6 @@ jobs:
           sbt --no-colors searcher/Benchmark/compile
 
       # Build Distribution
-      - name: Build the Runner & Runtime Uberjars
-        run: |
-          sleep 1
-          sbt --no-colors engine-runner/assembly
       - name: Build the Project Manager Uberjar
         run: |
           sleep 1

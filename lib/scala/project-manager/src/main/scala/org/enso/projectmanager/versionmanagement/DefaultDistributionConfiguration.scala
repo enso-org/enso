@@ -27,13 +27,13 @@ import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 object DefaultDistributionConfiguration extends DistributionConfiguration {
 
   /** The default [[Environment]] implementation, with no overrides. */
-  object DefaultEnvironment extends Environment
+  val environment: Environment = new Environment {}
 
   // TODO [RW, AO] should the PM support portable distributions?
   //  If so, where will be the project-manager binary located with respect to
   //  the distribution root?
   /** @inheritdoc */
-  lazy val distributionManager = new DistributionManager(DefaultEnvironment)
+  lazy val distributionManager = new DistributionManager(environment)
 
   /** @inheritdoc */
   lazy val lockManager = new FileLockManager(distributionManager.paths.locks)

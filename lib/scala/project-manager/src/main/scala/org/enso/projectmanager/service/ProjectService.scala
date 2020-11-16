@@ -2,6 +2,7 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
+import akka.actor.ActorRef
 import cats.MonadError
 import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.PackageManager
@@ -41,6 +42,7 @@ import org.enso.projectmanager.service.ValidationFailure.{
   *
   * @param validator a project validator
   * @param repo a project repository
+  * @param projectCreationService a service for creating projects
   * @param log a logging facility
   * @param clock a clock
   * @param gen a random generator
@@ -48,6 +50,7 @@ import org.enso.projectmanager.service.ValidationFailure.{
 class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
+  projectCreationService: ProjectCreationServiceApi[F],
   log: Logging[F],
   clock: Clock[F],
   gen: Generator[F],
@@ -59,25 +62,30 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
 
   /** @inheritdoc */
   override def createUserProject(
+    progressTracker: ActorRef,
     name: String,
     version: SemVer,
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, UUID] = {
-    // TODO [RW] new component handling
-    val _ = version
-    // format: off
-    for {
-      projectId    <- gen.randomUUID()
-      _            <- log.debug(s"Creating project $name $projectId.")
-      _            <- validateName(name)
-      _            <- checkIfNameExists(name)
-      creationTime <- clock.nowInUtc()
-      project       = Project(projectId, name, UserProject, creationTime)
-      _            <- repo.create(project).mapError(toServiceFailure)
-      _            <- log.info(s"Project $project created.")
-    } yield projectId
-    // format: on
-  }
+  ): F[ProjectServiceFailure, UUID] = for {
+    projectId    <- gen.randomUUID()
+    _            <- log.debug(s"Creating project $name $projectId.")
+    _            <- validateName(name)
+    _            <- checkIfNameExists(name)
+    creationTime <- clock.nowInUtc()
+    project = Project(projectId, name, UserProject, creationTime)
+    path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
+    _ <- projectCreationService.createProject(
+      progressTracker,
+      path,
+      name,
+      version,
+      missingComponentAction
+    )
+    _ <- repo
+      .update(project.copy(path = Some(path.toString)))
+      .mapError(toServiceFailure)
+    _ <- log.info(s"Project $project created.")
+  } yield projectId
 
   /** @inheritdoc */
   override def deleteUserProject(
@@ -177,6 +185,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
 
   /** @inheritdoc */
   override def openProject(
+    progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentAction

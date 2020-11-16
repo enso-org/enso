@@ -1,6 +1,7 @@
 package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
+import java.nio.file.Path
 import java.util.UUID
 
 import org.enso.projectmanager.model.Project
@@ -23,7 +24,18 @@ trait ProjectRepository[F[+_, +_]] {
     * @param project the project to insert
     * @return
     */
+  @deprecated("Projects should be created using runner.")
   def create(project: Project): F[ProjectRepositoryFailure, Unit]
+
+  /** Ensures that the path property is set in the project.
+    *
+    * If it was not set, a new path is generated for it. Otherwise, the function
+    * acts as identity.
+    *
+    * @param project the project to find the path for
+    * @return the project, with the updated path
+    */
+  def findPathForNewProject(project: Project): F[ProjectRepositoryFailure, Path]
 
   /** Saves the provided user project in the index.
     *

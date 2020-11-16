@@ -1,6 +1,7 @@
 package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
+import java.nio.file.Path
 import java.util.UUID
 
 import org.enso.pkg.{Package, PackageManager}
@@ -83,6 +84,11 @@ class ProjectFileRepository[
         .persist(ProjectMetadata(project))
         .mapError(th => StorageFailure(th.toString))
     } yield ()
+
+  /** @inheritdoc */
+  override def findPathForNewProject(
+    project: Project
+  ): F[ProjectRepositoryFailure, Path] = findTargetPath(project).map(_.toPath)
 
   private def tryLoadProject(
     directory: File

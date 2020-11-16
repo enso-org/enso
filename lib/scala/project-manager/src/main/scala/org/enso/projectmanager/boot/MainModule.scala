@@ -25,6 +25,7 @@ import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service.{
   MonadicProjectValidator,
+  ProjectCreationService,
   ProjectService,
   ProjectServiceFailure,
   ValidationFailure
@@ -94,10 +95,14 @@ class MainModule[
     config.timeout
   )
 
+  lazy val projectCreationService =
+    new ProjectCreationService[F](DefaultDistributionConfiguration)
+
   lazy val projectService =
     new ProjectService[F](
       projectValidator,
       projectRepository,
+      projectCreationService,
       logging,
       clock,
       gen,

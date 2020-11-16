@@ -26,7 +26,11 @@ import org.enso.projectmanager.protocol.{
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
-import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
+import org.enso.projectmanager.service.{
+  MonadicProjectValidator,
+  ProjectCreationService,
+  ProjectService
+}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.test.{DropLogs, FakeReleases}
 import pureconfig.ConfigSource
@@ -114,21 +118,25 @@ class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
       timeoutConfig
     )
 
-  lazy val projectService =
-    new ProjectService[ZIO[ZEnv, +*, +*]](
-      projectValidator,
-      projectRepository,
-      new Slf4jLogging[ZIO[ZEnv, +*, +*]],
-      testClock,
-      gen,
-      languageServerGateway
-    )
-
   lazy val distributionConfiguration =
     TestDistributionConfiguration(
       distributionRoot       = testDistributionRoot.toPath,
       engineReleaseProvider  = FakeReleases.engineReleaseProvider,
       runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider
+    )
+
+  lazy val projectCreationService =
+    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration)
+
+  lazy val projectService =
+    new ProjectService[ZIO[ZEnv, +*, +*]](
+      projectValidator,
+      projectRepository,
+      projectCreationService,
+      new Slf4jLogging[ZIO[ZEnv, +*, +*]],
+      testClock,
+      gen,
+      languageServerGateway
     )
 
   lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](

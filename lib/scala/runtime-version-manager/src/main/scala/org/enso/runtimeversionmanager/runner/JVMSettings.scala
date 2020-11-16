@@ -7,3 +7,8 @@ package org.enso.runtimeversionmanager.runner
   * @param jvmOptions options that should be added to the launched JVM
   */
 case class JVMSettings(useSystemJVM: Boolean, jvmOptions: Seq[(String, String)])
+
+object JVMSettings {
+  def default: JVMSettings =
+    JVMSettings(useSystemJVM = false, jvmOptions = Seq())
+}

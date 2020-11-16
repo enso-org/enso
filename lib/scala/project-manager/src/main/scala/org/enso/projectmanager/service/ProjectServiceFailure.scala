@@ -28,6 +28,12 @@ object ProjectServiceFailure {
     */
   case object ProjectNotFound extends ProjectServiceFailure
 
+  /** Signals that a failure occured when creating the project.
+    *
+    * @param message a failure message
+    */
+  case class ProjectCreateFailed(message: String) extends ProjectServiceFailure
+
   /** Signals that a failure occurred during project startup.
     *
     * @param message a failure message

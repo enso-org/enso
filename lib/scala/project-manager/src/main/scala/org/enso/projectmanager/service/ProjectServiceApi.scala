@@ -2,6 +2,7 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
+import akka.actor.ActorRef
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{
   LanguageServerSockets,
@@ -23,6 +24,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     * @return projectId
     */
   def createUserProject(
+    progressTracker: ActorRef,
     name: String,
     version: SemVer,
     missingComponentAction: MissingComponentAction
@@ -54,6 +56,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     * @return either failure or a socket of the Language Server
     */
   def openProject(
+    progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentAction

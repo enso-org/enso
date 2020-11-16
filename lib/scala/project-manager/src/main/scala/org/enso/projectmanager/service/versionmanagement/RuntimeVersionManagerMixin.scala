@@ -2,6 +2,7 @@ package org.enso.projectmanager.service.versionmanagement
 
 import akka.actor.ActorRef
 import org.enso.projectmanager.control.effect.ErrorChannel
+import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.service.ProjectServiceFailure
 import org.enso.projectmanager.service.ProjectServiceFailure.{
   BrokenComponentFailure,
@@ -37,6 +38,26 @@ trait RuntimeVersionManagerMixin {
         allowBrokenComponents  = allowBrokenComponents
       )
     )
+
+  /** Creates a [[RuntimeVersionManager]] that will send
+    * [[ProgressNotification]] to the specified [[ActorRef]] and with the
+    * specified settings for handling missing and broken components.
+    */
+  def makeRuntimeVersionManager(
+    progressTracker: ActorRef,
+    missingComponentAction: MissingComponentAction
+  ): RuntimeVersionManager = {
+    val (missing, broken) = missingComponentAction match {
+      case MissingComponentAction.Fail               => (false, false)
+      case MissingComponentAction.Install            => (true, false)
+      case MissingComponentAction.ForceInstallBroken => (true, true)
+    }
+    makeRuntimeVersionManager(
+      progressTracker,
+      allowMissingComponents = missing,
+      allowBrokenComponents  = broken
+    )
+  }
 
   /** Creates a simple [[RuntimeVersionManager]] that ignores progress (it can
     * be used when we know that no relevant progress will be reported) and not

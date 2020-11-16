@@ -1,5 +1,6 @@
 package org.enso.projectmanager.versionmanagement
 
+import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
@@ -19,6 +20,9 @@ import org.enso.runtimeversionmanager.releases.engine.EngineRelease
   * also be overridden in tests.
   */
 trait DistributionConfiguration {
+
+  /** An [[Environment]] instance. */
+  def environment: Environment
 
   /** A [[DistributionManager]] instance. */
   def distributionManager: DistributionManager

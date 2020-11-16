@@ -43,6 +43,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
 
     for {
       sockets <- projectService.openProject(
+        self,
         clientId,
         params.projectId,
         missingComponentAction

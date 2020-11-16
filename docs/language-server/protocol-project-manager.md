@@ -65,6 +65,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`ProjectCloseError`](#projectcloseerror)
   - [`LanguageServerError`](#languageservererror)
   - [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror)
+  - [`ProjectCreateError`](#projectcreateerror)
   - [`LoggingServiceUnavailable`](#loggingserviceunavailable)
 
 <!-- /MarkdownTOC -->
@@ -1045,13 +1046,24 @@ Signals that the global configuration file could not be accessed or parsed.
 }
 ```
 
+### `ProjectCreateError`
+
+Signals that an error occurred when creating the project.
+
+```typescript
+"error" : {
+  "code" : 4012,
+  "message" : "Could not create the project."
+}
+```
+
 ### `LoggingServiceUnavailable`
 
 Signals that the logging service is not available.
 
 ```typescript
 "error" : {
-  "code" : 4012,
+  "code" : 4013,
   "message" : "The logging service has failed to boot."
 }
 ```

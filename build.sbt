@@ -697,9 +697,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           )
         )
       ),
-    assembly := assembly
-      .dependsOn(runtime / assembly)
-      .value
+    assembly := assembly.dependsOn(`engine-runner` / assembly).value,
+    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
