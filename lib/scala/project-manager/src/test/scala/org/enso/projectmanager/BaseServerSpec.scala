@@ -1,11 +1,13 @@
 package org.enso.projectmanager
 
 import java.io.File
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
+import akka.testkit.TestActors.blackholeProps
 import akka.testkit._
+import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
@@ -32,16 +34,23 @@ import org.enso.projectmanager.service.{
   ProjectService
 }
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import org.enso.runtimeversionmanager.OS
+import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
 import org.enso.runtimeversionmanager.test.{DropLogs, FakeReleases}
+import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.jdk.OptionConverters.RichOptional
 
-class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
+class BaseServerSpec
+    extends JsonRpcServerTestKit
+    with DropLogs
+    with BeforeAndAfterAll {
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -65,7 +74,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
   sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
 
   val testDistributionRoot = Files.createTempDirectory(null).toFile
-  sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
+  println(s"Rooot: ${testDistributionRoot.toPath.toAbsolutePath.normalize()}")
+//  sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
@@ -126,7 +136,21 @@ class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
     )
 
   lazy val projectCreationService =
-    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration)
+    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration) {
+
+      /** Tests runner must use the system JVM to avoid installing GraalVM
+        * inside of tests which would take far too long.
+        */
+      override val jvmSettings: JVMSettings = {
+        val currentProcess =
+          ProcessHandle.current().info().command().toScala.getOrElse("java")
+        val javaCommand = JavaCommand(currentProcess, None)
+        new JVMSettings(
+          javaCommandOverride = Some(javaCommand),
+          jvmOptions          = Seq()
+        )
+      }
+    }
 
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](
@@ -163,4 +187,38 @@ class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
     FileUtils.deleteQuietly(testProjectsRoot)
   }
 
+  val engineToInstall: Option[SemVer] = None
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    engineToInstall.foreach { version =>
+      val os   = OS.operatingSystem.configName
+      val ext  = if (OS.isWindows) "zip" else "tar.gz"
+      val arch = OS.architecture
+      val path = FakeReleases.releaseRoot
+        .resolve("enso")
+        .resolve(s"enso-$version")
+        .resolve(s"enso-engine-$version-$os-$arch.$ext")
+        .resolve(s"enso-$version")
+        .resolve("component")
+      val root = Path.of("../../../").toAbsolutePath.normalize
+      println(s"$path --> $root")
+      FileUtils.copyFile(
+        root.resolve("runner.jar").toFile,
+        path.resolve("runner.jar").toFile
+      )
+      FileUtils.copyFile(
+        root.resolve("runtime.jar").toFile,
+        path.resolve("runtime.jar").toFile
+      )
+
+      val blackhole = system.actorOf(blackholeProps)
+      val installAction = runtimeVersionManagementService.installEngine(
+        blackhole,
+        version,
+        forceInstallBroken = false
+      )
+      Runtime.default.unsafeRun(installAction)
+    }
+  }
 }

@@ -21,6 +21,10 @@ class ProjectCreationService[
   override val distributionConfiguration: DistributionConfiguration
 ) extends ProjectCreationServiceApi[F]
     with RuntimeVersionManagerMixin {
+
+  /** JVM settings for the runner used to create the project. */
+  val jvmSettings: JVMSettings = JVMSettings.default
+
   override def createProject(
     progressTracker: ActorRef,
     path: Path,
@@ -40,7 +44,7 @@ class ProjectCreationService[
 
       val settings =
         runner.newProject(path, name, version, None, None, Seq()).get
-      runner.withCommand(settings, JVMSettings.default) { command =>
+      runner.withCommand(settings, jvmSettings) { command =>
         command.run().get
       }
     }

@@ -151,40 +151,18 @@ class Runner(
     }
 
     val engineVersion = runSettings.version
-    if (jvmSettings.useSystemJVM) {
-      runtimeVersionManager.withEngine(engineVersion) { engine =>
-        prepareAndRunCommand(engine, systemJavaCommand)
-      }
-    } else {
-      runtimeVersionManager.withEngineAndRuntime(engineVersion) {
-        (engine, runtime) =>
-          prepareAndRunCommand(engine, javaCommandForRuntime(runtime))
-      }
+    jvmSettings.javaCommandOverride match {
+      case Some(overriddenCommand) =>
+        runtimeVersionManager.withEngine(engineVersion) { engine =>
+          prepareAndRunCommand(engine, overriddenCommand)
+        }
+      case None =>
+        runtimeVersionManager.withEngineAndRuntime(engineVersion) {
+          (engine, runtime) =>
+            prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+        }
     }
   }
-
-  /** Represents a way of launching the JVM.
-    *
-    * Stores the name of the `java` executable to run and a possible JAVA_HOME
-    * environment variable override.
-    */
-  private case class JavaCommand(
-    executableName: String,
-    javaHomeOverride: Option[String]
-  )
-
-  /** The [[JavaCommand]] representing the system-configured JVM.
-    */
-  private def systemJavaCommand: JavaCommand = JavaCommand("java", None)
-
-  /** The [[JavaCommand]] representing a managed [[GraalRuntime]].
-    */
-  private def javaCommandForRuntime(runtime: GraalRuntime): JavaCommand =
-    JavaCommand(
-      executableName = runtime.javaExecutable.toAbsolutePath.normalize.toString,
-      javaHomeOverride =
-        Some(runtime.javaHome.toAbsolutePath.normalize.toString)
-    )
 
   /** Returns arguments that should be added to a launched component to connect
     * it to launcher's logging service.

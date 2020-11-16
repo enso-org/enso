@@ -655,7 +655,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           .mkString(File.pathSeparator)
       Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
     },
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"              % typesafeConfigVersion,
