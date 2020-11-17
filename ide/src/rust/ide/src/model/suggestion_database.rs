@@ -10,9 +10,12 @@ use crate::notification;
 use data::text::TextLocation;
 use enso_protocol::language_server;
 use enso_protocol::language_server::SuggestionId;
+use enso_protocol::language_server::FieldUpdate;
 use flo_stream::Subscriber;
+use language_server::types::FieldAction;
 use language_server::types::SuggestionsDatabaseVersion;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
+
 
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionId as EntryId;
@@ -33,6 +36,19 @@ pub struct NoSuchEntry(pub SuggestionId);
 #[derive(Debug,Fail,Clone)]
 #[fail(display = "Entry named {} does not represent a method.", _0)]
 pub struct NotAMethod(pub String);
+
+#[allow(missing_docs)]
+#[derive(Debug,Fail,Clone)]
+#[fail(display = "Argument index {} is invalid for suggestion entry named {}.",index,name)]
+pub struct InvalidArgumentIndex {
+    pub name  : String,
+    pub index : usize
+}
+
+#[allow(missing_docs)]
+#[derive(Copy,Clone,Debug,Fail)]
+#[fail(display = "Invalid update for field {}.",_0)]
+pub struct InvalidFieldUpdate(pub &'static str);
 
 #[allow(missing_docs)]
 #[derive(Debug,Fail,Clone)]
@@ -93,46 +109,6 @@ pub struct Entry {
 }
 
 impl Entry {
-    /// Create entry from the structure deserialized from the Language Server responses.
-    pub fn from_ls_entry(entry:language_server::types::SuggestionEntry)
-        -> FallibleResult<Self> {
-        use language_server::types::SuggestionEntry::*;
-        let this = match entry {
-            Atom {name,module,arguments,return_type,documentation} => Self {
-                    name,arguments,return_type,documentation,
-                    module        : module.try_into()?,
-                    self_type     : None,
-                    kind          : EntryKind::Atom,
-                    scope         : Scope::Everywhere,
-                },
-            Method {name,module,arguments,self_type,return_type,documentation} => Self {
-                    name,arguments,return_type,documentation,
-                    module        : module.try_into()?,
-                    self_type     : Some(self_type),
-                    kind          : EntryKind::Method,
-                    scope         : Scope::Everywhere,
-                },
-            Function {name,module,arguments,return_type,scope} => Self {
-                    name,arguments,return_type,
-                    module        : module.try_into()?,
-                    self_type     : None,
-                    documentation : default(),
-                    kind          : EntryKind::Function,
-                    scope         : Scope::InModule {range:scope.into()},
-                },
-            Local {name,module,return_type,scope} => Self {
-                    name,return_type,
-                    arguments     : default(),
-                    module        : module.try_into()?,
-                    self_type     : None,
-                    documentation : default(),
-                    kind          : EntryKind::Local,
-                    scope         : Scope::InModule {range:scope.into()},
-                },
-        };
-        Ok(this)
-    }
-
     /// Check if this entry has self type same as the given identifier.
     pub fn has_self_type(&self, self_type:impl AsRef<str>) -> bool {
         let self_type = self_type.as_ref();
@@ -190,6 +166,147 @@ impl Entry {
     }
 }
 
+
+// === Handling LanguageServer Types ===
+
+impl Entry {
+    /// Create entry from the structure deserialized from the Language Server responses.
+    pub fn from_ls_entry(entry:language_server::types::SuggestionEntry)
+    -> FallibleResult<Self> {
+        use language_server::types::SuggestionEntry::*;
+        let this = match entry {
+            Atom {name,module,arguments,return_type,documentation,..} => Self {
+                name,arguments,return_type,documentation,
+                module        : module.try_into()?,
+                self_type     : None,
+                kind          : EntryKind::Atom,
+                scope         : Scope::Everywhere,
+            },
+            Method {name,module,arguments,self_type,return_type,documentation,..} => Self {
+                name,arguments,return_type,documentation,
+                module        : module.try_into()?,
+                self_type     : Some(self_type),
+                kind          : EntryKind::Method,
+                scope         : Scope::Everywhere,
+            },
+            Function {name,module,arguments,return_type,scope,..} => Self {
+                name,arguments,return_type,
+                module        : module.try_into()?,
+                self_type     : None,
+                documentation : default(),
+                kind          : EntryKind::Function,
+                scope         : Scope::InModule {range:scope.into()},
+            },
+            Local {name,module,return_type,scope,..} => Self {
+                name,return_type,
+                arguments     : default(),
+                module        : module.try_into()?,
+                self_type     : None,
+                documentation : default(),
+                kind          : EntryKind::Local,
+                scope         : Scope::InModule {range:scope.into()},
+            },
+        };
+        Ok(this)
+    }
+
+    fn apply_modifications
+    ( &mut self
+    , arguments     : Vec<language_server::types::SuggestionArgumentUpdate>
+    , return_type   : Option<FieldUpdate<String>>
+    , documentation : Option<FieldUpdate<String>>
+    , scope         : Option<FieldUpdate<language_server::types::SuggestionEntryScope>>
+    ) -> Vec<failure::Error> {
+        let other_update_results =
+            [ Entry::apply_field_update    ("return_type"  , &mut self.return_type  , return_type  )
+            , Entry::apply_opt_field_update("documentation", &mut self.documentation, documentation)
+            , self.apply_scope_update(scope)
+            ];
+        let other_update_results = SmallVec::from_buf(other_update_results).into_iter();
+        let other_update_errors  = other_update_results.filter_map(|res| res.err());
+        let arg_update_errors    = arguments.into_iter().flat_map(|arg| self.apply_arg_update(arg));
+        arg_update_errors.chain(other_update_errors).collect_vec()
+    }
+
+    fn apply_arg_update(&mut self, update:language_server::types::SuggestionArgumentUpdate)
+    -> Vec<failure::Error> {
+        use language_server::types::SuggestionArgumentUpdate as Update;
+        let error = |index| {
+            let name = self.name.clone();
+            vec![failure::Error::from(InvalidArgumentIndex {name,index})]
+        };
+        match update {
+            Update::Add {index,..} if index > self.arguments.len() => {
+                error(index)
+            }
+            Update::Remove {index} | Update::Modify {index,..} if index >= self.arguments.len() => {
+                error(index)
+            }
+            Update::Add {index,argument} => {
+                self.arguments.insert(index,argument);
+                vec![]
+            }
+            Update::Remove {index} => {
+                self.arguments.remove(index);
+                vec![]
+            }
+            Update::Modify {index,name,repr_type,is_suspended,has_default,default_value} => {
+                let arg     = &mut self.arguments[index];
+                type E = Entry;
+                let results =
+                    [E::apply_field_update    ("name"         ,&mut arg.name         ,name)
+                    ,E::apply_field_update    ("repr_type"    ,&mut arg.repr_type    ,repr_type)
+                    ,E::apply_field_update    ("is_suspended" ,&mut arg.is_suspended ,is_suspended)
+                    ,E::apply_field_update    ("has_default"  ,&mut arg.has_default  ,has_default)
+                    ,E::apply_opt_field_update("default_value",&mut arg.default_value,default_value)
+                    ];
+                SmallVec::from_buf(results).into_iter().filter_map(|res| res.err()).collect_vec()
+            }
+        }
+    }
+
+    fn apply_scope_update
+    (&mut self, update:Option<FieldUpdate<language_server::types::SuggestionEntryScope>>)
+    -> FallibleResult {
+        if let Some(update) = update {
+            let err = || Err(failure::Error::from(InvalidFieldUpdate("scope")));
+            match &mut self.scope {
+                Scope::Everywhere       => { return err() },
+                Scope::InModule {range} => {
+                    if let Some(value) = update.value { *range = value.into() }
+                    else                              { return err()          }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_field_update<T:Default>
+    (field_name:&'static str, field:&mut T, update:Option<FieldUpdate<T>>) -> FallibleResult {
+        let err = InvalidFieldUpdate(field_name);
+        if let Some(update) = update {
+            match update.tag {
+                FieldAction::Set    => { *field = update.value.ok_or(err)? },
+                FieldAction::Remove => { *field = default()                }
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_opt_field_update<T>
+    (field_name:&'static str, field:&mut Option<T>, update:Option<FieldUpdate<T>>)
+    -> FallibleResult {
+        let err = InvalidFieldUpdate(field_name);
+        if let Some(update) = update {
+            match update.tag {
+                FieldAction::Set    => { *field = Some(update.value.ok_or(err)?) },
+                FieldAction::Remove => { *field = None                           }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl TryFrom<language_server::types::SuggestionEntry> for Entry {
     type Error = failure::Error;
     fn try_from(entry:language_server::types::SuggestionEntry) -> FallibleResult<Self> {
@@ -224,6 +341,8 @@ impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
         span_tree::generate::context::CalledMethodInfo {parameters}
     }
 }
+
+// === SpanTree helpers ===
 
 /// Converts the information about function parameter from suggestion database into the form used
 /// by the span tree nodes.
@@ -337,10 +456,15 @@ impl SuggestionDatabase {
                         error!(self.logger, "Received Remove event for nonexistent id: {id}");
                     }
                 },
-                Update::Modify {id,return_type} => {
-                    if let Some(old_entry) = entries.get(&id) {
-                        let new_entry = Entry {return_type,..old_entry.deref().clone()};
-                        entries.insert(id,Rc::new(new_entry));
+                Update::Modify {id,arguments,return_type,documentation,scope,..} => {
+                    if let Some(old_entry) = entries.get_mut(&id) {
+                        let entry  = Rc::make_mut(old_entry);
+                        let errors = entry.apply_modifications
+                            (arguments,return_type,documentation,scope);
+                        for error in errors {
+                            error!(self.logger
+                                ,"Error when applying update for entry {id}: {error:?}");
+                        }
                     } else {
                         error!(self.logger, "Received Modify event for nonexistent id: {id}");
                     }
@@ -420,14 +544,17 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use enso_protocol::language_server::SuggestionsDatabaseEntry;
+    use enso_protocol::language_server::SuggestionArgumentUpdate;
+    use enso_protocol::language_server::SuggestionEntryScope;
+    use enso_protocol::language_server::Position;
+    use enso_protocol::language_server::SuggestionEntryArgument;
     use utils::test::stream::StreamTestExt;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
+    use enso_data::text::TextLocation;
 
 
 
     wasm_bindgen_test_configure!(run_in_browser);
-
-
 
     #[test]
     fn code_from_entry() {
@@ -537,6 +664,7 @@ mod test {
             arguments     : vec![],
             return_type   : "TestAtom".to_string(),
             documentation : None,
+            external_id   : None,
         };
         let db_entry = SuggestionsDatabaseEntry {id:12, suggestion:entry};
         let response = language_server::response::GetSuggestionDatabase {
@@ -553,31 +681,67 @@ mod test {
     fn applying_update() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
         let entry1 = language_server::types::SuggestionEntry::Atom {
-            name          : "Entry1".to_string(),
-            module        : "TestProject.TestModule".to_string(),
+            name          : "Entry1".to_owned(),
+            module        : "TestProject.TestModule".to_owned(),
             arguments     : vec![],
-            return_type   : "TestAtom".to_string(),
-            documentation : None
+            return_type   : "TestAtom".to_owned(),
+            documentation : None,
+            external_id   : None,
         };
         let entry2 = language_server::types::SuggestionEntry::Atom {
-            name          : "Entry2".to_string(),
-            module        : "TestProject.TestModule".to_string(),
+            name          : "Entry2".to_owned(),
+            module        : "TestProject.TestModule".to_owned(),
             arguments     : vec![],
-            return_type   : "TestAtom".to_string(),
-            documentation : None
+            return_type   : "TestAtom".to_owned(),
+            documentation : None,
+            external_id   : None,
         };
         let new_entry2 = language_server::types::SuggestionEntry::Atom {
-            name          : "NewEntry2".to_string(),
-            module        : "TestProject.TestModule".to_string(),
+            name          : "NewEntry2".to_owned(),
+            module        : "TestProject.TestModule".to_owned(),
             arguments     : vec![],
-            return_type   : "TestAtom".to_string(),
-            documentation : None
+            return_type   : "TestAtom".to_owned(),
+            documentation : None,
+            external_id   : None,
+        };
+        let arg1 = SuggestionEntryArgument {
+            name          : "Argument1".to_owned(),
+            repr_type     : "Number".to_owned(),
+            is_suspended  : false,
+            has_default   : false,
+            default_value : None
+        };
+        let arg2 = SuggestionEntryArgument {
+            name          : "Argument2".to_owned(),
+            repr_type     : "TestAtom".to_owned(),
+            is_suspended  : true,
+            has_default   : false,
+            default_value : None
+        };
+        let arg3 = SuggestionEntryArgument {
+            name          : "Argument3".to_owned(),
+            repr_type     : "Number".to_owned(),
+            is_suspended  : false,
+            has_default   : true,
+            default_value : Some("13".to_owned())
+        };
+        let entry3 = language_server::types::SuggestionEntry::Function {
+            external_id : None,
+            name        : "entry3".to_string(),
+            module      : "TestProject.TestModule".to_string(),
+            arguments   : vec![arg1,arg2,arg3],
+            return_type : "".to_string(),
+            scope       : SuggestionEntryScope {
+                start : Position { line:1, character:2 },
+                end   : Position { line:2, character:4 }
+            }
         };
 
         let db_entry1        = SuggestionsDatabaseEntry {id:1, suggestion:entry1};
         let db_entry2        = SuggestionsDatabaseEntry {id:2, suggestion:entry2};
+        let db_entry3        = SuggestionsDatabaseEntry {id:3, suggestion:entry3};
         let initial_response = language_server::response::GetSuggestionDatabase {
-            entries         : vec![db_entry1,db_entry2],
+            entries         : vec![db_entry1,db_entry2,db_entry3],
             current_version : 1,
         };
         let db            = SuggestionDatabase::from_ls_response(initial_response);
@@ -608,5 +772,143 @@ mod test {
         notifications.expect_pending();
         assert_eq!(db.lookup(2).unwrap().name, "NewEntry2");
         assert_eq!(db.version.get(), 3);
+
+        // Empty modify
+        let modify_update = Update::Modify {
+            id            : 1,
+            external_id   : None,
+            arguments     : vec![],
+            return_type   : None,
+            documentation : None,
+            scope         : None
+        };
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates         : vec![modify_update],
+            current_version : 4,
+        };
+        db.apply_update_event(update);
+        fixture.run_until_stalled();
+        assert_eq!(notifications.expect_next(),Notification::Updated);
+        notifications.expect_pending();
+        assert_eq!(db.lookup(1).unwrap().arguments    , vec![]);
+        assert_eq!(db.lookup(1).unwrap().return_type  , "TestAtom");
+        assert_eq!(db.lookup(1).unwrap().documentation, None);
+        assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
+        assert_eq!(db.version.get(), 4);
+
+        // Modify with some invalid fields
+        let modify_update = Update::Modify {
+            id          : 1,
+            external_id : None,
+            // Invalid: the entry does not have any arguments.
+            arguments:vec![SuggestionArgumentUpdate::Remove {index:0}],
+            // Valid.
+            return_type:Some(FieldUpdate::set("TestAtom2".to_owned())),
+            // Valid.
+            documentation:Some(FieldUpdate::set("Blah blah".to_owned())),
+            // Invalid: atoms does not have any scope.
+            scope:Some(FieldUpdate::set(SuggestionEntryScope {
+                start : Position {line:4, character:10},
+                end   : Position {line:8, character:12}
+            })),
+        };
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates         : vec![modify_update],
+            current_version : 5,
+        };
+        db.apply_update_event(update);
+        fixture.run_until_stalled();
+        assert_eq!(notifications.expect_next(),Notification::Updated);
+        notifications.expect_pending();
+        assert_eq!(db.lookup(1).unwrap().arguments    , vec![]);
+        assert_eq!(db.lookup(1).unwrap().return_type  , "TestAtom2");
+        assert_eq!(db.lookup(1).unwrap().documentation, Some("Blah blah".to_owned()));
+        assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
+        assert_eq!(db.version.get(), 5);
+
+        // Modify Argument and Scope
+        let modify_update = Update::Modify {
+            id            : 3,
+            external_id   : None,
+            arguments     : vec![SuggestionArgumentUpdate::Modify {
+                index         : 2,
+                name          : Some(FieldUpdate::set("NewArg".to_owned())),
+                repr_type     : Some(FieldUpdate::set("TestAtom".to_owned())),
+                is_suspended  : Some(FieldUpdate::set(true)),
+                has_default   : Some(FieldUpdate::set(false)),
+                default_value : Some(FieldUpdate::remove()),
+            }],
+            return_type   : None,
+            documentation : None,
+            scope         : Some(FieldUpdate::set(SuggestionEntryScope {
+                start: Position { line: 1, character: 5 },
+                end: Position { line: 3, character: 0 }
+            })),
+        };
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates         : vec![modify_update],
+            current_version : 6,
+        };
+        db.apply_update_event(update);
+        fixture.run_until_stalled();
+        assert_eq!(notifications.expect_next(),Notification::Updated);
+        notifications.expect_pending();
+        assert_eq!(db.lookup(3).unwrap().arguments.len(), 3);
+        assert_eq!(db.lookup(3).unwrap().arguments[2].name, "NewArg");
+        assert_eq!(db.lookup(3).unwrap().arguments[2].repr_type, "TestAtom");
+        assert!   (db.lookup(3).unwrap().arguments[2].is_suspended);
+        assert_eq!(db.lookup(3).unwrap().arguments[2].default_value, None);
+        let range = TextLocation {line:1, column:5}..=TextLocation {line:3, column:0};
+        assert_eq!(db.lookup(3).unwrap().scope, Scope::InModule{range});
+        assert_eq!(db.version.get(), 6);
+
+        // Add Argument
+        let new_argument = SuggestionEntryArgument {
+            name          : "NewArg2".to_string(),
+            repr_type     : "Number".to_string(),
+            is_suspended  : false,
+            has_default   : false,
+            default_value : None
+        };
+        let add_arg_update = Update::Modify {
+            id            : 3,
+            external_id   : None,
+            arguments     : vec![SuggestionArgumentUpdate::Add {index:2, argument:new_argument}],
+            return_type   : None,
+            documentation : None,
+            scope         : None,
+        };
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates         : vec![add_arg_update],
+            current_version : 7,
+        };
+        db.apply_update_event(update);
+        fixture.run_until_stalled();
+        assert_eq!(notifications.expect_next(),Notification::Updated);
+        notifications.expect_pending();
+        assert_eq!(db.lookup(3).unwrap().arguments.len(), 4);
+        assert_eq!(db.lookup(3).unwrap().arguments[2].name, "NewArg2");
+        assert_eq!(db.version.get(), 7);
+
+        // Remove Argument
+        let remove_arg_update = Update::Modify {
+            id            : 3,
+            external_id   : None,
+            arguments     : vec![SuggestionArgumentUpdate::Remove {index:2}],
+            return_type   : None,
+            documentation : None,
+            scope         : None,
+        };
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates         : vec![remove_arg_update],
+            current_version : 8,
+        };
+        db.apply_update_event(update);
+        fixture.run_until_stalled();
+        assert_eq!(notifications.expect_next(),Notification::Updated);
+        notifications.expect_pending();
+        assert_eq!(db.lookup(3).unwrap().arguments.len(), 3);
+        assert_eq!(db.lookup(3).unwrap().arguments[2].name, "NewArg");
+        assert_eq!(db.version.get(), 8);
     }
 }

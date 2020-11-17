@@ -108,6 +108,8 @@ before contributing to the codebase.
 IDE requires a service named Project Manager to be running in the background
 on the local machine. The service, being part of the Enso Engine, can be
 downloaded from [per-commit builds](https://github.com/enso-org/enso/actions?query=workflow%3A"Engine+CI"+branch%3Amain).
+The minimal supported version is commit 
+670cffb3800912628f2289c590d8d8391fb3011a.
 
 If the service is not running,the IDE will not start. However, it is possible 
 to hack on many components of the IDE without the service. The debug scenes 

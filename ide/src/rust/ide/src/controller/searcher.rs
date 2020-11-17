@@ -959,14 +959,16 @@ pub mod test {
                     Argument {
                         repr_type     : "Any".to_string(),
                         name          : "this".to_string(),
+                        has_default   : false,
                         default_value : None,
-                        is_suspended  : false
+                        is_suspended  : false,
                     },
                     Argument {
                         repr_type     : "Number".to_string(),
                         name          : "num_arg".to_string(),
+                        has_default   : false,
                         default_value : None,
-                        is_suspended  : false
+                        is_suspended  : false,
                     }
                 ],
                 ..entry1.clone()
@@ -978,12 +980,14 @@ pub mod test {
                     Argument {
                         repr_type     : "Any".to_string(),
                         name          : "this".to_string(),
+                        has_default   : false,
                         default_value : None,
                         is_suspended  : false
                     },
                     Argument {
                         repr_type     : "String".to_string(),
                         name          : "num_arg".to_string(),
+                        has_default   : false,
                         default_value : None,
                         is_suspended  : false
                     }
@@ -996,12 +1000,14 @@ pub mod test {
                     Argument {
                         repr_type     : "Text".to_string(),
                         name          : "text_arg".to_string(),
+                        has_default   : false,
                         default_value : None,
                         is_suspended  : false
                     },
                     Argument {
                         repr_type     : "Number".to_string(),
                         name          : "num_arg".to_string(),
+                        has_default   : false,
                         default_value : None,
                         is_suspended  : false
                     },

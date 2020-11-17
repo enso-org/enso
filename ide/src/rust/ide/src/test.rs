@@ -61,6 +61,7 @@ pub mod mock {
                 name          : "this".to_owned(),
                 repr_type     : "Base".to_owned(),
                 is_suspended  : false,
+                has_default   : false,
                 default_value : None,
             }
         }
@@ -70,6 +71,7 @@ pub mod mock {
                 name          : "param1".to_owned(),
                 repr_type     : "Number".to_owned(),
                 is_suspended  : false,
+                has_default   : false,
                 default_value : None,
             }
         }
@@ -79,6 +81,7 @@ pub mod mock {
                 name          : "this".to_owned(),
                 repr_type     : "Other".to_owned(),
                 is_suspended  : false,
+                has_default   : false,
                 default_value : None,
             }
         }
