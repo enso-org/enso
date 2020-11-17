@@ -37,11 +37,13 @@ public abstract class Storage {
     public static final int OBJECT = 5;
   }
 
-  public abstract boolean isOpVectorized(VectorizedOp op);
-
-  public enum VectorizedOp {
-    EQ;
+  public static final class Ops {
+    public static final String EQ = "==";
   }
+
+  public abstract boolean isOpVectorized(String name);
+
+  public abstract Storage runVectorizedOp(String name, Object operand);
 
   public abstract Storage mask(BitSet mask, int cardinality);
 

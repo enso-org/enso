@@ -36,8 +36,32 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(VectorizedOp op) {
-    return false;
+  public boolean isOpVectorized(String op) {
+    return op.equals("==");
+  }
+
+  @Override
+  public Storage runVectorizedOp(String name, Object operand) {
+    if (Ops.EQ.equals(name)) {
+      return runVectorizedEq(operand);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  private BoolStorage runVectorizedEq(Object operand) {
+    if (operand instanceof Boolean) {
+      if ((Boolean) operand) {
+        return this;
+      } else {
+        BitSet newVals = new BitSet();
+        newVals.or(values);
+        newVals.flip(0, size);
+        newVals.andNot(isMissing);
+        return new BoolStorage(newVals, new BitSet(), size, false);
+      }
+    } else {
+      return new BoolStorage(new BitSet(), new BitSet(), size, false);
+    }
   }
 
   public BitSet getValues() {

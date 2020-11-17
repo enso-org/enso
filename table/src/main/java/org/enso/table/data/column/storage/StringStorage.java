@@ -32,28 +32,26 @@ public class StringStorage extends ObjectStorage {
   }
 
   @Override
-  public boolean isOpVectorized(VectorizedOp op) {
-    return op == VectorizedOp.EQ;
+  public boolean isOpVectorized(String op) {
+    return op.equals("==");
   }
 
-  public BoolStorage eq(Object that, boolean propagateNa) {
+  @Override
+  public Storage runVectorizedOp(String name, Object operand) {
+    if (Ops.EQ.equals(name)) {
+      return runVectorizedEq(operand);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  public BoolStorage runVectorizedEq(Object that) {
     Object[] data = getData();
     int size = (int) size();
     BitSet values = new BitSet();
     BitSet missing = new BitSet();
-    if (!propagateNa) {
-      for (int i = 0; i < size; i++) {
-        if (!(data[i] == null) && data[i].equals(that)) {
-          values.set(i);
-        }
-      }
-    } else {
-      for (int i = 0; i < size; i++) {
-        if (data[i] == null) {
-          missing.set(i);
-        } else if (data[i].equals(that)) {
-          values.set(i);
-        }
+    for (int i = 0; i < size; i++) {
+      if (!(data[i] == null) && data[i].equals(that)) {
+        values.set(i);
       }
     }
     return new BoolStorage(values, missing, size, false);

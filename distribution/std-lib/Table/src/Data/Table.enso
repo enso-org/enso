@@ -14,7 +14,7 @@ type Table
          - show_rows: the number of initial rows that should be displayed.
     display : Integer -> Text
     display show_rows=10 =
-        cols = Vector (this.java_table.getColumns [])
+        cols = Vector.Vector (this.java_table.getColumns [])
         col_names = cols.map (_.getName [])
         col_vals = cols.map (_.getStorage [])
         num_rows = this.java_table.nrows []
@@ -38,7 +38,7 @@ type Table
         fields = Map.singleton "columns" cols_json
         Json.Object fields
 
-    at name = Column (this.java_table.getColumnByName [name])
+    at name = Column.Column (this.java_table.getColumnByName [name])
 
     where indexes =
         Table (this.java_table.mask [indexes.java_column, False])
@@ -47,7 +47,7 @@ type Table
         Table (this.java_table.addOrReplaceColumn [column.rename name . java_column])
 
     columns =
-        Vector.Vector (this.java_table.getColumns []) . map Column
+        Vector.Vector (this.java_table.getColumns []) . map Column.Column
 
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
 

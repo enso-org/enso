@@ -48,8 +48,13 @@ public class ObjectStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(VectorizedOp op) {
+  public boolean isOpVectorized(String op) {
     return false;
+  }
+
+  @Override
+  public Storage runVectorizedOp(String name, Object operand) {
+    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -1,4 +1,5 @@
 from Base import all
+import Table.Data.Table
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
@@ -14,7 +15,7 @@ type Column
         display_rows = min num_rows show_rows
         items = Vector.new display_rows num->
             [if storage.isNa [num] then "NA" else here.get_item_string storage num]
-        table = here.print_table [col_name] items
+        table = Table.print_table [col_name] items
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -23,9 +24,7 @@ type Column
         IO.println (this.display show_rows)
 
     == other =
-        storage = this.java_column.getStorage []
-        res_storage = storage.eq [other, False]
-        Column (Java_Column.new ["Result", res_storage].to_array)
+        here.run_vectorized_op this "==" (== other) other
 
     != other = (this == other).not
 
@@ -77,6 +76,13 @@ type Column
 
 from_vector name items = Column (Java_Column.fromItems [name, items.to_array])
 
+run_vectorized_op column java_op_name fallback_method operand =
+    storage = column.java_column.getStorage []
+    rs = if storage.isOpVectorized [java_op_name] then storage.runVectorizedOp [java_op_name, operand] else
+        storage.map [fallback_method]
+    Column (Java_Column.new ["Result", rs].to_array)
+
+
 ## PRIVATE
 
    Keep this in sync with `org.enso.table.data.Storage.Type.LONG`
@@ -96,6 +102,11 @@ storage_type_string = 3
 
    Keep this in sync with `org.enso.table.data.Storage.Type.BOOL`
 storage_type_bool = 4
+
+storage_to_json storage factory =
+    Vector.new (storage.size []) ix->
+        if storage.isNa [ix] then Json.Null else
+            factory (storage.getItem [ix])
 
 ## PRIVATE
 get_item_string column ix =

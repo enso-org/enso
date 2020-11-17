@@ -8,6 +8,7 @@ public class DoubleStorage extends Storage {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
+  private static final long NAN = 0x7ff0000000000000L;
 
   /**
    * @param data the underlying data
@@ -48,8 +49,32 @@ public class DoubleStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(VectorizedOp op) {
-    return false;
+  public boolean isOpVectorized(String op) {
+    return op.equals("==");
+  }
+
+  @Override
+  public Storage runVectorizedOp(String name, Object operand) {
+    if (name.equals("==")) {
+      return runVectorizedEq(operand);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  private BoolStorage runVectorizedEq(Object operand) {
+    BitSet isNa = new BitSet();
+    BitSet values = new BitSet();
+    if (operand instanceof Double) {
+      long seek = Double.doubleToRawLongBits((Double) operand);
+      if ((seek & NAN) != NAN) {
+        for (int i = 0; i < size; i++) {
+          if (data[i] == seek && (data[i] & NAN) != NAN && !isMissing.get(i)) {
+            values.set(i);
+          }
+        }
+      }
+    }
+    return new BoolStorage(values, isNa, size, false);
   }
 
   @Override

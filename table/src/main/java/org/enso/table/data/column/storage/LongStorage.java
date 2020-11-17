@@ -48,8 +48,30 @@ public class LongStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(VectorizedOp op) {
-    return false;
+  public boolean isOpVectorized(String op) {
+    return Ops.EQ.equals(op);
+  }
+
+  @Override
+  public Storage runVectorizedOp(String name, Object operand) {
+    if (Ops.EQ.equals(name)) {
+      return runVectorizedEq(operand);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  BoolStorage runVectorizedEq(Object operand) {
+    BitSet isNa = new BitSet();
+    BitSet values = new BitSet();
+    if (operand instanceof Long) {
+      long seek = (Long) operand;
+      for (int i = 0; i < size; i++) {
+        if (data[i] == seek && !isMissing.get(i)) {
+          values.set(i);
+        }
+      }
+    }
+    return new BoolStorage(values, isNa, size, false);
   }
 
   @Override
