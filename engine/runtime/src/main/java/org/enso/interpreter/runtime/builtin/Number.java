@@ -112,6 +112,16 @@ public class Number {
         "to_decimal",
         org.enso.interpreter.node.expression.builtin.number.smallInteger.ToDecimalMethodGen
             .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "floor",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.FloorMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "ceil",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.CeilMethodGen.makeFunction(
+            language));
   }
 
   private void registerBigIntegerMethods(Language language, ModuleScope scope) {
@@ -191,6 +201,16 @@ public class Number {
         "to_decimal",
         org.enso.interpreter.node.expression.builtin.number.bigInteger.ToDecimalMethodGen
             .makeFunction(language));
+    scope.registerMethod(
+        bigInteger,
+        "floor",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.FloorMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        "ceil",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.CeilMethodGen.makeFunction(
+            language));
   }
 
   private void registerDecimalMethods(Language language, ModuleScope scope) {
@@ -259,6 +279,16 @@ public class Number {
         decimal,
         "to_decimal",
         org.enso.interpreter.node.expression.builtin.number.decimal.ToDecimalMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "floor",
+        org.enso.interpreter.node.expression.builtin.number.decimal.FloorMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "ceil",
+        org.enso.interpreter.node.expression.builtin.number.decimal.CeilMethodGen.makeFunction(
             language));
   }
 

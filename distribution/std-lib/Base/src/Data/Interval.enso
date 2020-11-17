@@ -1,0 +1,49 @@
+from Base import all
+
+import Base.Data.Interval.Bound
+
+export Base.Data.Interval.Bound
+
+## Create an interval that excludes its upper bound.
+
+   > Example
+     Create the exclusive range from 1 to 5.
+         Interval.exclusive 1 5
+exclusive : Any -> Any -> Interval
+exclusive start end = Interval (Bound.Inclusive start) (Bound.Exclusive end)
+
+## Create an interval that includes its upper bound.
+
+   > Example
+     Create the inclusive range from 1 to 5.
+         Interval.inclusive 1 5
+inclusive : Any -> Any -> Interval
+inclusive start end = Interval (Bound.Inclusive start) (Bound.Inclusive end)
+
+## An interval type
+type Interval
+    type Interval start end
+
+    ## Checks if the interval contains `that`.
+
+       > Example
+         Checking if the interval 1 to 5 contains 7.
+             (Interval.inclusive 1 5) . contains 7
+    contains : Any -> Boolean
+    contains that = if this.start > this.end then False else
+        case this.start of
+            Bound.Exclusive s -> (that > s) && case this.end of
+                Bound.Exclusive e -> that < e
+                Bound.Inclusive e -> that <= e
+            Bound.Inclusive s -> (that >= s) && case this.end of
+                Bound.Exclusive e -> that < e
+                Bound.Inclusive e -> that <= e
+
+    ## Check if this interval is empty.
+    is_empty : Boolean
+    is_empty = this.start > this.end
+
+    ## Check if this interval is not empty.
+    not_empty : Boolean
+    not_empty = this.is_empty.not
+

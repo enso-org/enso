@@ -1,0 +1,27 @@
+from Base import all
+
+import Base.Data.Noise.Generator
+import Base.Error.Extensions
+
+import Test
+
+spec =
+    describe "Generator Interface" <|
+        gen = Generator.Generator
+        it "should not be invokable" <|
+            interval = Interval.inclusive 0 1
+            check = case _ of
+                Extensions.Unimplemented_Error _ -> Nothing
+                _ -> fail "No error encountered."
+            Panic.recover (gen.step 1 interval) check
+    describe "Deterministic Random Noise Generator" <|
+        gen = Generator.Deterministic_Random
+        it "should always return the same output for the same input" <|
+            interval = Interval.inclusive 0 1
+            values = Vector.fill 100000 1 . map (gen.step _ interval)
+            values.all (== values.at 0) . should_be_true
+        it "should always produce values within the specified interval" <|
+            interval = Interval.inclusive -100 100
+            values = 1.up_to 100000 . to_vector . map (gen.step _ interval)
+            values.all (v -> (v >= -100) && (v <= 100)) . should_be_true
+

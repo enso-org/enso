@@ -1,0 +1,14 @@
+from Base import all
+
+import Test
+
+spec = describe "Noise" <|
+    it "should be able to be called on numbers" <|
+        result = 1.noise
+        result-result . should_equal 0
+    it "should allow the user to specify a generator" <|
+        1 . should_equal 1
+    it "should allow the user to specofy the interval" <|
+        1 . should_equal 1
+
+

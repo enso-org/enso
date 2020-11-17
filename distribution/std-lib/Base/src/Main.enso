@@ -1,7 +1,9 @@
 import Base.Data.Any.Extensions
+import Base.Data.Interval
 import Base.Data.Json
 import Base.Data.List
 import Base.Data.Map
+import Base.Data.Noise
 import Base.Data.Number.Extensions
 import Base.Data.Pair
 import Base.Data.Range
@@ -16,6 +18,7 @@ import Base.System.File
 
 from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean
 
+export Base.Data.Interval
 export Base.Data.Json
 export Base.Data.Map
 export Base.Data.Vector
@@ -25,6 +28,7 @@ export Base.System.File
 
 from Base.Data.Any.Extensions export all
 from Base.Data.List export Nil, Cons
+from Base.Data.Noise export all hiding Noise
 from Base.Data.Number.Extensions export all hiding Math, String
 from Base.Data.Pair export Pair
 from Base.Data.Range export Range
