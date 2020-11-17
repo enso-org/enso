@@ -89,6 +89,11 @@ impl ArgumentInfo {
 ///
 /// This structure is used to have some specific node marked as root node, to avoid confusion
 /// regarding SpanTree crumbs and AST crumbs.
+///
+/// ## Design
+/// Please note that `SpanTree` was designed in such a way, that its leaves cover all visual tokens
+/// in the code. Even in the case of parenthesed expressions, like `(foo)`, the parentheses are also
+/// `SpanTree` tokens.
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct SpanTree<T=()> {
     /// A root node of the tree.
@@ -97,18 +102,18 @@ pub struct SpanTree<T=()> {
 
 impl<T:Payload> SpanTree<T> {
     /// Create span tree from something that could generate it (usually AST).
-    pub fn new(generator:&impl SpanTreeGenerator<T>, context:&impl Context) -> FallibleResult<Self> {
-        generator.generate_tree(context)
+    pub fn new(gen:&impl SpanTreeGenerator<T>, context:&impl Context) -> FallibleResult<Self> {
+        gen.generate_tree(context)
     }
 
-    /// Get the `NodeRef` of root node.
+    /// Get a reference to the root node.
     pub fn root_ref(&self) -> node::Ref<T> {
-        node::Ref {
-            node       : &self.root,
-            span_begin : default(),
-            crumbs     : default(),
-            ast_crumbs : default()
-        }
+        node::Ref::new(&self.root)
+    }
+
+    /// Get a mutable reference to the root node.
+    pub fn root_ref_mut(&mut self) -> node::RefMut<T> {
+        node::RefMut::new(&mut self.root)
     }
 
     /// Get the node (root, child, or further descendant) identified by `crumbs`.
@@ -116,7 +121,31 @@ impl<T:Payload> SpanTree<T> {
     (&self, crumbs:impl IntoIterator<Item=&'a Crumb>) -> FallibleResult<node::Ref<T>> {
         self.root_ref().get_descendant(crumbs)
     }
+
+    /// Payload mapping utility.
+    pub fn map<S>(self, f:impl Copy+Fn(T)->S) -> SpanTree<S> {
+        let root = self.root.map(f);
+        SpanTree {root}
+    }
 }
+
+
+// === Getters ===
+
+impl<T:Payload> SpanTree<T> {
+    /// Get `ast::Id` of the nested node, if exists.
+    pub fn nested_ast_id(&self, crumbs:&Crumbs) -> Option<ast::Id> {
+        if self.root_ref().crumbs == crumbs {
+            self.root.ast_id
+        } else {
+            let span_tree_descendant = self.root_ref().get_descendant(crumbs);
+            span_tree_descendant.map(|t|t.ast_id).ok().flatten()
+        }
+    }
+}
+
+
+// == Impls ===
 
 impl<T:Payload> Default for SpanTree<T> {
     fn default() -> Self {

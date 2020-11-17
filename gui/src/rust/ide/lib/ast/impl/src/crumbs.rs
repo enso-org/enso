@@ -370,7 +370,7 @@ macro_rules! from_crumb {
 }
 
 macro_rules! impl_crumbs {
-    ($(($id:ident,$crumb_id:ident)),*) => {
+    ($(($id:ident,$crumb_id:ident,$matcher:ident)),*) => {
         $(from_crumb!{$id,$crumb_id})*
 
         impl Crumbable for Shape<Ast> {
@@ -403,6 +403,18 @@ macro_rules! impl_crumbs {
         pub enum Crumb {
             $($id($crumb_id),)*
         }
+
+        impl Crumb {
+            $(
+                /// Constructor checker.
+                pub fn $matcher(&self) -> bool {
+                    match self {
+                        Self::$id{..} => true,
+                        _             => false,
+                    }
+                }
+            )*
+        }
     }
 }
 
@@ -416,23 +428,23 @@ impl IntoIterator for Crumb {
 
 
 impl_crumbs!{
-    ( InvalidSuffix , InvalidSuffixCrumb ),
-    ( TextLineFmt   , TextLineFmtCrumb   ),
-    ( TextBlockFmt  , TextBlockFmtCrumb  ),
-    ( TextUnclosed  , TextUnclosedCrumb  ),
-    ( Prefix        , PrefixCrumb        ),
-    ( Infix         , InfixCrumb         ),
-    ( SectionLeft   , SectionLeftCrumb   ),
-    ( SectionRight  , SectionRightCrumb  ),
-    ( SectionSides  , SectionSidesCrumb  ),
-    ( Module        , ModuleCrumb        ),
-    ( Block         , BlockCrumb         ),
-    ( Match         , MatchCrumb         ),
-    ( Ambiguous     , AmbiguousCrumb     ),
-    ( Import        , ImportCrumb        ),
-    ( Mixfix        , MixfixCrumb        ),
-    ( Group         , GroupCrumb         ),
-    ( Def           , DefCrumb           )
+    ( InvalidSuffix , InvalidSuffixCrumb , is_invalid_suffix ),
+    ( TextLineFmt   , TextLineFmtCrumb   , is_text_line_fmt  ),
+    ( TextBlockFmt  , TextBlockFmtCrumb  , is_text_block_fmt ),
+    ( TextUnclosed  , TextUnclosedCrumb  , is_text_unclosed  ),
+    ( Prefix        , PrefixCrumb        , is_prefix         ),
+    ( Infix         , InfixCrumb         , is_infix          ),
+    ( SectionLeft   , SectionLeftCrumb   , is_section_left   ),
+    ( SectionRight  , SectionRightCrumb  , is_section_right  ),
+    ( SectionSides  , SectionSidesCrumb  , is_section_sides  ),
+    ( Module        , ModuleCrumb        , is_module         ),
+    ( Block         , BlockCrumb         , is_block          ),
+    ( Match         , MatchCrumb         , is_match          ),
+    ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      ),
+    ( Import        , ImportCrumb        , is_import         ),
+    ( Mixfix        , MixfixCrumb        , is_mixfix         ),
+    ( Group         , GroupCrumb         , is_group          ),
+    ( Def           , DefCrumb           , is_def            )
 }
 
 

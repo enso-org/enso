@@ -10,6 +10,7 @@ use crate::data::OptVec;
 pub use super::data::Data;
 pub use super::data::data;
 pub use super::path::Path;
+pub use super::path::StaticPath;
 
 
 
@@ -139,6 +140,11 @@ impl Expression {
         let function = Rc::new(function);
         Self {args,function}
     }
+
+    /// Simple reference (identity) expression constructor.
+    pub fn reference(path:impl Into<Path>) -> Self {
+        Self::new(&[path.into()],|t|t[0].clone())
+    }
 }
 
 impl Debug for Expression {
@@ -154,6 +160,11 @@ impl PartialEq for Expression {
         same_args && same_function
     }
 }
+
+impls! { From<Path>        for Expression { |t| Self::reference(t) }}
+impls! { From<&Path>       for Expression { |t| Self::reference(t) }}
+impls! { From<StaticPath>  for Expression { |t| Self::reference(t) }}
+impls! { From<&StaticPath> for Expression { |t| Self::reference(t) }}
 
 
 
@@ -201,8 +212,13 @@ impl From<Expression> for Value {
     }
 }
 
+impls! { From<Path>        for Value { |t| Self::Expression(t.into()) }}
+impls! { From<&Path>       for Value { |t| Self::Expression(t.into()) }}
+impls! { From<StaticPath>  for Value { |t| Self::Expression(t.into()) }}
+impls! { From<&StaticPath> for Value { |t| Self::Expression(t.into()) }}
+
 impl<T> From<T> for Value
-    where T:Into<Data> {
+where T:Into<Data> {
     default fn from(t:T) -> Self {
         Self::Data(t.into())
     }

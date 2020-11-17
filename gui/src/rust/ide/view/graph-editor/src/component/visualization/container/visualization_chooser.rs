@@ -84,13 +84,13 @@ impl display::Object for Model {
 /// UI entity that shows a button that opens a list of visualisations that can be sel:ected from.
 #[derive(Clone,CloneRef,Debug)]
 pub struct VisualizationChooser {
-        model : Model,
-    pub frp   : Frp,
+    pub frp : Frp,
+    model   : Model,
 }
 
 impl VisualizationChooser {
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
-        let frp   = Frp::new_network();
+        let frp   = Frp::new();
         let model = Model::new(app,registry);
         Self {frp,model}.init()
     }
@@ -102,7 +102,6 @@ impl VisualizationChooser {
         let menu    = &self.model.selection_menu.frp;
 
         frp::extend! { network
-
 
             // === Input Processing ===
 

@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 
+use crate::graph_editor;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::Type;
 use crate::project;
@@ -16,7 +17,7 @@ use ensogl::system::web;
 use ensogl::application::Application;
 use ensogl::display::object::ObjectOps;
 use ensogl_text as text;
-use ensogl_theme;
+use ensogl_theme as theme;
 use wasm_bindgen::prelude::*;
 use parser::Parser;
 
@@ -82,10 +83,10 @@ impl DummyTypeGenerator {
 
 fn init(app:&Application) {
 
-    ensogl_theme::dark::setup(&app);
-    // ensogl_theme::light::setup(&app);
+    theme::builtin::dark::setup(&app);
+    // theme::builtin::light::setup(&app);
 
-    let _bg = app.display.scene().style_sheet.var(ensogl_theme::vars::application::background::color);
+    let _bg = app.display.scene().style_sheet.var(theme::application::background);
 
 
     let world     = &app.display;
@@ -112,16 +113,17 @@ fn init(app:&Application) {
     let mut dummy_type_generator = DummyTypeGenerator::default();
     let expression_1 = expression_mock();
     graph_editor.frp.set_node_expression.emit((node1_id,expression_1.clone()));
+
     expression_1.input_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
-            graph_editor.frp.set_expression_type.emit((node1_id,expr_id,dummy_type));
+            graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
         }
     });
     expression_1.output_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
-            graph_editor.frp.set_expression_type.emit((node1_id,expr_id,dummy_type));
+            graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
         }
     });
 
@@ -130,21 +132,50 @@ fn init(app:&Application) {
     expression_2.input_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
-            graph_editor.frp.set_expression_type.emit((node2_id,expr_id,dummy_type));
+            graph_editor.frp.set_expression_usage_type.emit((node2_id,expr_id,dummy_type));
         }
     });
     expression_2.output_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
-            graph_editor.frp.set_expression_type.emit((node2_id,expr_id,dummy_type));
+            graph_editor.frp.set_expression_usage_type.emit((node2_id,expr_id,dummy_type));
         }
     });
 
+    let src = graph_editor::EdgeTarget::new(node1_id,span_tree::Crumbs::new(default()));
+    let tgt = graph_editor::EdgeTarget::new(node2_id,span_tree::Crumbs::new(vec![0,0,0,0,1]));
+    graph_editor.frp.connect_nodes.emit((src,tgt));
+
+
+    let _tgt_type = dummy_type_generator.get_dummy_type();
     let mut was_rendered = false;
     let mut loader_hidden = false;
+    let mut i = 100;
+    let mut _j = 3;
     world.on_frame(move |_| {
         let _keep_alive = &navigator;
         let _keep_alive = &project_view;
+        let _graph_editor = project_view.graph();
+
+        if i > 0 { i -= 1 } else {
+            println!(">> CHANGE");
+            i = 100;
+            //graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
+            // expression_1.input_span_tree.root_ref().leaf_iter().for_each(|node|{
+            //     if let Some(expr_id) = node.ast_id {
+            //         let dummy_type = Some(tgt_type.clone());
+            //         if j != 0 {
+            //             j -= 1;
+            //             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
+            //         } else {
+            //             // println!(">> null change");
+            //             j = 3;
+            //             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,None));
+            //             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
+            //         };
+            //     }
+            // });
+        }
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.
@@ -158,22 +189,15 @@ fn init(app:&Application) {
         }
         was_rendered = true;
     }).forget();
-    visual_expr(expression_mock2());
-
 }
 
-
-fn visual_expr(expr:Expression) {
-    println!("-----------------");
-    println!("{:#?}",expr);
-}
 
 
 // =============
 // === Mocks ===
 // =============
 
-use crate::graph_editor::component::node::port::Expression;
+use crate::graph_editor::component::node::Expression;
 
 use ast::crumbs::*;
 use ast::crumbs::PatternMatchCrumb::*;
@@ -184,19 +208,18 @@ use span_tree::traits::*;
 
 
 pub fn expression_mock() -> Expression {
-    let code             = "open \"data.csv\"".into();
+    let code       = "[1,2,3]".to_string();
+    let parser     = Parser::new_or_panic();
+    let this_param = span_tree::ArgumentInfo {
+        name : Some("this".to_owned()),
+        tp   : Some("Text".to_owned()),
+    };
+    let parameters       = vec![this_param];
+    let ast              = parser.parse_line(&code).unwrap();
+    let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
+    let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
     let output_span_tree = span_tree::SpanTree::default();
-    let input_span_tree  = span_tree::builder::TreeBuilder::new(15)
-        .add_child(0,4,span_tree::node::Kind::Operation,PrefixCrumb::Func)
-        .set_ast_id(Uuid::new_v4())
-        .done()
-        .add_empty_child(5,span_tree::node::InsertionPointType::BeforeTarget)
-        .add_child(5,10,span_tree::node::Kind::this(),PrefixCrumb::Arg)
-        .set_ast_id(Uuid::new_v4())
-        .done()
-        .add_empty_child(15,span_tree::node::InsertionPointType::Append)
-        .set_ast_id(Uuid::new_v4())
-        .build();
+    let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
     Expression {code,input_span_tree,output_span_tree}
 }
 
@@ -238,7 +261,8 @@ pub fn expression_mock2() -> Expression {
 }
 
 pub fn expression_mock3() -> Expression {
-    let code       = "image.blur 15".to_string();
+    // let code       = "image.blur ((foo   bar) baz)".to_string();
+    let code       = "image.blur name (((foo   bar)) baz)".to_string();
     let parser     = Parser::new_or_panic();
     let this_param = span_tree::ArgumentInfo {
         name : Some("this".to_owned()),
@@ -249,14 +273,18 @@ pub fn expression_mock3() -> Expression {
         tp   : Some("Number".to_owned()),
     };
     let param1 = span_tree::ArgumentInfo {
+        name : Some("name".to_owned()),
+        tp   : Some("Text".to_owned()),
+    };
+    let param2 = span_tree::ArgumentInfo {
         name : Some("area".to_owned()),
         tp   : Some("Vector Int".to_owned()),
     };
-    let param2 = span_tree::ArgumentInfo {
+    let param3 = span_tree::ArgumentInfo {
         name : Some("matrix".to_owned()),
         tp   : Some("Vector String".to_owned()),
     };
-    let parameters       = vec![this_param, param0, param1, param2];
+    let parameters       = vec![this_param,param0,param1,param2,param3];
     let ast              = parser.parse_line(&code).unwrap();
     let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
     let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);

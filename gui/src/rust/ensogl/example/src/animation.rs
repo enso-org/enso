@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use ensogl_core::system::web;
 use ensogl_core::application::Application;
-use ensogl_core::gui::component::Animation;
+use ensogl_core::gui::component::DEPRECATED_Animation;
 use ensogl_text_msdf_sys::run_once_initialized;
 use logger::enabled::Logger;
 use wasm_bindgen::prelude::*;
@@ -38,7 +38,7 @@ fn init() {
 
     let logger  = Logger::new("AnimationTest");
     let network = enso_frp::Network::new();
-    let animation = Animation::<f32>::new(&network);
+    let animation = DEPRECATED_Animation::<f32>::new(&network);
     animation.set_target_value(-259_830.0);
 
     enso_frp::extend! {network

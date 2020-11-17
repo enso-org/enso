@@ -4,6 +4,31 @@ use crate::prelude::*;
 
 
 
+// ==================
+// === StaticPath ===
+// ==================
+
+/// Static version of `Path`. Defined as a strongly typed wrapper over `&'static str`.
+#[derive(Clone,Copy,Debug,PartialEq,Eq)]
+#[allow(missing_docs)]
+pub struct StaticPath {
+    pub str : &'static str
+}
+
+impl StaticPath {
+    /// Constructor.
+    pub const fn new(str:&'static str) -> Self {
+        Self {str}
+    }
+
+    /// Conversion to `Path` provided as method for convenience.
+    pub fn path(self) -> Path {
+        self.into()
+    }
+}
+
+
+
 // ============
 // === Path ===
 // ============
@@ -38,14 +63,29 @@ impl Path {
     pub fn empty() -> Self {
         Self { rev_segments : default() }
     }
+
+    /// Consume the path and return a new one with the segment appended to the end.
+    pub fn into_sub(mut self, segment:impl Into<String>) -> Self {
+        let segment = segment.into();
+        // TODO: this can be done more efficient by storing non-reversed segments and using
+        //       Iterator::rev to iterate segments in reverse order when needed.
+        self.rev_segments.reverse();
+        self.rev_segments.push(segment);
+        self.rev_segments.reverse();
+        self
+    }
 }
 
 impl AsRef<Path> for Path { fn as_ref(&self) -> &Path { self } }
 
-impls! {              From<&str>   for Path { |t| Self::from_rev_segments(t.rsplit('.')) } }
-impls! {              From<&&str>  for Path { |t| (*t).into() }}
-impls! {              From<&Path>  for Path { |t| t.clone() }}
-impls! { [T:ToString] From<Vec<T>> for Path { |t| Self::from_segments(t.into_iter()) }}
+impls! {              From<&str>        for Path { |t| Self::from_rev_segments(t.rsplit('.')) } }
+impls! {              From<&&str>       for Path { |t| (*t).into() }}
+impls! {              From<String>      for Path { |t| t.as_str().into() }}
+impls! {              From<&String>     for Path { |t| t.as_str().into() }}
+impls! {              From<&Path>       for Path { |t| t.clone() }}
+impls! {              From<StaticPath>  for Path { |t| t.str.into() }}
+impls! {              From<&StaticPath> for Path { |t| t.str.into() }}
+impls! { [T:ToString] From<Vec<T>>      for Path { |t| Self::from_segments(t.into_iter()) }}
 
 impl<T> From<&Vec<T>> for Path
 where for<'t> &'t T : ToString {
@@ -55,7 +95,7 @@ where for<'t> &'t T : ToString {
 }
 
 macro_rules! gen_var_path_conversions {
-    ($($($num:tt)?),*) => {$(
+    ($($($num:tt)?),* $(,)?) => {$(
         impl<T> From<&[T$(;$num)?]> for Path
         where for<'t> &'t T : ToString {
             fn from(t:&[T$(;$num)?]) -> Self {
@@ -65,4 +105,6 @@ macro_rules! gen_var_path_conversions {
     )*};
 }
 
-gen_var_path_conversions!(1,2,3,4,5,6,7,8,9,10,);
+// Generate instances of the following form (where N is the provided number):
+//     impl<T> From<&[T;N]> for Path where for<'t> &'t T: ToString { ... }
+gen_var_path_conversions!(1,2,3,4,5,6,7,8,9,10);

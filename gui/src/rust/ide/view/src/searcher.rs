@@ -11,7 +11,7 @@ use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::{Application, shortcut};
 use ensogl::display;
-use ensogl::gui::component::Animation;
+use ensogl::gui::component::DEPRECATED_Animation;
 use ensogl_gui_components::list_view;
 use ensogl_gui_components::list_view::ListView;
 
@@ -109,7 +109,7 @@ impl Model {
         Self{app,logger,display_object,list,documentation,doc_provider}
     }
 
-    fn documentation_for_entry(&self, id:Option<entry::Id>) -> String {
+    fn docs_for(&self, id:Option<entry::Id>) -> String {
         let doc_provider       = self.doc_provider.get();
         let when_none_selected = || doc_provider.get().unwrap_or_else(|| " ".to_owned());
         id.map_or_else(when_none_selected, |id| {
@@ -162,8 +162,8 @@ ensogl::define_endpoints! {
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct View {
-    model   : Model,
     pub frp : Frp,
+    model   : Model,
 }
 
 impl Deref for View {
@@ -174,9 +174,9 @@ impl Deref for View {
 impl View {
     /// Create new component.
     pub fn new(app:&Application) -> Self {
+        let frp   = Frp::new();
         let model = Model::new(app);
-        let frp   = Frp::new_network();
-        Self{model,frp}.init()
+        Self{frp,model}.init()
     }
 
     /// Initialize the FRP network.
@@ -187,7 +187,7 @@ impl View {
         let frp     = &self.frp;
         let source  = &self.frp.source;
 
-        let height = Animation::<f32>::new(&network);
+        let height = DEPRECATED_Animation::<f32>::new(&network);
 
         frp::extend! { network
             eval frp.set_suggestions ([model] ((entries,docs)) {
@@ -197,14 +197,14 @@ impl View {
             eval frp.select_suggestion((id) model.list.select_entry(id));
             source.selected_entry <+ model.list.selected_entry;
             source.size           <+ height.value.map(|h| Vector2(SEARCHER_WIDTH,*h));
-            source.is_visible     <+ model.list.size.map(|size| size.x * size.y > std::f32::EPSILON);
+            source.is_visible     <+ model.list.size.map(|size| size.x*size.y > std::f32::EPSILON);
 
             eval height.value ((h)  model.set_height(*h));
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));
             eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
 
             is_selected         <- model.list.selected_entry.map(|e| e.is_some());
-            displayed_doc       <- model.list.selected_entry.map(f!((id) model.documentation_for_entry(*id)));
+            displayed_doc       <- model.list.selected_entry.map(f!((id) model.docs_for(*id)));
             opt_picked_entry    <- model.list.selected_entry.sample(&frp.pick_suggestion);
             source.picked_entry <+ opt_picked_entry.gate(&is_selected);
             // Order of the two below is important: we want pick the entry first, and then commit
@@ -237,6 +237,7 @@ impl View {
         self.set_suggestions(provider);
     }
 }
+
 impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
 }
@@ -248,14 +249,10 @@ impl application::command::FrpNetworkProvider for View {
 }
 
 impl application::View for View {
-    fn label() -> &'static str { "Searcher" }
-
-    fn new(app: &Application) -> Self { Self::new(app) }
-    fn app(&self) -> &Application {
-        &self.model.app
-    }
-
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn label()                -> &'static str { "Searcher" }
+    fn new(app: &Application) -> Self         { Self::new(app) }
+    fn app(&self)             -> &Application { &self.model.app }
+    fn default_shortcuts()    -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[ (Press , "tab" , "pick_suggestion"),
         ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()

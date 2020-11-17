@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 enso-automata     = { version = "0.1.1"                   }
 enso-frp          = { path    = "../../frp"               }
 enso-logger       = { version = "0.1.2"                   }
-enso-prelude      = { version = "0.1.4"                   }
+enso-prelude      = { version = "0.1.8"                   }
 enso-shortcuts    = { path    = "../../shortcuts"         }
 ensogl-system-web = { path    = "../../../lib/system/web" }
 

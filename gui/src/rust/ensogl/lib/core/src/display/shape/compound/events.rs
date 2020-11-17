@@ -8,6 +8,11 @@ use crate::gui::component::ShapeView;
 use enso_frp as frp;
 
 
+
+// ===========
+// === Frp ===
+// ===========
+
 crate::define_endpoints! {
     Input {}
     Output {
@@ -16,37 +21,39 @@ crate::define_endpoints! {
     }
 }
 
+
+
+// ===================
+// === MouseEvents ===
+// ===================
+
 /// `Events` defines a common FRP api that handles mouse over/out events for  multiple
 /// sub-shapes. It avoids boilerplate of setting up FRP bindings for every single shape,
 /// instead the `Shape` frp endpoints can be used.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone,CloneRef,Default,Debug)]
+#[allow(missing_docs)]
 pub struct MouseEvents {
-    /// Frp API.
     pub frp : Frp,
 }
 
-impl MouseEvents {
-
-    fn new() -> Self {
-        let frp = Frp::new_network();
-        Self{frp}
-    }
-
-    /// Connect the given `ShapeViewEvents` to the `Events` output.
-    pub fn add_sub_shape<T:Shape>(&self, view:&ShapeView<T>) {
-        let compound_frp = &self.frp;
-        let sub_frp      = &view.events;
-
-        // TODO[mm] avoid extra in/out events when switching shapes
-        frp::extend! { network
-            compound_frp.source.mouse_over <+ sub_frp.mouse_over;
-            compound_frp.source.mouse_out  <+ sub_frp.mouse_out;
-        }
+impl Deref for MouseEvents {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
     }
 }
 
-impl Default for MouseEvents {
-    fn default() -> Self {
-        MouseEvents::new()
+impl MouseEvents {
+    /// Constructor.
+    fn new() -> Self {
+        default()
+    }
+
+    /// Connect the given `ShapeViewEvents` to the `Events` output.
+    pub fn add_sub_shape<T:Shape>(&self, sub_shape:&ShapeView<T>) {
+        frp::extend! { network
+            self.frp.source.mouse_over <+ sub_shape.events.mouse_over;
+            self.frp.source.mouse_out  <+ sub_shape.events.mouse_out;
+        }
     }
 }

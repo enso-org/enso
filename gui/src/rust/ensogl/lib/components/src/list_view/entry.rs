@@ -250,7 +250,7 @@ impl Entry {
         label.set_position_xy(Vector2(PADDING + ICON_SIZE + ICON_LABEL_GAP, LABEL_SIZE/2.0));
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles     = StyleWatch::new(&app.display.scene().style_sheet);
-        let text_color = styles.get_color(ensogl_theme::vars::widget::list_view::text::color);
+        let text_color = styles.get_color(ensogl_theme::widget::list_view::text);
         label.set_default_color(color::Rgba::from(text_color));
         label.set_default_text_size(text::Size(LABEL_SIZE));
         Entry{app,id,label,icon,display_object}
@@ -271,11 +271,10 @@ impl Entry {
         self.icon.set(model.icon.clone());
         self.label.set_content(&model.label);
 
-        use ensogl_theme::vars;
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles                = StyleWatch::new(&self.app.display.scene().style_sheet);
-        let highlight             = styles.get_color(vars::widget::list_view::text::highlight::color);
+        let highlight             = styles.get_color(ensogl_theme::widget::list_view::text::highlight);
         let highlight:color::Rgba = highlight.into();
         for highlighted in &model.highlighted {
             self.label.set_color_bytes(highlighted,highlight);

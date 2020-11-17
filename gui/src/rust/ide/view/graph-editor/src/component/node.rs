@@ -5,16 +5,17 @@
 
 #[deny(missing_docs)]
 pub mod action_bar;
-pub mod port;
+pub mod expression;
+pub mod input;
+pub mod output;
 
-pub use port::Expression;
+pub use expression::Expression;
 
 use crate::prelude::*;
 
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
-use ensogl::data::color::animation::ColorAnimation;
 use ensogl::data::color;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
@@ -25,7 +26,6 @@ use ensogl_text::Text;
 use ensogl_theme;
 
 use crate::Type;
-use crate::component::node::port::output::OutputPorts;
 use crate::component::visualization;
 
 use super::edge;
@@ -36,13 +36,14 @@ use super::edge;
 // === Constants ===
 // =================
 
-pub const ACTION_BAR_HEIGHT  : f32 = 15.0;
-pub const CORNER_RADIUS      : f32 = 14.0;
-pub const NODE_HEIGHT        : f32 = 28.0;
-pub const NODE_SHAPE_PADDING : f32 = 40.0;
-pub const NODE_SHAPE_RADIUS  : f32 = 14.0;
-pub const SHADOW_SIZE        : f32 = 10.0;
-pub const TEXT_OFF           : f32 = 10.0;
+pub const ACTION_BAR_HEIGHT : f32 = 15.0;
+pub const CORNER_RADIUS     : f32 = 14.0;
+pub const HEIGHT            : f32 = 28.0;
+pub const PADDING           : f32 = 40.0;
+pub const RADIUS            : f32 = 14.0;
+pub const SHADOW_SIZE       : f32 = 10.0;
+pub const TEXT_OFF          : f32 = 10.0;
+
 
 
 // ============
@@ -55,19 +56,16 @@ pub mod shape {
 
     ensogl::define_shape_system! {
         (style:Style, selection:f32, bg_color:Vector4 ) {
-            use ensogl_theme::vars::graph_editor::node as node_theme;
+            use ensogl_theme::graph_editor::node as node_theme;
 
-            let bg_color        = Var::<color::Rgba>::from(bg_color);
-            let selection_color = style.get_color(ensogl_theme::vars::graph_editor::node::selection::color);
-            let _selection_size = style.get_number_or(ensogl_theme::vars::graph_editor::node::selection::size,8.0);
-
+            let bg_color      = Var::<color::Rgba>::from(bg_color);
             let border_size_f = 16.0;
 
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let width  = width  - NODE_SHAPE_PADDING.px() * 2.0;
-            let height = height - NODE_SHAPE_PADDING.px() * 2.0;
-            let radius = NODE_SHAPE_RADIUS.px();
+            let width  = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+            let width  = width  - PADDING.px() * 2.0;
+            let height = height - PADDING.px() * 2.0;
+            let radius = RADIUS.px();
             let shape  = Rect((&width,&height)).corners_radius(radius);
             let shape  = shape.fill(bg_color);
 
@@ -79,8 +77,8 @@ pub mod shape {
             let shadow_height = &height + &shadow_size * 2.0;
             let shadow_radius = &shadow_height / 2.0;
             let shadow        = Rect((shadow_width,shadow_height)).corners_radius(shadow_radius);
-            let base_color    = style.get_color(node_theme::shadow::color);
-            let fading_color  = style.get_color(node_theme::shadow::fading_color);
+            let base_color    = style.get_color(node_theme::shadow);
+            let fading_color  = style.get_color(node_theme::shadow::fading);
             let exponent      = style.get_number_or(node_theme::shadow::exponent,2.0);
             let shadow_color  = color::LinearGradient::new()
                 .add(0.0,color::Rgba::from(fading_color).into_linear())
@@ -93,20 +91,26 @@ pub mod shape {
 
             // === Selection ===
 
-            let selection_offset = 5.px();
-            let selection_size   = 9.px();
-            let select_width     = &width  - 2.px() + &selection_offset * 2.0 * &selection;
-            let select_height    = &height - 2.px() + &selection_offset * 2.0 * &selection;
-            let select_radius    = &select_height / 2.0;
-            let select           = Rect((&select_width,&select_height)).corners_radius(&select_radius);
+            let sel_color = style.get_color(ensogl_theme::graph_editor::node::selection);
+            let sel_size  = style.get_number_or(ensogl_theme::graph_editor::node::selection::size,9.0);
 
-            let select2_width  = &width  - 2.px() + &selection_size * 2.0 * &selection;
-            let select2_height = &height - 2.px() + &selection_size * 2.0 * &selection;
-            let select2_radius = &select2_height / 2.0;
-            let select2        = Rect((&select2_width,&select2_height)).corners_radius(&select2_radius);
+            let sel_offset  = 5.px();
+            let sel_size    = sel_size.px();
+            let sel_width   = &width  - 2.px() + &sel_offset * 2.0 * &selection;
+            let sel_height  = &height - 2.px() + &sel_offset * 2.0 * &selection;
+            let sel_radius  = &sel_height / 2.0;
+            let select      = Rect((&sel_width,&sel_height)).corners_radius(&sel_radius);
+
+            let sel2_width  = &width  - 2.px() + &sel_size * 2.0 * &selection;
+            let sel2_height = &height - 2.px() + &sel_size * 2.0 * &selection;
+            let sel2_radius = &sel2_height / 2.0;
+            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(&sel2_radius);
 
             let select = select2 - select;
-            let select = select.fill(color::Rgba::from(selection_color));
+            let select = select.fill(color::Rgba::from(sel_color));
+
+
+            // === Final Shape ===
 
             let out = select + shadow + shape;
             out.into()
@@ -121,8 +125,8 @@ pub mod drag_area {
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
-            let width  = width  - NODE_SHAPE_PADDING.px() * 2.0;
-            let height = height - NODE_SHAPE_PADDING.px() * 2.0;
+            let width  = width  - PADDING.px() * 2.0;
+            let height = height - PADDING.px() * 2.0;
             let radius = 14.px();
             let shape  = Rect((&width,&height)).corners_radius(radius);
             let shape  = shape.fill(color::Rgba::new(0.0,0.0,0.0,0.000_001));
@@ -143,10 +147,14 @@ ensogl::define_endpoints! {
     Input {
         select              (),
         deselect            (),
-        set_expression      (Expression),
-        set_expression_type ((ast::Id,Option<Type>)),
         set_visualization   (Option<visualization::Definition>),
         set_dimmed          (bool),
+        set_input_connected (span_tree::Crumbs,bool),
+        set_expression      (Expression),
+        /// Set the expression USAGE type. This is not the definition type, which can be set with
+        /// `set_expression` instead. In case the usage type is set to None, ports still may be
+        /// colored if the definition type was present.
+        set_expression_usage_type ((ast::Id,Option<Type>)),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -155,6 +163,7 @@ ensogl::define_endpoints! {
         expression (Text),
         skip       (bool),
         freeze     (bool),
+        hover      (bool),
     }
 }
 
@@ -164,8 +173,43 @@ ensogl::define_endpoints! {
 // === Node ===
 // ============
 
-
-/// Internal data of `Node`
+/// The visual node representation.
+///
+/// ## FRP Event Architecture.
+/// Nodes FRP architecture is designed for efficiency. Event with millions nodes on the stage, only
+/// small amount of events will be passed around on user action. This is not always simple, and it
+/// required a careful, well thought architecture.
+///
+/// Take for example the `edit_mode` event. It is emitted when user presses the `cmd` button. The
+/// following requirements should be hold:
+///
+/// 1. If the mouse is not over a node, nothing happens.
+/// 2. If the mouse traverses over the node with `cmd` being hold, the mouse cursor should change to
+///    text cursor to indicate that editing of the expression is possible.
+/// 3. If the mouse was over the node when pressing `cmd`, the mouse cursor should change to text
+///    cursor as well.
+///
+/// The points 1 and 2 are pretty easy to be done. We can discover mouse hover from inside of the
+/// node and react in the right way. The point 3 is tricky. There are several possible solutions
+/// out there:
+///
+/// A. After pressing / releasing `cmd` we should send an event to every node on the stage to
+///    indicate that the "edit mode" is on. This is a simple solution, but also very inefficient
+///    with a lot of nodes on the stage.
+///
+/// B. We could pass a special FRP output to node constructor, like
+///    `is_edit_mode_on:frp::Sampler<bool>`, which could be sampled by the node whenever the mouse
+///    hovers it. This will solve the requirement 2, but will not work with requirement 3.
+///
+/// C. We could discover inside of node when mouse hovers it (either the drag area, or ports, or
+///    anything else that we consider part of the node), and emit it as an output event. Then we
+///    can capture the event in the graph editor and tag it with the node id. Having the information
+///    in place, we can send events to the currently hovered node whenever we need, directly from
+///    the graph editor. This solves all issues in a very efficient and elegant way, but is somehow
+///    complex logically (the events are emitted from node to graph, then processed there and
+///    emitted back to the right node).
+///
+/// Currently, the solution "C" (most optimal) is implemented here.
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Node {
@@ -178,7 +222,6 @@ impl AsRef<Node> for Node {
         self
     }
 }
-
 
 impl Deref for Node {
     type Target = Frp;
@@ -196,12 +239,10 @@ pub struct NodeModel {
     pub logger         : Logger,
     pub main_area      : component::ShapeView<shape::Shape>,
     pub drag_area      : component::ShapeView<drag_area::Shape>,
-    pub ports          : port::Manager,
+    pub input          : input::Area,
+    pub output         : output::Area,
     pub visualization  : visualization::Container,
     pub action_bar     : action_bar::ActionBar,
-    pub output_ports   : OutputPorts,
-
-    main_color         : ColorAnimation,
 }
 
 
@@ -210,27 +251,26 @@ impl NodeModel {
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         let scene  = app.display.scene();
         let logger = Logger::new("node");
-        edge::sort_hack_1(scene);
+        edge::depth_sort_hack_1(scene);
 
-        OutputPorts::order_hack(&scene);
+        output::area::depth_sort_hack(&scene);
         let main_logger = Logger::sub(&logger,"main_area");
         let drag_logger = Logger::sub(&logger,"drag_area");
         let main_area   = component::ShapeView::<shape::Shape>::new(&main_logger,scene);
-        let main_color  = ColorAnimation::new(app);
         let drag_area   = component::ShapeView::<drag_area::Shape>::new(&drag_logger,scene);
-        edge::sort_hack_2(scene);
+        edge::depth_sort_hack_2(scene);
 
-        port::sort_hack(scene); // FIXME hack for sorting
+        input::area::depth_sort_hack(scene); // FIXME hack for sorting
 
         let display_object  = display::object::Instance::new(&logger);
         display_object.add_child(&drag_area);
         display_object.add_child(&main_area);
 
-        // FIXME: maybe we can expose shape system from shape?
+        // Disable shadows to allow interaction with the output port.
         let shape_system = scene.shapes.shape_system(PhantomData::<shape::Shape>);
         shape_system.shape_system.set_pointer_events(false);
 
-        let ports = port::Manager::new(&logger,app);
+        let input = input::Area::new(&logger,app);
         let scene = scene.clone_ref();
         let visualization = visualization::Container::new(&logger,&app,registry);
         visualization.mod_position(|t| {
@@ -240,23 +280,21 @@ impl NodeModel {
 
         display_object.add_child(&visualization);
 
-        ports.mod_position(|p| {
+        input.mod_position(|p| {
             p.x = TEXT_OFF;
-            p.y = NODE_HEIGHT/2.0;
+            p.y = HEIGHT/2.0;
         });
-        display_object.add_child(&ports);
+        display_object.add_child(&input);
 
-        let action_bar = action_bar::ActionBar::new(&app);
+        let action_bar = action_bar::ActionBar::new(&logger,&app);
         display_object.add_child(&action_bar);
-        action_bar.frp.show_icons();
 
-        // TODO: Determine number of output ports based on node semantics.
-        let output_ports = OutputPorts::new(&scene);
-        display_object.add_child(&output_ports);
+        let output = output::Area::new(&scene);
+        display_object.add_child(&output);
 
         let app = app.clone_ref();
-        Self {app,display_object,logger,main_area,drag_area,output_ports,ports
-             ,visualization,action_bar,main_color} . init()
+        Self {app,display_object,logger,main_area,drag_area,output,input
+             ,visualization,action_bar} . init()
     }
 
     fn init(self) -> Self {
@@ -265,23 +303,23 @@ impl NodeModel {
     }
 
     pub fn width(&self) -> f32 {
-        self.ports.width() + TEXT_OFF * 2.0
+        self.input.width.value() + TEXT_OFF * 2.0
     }
 
     pub fn height(&self) -> f32 {
-        NODE_HEIGHT
+        HEIGHT
     }
 
     fn set_expression(&self, expr:impl Into<Expression>) {
         let expr = expr.into();
-        self.output_ports.set_pattern_span_tree(&expr.output_span_tree);
-        self.ports.set_expression(expr);
+        self.output.set_pattern_span_tree(&expr.output_span_tree);
+        self.input.set_expression(expr);
     }
 
-    fn set_width(&self, width:f32) {
+    fn set_width(&self, width:f32) -> Vector2 {
         let height = self.height();
         let width  = width + TEXT_OFF * 2.0;
-        let size   = Vector2::new(width+NODE_SHAPE_PADDING*2.0, height+NODE_SHAPE_PADDING*2.0);
+        let size   = Vector2::new(width+PADDING*2.0, height+PADDING*2.0);
         self.main_area.shape.sprite.size.set(size);
         self.drag_area.shape.sprite.size.set(size);
         self.main_area.mod_position(|t| t.x = width/2.0);
@@ -289,15 +327,16 @@ impl NodeModel {
         self.drag_area.mod_position(|t| t.x = width/2.0);
         self.drag_area.mod_position(|t| t.y = height/2.0);
 
-        self.output_ports.frp.set_size.emit(size);
-        self.output_ports.mod_position(|t| t.x = width/2.0);
-        self.output_ports.mod_position(|t| t.y = height/2.0);
+        self.output.mod_position(|t| t.x = width/2.0);
+        self.output.mod_position(|t| t.y = height/2.0);
 
+        let action_bar_width = 200.0;
         self.action_bar.mod_position(|t| {
-            t.x = width/2.0 + CORNER_RADIUS;
-            t.y = height + ACTION_BAR_HEIGHT;
+            t.x = width + CORNER_RADIUS + action_bar_width / 2.0;
+            t.y = ACTION_BAR_HEIGHT;
         });
-        self.action_bar.frp.set_size(Vector2::new(width,ACTION_BAR_HEIGHT));
+        self.action_bar.frp.set_size(Vector2::new(action_bar_width,ACTION_BAR_HEIGHT));
+        size
     }
 
     pub fn visualization(&self) -> &visualization::Container {
@@ -307,81 +346,87 @@ impl NodeModel {
 
 impl Node {
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
-        let frp       = Frp::new_network();
+        let frp       = Frp::new();
         let network   = &frp.network;
-        let inputs    = &frp.input;
         let out       = &frp.output;
         let model     = Rc::new(NodeModel::new(app,registry));
         let selection = Animation::<f32>::new(network);
 
-        let color_animation = ColorAnimation::new(&app);
-        let style           = StyleWatch::new(&app.display.scene().style_sheet);
+        let bg_color_anim = color::Animation::new(network);
+        let style         = StyleWatch::new(&app.display.scene().style_sheet);
+        let action_bar    = &model.action_bar.frp;
 
-        let actions         = &model.action_bar.frp;
         frp::extend! { network
-            eval  selection.value ((v) model.main_area.shape.selection.set(*v));
-            eval_ inputs.select   (selection.set_target_value(1.0));
-            eval_ inputs.deselect (selection.set_target_value(0.0));
 
-            eval inputs.set_expression ((expr) model.set_expression(expr));
-            // eval inputs.set_expression_type (((ast_id,maybe_type)) {
-            //     model.ports.set_expression_type(*ast_id,maybe_type.clone());
-            //     model.output_ports.set_pattern_type(*ast_id,maybe_type.clone())
-            // });
+            // === Hover ===
+            // The hover discovery of a node is an interesting process. First, we discover whether
+            // ths user hovers the drag area. The input port manager merges this information with
+            // port hover events and outputs the final hover event for any part inside of the node.
 
-            eval inputs.set_visualization ((content)
-                model.visualization.frp.set_visualization.emit(content)
-            );
+            let drag_area          = &model.drag_area.events;
+            drag_area_hover       <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
+            model.input.set_hover <+ drag_area_hover;
+            out.source.hover      <+ model.input.body_hover;
 
-            eval model.ports.frp.width ((w) model.set_width(*w));
+
+            // === Background Press ===
 
             out.source.background_press <+ model.drag_area.events.mouse_down;
-
-            eval_ model.drag_area.events.mouse_over (model.ports.hover());
-            eval_ model.drag_area.events.mouse_out  (model.ports.unhover());
-
-            out.source.expression <+ model.ports.frp.expression.map(|t|t.clone_ref());
-
-            eval actions.action_visbility ((visible){
-                model.visualization.frp.set_visibility.emit(visible);
-            });
-
-            out.source.skip   <+ actions.action_skip;
-            out.source.freeze <+ actions.action_freeze;
+            out.source.background_press <+ model.input.background_press;
 
 
-            // === Color Handling ===
+            // === Selection ===
 
-            background_color <- inputs.set_dimmed.map(f!([model,style](should_dim) {
-                model.ports.frp.set_dimmed.emit(*should_dim);
-                let background_color_path = ensogl_theme::vars::graph_editor::node::background::color;
-                if *should_dim {
-                   style.get_color_dim(background_color_path)
-                 } else {
-                   style.get_color(background_color_path)
-                 }
-            }));
+            deselect_target  <- frp.deselect.constant(0.0);
+            select_target    <- frp.select.constant(1.0);
+            selection.target <+ any(&deselect_target,&select_target);
+            eval selection.value ((t) model.main_area.shape.selection.set(*t));
 
-            eval background_color ((color)  color_animation.set_target(color) );
 
-            eval color_animation.value ([model](color) {
-                let color:color::Rgba = color.into();
-                model.main_area.shape.bg_color.set(color.into())
-            });
+            // === Expression ===
+
+            model.input.set_connected             <+ frp.set_input_connected;
+            model.input.set_expression_usage_type <+ frp.set_expression_usage_type;
+            eval frp.set_expression ((expr) model.set_expression(expr));
+            out.source.expression <+ model.input.frp.expression.map(|t|t.clone_ref());
+
+
+            // === Visualization ===
+
+            eval frp.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
+
+
+            // === Size ===
+
+            new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
+            eval new_size ((t) model.output.frp.set_size.emit(t));
 
 
             // === Action Bar ===
 
-            eval_ model.main_area.events.mouse_over  ( actions.show_icons() );
-            eval_ model.main_area.events.mouse_out   ( actions.hide_icons() );
-            eval_ model.drag_area.events.mouse_over  ( actions.show_icons() );
-            eval_ model.drag_area.events.mouse_out   ( actions.hide_icons() );
+            eval action_bar.action_visbility ((t) model.visualization.frp.set_visibility.emit(t));
+            out.source.skip   <+ action_bar.action_skip;
+            out.source.freeze <+ action_bar.action_freeze;
+            eval out.hover ((t) action_bar.set_visibility(t) );
 
-            is_hovered <- model.ports.frp.hover.map(|item| item.is_some() );
-            eval is_hovered ((hovered) actions.icon_visibility(hovered) );
+
+            // === Color Handling ===
+
+            bg_color <- frp.set_dimmed.map(f!([model,style](should_dim) {
+                model.input.frp.set_dimmed.emit(*should_dim);
+                let bg_color_path = ensogl_theme::graph_editor::node::background;
+                if *should_dim {
+                   style.get_color_dim(bg_color_path)
+                 } else {
+                   style.get_color(bg_color_path)
+                 }
+            }));
+            bg_color_anim.target <+ bg_color;
+            eval bg_color_anim.value ((c)
+                model.main_area.shape.bg_color.set(color::Rgba::from(c).into())
+            );
         }
 
-        model.action_bar.frp.hide_icons.emit(());
         frp.set_dimmed.emit(false);
 
         Self {frp,model}

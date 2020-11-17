@@ -17,7 +17,7 @@ use ensogl::display::shape::Rect;
 use ensogl::display::shape::Var;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
 use ensogl::display;
-use ensogl::gui::component::Animation;
+use ensogl::gui::component::DEPRECATED_Animation;
 use ensogl::gui::component::Tween;
 use ensogl::gui::component;
 use ensogl_theme as theme;
@@ -78,8 +78,8 @@ struct BaseShapeData {
 impl BaseShapeData {
     fn new
     (width:&Var<Pixels>, height:&Var<Pixels>, grow:&Var<f32>) -> Self {
-        let width  = width  - node::NODE_SHAPE_PADDING.px() * 2.0;
-        let height = height - node::NODE_SHAPE_PADDING.px() * 2.0;
+        let width  = width  - node::PADDING.px() * 2.0;
+        let height = height - node::PADDING.px() * 2.0;
 
         let hover_area_width  = &width  + &SHAPE_HOVER_AREA_SIZE.px() * 2.0;
         let hover_area_height = &height / 2.0 + &SHAPE_HOVER_AREA_SIZE.px();
@@ -87,7 +87,7 @@ impl BaseShapeData {
         let hover_area        = hover_area.translate_y(-hover_area_height/2.0);
 
         let shrink           = 1.px() - 1.px() * grow;
-        let radius           = node::NODE_SHAPE_RADIUS.px();
+        let radius           = node::RADIUS.px();
         let port_area_size   = SHAPE_MAX_WIDTH.px() * grow;
         let port_area_width  = &width  + (&port_area_size - &shrink) * 2.0;
         let port_area_height = &height + (&port_area_size - &shrink) * 2.0;
@@ -447,25 +447,25 @@ fn init_port_frp<Shape: display::shape::system::Shape + PortShape + CloneRef + '
         hide,activate_and_highlight_selected} = frp;
 
     let shape        = &view.shape;
-    let port_size    = Animation::<f32>::new(&network);
-    let port_opacity = Animation::<f32>::new(&network);
+    let port_size    = DEPRECATED_Animation::<f32>::new(&network);
+    let port_opacity = DEPRECATED_Animation::<f32>::new(&network);
 
     frp::extend! { network
 
-        // === Mouse Event Handling == ///
+        // === Mouse Event Handling ===
 
         eval_ view.events.mouse_over(mouse_over.emit(port_id));
         eval_ view.events.mouse_out(mouse_out.emit(port_id));
         eval_ view.events.mouse_down(mouse_down.emit(port_id));
 
 
-        // === Animation Handling == ///
+        // === Animation Handling ===
 
         eval port_size.value    ((size) shape.set_grow(*size));
         eval port_opacity.value ((size) shape.set_opacity(*size));
 
 
-        // === Visibility and Highlight Handling == ///
+        // === Visibility and Highlight Handling ===
 
          eval_ hide ([port_size,port_opacity]{
              port_size.set_target_value(0.0);
@@ -536,7 +536,7 @@ impl Frp {
 // === OutputPortsData ===
 // =======================
 
-/// Internal data of the `OutputPorts`.
+/// Internal data of the `Area`.
 #[derive(Debug)]
 pub struct OutputPortsData {
     display_object : display::object::Instance,
@@ -550,7 +550,7 @@ pub struct OutputPortsData {
 impl OutputPortsData {
 
     fn new(scene:&Scene, number_of_ports:u32) -> Self {
-        let logger         = Logger::new("OutputPorts");
+        let logger         = Logger::new("Area");
         let display_object = display::object::Instance::new(&logger);
         let size           = Cell::new(Vector2::zero());
         let gap_width      = Cell::new(SEGMENT_GAP_WIDTH);
@@ -590,24 +590,24 @@ impl OutputPortsData {
 
 
 
-// ===================
-// === OutputPorts ===
-// ===================
+// ============
+// === Area ===
+// ============
 
 type SharedIdCrumbMap = Rc<RefCell<HashMap<PortId,span_tree::Crumbs>>>;
 
 /// Implements the segmented output port area. Provides shapes that can be attached to a `Node` to
 /// add an interactive area with output ports.
 ///
-/// The `OutputPorts` facilitate the falling behaviour:
+/// The `Area` facilitate the falling behaviour:
 ///  * when one of the output ports is hovered, after a set time, all ports are show and the hovered
 ///    port is highlighted.
 ///  * when a different port is hovered, it is highlighted immediately.
-///  * when none of the ports is hovered all of the `OutputPorts` disappear. Note: there is a very
+///  * when none of the ports is hovered all of the `Area` disappear. Note: there is a very
 ///    small delay for disappearing to allow for smooth switching between ports.
 ///
 #[derive(Debug,Clone,CloneRef)]
-pub struct OutputPorts {
+pub struct Area {
     /// The FRP api of the `OutPutPorts`.
     pub frp               : Frp,
         network           : frp::Network,
@@ -621,7 +621,15 @@ pub struct OutputPorts {
         delay_hide        : Tween
 }
 
-impl OutputPorts {
+// TODO: Implement proper sorting and remove.
+/// Hack function used to register the elements for the sorting purposes. To be removed.
+pub(crate) fn depth_sort_hack(scene:&Scene) {
+    let logger = Logger::new("output shape order hack");
+    component::ShapeView::<multi_port_area::Shape>::new(&logger,scene);
+    component::ShapeView::<single_port_area::Shape>::new(&logger,scene);
+}
+
+impl Area {
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
         let pattern_span_tree = SpanTree::<()>::default();
@@ -646,16 +654,8 @@ impl OutputPorts {
         delay_hide.set_duration(HIDE_DELAY_DURATION);
 
 
-        OutputPorts{scene,data,network,frp,pattern_span_tree,port_network,id_map,
+        Area{scene,data,network,frp,pattern_span_tree,port_network,id_map,
                      delay_show,delay_hide}
-    }
-
-    // TODO: Implement proper sorting and remove.
-    /// Hack function used to register the elements for the sorting purposes. To be removed.
-    pub(crate) fn order_hack(scene:&Scene) {
-        let logger = Logger::new("output shape order hack");
-        component::ShapeView::<multi_port_area::Shape>::new(&logger,scene);
-        component::ShapeView::<single_port_area::Shape>::new(&logger,scene);
     }
 
     /// Set the pattern for which output ports should be presented. Triggers a rebinding of the
@@ -755,7 +755,7 @@ impl OutputPorts {
     fn set_port_colors_based_on_available_types(&self) {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles             = StyleWatch::new(&self.scene.style_sheet);
-        let missing_type_color = styles.get_color(theme::vars::graph_editor::edge::_type::missing::color);
+        let missing_type_color = styles.get_color(theme::code::types::missing);
 
         self.id_map.borrow().iter().for_each(|(id, crumb)|{
             let color = self.get_port_color(crumb).unwrap_or(missing_type_color);
@@ -779,7 +779,7 @@ impl OutputPorts {
     }
 }
 
-impl display::Object for OutputPorts {
+impl display::Object for Area {
     fn display_object(&self) -> &display::object::Instance {
         &self.data.display_object
     }

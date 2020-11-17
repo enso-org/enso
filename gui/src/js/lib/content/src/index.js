@@ -74,18 +74,18 @@ async function download_content(cfg) {
 // ====================
 
 /// The name of the main scene in the WASM binary.
-let main_scene_name = 'ide'
+let main_entry_point = 'ide'
 
 /// Prefix name of each scene defined in the WASM binary.
-let wasm_fn_pfx = "entry_point_"
+let wasm_entry_point_pfx = "entry_point_"
 
 
 /// Displays a debug screen which allows the user to run one of predefined debug examples.
 function show_debug_screen(wasm,msg) {
     let names = []
     for (let fn of Object.getOwnPropertyNames(wasm)) {
-        if (fn.startsWith(wasm_fn_pfx)) {
-            let name = fn.replace(wasm_fn_pfx,"")
+        if (fn.startsWith(wasm_entry_point_pfx)) {
+            let name = fn.replace(wasm_entry_point_pfx,"")
             names.push(name)
         }
     }
@@ -93,7 +93,7 @@ function show_debug_screen(wasm,msg) {
     if(msg==="" || msg===null || msg===undefined) { msg = "" }
     let debug_screen_div = html_utils.new_top_level_div()
     let newDiv     = document.createElement("div")
-    let newContent = document.createTextNode(msg + "Choose an example:")
+    let newContent = document.createTextNode(msg + "Available entry points:")
     let currentDiv = document.getElementById("app")
     let ul         = document.createElement('ul')
     debug_screen_div.style.position = 'absolute'
@@ -112,7 +112,7 @@ function show_debug_screen(wasm,msg) {
         a.href    = "javascript:{}"
         a.onclick = () => {
             html_utils.remove_node(debug_screen_div)
-            let fn_name = wasm_fn_pfx + name
+            let fn_name = wasm_entry_point_pfx + name
             let fn = wasm[fn_name]
             fn()
         }
@@ -158,31 +158,37 @@ function disableContextMenu() {
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function main() {
     disableContextMenu()
-    let target = window.location.pathname.split('/')
-    target.splice(0,1)
+    let location = window.location.pathname.split('/')
+    location.splice(0,1)
     let cfg = getUrlParams()
     prepare_root(cfg)
 
-    let debug_mode    = target[0] == "debug"
-    let debug_target  = target[1]
-    let no_loader     = debug_mode && debug_target
+    let debug_mode   = location[0] == "debug"
+    let debug_target = location[1]
+    let no_loader    = debug_mode && debug_target
 
     await windowShowAnimation()
     let {wasm,loader} = await download_content({no_loader})
 
+    let target = null;
     if (debug_mode) {
         loader.destroy()
         if (debug_target) {
-            let fn_name = wasm_fn_pfx + debug_target
-            let fn      = wasm[fn_name]
-            if (fn) { fn() } else {
-                show_debug_screen(wasm,"WASM function '" + fn_name + "' not found! ")
-            }
-        } else {
-            show_debug_screen(wasm)
+            target = debug_target
         }
     } else {
-        wasm[wasm_fn_pfx + main_scene_name]()
+        target = main_entry_point
+    }
+
+    if (target) {
+        let fn_name = wasm_entry_point_pfx + target
+        let fn      = wasm[fn_name]
+        if (fn) { fn() } else {
+            loader.destroy()
+            show_debug_screen(wasm,"Unknown entry point '" + target + "'. ")
+        }
+    } else {
+        show_debug_screen(wasm)
     }
 }
 

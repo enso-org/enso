@@ -53,6 +53,7 @@ impl Kind {
     pub fn is_operation       (&self) -> bool { matches!(self,Self::Operation{..}) }
     pub fn is_this            (&self) -> bool { matches!(self,Self::This{..}) }
     pub fn is_argument        (&self) -> bool { matches!(self,Self::Argument{..}) }
+    pub fn is_token           (&self) -> bool { matches!(self,Self::Token{..}) }
     pub fn is_insertion_point (&self) -> bool { matches!(self,Self::InsertionPoint{..}) }
 
     /// Match the value with `Kind::InsertionPoint{..}` but not
@@ -88,6 +89,7 @@ impl Kind {
         match self {
             Self::Argument       (t) => t.tp.as_ref(),
             Self::InsertionPoint (t) => t.tp.as_ref(),
+            Self::This           (t) => t.tp.as_ref(),
             _                        => None,
         }
     }
@@ -131,6 +133,19 @@ impl Kind {
                 true
             },
             _ => false
+        }
+    }
+
+    /// Short string representation. Skips the inner fields and returns only the variant name.
+    pub fn variant_name(&self) -> &str {
+        match self {
+            Self::Root              => "Root",
+            Self::Chained           => "Chained",
+            Self::Operation         => "Operation",
+            Self::This(_)           => "This",
+            Self::Argument(_)       => "Argument",
+            Self::Token             => "Token",
+            Self::InsertionPoint(_) => "InsertionPoint"
         }
     }
 }

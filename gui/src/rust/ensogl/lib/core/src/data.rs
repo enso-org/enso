@@ -5,7 +5,6 @@ pub mod container;
 pub mod dirty;
 pub mod function;
 pub mod seq;
-pub mod theme;
 
 pub use enso_data::hash_map_tree;
 

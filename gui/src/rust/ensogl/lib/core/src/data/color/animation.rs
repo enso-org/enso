@@ -8,11 +8,19 @@ use super::*;
 
 use enso_frp as frp;
 
-use crate::application::Application;
 use crate::display::shape::*;
-use crate::gui::component::*;
-use crate::gui::component::Animation;
+use crate::gui::component::HasAnimationSpaceRepr;
+use crate::gui::component::AnimationLinearSpace;
+use crate::gui::component;
 
+
+
+// =================
+// === Constants ===
+// =================
+
+/// Used for linear space multiplication, so animation engine will provide smoother animations.
+const NORM_COLOR_SCALING_FACTOR : f32 = 100.0;
 
 
 
@@ -20,17 +28,19 @@ use crate::gui::component::Animation;
 // === Animatable Lcha ===
 // =======================
 
-impl HasAnimationSpaceRepr for Lcha { type AnimationSpaceRepr = Vector4<f32>; }
+impl HasAnimationSpaceRepr for Lcha { type AnimationSpaceRepr = Vector4; }
 
-impl From<Lcha> for AnimationLinearSpace<Vector4<f32>> {
-    fn from(value:Lcha) -> AnimationLinearSpace<Vector4<f32>> {
-        let value = Laba::from(value).into();
+impl From<Lcha> for AnimationLinearSpace<Vector4> {
+    fn from(value:Lcha) -> AnimationLinearSpace<Vector4> {
+        let value : Vector4 = Laba::from(value).into();
+        let value = value.map(|t|t*NORM_COLOR_SCALING_FACTOR);
         AnimationLinearSpace { value }
     }
 }
-impl Into<Lcha> for AnimationLinearSpace<Vector4<f32>> {
+impl Into<Lcha> for AnimationLinearSpace<Vector4> {
     fn into(self) -> Lcha {
-        Laba::from(self.value).into()
+        let value = self.value.map(|t|t/NORM_COLOR_SCALING_FACTOR);
+        Laba::from(value).into()
     }
 }
 
@@ -40,18 +50,20 @@ impl Into<Lcha> for AnimationLinearSpace<Vector4<f32>> {
 // === Animatable Lch ===
 // ======================
 
-impl HasAnimationSpaceRepr for Lch { type AnimationSpaceRepr = Vector3<f32>; }
+impl HasAnimationSpaceRepr for Lch { type AnimationSpaceRepr = Vector3; }
 
-impl From<Lch> for AnimationLinearSpace<Vector3<f32>> {
-    fn from(value:Lch) -> AnimationLinearSpace<Vector3<f32>> {
-        let value = Lab::from(value).into();
+impl From<Lch> for AnimationLinearSpace<Vector3> {
+    fn from(value:Lch) -> AnimationLinearSpace<Vector3> {
+        let value : Vector3 = Lab::from(value).into();
+        let value = value.map(|t|t*NORM_COLOR_SCALING_FACTOR);
         AnimationLinearSpace { value }
     }
 }
 
-impl Into<Lch> for AnimationLinearSpace<Vector3<f32>> {
+impl Into<Lch> for AnimationLinearSpace<Vector3> {
     fn into(self) -> Lch {
-        Lab::from(self.value).into()
+        let value = self.value.map(|t|t/NORM_COLOR_SCALING_FACTOR);
+        Lab::from(value).into()
     }
 }
 
@@ -61,18 +73,20 @@ impl Into<Lch> for AnimationLinearSpace<Vector3<f32>> {
 // === Animatable Rgba ===
 // =======================
 
-impl HasAnimationSpaceRepr for Rgba { type AnimationSpaceRepr = Vector4<f32>; }
+impl HasAnimationSpaceRepr for Rgba { type AnimationSpaceRepr = Vector4; }
 
-impl From<Rgba> for AnimationLinearSpace<Vector4<f32>> {
-    fn from(value:Rgba) -> AnimationLinearSpace<Vector4<f32>> {
-        let value = Laba::from(value).into();
+impl From<Rgba> for AnimationLinearSpace<Vector4> {
+    fn from(value:Rgba) -> AnimationLinearSpace<Vector4> {
+        let value : Vector4 = Laba::from(value).into();
+        let value = value.map(|t|t*NORM_COLOR_SCALING_FACTOR);
         AnimationLinearSpace { value }
     }
 }
 
-impl Into<Rgba> for AnimationLinearSpace<Vector4<f32>> {
+impl Into<Rgba> for AnimationLinearSpace<Vector4> {
     fn into(self) -> Rgba {
-        Laba::from(self.value).into()
+        let value = self.value.map(|t|t/NORM_COLOR_SCALING_FACTOR);
+        Laba::from(value).into()
     }
 }
 
@@ -82,18 +96,20 @@ impl Into<Rgba> for AnimationLinearSpace<Vector4<f32>> {
 // === Animatable Rgb ===
 // ======================
 
-impl HasAnimationSpaceRepr for Rgb { type AnimationSpaceRepr = Vector3<f32>; }
+impl HasAnimationSpaceRepr for Rgb { type AnimationSpaceRepr = Vector3; }
 
-impl From<Rgb> for AnimationLinearSpace<Vector3<f32>> {
-    fn from(value:Rgb) -> AnimationLinearSpace<Vector3<f32>> {
-        let value = Lab::from(value).into();
+impl From<Rgb> for AnimationLinearSpace<Vector3> {
+    fn from(value:Rgb) -> AnimationLinearSpace<Vector3> {
+        let value : Vector3 = Lab::from(value).into();
+        let value = value.map(|t|t*NORM_COLOR_SCALING_FACTOR);
         AnimationLinearSpace { value }
     }
 }
 
-impl Into<Rgb> for AnimationLinearSpace<Vector3<f32>> {
+impl Into<Rgb> for AnimationLinearSpace<Vector3> {
     fn into(self) -> Rgb {
-        Lab::from(self.value).into()
+        let value = self.value.map(|t|t/NORM_COLOR_SCALING_FACTOR);
+        Lab::from(value).into()
     }
 }
 
@@ -103,16 +119,16 @@ impl Into<Rgb> for AnimationLinearSpace<Vector3<f32>> {
 // === Animatable Laba ===
 // =======================
 
-impl HasAnimationSpaceRepr for Laba { type AnimationSpaceRepr = Vector4<f32>; }
+impl HasAnimationSpaceRepr for Laba { type AnimationSpaceRepr = Vector4; }
 
-impl From<Laba> for AnimationLinearSpace<Vector4<f32>> {
-    fn from(value:Laba) -> AnimationLinearSpace<Vector4<f32>> {
+impl From<Laba> for AnimationLinearSpace<Vector4> {
+    fn from(value:Laba) -> AnimationLinearSpace<Vector4> {
         let value = value.into();
         AnimationLinearSpace { value }
     }
 }
 
-impl Into<Laba> for AnimationLinearSpace<Vector4<f32>> {
+impl Into<Laba> for AnimationLinearSpace<Vector4> {
     fn into(self) -> Laba {
         self.value.into()
     }
@@ -124,31 +140,18 @@ impl Into<Laba> for AnimationLinearSpace<Vector4<f32>> {
 // === Animatable Lab ===
 // ======================
 
-impl HasAnimationSpaceRepr for Lab { type AnimationSpaceRepr = Vector3<f32>; }
+impl HasAnimationSpaceRepr for Lab { type AnimationSpaceRepr = Vector3; }
 
-impl From<Lab> for AnimationLinearSpace<Vector3<f32>> {
-    fn from(value:Lab) -> AnimationLinearSpace<Vector3<f32>> {
+impl From<Lab> for AnimationLinearSpace<Vector3> {
+    fn from(value:Lab) -> AnimationLinearSpace<Vector3> {
         let value = value.into();
         AnimationLinearSpace { value }
     }
 }
 
-impl Into<Lab> for AnimationLinearSpace<Vector3<f32>> {
+impl Into<Lab> for AnimationLinearSpace<Vector3> {
     fn into(self) -> Lab {
         self.value.into()
-    }
-}
-
-
-
-// ===========
-// === Frp ===
-// ===========
-
-crate::define_endpoints! {
-    Input { }
-    Output {
-        value  (Lcha),
     }
 }
 
@@ -158,46 +161,116 @@ crate::define_endpoints! {
 // === Color Animation ===
 // =======================
 
-/// The `ColorAnimation` provides color better animations for colors than the raw `Animation<_>`,
-///as it allows controlling the alpha channel separately which is important for nice fade outs.
+crate::define_endpoints! {
+    Input {
+        target       (Lcha),
+        target_alpha (f32),
+        target_color (Lch),
+    }
+    Output {
+        value (Lcha),
+    }
+}
+
+/// The `Animation` provides color better animations for colors than the raw
+/// `component::DEPRECATED_Animation<_>`, as it allows controlling the alpha channel separately which is
+/// important for nice fade outs.
 #[derive(Clone,CloneRef,Debug)]
-pub struct ColorAnimation {
+#[allow(missing_docs)]
+pub struct Animation {
+    frp        : Frp,
+    color_anim : component::Animation<Lch>,
+    alpha_anim : component::Animation<f32>,
+}
+
+impl Deref for Animation {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
+}
+
+impl Animation {
+    /// Constructor.
+    pub fn new(network:&frp::Network) -> Self {
+        let frp        = Frp::extend(network);
+        let color_anim = component::Animation::new_non_init(network);
+        let alpha_anim = component::Animation::new_non_init(network);
+        Self{frp,color_anim,alpha_anim}.init()
+    }
+
+    fn init(self) -> Self {
+        let network = &self.frp.network;
+        frp::extend! { network
+            color_of_target        <- self.frp.target.map(|t|t.opaque);
+            alpha_of_target        <- self.frp.target.map(|t|t.alpha);
+            target_color           <- any(&self.frp.target_color,&color_of_target);
+            target_alpha           <- any(&self.frp.target_alpha,&alpha_of_target);
+            self.color_anim.target <+ target_color;
+            self.alpha_anim.target <+ target_alpha;
+            self.frp.source.value  <+ all(&self.color_anim.value,&self.alpha_anim.value).map(
+                |(color,alpha)| color.with_alpha(*alpha)
+            );
+        }
+        self
+    }
+}
+
+
+
+// ==================================
+// === DEPRECATED Color Animation ===
+// ==================================
+
+/// Deprecated  FRP definition.
+pub mod deprecated_frp {
+    use super::*;
+    crate::define_endpoints! {
+        Input { }
+        Output {
+            value  (Lcha),
+        }
+    }
+}
+
+/// The `Animation` provides color better animations for colors than the raw
+/// `component::DEPRECATED_Animation<_>`, as it allows controlling the alpha channel separately which is
+/// important for nice fade outs.
+///
+/// # DEPRECATION
+/// This component is deprecated. Use `Animation` instead, which exposes much more FRP-oriented API
+/// than this component.
+#[derive(Clone,CloneRef,Debug)]
+#[allow(non_camel_case_types)]
+pub struct DEPRECARTED_Animation {
     initialized : Rc<Cell<bool>>,
-    frp         : Frp,
+    frp         : deprecated_frp::Frp,
     /// Animation of the Lch components of the color.
-    pub lch     : Animation<Lch>,
+    pub lch     : component::DEPRECATED_Animation<Lch>,
     /// Animation of the alpha component of the color.
-    pub alpha   : Animation<f32>,
+    pub alpha   : component::DEPRECATED_Animation<f32>,
     /// Stream of the full Lcha color.
-    pub value   : frp::Stream<Lcha>,
+    pub value   : frp::Sampler<Lcha>,
 }
 
 #[allow(missing_docs)]
-impl ColorAnimation {
-
+impl DEPRECARTED_Animation {
     /// Constructor.
-    pub fn new(_app:&Application) -> Self {
+    pub fn new() -> Self {
         let initialized = default();
-        let frp         = Frp::new_network();
-        let value       = frp.value.clone_ref().into();
-        let lch         = Animation::<Lch>::new(&frp.network);
-        let alpha       = Animation::<f32>::new(&frp.network);
-
+        let frp         = deprecated_frp::Frp::new();
+        let value       = frp.value.clone_ref();
+        let lch         = component::DEPRECATED_Animation::<Lch>::new(&frp.network);
+        let alpha       = component::DEPRECATED_Animation::<f32>::new(&frp.network);
         Self{initialized,lch,alpha,frp,value}.init()
     }
 
     fn init(self) -> Self {
         let network = &self.frp.network;
-        let frp     = &self.frp;
-        let lch     = &self.lch;
-        let alpha   = &self.alpha;
-
         frp::extend! { network
-
-            frp.source.value <+ all(lch.value,alpha.value).map(|(lch,alpha)| {
-                lch.with_alpha(*alpha)
-            });
-
+            self.frp.source.value <+ all(&self.lch.value,&self.alpha.value).map(
+                |(lch,a)| lch.with_alpha(*a)
+            );
         }
         self
     }
@@ -232,5 +305,11 @@ impl ColorAnimation {
             self.lch.set_value(lch);
         }
         self.lch.set_target_value(lch);
+    }
+}
+
+impl Default for DEPRECARTED_Animation {
+    fn default() -> Self {
+        Self::new()
     }
 }

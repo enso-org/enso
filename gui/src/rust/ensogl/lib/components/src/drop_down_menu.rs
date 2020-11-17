@@ -6,7 +6,7 @@ use crate::list_view::entry::ModelProvider;
 
 use enso_frp as frp;
 use enso_frp;
-use ensogl_core::gui::component::Animation;
+use ensogl_core::gui::component::DEPRECATED_Animation;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::*;
@@ -42,7 +42,7 @@ pub mod arrow {
             let height           = Var::<Pixels>::from("input_size.y");
             let triangle         = Triangle(width,height);
             let triangle_down    = triangle.rotate(Var::<f32>::from(std::f32::consts::PI));
-            let color_path       = ensogl_theme::vars::graph_editor::visualization::action_bar::icon::color;
+            let color_path       = ensogl_theme::graph_editor::visualization::action_bar::icon;
             let icon_color       = style.get_color(color_path);
             let triangle_colored = triangle_down.fill(color::Rgba::from(icon_color));
 
@@ -199,7 +199,7 @@ impl Deref for DropDownMenu {
 impl DropDownMenu {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-        let frp   = Frp::new_network();
+        let frp   = Frp::new();
         let model = Rc::new(Model::new(app));
         Self {frp,model}.init(app)
     }
@@ -227,7 +227,7 @@ impl DropDownMenu {
 
             // === Layouting ===
 
-            let menu_height = Animation::<f32>::new(&network);
+            let menu_height = DEPRECATED_Animation::<f32>::new(&network);
 
             eval menu_height.value ([model](height) {
                 model.selection_menu.frp.resize.emit(Vector2::new(MENU_WIDTH,*height));
@@ -357,7 +357,7 @@ impl DropDownMenu {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
         // shape system (#795)
         let styles     = StyleWatch::new(&app.display.scene().style_sheet);
-        let text_color = styles.get_color(theme::vars::widget::list_view::text::color);
+        let text_color = styles.get_color(theme::widget::list_view::text);
         model.label.set_default_color(color::Rgba::from(text_color));
 
         self

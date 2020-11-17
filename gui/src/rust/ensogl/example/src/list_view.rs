@@ -14,7 +14,7 @@ use logger::enabled::Logger;
 use wasm_bindgen::prelude::*;
 use ensogl_core::display::Scene;
 use ensogl_text::buffer::data::unit::Bytes;
-use ensogl_theme;
+use ensogl_theme as theme;
 
 
 
@@ -95,11 +95,11 @@ impl list_view::entry::ModelProvider for MockEntries {
 // ========================
 
 fn init(app:&Application) {
-    ensogl_theme::dark::setup(&app);
-    ensogl_theme::light::setup(&app);
+    theme::builtin::dark::setup(&app);
+    theme::builtin::light::setup(&app);
 
-    let select                                      = app.new_view::<list_view::ListView>();
-    let provider:list_view::entry::AnyModelProvider = MockEntries::new(app,1000).into();
+    let select   = app.new_view::<list_view::ListView>();
+    let provider = list_view::entry::AnyModelProvider::from(MockEntries::new(app,1000));
     select.frp.resize(Vector2(100.0,160.0));
     select.frp.set_entries(provider);
     app.display.add_child(&select);

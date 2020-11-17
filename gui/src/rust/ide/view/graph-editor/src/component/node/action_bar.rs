@@ -6,7 +6,6 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::display::style;
 use ensogl::display::shape::*;
 use ensogl::display;
 use ensogl::gui::component;
@@ -53,11 +52,12 @@ mod hover_rect {
 
 ensogl::define_endpoints! {
     Input {
-        set_size        (Vector2),
-        show_icons      (),
-        hide_icons      (),
-        icon_visibility (bool)
+        set_size       (Vector2),
+        set_visibility (bool),
+        // show_icons     (),
+        // hide_icons     (),
     }
+
     Output {
         mouse_over       (),
         mouse_out        (),
@@ -70,53 +70,79 @@ ensogl::define_endpoints! {
 
 
 // ========================
+// === Action Bar Icons ===
+// ========================
+
+#[derive(Clone,CloneRef,Debug)]
+struct Icons {
+    display_object : display::object::Instance,
+    freeze         : ToggleButton<icon::freeze::Shape>,
+    visibility     : ToggleButton<icon::visibility::Shape>,
+    skip           : ToggleButton<icon::skip::Shape>,
+}
+
+impl Icons {
+    fn new(logger:impl AnyLogger, app:&Application) -> Self {
+        let logger         = Logger::sub(logger,"Icons");
+        let display_object = display::object::Instance::new(&logger);
+        let freeze         = ToggleButton::new(&app);
+        let visibility     = ToggleButton::new(&app);
+        let skip           = ToggleButton::new(&app);
+        display_object.add_child(&freeze);
+        display_object.add_child(&visibility);
+        display_object.add_child(&skip);
+        Self {display_object,freeze,visibility,skip}
+    }
+
+    fn set_visibility(&self, visible:bool) {
+        self.freeze.frp.set_visibility(visible);
+        self.skip.frp.set_visibility(visible);
+        self.visibility.frp.set_visibility(visible);
+    }
+}
+
+impl display::Object for Icons {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
+}
+
+
+
+// ========================
 // === Action Bar Model ===
 // ========================
 
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
-    hover_area            : component::ShapeView<hover_rect::Shape>,
-    icons                 : display::object::Instance,
-    icon_freeze           : ToggleButton<icon::freeze::Shape>,
-    icon_visibility       : ToggleButton<icon::visibility::Shape>,
-    icon_skip             : ToggleButton<icon::skip::Shape>,
-    display_object        : display::object::Instance,
-    size                  : Rc<Cell<Vector2>>,
-    all_shapes            : compound::events::MouseEvents,
+    display_object : display::object::Instance,
+    hover_area     : component::ShapeView<hover_rect::Shape>,
+    icons          : Icons,
+    size           : Rc<Cell<Vector2>>,
+    shapes         : compound::events::MouseEvents,
 }
 
 impl Model {
-    fn new(app:&Application) -> Self {
-        let scene                 = app.display.scene();
-        let logger                = Logger::new("ActionBarModel");
-        let hover_area            = component::ShapeView::new(&logger,scene);
-        let icon_freeze           = ToggleButton::new(&app);
-        let icon_visibility       = ToggleButton::new(&app);
-        let icon_skip             = ToggleButton::new(&app);
-        let display_object        = display::object::Instance::new(&logger);
-        let icons                 = display::object::Instance::new(&logger);
-        let size                  = default();
-        let all_shapes            = compound::events::MouseEvents::default();
+    fn new(logger:impl AnyLogger, app:&Application) -> Self {
+        let scene          = app.display.scene();
+        let logger         = Logger::sub(logger,"ActionBar");
+        let display_object = display::object::Instance::new(&logger);
+        let hover_area     = component::ShapeView::new(&logger,scene);
+        let icons          = Icons::new(&logger,app);
+        let shapes         = compound::events::MouseEvents::default();
+        let size           = default();
 
-        all_shapes.add_sub_shape(&hover_area);
-        all_shapes.add_sub_shape(&icon_freeze.view());
-        all_shapes.add_sub_shape(&icon_visibility.view());
-        all_shapes.add_sub_shape(&icon_skip.view());
+        shapes.add_sub_shape(&hover_area);
+        shapes.add_sub_shape(&icons.freeze.view());
+        shapes.add_sub_shape(&icons.visibility.view());
+        shapes.add_sub_shape(&icons.skip.view());
 
-
-        Self{hover_area,icons,display_object,size,icon_freeze,icon_visibility,
-             icon_skip,all_shapes}.init()
+        Self{hover_area,display_object,size,icons,shapes}.init()
     }
 
     fn init(self) -> Self {
         self.add_child(&self.hover_area);
         self.add_child(&self.icons);
-        self.icons.add_child(&self.icon_freeze);
-        self.icons.add_child(&self.icon_skip);
-        self.icons.add_child(&self.icon_visibility);
-
-        // Default state is hidden.
-        self.hide();
         self
     }
 
@@ -153,28 +179,14 @@ impl Model {
         self.size.set(size);
         self.icons.set_position_x(-size.x/2.0);
 
-        self.place_button_in_slot(&self.icon_visibility, 0);
-        self.place_button_in_slot(&self.icon_skip, 1);
-        self.place_button_in_slot(&self.icon_freeze, 2);
+        self.place_button_in_slot(&self.icons.visibility , 0);
+        self.place_button_in_slot(&self.icons.skip       , 1);
+        self.place_button_in_slot(&self.icons.freeze     , 2);
 
         self.layout_hover_area_to_cover_buttons(3);
 
         // The appears smaller than the other ones, so this is an aesthetic adjustment.
-        self.icon_visibility.set_scale_xy(Vector2::new(1.2,1.2));
-    }
-
-    fn set_icon_visibility(&self, visible:bool) {
-        self.icon_freeze.frp.set_visibility(visible);
-        self.icon_skip.frp.set_visibility(visible);
-        self.icon_visibility.frp.set_visibility(visible);
-    }
-
-    fn show(&self) {
-        self.set_icon_visibility(true);
-    }
-
-    fn hide(&self) {
-        self.set_icon_visibility(false);
+        self.icons.visibility.set_scale_xy(Vector2::new(1.2,1.2));
     }
 }
 
@@ -201,18 +213,25 @@ impl display::Object for Model {
 ///
 /// ```
 #[derive(Clone,CloneRef,Debug)]
+#[allow(missing_docs)]
 pub struct ActionBar {
-         model : Rc<Model>,
-    /// Public FRp api.
-    pub frp    : Frp
+    pub frp : Frp,
+    model   : Rc<Model>,
+}
+
+impl Deref for ActionBar {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
 impl ActionBar {
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
-        let model = Rc::new(Model::new(app));
-        let frp   = Frp::new_network();
-        ActionBar {model,frp}.init_frp()
+    pub fn new(logger:impl AnyLogger, app:&Application) -> Self {
+        let model = Rc::new(Model::new(logger,app));
+        let frp   = Frp::new();
+        ActionBar{model,frp}.init_frp()
     }
 
     fn init_frp(self) -> Self {
@@ -220,42 +239,31 @@ impl ActionBar {
         let frp     = &self.frp;
         let model   = &self.model;
 
-        let compound_shape = &model.all_shapes.frp;
-
         frp::extend! { network
-
 
             // === Input Processing ===
 
-            eval  frp.set_size ((size)   model.set_size(*size));
-            eval_ frp.hide_icons ( model.hide() );
-            eval_ frp.show_icons ( model.show() );
-            eval  frp.icon_visibility ([model](visible) {
-                if *visible { model.show() } else { model.hide() }
-            });
+            eval frp.set_size ((size) model.set_size(*size));
+            eval frp.set_visibility ((t) model.icons.set_visibility(*t));
 
 
             // === Mouse Interactions ===
 
-            eval_ compound_shape.mouse_over (model.show());
-            eval_ compound_shape.mouse_out (model.hide());
+            visibility <- bool(&model.shapes.mouse_out,&model.shapes.mouse_over);
+            eval visibility ((t) model.icons.set_visibility(*t));
 
 
             // === Icon Actions ===
 
-            frp.source.action_skip      <+ model.icon_skip.frp.toggle_state;
-            frp.source.action_freeze    <+ model.icon_freeze.frp.toggle_state;
-            frp.source.action_visbility <+ model.icon_visibility.frp.toggle_state;
+            frp.source.action_skip      <+ model.icons.skip.state;
+            frp.source.action_freeze    <+ model.icons.freeze.state;
+            frp.source.action_visbility <+ model.icons.visibility.state;
         }
 
-        let icon_path:style::Path = theme::vars::graph_editor::node::actions::icon::color.into();
-        let icon_color_source     = ColorSource::from(icon_path);
-        model.icon_freeze.frp.set_base_color(icon_color_source.clone());
-        model.icon_skip.frp.set_base_color(icon_color_source.clone());
-        model.icon_visibility.frp.set_base_color(icon_color_source);
-
-        frp.hide_icons.emit(());
-
+        let icon_color_source = ColorSource::from(theme::graph_editor::node::actions::icon);
+        model.icons.freeze.frp.set_base_color(&icon_color_source);
+        model.icons.skip.frp.set_base_color(&icon_color_source);
+        model.icons.visibility.frp.set_base_color(&icon_color_source);
         self
     }
 }

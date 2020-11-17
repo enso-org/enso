@@ -58,28 +58,44 @@ impl<T:Payload> Node<T> {
         default()
     }
 
-    /// Define a new child by using the `ChildBuilder` pattern.
-    pub fn add_child_builder(&mut self, f:impl FnOnce(ChildBuilder<T>)->ChildBuilder<T>) {
-        let mut new_child = Child::default();
-        let offset        = self.size;
-        new_child.offset  = offset;
-        let builder       = ChildBuilder::new(new_child);
-        let child         = f(builder).child;
-        let offset_diff   = child.offset - offset;
-        self.size += child.size + offset_diff;
-        self.children.push(child);
-    }
-
     /// Define a new child by using the `ChildBuilder` pattern. Consumes self.
     pub fn new_child(mut self, f:impl FnOnce(ChildBuilder<T>)->ChildBuilder<T>) -> Self {
-        self.add_child_builder(f);
+        ChildBuilder::apply_to_node(&mut self,f);
         self
     }
 
-    /// Is this node empty?
-    pub fn is_insertion_point(&self) -> bool {
-        self.kind.is_insertion_point()
+    /// Payload mapping utility.
+    pub fn map<S>(self, f:impl Copy+Fn(T)->S) -> Node<S> {
+        let kind     = self.kind;
+        let size     = self.size;
+        let children = self.children.into_iter().map(|t|t.map(f)).collect_vec();
+        let ast_id   = self.ast_id;
+        let payload  = f(self.payload);
+        Node {kind,size,children,ast_id,payload}
     }
+}
+
+// === Kind utils ===
+
+#[allow(missing_docs)]
+impl<T:Payload> Node<T> {
+    // FIXME[WD]: This is a hack, which just checks token placement, not a real solution.
+    /// Check whether the node is a parensed expression.
+    pub fn is_parensed(&self) -> bool {
+        let check = |t:Option<&Child<T>>|
+            t.map(|t|t.kind == Kind::Token && t.size.value == 1) == Some(true);
+        check(self.children.first()) && check(self.children.last()) && self.children.len() == 3
+    }
+
+    pub fn is_root                       (&self) -> bool {self.kind.is_root()}
+    pub fn is_chained                    (&self) -> bool {self.kind.is_chained()}
+    pub fn is_operation                  (&self) -> bool {self.kind.is_operation()}
+    pub fn is_this                       (&self) -> bool {self.kind.is_this()}
+    pub fn is_argument                   (&self) -> bool {self.kind.is_argument()}
+    pub fn is_token                      (&self) -> bool {self.kind.is_token()}
+    pub fn is_insertion_point            (&self) -> bool {self.kind.is_insertion_point()}
+    pub fn is_positional_insertion_point (&self) -> bool {self.kind.is_positional_insertion_point()}
+    pub fn is_expected_argument          (&self) -> bool {self.kind.is_expected_argument()}
 }
 
 
@@ -121,6 +137,16 @@ pub struct Child<T=()> {
     pub offset     : Size,
     /// AST crumbs which lead from parent to child associated AST node.
     pub ast_crumbs : ast::Crumbs,
+}
+
+impl<T:Payload> Child<T> {
+    /// Payload mapping utility.
+    pub fn map<S>(self, f:impl Copy+Fn(T)->S) -> Child<S> {
+        let node       = self.node.map(f);
+        let offset     = self.offset;
+        let ast_crumbs = self.ast_crumbs;
+        Child {node,offset,ast_crumbs}
+    }
 }
 
 impl<T> Deref for Child<T> {
@@ -177,8 +203,20 @@ impl<T:Payload> ChildBuilder<T> {
     /// child constructor. This function will automatically compute all not provided properties,
     /// such as span or offset. Moreover, it will default all other not provided fields.
     pub fn new_child(mut self, f:impl FnOnce(Self)->Self) -> Self {
-        self.node.add_child_builder(f);
+        Self::apply_to_node(&mut self.node,f);
         self
+    }
+
+    /// Define a new child by using the `ChildBuilder` pattern.
+    fn apply_to_node(node:&mut Node<T>, f:impl FnOnce(ChildBuilder<T>)->ChildBuilder<T>) {
+        let mut new_child = Child::default();
+        let offset        = node.size;
+        new_child.offset  = offset;
+        let builder       = ChildBuilder::new(new_child);
+        let child         = f(builder).child;
+        let offset_diff   = child.offset - offset;
+        node.size += child.size + offset_diff;
+        node.children.push(child);
     }
 
     /// Add new child and use the `ChildBuilder` pattern to define its properties. This function
@@ -243,7 +281,61 @@ impl<T:Payload> ChildBuilder<T> {
 pub type Crumb = usize;
 
 /// Crumbs specifying this node position related to root.
-pub type Crumbs = Vec<Crumb>;
+#[derive(Debug,Clone,CloneRef,Default,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub struct Crumbs {
+    pub vec : Rc<Vec<Crumb>>
+}
+
+impl Deref for Crumbs {
+    type Target = Rc<Vec<Crumb>>;
+    fn deref(&self) -> &Self::Target {
+        &self.vec
+    }
+}
+
+impl Crumbs {
+    /// Constructor from raw crumbs list.
+    pub fn new(crumbs:Vec<Crumb>) -> Self {
+        Self{vec:Rc::new(crumbs)}
+    }
+
+    /// Create sub-crumbs with the provided child crumb.
+    pub fn sub(&self, child:Crumb) -> Self {
+        let vec = Rc::new(self.vec.deref().clone().pushed(child));
+        Self {vec}
+    }
+
+    /// Create sub-crumbs with the provided child crumb.
+    pub fn into_sub(mut self, child:Crumb) -> Self {
+        let vec = Rc::make_mut(&mut self.vec);
+        vec.push(child);
+        self
+    }
+}
+
+impl From<Vec<Crumb>> for Crumbs {
+    fn from(crumbs:Vec<usize>) -> Self {
+        Self::new(crumbs)
+    }
+}
+
+
+// === Impls ===
+
+impl PartialEq<&Self> for Crumbs {
+    fn eq(&self, other:&&Self) -> bool {
+        self.eq(*other)
+    }
+}
+
+impl<'a> IntoIterator for &'a Crumbs {
+    type Item     = &'a Crumb;
+    type IntoIter = std::slice::Iter<'a,Crumb>;
+    fn into_iter(self) -> Self::IntoIter {
+        (&*self.vec).iter()
+    }
+}
 
 /// Convert crumbs to crumbs pointing to a parent.
 pub fn parent_crumbs(crumbs:&[Crumb]) -> Option<&[Crumb]> {
@@ -263,7 +355,15 @@ pub struct InvalidCrumb {
     /// Available children count.
     pub count : usize,
     /// Already traversed crumbs.
-    pub context : Crumbs,
+    pub context : Vec<Crumb>,
+}
+
+impl InvalidCrumb {
+    /// Constructor.
+    pub fn new(crumb:Crumb, count:usize, context:&Crumbs) -> Self {
+        let context = context.vec.deref().clone();
+        Self {crumb,count,context}
+    }
 }
 
 
@@ -295,26 +395,37 @@ pub struct NodeFoundByAstCrumbs<'a,'b,T=()> {
 }
 
 impl<'a,T:Payload> Ref<'a,T> {
+    /// Constructor.
+    pub fn new(node:&'a Node<T>) -> Self {
+        let span_begin = default();
+        let crumbs     = default();
+        let ast_crumbs = default();
+        Self {node,span_begin,crumbs,ast_crumbs}
+    }
+
     /// Get span of current node.
     pub fn span(&self) -> enso_data::text::Span {
         enso_data::text::Span::new(self.span_begin,self.node.size)
     }
 
     /// Get the reference to child with given index. Fails if index if out of bounds.
-    pub fn child(mut self, index:usize) -> FallibleResult<Ref<'a,T>> {
-        let err = || InvalidCrumb {
-            crumb   : index,
-            count   : self.node.children.len(),
-            context : self.crumbs.clone()
-        }.into();
+    pub fn child(self, index:usize) -> FallibleResult<Self> {
+        let node           = self.node;
+        let crumbs         = self.crumbs;
+        let mut span_begin = self.span_begin;
+        let mut ast_crumbs = self.ast_crumbs;
+        let count          = node.children.len();
 
-        self.node.children.get(index).ok_or_else(err).map(|child| {
-            self.crumbs.push(index);
-            self.ast_crumbs.extend(child.ast_crumbs.clone());
-            self.span_begin += child.offset;
-            self.node = &child.node;
-            self
-        })
+        match node.children.get(index) {
+            None        => Err(InvalidCrumb::new(count,index,&crumbs).into()),
+            Some(child) => {
+                let node = &child.node;
+                span_begin += child.offset;
+                let crumbs = crumbs.into_sub(index);
+                ast_crumbs.extend(child.ast_crumbs.iter().cloned());
+                Ok(Self{node,span_begin,crumbs,ast_crumbs})
+            },
+        }
     }
 
     /// Iterator over all direct children producing `Ref`s.
@@ -398,6 +509,166 @@ impl<'a,T> Deref for Ref<'a,T> {
 
 
 
+// ==============
+// === RefMut ===
+// ==============
+
+/// A mutable reference to node inside some specific tree. Please note that tree structure
+/// modification is disallowed. The only part that can be modified is the payload.
+#[derive(Debug)]
+pub struct RefMut<'a,T=()> {
+    /// The node's ref.
+    node           : &'a mut Node<T>,
+    /// An offset counted from the parent node starting index to the start of this node's span.
+    pub offset     : Size,
+    /// Span begin being an index counted from the root expression.
+    pub span_begin : Index,
+    /// Crumbs specifying this node position related to root.
+    pub crumbs     : Crumbs,
+    /// Ast crumbs locating associated AST node, related to the root's AST node.
+    pub ast_crumbs : ast::Crumbs,
+}
+
+impl<'a,T:Payload> RefMut<'a,T> {
+    /// Constructor.
+    pub fn new(node:&'a mut Node<T>) -> Self {
+        let offset     = default();
+        let span_begin = default();
+        let crumbs     = default();
+        let ast_crumbs = default();
+        Self {node,offset,span_begin,crumbs,ast_crumbs}
+    }
+
+    /// Payload accessor.
+    pub fn payload(&self) -> &T {
+        &self.node.payload
+    }
+
+    /// Mutable payload accessor.
+    pub fn payload_mut(&mut self) -> &mut T {
+        &mut self.node.payload
+    }
+
+    /// Get span of current node.
+    pub fn span(&self) -> enso_data::text::Span {
+        enso_data::text::Span::new(self.span_begin,self.node.size)
+    }
+
+    /// Helper function for building child references.
+    fn child_from_ref
+    ( index          : usize
+    , child          : &'a mut Child<T>
+    , mut span_begin : Index
+    , crumbs         : Crumbs
+    , mut ast_crumbs : ast::Crumbs
+    ) -> RefMut<'a,T> {
+        let offset  = child.offset;
+        let node    = &mut child.node;
+        span_begin += child.offset;
+        let crumbs = crumbs.into_sub(index);
+        ast_crumbs.extend(child.ast_crumbs.iter().cloned());
+        Self{node,offset,span_begin,crumbs,ast_crumbs}
+    }
+
+    /// Get the reference to child with given index. Fails if index if out of bounds.
+    pub fn child(self, index:usize) -> FallibleResult<RefMut<'a,T>> {
+        let node       = self.node;
+        let span_begin = self.span_begin;
+        let crumbs     = self.crumbs;
+        let ast_crumbs = self.ast_crumbs;
+        let count      = node.children.len();
+        match node.children.get_mut(index) {
+            None        => Err(InvalidCrumb::new(count,index,&crumbs).into()),
+            Some(child) => Ok(Self::child_from_ref(index,child,span_begin,crumbs,ast_crumbs)),
+        }
+    }
+
+    /// Iterator over all direct children producing `RefMut`s.
+    pub fn children_iter(self) -> impl Iterator<Item=RefMut<'a,T>> {
+        let span_begin = self.span_begin;
+        let crumbs     = self.crumbs;
+        let ast_crumbs = self.ast_crumbs;
+        self.node.children.iter_mut().enumerate().map(move |(index,child)|
+            Self::child_from_ref(index,child,span_begin,crumbs.clone(),ast_crumbs.clone())
+        )
+    }
+
+    /// Get the sub-node (child, or further descendant) identified by `crumbs`.
+    pub fn get_descendant<'b>
+    (self, crumbs:impl IntoIterator<Item=&'b Crumb>) -> FallibleResult<Self> {
+        let mut iter = crumbs.into_iter();
+        match iter.next() {
+            Some(index) => self.child(*index).and_then(|child| child.get_descendant(iter)),
+            None        => Ok(self)
+        }
+    }
+}
+
+impl<'a,T> Deref for RefMut<'a,T> {
+    type Target = Node<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.node
+    }
+}
+
+
+// === Specialized Iterators ===
+
+impl<'a,T:Payload> RefMut<'a,T> {
+    /// Perform a depth-first-search algorithm on the `SpanTree`. The order of the layers will be
+    /// preserved - after all children of a node will be traversed, the next node sibling will be
+    /// traversed and then it's children.
+    ///
+    /// # Control Flow
+    /// This algorithm allows for some kind of control flow. Return `false` as the first tuple value
+    /// to stop traversing children of the current branch.
+    ///
+    /// # Layer Data
+    /// This algorithm allows passing any kind of data to layers. In order to set data for all
+    /// children of the current branch, return it as the second argument of the tuple. Please note
+    /// that nodes get mutable access to the passed data, so they can freely modify it.
+    pub fn partial_dfs<D>(self, mut data:D, mut on_node:impl FnMut(&mut Self, &mut D) -> (bool,D)) {
+        let mut layer  = vec![self];
+        let mut layers = vec![];
+        loop {
+            match layer.pop() {
+                None => {
+                    match layers.pop() {
+                        None        => break,
+                        Some((l,d)) => {
+                            layer = l;
+                            data  = d;
+                        },
+                    }
+                },
+                Some(mut node) => {
+                    let (ok,mut sub_data) = on_node(&mut node, &mut data);
+                    if ok {
+                        let mut children = node.children_iter().collect_vec().reversed();
+                        mem::swap(&mut sub_data,&mut data);
+                        mem::swap(&mut children,&mut layer);
+                        layers.push((children,sub_data));
+                    }
+                }
+            }
+        }
+    }
+
+    /// Perform a full (traverse all nodes) depth-first-search algorithm on the `SpanTree`. See docs
+    /// of `partial_dfs` to learn more.
+    pub fn dfs<D>(self, data:D, mut on_node:impl FnMut(&mut Self, &mut D) -> D) {
+        self.partial_dfs(data,|t,s|(true,on_node(t,s)))
+    }
+
+    /// Perform a full (traverse all nodes) depth-first-search algorithm on the `SpanTree`. Just
+    /// like `dfs`, but without data attached.
+    pub fn dfs_(self, mut on_node:impl FnMut(&mut Self)) {
+        self.partial_dfs((),|t,_|(true,on_node(t)))
+    }
+}
+
+
+
 // ============
 // === Test ===
 // ============
@@ -447,11 +718,11 @@ mod test {
         assert_eq!(grand_child2.node.size.value, 1);
 
         // crumbs
-        assert_eq!(root.crumbs        , Vec::<usize>::new());
-        assert_eq!(child1.crumbs      , [0]            );
-        assert_eq!(child2.crumbs      , [2]            );
-        assert_eq!(grand_child1.crumbs, [2,0]          );
-        assert_eq!(grand_child2.crumbs, [2,1]          );
+        assert_eq!(root.crumbs        , node::Crumbs::default());
+        assert_eq!(child1.crumbs      , node::Crumbs::new(vec![0]  ));
+        assert_eq!(child2.crumbs      , node::Crumbs::new(vec![2]  ));
+        assert_eq!(grand_child1.crumbs, node::Crumbs::new(vec![2,0]));
+        assert_eq!(grand_child2.crumbs, node::Crumbs::new(vec![2,1]));
 
         // AST crumbs
         assert_eq!(root.ast_crumbs        , []                                      );

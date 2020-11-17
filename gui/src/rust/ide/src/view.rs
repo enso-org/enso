@@ -12,7 +12,7 @@ use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use enso_protocol::language_server::MethodPointer;
-use ensogl_theme;
+use ensogl_theme as theme;
 use parser::Parser;
 
 
@@ -95,8 +95,8 @@ impl View {
         let camera        = scene.camera();
         let navigator     = Navigator::new(&scene,&camera);
 
-        ensogl_theme::dark::setup(&application);
-        ensogl_theme::light::setup(&application);
+        theme::builtin::dark::setup(&application);
+        theme::builtin::light::setup(&application);
         let view = application.new_view::<ide_view::project::View>();
         application.display.add_child(&view);
 

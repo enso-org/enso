@@ -12,7 +12,7 @@ default = ["console_error_panic_hook"]
 [dependencies]
 enso-data    = { version = "0.1.1" }
 enso-logger  = { version = "0.1.2" }
-enso-prelude = { version = "0.1.4" }
+enso-prelude = { version = "0.1.8" }
 
 console_error_panic_hook = { version = "0.1.1"   , optional = true        }
 failure                  = { version = "0.1.5"                            }

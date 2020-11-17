@@ -451,7 +451,7 @@ impl Searcher {
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
-    /// in a new suggestion list (the aprriopriate notification will be emitted).
+    /// in a new suggestion list (the appropriate notification will be emitted).
     pub fn set_input(&self, new_input:String) -> FallibleResult {
         debug!(self.logger, "Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input,&self.parser)?;

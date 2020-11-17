@@ -22,12 +22,12 @@ use ensogl_core::data::color;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::shape::*;
 use ensogl_core::display;
-use ensogl_core::gui::component::Animation;
+use ensogl_core::gui::component::DEPRECATED_Animation;
 use ensogl_core::gui::component;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 use ensogl_core::system::web::clipboard;
-use ensogl_theme;
+use ensogl_theme as theme;
 use std::ops::Not;
 
 
@@ -105,8 +105,7 @@ pub mod selection {
             let alpha          = alpha_weight.mix(blinking_alpha,SELECTION_ALPHA);
             let shape          = Rect((1.px() * rect_width,1.px() * rect_height));
             let shape          = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
-            let color_path     = ensogl_theme::vars::text_editor::text::selection::color;
-            let color          = style.get_color(color_path);
+            let color          = style.get_color(theme::code::syntax::selection);
             let color          = color::Rgba::from(color);
             let color          = format!("srgba({},{},{},{})",color.red,color.green,color.blue,alpha.glsl());
             let shape          = shape.fill(color);
@@ -135,8 +134,8 @@ pub struct Selection {
     right_side     : display::object::Instance,
     shape_view     : component::ShapeView<selection::Shape>,
     network        : frp::Network,
-    position       : Animation<Vector2>,
-    width          : Animation<f32>,
+    position       : DEPRECATED_Animation<Vector2>,
+    width          : DEPRECATED_Animation<f32>,
     edit_mode      : Rc<Cell<bool>>,
 }
 
@@ -155,8 +154,8 @@ impl Selection {
         let right_side     = display::object::Instance::new(&logger);
         let network        = frp::Network::new();
         let shape_view     = component::ShapeView::<selection::Shape>::new(&logger,scene);
-        let position       = Animation::new(&network);
-        let width          = Animation::new(&network);
+        let position       = DEPRECATED_Animation::new(&network);
+        let width          = DEPRECATED_Animation::new(&network);
         let edit_mode      = Rc::new(Cell::new(edit_mode));
         let debug          = false; // Change to true to slow-down movement for debug purposes.
         let spring_factor  = if debug { 0.1 } else { 1.5 };
@@ -460,7 +459,7 @@ impl Deref for Area {
 impl Area {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-        let frp  = Frp::new_network();
+        let frp  = Frp::new();
         let data = AreaModel::new(app,&frp.output);
         Self {data,frp} . init()
     }
@@ -472,7 +471,7 @@ impl Area {
         let mouse    = &scene.mouse.frp;
         let input    = &self.frp.input;
         let out      = &self.frp.output;
-        let pos      = Animation :: <Vector2> :: new(&network);
+        let pos      = DEPRECATED_Animation :: <Vector2> :: new(&network);
         let keyboard = &scene.keyboard;
         let m        = &model;
         pos.update_spring(|spring| spring*2.0);
@@ -622,7 +621,7 @@ impl Area {
                 let all_bytes = buffer::Range::from(Bytes::from(0)..Bytes(i32::max_value()));
                 input.set_color_bytes.emit((all_bytes,*color));
             });
-            eval input.set_color_bytes       ((t) {
+            eval input.set_color_bytes ((t) {
                 m.buffer.frp.set_color_bytes.emit(*t);
                 m.redraw(); // FIXME: Should not be needed.
             });

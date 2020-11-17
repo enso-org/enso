@@ -9,4 +9,4 @@ edition = "2018"
 [features]
 
 [dependencies]
-enso-prelude = { version = "0.1.4" }
+enso-prelude = { version = "0.1.8" }

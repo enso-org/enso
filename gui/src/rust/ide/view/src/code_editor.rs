@@ -6,7 +6,7 @@ use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::{Application, shortcut};
 use ensogl::display;
-use ensogl::gui::component::Animation;
+use ensogl::gui::component::DEPRECATED_Animation;
 use ensogl_text as text;
 
 
@@ -65,10 +65,10 @@ impl View {
     /// Create Code Editor component.
     pub fn new(app:&Application) -> Self {
         let scene           = app.display.scene();
-        let frp             = Frp::new_network();
+        let frp             = Frp::new();
         let network         = &frp.network;
         let model           = app.new_view::<text::Area>();
-        let height_fraction = Animation::<f32>::new(network);
+        let height_fraction = DEPRECATED_Animation::<f32>::new(network);
 
         model.set_position_x(PADDING_LEFT);
         model.remove_from_view(&scene.views.main);
@@ -79,7 +79,6 @@ impl View {
         model.hover();
 
         frp::extend!{ network
-            trace frp.input.toggle;
             let is_visible     =  frp.output.is_visible.clone_ref();
             show_after_toggle <- frp.toggle.gate_not(&is_visible);
             hide_after_toggle <- frp.toggle.gate    (&is_visible);

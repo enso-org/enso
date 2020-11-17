@@ -208,7 +208,7 @@ mod network_mode_tests {
         assert_eq!(sampler.value(),2);
         drop(network2);
         source.emit(());
-        assert_eq!(sampler.value(),0);
+        assert_eq!(sampler.value(),2);
     }
 }
 
@@ -260,7 +260,7 @@ mod dynamic_mode_tests {
         drop(source);
         assert!(weak_source.upgrade().is_some());
         drop(sampler);
-        assert!(weak_source.upgrade().is_none());
+        assert!(weak_source.upgrade().is_some());
     }
 
     #[test]
