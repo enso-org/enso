@@ -4,6 +4,10 @@ import Test
 
 type My x y
 
+My.== that = case that of
+    My x1 y1 -> (this.x + this.y) == (x1 + y1)
+    _ -> False
+
 spec =
     describe "Parsing" <|
         it "should parse a simple numeric table" <|
@@ -63,3 +67,28 @@ spec =
             c_1 = Column.from_vector 'x' [1, 2, 3, Nothing, 5]
             r = c_1 . map (x -> x * x > 5)
             r.to_vector.should_equal [False, False, True, Nothing, True]
+        it "should handle vectorized equality and fall back on non-vectorized if needed" <|
+            c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
+            (c_str == 'b').to_vector.should_equal [False, True, False, True]
+            c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
+            (c_int == 1).to_vector.should_equal [True, False, True, False, True]
+            c_dec = Column.from_vector 'x' [1.9, 2.0, 1.2, 5.6, 1.9]
+            (c_dec == 1.9).to_vector.should_equal [True, False, False, False, True]
+            c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
+            (c_bool == False).to_vector.should_equal [False, True, False, False, True]
+            c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
+            (c_any == My 7 0).to_vector.should_equal [True, False, True, True, False]
+
+    describe "Masking tables" <|
+        it "should allow selecting table rows based on a boolean column" <|
+            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            r = df.where (Column.from_vector 'x' [True, False, False, True])
+            r.at "a" . to_vector . should_equal [1, 10]
+            r.at "b" . to_vector . should_equal [2, 11]
+            r.at "c" . to_vector . should_equal [Nothing, 12]
+        it "should treat NA values in the mask as false and extend the mask with NAs" <|
+            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            r = df.where (Column.from_vector 'x' [Nothing, True, False])
+            r.at "a" . to_vector . should_equal [4]
+            r.at "b" . to_vector . should_equal [Nothing]
+            r.at "c" . to_vector . should_equal [6]

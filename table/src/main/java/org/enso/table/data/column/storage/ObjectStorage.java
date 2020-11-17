@@ -80,7 +80,6 @@ public class ObjectStorage extends Storage {
       }
     }
     Storage result = builder.seal();
-    System.out.println("TYPE: " + result.getType());
     return result;
   }
 
