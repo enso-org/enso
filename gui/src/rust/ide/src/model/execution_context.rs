@@ -83,18 +83,6 @@ impl ComputedValueInfoRegistry {
         executor::global::spawn(future);
     }
 
-    /// Clear the stored values.
-    ///
-    /// When change is made to execution context (like adding or removing the call stack frame), the
-    /// cache should be cleaned.
-    fn clear(&self)  {
-        let removed_keys = self.map.borrow().keys().copied().collect_vec();
-        self.map.borrow_mut().clear();
-        if !removed_keys.is_empty() {
-            self.emit(removed_keys);
-        }
-    }
-
     /// Store the information from the given update received from the Language Server.
     pub fn apply_updates(&self, values_computed:Vec<ExpressionValueUpdate>) {
         let updated_expressions = values_computed.iter().map(|update| update.expression_id).collect();

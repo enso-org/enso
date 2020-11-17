@@ -515,6 +515,11 @@ pub struct SuggestionEntryArgument {
     pub repr_type:String,
     /// Indicates whether the argument is lazy.
     pub is_suspended:bool,
+    /// Flag indicating that the argument has default value
+    ///
+    /// Note: this is obviously redundant, however it is part of the API. It will be removed as
+    /// a part of https://github.com/enso-org/enso/issues/1293
+    pub has_default:bool,
     /// Optional default value.
     pub default_value:Option<String>,
 }
@@ -553,6 +558,7 @@ pub enum SuggestionEntryType {Atom,Method,Function,Local}
 pub enum SuggestionEntry {
     #[serde(rename_all="camelCase")]
     Atom {
+        external_id   : Option<Uuid>,
         name          : String,
         module        : String,
         arguments     : Vec<SuggestionEntryArgument>,
@@ -561,6 +567,7 @@ pub enum SuggestionEntry {
     },
     #[serde(rename_all="camelCase")]
     Method {
+        external_id   : Option<Uuid>,
         name          : String,
         module        : String,
         arguments     : Vec<SuggestionEntryArgument>,
@@ -570,6 +577,7 @@ pub enum SuggestionEntry {
     },
     #[serde(rename_all="camelCase")]
     Function {
+        external_id : Option<Uuid>,
         name        : String,
         module      : String,
         arguments   : Vec<SuggestionEntryArgument>,
@@ -578,6 +586,7 @@ pub enum SuggestionEntry {
     },
     #[serde(rename_all="camelCase")]
     Local {
+        external_id : Option<Uuid>,
         name        : String,
         module      : String,
         return_type : String,
@@ -598,7 +607,7 @@ impl SuggestionEntry {
 }
 
 /// The entry in the suggestions database.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct SuggestionsDatabaseEntry {
@@ -606,8 +615,62 @@ pub struct SuggestionsDatabaseEntry {
     pub suggestion : SuggestionEntry,
 }
 
+#[derive(Clone,Copy,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[allow(missing_docs)]
+pub enum FieldAction {Remove,Set}
+
+#[derive(Clone,Copy,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub struct FieldUpdate<T> {
+    pub tag   : FieldAction,
+    pub value : Option<T>,
+}
+
+impl<T> FieldUpdate<T> {
+    /// Create a field update with `Set` tag.
+    pub fn set(value:T) -> Self {
+        FieldUpdate {
+            tag   : FieldAction::Set,
+            value : Some(value)
+        }
+    }
+
+    /// Create a field update with `Remove` tag.
+    pub fn remove() -> Self {
+        FieldUpdate {
+            tag   : FieldAction::Remove,
+            value : None,
+        }
+    }
+}
+
+#[derive(Clone,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub enum SuggestionArgumentUpdate {
+    #[serde(rename_all="camelCase")]
+    Add {
+        index    : usize,
+        argument : SuggestionEntryArgument,
+    },
+    #[serde(rename_all="camelCase")]
+    Remove {
+        index : usize,
+    },
+    #[serde(rename_all="camelCase")]
+    Modify {
+        index         : usize,
+        name          : Option<FieldUpdate<String>>,
+        repr_type     : Option<FieldUpdate<String>>,
+        is_suspended  : Option<FieldUpdate<bool>>,
+        has_default   : Option<FieldUpdate<bool>>,
+        default_value : Option<FieldUpdate<String>>,
+    }
+}
+
 /// The kind of the suggestions database update.
-#[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[derive(Clone,Copy,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
 #[allow(missing_docs)]
 pub enum SuggestionsDatabaseUpdateKind {Add,Update,Delete}
 
@@ -627,8 +690,13 @@ pub enum SuggestionsDatabaseUpdate {
     },
     #[serde(rename_all="camelCase")]
     Modify {
-        id          : SuggestionId,
-        return_type : String,
+        id            : SuggestionId,
+        external_id   : Option<FieldUpdate<Uuid>>,
+        #[serde(default)]
+        arguments     : Vec<SuggestionArgumentUpdate>,
+        return_type   : Option<FieldUpdate<String>>,
+        documentation : Option<FieldUpdate<String>>,
+        scope         : Option<FieldUpdate<SuggestionEntryScope>>,
     }
 }
 

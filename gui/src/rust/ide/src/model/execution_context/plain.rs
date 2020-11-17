@@ -69,9 +69,8 @@ impl ExecutionContext {
     /// Push a new stack item to execution context.
     ///
     /// This function shadows the asynchronous version from API trait.
-    pub fn push(&self, stack_item:LocalCall)  {
+    pub fn push(&self, stack_item:LocalCall) {
         self.stack.borrow_mut().push(stack_item);
-        self.computed_value_info_registry.clear();
     }
 
     /// Pop the last stack item from this context. It returns error when only root call remains.
@@ -79,7 +78,6 @@ impl ExecutionContext {
     /// This function shadows the asynchronous version from API trait.
     pub fn pop(&self) -> FallibleResult<LocalCall> {
         let ret = self.stack.borrow_mut().pop().ok_or_else(PopOnEmptyStack)?;
-        self.computed_value_info_registry.clear();
         Ok(ret)
     }
 
