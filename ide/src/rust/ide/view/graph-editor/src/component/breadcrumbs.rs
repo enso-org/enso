@@ -349,7 +349,7 @@ impl Breadcrumbs {
     /// Constructor.
     pub fn new(app:Application) -> Self {
         let scene   = app.display.scene().clone_ref();
-        let frp     = Frp::new_network();
+        let frp     = Frp::new();
         let model   = Rc::new(BreadcrumbsModel::new(app,&frp));
         let network = &frp.network;
 

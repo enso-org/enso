@@ -577,7 +577,7 @@ impl<Host> Display for Instance<Host> {
 
 impl<Host> Debug for Instance<Host> {
     fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"Instance")
+        write!(f,"DisplayObject({})",self.logger.path())
     }
 }
 
@@ -1095,24 +1095,65 @@ mod tests {
 
     #[test]
     fn deep_hierarchy_test() {
+
+        // === Init ===
+
         let world = Instance::<()>::new(Logger::new("world"));
         let node1 = Instance::<()>::new(Logger::new("node1"));
         let node2 = Instance::<()>::new(Logger::new("node2"));
         let node3 = Instance::<()>::new(Logger::new("node3"));
         let node4 = Instance::<()>::new(Logger::new("node4"));
+        let node5 = Instance::<()>::new(Logger::new("node5"));
+        let node6 = Instance::<()>::new(Logger::new("node6"));
 
         world.add_child(&node1);
         node1.add_child(&node2);
         node2.add_child(&node3);
         node3.add_child(&node4);
+        node4.add_child(&node5);
+        node5.add_child(&node6);
 
         assert_eq!(node3.is_visible(),true);
         assert_eq!(node4.is_visible(),true);
+        assert_eq!(node5.is_visible(),true);
+        assert_eq!(node6.is_visible(),true);
+
+
+        // === Init Update ===
 
         world.update(&());
 
         assert_eq!(node3.is_visible(),true);
         assert_eq!(node4.is_visible(),true);
+        assert_eq!(node5.is_visible(),true);
+        assert_eq!(node6.is_visible(),true);
+
+        assert_eq!(node1.global_position() , Vector3::new(0.0,0.0,0.0));
+        assert_eq!(node2.global_position() , Vector3::new(0.0,0.0,0.0));
+        assert_eq!(node3.global_position() , Vector3::new(0.0,0.0,0.0));
+        assert_eq!(node4.global_position() , Vector3::new(0.0,0.0,0.0));
+        assert_eq!(node5.global_position() , Vector3::new(0.0,0.0,0.0));
+        assert_eq!(node6.global_position() , Vector3::new(0.0,0.0,0.0));
+
+
+        // === Position Modification  ===
+
+        node3.mod_position(|t| t.x += 1.0);
+        node4.mod_position(|t| t.x += 3.0);
+        node5.mod_position(|t| t.x += 5.0);
+        node6.mod_position(|t| t.x += 7.0);
+
+        world.update(&());
+
+        assert_eq!(node1.global_position() , Vector3::new(0.0,0.0,0.0));
+        assert_eq!(node2.global_position() , Vector3::new(0.0,0.0,0.0));
+        assert_eq!(node3.global_position() , Vector3::new(1.0,0.0,0.0));
+        assert_eq!(node4.global_position() , Vector3::new(4.0,0.0,0.0));
+        assert_eq!(node5.global_position() , Vector3::new(9.0,0.0,0.0));
+        assert_eq!(node6.global_position() , Vector3::new(16.0,0.0,0.0));
+
+
+        // === Visibility Modification  ===
 
         node4.unset_parent();
         node3.unset_parent();
@@ -1120,5 +1161,7 @@ mod tests {
 
         assert_eq!(node3.is_visible(),false);
         assert_eq!(node4.is_visible(),false);
+        assert_eq!(node5.is_visible(),false);
+        assert_eq!(node6.is_visible(),false);
     }
 }

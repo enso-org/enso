@@ -19,6 +19,6 @@ uuid         = { version  = "0.8.1", features = ["serde","v4","wasm-bindgen"] }
 
 ast-macros   = { version = "0.1.0", path = "../macros"   }
 enso-data    = { version = "0.1.1"                       }
-enso-prelude = { version = "0.1.4"                       }
+enso-prelude = { version = "0.1.8"                       }
 enso-shapely = { version = "0.1.1"                       }
 utils        = { version = "0.1.0", path = "../../utils" }

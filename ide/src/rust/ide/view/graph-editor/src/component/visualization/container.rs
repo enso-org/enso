@@ -25,7 +25,7 @@ use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
-use ensogl::gui::component::Animation;
+use ensogl::gui::component::DEPRECATED_Animation;
 use ensogl::application::Application;
 use ensogl::gui::component;
 use ensogl::system::web;
@@ -64,15 +64,14 @@ pub mod background {
 
     ensogl::define_shape_system! {
         (style:Style,selected:f32,radius:f32,roundness:f32) {
-            use theme::vars::graph_editor::visualization as visualization_theme;
+            use theme::graph_editor::visualization as visualization_theme;
 
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
+            let width         = Var::<Pixels>::from("input_size.x");
+            let height        = Var::<Pixels>::from("input_size.y");
             let width         = &width  - SHADOW_SIZE.px() * 2.0;
             let height        = &height - SHADOW_SIZE.px() * 2.0;
             let radius        = 1.px() * &radius;
-            let color_path    = visualization_theme::background::color;
-            let color_bg      = style.get_color(color_path);
+            let color_bg      = style.get_color(visualization_theme::background);
             let corner_radius = &radius * &roundness;
             let background    = Rect((&width,&height)).corners_radius(&corner_radius);
             let background    = background.fill(color::Rgba::from(color_bg));
@@ -84,8 +83,8 @@ pub mod background {
             let width         = &width  + SHADOW_SIZE.px() * 2.0;
             let height        = &height + SHADOW_SIZE.px() * 2.0;
             let shadow        = Rect((&width,&height)).corners_radius(&corner_radius).shrink(1.px());
-            let base_color    = style.get_color(visualization_theme::shadow::color);
-            let fading_color  = style.get_color(visualization_theme::shadow::fading_color);
+            let base_color    = style.get_color(visualization_theme::shadow);
+            let fading_color  = style.get_color(visualization_theme::shadow::fading);
             let exponent      = style.get_number_or(visualization_theme::shadow::exponent,2.0);
             let shadow_color  = color::LinearGradient::new()
                 .add(0.0,color::Rgba::from(fading_color).into_linear())
@@ -116,7 +115,7 @@ pub mod fullscreen_background {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let radius        = 1.px() * &radius;
-            let color_path    = theme::vars::graph_editor::visualization::background::color;
+            let color_path    = theme::graph_editor::visualization::background;
             let color_bg      = style.get_color(color_path);
             let corner_radius = &radius * &roundness;
             let background    = Rect((&width,&height)).corners_radius(&corner_radius);
@@ -133,14 +132,14 @@ pub mod overlay {
 
     ensogl::define_shape_system! {
         (selected:f32,radius:f32,roundness:f32) {
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let radius               = 1.px() * &radius;
-            let corner_radius        = &radius * &roundness;
-            let color_overlay        = color::Rgba::new(1.0,0.0,0.0,0.000_000_1);
-            let overlay              = Rect((&width,&height)).corners_radius(&corner_radius);
-            let overlay              = overlay.fill(color_overlay);
-            let out                  = overlay;
+            let width         = Var::<Pixels>::from("input_size.x");
+            let height        = Var::<Pixels>::from("input_size.y");
+            let radius        = 1.px() * &radius;
+            let corner_radius = &radius * &roundness;
+            let color_overlay = color::Rgba::new(1.0,0.0,0.0,0.000_000_1);
+            let overlay       = Rect((&width,&height)).corners_radius(&corner_radius);
+            let overlay       = overlay.fill(color_overlay);
+            let out           = overlay;
             out.into()
         }
     }
@@ -214,12 +213,12 @@ impl View {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles   = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::vars::graph_editor::visualization::background::color);
+        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
         let bg_color = color::Rgba::from(bg_color);
         let bg_hex   = format!("rgba({},{},{},{})",bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
 
-        let shadow_alpha = styles.get_number_or(ensogl_theme::vars::graph_editor::visualization::shadow::html::alpha,0.16);
-        let shadow_size  = styles.get_number_or(ensogl_theme::vars::graph_editor::visualization::shadow::html::size,16.0);
+        let shadow_alpha = styles.get_number_or(ensogl_theme::graph_editor::visualization::shadow::html::alpha,0.16);
+        let shadow_size  = styles.get_number_or(ensogl_theme::graph_editor::visualization::shadow::html::size,16.0);
         let shadow       = format!("0 0 {}px rgba(0, 0, 0, {})",shadow_size,shadow_alpha);
 
         let div            = web::create_div();
@@ -280,7 +279,7 @@ impl FullscreenView {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles   = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::vars::graph_editor::visualization::background::color);
+        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
         let bg_color = color::Rgba::from(bg_color);
         let bg_hex   = format!("rgba({},{},{},{})",bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
 
@@ -329,7 +328,6 @@ pub struct ContainerModel {
     is_fullscreen   : Rc<Cell<bool>>,
     registry        : visualization::Registry,
     size            : Rc<Cell<Vector2>>,
-
     action_bar      : ActionBar,
 }
 
@@ -418,27 +416,29 @@ impl ContainerModel {
     }
 
     fn set_size(&self, size:impl Into<Vector2>) {
-        let size = size.into();
+        let dom    = self.view.background_dom.dom();
+        let bg_dom = self.fullscreen_view.background_dom.dom();
+        let size   = size.into();
         self.size.set(size);
         if self.is_fullscreen.get() {
             // self.fullscreen_view.background.shape.radius.set(CORNER_RADIUS);
             // self.fullscreen_view.background.shape.sprite.size.set(size);
             // self.view.background.shape.sprite.size.set(zero());
             self.view.overlay.shape.sprite.size.set(zero());
-            self.view.background_dom.dom().set_style_or_warn("width" ,"0",&self.logger);
-            self.view.background_dom.dom().set_style_or_warn("height","0",&self.logger);
-            self.fullscreen_view.background_dom.dom().set_style_or_warn("width", format!("{}px", size[0]), &self.logger);
-            self.fullscreen_view.background_dom.dom().set_style_or_warn("height", format!("{}px", size[1]), &self.logger);
+            dom.set_style_or_warn("width" ,"0",&self.logger);
+            dom.set_style_or_warn("height","0",&self.logger);
+            bg_dom.set_style_or_warn("width", format!("{}px", size[0]), &self.logger);
+            bg_dom.set_style_or_warn("height", format!("{}px", size[1]), &self.logger);
             self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
             // self.view.background.shape.radius.set(CORNER_RADIUS);
             self.view.overlay.shape.radius.set(CORNER_RADIUS);
             // self.view.background.shape.sprite.size.set(size);
             self.view.overlay.shape.sprite.size.set(size);
-            self.view.background_dom.dom().set_style_or_warn("width" ,format!("{}px",size[0]),&self.logger);
-            self.view.background_dom.dom().set_style_or_warn("height",format!("{}px",size[1]),&self.logger);
-            self.fullscreen_view.background_dom.dom().set_style_or_warn("width", "0", &self.logger);
-            self.fullscreen_view.background_dom.dom().set_style_or_warn("height", "0", &self.logger);
+            dom.set_style_or_warn("width" ,format!("{}px",size[0]),&self.logger);
+            dom.set_style_or_warn("height",format!("{}px",size[1]),&self.logger);
+            bg_dom.set_style_or_warn("width", "0", &self.logger);
+            bg_dom.set_style_or_warn("height", "0", &self.logger);
             // self.fullscreen_view.background.shape.sprite.size.set(zero());
 
             let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
@@ -503,8 +503,8 @@ pub struct Container {
 impl Container {
     /// Constructor.
     pub fn new(logger:&Logger,app:&Application,registry:visualization::Registry) -> Self {
-        let model   = Rc::new(ContainerModel::new(logger,app,registry));
-        let frp     = Frp::new_network();
+        let model = Rc::new(ContainerModel::new(logger,app,registry));
+        let frp   = Frp::new();
         Self {model,frp} . init()
     }
 
@@ -512,9 +512,9 @@ impl Container {
         let frp                 = &self.frp;
         let network             = &self.frp.network;
         let model               = &self.model;
-        let fullscreen          = Animation::new(network);
-        let size                = Animation::<Vector2>::new(network);
-        let fullscreen_position = Animation::<Vector3>::new(network);
+        let fullscreen          = DEPRECATED_Animation::new(network);
+        let size                = DEPRECATED_Animation::<Vector2>::new(network);
+        let fullscreen_position = DEPRECATED_Animation::<Vector3>::new(network);
         let scene               = &self.model.scene;
         let logger              = &self.model.logger;
 

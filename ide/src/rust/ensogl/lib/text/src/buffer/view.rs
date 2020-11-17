@@ -467,7 +467,7 @@ impl View {
             eval output.source.selection_edit_mode     ((t) m.set_selection(t));
             eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
         }
-        let frp = Frp::new(network,output);
+        let frp = Frp::deprecated_new(network,output);
         Self {frp,model}
     }
 }

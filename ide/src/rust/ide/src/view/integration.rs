@@ -7,29 +7,31 @@
 use crate::prelude::*;
 
 use crate::controller::graph::NodeTrees;
+use crate::controller::searcher::suggestion::MatchInfo;
+use crate::controller::searcher::Suggestions;
 use crate::model::execution_context::ComputedValueInfo;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::ExpressionId;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::model::suggestion_database::EntryKind;
 
 use bimap::BiMap;
+use enso_data::text::TextChange;
 use enso_frp as frp;
 use enso_frp::stream::EventEmitter;
 use ensogl::display::traits::*;
 use ensogl_gui_components::list_view;
 use ide_view::graph_editor;
+use ide_view::graph_editor::component::node;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::EdgeTarget;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
 use utils::channel::process_stream_with_handle;
-use crate::controller::searcher::suggestion::MatchInfo;
-use crate::controller::searcher::Suggestions;
-use crate::model::suggestion_database::EntryKind;
-use enso_data::text::TextChange;
 
+use span_tree::traits::SpanTreeGenerator;
 
 
 // ==============
@@ -495,7 +497,7 @@ impl Model {
     /// visualization respective FRP endpoint.
     fn visualization_update_handler
     ( &self
-    , endpoint : frp::Source<(graph_editor::NodeId,visualization::Data)>
+    , endpoint : frp::Any<(graph_editor::NodeId,visualization::Data)>
     , node_id  : graph_editor::NodeId
     ) -> impl FnMut(VisualizationUpdateData) -> futures::future::Ready<()> {
         // TODO [mwu]
@@ -535,7 +537,7 @@ impl Model {
         //  context and as such may require updating span trees. So no matter whether expression
         //  changed or not, we shall emit the updates.
         //  This should be addressed as part of https://github.com/enso-org/ide/issues/787
-        let code_and_trees = graph_editor::component::node::port::Expression {
+        let code_and_trees = graph_editor::component::node::Expression {
             code             : expression.clone(),
             input_span_tree  : trees.inputs,
             output_span_tree : trees.outputs.unwrap_or_else(default)
@@ -585,7 +587,7 @@ impl Model {
     /// Set given type (or lack of such) on the given sub-expression.
     fn set_type(&self, node_id:graph_editor::NodeId, id:ExpressionId, typename:Option<graph_editor::Type>) {
         let event = (node_id,id,typename);
-        self.view.graph().frp.input.set_expression_type.emit_event(&event);
+        self.view.graph().frp.input.set_expression_usage_type.emit_event(&event);
     }
 
     /// Set given method pointer (or lack of such) on the given sub-expression.
@@ -854,17 +856,15 @@ impl Model {
     (&self, entry:&Option<ide_view::searcher::entry::Id>) -> FallibleResult {
         debug!(self.logger, "Picking suggestion.");
         if let Some(entry) = entry {
-            let graph_frp      = &self.view.graph().frp;
-            let error          = || MissingSearcherController;
-            let searcher       = self.searcher.borrow().clone().ok_or_else(error)?;
-            let error          = || GraphEditorInconsistency;
-            let edited_node    = graph_frp.output.node_being_edited.value().ok_or_else(error)?;
-            let new_code       = searcher.pick_completion_by_index(*entry)?;
-            let code_and_trees = graph_editor::component::node::port::Expression {
-                code             : new_code,
-                input_span_tree  : default(),
-                output_span_tree : default(),
-            };
+            let graph_frp        = &self.view.graph().frp;
+            let error            = || MissingSearcherController;
+            let searcher         = self.searcher.borrow().clone().ok_or_else(error)?;
+            let error            = || GraphEditorInconsistency;
+            let edited_node      = graph_frp.output.node_being_edited.value().ok_or_else(error)?;
+            let code             = searcher.pick_completion_by_index(*entry)?;
+            let input_span_tree  = code.generate_tree(&span_tree::generate::context::Empty)?;
+            let output_span_tree = default();
+            let code_and_trees = node::Expression {code,input_span_tree,output_span_tree};
             graph_frp.input.set_node_expression.emit_event(&(edited_node,code_and_trees));
         }
         Ok(())
@@ -1097,8 +1097,8 @@ impl Model {
         let src_node = self.get_controller_node_id(src.node_id)?;
         let dst_node = self.get_controller_node_id(dst.node_id)?;
         Ok(controller::graph::Connection {
-            source      : controller::graph::Endpoint::new(src_node,src.port.deref().clone()),
-            destination : controller::graph::Endpoint::new(dst_node,dst.port.deref().clone()),
+            source      : controller::graph::Endpoint::new(src_node,&src.port),
+            destination : controller::graph::Endpoint::new(dst_node,&dst.port),
         })
     }
 

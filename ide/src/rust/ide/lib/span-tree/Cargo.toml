@@ -8,7 +8,7 @@ edition = "2018"
 [dependencies]
 ast          = { version = "0.1.0", path = "../ast/impl" }
 enso-data    = { version = "0.1.1"                       }
-enso-prelude = { version = "0.1.4"                       }
+enso-prelude = { version = "0.1.8"                       }
 failure      = { version = "0.1.6"                       }
 utils        = { version = "0.1.0", path = "../utils"    }
 

@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::control::callback;
 use crate::data::color;
 use crate::display::style::Path;
+use crate::display::style::StaticPath;
 use crate::display::style::data::DataMatch;
 use crate::display::style;
 
@@ -60,8 +61,13 @@ impl StyleWatch {
         *self.handles.borrow_mut() = default();
     }
 
+    /// Sets the callback which will be used when dependent styles change.
+    pub fn set_on_style_change<F:'static+Fn()>(&self, callback:F) {
+        *self.callback.borrow_mut() = Box::new(callback);
+    }
+
     /// Queries style sheet value for a value.
-    pub fn get<T:Into<Path>>(&self, path:T) -> Option<style::Data> {
+    pub fn get(&self, path:impl Into<Path>) -> Option<style::Data> {
         let var      = self.sheet.var(path);
         let value    = var.value();
         let callback = self.callback.clone_ref();
@@ -70,13 +76,8 @@ impl StyleWatch {
         value
     }
 
-    /// Sets the callback which will be used when dependent styles change.
-    pub fn set_on_style_change<F:'static+Fn()>(&self, callback:F) {
-        *self.callback.borrow_mut() = Box::new(callback);
-    }
-
     /// Queries style sheet number value, if not found gets fallback.
-    pub fn get_number_or(&self, path:&str, fallback:f32) -> f32 {
+    pub fn get_number_or(&self, path:impl Into<Path>, fallback:f32) -> f32 {
         self.get(path).number().unwrap_or(fallback)
     }
 }
@@ -113,17 +114,11 @@ impl<C> From<color::Color<C>> for ColorSource
     }
 }
 
-impl From<Path> for ColorSource {
-    fn from(path:Path) -> Self {
-        ColorSource::Theme {path}
-    }
-}
-
-impl From<&str> for ColorSource {
-    fn from(path_raw:&str) -> Self {
-        ColorSource::Theme {path:Path::from(path_raw)}
-    }
-}
+impls! { From<Path>        for ColorSource { |t| ColorSource::Theme {path:t} }}
+impls! { From<&Path>       for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
+impls! { From<StaticPath>  for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
+impls! { From<&StaticPath> for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
+impls! { From<&str>        for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
 
 
 

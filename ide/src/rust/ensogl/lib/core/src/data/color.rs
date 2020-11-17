@@ -25,3 +25,5 @@ pub use component::*;
 pub use self::data::*;
 pub use gradient::*;
 pub use space::*;
+pub use animation::Animation;
+pub use animation::DEPRECARTED_Animation;

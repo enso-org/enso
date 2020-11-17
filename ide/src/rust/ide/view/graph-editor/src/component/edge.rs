@@ -2,13 +2,11 @@
 
 use crate::prelude::*;
 
-use crate::component::node::NODE_HEIGHT;
 use crate::component::node;
 
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
-use ensogl::data::color::animation::ColorAnimation;
 use ensogl::data::color;
 use ensogl::display::Sprite;
 use ensogl::display::scene::Scene;
@@ -831,7 +829,7 @@ impl AnyEdgeShape for EdgeModelData {
 
 // TODO: Implement proper sorting and remove.
 /// Hack function used to register the elements for the sorting purposes. To be removed.
-pub fn sort_hack_1(scene:&Scene) {
+pub fn depth_sort_hack_1(scene:&Scene) {
     let logger = Logger::new("hack_sort");
     component::ShapeView::<back::corner::Shape>::new(&logger,scene);
     component::ShapeView::<back::line::Shape>::new(&logger,scene);
@@ -839,7 +837,7 @@ pub fn sort_hack_1(scene:&Scene) {
 
 // TODO: Implement proper sorting and remove.
 /// Hack function used to register the elements for the sorting purposes. To be removed.
-pub fn sort_hack_2(scene:&Scene) {
+pub fn depth_sort_hack_2(scene:&Scene) {
     let logger = Logger::new("hack_sort");
     component::ShapeView::<front::corner::Shape>::new(&logger,scene);
     component::ShapeView::<front::line::Shape>::new(&logger,scene);
@@ -1183,7 +1181,7 @@ impl Edge {
 
         let model           = &self.model;
         let shape_events    = &self.frp.shape_events;
-        let edge_color      = ColorAnimation::new(app);
+        let edge_color      = color::DEPRECARTED_Animation::new();
         let style           = StyleWatch::new(&app.display.scene().style_sheet);
 
 
@@ -1318,13 +1316,15 @@ impl EdgeModelData {
         let color:color::Lcha = color.opaque.into();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles                        = StyleWatch::new(&self.scene.style_sheet);
-        let split_color_lightness_factor  = styles.get_number_or(theme::vars::graph_editor::edge::split_color::lightness_factor,1.2);
-        let split_color_chroma_factor     = styles.get_number_or(theme::vars::graph_editor::edge::split_color::chroma_factor,0.8);
-        let lightness                     = color.lightness * split_color_lightness_factor;
-        let chroma                        = color.chroma * split_color_chroma_factor;
-        let focus_color = color::Lcha::new(lightness,chroma,color.hue,color.alpha);
-        let color_rgba:color::Rgba = color.into();
+        let styles         = StyleWatch::new(&self.scene.style_sheet);
+        let factor_l_path  = theme::graph_editor::edge::split::lightness_factor;
+        let factor_c_path  = theme::graph_editor::edge::split::chroma_factor;
+        let split_factor_l = styles.get_number_or(factor_l_path,1.2);
+        let split_factor_c = styles.get_number_or(factor_c_path,0.8);
+        let lightness      = color.lightness * split_factor_l;
+        let chroma         = color.chroma * split_factor_c;
+        let focus_color    = color::Lcha::new(lightness,chroma,color.hue,color.alpha);
+        let color_rgba     = color::Rgba::from(color);
         self.shapes().iter().for_each(|shape| {
             shape.set_color_focus(focus_color.into());
             shape.set_color(color_rgba)
@@ -1337,9 +1337,7 @@ impl EdgeModelData {
     #[allow(clippy::cognitive_complexity)]
     pub fn redraw(&self) {
 
-
         // === Variables ===
-
 
         let fg               = &self.front;
         let bg               = &self.back;
@@ -1347,14 +1345,13 @@ impl EdgeModelData {
         // let fully_attached   = self.target_attached.get() && self.source_attached.get();
         let fully_attached          = self.target_attached.get();
         let node_half_width         = self.source_width.get() / 2.0;
-        let target_node_half_height = NODE_HEIGHT / 2.0;
+        let target_node_half_height = node::HEIGHT / 2.0;
         let source_node_half_height = self.source_height.get() / 2.0;
         let source_node_circle      = Vector2(node_half_width- source_node_half_height, 0.0);
         let source_node_radius      = source_node_half_height;
 
 
         // === Update Highlights ===
-
 
         match (fully_attached, self.hover_position.get(), self.hover_target.get()) {
             (true, Some(hover_position), Some(hover_target)) => {

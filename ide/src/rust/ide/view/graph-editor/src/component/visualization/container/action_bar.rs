@@ -14,6 +14,7 @@ use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component;
+use ensogl_theme as theme;
 
 
 
@@ -53,16 +54,15 @@ mod background {
 
     ensogl::define_shape_system! {
         (style:Style) {
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let radius               = node::NODE_SHAPE_RADIUS.px() ;
-            let background_rounded   = Rect((&width,&height)).corners_radius(&radius);
-            let background_sharp     = Rect((&width,&height/2.0)).translate_y(-&height/4.0);
-            let background           = background_rounded + background_sharp;
-            let color_path           = ensogl_theme::vars::graph_editor::
-                                           visualization::action_bar::background::color;
-            let fill_color           = style.get_color(color_path);
-            let background           = background.fill(color::Rgba::from(fill_color));
+            let width              = Var::<Pixels>::from("input_size.x");
+            let height             = Var::<Pixels>::from("input_size.y");
+            let radius             = node::RADIUS.px() ;
+            let background_rounded = Rect((&width,&height)).corners_radius(&radius);
+            let background_sharp   = Rect((&width,&height/2.0)).translate_y(-&height/4.0);
+            let background         = background_rounded + background_sharp;
+            let color_path         = theme::graph_editor::visualization::action_bar::background;
+            let fill_color         = style.get_color(color_path);
+            let background         = background.fill(color::Rgba::from(fill_color));
             background.into()
         }
     }
@@ -111,10 +111,8 @@ impl Model {
         let background            = component::ShapeView::new(&logger,scene);
         let hover_area            = component::ShapeView::new(&logger,scene);
         let visualization_chooser = VisualizationChooser::new(&app,vis_registry);
-
         let display_object        = display::object::Instance::new(&logger);
         let size                  = default();
-
         Model{hover_area,visualization_chooser,display_object,size,background}.init()
     }
 
@@ -148,7 +146,6 @@ impl Model {
     }
 
     fn hide(&self) {
-        println!("Hiding");
         self.visualization_chooser.unset_parent();
         self.background.unset_parent();
         self.visualization_chooser.frp.hide_selection_menu.emit(());
@@ -180,17 +177,17 @@ impl display::Object for Model {
 /// ```
 #[derive(Clone,CloneRef,Debug)]
 pub struct ActionBar {
-         model : Rc<Model>,
-    pub frp    : Frp
+    pub frp : Frp,
+    model   : Rc<Model>,
 }
 
 impl ActionBar {
 
     /// Constructor.
     pub fn new(app:&Application, vis_registry:visualization::Registry) -> Self {
+        let frp   = Frp::new();
         let model = Rc::new(Model::new(app,vis_registry));
-        let frp   = Frp::new_network();
-        ActionBar {model,frp}.init_frp()
+        ActionBar {frp,model}.init_frp()
     }
 
     fn init_frp(self) -> Self {
@@ -203,7 +200,6 @@ impl ActionBar {
 
         frp::extend! { network
 
-
             // === Input Processing ===
 
             eval  frp.set_size ((size) model.set_size(*size));
@@ -214,7 +210,9 @@ impl ActionBar {
                 visualization_chooser.input.set_selected.emit(vis);
             });
 
+
             // === Mouse Interactions ===
+
             any_component_over <- any(&hover_area.mouse_over,&visualization_chooser.mouse_over);
             any_component_out  <- any(&hover_area.mouse_out,&visualization_chooser.mouse_out);
 

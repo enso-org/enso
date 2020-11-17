@@ -144,6 +144,14 @@ pub trait DataMatch {
     fn invalid (&self) -> Option<&String>;
     fn number  (&self) -> Option<f32>;
     fn color   (&self) -> Option<color::Lcha>;
+
+    fn number_or_else(&self,f:impl FnOnce()->f32) -> f32 {
+        self.number().unwrap_or_else(f)
+    }
+
+    fn color_or_else(&self,f:impl FnOnce()->color::Lcha) -> color::Lcha {
+        self.color().unwrap_or_else(f)
+    }
 }
 
 impl DataMatch for Data {

@@ -7,6 +7,7 @@ use crate::data::color;
 use crate::display::scene::Scene;
 use crate::display::shape::*;
 use crate::display;
+use crate::gui::component::DEPRECATED_Animation;
 use crate::gui::component::Animation;
 use crate::gui::component::Tween;
 use crate::gui::component;
@@ -221,7 +222,7 @@ pub mod shape {
     crate::define_shape_system! {
         ( press  : f32
         , radius : f32
-        , color  : Vector4<f32>
+        , color  : Vector4
         ) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -244,36 +245,15 @@ pub mod shape {
 // === Frp ===
 // ===========
 
-/// Cursor events.
-#[derive(Clone,CloneRef,Debug)]
-#[allow(missing_docs)]
-pub struct Frp {
-    pub network  : frp::Network,
-    pub input    : FrpInputs,
-    pub position : frp::Stream<Vector3>,
-}
 
-impl Deref for Frp {
-    type Target = FrpInputs;
-    fn deref(&self) -> &Self::Target {
-        &self.input
+crate::define_endpoints! {
+    Input {
+        set_style (Style),
     }
-}
 
-/// Cursor events.
-#[derive(Clone,CloneRef,Debug)]
-#[allow(missing_docs)]
-pub struct FrpInputs {
-    pub set_style : frp::Source<Style>,
-}
-
-impl FrpInputs {
-    /// Constructor.
-    pub fn new(network:&frp::Network) -> Self {
-        frp::extend! { network
-            def set_style = source();
-        }
-        Self {set_style}
+    Output {
+        position        (Vector3),
+        screen_position (Vector3),
     }
 }
 
@@ -289,17 +269,15 @@ impl FrpInputs {
 pub struct CursorModel {
     pub logger : Logger,
     pub scene  : Scene,
-    pub frp    : FrpInputs,
     pub view   : component::ShapeView<shape::Shape>,
     pub style  : Rc<RefCell<Style>>,
 }
 
 impl CursorModel {
     /// Constructor.
-    pub fn new(scene:&Scene, network:&frp::Network) -> Self {
+    pub fn new(scene:&Scene) -> Self {
         let scene  = scene.clone_ref();
         let logger = Logger::new("cursor");
-        let frp    = FrpInputs::new(network);
         let view   = component::ShapeView::<shape::Shape>::new(&logger,&scene);
         let style  = default();
 
@@ -308,7 +286,7 @@ impl CursorModel {
         scene.views.main.remove(&shape_system.shape_system.symbol);
         scene.views.cursor.add(&shape_system.shape_system.symbol);
 
-        Self {logger,scene,frp,view,style}
+        Self {logger,scene,view,style}
     }
 }
 
@@ -319,20 +297,19 @@ impl CursorModel {
 // ==============
 
 /// Cursor (mouse pointer) definition.
-#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
+#[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Cursor {
-    #[shrinkwrap(main_field)]
-    model   : Rc<CursorModel>,
     pub frp : Frp,
+    model   : Rc<CursorModel>,
 }
 
 impl Cursor {
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
-        let network = frp::Network::new();
-        let model   = CursorModel::new(scene,&network);
-        let input   = &model.frp;
+        let frp     = Frp::new();
+        let network = &frp.network;
+        let model   = CursorModel::new(scene);
         let mouse   = &scene.mouse.frp;
 
         // === Animations ===
@@ -355,16 +332,16 @@ impl Cursor {
         //     host during the movement. After it is fully attached, cursor moves with the same
         //     speed as the scene when panning.
         //
-        let press                = Animation :: <f32>     :: new(&network);
-        let radius               = Animation :: <f32>     :: new(&network);
-        let size                 = Animation :: <Vector2> :: new(&network);
-        let offset               = Animation :: <Vector2> :: new(&network);
-        let color_lab            = Animation :: <Vector3> :: new(&network);
-        let color_alpha          = Animation :: <f32>     :: new(&network);
-        let inactive_fade        = Animation :: <f32>     :: new(&network);
-        let host_position        = Animation :: <Vector3> :: new(&network);
-        let host_follow_weight   = Animation :: <f32>     :: new(&network);
-        let host_attached_weight = Tween     :: new(&network);
+        let press                = Animation            :: <f32>     :: new(&network);
+        let radius               = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let size                 = DEPRECATED_Animation :: <Vector2> :: new(&network);
+        let offset               = DEPRECATED_Animation :: <Vector2> :: new(&network);
+        let color_lab            = DEPRECATED_Animation :: <Vector3> :: new(&network);
+        let color_alpha          = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let inactive_fade        = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let host_position        = DEPRECATED_Animation :: <Vector3> :: new(&network);
+        let host_follow_weight   = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let host_attached_weight = Tween                             :: new(&network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
@@ -389,18 +366,18 @@ impl Cursor {
                 |lab,alpha| color::Rgba::from(color::Laba::new(lab.x,lab.y,lab.z,*alpha))
             );
 
-            eval input.set_style([host_attached_weight,size,offset,model] (new_style) {
+            eval frp.set_style([host_attached_weight,size,offset,model] (new_style) {
                 host_attached_weight.stop_and_rewind();
                 if new_style.host.is_some() { host_attached_weight.start() }
 
                 let def = 0.0;
                 match &new_style.press {
-                    None => press.set_target_value(def),
+                    None => press.target.emit(def),
                     Some(t) => {
                         let value = t.value.unwrap_or(def);
-                        press.set_target_value(value);
+                        press.target.emit(value);
                         if !t.animate {
-                            press.skip();
+                            press.skip.emit(());
                         }
                     }
                 }
@@ -452,7 +429,7 @@ impl Cursor {
                 *model.style.borrow_mut() = new_style.clone();
             });
 
-            host_changed    <- any_(input.set_style,scene.frp.camera_changed);
+            host_changed    <- any_(frp.set_style,scene.frp.camera_changed);
             hosted_position <- host_changed.map(f_!(model.style.borrow().host_position()));
             is_not_hosted   <- hosted_position.map(|p| p.is_none());
             mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
@@ -487,14 +464,31 @@ impl Cursor {
                 }
             );
 
+            // Simple Tales equation applied to compute screen position.
+            //
+            // ◄───►  target_x
+            //    ◄►  position.x
+            // ─────┐ z = 0
+            //  ╲   │
+            //   ╲──┤ z = position.z
+            //    ╲ │
+            //     ╲│ z = camera.z
+            screen_position <- position.map(f!([model](position) {
+                let cam_pos = model.scene.views.cursor.camera.position();
+                let coeff   = cam_pos.z / (cam_pos.z - position.z);
+                let x       = position.x * coeff;
+                let y       = position.y * coeff;
+                Vector3(x,y,0.0)
+            }));
+
 
             // === Fade-out when not active ===
 
-            action_event           <- any_(&mouse.position,&input.set_style);
+            action_event           <- any_(&mouse.position,&frp.set_style);
             action_time            <- scene.frp.frame_time.sample(&action_event);
             time_since_last_action <- scene.frp.frame_time.map2(&action_time,|t,s|t-s);
             check_fade_time        <- time_since_last_action.gate(&mouse.ever_moved);
-            _eval <- check_fade_time.map2(&input.set_style, f!([inactive_fade](time,style) {
+            _eval <- check_fade_time.map2(&frp.set_style, f!([inactive_fade](time,style) {
                 if *time > FADE_OUT_TIME && style.is_default() {
                     inactive_fade.set_spring(fade_out_spring);
                     inactive_fade.set_target_value(0.0)
@@ -510,22 +504,26 @@ impl Cursor {
             eval mouse_pos_rt ((t) host_position.set_target_value(Vector3(t.x,t.y,0.0)));
             eval anim_color   ((t) model.view.shape.color.set(t.into()));
             eval position     ((t) model.view.set_position(*t));
+
+
+            // === Outputs ===
+
+            frp.source.position        <+ position;
+            frp.source.screen_position <+ screen_position;
         }
 
         // Hide on init.
         inactive_fade.set_target_value(0.0);
         inactive_fade.skip();
 
-        input.set_style.emit(Style::default());
-        let input = input.clone_ref();
+        frp.set_style.emit(Style::default());
         let model = Rc::new(model);
-        let frp   = Frp {network,input,position};
         Cursor {frp,model}
     }
 }
 
 impl display::Object for Cursor {
     fn display_object(&self) -> &display::object::Instance {
-        &self.view.display_object
+        &self.model.view.display_object
     }
 }

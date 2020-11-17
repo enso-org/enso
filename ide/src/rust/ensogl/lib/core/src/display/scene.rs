@@ -874,7 +874,7 @@ impl SceneData {
         let keyboard             = Keyboard::new(&current_js_event);
         let network              = &frp.network;
         let extensions           = Extensions::default();
-        let bg_color_var         = style_sheet.var("application . background . color");
+        let bg_color_var         = style_sheet.var("application.background");
         let bg_color_change      = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
                 let color = color::Rgba::from(color);
@@ -978,7 +978,8 @@ impl SceneData {
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
-    pub fn screen_to_object_space(&self, object:&impl display::Object, screen_pos:Vector2) -> Vector2 {
+    pub fn screen_to_object_space
+    (&self, object:&impl display::Object, screen_pos:Vector2) -> Vector2 {
         let origin_world_space = Vector4(0.0,0.0,0.0,1.0);
         let origin_clip_space  = self.camera().view_projection_matrix() * origin_world_space;
         let inv_object_matrix  = object.transform_matrix().try_inverse().unwrap();

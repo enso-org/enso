@@ -69,11 +69,18 @@ impl MouseTarget for ShapeViewEvents {
 /// Automatically managed view of a `Shape`. The view is initially empty and is filled with a
 /// reference to an existing `Shape` as soon as it is placed on the scene and the scene is updated.
 /// As soon as it is removed from the scene, the shape is freed.
-#[derive(Clone,CloneRef,Debug,Deref)]
+#[derive(Clone,CloneRef,Debug)]
 #[clone_ref(bound="S:CloneRef")]
 #[allow(missing_docs)]
 pub struct ShapeView<S:Shape> {
     model : Rc<ShapeViewModel<S>>
+}
+
+impl<S:Shape> Deref for ShapeView<S> {
+    type Target = Rc<ShapeViewModel<S>>;
+    fn deref(&self) -> &Self::Target {
+        &self.model
+    }
 }
 
 #[derive(Debug)]
@@ -196,13 +203,6 @@ impl<T:Shape> display::Object for ShapeView<T> {
 // === Animatable ===
 // ==================
 
-/// Indicate what datatype to use in the animation space representation.
-pub trait HasAnimationSpaceRepr {
-    /// Representation in animation space. Needs to support linear interpolation and all
-    /// pre-requisites of `inertia::Value`.
-    type AnimationSpaceRepr: inertia::Value;
-}
-
 /// Newtype that indicates that the wrapped value is valid to be used in animations.
 #[derive(Debug)]
 pub struct AnimationLinearSpace<T> {
@@ -210,14 +210,29 @@ pub struct AnimationLinearSpace<T> {
     pub value: T
 }
 
-/// Shorthand for a  HasAnimationSpaceRepr::AnimationSpaceRepr wrapped in a `AnimationLinearSpace`.
-pub type AnimationSpaceRepr<T> = AnimationLinearSpace<<T as HasAnimationSpaceRepr>::AnimationSpaceRepr>;
+/// Indicate what datatype to use in the animation space representation.
+pub trait HasAnimationSpaceRepr {
+    /// Representation in animation space. Needs to support linear interpolation and all
+    /// pre-requisites of `inertia::Value`.
+    type AnimationSpaceRepr: inertia::Value;
+}
 
-pub trait Animatable = HasAnimationSpaceRepr + BiInto<AnimationSpaceRepr<Self>>;
+/// HasAnimationSpaceRepr::AnimationSpaceRepr getter.
+pub type AnimationSpaceRepr<T> = <T as HasAnimationSpaceRepr>::AnimationSpaceRepr;
+
+/// Strongly typed `AnimationSpaceRepr`
+pub type AnimationLinearSpaceRepr<T> = AnimationLinearSpace<AnimationSpaceRepr<T>>;
+
+pub trait Animatable = HasAnimationSpaceRepr + BiInto<AnimationLinearSpaceRepr<Self>>;
 
 /// Convert the animation space value to the respective `Animatable`.
-pub fn from_animation_space<T:Animatable>(value:T::AnimationSpaceRepr) -> T {
+pub fn from_animation_space<T:Animatable>(value:AnimationSpaceRepr<T>) -> T {
     AnimationLinearSpace{value}.into()
+}
+
+/// Convert `Animatable` to respective animation space value.
+pub fn into_animation_space_repr<T:Animatable>(t:T) -> AnimationSpaceRepr<T> {
+    t.into().value
 }
 
 macro_rules! define_self_animatable {
@@ -249,49 +264,60 @@ define_self_animatable!(Vector4);
 // === Animation ===
 // =================
 
+/// Simulator used to run the animation.
+pub type AnimationSimulator<T> = DynSimulator<AnimationSpaceRepr<T>>;
+
 /// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
 /// is computed, it is emitted via the endpoint.
-#[derive(CloneRef,Derivative,Debug,Shrinkwrap)]
+#[derive(CloneRef,Derivative,Debug)]
 #[derivative(Clone(bound=""))]
 #[allow(missing_docs)]
-pub struct Animation<T:Animatable> {
-    #[shrinkwrap(main_field)]
-    pub simulator : DynSimulator<T::AnimationSpaceRepr>,
-    pub value     : frp::Stream<T>,
+pub struct Animation<T:Animatable+frp::Data> {
+    pub target : frp::Any<T>,
+    pub value  : frp::Stream<T>,
+    pub skip   : frp::Any,
 }
 
 #[allow(missing_docs)]
 impl<T:Animatable+frp::Data> Animation<T> {
-    /// Constructor.
+    /// Constructor. The initial value of the animation is set to `default`.
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! { network
-            def target = source::<T>();
+            value_src <- any_mut::<T>();
         }
-        let simulator = DynSimulator::<T::AnimationSpaceRepr>::new(Box::new(f!((t) {
-             target.emit(from_animation_space::<T>(t))
-        })));
-        let value     = target.into();
-        Self {simulator,value}
+        let simulator = AnimationSimulator::<T>::new(
+            Box::new(f!((t) value_src.emit(from_animation_space::<T>(t))))
+        );
+        frp::extend! { network
+            target <- any_mut::<T>();
+            skip   <- any_mut::<()>();
+            eval  target ((t) simulator.set_target_value(into_animation_space_repr(t.clone())));
+            eval_ skip   (simulator.skip());
+        }
+        let value = value_src.into();
+        network.store(&simulator);
+        Self{target,value,skip}
     }
 
-    pub fn set_value(&self, value:T) {
-        let animation_space_repr = value.into();
-        self.simulator.set_value(animation_space_repr.value);
+    /// Constructor. The initial value is provided explicitly.
+    pub fn new_with_init(network:&frp::Network, init:T) -> Self {
+        let this = Self::new(network);
+        this.target.emit(init);
+        this.skip.emit(());
+        this
     }
 
-    pub fn value(&self) -> T {
-        let value = self.simulator.value();
-        from_animation_space(value)
-    }
-
-    pub fn set_target_value(&self, target_value:T) {
-        let state:AnimationLinearSpace<_> = target_value.into();
-        self.simulator.set_target_value(state.value);
-    }
-
-    pub fn target_value(&self) -> T {
-        let value = self.simulator.target_value();
-        from_animation_space(value)
+    /// Constructor. There is no initial value. The first emitted `target` value will be used
+    /// without animation.
+    pub fn new_non_init(network:&frp::Network) -> Self {
+        let this = Self::new(network);
+        frp::extend! { network
+            init      <- any_mut();
+            on_init   <- this.target.gate_not(&init);
+            init      <+ this.target.constant(true);
+            this.skip <+ on_init.constant(());
+        }
+        this
     }
 }
 
@@ -321,5 +347,72 @@ impl Tween {
         let animator = easing::DynAnimator::new_not_started(0.0,1.0,f,Box::new(f!((t) target.emit(t))));
         let value    = target.into();
         Self {animator,value}
+    }
+}
+
+
+
+// ============================
+// === DEPRECATED Animation ===
+// ============================
+
+/// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
+/// is computed, it is emitted via the endpoint.
+///
+/// # DEPRECATION
+/// This component is deprecated. Use `Animation` instead, which exposes much more FRP-oriented API
+/// than this component. The transition to new version should be straightforward but requires some
+/// attention. The functionalities should be the same and should be accessible by similar API with
+/// two differences:
+///
+/// 1. The API bases on FRP now, which means that the usage can probably be refactored to look
+///    much nicer.
+///
+/// 2. After setting the value for the first time, the value is provided as the output value without
+///    any animation. This is different behavior from the previous implementation, where even
+///    setting the value for the first time would create animation between `default()` value and the
+///    new target. If your code depends on this behavior, it needs to be changed.
+#[derive(CloneRef,Derivative,Debug,Shrinkwrap)]
+#[derivative(Clone(bound=""))]
+#[allow(missing_docs)]
+#[allow(non_camel_case_types)]
+pub struct DEPRECATED_Animation<T:Animatable> {
+    #[shrinkwrap(main_field)]
+    pub simulator : DynSimulator<T::AnimationSpaceRepr>,
+    pub value     : frp::Stream<T>,
+}
+
+#[allow(missing_docs)]
+impl<T:Animatable+frp::Data> DEPRECATED_Animation<T> {
+    /// Constructor.
+    pub fn new(network:&frp::Network) -> Self {
+        frp::extend! { network
+            def target = source::<T>();
+        }
+        let simulator = DynSimulator::<T::AnimationSpaceRepr>::new(Box::new(f!((t) {
+             target.emit(from_animation_space::<T>(t))
+        })));
+        let value = target.into();
+        Self {simulator,value}
+    }
+
+    pub fn set_value(&self, value:T) {
+        let animation_space_repr = value.into();
+        self.simulator.set_value(animation_space_repr.value);
+    }
+
+    pub fn value(&self) -> T {
+        let value = self.simulator.value();
+        from_animation_space(value)
+    }
+
+    pub fn set_target_value(&self, target_value:T) {
+        let state:AnimationLinearSpace<_> = target_value.into();
+        self.simulator.set_target_value(state.value);
+    }
+
+    pub fn target_value(&self) -> T {
+        let value = self.simulator.target_value();
+        from_animation_space(value)
     }
 }

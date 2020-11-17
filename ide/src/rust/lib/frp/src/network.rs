@@ -50,6 +50,8 @@ pub struct NetworkData {
     nodes   : RefCell<Vec<Box<dyn Item>>>,
     links   : RefCell<HashMap<Id,Link>>,
     bridges : RefCell<Vec<BridgeNetwork>>,
+    /// Used as a convenient storage of data associated with network, like animation instances.
+    storage : RefCell<Vec<Box<dyn Any>>>,
 }
 
 
@@ -82,6 +84,13 @@ impl Network {
         self.downgrade().id()
     }
 
+    /// Store arbitrary item in this network. Used as a convenient storage of data associated with
+    /// network, like animation instances.
+    pub fn store<T:'static+CloneRef>(&self,item:&T) {
+        let item = item.clone_ref();
+        self.data.storage.borrow_mut().push(Box::new(item));
+    }
+
     /// Register the node and return it's weak reference.
     pub fn register_raw<T:HasOutputStatic>(&self, node:stream::Node<T>) -> stream::WeakNode<T> {
         let weak = node.downgrade();
@@ -93,7 +102,7 @@ impl Network {
     /// Register the node and return a new `Stream` reference.
     pub fn register<Def:HasOutputStatic>(&self, node:stream::Node<Def>) -> Stream<Output<Def>> {
         let stream = node.clone_ref().into();
-        let node = Box::new(node);
+        let node   = Box::new(node);
         self.data.nodes.borrow_mut().push(node);
         stream
     }

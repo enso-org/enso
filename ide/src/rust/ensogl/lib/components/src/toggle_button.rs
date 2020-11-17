@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
-use ensogl_core::data::color::animation::ColorAnimation;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_core::display::shape::primitive::system;
@@ -38,9 +37,9 @@ ensogl_core::define_endpoints! {
         set_size       (Vector2),
     }
     Output {
-        toggle_state (bool),
-        mouse_over   (),
-        mouse_out    (),
+        state      (bool),
+        mouse_over (),
+        mouse_out  (),
     }
 }
 
@@ -72,18 +71,25 @@ impl<Shape:ColorableShape+'static> Model<Shape> {
 /// A UI component that acts as a toggle which can be toggled on and of. Has a visible shape
 /// that acts as button and changes color depending on the toggle state.
 #[derive(Clone,CloneRef,Debug)]
-pub struct ToggleButton<Shape:ColorableShape> {
-    model:Rc<Model<Shape>>,
-    /// Public FRP api.
-    pub frp:Frp
+#[allow(missing_docs)]
+pub struct ToggleButton<Shape:system::Shape> {
+    pub frp : Frp,
+    model   : Rc<Model<Shape>>,
+}
+
+impl<Shape:system::Shape> Deref for ToggleButton<Shape> {
+    type Target = Frp;
+    fn deref(&self) -> &Self::Target {
+        &self.frp
+    }
 }
 
 impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
     /// Constructor.
     pub fn new(app:&Application) -> Self {
+        let frp   = Frp::new();
         let model = Rc::new(Model::<Shape>::new(app));
-        let frp   = Frp::new_network();
-        Self {model,frp}.init_frp(app)
+        Self {frp,model}.init_frp(app)
     }
 
     fn init_frp(self, app:&Application) -> Self {
@@ -91,11 +97,10 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
         let frp     = &self.frp;
         let model   = &self.model;
         let style   = StyleWatch::new(&app.display.scene().style_sheet);
-        let color   = ColorAnimation::new(&app);
+        let color   = color::DEPRECARTED_Animation::new();
         let icon    = &model.icon.events;
 
         frp::extend! { network
-
 
              // === Input Processing ===
 
@@ -106,9 +111,9 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
 
             // === Mouse Interactions ===
 
-            frp.source.mouse_over   <+ icon.mouse_over;
-            frp.source.mouse_out    <+ icon.mouse_out;
-            frp.source.toggle_state <+ icon.mouse_down.toggle();
+            frp.source.mouse_over <+ icon.mouse_over;
+            frp.source.mouse_out  <+ icon.mouse_out;
+            frp.source.state      <+ icon.mouse_down.toggle();
 
 
             // === Color ===
@@ -119,11 +124,11 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
             visible    <- frp.set_visibility.gate(&frp.set_visibility);
             is_hovered <- bool(&icon.mouse_out,&icon.mouse_over);
 
-            button_state <- all3(&visible,&is_hovered,&frp.toggle_state);
+            button_state <- all3(&visible,&is_hovered,&frp.state);
             state_change <- all(&frp.set_base_color, &button_state);
-            eval state_change ([color,style]((source,(visible,hovered,toggle_state))) {
+            eval state_change ([color,style]((source,(visible,hovered,state))) {
                 let source = source.clone();
-                match(*visible,*hovered,*toggle_state) {
+                match(*visible,*hovered,*state) {
                     (false,_,_)        => color.set_target_alpha(0.0),
                     (true,true,_)      => color.set_target(style.get_color(source)),
                     (true,false,true)  => color.set_target(style.get_color(source)),
@@ -135,12 +140,11 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
         }
 
         color.alpha.set_value(0.0);
-
         self
     }
 
     /// Return the underlying shape view. Note that some parameters like size and color will be
-    /// overwritten regularly by internal the `ToggleButton` mechanics.
+    /// overwritten regularly by internals of the `ToggleButton` mechanics.
     pub fn view(&self) -> ShapeView<Shape> {
         self.model.icon.clone_ref()
     }

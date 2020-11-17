@@ -153,30 +153,30 @@ mod tests {
 
         // Whole tree iterating:
         let expected_crumbs = vec!
-        [ vec![0,0]
-        , vec![0,1]
-        , vec![0,2,0]
-        , vec![0,2,1]
-        , vec![1]
-        , vec![2,0]
-        , vec![2,1]
-        , vec![2,2,0]
-        , vec![2,2,1]
-        , vec![2,2,2]
-        ];
+            [ node::Crumbs::new(vec![0,0])
+            , node::Crumbs::new(vec![0,1])
+            , node::Crumbs::new(vec![0,2,0])
+            , node::Crumbs::new(vec![0,2,1])
+            , node::Crumbs::new(vec![1])
+            , node::Crumbs::new(vec![2,0])
+            , node::Crumbs::new(vec![2,1])
+            , node::Crumbs::new(vec![2,2,0])
+            , node::Crumbs::new(vec![2,2,1])
+            , node::Crumbs::new(vec![2,2,2])
+            ];
         assert_eq!(expected_crumbs, root.clone().leaf_iter().map(|n| n.crumbs).collect_vec());
 
         // Chained children iterating:
         let expected_crumbs = vec!
-            [ vec![0,0]
-            , vec![0,1]
-            , vec![0,2]
-            , vec![1]
-            , vec![2,0]
-            , vec![2,1]
-            , vec![2,2,0]
-            , vec![2,2,1]
-            , vec![2,2,2]
+            [ node::Crumbs::new(vec![0,0])
+            , node::Crumbs::new(vec![0,1])
+            , node::Crumbs::new(vec![0,2])
+            , node::Crumbs::new(vec![1])
+            , node::Crumbs::new(vec![2,0])
+            , node::Crumbs::new(vec![2,1])
+            , node::Crumbs::new(vec![2,2,0])
+            , node::Crumbs::new(vec![2,2,1])
+            , node::Crumbs::new(vec![2,2,2])
             ];
         assert_eq!(expected_crumbs, root.chain_children_iter().map(|n| n.crumbs).collect_vec());
     }

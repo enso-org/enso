@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-data    = { version = "0.1.1"                       }
 enso-logger  = { version = "0.1.2"                       }
-enso-prelude = { version = "0.1.4"                       }
+enso-prelude = { version = "0.1.8"                       }
 enso-shapely = { version = "0.1.1"                       }
 json-rpc     = { version = "0.1.0", path = "../json-rpc" }
 utils        = { version = "0.1.0", path = "../utils"    }

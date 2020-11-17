@@ -82,12 +82,12 @@ pub trait FrpNetworkProvider {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct Command {
-    pub frp     : frp::Source,
+    pub frp     : frp::Any,
     pub enabled : bool,
 }
 
 impl Deref for Command {
-    type Target = frp::Source;
+    type Target = frp::Any;
     fn deref(&self) -> &Self::Target {
         &self.frp
     }
@@ -95,7 +95,7 @@ impl Deref for Command {
 
 impl Command {
     /// Constructor.
-    pub fn new(frp:frp::Source<()>) -> Self {
+    pub fn new(frp:frp::Any<()>) -> Self {
         let enabled = true;
         Self {frp,enabled}
     }

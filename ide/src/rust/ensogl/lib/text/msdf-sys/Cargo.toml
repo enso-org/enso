@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude   = { version = "0.1.4"   }
+enso-prelude   = { version = "0.1.8"   }
 js-sys         = { version = "0.3.30"  }
 nalgebra       = { version = "0.21.1"  }
 wasm-bindgen   = { version = "=0.2.58" }

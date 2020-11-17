@@ -6,3 +6,5 @@ pub mod sheet;
 pub mod theme;
 
 pub use sheet::*;
+pub use path::Path;
+pub use path::StaticPath;

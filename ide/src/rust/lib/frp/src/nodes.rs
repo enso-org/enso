@@ -733,7 +733,15 @@ impl          IntoParam<String>    for &str { fn into_param(self) -> String {sel
 // ===============
 
 #[derive(Debug)]
-pub struct SamplerData  <Out=()> { src:Box<dyn std::any::Any>, value:RefCell<Out> }
+pub struct SamplerData  <Out=()> {
+    src        : Box<dyn std::any::Any>,
+    value      : RefCell<Out>,
+    /// Used to cache the output even if no connection is present YET. Consider the following
+    /// example: first we create `Sampler`, then we emit value to it, then we connect it to some
+    /// output FRP network, Without `self_watch` the value would not be cached internally, and thus
+    /// would not be available to the new sub-network until re-emitted.
+    self_watch : RefCell<Option<Box<dyn std::any::Any>>>
+}
 pub type   OwnedSampler <Out=()> = stream::Node     <SamplerData<Out>>;
 pub type   Sampler      <Out=()> = stream::WeakNode <SamplerData<Out>>;
 
@@ -747,8 +755,11 @@ impl<Out:Data> OwnedSampler<Out> {
     where T1:EventOutput<Output=Out> {
         let src        = Box::new(src1.clone_ref());
         let value      = default();
-        let definition = SamplerData {src,value};
-        Self::construct_and_connect(label,src1,definition)
+        let self_watch = default();
+        let definition = SamplerData {src,value,self_watch};
+        let out        = Self::construct_and_connect(label,src1,definition);
+        *out.self_watch.borrow_mut() = Some(Box::new(watch_stream(&out)));
+        out
     }
 }
 
@@ -1102,6 +1113,7 @@ where T:EventOutput<Output=Option<S>>, S:Data {
 #[derive(Debug)]
 pub struct AnyData  <Out=()> { srcs:Rc<RefCell<Vec<Box<dyn std::any::Any>>>>, phantom:PhantomData<Out> }
 pub type   OwnedAny <Out=()> = stream::Node     <AnyData<Out>>;
+/// Please refer to `any_mut` docs to learn more.
 pub type   Any      <Out=()> = stream::WeakNode <AnyData<Out>>;
 
 impl<Out:Data> HasOutput for AnyData<Out> {
