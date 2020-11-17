@@ -1,25 +1,20 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.builder.object.BoolBuilder;
+import org.enso.table.data.column.builder.object.Builder;
+
 import java.util.BitSet;
+import java.util.function.Function;
 
 /** A column storing strings. */
-public class StringStorage extends Storage {
-  private final String[] data;
-  private final int size;
+public class StringStorage extends ObjectStorage {
 
   /**
    * @param data the underlying data
    * @param size the number of items stored
    */
-  public StringStorage(String[] data, int size) {
-    this.data = data;
-    this.size = size;
-  }
-
-  /** @inheritDoc */
-  @Override
-  public long size() {
-    return size;
+  public StringStorage(Object[] data, int size) {
+    super(data, size);
   }
 
   /**
@@ -27,7 +22,7 @@ public class StringStorage extends Storage {
    * @return the data item contained at the given index.
    */
   public String getItem(long idx) {
-    return data[(int) idx];
+    return (String) super.getItem(idx);
   }
 
   /** @inheritDoc */
@@ -36,18 +31,14 @@ public class StringStorage extends Storage {
     return Type.STRING;
   }
 
-  /** @inheritDoc */
-  @Override
-  public boolean isNa(long idx) {
-    return data[(int) idx] == null;
-  }
-
   @Override
   public boolean isOpVectorized(VectorizedOp op) {
     return op == VectorizedOp.EQ;
   }
 
   public BoolStorage eq(Object that, boolean propagateNa) {
+    Object[] data = getData();
+    int size = (int) size();
     BitSet values = new BitSet();
     BitSet missing = new BitSet();
     if (!propagateNa) {
@@ -70,14 +61,7 @@ public class StringStorage extends Storage {
 
   @Override
   public StringStorage mask(BitSet mask, int cardinality) {
-    String[] newData = new String[cardinality];
-    int resIx = 0;
-    for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
-          newData[resIx++] = data[i];
-      }
-    }
-    return new StringStorage(newData, cardinality);
+    ObjectStorage storage = super.mask(mask, cardinality);
+    return new StringStorage(storage.getData(), cardinality);
   }
-
 }

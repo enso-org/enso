@@ -12,6 +12,7 @@ import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctio
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.*;
+import org.enso.interpreter.node.expression.builtin.runtime.CheatLoopMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -126,9 +127,11 @@ public class Builtins {
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
     scope.registerMethod(primIo, "get_file", GetFileMethodGen.makeFunction(language));
     scope.registerMethod(primIo, "get_cwd", GetCwdMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_user_home", GetUserHomeMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
+    scope.registerMethod(runtime, "cheat_loop", CheatLoopMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));

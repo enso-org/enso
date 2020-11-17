@@ -43,3 +43,9 @@ spec = describe "Text" <|
         text_1.to_text.should_equal "'foo\\nbar\\r\\tbaz'"
         text_2 = '\n\t\a\b\f\r\v\e\''
         text_2.to_text.should_equal "'\\n\\t\\a\\b\\f\\r\\v\\e\\''"
+    it "should allow selecting substrings by characters" <|
+        txt = kshi + facepalm + accent_1 + accent_2
+        txt.take_first 2 . should_equal (kshi + facepalm)
+        txt.drop_first 2 . should_equal (accent_1 + accent_2)
+        txt.take_last  2 . should_equal (accent_1 + accent_2)
+        txt.drop_last  2 . should_equal (kshi + facepalm)

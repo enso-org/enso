@@ -1,5 +1,13 @@
 from Base import all
 
 import Table.Io.Csv
+import Table.Data.Table
+import Table.Data.Column
 
 from Table.Io.Csv export all hiding Parser
+export Table.Data.Column
+
+new columns =
+    cols = columns.map c->
+        Column.from_vector (c.at 0) (c.at 1) . java_column
+    Table.from_columns cols

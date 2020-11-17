@@ -47,6 +47,35 @@ Text.each function =
     iterate fst nxt
     Nothing
 
+Text.drop_first count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.first []
+    boundary = iterator.next [count]
+    if boundary == -1 then '' else Text_Utils.drop_first [this, boundary]
+
+Text.drop_last count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.last []
+    boundary = iterator.next [-count]
+    if boundary == -1 then '' else Text_Utils.substring [this, 0, boundary]
+
+Text.take_first count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.first
+    boundary = iterator.next [count]
+    if boundary == -1 then this else Text_Utils.substring [this, 0, boundary]
+
+Text.take_last count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.last []
+    boundary = iterator.next [-count]
+    if boundary == -1 then '' else Text_Utils.drop_first [this, boundary]
+
+
 ## Returns a vector containing all characters in the given text.
 
    A character is defined as an Extended Grapheme Cluster, see

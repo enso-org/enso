@@ -1,5 +1,6 @@
 from Base import all
 polyglot java import java.lang.Math
+polyglot java import java.lang.Double
 polyglot java import java.lang.String
 
 ## Computes the inverse of the sine function
@@ -94,3 +95,5 @@ Number.max that = if this > that then this else that
 ## Number to JSON conversion.
 Number.to_json : Json.Number
 Number.to_json = Json.Number this
+
+Decimal.parse text = Double.parseDouble [text]

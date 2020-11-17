@@ -20,6 +20,10 @@ public class Text_Utils {
     return string.substring(from, to);
   }
 
+  public static String drop_first(String string, int from) {
+    return string.substring(from);
+  }
+
   /**
    * Converts a string into an array of UTF-8 bytes.
    *

@@ -1,8 +1,10 @@
 package org.enso.table.data.table;
 
+import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.BitSet;
+import java.util.List;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
@@ -38,5 +40,15 @@ public class Column {
     return new Column(name, storage.mask(mask, cardinality));
   }
 
-  public void printNull()
+  public Column rename(String name) {
+    return new Column(name, storage);
+  }
+
+  public static Column fromItems(String name, List<Object> items) {
+    InferredBuilder builder = new InferredBuilder(items.size());
+    for (Object item : items) {
+      builder.append(item);
+    }
+    return new Column(name, builder.seal());
+  }
 }

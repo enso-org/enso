@@ -1,6 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.builder.object.InferredBuilder;
+
 import java.util.BitSet;
+import java.util.List;
+import java.util.function.Function;
 
 /** An abstract representation of a data column. */
 public abstract class Storage {
@@ -26,10 +30,11 @@ public abstract class Storage {
    * polyglot machinery to access them.
    */
   public static final class Type {
-    public static final long LONG = 1;
-    public static final long DOUBLE = 2;
-    public static final long STRING = 3;
-    public static final long BOOL = 4;
+    public static final int LONG = 1;
+    public static final int DOUBLE = 2;
+    public static final int STRING = 3;
+    public static final int BOOL = 4;
+    public static final int OBJECT = 5;
   }
 
   public abstract boolean isOpVectorized(VectorizedOp op);
@@ -39,4 +44,6 @@ public abstract class Storage {
   }
 
   public abstract Storage mask(BitSet mask, int cardinality);
+
+  public abstract Storage map(Function<Object, Object> function);
 }

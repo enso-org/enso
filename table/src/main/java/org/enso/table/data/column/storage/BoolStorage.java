@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.function.Function;
 
 public class BoolStorage extends Storage {
   private final BitSet values;
@@ -66,6 +67,11 @@ public class BoolStorage extends Storage {
 
   public BoolStorage not() {
     return new BoolStorage(values, isMissing, size, !negated);
+  }
+
+  @Override
+  public Storage map(Function<Object, Object> function) {
+    return null;
   }
 
   public boolean isNegated() {

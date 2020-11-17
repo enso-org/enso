@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.function.Function;
 
 /** A column containing floating point numbers. */
 public class DoubleStorage extends Storage {
@@ -66,5 +67,10 @@ public class DoubleStorage extends Storage {
       }
     }
     return new DoubleStorage(newData, cardinality, newMissing);
+  }
+
+  @Override
+  public Storage map(Function<Object, Object> function) {
+    return null;
   }
 }

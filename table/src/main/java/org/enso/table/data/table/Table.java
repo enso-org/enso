@@ -56,4 +56,33 @@ public class Table {
     }
     return new Table(newColumns);
   }
+
+  public Table addOrReplaceColumn(Column newColumn) {
+    int existingIx = -1;
+    for (int i = 0; i < columns.length; i++) {
+      if (columns[i].getName().equals(newColumn.getName())) {
+        existingIx = i;
+        break;
+      }
+    }
+    if (existingIx == -1) {
+      return addColumn(newColumn);
+    } else {
+      return replaceColumn(existingIx, newColumn);
+    }
+  }
+
+  private Table replaceColumn(int ix, Column newCol) {
+    Column[] newCols = new Column[columns.length];
+    System.arraycopy(columns, 0, newCols, 0, columns.length);
+    newCols[ix] = newCol;
+    return new Table(newCols);
+  }
+
+  private Table addColumn(Column newColumn) {
+    Column[] newCols = new Column[columns.length + 1];
+    System.arraycopy(columns, 0, newCols, 0, columns.length);
+    newCols[columns.length] = newColumn;
+    return new Table(newCols);
+  }
 }
