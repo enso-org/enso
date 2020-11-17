@@ -20,6 +20,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.util.UnhandledLogging
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
 /** An actor that routes request regarding lang. server lifecycle to the
   * right controller that manages the server.
@@ -29,12 +30,14 @@ import org.enso.projectmanager.util.UnhandledLogging
   * @param bootloaderConfig a bootloader config
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
+  * @param distributionConfiguration configuration of the distribution
   */
 class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
   supervisionConfig: SupervisionConfig,
-  timeoutConfig: TimeoutConfig
+  timeoutConfig: TimeoutConfig,
+  distributionConfiguration: DistributionConfiguration
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -55,7 +58,8 @@ class LanguageServerRegistry(
               networkConfig,
               bootloaderConfig,
               supervisionConfig,
-              timeoutConfig
+              timeoutConfig,
+              distributionConfiguration
             ),
           s"language-server-controller-${project.id}"
         )
@@ -116,20 +120,23 @@ object LanguageServerRegistry {
     * @param bootloaderConfig a bootloader config
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
+    * @param distributionConfiguration configuration of the distribution
     * @return
     */
   def props(
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
     supervisionConfig: SupervisionConfig,
-    timeoutConfig: TimeoutConfig
+    timeoutConfig: TimeoutConfig,
+    distributionConfiguration: DistributionConfiguration
   ): Props =
     Props(
       new LanguageServerRegistry(
         networkConfig,
         bootloaderConfig,
         supervisionConfig,
-        timeoutConfig
+        timeoutConfig,
+        distributionConfiguration
       )
     )
 

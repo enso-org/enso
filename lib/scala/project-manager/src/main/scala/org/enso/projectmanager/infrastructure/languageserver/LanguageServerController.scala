@@ -45,6 +45,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.util.UnhandledLogging
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
 import scala.concurrent.duration._
 
@@ -56,13 +57,15 @@ import scala.concurrent.duration._
   * @param bootloaderConfig a bootloader config
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
+  * @param distributionConfiguration
   */
 class LanguageServerController(
   project: Project,
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
   supervisionConfig: SupervisionConfig,
-  timeoutConfig: TimeoutConfig
+  timeoutConfig: TimeoutConfig,
+  distributionConfiguration: DistributionConfiguration
 ) extends Actor
     with ActorLogging
     with Stash
@@ -287,6 +290,7 @@ object LanguageServerController {
     * @param bootloaderConfig a bootloader config
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
+    * @param distributionConfiguration
     * @return a configuration object
     */
   def props(
@@ -294,7 +298,8 @@ object LanguageServerController {
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
     supervisionConfig: SupervisionConfig,
-    timeoutConfig: TimeoutConfig
+    timeoutConfig: TimeoutConfig,
+    distributionConfiguration: DistributionConfiguration
   ): Props =
     Props(
       new LanguageServerController(
@@ -302,7 +307,8 @@ object LanguageServerController {
         networkConfig,
         bootloaderConfig,
         supervisionConfig,
-        timeoutConfig
+        timeoutConfig,
+        distributionConfiguration
       )
     )
 

@@ -38,7 +38,7 @@ import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -217,6 +217,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "std-in-controller"
     )
 
+  val initializationFinished = Promise[Unit]()
+
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
@@ -226,7 +228,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     stdOutController,
     stdErrController,
     stdInController,
-    runtimeConnector
+    runtimeConnector,
+    initializationFinished.future
   )
   log.trace("Created JsonConnectionControllerFactory")
 

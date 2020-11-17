@@ -65,15 +65,33 @@ class Runner(
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
     additionalArguments: Seq[String]
+  ): Try[RunSettings] = {
+    val version     = versionOverride.getOrElse(project.version)
+    val projectPath = project.path.toAbsolutePath.normalize.toString
+    startLanguageServer(
+      options,
+      projectPath,
+      version,
+      logLevel,
+      additionalArguments
+    )
+  }
+
+  /** Creates [[RunSettings]] for launching the Language Server. */
+  def startLanguageServer(
+    options: LanguageServerOptions,
+    projectPath: String,
+    version: SemVer,
+    logLevel: LogLevel,
+    additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
-      val version = versionOverride.getOrElse(project.version)
       val arguments = Seq(
         "--server",
         "--root-id",
         options.rootId.toString,
         "--path",
-        project.path.toAbsolutePath.normalize.toString,
+        projectPath,
         "--interface",
         options.interface,
         "--rpc-port",

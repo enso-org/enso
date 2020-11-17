@@ -5,6 +5,8 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 
+import scala.concurrent.Future
+
 /** Language server client controller factory.
   *
   * @param bufferRegistry the buffer registry actor ref
@@ -20,7 +22,8 @@ class JsonConnectionControllerFactory(
   stdOutController: ActorRef,
   stdErrController: ActorRef,
   stdInController: ActorRef,
-  runtimeConnector: ActorRef
+  runtimeConnector: ActorRef,
+  initializationFinished: Future[Unit]
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
 
@@ -41,7 +44,8 @@ class JsonConnectionControllerFactory(
         stdOutController,
         stdErrController,
         stdInController,
-        runtimeConnector
+        runtimeConnector,
+        initializationFinished
       )
     )
 }

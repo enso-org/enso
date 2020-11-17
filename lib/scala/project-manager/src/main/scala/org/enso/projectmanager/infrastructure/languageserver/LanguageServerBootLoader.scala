@@ -147,4 +147,6 @@ object LanguageServerBootLoader {
     server: LanguageServerComponent
   )
 
+  case class ServerTerminated(exitCode: Int)
+
 }
