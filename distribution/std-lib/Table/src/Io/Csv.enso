@@ -1,5 +1,5 @@
 from Base import all
-import Table.Table
+import Table.Data.Table
 
 polyglot java import org.enso.table.format.csv.Parser
 

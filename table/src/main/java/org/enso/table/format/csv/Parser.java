@@ -2,9 +2,9 @@ package org.enso.table.format.csv;
 
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import org.enso.table.data.column.Storage;
-import org.enso.table.data.column.builder.StorageBuilder;
-import org.enso.table.data.column.builder.PrimInferredStorageBuilder;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.builder.string.StorageBuilder;
+import org.enso.table.data.column.builder.string.PrimInferredStorageBuilder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 

@@ -1,12 +1,12 @@
-package org.enso.table.data.column.builder;
+package org.enso.table.data.column.builder.string;
 
-import org.enso.table.data.column.Storage;
-import org.enso.table.data.column.StringStorage;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 
 /** A column builder appending all the values passed to it in an unchanged form. */
 public class StringStorageBuilder extends StorageBuilder {
 
-  private String[] data;
+  private Object[] data;
   private int size;
 
   /**
@@ -37,7 +37,7 @@ public class StringStorageBuilder extends StorageBuilder {
 
   private void ensureAppendable() {
     if (size >= data.length) {
-      String[] newData = new String[2 * data.length];
+      Object[] newData = new Object[2 * data.length];
       System.arraycopy(data, 0, newData, 0, data.length);
       data = newData;
     }

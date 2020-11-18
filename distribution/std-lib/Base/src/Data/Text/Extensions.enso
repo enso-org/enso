@@ -176,3 +176,47 @@ Text.to_json = Json.String this
 Text.repeat : Integer -> Text
 Text.repeat count =
     0.up_to count . fold "" acc-> _-> acc + this
+
+## Creates a new text by removing the first `count` characters of `this`.
+   If `count` is greater than the number of characters in `this`, an empty text
+   is returned.
+Text.drop_first : Integer -> Text
+Text.drop_first count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.first []
+    boundary = iterator.next [count]
+    if boundary == -1 then '' else Text_Utils.drop_first [this, boundary]
+
+## Creates a new text by removing the last `count` characters of `this`.
+   If `count` is greater than the number of characters in `this`, an empty text
+   is returned.
+Text.drop_last : Integer -> Text
+Text.drop_last count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.last []
+    boundary = iterator.next [-count]
+    if boundary == -1 then '' else Text_Utils.substring [this, 0, boundary]
+
+## Creates a new text by selecting the first `count` characters of `this`.
+   If `count` is greater than the number of characters in `this`, the whole
+   `this` is returned.
+Text.take_first : Integer -> Text
+Text.take_first count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.first []
+    boundary = iterator.next [count]
+    if boundary == -1 then this else Text_Utils.substring [this, 0, boundary]
+
+## Creates a new text by selecting the last `count` characters of `this`.
+   If `count` is greater than the number of characters in `this`, the whole
+   `this` is returned.
+Text.take_last : Integer -> Text
+Text.take_last count =
+    iterator = BreakIterator.getCharacterInstance []
+    iterator.setText [this]
+    iterator.last []
+    boundary = iterator.next [-count]
+    if boundary == -1 then this else Text_Utils.drop_first [this, boundary]

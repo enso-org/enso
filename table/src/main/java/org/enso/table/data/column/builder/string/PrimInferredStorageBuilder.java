@@ -1,8 +1,8 @@
-package org.enso.table.data.column.builder;
+package org.enso.table.data.column.builder.string;
 
-import org.enso.table.data.column.DoubleStorage;
-import org.enso.table.data.column.LongStorage;
-import org.enso.table.data.column.Storage;
+import org.enso.table.data.column.storage.DoubleStorage;
+import org.enso.table.data.column.storage.LongStorage;
+import org.enso.table.data.column.storage.Storage;
 
 import java.util.BitSet;
 

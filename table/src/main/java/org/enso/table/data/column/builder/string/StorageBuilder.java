@@ -1,6 +1,6 @@
-package org.enso.table.data.column.builder;
+package org.enso.table.data.column.builder.string;
 
-import org.enso.table.data.column.Storage;
+import org.enso.table.data.column.storage.Storage;
 
 /** A builder used by the parser to add items into a column. */
 public abstract class StorageBuilder {

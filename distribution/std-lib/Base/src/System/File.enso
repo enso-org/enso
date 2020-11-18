@@ -297,3 +297,6 @@ read path = (here.new path).read
 current_directory : File
 current_directory = File (Prim_Io.get_cwd)
 
+## Returns the home directory of the current user.
+home : File
+home = here.new (Prim_Io.get_user_home)

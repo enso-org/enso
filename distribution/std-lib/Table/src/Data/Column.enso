@@ -1,0 +1,143 @@
+from Base import all
+import Table.Data.Table
+
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+type Column
+    type Column java_column
+
+    ## Returns a text containing an ASCII-art table displaying this data.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    display : Integer -> Text
+    display show_rows=10 =
+        java_col = this.java_column
+        col_name = java_col.getName []
+        storage = java_col.getStorage []
+        num_rows = java_col.getSize []
+        display_rows = min num_rows show_rows
+        items = Vector.new display_rows num->
+            [if storage.isNa [num] then "NA" else here.get_item_string storage num]
+        table = Table.print_table [col_name] items
+        if num_rows - display_rows <= 0 then table else
+            missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
+            table + missing
+
+    ## Prints an ASCII-art table with this data to the standard output.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    print show_rows=10 =
+        IO.println (this.display show_rows)
+
+    ## Element-wise equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+    == : Any -> Column
+    == other =
+        here.run_vectorized_op this "==" (== other) other
+
+    ## Element-wise non-equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+    != : Any -> Column
+    != other = (this == other).not
+
+    ## Boolean negation of each element in this column.
+    not : Column
+    not =
+        here.run_vectorized_op this "not" not Nothing
+
+    ## Applies `function` to each item in this column and returns the column
+       of results.
+    map function =
+        storage = this.java_column.getStorage []
+        new_st = storage.map [function]
+        col = Java_Column.new ["Result", new_st].to_array
+        Column col
+
+    ## Returns a new column, containing the same elements as `this`, but with
+       the given name.
+    rename name = Column (this.java_column.rename [name])
+
+    ## Returns the name of this column.
+    name = this.java_column.getName []
+
+    ## Returns the length of this column.
+    length = this.java_column . getSize []
+
+    ## Returns the item contained in this column at the given index.
+    at index =
+        storage = this.java_column.getStorage []
+        if storage.isNa [index] then Nothing else
+            storage.getItem [index]
+
+    ## Returns a vector containing all the elements in this column.
+    to_vector = Vector.new this.length this.at
+
+    ## Returns the underlying storage type of this column.
+    storage_type =
+        tp = this.java_column.getStorage [] . getType []
+        if tp == Storage_Type_String then Text else
+            if tp == Storage_Type_Long then Integer else
+                if tp == Storage_Type_Double then Decimal else
+                    if tp == Storage_Type_Bool then Boolean else
+                        Any
+
+    ## Converts this column to JSON.
+    to_json =
+        col = this.java_column
+        name = col.getName []
+        storage = col.getStorage []
+        json_factory = case this.storage_type of
+            Text -> Json.String
+            Integer -> Json.Number
+            Decimal -> Json.Number
+            Boolean -> Json.Boolean
+            _ -> to_json
+        storage_json = Json.Array (here.storage_to_json storage json_factory)
+        fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
+        Json.Object fields
+
+## Creates a new column given a name and a vector of elements.
+from_vector name items = Column (Java_Column.fromItems [name, items.to_array])
+
+## PRIVATE
+run_vectorized_op column java_op_name fallback_method operand =
+    storage = column.java_column.getStorage []
+    rs = if storage.isOpVectorized [java_op_name] then storage.runVectorizedOp [java_op_name, operand] else
+        storage.map [fallback_method]
+    Column (Java_Column.new ["Result", rs].to_array)
+
+
+## PRIVATE
+
+   Keep this in sync with `org.enso.table.data.Storage.Type.LONG`
+storage_type_long = 1
+
+## PRIVATE
+
+   Keep this in sync with `org.enso.table.data.Storage.Type.DOUBLE`
+storage_type_double = 2
+
+## PRIVATE
+
+   Keep this in sync with `org.enso.table.data.Storage.Type.STRING`
+storage_type_string = 3
+
+## PRIVATE
+
+   Keep this in sync with `org.enso.table.data.Storage.Type.BOOL`
+storage_type_bool = 4
+
+## PRIVATE
+storage_to_json storage factory =
+    Vector.new (storage.size []) ix->
+        if storage.isNa [ix] then Json.Null else
+            factory (storage.getItem [ix])
+
+## PRIVATE
+get_item_string column ix =
+    tp = column.getType []
+    if tp == Storage_Type_String then column.getItem [ix] else
+        column.getItem [ix] . to_text
+
