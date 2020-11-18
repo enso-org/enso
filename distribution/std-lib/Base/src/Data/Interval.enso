@@ -4,13 +4,21 @@ import Base.Data.Interval.Bound
 
 export Base.Data.Interval.Bound
 
+## Create an interval that excludes both its bounds.
+
+   > Example
+     Create the bounds-exclusive range from 1 to 5.
+         Interval.exclusive 1 5
+exclusive : Any -> Any -> Interval
+exclusive start end = Interval (Bound.Exclusive start) (Bound.Exclusive end)
+
 ## Create an interval that excludes its upper bound.
 
    > Example
-     Create the exclusive range from 1 to 5.
-         Interval.exclusive 1 5
-exclusive : Any -> Any -> Interval
-exclusive start end = Interval (Bound.Inclusive start) (Bound.Exclusive end)
+     Create the end-exclusive range from 1 to 5.
+         Interval.end_exclusive 1 5
+end_exclusive : Any -> Any -> Interval
+end_exclusive start end = Interval (Bound.Inclusive start) (Bound.Exclusive end)
 
 ## Create an interval that includes its upper bound.
 
@@ -30,7 +38,7 @@ type Interval
          Checking if the interval 1 to 5 contains 7.
              (Interval.inclusive 1 5) . contains 7
     contains : Any -> Boolean
-    contains that = if this.start > this.end then False else
+    contains that = if this.start.n > this.end.n then False else
         case this.start of
             Bound.Exclusive s -> (that > s) && case this.end of
                 Bound.Exclusive e -> that < e
@@ -41,7 +49,13 @@ type Interval
 
     ## Check if this interval is empty.
     is_empty : Boolean
-    is_empty = this.start > this.end
+    is_empty = case this.start of
+        Bound.Exclusive s -> case this.end of
+            Bound.Exclusive e -> s >= e
+            Bound.Inclusive e -> s > e
+        Bound.Inclusive s -> case this.end of
+            Bound.Exclusive e -> s >= e
+            Bound.Inclusive e -> s > e
 
     ## Check if this interval is not empty.
     not_empty : Boolean
