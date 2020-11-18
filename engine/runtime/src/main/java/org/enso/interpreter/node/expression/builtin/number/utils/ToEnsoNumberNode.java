@@ -14,9 +14,6 @@ import java.math.BigInteger;
 public class ToEnsoNumberNode extends Node {
   private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
 
-  private static final BigInteger MIN_LONG_BIGINT = BigInteger.valueOf(Long.MIN_VALUE);
-  private static final BigInteger MAX_LONG_BIGINT = BigInteger.valueOf(Long.MAX_VALUE);
-
   /** @return a new instance of this node. */
   public static ToEnsoNumberNode build() {
     return new ToEnsoNumberNode();
@@ -30,15 +27,10 @@ public class ToEnsoNumberNode extends Node {
    *     org.enso.interpreter.runtime.number.EnsoBigInteger} otherwise.
    */
   public Object execute(BigInteger bigInteger) {
-    if (fitsProfile.profile(fitsInLong(bigInteger))) {
+    if (fitsProfile.profile(BigIntegerOps.fitsInLong(bigInteger))) {
       return toLong(bigInteger);
     }
     return new EnsoBigInteger(bigInteger);
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private static boolean fitsInLong(BigInteger bigInteger) {
-    return bigInteger.compareTo(MIN_LONG_BIGINT) >= 0 && bigInteger.compareTo(MAX_LONG_BIGINT) <= 0;
   }
 
   @CompilerDirectives.TruffleBoundary

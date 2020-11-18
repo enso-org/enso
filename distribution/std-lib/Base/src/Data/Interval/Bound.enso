@@ -1,0 +1,11 @@
+from Base import all
+
+## A type representing an interval bound over any orderable type.
+
+   An orderable type is one that
+type Bound
+    ## A bound that includes `n`.
+    type Inclusive n
+
+    ## A bound that excludes `n`.
+    type Exclusive n
