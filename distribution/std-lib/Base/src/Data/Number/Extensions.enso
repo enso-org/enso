@@ -96,4 +96,8 @@ Number.max that = if this > that then this else that
 Number.to_json : Json.Number
 Number.to_json = Json.Number this
 
-Decimal.parse text = Double.parseDouble [text]
+## Parses a textual representation of a decimal into a decimal number.
+   Returns `Nothing` if the text does not represent a valid decimal.
+Decimal.parse : Text -> Decimal | Nothing
+Decimal.parse text =
+    Panic.recover (Double.parseDouble [text]) . catch (_ -> Nothing)

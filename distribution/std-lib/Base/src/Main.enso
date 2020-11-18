@@ -25,7 +25,7 @@ export Base.System.File
 
 from Base.Data.Any.Extensions export all
 from Base.Data.List export Nil, Cons
-from Base.Data.Number.Extensions export all hiding Math, String
+from Base.Data.Number.Extensions export all hiding Math, String, Double
 from Base.Data.Pair export Pair
 from Base.Data.Range export Range
 from Base.Data.Text.Extensions export Text
