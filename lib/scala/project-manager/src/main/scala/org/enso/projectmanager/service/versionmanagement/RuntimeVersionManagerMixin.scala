@@ -28,8 +28,8 @@ trait RuntimeVersionManagerMixin {
     */
   def makeRuntimeVersionManager(
     progressTracker: ActorRef,
-    allowMissingComponents: Boolean,
-    allowBrokenComponents: Boolean
+    allowMissingComponents: Boolean = false,
+    allowBrokenComponents: Boolean  = false
   ): RuntimeVersionManager =
     distributionConfiguration.makeRuntimeVersionManager(
       new ControllerInterface(

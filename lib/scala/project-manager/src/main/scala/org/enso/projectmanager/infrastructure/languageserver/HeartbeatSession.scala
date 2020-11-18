@@ -17,7 +17,10 @@ import org.enso.projectmanager.infrastructure.languageserver.HeartbeatSession.{
   HeartbeatTimeout,
   SocketClosureTimeout
 }
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.ServerUnresponsive
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
+  HeartbeatReceived,
+  ServerUnresponsive
+}
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -28,12 +31,16 @@ import scala.concurrent.duration.FiniteDuration
   * @param timeout a session timeout
   * @param connectionFactory a web socket connection factory
   * @param scheduler a scheduler
+  * @param method api method to use for the heartbeat message
+  * @param sendConfirmations whether to send [[HeartbeatReceived]] to confirm response
   */
 class HeartbeatSession(
   socket: Socket,
   timeout: FiniteDuration,
   connectionFactory: WebSocketConnectionFactory,
-  scheduler: Scheduler
+  scheduler: Scheduler,
+  method: String,
+  sendConfirmations: Boolean
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -57,7 +64,7 @@ class HeartbeatSession(
       connection.send(s"""
                          |{ 
                          |   "jsonrpc": "2.0",
-                         |   "method": "heartbeat/ping",
+                         |   "method": "$method",
                          |   "id": "$requestId",
                          |   "params": null
                          |}
@@ -86,6 +93,11 @@ class HeartbeatSession(
         case Right(id) =>
           if (id == requestId.toString) {
             log.debug(s"Received correct pong message from $socket")
+
+            if (sendConfirmations) {
+              context.parent ! HeartbeatReceived
+            }
+
             cancellable.cancel()
             connection.disconnect()
             val closureTimeout =
@@ -156,7 +168,8 @@ object HeartbeatSession {
     */
   case object SocketClosureTimeout
 
-  /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
+  /** Creates a configuration object used to create a normal
+    * [[HeartbeatSession]].
     *
     * @param socket a server socket
     * @param timeout a session timeout
@@ -170,6 +183,41 @@ object HeartbeatSession {
     connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler
   ): Props =
-    Props(new HeartbeatSession(socket, timeout, connectionFactory, scheduler))
+    Props(
+      new HeartbeatSession(
+        socket,
+        timeout,
+        connectionFactory,
+        scheduler,
+        "heartbeat/ping",
+        false
+      )
+    )
+
+  /** Creates a configuration object used to create an initial
+    * [[HeartbeatSession]].
+    *
+    * @param socket a server socket
+    * @param timeout a session timeout
+    * @param connectionFactory a web socket connection factory
+    * @param scheduler a scheduler
+    * @return a configuration object
+    */
+  def initialProps(
+    socket: Socket,
+    timeout: FiniteDuration,
+    connectionFactory: WebSocketConnectionFactory,
+    scheduler: Scheduler
+  ): Props =
+    Props(
+      new HeartbeatSession(
+        socket,
+        timeout,
+        connectionFactory,
+        scheduler,
+        "heartbeat/init",
+        true
+      )
+    )
 
 }

@@ -1,7 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.Status.Failure
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.boot.{
   LanguageServerComponent,
@@ -71,8 +71,12 @@ class LanguageServerBootLoader(
         descriptor.name,
         context.dispatcher
       )
+
+      // TODO swap to LanguageServerProcess and also add Preinstall state
       val server = new LanguageServerComponent(config)
       server.start().map(_ => config -> server) pipeTo self
+
+      context.actorOf(LanguageServerProcess.props()) // TODO
 
     case Failure(th) =>
       log.error(
@@ -140,11 +144,11 @@ object LanguageServerBootLoader {
   /** Signals that server booted successfully.
     *
     * @param config a server config
-    * @param server a server lifecycle component
+    * @param serverProcess a server process
     */
   case class ServerBooted(
     config: LanguageServerConfig,
-    server: LanguageServerComponent
+    serverProcess: ActorRef
   )
 
   case class ServerTerminated(exitCode: Int)

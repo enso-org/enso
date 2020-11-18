@@ -6,6 +6,7 @@ import akka.actor.Status.Failure
 import akka.actor.{
   Actor,
   ActorLogging,
+  ActorRef,
   Cancellable,
   Props,
   Scheduler,
@@ -31,14 +32,14 @@ import org.enso.projectmanager.util.UnhandledLogging
   * monitoring to the [[HeartbeatSession]] actor.
   *
   * @param config a server config
-  * @param server a server handle
+  * @param serverProcess a server handle
   * @param supervisionConfig a supervision config
   * @param connectionFactory a web socket connection factory
   * @param scheduler a scheduler
   */
 class LanguageServerSupervisor(
   config: LanguageServerConfig,
-  server: LifecycleComponent,
+  serverProcess: ActorRef,
   supervisionConfig: SupervisionConfig,
   connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler
@@ -84,7 +85,8 @@ class LanguageServerSupervisor(
       log.info(s"Server is unresponsive [$config]. Restarting it...")
       cancellable.cancel()
       log.info(s"Restarting first time the server")
-      server.restart() pipeTo self
+      // FIXME [RW]
+//      server.restart() pipeTo self
       context.become(restarting())
 
     case GracefulStop =>
@@ -95,7 +97,8 @@ class LanguageServerSupervisor(
   private def restarting(restartCount: Int = 1): Receive = {
     case RestartServer =>
       log.info(s"Restarting $restartCount time the server")
-      server.restart() pipeTo self
+      // FIXME [RW]
+//      server.restart() pipeTo self
       ()
 
     case Failure(th) =>
@@ -160,10 +163,13 @@ object LanguageServerSupervisor {
     */
   case object ServerUnresponsive
 
+  /** Signals that the heartbeat has been received (only sent if demanded). */
+  case object HeartbeatReceived
+
   /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
     *
     * @param config a server config
-    * @param server a server handle
+    * @param serverProcess a server handle
     * @param supervisionConfig a supervision config
     * @param connectionFactory a web socket connection factory
     * @param scheduler a scheduler
@@ -171,7 +177,7 @@ object LanguageServerSupervisor {
     */
   def props(
     config: LanguageServerConfig,
-    server: LifecycleComponent,
+    serverProcess: ActorRef,
     supervisionConfig: SupervisionConfig,
     connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler
@@ -179,7 +185,7 @@ object LanguageServerSupervisor {
     Props(
       new LanguageServerSupervisor(
         config,
-        server,
+        serverProcess,
         supervisionConfig,
         connectionFactory,
         scheduler

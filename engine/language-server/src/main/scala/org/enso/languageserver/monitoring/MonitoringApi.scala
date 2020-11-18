@@ -17,7 +17,7 @@ object MonitoringApi {
     }
   }
 
-  case object InitializationNotify extends Method("heartbeat/ping") {
+  case object InitializationNotify extends Method("heartbeat/init") {
     implicit val hasParams = new HasParams[this.type] {
       type Params = Unused.type
     }

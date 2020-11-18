@@ -153,7 +153,7 @@ class LanguageServerController(
 
   private def supervising(
     config: LanguageServerConfig,
-    server: LanguageServerComponent,
+    serverProcess: ActorRef,
     clients: Set[UUID] = Set.empty
   ): Receive = {
     case StartServer(clientId, _) =>
