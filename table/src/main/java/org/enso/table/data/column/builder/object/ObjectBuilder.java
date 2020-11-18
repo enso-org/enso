@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder.object;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.Storage;
 
+/** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder {
   private final Object[] data;
   private final int size;

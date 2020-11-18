@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.function.Function;
 
 /** A column storing 64-bit integers. */
 public class LongStorage extends Storage {
@@ -33,6 +32,11 @@ public class LongStorage extends Storage {
    */
   public long getItem(long idx) {
     return data[(int) idx];
+  }
+
+  @Override
+  public Object getItemBoxed(int idx) {
+    return isMissing.get(idx) ? null : data[idx];
   }
 
   /** @inheritDoc */
@@ -89,10 +93,5 @@ public class LongStorage extends Storage {
       }
     }
     return new LongStorage(newData, cardinality, newMissing);
-  }
-
-  @Override
-  public Storage map(Function<Object, Object> function) {
-    return null;
   }
 }

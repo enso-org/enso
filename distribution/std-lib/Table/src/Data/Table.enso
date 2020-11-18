@@ -27,6 +27,10 @@ type Table
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
 
+    ## Prints an ASCII-art table with this data to the standard output.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
     print show_rows=10 =
         IO.println (this.display show_rows)
 
@@ -38,18 +42,43 @@ type Table
         fields = Map.singleton "columns" cols_json
         Json.Object fields
 
-    at name = Column.Column (this.java_table.getColumnByName [name])
+    ## Returns the column with the given name.
+    at : Text -> Column | Nothing
+    at name = case this.java_table.getColumnByName [name] of
+        Nothing -> Nothing
+        c -> Column.Column c
 
+    ## Selects only the rows of this table that correspond to `True` values in
+       `indexes`.
+       This is useful for filtering the rows by given predicate.
+       > Example
+         Select only the rows of `my_table` where the `"Status"` column has the
+         value `"Valid"`
+             my_table.where (my_table.at "Status" == "Valid")
     where indexes =
-        Table (this.java_table.mask [indexes.java_column, False])
+        Table (this.java_table.mask [indexes.java_column])
 
+    ## Sets the column value at the given name. If a column with the given name
+       already exists, it will be replaced. Otherwise a new column is added.
     set name column =
         Table (this.java_table.addOrReplaceColumn [column.rename name . java_column])
 
+    ## Returns the vector of columns contained in this table.
     columns =
         Vector.Vector (this.java_table.getColumns []) . map Column.Column
 
+## PRIVATE
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
+
+## Creates a new table from a vector of `[name, items]` pairs.
+
+   > Example
+     Create a new table with the given in two columns:
+         Table.new [["foo", [1, 2, 3]], ["bar", [True, False, True]]]
+new columns =
+    cols = columns.map c->
+        Column.from_vector (c.at 0) (c.at 1) . java_column
+    here.from_columns cols
 
 ## PRIVATE
 pad txt len =

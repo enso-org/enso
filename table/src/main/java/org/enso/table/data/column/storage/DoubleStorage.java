@@ -36,6 +36,11 @@ public class DoubleStorage extends Storage {
     return Double.longBitsToDouble(data[(int) idx]);
   }
 
+  @Override
+  public Object getItemBoxed(int idx) {
+    return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
+  }
+
   /** @inheritDoc */
   @Override
   public long getType() {
@@ -92,10 +97,5 @@ public class DoubleStorage extends Storage {
       }
     }
     return new DoubleStorage(newData, cardinality, newMissing);
-  }
-
-  @Override
-  public Storage map(Function<Object, Object> function) {
-    return null;
   }
 }

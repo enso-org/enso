@@ -1,8 +1,10 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.function.Function;
 
+/**
+ * A boolean column storage.
+ */
 public class BoolStorage extends Storage {
   private final BitSet values;
   private final BitSet isMissing;
@@ -26,6 +28,11 @@ public class BoolStorage extends Storage {
     return Type.BOOL;
   }
 
+  @Override
+  public Object getItemBoxed(int idx) {
+    return isMissing.get(idx) ? null : values.get(idx);
+  }
+
   public boolean getItem(long idx) {
     return negated != values.get((int) idx);
   }
@@ -37,13 +44,15 @@ public class BoolStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return op.equals("==");
+    return op.equals(Ops.EQ) || op.equals(Ops.NOT);
   }
 
   @Override
   public Storage runVectorizedOp(String name, Object operand) {
     if (Ops.EQ.equals(name)) {
       return runVectorizedEq(operand);
+    } else if (Ops.NOT.equals(name)) {
+      return new BoolStorage(values, isMissing, size, !negated);
     }
     throw new UnsupportedOperationException();
   }
@@ -87,15 +96,6 @@ public class BoolStorage extends Storage {
       }
     }
     return new BoolStorage(newValues, newMissing, cardinality, negated);
-  }
-
-  public BoolStorage not() {
-    return new BoolStorage(values, isMissing, size, !negated);
-  }
-
-  @Override
-  public Storage map(Function<Object, Object> function) {
-    return null;
   }
 
   public boolean isNegated() {

@@ -35,6 +35,11 @@ public class ObjectStorage extends Storage {
     return data[(int) idx];
   }
 
+  @Override
+  public Object getItemBoxed(int idx) {
+    return data[idx];
+  }
+
   /** @inheritDoc */
   @Override
   public long getType() {
@@ -67,20 +72,6 @@ public class ObjectStorage extends Storage {
       }
     }
     return new ObjectStorage(newData, cardinality);
-  }
-
-  @Override
-  public Storage map(Function<Object, Object> function) {
-    Builder builder = new InferredBuilder(size);
-    for (int i = 0; i < size; i++) {
-      if (data[i] == null) {
-        builder.append(null);
-      } else {
-        builder.append(function.apply(data[i]));
-      }
-    }
-    Storage result = builder.seal();
-    return result;
   }
 
   protected Object[] getData() {

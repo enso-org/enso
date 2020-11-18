@@ -6,6 +6,9 @@ import org.enso.table.data.column.storage.Storage;
 
 import java.util.BitSet;
 
+/**
+ * A builder for numeric columns.
+ */
 public class NumericBuilder extends TypedBuilder {
   private boolean isDouble;
   private int currentSize;

@@ -2,11 +2,19 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
 
+/**
+ * A builder performing type inference on the appended elements, choosing the best possible storage.
+ */
 public class InferredBuilder extends Builder {
   private TypedBuilder currentBuilder = null;
   private int currentSize = 0;
   private final int size;
 
+  /**
+   * Creates a new instance of this builder, with the given known result size.
+   *
+   * @param size the result size
+   */
   public InferredBuilder(int size) {
     this.size = size;
   }
@@ -68,7 +76,7 @@ public class InferredBuilder extends Builder {
       currentBuilder = new BoolBuilder();
     } else if (o instanceof Double) {
       currentBuilder = NumericBuilder.createDoubleBuilder(size);
-    } else if (o instanceof Integer) {
+    } else if (o instanceof Long) {
       currentBuilder = NumericBuilder.createLongBuilder(size);
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(size);

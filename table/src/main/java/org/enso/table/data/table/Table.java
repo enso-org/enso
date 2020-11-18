@@ -1,6 +1,7 @@
 package org.enso.table.data.table;
 
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.error.UnexpectedColumnTypeException;
 
 import java.util.BitSet;
 
@@ -32,6 +33,12 @@ public class Table {
     return columns;
   }
 
+  /**
+   * Returns a column with the given name, or null if it doesn't exist.
+   *
+   * @param name the column name
+   * @return a column with the given name
+   */
   public Column getColumnByName(String name) {
     for (Column column : columns) {
       if (column.getName().equals(name)) {
@@ -41,7 +48,17 @@ public class Table {
     return null;
   }
 
-  public Table mask(Column maskCol, boolean naVal) {
+  /**
+   * Returns a table resulting from selecting only the rows corresponding to true entries in the
+   * provided column.
+   *
+   * @param maskCol the masking column
+   * @return the result of masking this table with the provided column
+   */
+  public Table mask(Column maskCol) {
+    if (!(maskCol.getStorage() instanceof BoolStorage)) {
+      throw new UnexpectedColumnTypeException("Boolean");
+    }
     BoolStorage storage = (BoolStorage) maskCol.getStorage();
     BitSet mask = new BitSet();
     mask.or(storage.getValues());
@@ -57,6 +74,12 @@ public class Table {
     return new Table(newColumns);
   }
 
+  /**
+   * Adds a column, or replaces it, by name.
+   *
+   * @param newColumn the column to include.
+   * @return a new table containing the specified column.
+   */
   public Table addOrReplaceColumn(Column newColumn) {
     int existingIx = -1;
     for (int i = 0; i < columns.length; i++) {

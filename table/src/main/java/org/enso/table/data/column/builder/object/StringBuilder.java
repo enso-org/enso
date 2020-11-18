@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder.object;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 
+/** A builder for string columns. */
 public class StringBuilder extends TypedBuilder {
   private final Object[] data;
   private final int size;

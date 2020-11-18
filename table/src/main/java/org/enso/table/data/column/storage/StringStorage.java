@@ -1,10 +1,6 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.builder.object.BoolBuilder;
-import org.enso.table.data.column.builder.object.Builder;
-
 import java.util.BitSet;
-import java.util.function.Function;
 
 /** A column storing strings. */
 public class StringStorage extends ObjectStorage {

@@ -16,7 +16,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 @ReportPolymorphism
 @GenerateUncached
 public abstract class HostValueToEnsoNode extends Node {
-
   public static HostValueToEnsoNode build() {
     return HostValueToEnsoNodeGen.create();
   }
@@ -62,7 +61,7 @@ public abstract class HostValueToEnsoNode extends Node {
   @Specialization(guards = "nulls.isNull(o)")
   Atom doNull(
       Object o,
-      @CachedLibrary(limit="3") InteropLibrary nulls,
+      @CachedLibrary(limit = "3") InteropLibrary nulls,
       @CachedContext(Language.class) Context ctx) {
     return ctx.getBuiltins().nothing().newInstance();
   }

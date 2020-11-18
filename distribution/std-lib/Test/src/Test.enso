@@ -45,19 +45,6 @@ type Verbs
 
 Any.should verb argument = Verbs.verb this argument
 
-expect_fail_with ~action matcher =
-    res = Panic.recover action
-    case res of
-        _ -> here.fail "no exception"
-    err = res.catch x->x
-    case Meta.meta matcher of
-        Meta.Atom _ -> if err == matcher then Success else here.fail "expected to throw blah but blah thrown"
-        Meta.Constructor _ ->
-            meta_err = Meta.meta err
-            case meta_err of
-                Meta.Atom _ -> if meta_err.constructor == matcher then Success else here.fail "some msg"
-                _ -> # fail because the thingy is not an instance
-
 ## Fail a test with the given message.
 fail message = Panic.throw (Failure message)
 
