@@ -61,8 +61,8 @@ expect_fail_with ~action matcher =
             meta_err = Meta.meta err
             case meta_err of
                 Meta.Atom _ -> if meta_err.constructor == matcher then Success else
-                    here.fail "Unexpected error " + matcher + " thrown."
-                _ -> here.fail "Incorrect instance " + matcher + "."
+                    here.fail ("Unexpected error " + matcher + " thrown.")
+                _ -> here.fail ("Incorrect instance " + matcher + ".")
 
 ## Asserts that `this` value is equal to the expected value.
 Any.should_equal that = case this == that of
