@@ -4,7 +4,7 @@ import Base.Data.Interval.Bound
 
 export Base.Data.Interval.Bound
 
-## Create an interval that excludes both its bounds.
+## Creates an interval that excludes both its bounds.
 
    > Example
      Create the bounds-exclusive range from 1 to 5.
@@ -12,7 +12,15 @@ export Base.Data.Interval.Bound
 exclusive : Any -> Any -> Interval
 exclusive start end = Interval (Bound.Exclusive start) (Bound.Exclusive end)
 
-## Create an interval that excludes its upper bound.
+## Creates an interval that excludes its lower bound.
+
+   > Example
+     Create the start-exclusive range from 1 to 5.
+         Interval.start_exclusive 1 5
+start_exclusive : Any -> Any -> Interval
+start_exclusive start end = Interval (Bound.Exclusive start) (Bound.Inclusive end)
+
+## Creates an interval that excludes its upper bound.
 
    > Example
      Create the end-exclusive range from 1 to 5.
@@ -20,7 +28,7 @@ exclusive start end = Interval (Bound.Exclusive start) (Bound.Exclusive end)
 end_exclusive : Any -> Any -> Interval
 end_exclusive start end = Interval (Bound.Inclusive start) (Bound.Exclusive end)
 
-## Create an interval that includes its upper bound.
+## Creates an interval that includes its upper bound.
 
    > Example
      Create the inclusive range from 1 to 5.
@@ -52,7 +60,7 @@ type Interval
     is_empty = case this.start of
         Bound.Exclusive s -> case this.end of
             Bound.Exclusive e -> s >= e
-            Bound.Inclusive e -> s > e
+            Bound.Inclusive e -> s >= e
         Bound.Inclusive s -> case this.end of
             Bound.Exclusive e -> s >= e
             Bound.Inclusive e -> s > e

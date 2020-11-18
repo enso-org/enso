@@ -134,7 +134,6 @@ public class BigIntegerOps {
     return bigInteger.compareTo(MIN_LONG_BIGINT) >= 0 && bigInteger.compareTo(MAX_LONG_BIGINT) <= 0;
   }
 
-  @CompilerDirectives.TruffleBoundary
   public static boolean fitsInLong(double decimal) {
     return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
   }

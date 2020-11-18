@@ -25,6 +25,10 @@ spec =
             interval = Interval.exclusive 1 5
             interval.start . should_equal (Interval.Bound.Exclusive 1)
             interval.end . should_equal (Interval.Bound.Exclusive 5)
+        it "should allow constructing start-exclusive intervals" <|
+            interval = Interval.start_exclusive 1 5
+            interval.start . should_equal (Interval.Bound.Exclusive 1)
+            interval.end . should_equal (Interval.Bound.Inclusive 5)
         it "should allow constructing end-exclusive intervals" <|
             interval = Interval.end_exclusive 1 5
             interval.start . should_equal (Interval.Bound.Inclusive 1)
@@ -61,22 +65,26 @@ spec =
             interval_5.contains 0 . should_be_false
             interval_5.contains 1 . should_be_false
 
-            interval_6 = Interval.Interval (Interval.Bound.Exclusive 0) (Interval.Bound.Inclusive 0)
+            interval_6 = Interval.start_exclusive 0 0
             interval_6.contains -1 . should_be_false
             interval_6.contains 0 . should_be_false
             interval_6.contains 1 . should_be_false
         it "can be checked for emptiness" <|
-            Interval.exclusive 1 10 . is_empty . should_be_false
             Interval.exclusive 0 0 . is_empty . should_be_true
-            Interval.end_exclusive 1 10 . is_empty . should_be_false
+            Interval.exclusive 1 10 . is_empty . should_be_false
+            Interval.start_exclusive 0 0 . is_empty . should_be_true
+            Interval.start_exclusive 1 10 . is_empty . should_be_false
             Interval.end_exclusive 0 0  . is_empty . should_be_true
+            Interval.end_exclusive 1 10 . is_empty . should_be_false
             Interval.inclusive 0 0 . is_empty . should_be_false
             Interval.inclusive 10 0 . is_empty . should_be_true
         it "can be checked for non-emptiness" <|
-            Interval.exclusive 1 10 . not_empty . should_be_true
             Interval.exclusive 0 0 . not_empty . should_be_false
-            Interval.end_exclusive 1 10 . not_empty . should_be_true
+            Interval.exclusive 1 10 . not_empty . should_be_true
+            Interval.start_exclusive 0 0 . not_empty . should_be_false
+            Interval.start_exclusive 1 10 . not_empty . should_be_true
             Interval.end_exclusive 0 0  . not_empty . should_be_false
+            Interval.end_exclusive 1 10 . not_empty . should_be_true
             Interval.inclusive 0 0 . not_empty . should_be_true
             Interval.inclusive 10 0 . not_empty . should_be_false
 

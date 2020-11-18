@@ -9,13 +9,3 @@ type Bound
 
     ## A bound that excludes `n`.
     type Exclusive n
-
-    ## Compares two bounds for equality.
-    == : Any -> Boolean
-    == that = case this of
-        Inclusive n_1 -> case that of
-            Inclusive n_2 -> n_1 == n_2
-            _ -> False
-        Exclusive n_1 -> case that of
-            Exclusive n_2 -> n_1 == n_2
-            _ -> False
