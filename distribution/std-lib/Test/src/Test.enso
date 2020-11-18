@@ -48,6 +48,22 @@ Any.should verb argument = Verbs.verb this argument
 ## Fail a test with the given message.
 fail message = Panic.throw (Failure message)
 
+## Expect a function to fail with the provided error.
+expect_fail_with ~action matcher =
+    res = Panic.recover action
+    case res of
+        _ -> here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded.")
+    err = res.catch x->x
+    case Meta.meta matcher of
+        Meta.Atom _ -> if err == matcher then Success else
+            here.fail ("Expected a " + matcher.to_text + "be thrown, but found " + err.to_text + ".")
+        Meta.Constructor _ ->
+            meta_err = Meta.meta err
+            case meta_err of
+                Meta.Atom _ -> if meta_err.constructor == matcher then Success else
+                    here.fail ("Unexpected error " + err.to_text + " thrown.")
+                _ -> here.fail ("Incorrect instance " + err.to_text + ".")
+
 ## Asserts that `this` value is equal to the expected value.
 Any.should_equal that = case this == that of
     True -> Success

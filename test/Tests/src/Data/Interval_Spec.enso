@@ -1,0 +1,90 @@
+from Base import all
+
+import Test
+
+spec =
+    describe "Bound" <|
+        it "should allow constructing inclusive bounds" <|
+            bound = Interval.Bound.Inclusive 0
+            bound.n . should_equal 0
+        it "should allow constructing exclusive bounds" <|
+            bound = Interval.Bound.Exclusive 0
+            bound.n . should_equal 0
+        it "should be able to be checked for equality" <|
+            inclusive_1 = Interval.Bound.Inclusive 10
+            inclusive_2 = Interval.Bound.Inclusive 5
+            exclusive_1 = Interval.Bound.Exclusive 10
+            exclusive_2 = Interval.Bound.Exclusive 5
+            (inclusive_1 == inclusive_1) . should_be_true
+            (inclusive_1 == inclusive_2) . should_be_false
+            (exclusive_1 == exclusive_1) . should_be_true
+            (exclusive_1 == exclusive_2) . should_be_false
+            (inclusive_1 == exclusive_1) . should_be_false
+    describe "Interval" <|
+        it "should allow constructing exclusive intervals" <|
+            interval = Interval.exclusive 1 5
+            interval.start . should_equal (Interval.Bound.Exclusive 1)
+            interval.end . should_equal (Interval.Bound.Exclusive 5)
+        it "should allow constructing start-exclusive intervals" <|
+            interval = Interval.start_exclusive 1 5
+            interval.start . should_equal (Interval.Bound.Exclusive 1)
+            interval.end . should_equal (Interval.Bound.Inclusive 5)
+        it "should allow constructing end-exclusive intervals" <|
+            interval = Interval.end_exclusive 1 5
+            interval.start . should_equal (Interval.Bound.Inclusive 1)
+            interval.end . should_equal (Interval.Bound.Exclusive 5)
+        it "should allow constructing inclusive intervals" <|
+            interval = Interval.inclusive 1 5
+            interval.start . should_equal (Interval.Bound.Inclusive 1)
+            interval.end . should_equal (Interval.Bound.Inclusive 5)
+        it "should allow checking if an interval contains a value of the contained type" <|
+            interval = Interval.end_exclusive 1 10
+            interval.contains 0 . should_be_false
+            interval.contains 1 . should_be_true
+            interval.contains 9 . should_be_true
+            interval.contains 10 . should_be_false
+            interval.contains 10 . should_be_false
+
+            interval_2 = Interval.end_exclusive 0 0
+            interval_2.contains -1 . should_be_false
+            interval_2.contains 0 . should_be_false
+            interval_2.contains 1 . should_be_false
+
+            interval_3 = Interval.end_exclusive 0 1
+            interval_3.contains -1 . should_be_false
+            interval_3.contains 0 . should_be_true
+            interval_3.contains 1 . should_be_false
+
+            interval_4 = Interval.inclusive 0 0
+            interval_4.contains -1 . should_be_false
+            interval_4.contains 0 . should_be_true
+            interval_4.contains 1 . should_be_false
+
+            interval_5 = Interval.exclusive 0 0
+            interval_5.contains -1 . should_be_false
+            interval_5.contains 0 . should_be_false
+            interval_5.contains 1 . should_be_false
+
+            interval_6 = Interval.start_exclusive 0 0
+            interval_6.contains -1 . should_be_false
+            interval_6.contains 0 . should_be_false
+            interval_6.contains 1 . should_be_false
+        it "can be checked for emptiness" <|
+            Interval.exclusive 0 0 . is_empty . should_be_true
+            Interval.exclusive 1 10 . is_empty . should_be_false
+            Interval.start_exclusive 0 0 . is_empty . should_be_true
+            Interval.start_exclusive 1 10 . is_empty . should_be_false
+            Interval.end_exclusive 0 0  . is_empty . should_be_true
+            Interval.end_exclusive 1 10 . is_empty . should_be_false
+            Interval.inclusive 0 0 . is_empty . should_be_false
+            Interval.inclusive 10 0 . is_empty . should_be_true
+        it "can be checked for non-emptiness" <|
+            Interval.exclusive 0 0 . not_empty . should_be_false
+            Interval.exclusive 1 10 . not_empty . should_be_true
+            Interval.start_exclusive 0 0 . not_empty . should_be_false
+            Interval.start_exclusive 1 10 . not_empty . should_be_true
+            Interval.end_exclusive 0 0  . not_empty . should_be_false
+            Interval.end_exclusive 1 10 . not_empty . should_be_true
+            Interval.inclusive 0 0 . not_empty . should_be_true
+            Interval.inclusive 10 0 . not_empty . should_be_false
+

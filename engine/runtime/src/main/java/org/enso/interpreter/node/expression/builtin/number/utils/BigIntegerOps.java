@@ -6,6 +6,9 @@ import java.math.BigInteger;
 
 /** Re-exposes big-integer operations behind a truffle boundary. */
 public class BigIntegerOps {
+  private static final BigInteger MIN_LONG_BIGINT = BigInteger.valueOf(Long.MIN_VALUE);
+  private static final BigInteger MAX_LONG_BIGINT = BigInteger.valueOf(Long.MAX_VALUE);
+
   @CompilerDirectives.TruffleBoundary
   public static BigInteger multiply(long a, long b) {
     return BigInteger.valueOf(a).multiply(BigInteger.valueOf(b));
@@ -124,5 +127,14 @@ public class BigIntegerOps {
       }
     }
     return res;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static boolean fitsInLong(BigInteger bigInteger) {
+    return bigInteger.compareTo(MIN_LONG_BIGINT) >= 0 && bigInteger.compareTo(MAX_LONG_BIGINT) <= 0;
+  }
+
+  public static boolean fitsInLong(double decimal) {
+    return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
   }
 }

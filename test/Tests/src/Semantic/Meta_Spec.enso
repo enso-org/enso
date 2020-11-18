@@ -22,3 +22,4 @@ spec = describe "Meta-Value Manipulation" <|
     it "should correctly return representations of different classes of objects" <|
         Meta.meta 1 . should equal (Meta.Primitive 1)
         Meta.meta "foo" . should equal (Meta.Primitive "foo")
+
