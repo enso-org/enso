@@ -182,16 +182,24 @@ object Doc {
         val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
         val btnAction =
           onclick := s"""showHide("$uniqueIDCode","$uniqueIDBtn");"""
-        val copyAction = onclick := s"""copyCode("$uniqueIDCode");"""
-        val btnStyle   = HTML.`style` := "display: flex"
-        val btn        = HTML.button(btnAction)(htmlIdBtn)("Show")
-        val copyBtn    = HTML.button(copyAction)(btnStyle)("Copy")
+        val btnStyle = HTML.`style` := "display: flex"
+        val btn      = HTML.button(btnAction)("Show")
+        val copyBtn  = HTML.button(htmlIdBtn)(btnStyle)("Copy")
+        val script =
+          HTML.script {
+            s"""document.getElementByID("$uniqueIDBtn")
+               |.addEventListener("click", function(){
+               |    copyCode("$uniqueIDCode")
+               |}""".stripMargin
+              .replaceAll("\n", "")
+          }
         if (isInGui) {
           val htmlStyle = HTML.`style` := "display: block"
           Seq(
             HTML.div(
               HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
-              copyBtn
+              copyBtn,
+              script
             )
           )
         } else {
