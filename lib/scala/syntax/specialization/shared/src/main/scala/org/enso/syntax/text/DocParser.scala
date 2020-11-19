@@ -536,6 +536,26 @@ object DocParserHTMLGenerator {
     val metaChar  = HTML.charset := "UTF-8"
     val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
     val fileTitle = scalatags.Text.tags2.title(title)
-    HTML.head(meta)(fileTitle)
+    val showHideScript =
+      s"""function showHide(uniqueIDCode,uniqueIDBtn){
+         |var code = document.getElementById("uniqueIDCode");
+         |var btn  = document.getElementById("uniqueIDBtn").firstChild;
+         |btn.data = btn.data == "Show" ? "Hide" : "Show";
+         |code.style.display = code.style.display == 
+         |"inline-block" ? "none" : "inline-block";}""".stripMargin
+        .replaceAll("\n", "")
+    val showHideScriptHTML = HTML.script(showHideScript)
+    val copyScript =
+      s"""function copyCode(uniqueIDCode){
+         |var code  = document.getElementById("uniqueIDCode");
+         |var range = document.createRange();
+         |range.selectNode(code);
+         |window.getSelection().removeAllRanges();
+         |window.getSelection().addRange(range);
+         |document.execCommand("copy");
+         |window.getSelection().removeAllRanges();}""".stripMargin
+        .replaceAll("\n", "")
+    val copyScriptHTML = HTML.script(copyScript)
+    HTML.head(meta)(fileTitle)(showHideScriptHTML)(copyScriptHTML)
   }
 }

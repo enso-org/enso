@@ -180,24 +180,12 @@ object Doc {
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
         val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
-        val btnAction = onclick :=
-          s"""var code = document.getElementById("$uniqueIDCode");
-             |var btn  = document.getElementById("$uniqueIDBtn").firstChild;
-             |btn.data = btn.data == "Show" ? "Hide" : "Show";
-             |code.style.display = code.style.display == 
-             |"inline-block" ? "none" : "inline-block";""".stripMargin
-            .replaceAll("\n", "")
-        val copyAction = onclick :=
-          s"""var code  = document.getElementById("$uniqueIDCode");
-             |var range = document.createRange();
-             |range.selectNode(code);
-             |window.getSelection().removeAllRanges();
-             |window.getSelection().addRange(range);
-             |document.execCommand("copy");
-             |window.getSelection().removeAllRanges();""".stripMargin
-        val btnStyle = HTML.`style` := "display: flex"
-        val btn      = HTML.button(btnAction)(htmlIdBtn)("Show")
-        val copyBtn  = HTML.button(copyAction)(btnStyle)("Copy")
+        val btnAction =
+          onclick := s"""showHide("$uniqueIDCode","$uniqueIDBtn");"""
+        val copyAction = onclick := s"""copyCode("$uniqueIDCode");"""
+        val btnStyle   = HTML.`style` := "display: flex"
+        val btn        = HTML.button(btnAction)(htmlIdBtn)("Show")
+        val copyBtn    = HTML.button(copyAction)(btnStyle)("Copy")
         if (isInGui) {
           val htmlStyle = HTML.`style` := "display: block"
           Seq(
