@@ -23,11 +23,10 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public abstract class BooleanBranchNode extends BranchNode {
   private final boolean matched;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
-  private @Child DirectCallNode callNode;
 
   BooleanBranchNode(boolean matched, RootCallTarget branch) {
+    super(branch);
     this.matched = matched;
-    this.callNode = DirectCallNode.create(branch);
   }
 
   /**
@@ -41,39 +40,13 @@ public abstract class BooleanBranchNode extends BranchNode {
     return BooleanBranchNodeGen.create(matched, branch);
   }
 
-  /**
-   * Handles the boolean scrutinee case.
-   *
-   * @param frame the stack frame in which to execute
-   * @param state current monadic state
-   * @param target the atom to destructure
-   */
   @Specialization
-  public void doAtom(VirtualFrame frame, Object state, boolean target) {
+  void doAtom(VirtualFrame frame, Object state, boolean target) {
     if (profile.profile(matched == target)) {
-      Stateful result =
-          (Stateful)
-              callNode.call(
-                  Function.ArgumentsHelper.buildArguments(
-                      frame.materialize(), state, new Object[0]));
-      // Note [Caller Info For Case Branches]
-      throw new BranchSelectedException(result);
+      accept(frame, state, new Object[0]);
     }
   }
 
-  /**
-   * The fallback specialisation for executing the boolean branch node.
-   *
-   * @param frame the stack frame in which to execute
-   * @param target the object to execute on
-   */
   @Fallback
-  public void doFallback(VirtualFrame frame, Object state, Object target) {}
-
-  /* Note [Caller Info For Case Branches]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * It is assumed that functions serving as pattern match logic branches are always function
-   * literals, not references, curried functions etc. Therefore, as function literals, they
-   * have no way of accessing the caller frame and can safely be passed null.
-   */
+  void doFallback(VirtualFrame frame, Object state, Object target) {}
 }

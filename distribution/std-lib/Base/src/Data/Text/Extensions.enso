@@ -1,6 +1,8 @@
 from Base import all
 from Builtins import Text, Prim_Text_Helpers
 
+import Base.Data.Text.Split_Kind
+
 from Builtins export Text
 
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -69,9 +71,13 @@ Text.characters =
          "ham,eggs,cheese,tomatoes".split ","
      The code above returns:
          ["ham", "eggs", "cheese", "tomatoes"]
-Text.split : Text -> Vector.Vector
-Text.split (separator = " ") =
-    Vector.from_polyglot_array (Text_Utils.split_at [this, separator])
+Text.split : Split_Kind -> Vector.Vector
+Text.split (separator = Split_Kind.Whitespace) =
+    result = case separator of
+        Split_Kind.Whitespace -> Text_Utils.split_on_whitespace [this]
+        Split_Kind.Lines -> Text_Utils.split_on_lines [this]
+        Text -> Text_Utils.split_by_literal [this, separator]
+    Vector.from_polyglot_array result
 
 ## Checks whether `this` is equal to `that`.
 
