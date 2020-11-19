@@ -1,0 +1,59 @@
+from Base import all
+
+import Test
+
+polyglot java import java.util.Random
+
+spec = describe "Pattern Matches" <|
+    it "should be able to match on the Integer type" <|
+        case 1 of
+            Integer -> Nothing
+            _ -> Test.fail "Expected an integer to match."
+        case 100000000000000000000000000000000000 of
+            Integer -> Nothing
+            _ -> Test.fail "Expected an integer to match."
+        case Integer of
+            Integer -> Nothing
+            _ -> Test.fail "Expected the Integer constructor to match."
+    it "should be able to match on the Decimal type" <|
+        case 1.7 of
+            Decimal -> Nothing
+            _ -> Test.fail "Expected a decimal to match."
+        case Decimal of
+            Decimal -> Nothing
+            _ -> Test.fail "Expected the Decimal constructor to match."
+    it "should be able to match on the Number type" <|
+        case 1 of
+            Number -> Nothing
+            _ -> Test.fail "Expected a number to match."
+        case 100000000000000000000000000000000000 of
+            Number -> Nothing
+            _ -> Test.fail "Expected a number to match."
+        case 1.7 of
+            Number -> Nothing
+            _ -> Test.fail "Expected a number to match."
+        case Number of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Number constructor to match."
+    it "should be able to match on the Text type" <|
+        case "foo" of
+            Text -> Nothing
+            _ -> Test.fail "Expected a text to match."
+        case Text of
+            Text -> Nothing
+            _ -> Test.fail "Expected the Text constructor to match."
+    it "should be able to match on the Array type" <|
+        case [].to_array of
+            Array -> Nothing
+            _ -> Test.fail "Expected an array to match."
+        case Array of
+            Array -> Nothing
+            _ -> Test.fail "Expected the Array constructor to match."
+    it "should be able to match on the Polyglot type" <|
+        random_gen = Random.new [].to_array
+        case random_gen of
+            Polyglot -> Nothing
+            _ -> Test.fail "Expected a polyglot object to match."
+        case Polyglot of
+            Polyglot -> Nothing
+            _ -> Test.fail "Expected the Polyglot constructor to match."
