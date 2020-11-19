@@ -35,16 +35,6 @@ public class CatchAllBranchNode extends BranchNode {
    * @param target the object to match against
    */
   public void execute(VirtualFrame frame, Object state, Object target) {
-    // Note [Safe Casting to Function in Catch All Branches]
     accept(frame, state, new Object[] {target});
   }
-
-  /* Note [Safe Casting to Function in Catch All Branches]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * The syntactic nature of a catch all node guarantees that it has _only one_
-   * matcher in its pattern, regardless of whether it is named or a blank. As
-   * a result, we _know_ that the expression of the branch will _always_ be a
-   * function at code generation time, and hence we know that we can safely cast
-   * it to a function during execution.
-   */
 }

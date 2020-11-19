@@ -6,6 +6,11 @@ import java.util.regex.Pattern;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
+  private static final Pattern whitespace =
+      Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
+  private static final Pattern vertical_space =
+      Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
+
   /**
    * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
    * mechanism.
@@ -70,8 +75,7 @@ public class Text_Utils {
    * @return the array of substrings of {@code str}
    */
   public static String[] split_on_whitespace(String str) {
-    var pattern = Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
-    return pattern.split(str);
+    return whitespace.split(str);
   }
 
   /**
@@ -82,8 +86,7 @@ public class Text_Utils {
    * @return the array of substrings of {@code str}
    */
   public static String[] split_on_lines(String str) {
-    var pattern = Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
-    return pattern.split(str);
+    return vertical_space.split(str);
   }
 
   /**

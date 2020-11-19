@@ -633,8 +633,6 @@ class IrToTruffle(
 
       val childProcessor = this.createChild("case_branch", scopeInfo.scope)
 
-      // TODO [AA] Allow matching on Number, Decimal, Integer, Text, and Array.
-
       branch.pattern match {
         case named @ Pattern.Name(_, _, _, _) =>
           val arg = List(genArgFromMatchField(named))

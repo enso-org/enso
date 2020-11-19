@@ -35,7 +35,7 @@ public abstract class BranchNode extends BaseNode {
    * @param state current monadic state
    * @param args the arguments to be passed to the branch body
    */
-  public void accept(VirtualFrame frame, Object state, Object[] args) {
+  protected void accept(VirtualFrame frame, Object state, Object[] args) {
     // Note [Caller Info For Case Branches]
     Stateful result =
         (Stateful)
@@ -49,5 +49,14 @@ public abstract class BranchNode extends BaseNode {
    * It is assumed that functions serving as pattern match logic branches are always function
    * literals, not references, curried functions etc. Therefore, as function literals, they
    * have no way of accessing the caller frame and can safely be passed null.
+   */
+
+  /* Note [Safe Casting to Function in Catch All Branches]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * The syntactic nature of a catch all node guarantees that it has _only one_
+   * matcher in its pattern, regardless of whether it is named or a blank. As
+   * a result, we _know_ that the expression of the branch will _always_ be a
+   * function at code generation time, and hence we know that we can safely cast
+   * it to a function during execution.
    */
 }
