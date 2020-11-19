@@ -288,18 +288,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def buildTypeSignature(typeExpr: IR.Expression): Vector[TypeArg] = {
     def go(typeExpr: IR.Expression, args: Vector[TypeArg]): Vector[TypeArg] =
       typeExpr match {
-        case IR.Application.Prefix(_, args, _, _, _, _) =>
-          args.toVector
-            .map(arg => go(arg.value, Vector()))
-            .map {
-              case Vector(targ) => targ
-              case targs        => TypeArg.Function(targs)
-            }
+        case IR.Application.Operator.Binary(left, _, right, _, _, _) =>
+          val arg = TypeArg.Function(go(left.value, Vector()))
+          go(right.value, args :+ arg)
         case IR.Function.Lambda(List(targ), body, _, _, _, _) =>
-          val tdef = TypeArg.Value(targ.name.name, targ.suspended)
+          val tdef = TypeArg.Value(targ.name.name)
           go(body, args :+ tdef)
         case tname: IR.Name =>
-          args :+ TypeArg.Value(tname.name, isSuspended = false)
+          args :+ TypeArg.Value(tname.name)
         case _ =>
           args
       }
@@ -404,7 +400,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     Suggestion.Argument(
       name         = varg.name.name,
       reprType     = buildTypeArgumentName(targ),
-      isSuspended  = buildTypeArgumentSuspendedFlag(targ),
+      isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue)
     )
@@ -417,7 +413,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def buildTypeArgumentName(targ: TypeArg): String = {
     def go(targ: TypeArg, level: Int): String =
       targ match {
-        case TypeArg.Value(name, _) => name
+        case TypeArg.Value(name) => name
         case TypeArg.Function(types) =>
           val typeList = types.map(go(_, level + 1))
           if (level > 0) typeList.mkString("(", " -> ", ")")
@@ -425,17 +421,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       }
     go(targ, 0)
   }
-
-  /** Build the suspended flag of the type argument.
-    *
-    * @param targ the type argument
-    * @return the suspended flag extracted from the type argument
-    */
-  private def buildTypeArgumentSuspendedFlag(targ: TypeArg): Boolean =
-    targ match {
-      case TypeArg.Value(_, isSuspended) => isSuspended
-      case TypeArg.Function(_)           => false
-    }
 
   /** Build suggestion argument from an untyped definition.
     *
@@ -522,9 +507,8 @@ object SuggestionBuilder {
     /** Type with the name, like `A`.
       *
       * @param name the name of the type
-      * @param isSuspended is the argument lazy
       */
-    case class Value(name: String, isSuspended: Boolean) extends TypeArg
+    case class Value(name: String) extends TypeArg
 
     /** Function type, like `A -> A`.
       *

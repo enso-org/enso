@@ -93,7 +93,8 @@ class RuntimeVersionManager(
   ): R = {
     val engine = findOrInstallEngine(version = engineVersion)
     resourceManager.withResources(
-      (Resource.Engine(engineVersion), LockType.Shared)
+      userInterface,
+      Resource.Engine(engineVersion) -> LockType.Shared
     ) {
       engine
         .ensureValid()
@@ -126,8 +127,9 @@ class RuntimeVersionManager(
     val engine  = findOrInstallEngine(version = engineVersion)
     val runtime = findOrInstallGraalRuntime(engine)
     resourceManager.withResources(
-      (Resource.Engine(engineVersion), LockType.Shared),
-      (Resource.Runtime(runtime.version), LockType.Shared)
+      userInterface,
+      Resource.Engine(engineVersion)    -> LockType.Shared,
+      Resource.Runtime(runtime.version) -> LockType.Shared
     ) {
       engine
         .ensureValid()
@@ -171,8 +173,9 @@ class RuntimeVersionManager(
         val version = engine.manifest.runtimeVersion
         if (userInterface.shouldInstallMissingRuntime(version)) {
           resourceManager.withResources(
-            (Resource.AddOrRemoveComponents, LockType.Shared),
-            (Resource.Runtime(version), LockType.Exclusive)
+            userInterface,
+            Resource.AddOrRemoveComponents -> LockType.Shared,
+            Resource.Runtime(version)      -> LockType.Exclusive
           ) {
             installGraalRuntime(version)
           }
@@ -240,8 +243,9 @@ class RuntimeVersionManager(
       case None =>
         if (userInterface.shouldInstallMissingEngine(version)) {
           resourceManager.withResources(
-            (Resource.AddOrRemoveComponents, LockType.Shared),
-            (Resource.Engine(version), LockType.Exclusive)
+            userInterface,
+            Resource.AddOrRemoveComponents -> LockType.Shared,
+            Resource.Engine(version)       -> LockType.Exclusive
           ) {
             findEngine(version) match {
               case Some(engine) =>
@@ -306,8 +310,9 @@ class RuntimeVersionManager(
     */
   def uninstallEngine(version: SemVer): Unit =
     resourceManager.withResources(
-      (Resource.AddOrRemoveComponents, LockType.Exclusive),
-      (Resource.Engine(version), LockType.Exclusive)
+      userInterface,
+      Resource.AddOrRemoveComponents -> LockType.Exclusive,
+      Resource.Engine(version)       -> LockType.Exclusive
     ) {
       val engine = getEngine(version).getOrElse {
         logger.warn(s"Enso Engine $version is not installed.")
@@ -341,7 +346,7 @@ class RuntimeVersionManager(
     if (engineRelease.isBroken) {
       val continue = userInterface.shouldInstallBrokenEngine(version)
       if (!continue) {
-        throw InstallationError(
+        throw BrokenComponentError(
           "Installation has been cancelled by the user because the " +
           "requested engine release is marked as broken."
         )
@@ -350,22 +355,23 @@ class RuntimeVersionManager(
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
       logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
-      userInterface.logInfo(s"Downloading ${enginePackage.getFileName}.")
-      val downloadTask = engineRelease.downloadPackage(enginePackage)
-      userInterface.trackProgress(downloadTask)
+      val downloadTask  = engineRelease.downloadPackage(enginePackage)
+      userInterface.trackProgress(
+        s"Downloading ${enginePackage.getFileName}.",
+        downloadTask
+      )
       downloadTask.force()
 
       val engineDirectoryName =
         engineDirectoryNameForVersion(engineRelease.version)
 
-      userInterface.logInfo(s"Extracting the engine.")
       val extractionTask = Archive
         .extractArchive(
           enginePackage,
           temporaryDirectoryManager.accessTemporaryDirectory(),
           Some(engineDirectoryName)
         )
-      userInterface.trackProgress(extractionTask)
+      userInterface.trackProgress("Extracting the engine.", extractionTask)
       extractionTask.force()
 
       val engineTemporaryPath =
@@ -458,6 +464,7 @@ class RuntimeVersionManager(
           */
         def getEngineIfRuntimeIsInstalled: Option[Engine] =
           resourceManager.withResource(
+            userInterface,
             Resource.Runtime(runtimeVersion),
             LockType.Shared
           ) {
@@ -472,6 +479,7 @@ class RuntimeVersionManager(
           */
         def getEngineOtherwise: Engine =
           resourceManager.withResource(
+            userInterface,
             Resource.Runtime(runtimeVersion),
             LockType.Exclusive
           ) {
@@ -596,21 +604,22 @@ class RuntimeVersionManager(
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
-      userInterface.logInfo(s"Downloading ${runtimePackage.getFileName}.")
       val downloadTask =
         runtimeReleaseProvider.downloadPackage(runtimeVersion, runtimePackage)
-      userInterface.trackProgress(downloadTask)
+      userInterface.trackProgress(
+        s"Downloading ${runtimePackage.getFileName}.",
+        downloadTask
+      )
       downloadTask.force()
 
       val runtimeDirectoryName = graalDirectoryForVersion(runtimeVersion)
 
-      userInterface.logInfo(s"Extracting the runtime.")
       val extractionTask = Archive.extractArchive(
         runtimePackage,
         temporaryDirectoryManager.accessTemporaryDirectory(),
         Some(runtimeDirectoryName)
       )
-      userInterface.trackProgress(extractionTask)
+      userInterface.trackProgress("Extracting the runtime.", extractionTask)
       extractionTask.force()
 
       val runtimeTemporaryPath =

@@ -18,7 +18,11 @@ import org.apache.commons.compress.archivers.zip.{
 }
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.IOUtils
-import org.enso.cli.{TaskProgress, TaskProgressImplementation}
+import org.enso.cli.task.{
+  ProgressUnit,
+  TaskProgress,
+  TaskProgressImplementation
+}
 import org.enso.runtimeversionmanager.OS
 import org.enso.runtimeversionmanager.archive.internal.{
   ArchiveIterator,
@@ -161,7 +165,7 @@ object Archive {
   def iterateArchive(archivePath: Path, format: ArchiveFormat)(
     callback: ArchiveEntry => Boolean
   ): TaskProgress[Unit] = {
-    val taskProgress = new TaskProgressImplementation[Unit]
+    val taskProgress = new TaskProgressImplementation[Unit](ProgressUnit.Bytes)
 
     def runExtraction(): Unit = {
       logger.debug(s"Opening `$archivePath`.")

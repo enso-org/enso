@@ -4064,7 +4064,7 @@ object IR {
         override def showCode(indent: Int): String = {
           val opStr = operator.showCode(indent)
 
-          s"(${left.showCode(indent)} $opStr ${right.showCode(indent)})"
+          s"((${left.showCode(indent)}) $opStr (${right.showCode(indent)}))"
         }
       }
 

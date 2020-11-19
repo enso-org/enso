@@ -24,8 +24,11 @@ import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
+import org.enso.projectmanager.service.config.GlobalConfigService
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import org.enso.runtimeversionmanager.test.{DropLogs, FakeReleases}
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.interop.catz.core._
@@ -34,7 +37,7 @@ import zio.{Runtime, Semaphore, ZEnv, ZIO}
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
-class BaseServerSpec extends JsonRpcServerTestKit {
+class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -56,6 +59,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
+
+  val testDistributionRoot = Files.createTempDirectory(null).toFile
+  sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
@@ -118,11 +124,29 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       languageServerGateway
     )
 
+  lazy val distributionConfiguration =
+    TestDistributionConfiguration(
+      distributionRoot       = testDistributionRoot.toPath,
+      engineReleaseProvider  = FakeReleases.engineReleaseProvider,
+      runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider
+    )
+
+  lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
+    distributionConfiguration
+  )
+
+  lazy val runtimeVersionManagementService =
+    new RuntimeVersionManagementService[ZIO[ZEnv, +*, +*]](
+      distributionConfiguration
+    )
+
   override def clientControllerFactory: ClientControllerFactory = {
     new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
-      system,
-      projectService,
-      timeoutConfig
+      system                          = system,
+      projectService                  = projectService,
+      globalConfigService             = globalConfigService,
+      runtimeVersionManagementService = runtimeVersionManagementService,
+      timeoutConfig                   = timeoutConfig
     )
   }
 

@@ -768,32 +768,4 @@ class ProjectManagementApiSpec
     }
 
   }
-
-  "engine/install" must {
-    "parse correctly (despite not being implemented)" in {
-      // TODO [RW] this is just a stub test for parsing, it should be replaced
-      //  with actual tests once this functionality is implemented
-      implicit val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "engine/install",
-              "id": 0,
-              "params": {
-                "version": "0.1.0-rc3"
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":0,
-            "error":{
-              "code":10,
-              "message":"The requested method is not implemented"
-            }
-          }
-          """)
-    }
-  }
-
 }

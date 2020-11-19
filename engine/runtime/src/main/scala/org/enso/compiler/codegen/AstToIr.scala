@@ -62,7 +62,7 @@ object AstToIr {
           case t if t.elem.isDefined => t.elem.get
         }
 
-        val expressions = presentBlocks.map(translateExpression)
+        val expressions = presentBlocks.map(translateExpression(_))
 
         expressions match {
           case List()     => None
@@ -229,13 +229,13 @@ object AstToIr {
 
             IR.Type.Ascription(
               methodReference,
-              translateExpression(sig),
+              translateExpression(sig, insideTypeSignature = true),
               getIdentifiedLocation(inputAst)
             )
           case AstView.MethodReference(_, _) =>
             IR.Type.Ascription(
               translateMethodReference(typed),
-              translateExpression(sig),
+              translateExpression(sig, insideTypeSignature = true),
               getIdentifiedLocation(inputAst)
             )
           case _ => Error.Syntax(typed, Error.Syntax.InvalidStandaloneSignature)
@@ -290,7 +290,7 @@ object AstToIr {
       case AstView.TypeAscription(typed, sig) =>
         IR.Type.Ascription(
           translateExpression(typed),
-          translateExpression(sig),
+          translateExpression(sig, insideTypeSignature = true),
           getIdentifiedLocation(inputAst)
         )
       case assignment @ AstView.BasicAssignment(_, _) =>
@@ -323,7 +323,10 @@ object AstToIr {
     * @param maybeParensedInput the expresion to be translated
     * @return the [[IR]] representation of `maybeParensedInput`
     */
-  def translateExpression(maybeParensedInput: AST): Expression = {
+  def translateExpression(
+    maybeParensedInput: AST,
+    insideTypeSignature: Boolean = false
+  ): Expression = {
     val inputAst = AstView.MaybeManyParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
@@ -366,7 +369,7 @@ object AstToIr {
         Expression.Binding(
           buildName(name),
           Expression.Block(
-            lines.map(translateExpression),
+            lines.map(translateExpression(_)),
             translateExpression(lastLine),
             getIdentifiedLocation(block),
             suspended = true
@@ -375,22 +378,37 @@ object AstToIr {
         )
       case AstView.BasicAssignment(name, expr) =>
         translateBinding(getIdentifiedLocation(inputAst), name, expr)
+      case AstView.TypeAscription(left, right) =>
+        IR.Application.Operator.Binary(
+          translateCallArgument(left),
+          buildName(AST.Ident.Opr(AstView.TypeAscription.operatorName)),
+          translateCallArgument(right, insideTypeSignature = true),
+          getIdentifiedLocation(inputAst)
+        )
       case AstView.MethodDefinition(_, name, _, _) =>
         IR.Error.Syntax(
           inputAst,
           IR.Error.Syntax.MethodDefinedInline(name.asInstanceOf[AST.Ident].name)
         )
       case AstView.MethodCall(target, name, args) =>
-        val (validArguments, hasDefaultsSuspended) =
-          calculateDefaultsSuspension(args)
+        inputAst match {
+          case AstView.QualifiedName(idents) if insideTypeSignature =>
+            IR.Name.Qualified(
+              idents.map(x => translateIdent(x).asInstanceOf[IR.Name]),
+              getIdentifiedLocation(inputAst)
+            )
+          case _ =>
+            val (validArguments, hasDefaultsSuspended) =
+              calculateDefaultsSuspension(args)
 
-        // Note [Uniform Call Syntax Translation]
-        Application.Prefix(
-          translateIdent(name),
-          (target :: validArguments).map(translateCallArgument),
-          hasDefaultsSuspended = hasDefaultsSuspended,
-          getIdentifiedLocation(inputAst)
-        )
+            // Note [Uniform Call Syntax Translation]
+            Application.Prefix(
+              translateIdent(name),
+              (target :: validArguments).map(translateCallArgument(_)),
+              hasDefaultsSuspended = hasDefaultsSuspended,
+              getIdentifiedLocation(inputAst)
+            )
+        }
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
         val allBranches     = branches.map(translateCaseBranch)
@@ -402,21 +420,22 @@ object AstToIr {
         )
       case AstView.DecimalLiteral(intPart, fracPart) =>
         translateDecimalLiteral(inputAst, intPart, fracPart)
-      case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
+      case AST.App.any(inputAST) =>
+        translateApplicationLike(inputAST, insideTypeSignature)
       case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case AST.TypesetLiteral.any(tSet) =>
         IR.Application.Literal.Typeset(
-          tSet.expression.map(translateExpression),
+          tSet.expression.map(translateExpression(_)),
           getIdentifiedLocation(tSet)
         )
       case AST.SequenceLiteral.any(inputAST) =>
         translateSequenceLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
         Expression.Block(
-          lines.map(translateExpression),
+          lines.map(translateExpression(_)),
           translateExpression(retLine),
           location = getIdentifiedLocation(inputAst)
         )
@@ -597,7 +616,7 @@ object AstToIr {
     */
   def translateSequenceLiteral(literal: AST.SequenceLiteral): Expression = {
     IR.Application.Literal.Sequence(
-      literal.items.map(translateExpression),
+      literal.items.map(translateExpression(_)),
       getIdentifiedLocation(literal)
     )
   }
@@ -663,18 +682,25 @@ object AstToIr {
     * @param arg the argument to translate
     * @return the [[IR]] representation of `arg`
     */
-  def translateCallArgument(arg: AST): CallArgument.Specified =
+  def translateCallArgument(
+    arg: AST,
+    insideTypeSignature: Boolean = false
+  ): CallArgument.Specified =
     arg match {
       case AstView.AssignedArgument(left, right) =>
         CallArgument
           .Specified(
             Some(buildName(left)),
-            translateExpression(right),
+            translateExpression(right, insideTypeSignature),
             getIdentifiedLocation(arg)
           )
       case _ =>
         CallArgument
-          .Specified(None, translateExpression(arg), getIdentifiedLocation(arg))
+          .Specified(
+            None,
+            translateExpression(arg, insideTypeSignature),
+            getIdentifiedLocation(arg)
+          )
     }
 
   /** Calculates whether a set of arguments has its defaults suspended, and
@@ -705,15 +731,18 @@ object AstToIr {
     * @param callable the callable to translate
     * @return the [[IR]] representation of `callable`
     */
-  def translateApplicationLike(callable: AST): Expression = {
+  def translateApplicationLike(
+    callable: AST,
+    insideTypeAscription: Boolean = false
+  ): Expression = {
     callable match {
       case AstView.Application(name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)
 
         Application.Prefix(
-          translateExpression(name),
-          validArguments.map(translateCallArgument),
+          translateExpression(name, insideTypeAscription),
+          validArguments.map(translateCallArgument(_, insideTypeAscription)),
           hasDefaultsSuspended,
           getIdentifiedLocation(callable)
         )
@@ -726,13 +755,14 @@ object AstToIr {
             )
           )
         } else {
-          val realArgs = args.map(translateArgumentDefinition(_))
-          val realBody = translateExpression(body)
+          val realArgs =
+            args.map(translateArgumentDefinition(_, insideTypeAscription))
+          val realBody = translateExpression(body, insideTypeAscription)
           Function.Lambda(realArgs, realBody, getIdentifiedLocation(callable))
         }
       case AST.App.Infix(left, fn, right) =>
-        val leftArg  = translateCallArgument(left)
-        val rightArg = translateCallArgument(right)
+        val leftArg  = translateCallArgument(left, insideTypeAscription)
+        val rightArg = translateCallArgument(right, insideTypeAscription)
 
         fn match {
           case AST.Ident.Opr.any(fn) =>
@@ -763,8 +793,8 @@ object AstToIr {
           AST.Ident.Var(realNameSegments.mkString("_"))
 
         Application.Prefix(
-          translateExpression(functionName),
-          args.map(translateCallArgument).toList,
+          translateExpression(functionName, insideTypeAscription),
+          args.map(translateCallArgument(_, insideTypeAscription)).toList,
           hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
         )

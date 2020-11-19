@@ -29,8 +29,8 @@ type Meta
     type Polyglot value
 
 ## Returns a vector of field values of the given atom.
-Atom.fields : Vector
-Atom.fields = Vector (Builtins.Meta.get_atom_fields this.value)
+Atom.fields : Vector.Vector
+Atom.fields = Vector.Vector (Builtins.Meta.get_atom_fields this.value)
 
 ## Returns a constructor value of the given atom.
 Atom.constructor : Any
@@ -55,8 +55,8 @@ Error.payload : Any
 Error.payload = this.value.catch e->e
 
 ## Returns a vector of field names defined by a constructor.
-Constructor.fields : Vector
-Constructor.fields = Vector (Builtins.Meta.get_constructor_fields this.value)
+Constructor.fields : Vector.Vector
+Constructor.fields = Vector.Vector (Builtins.Meta.get_constructor_fields this.value)
 
 ## Returns the name of a constructor.
 Constructor.name : Text
@@ -64,7 +64,7 @@ Constructor.name = Builtins.Meta.get_constructor_name this.value
 
 ## Creates a new atom of the given constructor, with field values provided
    in the `fields` vector.
-Constructor.new : Vector -> Any
+Constructor.new : Vector.Vector -> Any
 Constructor.new fields = Builtins.Meta.new_atom this.value fields.to_array
 
 ## Returns the language of a polyglot value.

@@ -9,14 +9,15 @@ spec =
     eps = 0.000001
     almost_max_long = 9223372036854775806
     almost_max_long_times_three = 27670116110564327418
+    almost_max_long_times_three_plus_1 = 27670116110564327419
+    almost_max_long_times_three_decimal = 27670116110564327418.8
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
     describe "Integers" <|
         it "should be of unbound size when multiplied" <|
             1.up_to 101 . fold 1 (*) . should_equal hundred_factorial
         it "should be of unbound size when added" <|
             (almost_max_long + almost_max_long + almost_max_long).should_equal almost_max_long_times_three
-        it "should be of unbound size when subtracted" <|
-            (0 - almost_max_long - almost_max_long - almost_max_long).should_equal almost_max_long_times_three.negate
+        it "should be of unbound size when subtracted" <| (0 - almost_max_long - almost_max_long - almost_max_long).should_equal almost_max_long_times_three.negate
         it "should be of unbound size when dividing" <|
             expected = 3372816184472482867110284450043137767873196479305249187406461598235841786750685581361224832688174410089430537516012695688121622150430744676
             ((1.up_to 101 . fold 1 (*)).div  3*almost_max_long).should_equal expected
@@ -70,3 +71,14 @@ spec =
             (Math.Pi / 6).cos.should_equal (3.sqrt / 2) epsilon=eps
             (17 ^ 0.13).log base=17 . should_equal 0.13 epsilon=eps
             0.exp.should_equal 1
+        it "should allow calculating the floor value" <|
+            1.2314.floor . should_equal 1
+            1.floor . should_equal 1
+            almost_max_long_times_three_decimal.floor.to_decimal . should_equal almost_max_long_times_three.to_decimal
+            almost_max_long_times_three.floor . should_equal almost_max_long_times_three
+        it "should allow calculating the ceil value" <|
+            1.2314.ceil . should_equal 2
+            1.ceil . should_equal 1
+            almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal
+            almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
+

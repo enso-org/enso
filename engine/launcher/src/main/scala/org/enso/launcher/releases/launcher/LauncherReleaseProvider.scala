@@ -3,7 +3,7 @@ package org.enso.launcher.releases.launcher
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.releases.{
   EnsoReleaseProvider,
   Release,
@@ -34,7 +34,7 @@ class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
             )
           )
           .toTry
-      manifestContent <- manifestAsset.fetchAsText().waitForResult()
+      manifestContent <- TaskProgress.waitForTask(manifestAsset.fetchAsText())
       manifest        <- LauncherManifest.fromYAML(manifestContent)
     } yield GitHubLauncherRelease(version, manifest, release)
   }

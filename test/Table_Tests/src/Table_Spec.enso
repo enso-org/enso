@@ -2,35 +2,104 @@ from Base import all
 from Table import all
 import Test
 
-spec = describe "Tables" <|
-    it "should parse a simple numeric table and convert it to JSON" <|
-        simple_empty = (Enso_Project.data / "simple_empty.csv") . read_csv
-        c_1_data = [1, 4, 7, 10]
-        c_2_data = [2, Nothing, 8, 11]
-        c_3_data = [Nothing, 6, 9, 12]
+type My x y
 
-        c_1 = Json.from_pairs [["name", "a"], ["data", c_1_data]]
-        c_2 = Json.from_pairs [["name", "b"], ["data", c_2_data]]
-        c_3 = Json.from_pairs [["name", "c"], ["data", c_3_data]]
+My.== that = case that of
+    My x1 y1 -> (this.x + this.y) == (x1 + y1)
+    _ -> False
 
-        expected = Json.from_pairs [["columns", [c_1, c_2, c_3]]]
+My.frobnicate = case this of
+    My x1 y1 -> My y1 x1
 
-        simple_empty.to_json.should equal expected
-    it "should correctly infer types of varied-type columns" <|
-        varied_column = (Enso_Project.data / "varied_column.csv") . read_csv has_header=False
-        c_1_data = ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]
-        c_2_data = ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]
-        c_3_data = [1, 2, 3, 4, 5, Nothing, 7, 8]
-        c_4_data = [1, 2, 3, 4, 5, 6, 7, 8]
-        c_5_data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.25, 7.0, 8.0]
-        c_6_data = ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']
+spec =
+    describe "Parsing" <|
+        it "should parse a simple numeric table" <|
+            simple_empty = (Enso_Project.data / "simple_empty.csv") . read_csv
+            c_1_data = [1, 4, 7, 10]
+            c_2_data = [2, Nothing, 8, 11]
+            c_3_data = [Nothing, 6, 9, 12]
 
-        c_1 = Json.from_pairs [["name", "C0"], ["data", c_1_data]]
-        c_2 = Json.from_pairs [["name", "C1"], ["data", c_2_data]]
-        c_3 = Json.from_pairs [["name", "C2"], ["data", c_3_data]]
-        c_4 = Json.from_pairs [["name", "C3"], ["data", c_4_data]]
-        c_5 = Json.from_pairs [["name", "C4"], ["data", c_5_data]]
-        c_6 = Json.from_pairs [["name", "C5"], ["data", c_6_data]]
+            c_1 = Json.from_pairs [["name", "a"], ["data", c_1_data]]
+            c_2 = Json.from_pairs [["name", "b"], ["data", c_2_data]]
+            c_3 = Json.from_pairs [["name", "c"], ["data", c_3_data]]
 
-        expected = Json.from_pairs [["columns", [c_1, c_2, c_3, c_4, c_5, c_6]]]
-        varied_column.to_json.should equal expected
+            expected = Json.from_pairs [["columns", [c_1, c_2, c_3]]]
+
+            simple_empty.to_json.should equal expected
+        it "should correctly infer types of varied-type columns" <|
+            varied_column = (Enso_Project.data / "varied_column.csv") . read_csv has_header=False
+            c_1_data = ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]
+            c_2_data = ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]
+            c_3_data = [1, 2, 3, 4, 5, Nothing, 7, 8]
+            c_4_data = [1, 2, 3, 4, 5, 6, 7, 8]
+            c_5_data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.25, 7.0, 8.0]
+            c_6_data = ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']
+
+            c_1 = Json.from_pairs [["name", "C0"], ["data", c_1_data]]
+            c_2 = Json.from_pairs [["name", "C1"], ["data", c_2_data]]
+            c_3 = Json.from_pairs [["name", "C2"], ["data", c_3_data]]
+            c_4 = Json.from_pairs [["name", "C3"], ["data", c_4_data]]
+            c_5 = Json.from_pairs [["name", "C4"], ["data", c_5_data]]
+            c_6 = Json.from_pairs [["name", "C5"], ["data", c_6_data]]
+
+            expected = Json.from_pairs [["columns", [c_1, c_2, c_3, c_4, c_5, c_6]]]
+            varied_column.to_json.should equal expected
+
+    describe "JSON serialization" <|
+        it "should serialize all column types to correct JSON" <|
+            c_1 = [1, 2, 3, Nothing]
+            c_2 = [1.2, 3.4, 5.6, 7.8]
+            c_3 = [Nothing, 'foo', 'bar', 'baz']
+            c_4 = [True, False, True, True]
+            c_5 = [My 1 2, My True False, My 6.3 6.4, [1, 2, 3]]
+
+            t = Table.new [['a', c_1], ['b', c_2], ['c', c_3], ['d', c_4], ['e', c_5]]
+
+            j_c_1 = Json.from_pairs [["name", "a"], ["data", c_1]]
+            j_c_2 = Json.from_pairs [["name", "b"], ["data", c_2]]
+            j_c_3 = Json.from_pairs [["name", "c"], ["data", c_3]]
+            j_c_4 = Json.from_pairs [["name", "d"], ["data", c_4]]
+            j_c_5 = Json.from_pairs [["name", "e"], ["data", c_5]]
+
+            expected = Json.from_pairs [["columns", [j_c_1, j_c_2, j_c_3, j_c_4, j_c_5]]]
+
+            t.to_json.should_equal expected
+
+    describe "Mapping operations" <|
+        it "should allow mapping a function over a column" <|
+            c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
+            c_str.map (+ "x") . to_vector . should_equal ['ax', 'bx', Nothing, 'bx']
+            c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
+            c_int.map (+ 1) . to_vector . should_equal [2, 3, 2, 6, 2]
+            c_dec = Column.from_vector 'x' [1.9, 2.0, 1.2, 5.6, 1.9]
+            c_dec.map (+ 1.5) . to_vector . should_equal [3.4, 3.5, 2.7, 7.1, 3.4]
+            c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
+            c_bool.map (_.to_text) . to_vector . should_equal ["True", "False", Nothing, "True", "False"]
+            c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
+            c_any.map (_.frobnicate) . to_vector . should_equal [My 6 1, My 3 6, My 5 2, My 4 3, My 300 200]
+
+        it "should handle vectorized equality and fall back on non-vectorized if needed" <|
+            c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
+            (c_str == 'b').to_vector.should_equal [False, True, False, True]
+            c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
+            (c_int == 1).to_vector.should_equal [True, False, True, False, True]
+            c_dec = Column.from_vector 'x' [1.9, 2.0, 1.2, 5.6, 1.9]
+            (c_dec == 1.9).to_vector.should_equal [True, False, False, False, True]
+            c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
+            (c_bool == False).to_vector.should_equal [False, True, False, False, True]
+            c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
+            (c_any == My 7 0).to_vector.should_equal [True, False, True, True, False]
+
+    describe "Masking tables" <|
+        it "should allow selecting table rows based on a boolean column" <|
+            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            r = df.where (Column.from_vector 'x' [True, False, False, True])
+            r.at "a" . to_vector . should_equal [1, 10]
+            r.at "b" . to_vector . should_equal [2, 11]
+            r.at "c" . to_vector . should_equal [Nothing, 12]
+        it "should treat NA values in the mask as false and extend the mask with NAs" <|
+            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            r = df.where (Column.from_vector 'x' [Nothing, True, False])
+            r.at "a" . to_vector . should_equal [4]
+            r.at "b" . to_vector . should_equal [Nothing]
+            r.at "c" . to_vector . should_equal [6]

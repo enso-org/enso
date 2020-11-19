@@ -27,7 +27,7 @@ Process.execute command =
          Process.run_command "echo" ["-n", "Hello!"]
      The result is printed to stdout:
          Hello!
-Process.run_command : String -> Vector -> Exit_Code
+Process.run_command : String -> Vector.Vector -> Exit_Code
 Process.run_command command arguments =
     result = System.create_process command arguments.to_array (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
     Exit_Code.from_number result.exit_code

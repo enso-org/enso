@@ -10,15 +10,20 @@ import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.components.UpgradeRequiredError
 import org.enso.runtimeversionmanager.distribution.DistributionManager
-import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
+import org.enso.launcher.cli.{
+  CLIProgressReporter,
+  GlobalCLIOptions,
+  InternalOpts
+}
 import org.enso.runtimeversionmanager.locking.{
   LockType,
+  LockUserInterface,
   Resource,
   ResourceManager
 }
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
-import org.enso.launcher.releases.EnsoRepository
+import org.enso.launcher.releases.LauncherRepository
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.logger.LoggerSyntax
@@ -34,7 +39,8 @@ class LauncherUpgrader(
   originalExecutablePath: Option[Path]
 ) {
 
-  private val logger = Logger[LauncherUpgrader]
+  private val logger           = Logger[LauncherUpgrader]
+  private val progressReporter = CLIProgressReporter(globalCLIOptions)
 
   /** Queries the release provider for the latest available valid launcher
     * version.
@@ -52,10 +58,16 @@ class LauncherUpgrader(
     * thrown.
     */
   def upgrade(targetVersion: SemVer): Unit = {
+    val failIfAnotherUpgradeIsRunning = new LockUserInterface {
+      override def startWaitingForResource(resource: Resource): Unit =
+        throw AnotherUpgradeInProgressError()
+
+      override def finishWaitingForResource(resource: Resource): Unit = ()
+    }
     resourceManager.withResource(
+      failIfAnotherUpgradeIsRunning,
       Resource.LauncherExecutable,
-      LockType.Exclusive,
-      waitingAction = Some(_ => throw AnotherUpgradeInProgressError())
+      LockType.Exclusive
     ) {
       runCleanup(isStartup = true)
       val release = releaseProvider.fetchRelease(targetVersion).get
@@ -155,8 +167,6 @@ class LauncherUpgrader(
     }
   }
 
-  private def showProgress = !globalCLIOptions.hideProgress
-
   /** Path to the original launcher executable.
     */
   private val originalExecutable =
@@ -186,16 +196,14 @@ class LauncherUpgrader(
       "new." + nextStepRelease.version.toString
     )
     FileSystem.withTemporaryDirectory("enso-upgrade-step") { directory =>
-      InfoLogger.info(s"Downloading ${nextStepRelease.packageFileName}.")
-      val packagePath = directory / nextStepRelease.packageFileName
-      nextStepRelease
-        .downloadPackage(packagePath)
-        .waitForResult(showProgress)
-        .get
-
-      InfoLogger.info(
-        s"Extracting the executable from ${nextStepRelease.packageFileName}."
+      val packagePath  = directory / nextStepRelease.packageFileName
+      val downloadTask = nextStepRelease.downloadPackage(packagePath)
+      progressReporter.trackProgress(
+        s"Downloading ${nextStepRelease.packageFileName}.",
+        downloadTask
       )
+      downloadTask.force()
+
       extractExecutable(packagePath, temporaryExecutable)
 
       InfoLogger.info(
@@ -240,7 +248,7 @@ class LauncherUpgrader(
     executablePath: Path
   ): Unit = {
     var entryFound = false
-    Archive
+    val extractTask = Archive
       .iterateArchive(archivePath) { entry =>
         if (
           entry.relativePath.endsWith(
@@ -252,8 +260,11 @@ class LauncherUpgrader(
           false
         } else true
       }
-      .waitForResult(showProgress)
-      .get
+    progressReporter.trackProgress(
+      s"Extracting the executable from ${archivePath.getFileName}.",
+      extractTask
+    )
+    extractTask.force()
     if (!entryFound) {
       throw UpgradeError(
         s"Launcher executable was not found in `$archivePath`."
@@ -301,15 +312,18 @@ class LauncherUpgrader(
 
   private def performUpgradeTo(release: LauncherRelease): Unit = {
     FileSystem.withTemporaryDirectory("enso-upgrade") { directory =>
-      InfoLogger.info(s"Downloading ${release.packageFileName}.")
-      val packagePath = directory / release.packageFileName
-      release.downloadPackage(packagePath).waitForResult(showProgress).get
+      val packagePath  = directory / release.packageFileName
+      val downloadTask = release.downloadPackage(packagePath)
+      progressReporter.trackProgress(
+        s"Downloading ${release.packageFileName}.",
+        downloadTask
+      )
+      downloadTask.force()
 
-      InfoLogger.info("Extracting package.")
-      Archive
-        .extractArchive(packagePath, directory, None)
-        .waitForResult(showProgress)
-        .get
+      val extractTask = Archive.extractArchive(packagePath, directory, None)
+      progressReporter.trackProgress("Extracting package.", extractTask)
+      extractTask.force()
+
       val extractedRoot = directory / "enso"
 
       val temporaryExecutable = temporaryExecutablePath("new")
@@ -377,7 +391,7 @@ object LauncherUpgrader {
     new LauncherUpgrader(
       globalCLIOptions,
       DefaultManagers.distributionManager,
-      EnsoRepository.defaultLauncherReleaseProvider,
+      LauncherRepository.defaultLauncherReleaseProvider,
       DefaultManagers.defaultResourceManager,
       originalExecutablePath
     )
@@ -430,7 +444,7 @@ object LauncherUpgrader {
       } else {
         logger.warn(
           s"A more recent launcher version (at least " +
-          s"${upgradeRequiredError.expectedLauncherVersion}) is required to " +
+          s"${upgradeRequiredError.expectedVersion}) is required to " +
           s"continue."
         )
         CLIOutput.askConfirmation(

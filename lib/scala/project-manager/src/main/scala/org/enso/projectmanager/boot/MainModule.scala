@@ -21,12 +21,15 @@ import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
+import org.enso.projectmanager.service.config.GlobalConfigService
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service.{
   MonadicProjectValidator,
   ProjectService,
   ProjectServiceFailure,
   ValidationFailure
 }
+import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 
 import scala.concurrent.ExecutionContext
 
@@ -101,13 +104,20 @@ class MainModule[
       languageServerGateway
     )
 
+  lazy val globalConfigService =
+    new GlobalConfigService[F](DefaultDistributionConfiguration)
+
+  lazy val runtimeVersionManagementService =
+    new RuntimeVersionManagementService[F](DefaultDistributionConfiguration)
+
   lazy val clientControllerFactory =
     new ManagerClientControllerFactory[F](
-      system,
-      projectService,
-      config.timeout
+      system                          = system,
+      projectService                  = projectService,
+      globalConfigService             = globalConfigService,
+      runtimeVersionManagementService = runtimeVersionManagementService,
+      timeoutConfig                   = config.timeout
     )
 
   lazy val server = new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
-
 }

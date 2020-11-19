@@ -126,6 +126,7 @@ public class Builtins {
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
     scope.registerMethod(primIo, "get_file", GetFileMethodGen.makeFunction(language));
     scope.registerMethod(primIo, "get_cwd", GetCwdMethodGen.makeFunction(language));
+    scope.registerMethod(primIo, "get_user_home", GetUserHomeMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));

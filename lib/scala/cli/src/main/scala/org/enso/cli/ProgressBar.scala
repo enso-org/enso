@@ -2,6 +2,8 @@ package org.enso.cli
 
 import java.util.concurrent.LinkedTransferQueue
 
+import org.enso.cli.task.{ProgressListener, TaskProgress}
+
 import scala.util.Try
 
 /** Allows to display a progress bar in a terminal.

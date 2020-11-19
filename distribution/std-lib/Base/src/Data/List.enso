@@ -173,26 +173,26 @@ type List
     reverse : List
     reverse = this.fold Nil (l -> el -> Cons el l)
 
-    ## Creates a new list with the first `count` elements on the left of `this`
+    ## Creates a new list with the first `count` elements at the start of `this`
        removed.
 
        > Example
          Removing the first element from a list.
-             (Cons 1 (Cons 2 (Nil))).drop 1
-    drop : Integer -> List
-    drop count = if count <= 0 then this else case this of
-        Cons _ b -> b.drop count-1
+             (Cons 1 (Cons 2 (Nil))).drop_start 1
+    drop_start : Integer -> List
+    drop_start count = if count <= 0 then this else case this of
+        Cons _ b -> b.drop_start count-1
         Nil -> Nil
 
-    ## Creates a new list consisting of the first `count` elements on the left
-       of this.
+    ## Creates a new list consisting of the first `count` elements at the start
+       of `this`.
 
        > Example
          Obtaining the first 2 elements of a list.
-             (Cons 1 (Cons 2 (Cons 3 Nil))).take 2
-    take : Integer -> List
-    take count = if count <= 0 then Nil else case this of
-        Cons a b -> Cons a (b.take count-1)
+             (Cons 1 (Cons 2 (Cons 3 Nil))).take_start 2
+    take_start : Integer -> List
+    take_start count = if count <= 0 then Nil else case this of
+        Cons a b -> Cons a (b.take_start count-1)
         Nil -> Nil
 
     ## Get the first element from the list.

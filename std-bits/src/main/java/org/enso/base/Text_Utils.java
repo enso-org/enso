@@ -21,6 +21,17 @@ public class Text_Utils {
   }
 
   /**
+   * Returns a new string containing characters starting at the given UTF-16 index.
+   *
+   * @param string the string to trim
+   * @param from number of characters to drop
+   * @return a trimmed string
+   */
+  public static String drop_first(String string, int from) {
+    return string.substring(from);
+  }
+
+  /**
    * Converts a string into an array of UTF-8 bytes.
    *
    * @param str the string to convert
@@ -59,10 +70,14 @@ public class Text_Utils {
    * @param str2 the second string
    * @return the result of comparison
    */
-  public static boolean equals(String str1, String str2) {
-    return Normalizer2.getNFDInstance()
-        .normalize(str1)
-        .equals(Normalizer2.getNFDInstance().normalize(str2));
+  public static boolean equals(String str1, Object str2) {
+    if (str2 instanceof String) {
+      return Normalizer2.getNFDInstance()
+          .normalize(str1)
+          .equals(Normalizer2.getNFDInstance().normalize((String) str2));
+    } else {
+      return false;
+    }
   }
 
   /**

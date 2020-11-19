@@ -6,14 +6,14 @@ import java.io.InputStream
   */
 trait ReadProgress {
 
-  /** Specifies how many units have already been read.
+  /** Specifies how many bytes have already been read.
     *
     * Querying this property over time may give different results as the task
     * progresses.
     */
   def alreadyRead(): Long
 
-  /** Specifies how many units in total are expected, if known.
+  /** Specifies how many bytes in total are expected, if known.
     */
   def total(): Option[Long]
 }

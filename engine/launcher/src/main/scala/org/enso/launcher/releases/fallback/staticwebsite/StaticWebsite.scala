@@ -2,7 +2,7 @@ package org.enso.launcher.releases.fallback.staticwebsite
 
 import java.nio.file.Path
 
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.http.{
   HTTPDownload,
   HTTPRequestBuilder,

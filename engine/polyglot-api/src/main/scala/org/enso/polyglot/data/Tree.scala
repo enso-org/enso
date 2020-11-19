@@ -82,6 +82,11 @@ sealed trait Tree[+A] {
   final def isEmpty: Boolean =
     Tree.isEmpty(this)
 
+  /** Check whether the tree is not empty. */
+  @JsonIgnore
+  final def nonEmpty: Boolean =
+    !isEmpty
+
   /** Convert tree to vector. */
   @JsonIgnore
   final def toVector: Vector[A] =

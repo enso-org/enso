@@ -2,12 +2,13 @@ package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.{CLIOutput, ProgressBar, TaskProgress}
+import org.enso.cli.CLIOutput
+import org.enso.launcher.InfoLogger
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
-import org.enso.launcher.InfoLogger
+import org.enso.runtimeversionmanager.locking.Resource
 
 /** [[RuntimeVersionManagementUserInterface]] that reports information and progress
   * to the command line.
@@ -17,12 +18,8 @@ import org.enso.launcher.InfoLogger
 class CLIRuntimeVersionManagementUserInterface(
   cliOptions: GlobalCLIOptions,
   alwaysInstallMissing: Boolean
-) extends RuntimeVersionManagementUserInterface {
-
-  /** @inheritdoc */
-  override def trackProgress(task: TaskProgress[_]): Unit =
-    if (cliOptions.hideProgress) ()
-    else ProgressBar.waitWithProgress(task)
+) extends CLIProgressReporter(cliOptions)
+    with RuntimeVersionManagementUserInterface {
 
   private val logger = Logger[CLIRuntimeVersionManagementUserInterface]
 
@@ -71,4 +68,11 @@ class CLIRuntimeVersionManagementUserInterface(
 
   /** @inheritdoc */
   override def logInfo(message: => String): Unit = InfoLogger.info(message)
+
+  /** @inheritdoc */
+  override def startWaitingForResource(resource: Resource): Unit =
+    logger.warn(resource.waitMessage)
+
+  /** @inheritdoc */
+  override def finishWaitingForResource(resource: Resource): Unit = ()
 }

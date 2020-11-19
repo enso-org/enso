@@ -12,34 +12,42 @@ class ResourceManager(lockManager: LockManager) {
 
   /** Runs the `action` while holding a lock (of `lockType`) for the `resource`.
     *
-    * If the lock cannot be acquired immediately, the `waitingAction` is
-    * executed. It can be used to notify the user.
+    * If the lock cannot be acquired immediately, the `waitingInterface` is used
+    * to notify the user.
     */
   def withResource[R](
+    waitingInterface: LockUserInterface,
     resource: Resource,
-    lockType: LockType,
-    waitingAction: Option[Resource => Unit] = None
-  )(
-    action: => R
-  ): R =
+    lockType: LockType
+  )(action: => R): R = {
+    var waited = false
     Using {
       lockManager.acquireLockWithWaitingAction(
         resource.name,
         lockType = lockType,
-        () =>
-          waitingAction
-            .map(_.apply(resource))
-            .getOrElse(logger.warn(resource.waitMessage))
+        () => {
+          waited = true
+          waitingInterface.startWaitingForResource(resource)
+        }
       )
-    } { _ => action }.get
+    } { _ =>
+      if (waited) waitingInterface.finishWaitingForResource(resource)
+      action
+    }.get
+  }
 
   /** Runs the `action` while holding multiple locks for a sequence of
     * resources.
     */
-  def withResources[R](resources: (Resource, LockType)*)(action: => R): R =
+  def withResources[R](
+    waitingInterface: LockUserInterface,
+    resources: (Resource, LockType)*
+  )(action: => R): R =
     resources match {
       case Seq((head, exclusive), tail @ _*) =>
-        withResource(head, exclusive) { withResources(tail: _*)(action) }
+        withResource(waitingInterface, head, exclusive) {
+          withResources(waitingInterface, tail: _*)(action)
+        }
       case Seq() =>
         action
     }

@@ -2,11 +2,12 @@ package org.enso.runtimeversionmanager.test
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
+import org.enso.runtimeversionmanager.locking.Resource
 
 /** [[RuntimeVersionManagementUserInterface]] for usage in testing.
   *
@@ -17,7 +18,7 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
   private val logger = Logger[TestRuntimeVersionManagementUserInterface]
 
   /** @inheritdoc */
-  override def trackProgress(task: TaskProgress[_]): Unit = ()
+  override def trackProgress(message: String, task: TaskProgress[_]): Unit = ()
 
   /** @inheritdoc */
   override def shouldInstallBrokenEngine(version: SemVer): Boolean = {
@@ -38,6 +39,11 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
 
   /** @inheritdoc */
   override def logInfo(message: => String): Unit = logger.debug(message)
+
+  override def startWaitingForResource(resource: Resource): Unit =
+    logger.debug(s"Waiting on ${resource.name}")
+
+  override def finishWaitingForResource(resource: Resource): Unit = ()
 }
 
 object TestRuntimeVersionManagementUserInterface {

@@ -68,7 +68,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
       val componentsManager = makeManagers(userInterface =
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       )._2
-      val brokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
+      val brokenVersion = SemVer(0, 999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(brokenVersion)
 
       assert(
@@ -87,7 +87,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
         new GlobalConfigurationManager(componentsManager, distributionManager)
 
       val validVersion          = SemVer(0, 0, 1)
-      val newerButBrokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
+      val newerButBrokenVersion = SemVer(0, 999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(validVersion)
       componentsManager.findOrInstallEngine(newerButBrokenVersion)
 
@@ -99,7 +99,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       val componentsManager = makeManagers(userInterface = userInterface)._2
 
-      val brokenVersion = SemVer(0, 999, 0, Some("marked-broken"))
+      val brokenVersion = SemVer(0, 999, 0, Some("broken"))
       componentsManager.findOrInstallEngine(brokenVersion)
       assert(
         userInterface.wasAskedToInstallBroken,

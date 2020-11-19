@@ -33,7 +33,7 @@ type Part_Value
     type Part_File part_file
 
 ## Create Form data from Parts
-new : Vector -> Form
+new : Vector.Vector -> Form
 new parts = Form parts
 
 # Helpers for creating different parts of the form.

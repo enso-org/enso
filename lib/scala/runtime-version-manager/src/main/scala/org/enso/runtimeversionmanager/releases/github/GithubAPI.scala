@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import io.circe._
 import io.circe.parser._
-import org.enso.cli.TaskProgress
+import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.http.{
   APIResponse,
   HTTPDownload,
@@ -64,7 +64,7 @@ object GithubAPI {
       val uri = (projectURI(repository) / "releases") ?
         ("per_page" -> perPage.toString) ? ("page" -> page.toString)
 
-      HTTPDownload
+      val downloadTask = HTTPDownload
         .fetchString(HTTPRequestBuilder.fromURI(uri.build()).GET)
         .flatMap(response =>
           parse(response.content)
@@ -79,7 +79,7 @@ object GithubAPI {
             )
             .toTry
         )
-        .waitForResult()
+      TaskProgress.waitForTask(downloadTask)
     }
 
     def listAllPages(from: Int): Try[Seq[Release]] =

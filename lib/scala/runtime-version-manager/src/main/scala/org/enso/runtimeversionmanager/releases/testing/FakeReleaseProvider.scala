@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.releases.testing
 
 import java.nio.file.{Files, Path, StandardCopyOption}
 
-import org.enso.cli.{ProgressListener, TaskProgress}
+import org.enso.cli.task.{ProgressListener, TaskProgress}
 import org.enso.runtimeversionmanager.locking.{LockManager, LockType}
 import org.enso.runtimeversionmanager.releases.{
   Asset,
@@ -36,16 +36,14 @@ case class FakeReleaseProvider(
       .listDirectory(releasesRoot)
       .map(FakeRelease(_, copyIntoArchiveRoot, lockManagerForAssets))
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def releaseForTag(tag: String): Try[Release] =
     releases
       .find(_.tag == tag)
       .toRight(ReleaseProviderException(s"Release $tag does not exist."))
       .toTry
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def listReleases(): Try[Seq[Release]] = Success(releases)
 }
 
@@ -95,8 +93,7 @@ case class FakeAsset(
     */
   override def fileName: String = source.getFileName.toString
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def downloadTo(path: Path): TaskProgress[Unit] = {
     maybeWaitForAsset()
     val result = Try(copyFakeAsset(path))
@@ -174,8 +171,7 @@ case class FakeAsset(
   private def copyNormalFile(destination: Path): Unit =
     FileSystem.copyFile(source, destination)
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def fetchAsText(): TaskProgress[String] =
     if (Files.isDirectory(source))
       throw new IllegalStateException(

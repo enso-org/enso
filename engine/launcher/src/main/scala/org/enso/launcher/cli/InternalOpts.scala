@@ -12,7 +12,7 @@ import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.cli.Arguments._
 import org.enso.launcher.distribution.LauncherEnvironment
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.launcher.releases.EnsoRepository
+import org.enso.launcher.releases.LauncherRepository
 
 /** Implements internal options that the launcher may use when running another
   * instance of itself.
@@ -219,7 +219,7 @@ object InternalOpts {
 
           emulateRepository.foreach { repositoryPath =>
             inheritEmulateRepository = Some(repositoryPath)
-            EnsoRepository.internalUseFakeRepository(
+            LauncherRepository.internalUseFakeRepository(
               repositoryPath,
               waitForAssets
             )
