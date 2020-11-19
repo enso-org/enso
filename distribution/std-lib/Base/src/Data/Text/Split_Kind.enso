@@ -6,6 +6,8 @@ type Split_Kind
     type Whitespace
     ## Split into lines.
     type Lines
+    ## Split into words.
+    type Words
     ## Split on a literal.
     Text
 
