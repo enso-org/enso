@@ -865,7 +865,6 @@ object AstView {
   }
 
   object TypeAscription {
-    val operatorName: String = ":"
 
     /** Matches a usage of the type ascription operator `:`.
       *
@@ -874,8 +873,7 @@ object AstView {
       */
     def unapply(ast: AST): Option[(AST, AST)] =
       ast match {
-        case MaybeManyParensed(AST.App.Infix(typed, AST.Ident.Opr(op), sig))
-            if op == operatorName =>
+        case MaybeManyParensed(AST.App.Infix(typed, AST.Ident.Opr(":"), sig)) =>
           Some((typed, sig))
         case _ => None
       }

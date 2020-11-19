@@ -12,7 +12,7 @@ import io.circe.parser.parse
 import org.enso.jsonrpc.{ClientControllerFactory, JsonRpcServer, Protocol}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach, Inside}
+import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -26,8 +26,7 @@ abstract class JsonRpcServerTestKit
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with BeforeAndAfterEach
-    with Inside {
+    with BeforeAndAfterEach {
 
   implicit final class ACursorExpectedField(cursor: ACursor) {
 
@@ -108,11 +107,8 @@ abstract class JsonRpcServerTestKit
     def expectMessage(timeout: FiniteDuration = 3.seconds): String =
       outActor.expectMsgClass[String](timeout, classOf[String])
 
-    def expectJson(
-      json: Json,
-      timeout: FiniteDuration = 3.seconds.dilated
-    ): Assertion = {
-      val parsed = parse(expectMessage(timeout))
+    def expectJson(json: Json): Assertion = {
+      val parsed = parse(expectMessage())
       parsed shouldEqual Right(json)
     }
 

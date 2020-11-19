@@ -1,7 +1,5 @@
 package org.enso.compiler.codegen
 
-import java.nio.ByteBuffer
-
 import cats.Foldable
 import cats.implicits._
 import org.enso.compiler.core.IR
@@ -9,20 +7,11 @@ import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.Shape.{
-  SegmentEscape,
-  SegmentExpr,
-  SegmentPlain,
-  SegmentRawEscape,
-  TextUnclosed
-}
-import org.enso.syntax.text.ast.text.Escape
-import org.enso.syntax.text.ast.text.Escape.Unicode
 
 import scala.annotation.tailrec
-import scala.util.control.Breaks.{break, breakable}
 
-/** This file contains the functionality that translates from the parser's
+/**
+  * This file contains the functionality that translates from the parser's
   * [[AST]] type to the internal representation used by the compiler.
   *
   * The current internal representation is [[IR]].
@@ -62,7 +51,7 @@ object AstToIr {
           case t if t.elem.isDefined => t.elem.get
         }
 
-        val expressions = presentBlocks.map(translateExpression(_))
+        val expressions = presentBlocks.map(translateExpression)
 
         expressions match {
           case List()     => None
@@ -97,29 +86,22 @@ object AstToIr {
         val imports = presentBlocks.collect {
           case AST.Import.any(list) => translateImport(list)
           case AST.JavaImport.any(imp) =>
-            val pkg    = imp.path.init.map(_.name)
-            val cls    = imp.path.last.name
-            val rename = imp.rename.map(_.name)
+            val pkg = imp.path.init.map(_.name)
+            val cls = imp.path.last.name
             Module.Scope.Import.Polyglot(
               Module.Scope.Import.Polyglot.Java(pkg.mkString("."), cls),
-              rename,
               getIdentifiedLocation(imp)
             )
-        }
-
-        val exports = presentBlocks.collect { case AST.Export.any(export) =>
-          translateExport(export)
         }
 
         val nonImportBlocks = presentBlocks.filter {
           case AST.Import.any(_)     => false
           case AST.JavaImport.any(_) => false
-          case AST.Export.any(_)     => false
           case _                     => true
         }
 
         val statements = nonImportBlocks.map(translateModuleSymbol)
-        Module(imports, exports, statements, getIdentifiedLocation(module))
+        Module(imports, statements, getIdentifiedLocation(module))
     }
   }
 
@@ -134,7 +116,7 @@ object AstToIr {
       case AstView.Atom(consName, args) =>
         Module.Scope.Definition
           .Atom(
-            buildName(consName),
+            Name.Literal(consName.name, getIdentifiedLocation(consName)),
             args.map(translateArgumentDefinition(_)),
             getIdentifiedLocation(inputAst)
           )
@@ -149,7 +131,7 @@ object AstToIr {
 
         if (containsAtomDefOrInclude && !hasArgs) {
           Module.Scope.Definition.Type(
-            buildName(typeName),
+            Name.Literal(typeName.name, getIdentifiedLocation(typeName)),
             args.map(translateArgumentDefinition(_)),
             translatedBody,
             getIdentifiedLocation(inputAst)
@@ -160,36 +142,36 @@ object AstToIr {
           Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
         }
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
-        val nameId: AST.Ident = name match {
-          case AST.Ident.Var.any(name) => name
-          case AST.Ident.Opr.any(opr)  => opr
-        }
+        val nameStr = name match { case AST.Ident.Var.any(name) => name }
 
         val methodRef = if (targetPath.nonEmpty) {
-          val pathSegments = targetPath.collect { case AST.Ident.Cons.any(c) =>
-            c
+          val pathSegments = targetPath.collect {
+            case AST.Ident.Cons.any(c) => c
           }
-          val pathNames = pathSegments.map(buildName)
+          val pathNames = pathSegments.map(c =>
+            IR.Name.Literal(c.name, getIdentifiedLocation(c))
+          )
 
-          val methodSegments = pathNames :+ buildName(nameId)
-
-          val typeSegments = methodSegments.init
+          val methodSegments = pathNames :+ Name.Literal(
+              nameStr.name,
+              getIdentifiedLocation(nameStr)
+            )
 
           Name.MethodReference(
-            IR.Name.Qualified(
-              typeSegments,
-              MethodReference.genLocation(typeSegments)
-            ),
+            methodSegments.init,
             methodSegments.last,
             MethodReference.genLocation(methodSegments)
           )
         } else {
-          val typeName   = Name.Here(None)
-          val methodName = buildName(nameId)
+          val methodSegments = List(
+            Name.Here(None),
+            Name.Literal(nameStr.name, getIdentifiedLocation(nameStr))
+          )
+
           Name.MethodReference(
-            typeName,
-            methodName,
-            methodName.location
+            List(methodSegments.head),
+            methodSegments.last,
+            MethodReference.genLocation(methodSegments)
           )
         }
 
@@ -200,13 +182,14 @@ object AstToIr {
           getIdentifiedLocation(inputAst)
         )
       case AstView.FunctionSugar(name, args, body) =>
-        val typeName   = Name.Here(None)
-        val methodName = buildName(name)
-
+        val methodSegments = List(
+          Name.Here(None),
+          Name.Literal(name.name, getIdentifiedLocation(name))
+        )
         val methodReference = Name.MethodReference(
-          typeName,
-          methodName,
-          methodName.location
+          List(methodSegments.head),
+          methodSegments.last,
+          MethodReference.genLocation(methodSegments)
         )
 
         Module.Scope.Definition.Method.Binding(
@@ -219,28 +202,31 @@ object AstToIr {
       case AstView.TypeAscription(typed, sig) =>
         typed match {
           case AST.Ident.any(ident) =>
-            val typeName   = Name.Here(None)
-            val methodName = buildName(ident)
+            val methodSegments = List(
+              Name.Here(None),
+              Name.Literal(ident.name, getIdentifiedLocation(ident))
+            )
             val methodReference = Name.MethodReference(
-              typeName,
-              methodName,
-              methodName.location
+              List(methodSegments.head),
+              methodSegments.last,
+              MethodReference.genLocation(methodSegments)
             )
 
             IR.Type.Ascription(
               methodReference,
-              translateExpression(sig, insideTypeSignature = true),
+              translateExpression(sig),
               getIdentifiedLocation(inputAst)
             )
           case AstView.MethodReference(_, _) =>
             IR.Type.Ascription(
               translateMethodReference(typed),
-              translateExpression(sig, insideTypeSignature = true),
+              translateExpression(sig),
               getIdentifiedLocation(inputAst)
             )
           case _ => Error.Syntax(typed, Error.Syntax.InvalidStandaloneSignature)
         }
-      case _ => Error.Syntax(inputAst, Error.Syntax.UnexpectedExpression)
+      case _ =>
+        throw new UnhandledEntity(inputAst, "translateModuleSymbol")
     }
   }
 
@@ -280,17 +266,10 @@ object AstToIr {
       case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
-      case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>
-        Function.Binding(
-          buildName(opr),
-          List(translateArgumentDefinition(arg)),
-          translateExpression(body),
-          getIdentifiedLocation(inputAst)
-        )
       case AstView.TypeAscription(typed, sig) =>
         IR.Type.Ascription(
           translateExpression(typed),
-          translateExpression(sig, insideTypeSignature = true),
+          translateExpression(sig),
           getIdentifiedLocation(inputAst)
         )
       case assignment @ AstView.BasicAssignment(_, _) =>
@@ -308,9 +287,8 @@ object AstToIr {
   def translateMethodReference(inputAst: AST): IR.Name.MethodReference = {
     inputAst match {
       case AstView.MethodReference(path, methodName) =>
-        val typeParts = path.map(translateExpression(_).asInstanceOf[IR.Name])
         IR.Name.MethodReference(
-          IR.Name.Qualified(typeParts, MethodReference.genLocation(typeParts)),
+          path.map(translateExpression(_).asInstanceOf[IR.Name]),
           translateExpression(methodName).asInstanceOf[IR.Name],
           getIdentifiedLocation(inputAst)
         )
@@ -323,10 +301,7 @@ object AstToIr {
     * @param maybeParensedInput the expresion to be translated
     * @return the [[IR]] representation of `maybeParensedInput`
     */
-  def translateExpression(
-    maybeParensedInput: AST,
-    insideTypeSignature: Boolean = false
-  ): Expression = {
+  def translateExpression(maybeParensedInput: AST): Expression = {
     val inputAst = AstView.MaybeManyParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
@@ -345,7 +320,7 @@ object AstToIr {
             )
           case _ =>
             IR.Application.Prefix(
-              IR.Name.Literal("negate", isReferent = false, None),
+              IR.Name.Literal("negate", None),
               List(
                 IR.CallArgument.Specified(
                   None,
@@ -367,9 +342,9 @@ object AstToIr {
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(
-          buildName(name),
+          Name.Literal(name.name, getIdentifiedLocation(name)),
           Expression.Block(
-            lines.map(translateExpression(_)),
+            lines.map(translateExpression),
             translateExpression(lastLine),
             getIdentifiedLocation(block),
             suspended = true
@@ -378,37 +353,22 @@ object AstToIr {
         )
       case AstView.BasicAssignment(name, expr) =>
         translateBinding(getIdentifiedLocation(inputAst), name, expr)
-      case AstView.TypeAscription(left, right) =>
-        IR.Application.Operator.Binary(
-          translateCallArgument(left),
-          buildName(AST.Ident.Opr(AstView.TypeAscription.operatorName)),
-          translateCallArgument(right, insideTypeSignature = true),
-          getIdentifiedLocation(inputAst)
-        )
       case AstView.MethodDefinition(_, name, _, _) =>
         IR.Error.Syntax(
           inputAst,
           IR.Error.Syntax.MethodDefinedInline(name.asInstanceOf[AST.Ident].name)
         )
       case AstView.MethodCall(target, name, args) =>
-        inputAst match {
-          case AstView.QualifiedName(idents) if insideTypeSignature =>
-            IR.Name.Qualified(
-              idents.map(x => translateIdent(x).asInstanceOf[IR.Name]),
-              getIdentifiedLocation(inputAst)
-            )
-          case _ =>
-            val (validArguments, hasDefaultsSuspended) =
-              calculateDefaultsSuspension(args)
+        val (validArguments, hasDefaultsSuspended) =
+          calculateDefaultsSuspension(args)
 
-            // Note [Uniform Call Syntax Translation]
-            Application.Prefix(
-              translateIdent(name),
-              (target :: validArguments).map(translateCallArgument(_)),
-              hasDefaultsSuspended = hasDefaultsSuspended,
-              getIdentifiedLocation(inputAst)
-            )
-        }
+        // Note [Uniform Call Syntax Translation]
+        Application.Prefix(
+          translateExpression(name),
+          (target :: validArguments).map(translateCallArgument),
+          hasDefaultsSuspended = hasDefaultsSuspended,
+          getIdentifiedLocation(inputAst)
+        )
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
         val allBranches     = branches.map(translateCaseBranch)
@@ -418,24 +378,21 @@ object AstToIr {
           allBranches,
           getIdentifiedLocation(inputAst)
         )
-      case AstView.DecimalLiteral(intPart, fracPart) =>
-        translateDecimalLiteral(inputAst, intPart, fracPart)
-      case AST.App.any(inputAST) =>
-        translateApplicationLike(inputAST, insideTypeSignature)
+      case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
       case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case AST.TypesetLiteral.any(tSet) =>
         IR.Application.Literal.Typeset(
-          tSet.expression.map(translateExpression(_)),
+          tSet.expression.map(translateExpression),
           getIdentifiedLocation(tSet)
         )
       case AST.SequenceLiteral.any(inputAST) =>
         translateSequenceLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
         Expression.Block(
-          lines.map(translateExpression(_)),
+          lines.map(translateExpression),
           translateExpression(retLine),
           location = getIdentifiedLocation(inputAst)
         )
@@ -465,33 +422,13 @@ object AstToIr {
    * argument and cannot be performed any other way.
    */
 
-  def translateDecimalLiteral(
-    ast: AST,
-    int: AST.Literal.Number,
-    frac: AST.Literal.Number
-  ): Expression = {
-    if (int.base.isDefined && int.base.get != "10") {
-      Error.Syntax(
-        int,
-        Error.Syntax.UnsupportedSyntax("non-base-10 number literals")
-      )
-    } else if (frac.base.isDefined && frac.base.get != "10") {
-      Error.Syntax(frac, Error.Syntax.InvalidBaseInDecimalLiteral)
-    } else {
-      Literal.Number(
-        s"${int.shape.int}.${frac.shape.int}",
-        getIdentifiedLocation(ast)
-      )
-    }
-  }
-
   /** Translates a program literal from its [[AST]] representation into
     * [[IR]].
     *
     * @param literal the literal to translate
     * @return the [[IR]] representation of `literal`
     */
-  def translateLiteral(literal: AST.Literal): Expression =
+  def translateLiteral(literal: AST.Literal): Expression = {
     literal match {
       case AST.Literal.Number(base, number) =>
         if (base.isDefined && base.get != "10") {
@@ -522,101 +459,31 @@ object AstToIr {
               .mkString("\n")
 
             Literal.Text(fullString, getIdentifiedLocation(literal))
-          case AST.Literal.Text.Block.Fmt(lines, _, _) =>
-            val ls  = lines.map(l => parseFmtSegments(literal, l.text))
-            val err = ls.collectFirst { case Left(e) => e }
-            err match {
-              case Some(err) => err
-              case None =>
-                val str = ls.collect { case Right(str) => str }.mkString("\n")
-                IR.Literal.Text(str, getIdentifiedLocation(literal))
-            }
-          case AST.Literal.Text.Line.Fmt(segments) =>
-            parseFmtSegments(literal, segments) match {
-              case Left(err) => err
-              case Right(str) =>
-                IR.Literal.Text(str, getIdentifiedLocation(literal))
-            }
-          case TextUnclosed(_) =>
-            Error.Syntax(literal, Error.Syntax.UnclosedTextLiteral)
-
+          case AST.Literal.Text.Block.Fmt(_, _, _) =>
+            Error.Syntax(
+              literal,
+              Error.Syntax.UnsupportedSyntax("format strings")
+            )
+          case AST.Literal.Text.Line.Fmt(_) =>
+            Error.Syntax(
+              literal,
+              Error.Syntax.UnsupportedSyntax("format strings")
+            )
           case _ =>
             throw new UnhandledEntity(literal.shape, "translateLiteral")
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
-
-  private def parseFmtSegments(
-    literal: AST,
-    segments: Seq[AST.Literal.Text.Segment[AST]]
-  ): Either[IR.Error, String] = {
-    val bldr                  = new StringBuilder
-    var err: Option[IR.Error] = None
-    breakable {
-      segments.foreach {
-        case SegmentEscape(code) =>
-          code match {
-            case Escape.Number(_) =>
-              err = Some(
-                Error.Syntax(
-                  literal,
-                  Error.Syntax.UnsupportedSyntax("escaped numbers")
-                )
-              )
-              break()
-            case unicode: Escape.Unicode =>
-              unicode match {
-                case Unicode.InvalidUnicode(unicode) =>
-                  err = Some(
-                    Error.Syntax(
-                      literal,
-                      Error.Syntax.InvalidEscapeSequence(unicode.repr)
-                    )
-                  )
-                  break()
-                case Unicode._U16(digits) =>
-                  val buffer = ByteBuffer.allocate(2)
-                  buffer.putChar(
-                    Integer.parseInt(digits, 16).asInstanceOf[Char]
-                  )
-                  val str = new String(buffer.array(), "UTF-16")
-                  bldr.addAll(str)
-                case Unicode._U32(digits) =>
-                  val buffer = ByteBuffer.allocate(4)
-                  buffer.putInt(Integer.parseInt(digits, 16))
-                  val str = new String(buffer.array(), "UTF-32")
-                  bldr.addAll(str)
-                case Unicode._U21(digits) =>
-                  val buffer = ByteBuffer.allocate(4)
-                  buffer.putInt(Integer.parseInt(digits, 16))
-                  val str = new String(buffer.array(), "UTF-32")
-                  bldr.addAll(str)
-              }
-            case e: Escape.Character => bldr.addOne(e.code)
-            case e: Escape.Control   => bldr.addAll(e.repr)
-          }
-        case SegmentPlain(text) => bldr.addAll(text)
-        case SegmentExpr(_) =>
-          err = Some(
-            Error.Syntax(
-              literal,
-              Error.Syntax.UnsupportedSyntax("interpolated expressions")
-            )
-          )
-          break()
-        case SegmentRawEscape(e) => bldr.addAll(e.repr)
-      }
-    }
-    err.map(Left(_)).getOrElse(Right(bldr.toString))
   }
 
-  /** Translates a sequence literal into its [[IR]] counterpart.
+  /**
+    * Translates a sequence literal into its [[IR]] counterpart.
     * @param literal the literal to translate
     * @return the [[IR]] representation of `literal`
     */
   def translateSequenceLiteral(literal: AST.SequenceLiteral): Expression = {
     IR.Application.Literal.Sequence(
-      literal.items.map(translateExpression(_)),
+      literal.items.map(translateExpression),
       getIdentifiedLocation(literal)
     )
   }
@@ -682,25 +549,18 @@ object AstToIr {
     * @param arg the argument to translate
     * @return the [[IR]] representation of `arg`
     */
-  def translateCallArgument(
-    arg: AST,
-    insideTypeSignature: Boolean = false
-  ): CallArgument.Specified =
+  def translateCallArgument(arg: AST): CallArgument.Specified =
     arg match {
       case AstView.AssignedArgument(left, right) =>
         CallArgument
           .Specified(
-            Some(buildName(left)),
-            translateExpression(right, insideTypeSignature),
+            Some(Name.Literal(left.name, getIdentifiedLocation(left))),
+            translateExpression(right),
             getIdentifiedLocation(arg)
           )
       case _ =>
         CallArgument
-          .Specified(
-            None,
-            translateExpression(arg, insideTypeSignature),
-            getIdentifiedLocation(arg)
-          )
+          .Specified(None, translateExpression(arg), getIdentifiedLocation(arg))
     }
 
   /** Calculates whether a set of arguments has its defaults suspended, and
@@ -731,18 +591,15 @@ object AstToIr {
     * @param callable the callable to translate
     * @return the [[IR]] representation of `callable`
     */
-  def translateApplicationLike(
-    callable: AST,
-    insideTypeAscription: Boolean = false
-  ): Expression = {
+  def translateApplicationLike(callable: AST): Expression = {
     callable match {
       case AstView.Application(name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)
 
         Application.Prefix(
-          translateExpression(name, insideTypeAscription),
-          validArguments.map(translateCallArgument(_, insideTypeAscription)),
+          translateExpression(name),
+          validArguments.map(translateCallArgument),
           hasDefaultsSuspended,
           getIdentifiedLocation(callable)
         )
@@ -755,14 +612,13 @@ object AstToIr {
             )
           )
         } else {
-          val realArgs =
-            args.map(translateArgumentDefinition(_, insideTypeAscription))
-          val realBody = translateExpression(body, insideTypeAscription)
+          val realArgs = args.map(translateArgumentDefinition(_))
+          val realBody = translateExpression(body)
           Function.Lambda(realArgs, realBody, getIdentifiedLocation(callable))
         }
       case AST.App.Infix(left, fn, right) =>
-        val leftArg  = translateCallArgument(left, insideTypeAscription)
-        val rightArg = translateCallArgument(right, insideTypeAscription)
+        val leftArg  = translateCallArgument(left)
+        val rightArg = translateCallArgument(right)
 
         fn match {
           case AST.Ident.Opr.any(fn) =>
@@ -773,7 +629,7 @@ object AstToIr {
             } else {
               Application.Operator.Binary(
                 leftArg,
-                buildName(fn),
+                Name.Literal(fn.name, getIdentifiedLocation(fn)),
                 rightArg,
                 getIdentifiedLocation(callable)
               )
@@ -793,8 +649,8 @@ object AstToIr {
           AST.Ident.Var(realNameSegments.mkString("_"))
 
         Application.Prefix(
-          translateExpression(functionName, insideTypeAscription),
-          args.map(translateCallArgument(_, insideTypeAscription)).toList,
+          translateExpression(functionName),
+          args.map(translateCallArgument).toList,
           hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
         )
@@ -822,13 +678,13 @@ object AstToIr {
         } else {
           Application.Operator.Section.Left(
             leftArg,
-            buildName(left.opr),
+            Name.Literal(left.opr.name, getIdentifiedLocation(left.opr)),
             getIdentifiedLocation(left)
           )
         }
       case AST.App.Section.Sides.any(sides) =>
         Application.Operator.Section.Sides(
-          buildName(sides.opr),
+          Name.Literal(sides.opr.name, getIdentifiedLocation(sides.opr)),
           getIdentifiedLocation(sides)
         )
       case AST.App.Section.Right.any(right) =>
@@ -838,7 +694,7 @@ object AstToIr {
           Error.Syntax(section, Error.Syntax.NamedArgInSection)
         } else {
           Application.Operator.Section.Right(
-            buildName(right.opr),
+            Name.Literal(right.opr.name, getIdentifiedLocation(right.opr)),
             translateCallArgument(right.arg),
             getIdentifiedLocation(right)
           )
@@ -860,12 +716,10 @@ object AstToIr {
         } else if (name == "here") {
           Name.Here(getIdentifiedLocation(identifier))
         } else {
-          buildName(identifier)
+          Name.Literal(name, getIdentifiedLocation(identifier))
         }
-      case AST.Ident.Annotation(name) =>
-        Name.Annotation(name, getIdentifiedLocation(identifier))
-      case AST.Ident.Cons(_) =>
-        buildName(identifier)
+      case AST.Ident.Cons(name) =>
+        Name.Literal(name, getIdentifiedLocation(identifier))
       case AST.Ident.Blank(_) =>
         Name.Blank(getIdentifiedLocation(identifier))
       case AST.Ident.Opr.any(_) =>
@@ -946,14 +800,9 @@ object AstToIr {
     */
   def translatePattern(pattern: AST): Pattern = {
     AstView.MaybeManyParensed.unapply(pattern).getOrElse(pattern) match {
-      case AstView.ConstructorPattern(conses, fields) =>
-        val irConses = conses.map(translateIdent(_).asInstanceOf[IR.Name])
-        val name = irConses match {
-          case List(n) => n
-          case _       => IR.Name.Qualified(irConses, None)
-        }
+      case AstView.ConstructorPattern(cons, fields) =>
         Pattern.Constructor(
-          name,
+          translateIdent(cons).asInstanceOf[IR.Name],
           fields.map(translatePattern),
           getIdentifiedLocation(pattern)
         )
@@ -989,38 +838,14 @@ object AstToIr {
     * @return the [[IR]] representation of `imp`
     */
   def translateImport(imp: AST.Import): Module.Scope.Import = {
-    imp match {
-      case AST.Import(path, rename, isAll, onlyNames, hiddenNames) =>
+    imp.path match {
+      case AstView.ModulePath(segments) =>
         IR.Module.Scope.Import.Module(
-          IR.Name.Qualified(path.map(buildName).toList, None),
-          rename.map(buildName),
-          isAll,
-          onlyNames.map(_.map(buildName).toList),
-          hiddenNames.map(_.map(buildName).toList),
-          getIdentifiedLocation(imp)
+          segments.map(_.name).mkString("."),
+          getIdentifiedLocation(imp.path)
         )
       case _ =>
         IR.Error.Syntax(imp, IR.Error.Syntax.InvalidImport)
-    }
-  }
-
-  /** Translates an export statement from its [[AST]] representation into
-    * [[IR]].
-    *
-    * @param imp the export to translate
-    * @return the [[IR]] representation of `imp`
-    */
-  def translateExport(imp: AST.Export): Module.Scope.Export = {
-    imp match {
-      case AST.Export(path, rename, isAll, onlyNames, hiddenNames) =>
-        IR.Module.Scope.Export(
-          IR.Name.Qualified(path.map(buildName).toList, None),
-          rename.map(buildName),
-          isAll,
-          onlyNames.map(_.map(buildName).toList),
-          hiddenNames.map(_.map(buildName).toList),
-          getIdentifiedLocation(imp)
-        )
     }
   }
 
@@ -1077,13 +902,4 @@ object AstToIr {
         throw new UnhandledEntity(comment, "processComment")
     }
   }
-
-  private def isReferant(ident: AST.Ident): Boolean =
-    ident match {
-      case AST.Ident.Cons.any(_) => true
-      case _                     => false
-    }
-
-  private def buildName(ident: AST.Ident): IR.Name.Literal =
-    IR.Name.Literal(ident.name, isReferant(ident), getIdentifiedLocation(ident))
 }
