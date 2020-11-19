@@ -1,21 +1,15 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import akka.actor.Status.Failure
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.pattern.pipe
-import org.enso.languageserver.boot.{
-  LanguageServerComponent,
-  LanguageServerConfig
-}
 import org.enso.projectmanager.boot.configuration.BootloaderConfig
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
-  Boot,
-  FindFreeSocket,
   ServerBootFailed,
   ServerBooted
 }
 import org.enso.projectmanager.infrastructure.net.Tcp
 import org.enso.projectmanager.util.UnhandledLogging
+
+import scala.concurrent.duration.FiniteDuration
 
 /** It boots a Language Sever described by the `descriptor`. Upon boot failure
   * looks up new available port and retries to boot the server.
@@ -24,8 +18,10 @@ import org.enso.projectmanager.util.UnhandledLogging
   * @param config a bootloader config
   */
 class LanguageServerBootLoader(
+  bootProgressTracker: ActorRef,
   descriptor: LanguageServerDescriptor,
-  config: BootloaderConfig
+  config: BootloaderConfig,
+  bootTimeout: FiniteDuration
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -53,36 +49,37 @@ class LanguageServerBootLoader(
         s"binary:${descriptor.networkConfig.interface}:$binaryPort]"
       )
       self ! Boot
-      context.become(booting(jsonRpcPort, binaryPort, retry))
+      context.become(booting(jsonRpcPort, binaryPort, retry, context.parent))
 
     case GracefulStop =>
       context.stop(self)
   }
 
-  private def booting(rpcPort: Int, dataPort: Int, retryCount: Int): Receive = {
+  private def booting(
+    rpcPort: Int,
+    dataPort: Int,
+    retryCount: Int,
+    replyTo: ActorRef
+  ): Receive = {
     case Boot =>
       log.debug("Booting a language server")
-      val config = LanguageServerConfig(
-        descriptor.networkConfig.interface,
-        rpcPort,
-        dataPort,
-        descriptor.rootId,
-        descriptor.root,
-        descriptor.name,
-        context.dispatcher
+      context.actorOf(
+        LanguageServerProcess.props(
+          progressTracker = bootProgressTracker,
+          descriptor      = descriptor,
+          bootTimeout     = bootTimeout,
+          rpcPort         = rpcPort,
+          dataPort        = dataPort
+        ),
+        s"process-wrapper-${descriptor.name}"
       )
 
-      // TODO swap to LanguageServerProcess and also add Preinstall state
-      val server = new LanguageServerComponent(config)
-      server.start().map(_ => config -> server) pipeTo self
+    case LanguageServerProcess.ServerTerminated(exitCode) =>
+      val message =
+        s"Language server terminated with exit code $exitCode before " +
+        s"finishing booting."
+      log.warning(message)
 
-      context.actorOf(LanguageServerProcess.props()) // TODO
-
-    case Failure(th) =>
-      log.error(
-        th,
-        s"An error occurred during boot of Language Server [${descriptor.name}]"
-      )
       if (retryCount < config.numberOfRetries) {
         context.system.scheduler
           .scheduleOnce(config.delayBetweenRetry, self, FindFreeSocket)
@@ -91,18 +88,65 @@ class LanguageServerBootLoader(
         log.error(
           s"Tried $retryCount times to boot Language Server. Giving up."
         )
-        context.parent ! ServerBootFailed(th)
+        replyTo ! ServerBootFailed(new RuntimeException(message))
         context.stop(self)
       }
 
-    case (config: LanguageServerConfig, server: LanguageServerComponent) =>
-      log.info(s"Language server booted [$config].")
-      context.parent ! ServerBooted(config, server)
+    case LanguageServerProcess.ServerConfirmedFinishedBooting =>
+      val connectionInfo = LanguageServerConnectionInfo(
+        descriptor.networkConfig.interface,
+        rpcPort  = rpcPort,
+        dataPort = dataPort
+      )
+      log.info(s"Language server booted [$connectionInfo].")
+      // TODO who is the manager?
+      replyTo ! ServerBooted(connectionInfo, sender())
+      context.become(running)
+
+    case GracefulStop =>
+      context.children.foreach(_ ! LanguageServerProcess.Stop)
+  }
+
+  /** After successfull boot, we cannot stop as it would stop our child process,
+    * so we just wait for it to terminate, acting as a proxy.
+    */
+  private def running: Receive = {
+    case LanguageServerProcess.ServerTerminated(exitCode) =>
+      log.debug(
+        s"Language Server process has terminated with exit code $exitCode"
+      )
       context.stop(self)
 
     case GracefulStop =>
-      context.stop(self)
+      context.children.foreach(_ ! LanguageServerProcess.Stop)
   }
+
+//  def restarting(
+//    connectionInfo: LanguageServerConnectionInfo,
+//    replyTo: ActorRef
+//  ): Receive = {
+//    case LanguageServerProcess.ServerTerminated(exitCode) =>
+//      log.debug(
+//        s"Language Server process has terminated (as requested to reboot) " +
+//        s"with exit code $exitCode"
+//      )
+//
+//      context.become(rebooting(connectionInfo, replyTo))
+//      self ! Boot
+//
+//    case GracefulStop =>
+//      context.children.foreach(_ ! LanguageServerProcess.Stop)
+//  }
+//
+//  def rebooting(
+//    connectionInfo: LanguageServerConnectionInfo,
+//    replyTo: ActorRef
+//  ): Receive = booting(
+//    connectionInfo.rpcPort,
+//    connectionInfo.dataPort,
+//    config.numberOfRetries,
+//    replyTo
+//  )
 
   private def findPort(): Int =
     Tcp.findAvailablePort(
@@ -110,6 +154,12 @@ class LanguageServerBootLoader(
       descriptor.networkConfig.minPort,
       descriptor.networkConfig.maxPort
     )
+
+  /** Find free socket command. */
+  case object FindFreeSocket
+
+  /** Boot command. */
+  case object Boot
 
 }
 
@@ -119,21 +169,25 @@ object LanguageServerBootLoader {
     *
     * @param descriptor a LS descriptor
     * @param config a bootloader config
+    * @param bootTimeout maximum time the server can use to boot,
+    *                    does not include the time needed to install any missing
+    *                    components
     * @return a configuration object
     */
   def props(
+    bootProgressTracker: ActorRef,
     descriptor: LanguageServerDescriptor,
-    config: BootloaderConfig
+    config: BootloaderConfig,
+    bootTimeout: FiniteDuration
   ): Props =
-    Props(new LanguageServerBootLoader(descriptor, config))
-
-  /** Find free socket command.
-    */
-  case object FindFreeSocket
-
-  /** Boot command.
-    */
-  case object Boot
+    Props(
+      new LanguageServerBootLoader(
+        bootProgressTracker,
+        descriptor,
+        config,
+        bootTimeout
+      )
+    )
 
   /** Signals that server boot failed.
     *
@@ -143,12 +197,14 @@ object LanguageServerBootLoader {
 
   /** Signals that server booted successfully.
     *
-    * @param config a server config
-    * @param serverProcess a server process
+    * @param connectionInfo a server config
+    * @param serverProcessManager an actor that manages the server process
+    *                             lifecycle, currently it is
+    *                             [[LanguageServerBootLoader]]
     */
   case class ServerBooted(
-    config: LanguageServerConfig,
-    serverProcess: ActorRef
+    connectionInfo: LanguageServerConnectionInfo,
+    serverProcessManager: ActorRef
   )
 
   case class ServerTerminated(exitCode: Int)

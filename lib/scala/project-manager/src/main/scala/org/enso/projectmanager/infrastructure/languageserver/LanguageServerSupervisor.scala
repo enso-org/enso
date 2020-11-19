@@ -2,7 +2,6 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.Status.Failure
 import akka.actor.{
   Actor,
   ActorLogging,
@@ -12,15 +11,11 @@ import akka.actor.{
   Scheduler,
   Terminated
 }
-import akka.pattern.pipe
-import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
-import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
-  RestartServer,
   SendHeartbeat,
   ServerUnresponsive,
   StartSupervision
@@ -38,7 +33,7 @@ import org.enso.projectmanager.util.UnhandledLogging
   * @param scheduler a scheduler
   */
 class LanguageServerSupervisor(
-  config: LanguageServerConfig,
+  config: LanguageServerConnectionInfo,
   serverProcess: ActorRef,
   supervisionConfig: SupervisionConfig,
   connectionFactory: WebSocketConnectionFactory,
@@ -84,39 +79,22 @@ class LanguageServerSupervisor(
     case ServerUnresponsive =>
       log.info(s"Server is unresponsive [$config]. Restarting it...")
       cancellable.cancel()
-      log.info(s"Restarting first time the server")
-      // FIXME [RW]
-//      server.restart() pipeTo self
-      context.become(restarting())
+      log.info(s"Restarting the server")
+      serverProcess ! Restart
+      context.become(restarting)
 
     case GracefulStop =>
       cancellable.cancel()
       stop()
   }
 
-  private def restarting(restartCount: Int = 1): Receive = {
-    case RestartServer =>
-      log.info(s"Restarting $restartCount time the server")
-      // FIXME [RW]
-//      server.restart() pipeTo self
-      ()
+  private def restarting: Receive = {
+    case LanguageServerProcess.ServerTerminated(_) =>
+      log.error("Cannot restart language server")
+      context.parent ! ServerDied
+      context.stop(self)
 
-    case Failure(th) =>
-      log.error(th, s"An error occurred during restarting the server [$config]")
-      if (restartCount < supervisionConfig.numberOfRestarts) {
-        scheduler.scheduleOnce(
-          supervisionConfig.delayBetweenRestarts,
-          self,
-          RestartServer
-        )
-        context.become(restarting(restartCount + 1))
-      } else {
-        log.error("Cannot restart language server")
-        context.parent ! ServerDied
-        context.stop(self)
-      }
-
-    case ComponentRestarted =>
+    case LanguageServerProcess.ServerConfirmedFinishedBooting =>
       log.info(s"Language server restarted [$config]")
       val cancellable =
         scheduler.scheduleAtFixedRate(
@@ -153,8 +131,6 @@ object LanguageServerSupervisor {
 
   private case object StartSupervision
 
-  private case object RestartServer
-
   /** A command responsible for initiating heartbeat session.
     */
   case object SendHeartbeat
@@ -168,7 +144,7 @@ object LanguageServerSupervisor {
 
   /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
     *
-    * @param config a server config
+    * @param connectionInfo a server config
     * @param serverProcess a server handle
     * @param supervisionConfig a supervision config
     * @param connectionFactory a web socket connection factory
@@ -176,7 +152,7 @@ object LanguageServerSupervisor {
     * @return a configuration object
     */
   def props(
-    config: LanguageServerConfig,
+    connectionInfo: LanguageServerConnectionInfo,
     serverProcess: ActorRef,
     supervisionConfig: SupervisionConfig,
     connectionFactory: WebSocketConnectionFactory,
@@ -184,7 +160,7 @@ object LanguageServerSupervisor {
   ): Props =
     Props(
       new LanguageServerSupervisor(
-        config,
+        connectionInfo,
         serverProcess,
         supervisionConfig,
         connectionFactory,

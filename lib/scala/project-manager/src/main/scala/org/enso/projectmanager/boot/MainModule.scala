@@ -77,7 +77,8 @@ class MainModule[
           config.network,
           config.bootloader,
           config.supervision,
-          config.timeout
+          config.timeout,
+          DefaultDistributionConfiguration
         ),
       "language-server-registry"
     )
@@ -98,19 +99,21 @@ class MainModule[
   lazy val projectCreationService =
     new ProjectCreationService[F](DefaultDistributionConfiguration)
 
+  lazy val globalConfigService =
+    new GlobalConfigService[F](DefaultDistributionConfiguration)
+
   lazy val projectService =
     new ProjectService[F](
       projectValidator,
       projectRepository,
       projectCreationService,
+      globalConfigService,
       logging,
       clock,
       gen,
-      languageServerGateway
+      languageServerGateway,
+      DefaultDistributionConfiguration
     )
-
-  lazy val globalConfigService =
-    new GlobalConfigService[F](DefaultDistributionConfiguration)
 
   lazy val runtimeVersionManagementService =
     new RuntimeVersionManagementService[F](DefaultDistributionConfiguration)

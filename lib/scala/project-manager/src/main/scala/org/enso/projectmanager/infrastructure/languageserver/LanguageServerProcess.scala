@@ -1,12 +1,13 @@
 package org.enso.projectmanager.infrastructure.languageserver
 import java.io.PrintWriter
 import java.lang.ProcessBuilder.Redirect
-import java.util.concurrent.TimeUnit
+import java.util.UUID
 
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash}
 import akka.pattern.pipe
-import akka.actor.{Actor, ActorRef, Stash}
-import nl.gn0s1s.bump.SemVer
 import org.enso.loggingservice.LogLevel
+import org.enso.projectmanager.data.Socket
+import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProcess.{
   Kill,
   ServerTerminated,
@@ -18,27 +19,25 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSuper
 }
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
-import org.enso.runtimeversionmanager.runner.{
-  JVMSettings,
-  LanguageServerOptions,
-  Runner
-}
+import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future, Promise, TimeoutException}
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{Future, Promise}
 import scala.util.Using
 
 class LanguageServerProcess(
-  override val distributionConfiguration: DistributionConfiguration,
-  version: SemVer,
-  projectPath: String,
   progressTracker: ActorRef,
-  languageServerOptions: LanguageServerOptions,
-  jvmSettings: JVMSettings,
+  descriptor: LanguageServerDescriptor,
+  rpcPort: Int,
+  dataPort: Int,
   bootTimeout: FiniteDuration
 ) extends Actor
     with Stash
     with RuntimeVersionManagerMixin {
+
+  /** @inheritdoc */
+  override def distributionConfiguration: DistributionConfiguration =
+    descriptor.distributionConfiguration
 
   override def preStart(): Unit = {
     super.preStart()
@@ -72,25 +71,54 @@ class LanguageServerProcess(
 
   private def startingStage: Receive = {
     case ProcessStarted(process) =>
-      Future { waitForStartup() } pipeTo context.parent
-      // FIXME [RW] start cancellable for boot timeout
-      context.become(bootingStage(process))
+      self ! AskServerIfStarted
+      val cancellable =
+        context.system.scheduler.scheduleOnce(bootTimeout, self, TimedOut)
+      context.become(bootingStage(process, cancellable))
     case _ => stash()
   }
 
-  private def bootingStage(process: Process): Receive =
-    handleBootResponse(process).orElse(runningStage(process))
+  private def bootingStage(
+    process: Process,
+    bootTimeout: Cancellable
+  ): Receive =
+    handleBootResponse(process, bootTimeout).orElse(runningStage(process))
 
-  private def handleBootResponse(process: Process): Receive = {
+  case object AskServerIfStarted
+  case object TimedOut
+  private val retryDelay = 100.milliseconds
+
+  private def handleBootResponse(
+    process: Process,
+    bootTimeout: Cancellable
+  ): Receive = {
+    case AskServerIfStarted =>
+      val socket = Socket(descriptor.networkConfig.interface, rpcPort)
+      context.actorOf(
+        HeartbeatSession.initialProps(
+          socket,
+          retryDelay,
+          new AkkaBasedWebSocketConnectionFactory()(context.system),
+          context.system.scheduler
+        ),
+        s"initial-heartbeat-${UUID.randomUUID()}"
+      )
+    case TimedOut =>
+      self ! Stop
     case HeartbeatReceived =>
-      // TODO confirm
+      context.parent ! LanguageServerProcess.ServerConfirmedFinishedBooting
+      bootTimeout.cancel()
       context.become(runningStage(process))
     case ServerUnresponsive =>
-    // TODO retry? maybe wait a little bit
+      context.system.scheduler.scheduleOnce(
+        retryDelay,
+        self,
+        AskServerIfStarted
+      )
+      context.become(bootingStage(process, bootTimeout))
   }
 
-  // TODO [RW] figure out how to deal with stopping the process
-  //  (preferably gracefully when this Actor is stopped)
+  // TODO restarting, retrying
   private def runningStage(process: Process): Receive = {
     case Stop => requestGracefulTermination(process)
     case Kill => process.destroyForcibly()
@@ -104,19 +132,25 @@ class LanguageServerProcess(
     // TODO [RW] logging #1151
     val loggerConnection = Future.successful(None)
     val logLevel         = LogLevel.Info
+    val options = LanguageServerOptions(
+      rootId    = descriptor.rootId,
+      interface = descriptor.networkConfig.interface,
+      rpcPort   = rpcPort,
+      dataPort  = dataPort
+    )
 
     val runner =
       new Runner(mgr, distributionConfiguration.environment, loggerConnection)
     val runSettings = runner
       .startLanguageServer(
-        options             = languageServerOptions,
-        projectPath         = projectPath,
-        version             = version,
+        options             = options,
+        projectPath         = descriptor.rootPath,
+        version             = descriptor.engineVersion,
         logLevel            = logLevel,
         additionalArguments = Seq()
       )
       .get
-    runner.withCommand(runSettings, jvmSettings) { command =>
+    runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
       val process = {
         val pb = command.builder()
         pb.inheritIO()
@@ -134,41 +168,31 @@ class LanguageServerProcess(
     Using(new PrintWriter(process.getOutputStream)) { writer =>
       writer.println()
     }
-
-  /** Waits until the server has processStarted.
-    *
-    * It first waits for the server to actually start, not consuming the timeout
-    * while the server is being initialized. Once it is notified that the
-    * process is started, it tries to connect to the server to ensure that it is
-    * processStarted. It retries until the timeout is reached.
-    */
-  private def waitForStartup(): Unit = {
-    val deadline = Deadline.now + bootTimeout
-    var booted   = false
-    while (!booted && deadline.hasTimeLeft()) {
-      if (queryServer()) {
-        booted = true
-      }
-    }
-
-    if (!booted)
-      throw new TimeoutException(
-        "The server did not finish booting within the requested timeout."
-      )
-  }
-
-  private def queryServer(): Boolean = {
-    ??? // FIXME [RW]
-  }
 }
 
 object LanguageServerProcess {
-  def props(): Nothing = ???
+  def props(
+    progressTracker: ActorRef,
+    descriptor: LanguageServerDescriptor,
+    rpcPort: Int,
+    dataPort: Int,
+    bootTimeout: FiniteDuration
+  ): Props = Props(
+    new LanguageServerProcess(
+      progressTracker,
+      descriptor,
+      rpcPort,
+      dataPort,
+      bootTimeout
+    )
+  )
 
   /** Sent to the parent when the server has terminated (for any reason: on
     * request or on its own, e.g. due to a signal or crash).
     */
   case class ServerTerminated(exitCode: Int)
+
+  case object ServerConfirmedFinishedBooting
 
   /** Sent to forcibly kill the server. */
   case object Kill

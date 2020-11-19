@@ -47,7 +47,7 @@ class LanguageServerRegistry(
   private def running(
     serverControllers: Map[UUID, ActorRef] = Map.empty
   ): Receive = {
-    case msg @ StartServer(_, project) =>
+    case msg @ StartServer(_, project, engineVersion, progressTracker) =>
       if (serverControllers.contains(project.id)) {
         serverControllers(project.id).forward(msg)
       } else {
@@ -55,6 +55,8 @@ class LanguageServerRegistry(
           LanguageServerController
             .props(
               project,
+              engineVersion,
+              progressTracker,
               networkConfig,
               bootloaderConfig,
               supervisionConfig,

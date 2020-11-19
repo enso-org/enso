@@ -103,12 +103,13 @@ class ProjectFileRepository[
       meta <- metaOpt
     } yield {
       Project(
-        id         = meta.id,
-        name       = pkg.name,
-        kind       = meta.kind,
-        created    = meta.created,
-        lastOpened = meta.lastOpened,
-        path       = Some(directory.toString)
+        id            = meta.id,
+        name          = pkg.name,
+        kind          = meta.kind,
+        created       = meta.created,
+        engineVersion = pkg.config.ensoVersion,
+        lastOpened    = meta.lastOpened,
+        path          = Some(directory.toString)
       )
     }
   }

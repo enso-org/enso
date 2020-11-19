@@ -3,6 +3,8 @@ package org.enso.projectmanager.model
 import java.time.OffsetDateTime
 import java.util.UUID
 
+import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion}
+
 /** Project entity.
   *
   * @param id a project id
@@ -17,6 +19,7 @@ case class Project(
   name: String,
   kind: ProjectKind,
   created: OffsetDateTime,
+  engineVersion: EnsoVersion         = DefaultEnsoVersion,
   lastOpened: Option[OffsetDateTime] = None,
   path: Option[String]               = None
 )

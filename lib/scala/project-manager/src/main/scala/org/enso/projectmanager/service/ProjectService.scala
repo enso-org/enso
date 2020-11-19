@@ -37,12 +37,17 @@ import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
   NameContainsForbiddenCharacter
 }
+import org.enso.projectmanager.service.config.GlobalConfigServiceApi
+import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
 /** Implementation of business logic for project management.
   *
   * @param validator a project validator
   * @param repo a project repository
   * @param projectCreationService a service for creating projects
+  * @param configurationService a service for managing configuration
   * @param log a logging facility
   * @param clock a clock
   * @param gen a random generator
@@ -51,12 +56,15 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
   projectCreationService: ProjectCreationServiceApi[F],
+  configurationService: GlobalConfigServiceApi[F],
   log: Logging[F],
   clock: Clock[F],
   gen: Generator[F],
-  languageServerGateway: LanguageServerGateway[F]
+  languageServerGateway: LanguageServerGateway[F],
+  override val distributionConfiguration: DistributionConfiguration
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
-    extends ProjectServiceApi[F] {
+    extends ProjectServiceApi[F]
+    with RuntimeVersionManagerMixin {
 
   import E._
 
@@ -197,25 +205,45 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
       _        <- repo.update(updated).mapError(toServiceFailure)
-      sockets  <- startServer(clientId, updated)
+      sockets  <- startServer(progressTracker, clientId, updated, missingComponentAction)
     } yield sockets
     // format: on
   }
 
-//  override def getProjectEngineVersion(
-//    projectId: UUID
-//  ): F[ProjectServiceFailure, EnsoVersion] = for {
-//    _ <- log.debug(s"Opening project $projectId")
-//    _ <- getUserProject(projectId)
-//    // TODO [RW] get version from definition...
-//  } yield DefaultEnsoVersion
+  private def preinstallEngine(
+    progressTracker: ActorRef,
+    version: SemVer,
+    missingComponentAction: MissingComponentAction
+  ): F[ProjectServiceFailure, Unit] =
+    Sync[F]
+      .blockingOp {
+        makeRuntimeVersionManager(progressTracker, missingComponentAction)
+          .findOrInstallEngine(version)
+        ()
+      }
+      .mapRuntimeManagerErrors(th =>
+        ProjectOpenFailed(
+          s"Cannot install the required engine ${th.getMessage}"
+        )
+      )
 
   private def startServer(
+    progressTracker: ActorRef,
     clientId: UUID,
-    project: Project
-  ): F[ProjectServiceFailure, LanguageServerSockets] =
-    languageServerGateway
-      .start(clientId, project)
+    project: Project,
+    missingComponentAction: MissingComponentAction
+  ): F[ProjectServiceFailure, LanguageServerSockets] = for {
+    version <- configurationService
+      .resolveEnsoVersion(project.engineVersion)
+      .mapError { case ConfigurationFileAccessFailure(message) =>
+        ProjectOpenFailed(
+          s"Could not deduce the default version to use for the project: " +
+          s"$message"
+        )
+      }
+    _ <- preinstallEngine(progressTracker, version, missingComponentAction)
+    sockets <- languageServerGateway
+      .start(progressTracker, clientId, project, version)
       .mapError {
         case PreviousInstanceNotShutDown =>
           ProjectOpenFailed(
@@ -231,6 +259,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
             s"Language server boot failed: ${th.getMessage}"
           )
       }
+  } yield sockets
 
   /** @inheritdoc */
   override def closeProject(

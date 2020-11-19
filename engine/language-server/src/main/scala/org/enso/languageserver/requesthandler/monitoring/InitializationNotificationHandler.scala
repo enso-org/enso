@@ -6,7 +6,6 @@ import org.enso.jsonrpc.{Request, ResponseError, ResponseResult, Unused}
 import org.enso.languageserver.monitoring.MonitoringApi
 
 import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
 /** A request handler for `heartbeat/init` commands.
@@ -43,10 +42,9 @@ object InitializationNotificationHandler {
     *
     * @param initializationFuture a future that is completed when initialization
     *                             is finished
-    * @param timeout a request timeout
     * @return a configuration object
     */
-  def props(initializationFuture: Future[_], timeout: FiniteDuration): Props =
-    Props(new InitializationNotificationHandler(initializationFuture, timeout))
+  def props(initializationFuture: Future[_]): Props =
+    Props(new InitializationNotificationHandler(initializationFuture))
 
 }

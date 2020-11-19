@@ -2,6 +2,8 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
+import akka.actor.ActorRef
+import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckTimeout,
@@ -20,13 +22,17 @@ trait LanguageServerGateway[F[+_, +_]] {
 
   /** Starts a language server.
     *
+    * @param progressTracker an ActorRef that should get notifications when
+    *                        waiting on a lock
     * @param clientId a requester id
     * @param project a project to start
     * @return either a failure or sockets that a language server listens on
     */
   def start(
+    progressTracker: ActorRef,
     clientId: UUID,
-    project: Project
+    project: Project,
+    version: SemVer
   ): F[ServerStartupFailure, LanguageServerSockets]
 
   /** Stops a lang. server.

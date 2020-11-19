@@ -74,8 +74,7 @@ class BaseServerSpec
   sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
 
   val testDistributionRoot = Files.createTempDirectory(null).toFile
-  println(s"Rooot: ${testDistributionRoot.toPath.toAbsolutePath.normalize()}")
-//  sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
+  sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
@@ -111,10 +110,23 @@ class BaseServerSpec
 
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
 
+  lazy val distributionConfiguration =
+    TestDistributionConfiguration(
+      distributionRoot       = testDistributionRoot.toPath,
+      engineReleaseProvider  = FakeReleases.engineReleaseProvider,
+      runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider
+    )
+
   lazy val languageServerRegistry =
     system.actorOf(
       LanguageServerRegistry
-        .props(netConfig, bootloaderConfig, supervisionConfig, timeoutConfig)
+        .props(
+          netConfig,
+          bootloaderConfig,
+          supervisionConfig,
+          timeoutConfig,
+          distributionConfiguration
+        )
     )
 
   lazy val shutdownHookActivator =
@@ -126,13 +138,6 @@ class BaseServerSpec
       shutdownHookActivator,
       system,
       timeoutConfig
-    )
-
-  lazy val distributionConfiguration =
-    TestDistributionConfiguration(
-      distributionRoot       = testDistributionRoot.toPath,
-      engineReleaseProvider  = FakeReleases.engineReleaseProvider,
-      runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider
     )
 
   lazy val projectCreationService =
@@ -152,20 +157,22 @@ class BaseServerSpec
       }
     }
 
+  lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
+    distributionConfiguration
+  )
+
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](
       projectValidator,
       projectRepository,
       projectCreationService,
+      globalConfigService,
       new Slf4jLogging[ZIO[ZEnv, +*, +*]],
       testClock,
       gen,
-      languageServerGateway
+      languageServerGateway,
+      distributionConfiguration
     )
-
-  lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
-    distributionConfiguration
-  )
 
   lazy val runtimeVersionManagementService =
     new RuntimeVersionManagementService[ZIO[ZEnv, +*, +*]](

@@ -2,7 +2,6 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.Status.Failure
 import akka.actor.{
   Actor,
   ActorLogging,
@@ -14,12 +13,7 @@ import akka.actor.{
   SupervisorStrategy,
   Terminated
 }
-import akka.pattern.pipe
-import org.enso.languageserver.boot.LifecycleComponent.ComponentStopped
-import org.enso.languageserver.boot.{
-  LanguageServerComponent,
-  LanguageServerConfig
-}
+import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig,
@@ -34,25 +28,20 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
   ServerBootFailed,
   ServerBooted
 }
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.{
-  Boot,
-  BootTimeout,
-  ServerDied,
-  ShutDownServer,
-  ShutdownTimeout
-}
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
-
-import scala.concurrent.duration._
+import org.enso.runtimeversionmanager.runner.JVMSettings
 
 /** A language server controller responsible for managing the server lifecycle.
   * It delegates all tasks to other actors like bootloader or supervisor.
   *
   * @param project a project open by the server
+  * @param engineVersion
+  * @param bootProgressTracker
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config
   * @param supervisionConfig a supervision config
@@ -61,6 +50,8 @@ import scala.concurrent.duration._
   */
 class LanguageServerController(
   project: Project,
+  engineVersion: SemVer,
+  bootProgressTracker: ActorRef,
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
   supervisionConfig: SupervisionConfig,
@@ -75,10 +66,13 @@ class LanguageServerController(
 
   private val descriptor =
     LanguageServerDescriptor(
-      name          = s"language-server-${project.id}",
-      rootId        = UUID.randomUUID(),
-      root          = project.path.get,
-      networkConfig = networkConfig
+      name                      = s"language-server-${project.id}",
+      rootId                    = UUID.randomUUID(),
+      rootPath                  = project.path.get,
+      networkConfig             = networkConfig,
+      distributionConfiguration = distributionConfiguration,
+      engineVersion             = engineVersion,
+      jvmSettings               = JVMSettings.default // TODO allow overriding
     )
 
   override def supervisorStrategy: SupervisorStrategy =
@@ -95,21 +89,22 @@ class LanguageServerController(
     case Boot =>
       val bootloader =
         context.actorOf(
-          LanguageServerBootLoader.props(descriptor, bootloaderConfig),
-          "bootloader"
+          LanguageServerBootLoader
+            .props(
+              bootProgressTracker,
+              descriptor,
+              bootloaderConfig,
+              timeoutConfig.bootTimeout
+            ),
+          s"bootloader-${descriptor.name}"
         )
       context.watch(bootloader)
-      val timeoutCancellable =
-        context.system.scheduler.scheduleOnce(30.seconds, self, BootTimeout)
-      context.become(booting(bootloader, timeoutCancellable))
+      context.become(booting(bootloader))
 
     case _ => stash()
   }
 
-  private def booting(
-    Bootloader: ActorRef,
-    timeoutCancellable: Cancellable
-  ): Receive = {
+  private def booting(Bootloader: ActorRef): Receive = {
     case BootTimeout =>
       log.error(s"Booting failed for $descriptor")
       unstashAll()
@@ -118,28 +113,25 @@ class LanguageServerController(
     case ServerBootFailed(th) =>
       log.error(th, s"Booting failed for $descriptor")
       unstashAll()
-      timeoutCancellable.cancel()
       context.become(bootFailed(LanguageServerProtocol.ServerBootFailed(th)))
 
-    case ServerBooted(config, server) =>
+    case ServerBooted(connectionInfo, server) =>
       unstashAll()
-      timeoutCancellable.cancel()
-      context.become(supervising(config, server))
+      context.become(supervising(connectionInfo, server))
       context.actorOf(
         LanguageServerSupervisor.props(
-          config,
+          connectionInfo,
           server,
           supervisionConfig,
           new AkkaBasedWebSocketConnectionFactory(),
           context.system.scheduler
         ),
-        "supervisor"
+        s"supervisor-${descriptor.name}"
       )
 
     case Terminated(Bootloader) =>
       log.error(s"Bootloader for project ${project.name} failed")
       unstashAll()
-      timeoutCancellable.cancel()
       context.become(
         bootFailed(
           LanguageServerProtocol.ServerBootFailed(
@@ -152,30 +144,40 @@ class LanguageServerController(
   }
 
   private def supervising(
-    config: LanguageServerConfig,
+    config: LanguageServerConnectionInfo,
     serverProcess: ActorRef,
     clients: Set[UUID] = Set.empty
   ): Receive = {
-    case StartServer(clientId, _) =>
-      sender() ! ServerStarted(
-        LanguageServerSockets(
-          Socket(config.interface, config.rpcPort),
-          Socket(config.interface, config.dataPort)
+    case StartServer(clientId, _, requestedEngineVersion, _) =>
+      if (requestedEngineVersion != engineVersion) {
+        sender() ! ServerBootFailed(
+          new IllegalStateException(
+            s"Requested to boot a server version $requestedEngineVersion, " +
+            s"but a server for this project with a different version, " +
+            s"$engineVersion, is already running. Two servers with different " +
+            s"versions cannot be running for a single project."
+          )
         )
-      )
-      context.become(supervising(config, server, clients + clientId))
-
+      } else {
+        sender() ! ServerStarted(
+          LanguageServerSockets(
+            Socket(config.interface, config.rpcPort),
+            Socket(config.interface, config.dataPort)
+          )
+        )
+        context.become(supervising(config, serverProcess, clients + clientId))
+      }
     case Terminated(_) =>
       log.debug(s"Bootloader for $project terminated.")
 
     case StopServer(clientId, _) =>
-      removeClient(config, server, clients, clientId, Some(sender()))
+      removeClient(config, serverProcess, clients, clientId, Some(sender()))
 
     case ShutDownServer =>
-      shutDownServer(server, None)
+      shutDownServer(serverProcess, None)
 
     case ClientDisconnected(clientId) =>
-      removeClient(config, server, clients, clientId, None)
+      removeClient(config, serverProcess, clients, clientId, None)
 
     case RenameProject(_, oldName, newName) =>
       val socket = Socket(config.interface, config.rpcPort)
@@ -199,28 +201,28 @@ class LanguageServerController(
   }
 
   private def removeClient(
-    config: LanguageServerConfig,
-    server: LanguageServerComponent,
+    config: LanguageServerConnectionInfo,
+    serverProcess: ActorRef,
     clients: Set[UUID],
     clientId: UUID,
     maybeRequester: Option[ActorRef]
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
-      shutDownServer(server, maybeRequester)
+      shutDownServer(serverProcess, maybeRequester)
     } else {
       sender() ! CannotDisconnectOtherClients
-      context.become(supervising(config, server, updatedClients))
+      context.become(supervising(config, serverProcess, updatedClients))
     }
   }
 
   private def shutDownServer(
-    server: LanguageServerComponent,
+    serverProcess: ActorRef,
     maybeRequester: Option[ActorRef]
   ): Unit = {
     log.debug(s"Shutting down a language server for project ${project.id}")
     context.children.foreach(_ ! GracefulStop)
-    server.stop() pipeTo self
+    serverProcess ! LanguageServerProcess.Stop
     val cancellable =
       context.system.scheduler
         .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
@@ -228,7 +230,7 @@ class LanguageServerController(
   }
 
   private def bootFailed(failure: ServerStartupFailure): Receive = {
-    case StartServer(_, _) =>
+    case StartServer(_, _, _, _) =>
       sender() ! failure
       stop()
   }
@@ -237,18 +239,16 @@ class LanguageServerController(
     cancellable: Cancellable,
     maybeRequester: Option[ActorRef]
   ): Receive = {
-    case Failure(th) =>
+    case LanguageServerProcess.ServerTerminated(exitCode) =>
       cancellable.cancel()
-      log.error(
-        th,
-        s"An error occurred during Language server shutdown [$project]."
-      )
-      maybeRequester.foreach(_ ! FailureDuringShutdown(th))
-      stop()
-
-    case ComponentStopped =>
-      cancellable.cancel()
-      log.info(s"Language server shut down successfully [$project].")
+      if (exitCode == 0) {
+        log.info(s"Language server shut down successfully [$project].")
+      } else {
+        log.warning(
+          s"Language server shut down with non-zero exit code: $exitCode " +
+          s"[$project]."
+        )
+      }
       maybeRequester.foreach(_ ! ServerStopped)
       stop()
 
@@ -257,7 +257,7 @@ class LanguageServerController(
       maybeRequester.foreach(_ ! ServerShutdownTimedOut)
       stop()
 
-    case StartServer(_, _) =>
+    case StartServer(_, _, _, _) =>
       sender() ! PreviousInstanceNotShutDown
   }
 
@@ -286,6 +286,8 @@ object LanguageServerController {
   /** Creates a configuration object used to create a [[LanguageServerController]].
     *
     * @param project a project open by the server
+    * @param engineVersion
+    * @param bootProgressTracker
     * @param networkConfig a net config
     * @param bootloaderConfig a bootloader config
     * @param supervisionConfig a supervision config
@@ -295,6 +297,8 @@ object LanguageServerController {
     */
   def props(
     project: Project,
+    engineVersion: SemVer,
+    bootProgressTracker: ActorRef,
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
     supervisionConfig: SupervisionConfig,
@@ -304,6 +308,8 @@ object LanguageServerController {
     Props(
       new LanguageServerController(
         project,
+        engineVersion,
+        bootProgressTracker,
         networkConfig,
         bootloaderConfig,
         supervisionConfig,
