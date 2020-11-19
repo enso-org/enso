@@ -153,53 +153,53 @@ jobs:
       # Build Artifacts
       - name: Bootstrap the project
         run: sbt --no-colors bootstrap
-      - name: Build the Runtime Uberjar
-        run: sbt --no-colors runtime/assembly
-      - name: Build the Runner Uberjar
-        run: sbt --no-colors runner/assembly
-      - name: Build the Project Manager Uberjar
-        run: sbt --no-colors project-manager/assembly
-      - name: Build the Manifest
-        run: |
-          cp distribution/manifest.template.yaml manifest.yaml
-          echo "graal-vm-version: $graalVersion" >> manifest.yaml
-          echo "graal-java-version: $javaVersion" >> manifest.yaml
-      - name: Prepare Distribution
-        run: |
-          DIST_VERSION=$(./runner.jar --version --json | jq -r '.version')
-          DIST_ROOT=enso-engine-$DIST_VERSION
-          DIST_DIR=$DIST_ROOT/enso-$DIST_VERSION
-          mkdir -p $DIST_DIR
-          mkdir $DIST_DIR/component
-          cp runtime.jar $DIST_DIR/component
-          mv runner.jar $DIST_DIR/component
-          mv project-manager.jar $DIST_DIR/component
-          cp -r distribution/std-lib $DIST_DIR/std-lib
-          cp -r distribution/bin $DIST_DIR/bin
-          chmod +x $DIST_DIR/bin/enso
-          chmod +x $DIST_DIR/bin/project-manager
-          cp manifest.yaml $DIST_DIR
-          echo ::set-env name=DIST_ROOT::$DIST_ROOT
-          echo ::set-env name=DIST_DIR::$DIST_DIR
+#      - name: Build the Runtime Uberjar
+#        run: sbt --no-colors runtime/assembly
+#      - name: Build the Runner Uberjar
+#        run: sbt --no-colors runner/assembly
+#      - name: Build the Project Manager Uberjar
+#        run: sbt --no-colors project-manager/assembly
+#      - name: Build the Manifest
+#        run: |
+#          cp distribution/manifest.template.yaml manifest.yaml
+#          echo "graal-vm-version: $graalVersion" >> manifest.yaml
+#          echo "graal-java-version: $javaVersion" >> manifest.yaml
+#      - name: Prepare Distribution
+#        run: |
+#          DIST_VERSION=$(./runner.jar --version --json | jq -r '.version')
+#          DIST_ROOT=enso-engine-$DIST_VERSION
+#          DIST_DIR=$DIST_ROOT/enso-$DIST_VERSION
+#          mkdir -p $DIST_DIR
+#          mkdir $DIST_DIR/component
+#          cp runtime.jar $DIST_DIR/component
+#          mv runner.jar $DIST_DIR/component
+#          mv project-manager.jar $DIST_DIR/component
+#          cp -r distribution/std-lib $DIST_DIR/std-lib
+#          cp -r distribution/bin $DIST_DIR/bin
+#          chmod +x $DIST_DIR/bin/enso
+#          chmod +x $DIST_DIR/bin/project-manager
+#          cp manifest.yaml $DIST_DIR
+#          echo ::set-env name=DIST_ROOT::$DIST_ROOT
+#          echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
 
       # Publish
-      - name: Publish the Distribution Artifact
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: ${{ env.DIST_ROOT }}
-          path: ${{ env.DIST_ROOT }}
-      - name: Prepare the FlatBuffers Schemas for Upload
-        run: |
-          mkdir fbs-upload
-          cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
-          zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
-      - name: Publish the FlatBuffers Schemas
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: Engine Protocol FlatBuffers Schemas
-          path: ./fbs-upload/fbs-schema.zip
+#      - name: Publish the Distribution Artifact
+#        uses: actions/upload-artifact@v1.0.0
+#        with:
+#          name: ${{ env.DIST_ROOT }}
+#          path: ${{ env.DIST_ROOT }}
+#      - name: Prepare the FlatBuffers Schemas for Upload
+#        run: |
+#          mkdir fbs-upload
+#          cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
+#          zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
+#      - name: Publish the FlatBuffers Schemas
+#        uses: actions/upload-artifact@v1.0.0
+#        with:
+#          name: Engine Protocol FlatBuffers Schemas
+#          path: ./fbs-upload/fbs-schema.zip
       - name: Prepare Parser JS Bundle for Upload
         run: |
           mkdir parser-upload
@@ -209,11 +209,11 @@ jobs:
         with:
           name: Parser JS Bundle
           path: ./target/scala-parser.js
-      - name: Publish the Manifest
-        uses: actions/upload-artifact@v2
-        with:
-          name: manifest
-          path: manifest.yaml
+#      - name: Publish the Manifest
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: manifest
+#          path: manifest.yaml
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -225,12 +225,12 @@ jobs:
       - name: Upload Parser JS Bundle to S3
         run: |
           aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload FlatBuffers Schemas to S3
-        run: |
-          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload Distribution to S3
-        run: |
-          aws s3 sync ${{ env.DIST_DIR }} s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+#      - name: Upload FlatBuffers Schemas to S3
+#        run: |
+#          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+#      - name: Upload Distribution to S3
+#        run: |
+#          aws s3 sync ${{ env.DIST_DIR }} s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
