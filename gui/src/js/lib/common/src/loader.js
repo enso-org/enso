@@ -117,7 +117,6 @@ export class ProgressIndicator {
                 if (alpha < 1) {
                     window.requestAnimationFrame(show_step)
                 } else {
-                     console.log("SHOW END")
                      resolve()
                 }
             }

@@ -110,16 +110,16 @@ define_default_theme! { __light_theme__
     }
     code {
         syntax {
-            base      = Lcha(0.0,0.0,0.0,0.7);
-            disabled  = Lcha(0.0,0.0,0.0,0.3);
-            expected  = Lcha(0.0,0.0,0.0,0.3);
+            base      = Lcha(0.09,0.0,0.0,1.0);
+            disabled  = Lcha(0.7,0.0,0.0,1.0);
+            expected  = Lcha(0.7,0.0,0.0,1.0);
             selection = Lcha(0.7,0.0,0.125,0.7);
         }
         types {
             luminance  = 0.8;
             chroma     = 0.6;
             missing    = Lcha(0.8,0.0,0.0,1.0);
-            selected   = graph_editor::node::background;
+            selected   = code::syntax::base;
             overriden {
                 Text.hue   = 0.22;
                 Number.hue = 0.68;

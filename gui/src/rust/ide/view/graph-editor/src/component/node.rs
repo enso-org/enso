@@ -148,8 +148,8 @@ ensogl::define_endpoints! {
         select              (),
         deselect            (),
         set_visualization   (Option<visualization::Definition>),
-        set_dimmed          (bool),
-        set_input_connected (span_tree::Crumbs,bool),
+        set_disabled        (bool),
+        set_input_connected (span_tree::Crumbs,Option<Type>,bool),
         set_expression      (Expression),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -298,7 +298,7 @@ impl NodeModel {
     }
 
     fn init(self) -> Self {
-        self.set_expression(Expression::debug_from_str("empty"));
+        self.set_expression(Expression::new_plain("empty"));
         self
     }
 
@@ -412,14 +412,11 @@ impl Node {
 
             // === Color Handling ===
 
-            bg_color <- frp.set_dimmed.map(f!([model,style](should_dim) {
-                model.input.frp.set_dimmed.emit(*should_dim);
+            bg_color <- frp.set_disabled.map(f!([model,style](disabled) {
+                model.input.frp.set_disabled(*disabled);
                 let bg_color_path = ensogl_theme::graph_editor::node::background;
-                if *should_dim {
-                   style.get_color_dim(bg_color_path)
-                 } else {
-                   style.get_color(bg_color_path)
-                 }
+                if *disabled { style.get_color_dim(bg_color_path) }
+                else         { style.get_color(bg_color_path) }
             }));
             bg_color_anim.target <+ bg_color;
             eval bg_color_anim.value ((c)
@@ -427,8 +424,7 @@ impl Node {
             );
         }
 
-        frp.set_dimmed.emit(false);
-
+        frp.set_disabled.emit(false);
         Self {frp,model}
     }
 }

@@ -135,7 +135,7 @@ ensogl::define_endpoints! {
         set_disabled         (bool),
         set_active           (bool),
         set_hover            (bool),
-        set_connected        (bool),
+        set_connected        (bool,Option<Type>),
         set_parent_connected (bool),
         set_usage_type       (Option<Type>),
     }
@@ -143,7 +143,7 @@ ensogl::define_endpoints! {
     Output {
         text_color   (color::Lcha),
         select_color (color::Lcha),
-        final_type   (Option<Type>),
+        tp           (Option<Type>),
     }
 }
 
@@ -152,7 +152,6 @@ ensogl::define_endpoints! {
 #[derive(Clone,Debug,Default)]
 pub struct Model {
     pub frp             : Frp,
-    pub tp              : Rc<RefCell<Option<Type>>>,
     pub shape           : Option<Shape>,
     pub name            : Option<String>,
     pub index           : usize,

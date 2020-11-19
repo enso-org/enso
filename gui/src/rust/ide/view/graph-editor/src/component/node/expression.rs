@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use span_tree::SpanTree;
+use span_tree::traits::*;
 
 
 
@@ -8,7 +9,7 @@ use span_tree::SpanTree;
 // === Expression ===
 // ==================
 
-#[derive(Clone,Default)]
+#[derive(Clone,Default,Eq,PartialEq)]
 pub struct Expression {
     pub code             : String,
     pub input_span_tree  : SpanTree,
@@ -16,10 +17,10 @@ pub struct Expression {
 }
 
 impl Expression {
-    /// Constructor for debug purposes.
-    pub fn debug_from_str(s:&str) -> Self {
+    /// Constructor without output SpanTree and with single node as an input SpanTree.
+    pub fn new_plain(s:impl Into<String>) -> Self {
         let code             = s.into();
-        let input_span_tree  = default();
+        let input_span_tree  = code.generate_tree(&span_tree::generate::context::Empty).unwrap_or_default();
         let output_span_tree = default();
         Self {code,input_span_tree,output_span_tree}
     }

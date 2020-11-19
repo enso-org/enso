@@ -30,7 +30,7 @@ pub mod prelude {
 
     pub use crate::traits::*;
     pub use enso_logger::*;
-    pub use enso_logger::enabled::Logger;
+    pub use enso_logger::disabled::Logger;
 
     pub use std::future::Future;
     /// We always use local futures in our single-threaded environment
