@@ -132,6 +132,23 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       assert(lazyId.arguments.head.suspended, "x was not suspended")
     }
+
+    "work for more complex signatures" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |File.with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+          |File.with_output_stream open_options action = undefined
+          |""".stripMargin.preprocessModule.resolve.bindings.head.asInstanceOf[Method.Explicit]
+
+      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+
+      bodyLam.arguments.length shouldEqual 3
+
+      assert(!bodyLam.arguments(1).suspended, "open_options was suspended")
+      assert(!bodyLam.arguments(2).suspended, "action was suspended")
+    }
   }
 
   "Suspended arguments resolution in expressions" should {

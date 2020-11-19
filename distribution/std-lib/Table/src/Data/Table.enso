@@ -1,0 +1,98 @@
+from Base import all
+import Table.Io.Csv
+import Table.Data.Column
+
+polyglot java import org.enso.table.data.table.Table as Java_Table
+
+## Represents a column-oriented table data structure.
+type Table
+    type Table java_table
+
+    ## Returns a text containing an ASCII-art table displaying this data.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    display : Integer -> Text
+    display show_rows=10 =
+        cols = Vector.Vector (this.java_table.getColumns [])
+        col_names = cols.map (_.getName [])
+        col_vals = cols.map (_.getStorage [])
+        num_rows = this.java_table.nrows []
+        display_rows = min num_rows show_rows
+        rows = Vector.new display_rows row_num->
+            col_vals.map col->
+                if col.isNa [row_num] then "NA" else Column.get_item_string col row_num
+        table = here.print_table col_names rows
+        if num_rows - display_rows <= 0 then table else
+            missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
+            table + missing
+
+    ## Prints an ASCII-art table with this data to the standard output.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    print show_rows=10 =
+        IO.println (this.display show_rows)
+
+    ## Converts this table to a JSON structure.
+    to_json : Json
+    to_json =
+        col_jsons = this.columns.map to_json
+        cols_json = Json.Array col_jsons
+        fields = Map.singleton "columns" cols_json
+        Json.Object fields
+
+    ## Returns the column with the given name.
+    at : Text -> Column | Nothing
+    at name = case this.java_table.getColumnByName [name] of
+        Nothing -> Nothing
+        c -> Column.Column c
+
+    ## Selects only the rows of this table that correspond to `True` values in
+       `indexes`.
+       This is useful for filtering the rows by given predicate.
+       > Example
+         Select only the rows of `my_table` where the `"Status"` column has the
+         value `"Valid"`
+             my_table.where (my_table.at "Status" == "Valid")
+    where indexes =
+        Table (this.java_table.mask [indexes.java_column])
+
+    ## Sets the column value at the given name. If a column with the given name
+       already exists, it will be replaced. Otherwise a new column is added.
+    set name column =
+        Table (this.java_table.addOrReplaceColumn [column.rename name . java_column])
+
+    ## Returns the vector of columns contained in this table.
+    columns =
+        Vector.Vector (this.java_table.getColumns []) . map Column.Column
+
+## PRIVATE
+from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
+
+## Creates a new table from a vector of `[name, items]` pairs.
+
+   > Example
+     Create a new table with the given in two columns:
+         Table.new [["foo", [1, 2, 3]], ["bar", [True, False, True]]]
+new columns =
+    cols = columns.map c->
+        Column.from_vector (c.at 0) (c.at 1) . java_column
+    here.from_columns cols
+
+## PRIVATE
+pad txt len =
+    true_len = txt.characters.length
+    txt + (" ".repeat (len - true_len))
+
+## PRIVATE
+print_table header rows =
+    content_lengths = Vector.new header.length i->
+        max_row = 0.up_to rows.length . fold 0 a-> j-> max a (rows.at j . at i . characters . length)
+        max max_row (header.at i . characters . length)
+    header_line = zip header content_lengths here.pad . join ' | '
+    divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
+    row_lines = rows.map r->
+        x = zip r content_lengths here.pad . join ' | '
+        " " + x
+    ([" " + header_line, divider] + row_lines).join '\n'

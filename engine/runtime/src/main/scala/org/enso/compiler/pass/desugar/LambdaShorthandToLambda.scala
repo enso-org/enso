@@ -64,13 +64,22 @@ case object LambdaShorthandToLambda extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module =
-    ir.mapExpressions(
-      runExpression(
-        _,
-        InlineContext(freshNameSupply = moduleContext.freshNameSupply)
-      )
-    )
+  ): IR.Module = {
+    val new_bindings = ir.bindings.map {
+      case asc: IR.Type.Ascription => asc
+      case a =>
+        a.mapExpressions(
+          runExpression(
+            _,
+            InlineContext(
+              moduleContext.module,
+              freshNameSupply = moduleContext.freshNameSupply
+            )
+          )
+        )
+    }
+    ir.copy(bindings = new_bindings)
+  }
 
   /** Desugars underscore arguments to lambdas for an arbitrary expression.
     *
@@ -107,9 +116,10 @@ case object LambdaShorthandToLambda extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     ir.transformExpressions {
-      case app: IR.Application    => desugarApplication(app, freshNameSupply)
-      case caseExpr: IR.Case.Expr => desugarCaseExpr(caseExpr, freshNameSupply)
-      case name: IR.Name          => desugarName(name, freshNameSupply)
+      case asc: IR.Type.Ascription => asc
+      case app: IR.Application     => desugarApplication(app, freshNameSupply)
+      case caseExpr: IR.Case.Expr  => desugarCaseExpr(caseExpr, freshNameSupply)
+      case name: IR.Name           => desugarName(name, freshNameSupply)
     }
   }
 
@@ -128,7 +138,7 @@ case object LambdaShorthandToLambda extends IRPass {
         IR.Function.Lambda(
           List(
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal(newName.name, None),
+              IR.Name.Literal(newName.name, isReferent = false, None),
               None,
               suspended = false,
               None
@@ -161,17 +171,16 @@ case object LambdaShorthandToLambda extends IRPass {
           args
             .zip(argIsUnderscore)
             .map(updateShorthandArg(_, freshNameSupply))
-            .map {
-              case s @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
-                s.copy(value = desugarExpression(value, freshNameSupply))
+            .map { case s @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
+              s.copy(value = desugarExpression(value, freshNameSupply))
             }
 
         // Generate a definition arg instance for each shorthand arg
         val defArgs = updatedArgs.zip(argIsUnderscore).map {
           case (arg, isShorthand) => generateDefinitionArg(arg, isShorthand)
         }
-        val actualDefArgs = defArgs.collect {
-          case Some(defArg) => defArg
+        val actualDefArgs = defArgs.collect { case Some(defArg) =>
+          defArg
         }
 
         // Determine whether or not the function itself is shorthand
@@ -204,7 +213,8 @@ case object LambdaShorthandToLambda extends IRPass {
           IR.Function.Lambda(
             List(
               IR.DefinitionArgument.Specified(
-                IR.Name.Literal(updatedName.get, fn.location),
+                IR.Name
+                  .Literal(updatedName.get, isReferent = false, fn.location),
                 None,
                 suspended = false,
                 None
@@ -260,12 +270,11 @@ case object LambdaShorthandToLambda extends IRPass {
     *         position is lambda shorthand, otherwise `false`
     */
   def determineLambdaShorthand(args: List[IR.CallArgument]): List[Boolean] = {
-    args.map {
-      case IR.CallArgument.Specified(_, value, _, _, _, _) =>
-        value match {
-          case _: IR.Name.Blank => true
-          case _                => false
-        }
+    args.map { case IR.CallArgument.Specified(_, value, _, _, _, _) =>
+      value match {
+        case _: IR.Name.Blank => true
+        case _                => false
+      }
     }
   }
 
@@ -317,7 +326,11 @@ case object LambdaShorthandToLambda extends IRPass {
         case IR.CallArgument.Specified(_, value, _, _, passData, diagnostics) =>
           // Note [Safe Casting to IR.Name.Literal]
           val defArgName =
-            IR.Name.Literal(value.asInstanceOf[IR.Name.Literal].name, None)
+            IR.Name.Literal(
+              value.asInstanceOf[IR.Name.Literal].name,
+              isReferent = false,
+              None
+            )
 
           Some(
             IR.DefinitionArgument.Specified(
