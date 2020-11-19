@@ -701,12 +701,30 @@ class IrToTruffle(
           )
 
           runtimeConsOpt.map { atomCons =>
-            val bool = context.getBuiltins.bool()
+            val array = context.getBuiltins.mutable.constructor
+            val bool = context.getBuiltins.bool
+            val decimal = context.getBuiltins.number.getDecimal
+            val integer = context.getBuiltins.number.getInteger
+            val number = context.getBuiltins.number.getNumber
+            val polyglot = context.getBuiltins.polyglot.getPolyglot
+            val text = context.getBuiltins.text
             val branchNode: BranchNode =
               if (atomCons == bool.getTrue) {
                 BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
               } else if (atomCons == bool.getFalse) {
                 BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
+              } else if (atomCons == text.getText) {
+                TextBranchNode.build(text.getText, branchCodeNode.getCallTarget)
+              } else if (atomCons == integer) {
+                IntegerBranchNode.build(integer, branchCodeNode.getCallTarget)
+              } else if (atomCons == decimal) {
+                DecimalBranchNode.build(decimal, branchCodeNode.getCallTarget)
+              } else if (atomCons == number) {
+                NumberBranchNode.build(number, branchCodeNode.getCallTarget)
+              } else if (atomCons == array) {
+                ArrayBranchNode.build(array, branchCodeNode.getCallTarget)
+              } else if (atomCons == polyglot) {
+                PolyglotBranchNode.build(polyglot, branchCodeNode.getCallTarget)
               } else {
                 ConstructorBranchNode.build(
                   atomCons,

@@ -1,12 +1,16 @@
 package org.enso.base;
 
 import com.ibm.icu.text.Normalizer2;
-
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
+  private static final Pattern whitespace =
+      Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
+  private static final Pattern vertical_space =
+      Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
+
   /**
    * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
    * mechanism.
@@ -59,8 +63,30 @@ public class Text_Utils {
    * @param sep the separator string
    * @return array of substrings of {@code str} contained between occurences of {@code sep}
    */
-  public static String[] split_at(String str, String sep) {
+  public static String[] split_by_literal(String str, String sep) {
     return str.split(Pattern.quote(sep));
+  }
+
+  /**
+   * Splits the string on each occurrence of UTF-8 whitespace, returning the resulting substrings in
+   * an array.
+   *
+   * @param str the string to split
+   * @return the array of substrings of {@code str}
+   */
+  public static String[] split_on_whitespace(String str) {
+    return whitespace.split(str);
+  }
+
+  /**
+   * Splits the string on each occurrence of UTF-8 vertical whitespace, returning the resulting
+   * substrings in an array.
+   *
+   * @param str the string to split
+   * @return the array of substrings of {@code str}
+   */
+  public static String[] split_on_lines(String str) {
+    return vertical_space.split(str);
   }
 
   /**

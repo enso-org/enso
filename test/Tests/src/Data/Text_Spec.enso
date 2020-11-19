@@ -1,6 +1,8 @@
 from Base import all
 import Test
 
+import Base.Data.Text.Split_Kind
+
 type Auto a
 
 type Manual b
@@ -14,6 +16,10 @@ spec = describe "Text" <|
     facepalm_codes = [129318, 127996, 8205, 9794, 65039]
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
+    utf_8_whitespace = 'foo\n bar     baz \u202F quux'
+    utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
+    utf_8_vertical = 'foo\n   bar \v baz \r quux'
+    utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
     it "should allow naive length computation over grapheme clusters" <|
         kshi.length . should_equal 1
         facepalm.length . should_equal 1
@@ -23,7 +29,11 @@ spec = describe "Text" <|
     it "should split the text into grapheme clusters" <|
         str = kshi + facepalm + accent_1 + accent_2
         str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
-    it "should split the text on arbitrary sequence" <|
+    it "should be able to split the text on UTF-8 whitespace" <|
+        utf_8_whitespace.split . should_equal utf_8_whitespace_split
+    it "should be able to split the text on UTF-8 newlines" <|
+        utf_8_vertical.split Split_Kind.Lines . should_equal utf_8_vertical_split
+    it "should be able to split the text on arbitrary text sequence" <|
         "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
     it "should dump utf-8 bytes to a vector" <|
         kshi.utf_8.should_equal kshi_utf_8
