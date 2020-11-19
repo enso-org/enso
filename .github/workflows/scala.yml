@@ -126,11 +126,11 @@ jobs:
       - name: Install FlatBuffers Compiler
         run: conda install flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-          uses: ayltai/setup-graalvm@v1
-          with:
-            graalvm-version: ${{ env.graalVersion }}
-            java-version: ${{ env.javaVersion }}
-            native-image: true
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
       - name: Set Up SBT
         run: |
           curl -fSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
