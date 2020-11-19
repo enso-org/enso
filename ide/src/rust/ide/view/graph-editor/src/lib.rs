@@ -431,7 +431,7 @@ ensogl::define_endpoints! {
         node_added                (NodeId),
         node_removed              (NodeId),
         nodes_collapsed           ((Vec<NodeId>,NodeId)),
-        node_hovered              (Switch<NodeId>),
+        node_hovered              (Option<Switch<NodeId>>),
         node_selected             (NodeId),
         node_deselected           (NodeId),
         node_position_set         ((NodeId,Vector2)),
@@ -496,7 +496,7 @@ pub struct Node {
     pub out_edges : SharedHashSet<EdgeId>,
 }
 
-#[derive(Clone,CloneRef,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq)]
+#[derive(Clone,CloneRef,Copy,Debug,Default,Eq,From,Hash,Into,PartialEq)]
 pub struct NodeId(pub Id);
 
 impl Node {
@@ -523,6 +523,12 @@ impl display::Object for Node {
     }
 }
 
+impl Display for NodeId {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0,f)
+    }
+}
+
 
 
 // ============
@@ -537,7 +543,7 @@ pub struct Edge {
     target   : Rc<RefCell<Option<EdgeTarget>>>,
 }
 
-#[derive(Clone,CloneRef,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq)]
+#[derive(Clone,CloneRef,Copy,Debug,Default,Eq,From,Hash,Into,PartialEq)]
 pub struct EdgeId(pub Id);
 
 impl Edge {
@@ -591,6 +597,12 @@ impl display::Object for Edge {
     }
 }
 
+impl Display for EdgeId {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0,f)
+    }
+}
+
 
 
 // ============
@@ -625,7 +637,7 @@ impl From<String> for Type {
 }
 
 impl Display for Type {
-    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"{}",self.0)
     }
 }
@@ -945,7 +957,7 @@ impl GraphEditorModelWithNetwork {
         frp::new_bridge_network! { [self.network, node.frp.network]
             eval_ node.frp.background_press(touch.nodes.down.emit(node_id));
 
-            hovered <- node.output.hover.map (move |t| Switch::new(node_id,*t));
+            hovered <- node.output.hover.map (move |t| Some(Switch::new(node_id,*t)));
             output.source.node_hovered <+ hovered;
 
             // eval edit_mode_ready ((t) ports_frp.input.edit_mode_ready.emit(t));
@@ -984,10 +996,10 @@ impl GraphEditorModelWithNetwork {
                 output.source.node_action_freeze.emit((node_id,*is_frozen));
             });
 
-            let set_node_dimmed = &node.frp.set_dimmed;
-            eval node.view.frp.skip ([set_node_dimmed,output](is_skipped) {
+            let set_node_disabled = &node.frp.set_disabled;
+            eval node.view.frp.skip ([set_node_disabled,output](is_skipped) {
                 output.source.node_action_skip.emit((node_id,*is_skipped));
-                set_node_dimmed.emit(is_skipped);
+                set_node_disabled.emit(is_skipped);
             });
 
 
@@ -997,8 +1009,8 @@ impl GraphEditorModelWithNetwork {
             let vis_visible    =  node.model.visualization.frp.set_visibility.clone_ref();
             let vis_fullscreen =  node.model.visualization.frp.enable_fullscreen.clone_ref();
 
-            vis_enabled        <- vis_visible.gate(&vis_visible);
-            vis_disabled       <- vis_visible.gate_not(&vis_visible);
+            vis_enabled  <- vis_visible.gate(&vis_visible);
+            vis_disabled <- vis_visible.gate_not(&vis_visible);
 
             // Ensure the graph editor knows about internal changes to the visualisation. If the
             // visualisation changes that should indicate that the old one has been disabled and a
@@ -1192,7 +1204,7 @@ impl GraphEditorModel {
             }
 
             if let Some(target) = edge.take_target() {
-                self.set_input_connected(&target,false);
+                self.set_input_connected(&target,None,false); // FIXME None
                 if let Some(target_node) = self.nodes.get_cloned_ref(&target.node_id) {
                     target_node.in_edges.remove(&edge_id);
                 }
@@ -1200,10 +1212,15 @@ impl GraphEditorModel {
         }
     }
 
-    fn set_input_connected(&self, target:&EdgeTarget, status:bool) {
+    fn set_input_connected(&self, target:&EdgeTarget, tp:Option<Type>, status:bool) {
         if let Some(node) = self.nodes.get_cloned(&target.node_id) {
-            node.view.set_input_connected(&target.port,status);
+            node.view.set_input_connected(&target.port,tp,status);
         }
+    }
+
+    fn set_edge_target_connected(&self, edge_id:EdgeId, status:bool) {
+        let tp = self.edge_source_type(edge_id);
+        self.with_edge_target(edge_id,|t| self.set_input_connected(&t,tp,status));
     }
 
     // FIXME: make nicer
@@ -1509,38 +1526,65 @@ impl GraphEditorModel {
         };
     }
 
-    fn with_node<T>(&self, node_id:NodeId, f:impl FnOnce(Node)->T) -> Option<T> {
-        self.nodes.get_cloned_ref(&node_id).map(f)
+    fn map_node<T>(&self, id:NodeId, f:impl FnOnce(Node)->T) -> Option<T> {
+        self.nodes.get_cloned_ref(&id).map(f)
     }
 
-    fn with_edge<T>(&self, edge_id:EdgeId, f:impl FnOnce(Edge)->T) -> Option<T> {
-        self.edges.get_cloned_ref(&edge_id).map(f)
+    fn map_edge<T>(&self, id:EdgeId, f:impl FnOnce(Edge)->T) -> Option<T> {
+        self.edges.get_cloned_ref(&id).map(f)
     }
 
-    fn with_edge_source<T>(&self, edge_id:EdgeId, f:impl FnOnce(EdgeTarget)->T) -> Option<T> {
-        self.with_edge(edge_id,|edge| edge.source.borrow().clone().map(f)).flatten()
+    fn with_node<T>(&self, id:NodeId, f:impl FnOnce(Node)->T) -> Option<T> {
+        let out = self.map_node(id,f);
+        out.map_none(||warning!(&self.logger,"Trying to access nonexistent node '{id}'"))
     }
 
-    fn with_edge_target<T>(&self, edge_id:EdgeId, f:impl FnOnce(EdgeTarget)->T) -> Option<T> {
-        self.with_edge(edge_id,|edge| edge.target.borrow().clone().map(f)).flatten()
+    fn with_edge<T>(&self, id:EdgeId, f:impl FnOnce(Edge)->T) -> Option<T> {
+        let out = self.map_edge(id,f);
+        out.map_none(||warning!(&self.logger,"Trying to access nonexistent edge '{id}'"))
     }
 
-    fn with_edge_source_node<T>
+    fn with_edge_map_source<T>(&self, id:EdgeId, f:impl FnOnce(EdgeTarget)->T) -> Option<T> {
+        self.with_edge(id,|edge| edge.source.borrow().clone().map(f)).flatten()
+    }
+
+    fn with_edge_map_target<T>(&self, id:EdgeId, f:impl FnOnce(EdgeTarget)->T) -> Option<T> {
+        self.with_edge(id,|edge| edge.target.borrow().clone().map(f)).flatten()
+    }
+
+    #[allow(dead_code)]
+    fn with_edge_source<T>(&self, id:EdgeId, f:impl FnOnce(EdgeTarget)->T) -> Option<T> {
+        self.with_edge(id,|edge| {
+            edge.source.borrow().clone().map(f).map_none(
+                || warning!(&self.logger,"Trying to access nonexistent source of the edge {id}.")
+            )
+        }).flatten()
+    }
+
+    fn with_edge_target<T>(&self, id:EdgeId, f:impl FnOnce(EdgeTarget)->T) -> Option<T> {
+        self.with_edge(id,|edge| {
+            edge.target.borrow().clone().map(f).map_none(
+                || warning!(&self.logger,"Trying to access nonexistent target of the edge {id}.")
+            )
+        }).flatten()
+    }
+
+    fn with_edge_map_source_node<T>
     (&self, edge_id:EdgeId, f:impl FnOnce(Node,span_tree::Crumbs)->T) -> Option<T> {
-        self.with_edge_source(edge_id,|t| self.with_node(t.node_id,|node|f(node,t.port))).flatten()
+        self.with_edge_map_source(edge_id,|t| self.map_node(t.node_id,|node|f(node,t.port))).flatten()
     }
 
-    fn with_edge_target_node<T>
+    fn with_edge_map_target_node<T>
     (&self, edge_id:EdgeId, f:impl FnOnce(Node,span_tree::Crumbs)->T) -> Option<T> {
-        self.with_edge_target(edge_id,|t| self.with_node(t.node_id,|node|f(node,t.port))).flatten()
+        self.with_edge_map_target(edge_id,|t| self.map_node(t.node_id,|node|f(node,t.port))).flatten()
     }
 
     fn edge_source_type(&self, edge_id:EdgeId) -> Option<Type> {
-        self.with_edge_source_node(edge_id,|n,c|n.model.input.port_type(&c)).flatten()
+        self.with_edge_map_source_node(edge_id,|n,c|n.model.input.port_type(&c)).flatten()
     }
 
     fn edge_target_type(&self, edge_id:EdgeId) -> Option<Type> {
-        self.with_edge_target_node(edge_id,|n,c|n.model.input.port_type(&c)).flatten()
+        self.with_edge_map_target_node(edge_id,|n,c|n.model.input.port_type(&c)).flatten()
     }
 
     /// Return a color for the edge. Currently we query the edge target, and if missing, the edge
@@ -1555,9 +1599,22 @@ impl GraphEditorModel {
         opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::missing))
     }
 
+    fn first_detached_edge(&self) -> Option<EdgeId> {
+        self.edges.detached_edges_iter().next()
+    }
+
+    fn first_detached_edge_source_type(&self) -> Option<Type> {
+        self.first_detached_edge().and_then(|edge_id| self.edge_source_type(edge_id))
+    }
+
+    #[allow(dead_code)]
+    fn first_detached_edge_target_type(&self) -> Option<Type> {
+        self.first_detached_edge().and_then(|edge_id| self.edge_target_type(edge_id))
+    }
+
     /// Return a color for the first detached edge.
     pub fn first_detached_edge_color(&self) -> Option<color::Lcha> {
-        self.edges.detached_edges_iter().next().map(|t|self.edge_color(t))
+        self.first_detached_edge().map(|t|self.edge_color(t))
     }
 }
 
@@ -1810,12 +1867,12 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
         eval out.node_editing_started ([model] (id) {
             if let Some(node) = model.nodes.get_cloned_ref(&id) {
-                node.model.input.frp.edit_mode.emit(true);
+                node.model.input.frp.set_edit_mode(true);
             }
         });
         eval out.node_editing_finished ([model](id) {
             if let Some(node) = model.nodes.get_cloned_ref(&id) {
-                node.model.input.frp.edit_mode.emit(false);
+                node.model.input.set_edit_mode(false);
             }
         });
     }
@@ -1991,8 +2048,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     edge_target_click <- valid_edge_disconnect_click.gate_not(&edge_is_source_click);
 
     // FIXME: make nicer - out.source.edge_source_unset should contain information from which node it ws unset
-    eval edge_target_click((edge_id)
-        model.with_edge_target(edge_id.0,|t| model.set_input_connected(&t,false)));
+    eval edge_target_click((edge_id) model.set_edge_target_connected(edge_id.0,false));
 
     eval edge_source_click (((edge_id, _)) model.remove_edge_source(*edge_id));
     eval edge_target_click (((edge_id, _)) model.remove_edge_target(*edge_id));
@@ -2000,11 +2056,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     out.source.edge_source_unset <+ edge_source_click.map(|(edge_id,_)| *edge_id);
     out.source.edge_target_unset <+ edge_target_click.map(|(edge_id,_)| *edge_id);
 
-
-
-    // todo
-    eval out.edge_target_set (((_,target)) model.set_input_connected(target,true));
     }
+
 
     // === Edge creation  ===
 
@@ -2082,22 +2135,24 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Event Propagation ===
     // See the docs of `Node` to learn about how the graph - nodes event propagation works.
 
-    _eval <- all_with(&out.node_hovered,&edit_mode,f!((tgt,e)
-        model.with_node(tgt.value,|t| t.model.input.edit_mode_ready(*e && tgt.is_on()))
+    _eval <- all_with(&out.node_hovered,&edit_mode,f!([model](tgt,e)
+        if let Some(tgt) = tgt {
+            model.with_node(tgt.value,|t| t.model.input.set_edit_ready_mode(*e && tgt.is_on()));
+        }
     ));
-    _eval <- all_with(&out.node_hovered,&out.some_edge_targets_detached2,f!((tgt,e)
-        model.with_node(tgt.value,|t| t.model.input.ports_active(*e && tgt.is_on()))
+    _eval <- all_with(&out.node_hovered,&out.some_edge_targets_detached2,f!([model](tgt,e)
+        if let Some(tgt) = tgt {
+            let edge_tp   = model.first_detached_edge_source_type();
+            let is_active = *e && tgt.is_on();
+            model.with_node(tgt.value,|t| t.model.input.set_ports_active(is_active,edge_tp));
+        }
     ));
-
-
     }
 
 
     // === Node Actions ===
 
-
     frp::extend! { network
-
         freeze_edges <= out.node_action_freeze.map (f!([model]((node_id,is_frozen)) {
             let edges = model.node_in_edges(node_id);
             edges.into_iter().map(|edge_id| (edge_id,*is_frozen)).collect_vec()
@@ -2484,6 +2539,9 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     eval out.edge_source_set        (((id,tgt)) model.set_edge_source(*id,tgt));
     eval out.edge_target_set        (((id,tgt)) model.set_edge_target(*id,tgt));
+
+    eval out.edge_target_set (((edge_id,_)) model.set_edge_target_connected(*edge_id,true));
+
     eval out.node_selected          ((id) model.select_node(id));
     eval out.node_deselected        ((id) model.deselect_node(id));
     eval out.edge_removed           ((id) model.remove_edge(id));

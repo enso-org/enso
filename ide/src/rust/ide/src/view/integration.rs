@@ -31,7 +31,6 @@ use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
 use utils::channel::process_stream_with_handle;
 
-use span_tree::traits::SpanTreeGenerator;
 
 
 // ==============
@@ -170,7 +169,7 @@ struct Model {
     project            : model::Project,
     visualization      : controller::Visualization,
     node_views         : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
-    expression_views   : RefCell<HashMap<graph_editor::NodeId,String>>,
+    expression_views   : RefCell<HashMap<graph_editor::NodeId,graph_editor::component::node::Expression>>,
     connection_views   : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
     code_view          : CloneRefCell<ensogl_text::Text>,
     visualizations     : SharedHashMap<graph_editor::NodeId,VisualizationId>,
@@ -538,12 +537,14 @@ impl Model {
         //  changed or not, we shall emit the updates.
         //  This should be addressed as part of https://github.com/enso-org/ide/issues/787
         let code_and_trees = graph_editor::component::node::Expression {
-            code             : expression.clone(),
+            code             : expression,
             input_span_tree  : trees.inputs,
             output_span_tree : trees.outputs.unwrap_or_else(default)
         };
-        self.view.graph().frp.input.set_node_expression.emit_event(&(id, code_and_trees));
-        self.expression_views.borrow_mut().insert(id, expression);
+        if !self.expression_views.borrow().get(&id).contains(&&code_and_trees) {
+            self.view.graph().frp.input.set_node_expression.emit_event(&(id, code_and_trees.clone()));
+            self.expression_views.borrow_mut().insert(id,code_and_trees);
+        }
 
         // Set initially available type information on ports (identifiable expression's sub-parts).
         for expression_part in node.info.expression().iter_recursive() {
@@ -579,8 +580,6 @@ impl Model {
                 })
             });
             self.set_method_pointer(id,method_pointer);
-        } else {
-            debug!(self.logger, "Failed to get `NodeId` for ID: {id:?}.");
         }
     }
 
@@ -808,8 +807,9 @@ impl Model {
     fn node_expression_set_in_ui
     (&self, (displayed_id,expression):&(graph_editor::NodeId,String)) -> FallibleResult {
         debug!(self.logger, "Setting node expression.");
-        let searcher = self.searcher.borrow();
-        self.expression_views.borrow_mut().insert(*displayed_id,expression.clone());
+        let searcher       = self.searcher.borrow();
+        let code_and_trees = graph_editor::component::node::Expression::new_plain(expression);
+        self.expression_views.borrow_mut().insert(*displayed_id,code_and_trees);
         if let Some(searcher) = searcher.as_ref() {
             searcher.set_input(expression.clone())?;
         }
@@ -856,15 +856,13 @@ impl Model {
     (&self, entry:&Option<ide_view::searcher::entry::Id>) -> FallibleResult {
         debug!(self.logger, "Picking suggestion.");
         if let Some(entry) = entry {
-            let graph_frp        = &self.view.graph().frp;
-            let error            = || MissingSearcherController;
-            let searcher         = self.searcher.borrow().clone().ok_or_else(error)?;
-            let error            = || GraphEditorInconsistency;
-            let edited_node      = graph_frp.output.node_being_edited.value().ok_or_else(error)?;
-            let code             = searcher.pick_completion_by_index(*entry)?;
-            let input_span_tree  = code.generate_tree(&span_tree::generate::context::Empty)?;
-            let output_span_tree = default();
-            let code_and_trees = node::Expression {code,input_span_tree,output_span_tree};
+            let graph_frp      = &self.view.graph().frp;
+            let error          = || MissingSearcherController;
+            let searcher       = self.searcher.borrow().clone().ok_or_else(error)?;
+            let error          = || GraphEditorInconsistency;
+            let edited_node    = graph_frp.output.node_being_edited.value().ok_or_else(error)?;
+            let code           = searcher.pick_completion_by_index(*entry)?;
+            let code_and_trees = node::Expression::new_plain(code);
             graph_frp.input.set_node_expression.emit_event(&(edited_node,code_and_trees));
         }
         Ok(())

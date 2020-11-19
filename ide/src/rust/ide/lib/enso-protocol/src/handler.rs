@@ -10,7 +10,7 @@ use json_rpc::Transport;
 use json_rpc::TransportEvent;
 use enso_logger::*;
 use enso_logger::AnyLogger;
-use enso_logger::enabled::Logger;
+use enso_logger::disabled::Logger;
 use std::future::Future;
 use utils::fail::FallibleResult;
 
