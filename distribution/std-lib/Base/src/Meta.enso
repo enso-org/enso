@@ -73,6 +73,20 @@ Polyglot.get_language =
     lang_str = Builtins.Meta.get_polyglot_language
     if lang_str == "java" then Java else Unknown
 
+## Checks if `this` is an instance of `typ`.
+Any.is_a : Any -> Boolean
+Any.is_a typ = case this of
+    Array -> typ == Array
+    Boolean -> if typ == Boolean then True else this == typ
+    Number -> if typ == Number then True else case this of
+        Integer -> typ == Integer
+        Decimal -> typ == Decimal
+    Text -> typ == Text
+    _ -> False
+
+Any.is_an : Any -> Boolean
+Any.is_an typ = this.is_a typ
+
 ## Returns a meta-representation of a given runtime entity.
 meta : Any -> Meta
 meta value = if Builtins.Meta.is_atom value then Atom value else

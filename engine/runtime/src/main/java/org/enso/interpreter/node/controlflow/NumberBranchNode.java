@@ -31,6 +31,9 @@ public abstract class NumberBranchNode extends BranchNode {
     return NumberBranchNodeGen.create(number, branch);
   }
 
+  // TODO [AA] Needs to check the subtype constructors as well.
+  //  This needs to be done for all primitive branch nodes, including Boolean.
+  //  Also need to do Any branch and Any.==
   @Specialization
   void doConstructor(VirtualFrame frame, Object state, Atom target) {
     if (profile.profile(number == target.getConstructor())) {

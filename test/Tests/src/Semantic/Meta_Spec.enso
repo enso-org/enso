@@ -22,4 +22,24 @@ spec = describe "Meta-Value Manipulation" <|
     it "should correctly return representations of different classes of objects" <|
         Meta.meta 1 . should equal (Meta.Primitive 1)
         Meta.meta "foo" . should equal (Meta.Primitive "foo")
+    it "should allow checking if a value is of a certain type" <|
+        1.is_an Array . should_be_false
+        1.is_an Integer . should_be_true
+        1.is_a Number . should_be_true
+        1.is_a Decimal . should_be_false
+
+        # 1.0 is_a Number . should_be_true
+        # 1.0 is_a Decimal . should_be_true
+        # 1.0 is_an Integer . should_be_false
+        # 1.0 is_a Text . should_be_false
+
+        # [].to_array.is_an Array . should_be_true
+        # [].to_array.is_a Decimal . should_be_false
+#
+        # "".is_a Text . should_be_true
+        # "".is_a Decimal . should_be_false
+#
+        # True.is_a Boolean . should_be_true
+        # False.is_a Boolean . should_be_true
+        # True.is_an Integer . should_be_false
 
