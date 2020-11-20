@@ -704,9 +704,7 @@ class IrToTruffle(
             val any = context.getBuiltins.any
             val array = context.getBuiltins.mutable.constructor
             val bool = context.getBuiltins.bool
-            val decimal = context.getBuiltins.number.getDecimal
-            val integer = context.getBuiltins.number.getInteger
-            val number = context.getBuiltins.number.getNumber
+            val number = context.getBuiltins.number
             val polyglot = context.getBuiltins.polyglot.getPolyglot
             val text = context.getBuiltins.text
             val branchNode: BranchNode =
@@ -714,13 +712,15 @@ class IrToTruffle(
                 BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
               } else if (atomCons == bool.getFalse) {
                 BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
+              } else if (atomCons == bool.getBool) {
+                BooleanConstructorBranchNode.build(bool, branchCodeNode.getCallTarget)
               } else if (atomCons == text.getText) {
                 TextBranchNode.build(text.getText, branchCodeNode.getCallTarget)
-              } else if (atomCons == integer) {
-                IntegerBranchNode.build(integer, branchCodeNode.getCallTarget)
-              } else if (atomCons == decimal) {
-                DecimalBranchNode.build(decimal, branchCodeNode.getCallTarget)
-              } else if (atomCons == number) {
+              } else if (atomCons == number.getInteger) {
+                IntegerBranchNode.build(number, branchCodeNode.getCallTarget)
+              } else if (atomCons == number.getDecimal) {
+                DecimalBranchNode.build(number.getDecimal, branchCodeNode.getCallTarget)
+              } else if (atomCons == number.getNumber) {
                 NumberBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == array) {
                 ArrayBranchNode.build(array, branchCodeNode.getCallTarget)
