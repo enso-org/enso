@@ -1,9 +1,13 @@
 from Base import all
 import Test
 
+polyglot java import java.util.Random
+
 type My_Type foo bar baz
 
 My_Type.my_method = this.foo + this.bar + this.baz
+
+type Test_Type x
 
 spec = describe "Meta-Value Manipulation" <|
     it "should allow manipulating unresolved symbols" <|
@@ -22,4 +26,38 @@ spec = describe "Meta-Value Manipulation" <|
     it "should correctly return representations of different classes of objects" <|
         Meta.meta 1 . should equal (Meta.Primitive 1)
         Meta.meta "foo" . should equal (Meta.Primitive "foo")
+    it "should allow checking if a value is of a certain type" <|
+        1.is_an Any . should_be_true
+        1.2.is_an Any . should_be_true
+        (My_Type 1 "foo" Nothing).is_an Any . should_be_true
+
+        Array.is_an Array . should_be_true
+        [].to_array.is_an Array . should_be_true
+        [].to_array.is_a Decimal . should_be_false
+
+        Boolean.is_a Boolean . should_be_true
+        True.is_a Boolean . should_be_true
+        False.is_a Boolean . should_be_true
+        True.is_an Integer . should_be_false
+
+        "".is_a Text . should_be_true
+        "".is_a Decimal . should_be_false
+
+        1.is_an Array . should_be_false
+        1.is_an Integer . should_be_true
+        1.is_a Number . should_be_true
+        1.is_a Decimal . should_be_false
+
+        1.0.is_a Number . should_be_true
+        1.0.is_a Decimal . should_be_true
+        1.0.is_an Integer . should_be_false
+        1.0.is_a Text . should_be_false
+
+        random_gen = Random.new [].to_array
+        Meta.is_a random_gen Polyglot . should_be_true
+        Meta.is_an random_gen Integer . should_be_false
+
+        (My_Type 1 "foo" Nothing).is_a My_Type . should_be_true
+        (My_Type 1 "foo" Nothing).is_a Test_Type . should_be_false
+        (My_Type 1 "foo" Nothing).is_a Number . should_be_false
 

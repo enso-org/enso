@@ -90,6 +90,17 @@ public class Text_Utils {
   }
 
   /**
+   * Checks if the provided string consists only of whitespace characters.
+   *
+   * @param str the string to check
+   * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
+   */
+  public static boolean is_whitespace(String str) {
+    var matcher = whitespace.matcher(str);
+    return matcher.matches();
+  }
+
+  /**
    * Checks whether two strings are equal up to Unicode canonicalization.
    *
    * @param str1 the first string

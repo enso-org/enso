@@ -2,6 +2,7 @@ from Base import all
 from Builtins import Text, Prim_Text_Helpers
 
 import Base.Data.Text.Split_Kind
+import Base.Meta
 
 from Builtins export Text
 
@@ -10,8 +11,8 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Computes the number of characters in the text.
 
-   A character is defined as an Extended Grapheme Cluster, see
-   [Unicode Standard Annex #29](https://unicode.org/reports/tr29/).
+   A character is defined as an Extended Grapheme Cluster, see Unicode
+   [Standard Annex #29](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries).
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -29,8 +30,8 @@ Text.length =
 
 ## Applies `function` to each character in `this`.
 
-   A character is defined as an Extended Grapheme Cluster, see
-   [Unicode Standard Annex #29](https://unicode.org/reports/tr29/).
+   A character is defined as an Extended Grapheme Cluster, see Unicode
+   [Standard Annex #29](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries).
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -51,8 +52,8 @@ Text.each function =
 
 ## Returns a vector containing all characters in the given text.
 
-   A character is defined as an Extended Grapheme Cluster, see
-   [Unicode Standard Annex #29](https://unicode.org/reports/tr29/).
+   A character is defined as an Extended Grapheme Cluster, see Unicode
+   [Standard Annex #29](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries).
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -76,8 +77,44 @@ Text.split (separator = Split_Kind.Whitespace) =
     result = case separator of
         Split_Kind.Whitespace -> Text_Utils.split_on_whitespace [this]
         Split_Kind.Lines -> Text_Utils.split_on_lines [this]
+        Split_Kind.Words -> this.words
         Text -> Text_Utils.split_by_literal [this, separator]
     Vector.from_polyglot_array result
+
+## Returns a vector containing all words in the given text.
+
+   A word is defined based on the definition of Word Boundaries in the Unicode
+   [Standard Annex #29](https://www.unicode.org/reports/tr29/#Word_Boundaries),
+   supplemented by language-specific dictionaries for Chinese, Japanese, Thai,
+   and Khmer.
+
+   By default, the function doesn't include the whitespace between words, but
+   this can be enabled.
+
+   > Example
+     Getting the words in the sentence "I have not one, but two cats."
+        "I have not one, but two cats.".words
+Text.words : Boolean -> Vector.Vector
+Text.words keep_whitespace=False =
+    iterator = BreakIterator.getWordInstance []
+    iterator.setText [this]
+    bldr = Vector.new_builder
+    fst = iterator.first []
+    nxt = iterator.next []
+
+    build prev nxt = if nxt == -1 then Nothing else
+        word = Text_Utils.substring [this, prev, nxt]
+        word_not_whitespace = (Text_Utils.is_whitespace [word]).not
+        if word_not_whitespace then bldr.append word else
+            if keep_whitespace then
+                bldr.append word
+
+        next_nxt = iterator.next []
+        @Tail_Call build nxt next_nxt
+
+    build fst nxt
+
+    bldr.to_vector
 
 ## Checks whether `this` is equal to `that`.
 
@@ -92,7 +129,8 @@ Text.split (separator = Split_Kind.Whitespace) =
      `e` followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
          ('é' == 'e\u0301') == True
 Text.== : Any -> Boolean
-Text.== that = Text_Utils.equals [this, that]
+Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Text else
+    Text_Utils.equals [this, that]
 
 ## Checks whether `this` is equal to `that`, ignoring case considerations.
 

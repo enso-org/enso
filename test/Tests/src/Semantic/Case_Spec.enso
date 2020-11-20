@@ -5,6 +5,16 @@ import Test
 polyglot java import java.util.Random
 
 spec = describe "Pattern Matches" <|
+    it "should be able to match on the Boolean type" <|
+        case Boolean of
+            Boolean -> Nothing
+            _ -> Test.fail "Expected the Boolean constructor to match."
+        case True of
+            Boolean -> Nothing
+            _ -> Test.fail "Expected the True constructor to match."
+        case False of
+            Boolean -> Nothing
+            _ -> Test.fail "Expected the False constructor to match."
     it "should be able to match on the Integer type" <|
         case 1 of
             Integer -> Nothing
@@ -15,6 +25,12 @@ spec = describe "Pattern Matches" <|
         case Integer of
             Integer -> Nothing
             _ -> Test.fail "Expected the Integer constructor to match."
+        case Big_Integer of
+            Integer -> Nothing
+            _ -> Test.fail "Expected the Big_Integer constructor to match."
+        case Small_Integer of
+            Integer -> Nothing
+            _ -> Test.fail "Expected the Small_Integer constructor to match."
     it "should be able to match on the Decimal type" <|
         case 1.7 of
             Decimal -> Nothing
@@ -35,6 +51,18 @@ spec = describe "Pattern Matches" <|
         case Number of
             Number -> Nothing
             _ -> Test.fail "Expected the Number constructor to match."
+        case Small_Integer of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Small_Integer constructor to match."
+        case Big_Integer of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Big_Integer constructor to match."
+        case Integer of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Integer constructor to match."
+        case Decimal of
+            Number -> Nothing
+            _ -> Test.fail "Expected the Decimal constructor to match."
     it "should be able to match on the Text type" <|
         case "foo" of
             Text -> Nothing
@@ -57,3 +85,18 @@ spec = describe "Pattern Matches" <|
         case Polyglot of
             Polyglot -> Nothing
             _ -> Test.fail "Expected the Polyglot constructor to match."
+    it "should be able to match on the Any type" <|
+        value_1 = 1.23143
+        value_2 = "foo bar"
+        case value_1 of
+            Any -> Nothing
+            _ -> Test.fail "Expected any value to match Any."
+        case value_2 of
+            Any -> Nothing
+            _ -> Test.fail "Expected any value to match Any."
+        case Polyglot of
+            Any -> Nothing
+            _ -> Test.fail "Expect any constructor to match Any."
+        case Any of
+            Any -> Nothing
+            _ -> Test.fail "Expected the Any constructor to match."
