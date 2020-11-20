@@ -39,39 +39,15 @@ public abstract class EqualsNode extends Node {
       Atom _this,
       Atom that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getNumberConstructor(ctxRef)") AtomConstructor numberCons,
-      @Cached("getIntegerConstructor(ctxRef)") AtomConstructor integerCons,
       @Cached("getBigIntegerConstructor(ctxRef)") AtomConstructor bigIntCons) {
-    return ((that.getConstructor() == numberCons)
-            || (that.getConstructor() == integerCons)
-            || (that.getConstructor() == bigIntCons))
-        && (_this.getConstructor() == that.getConstructor());
-  }
-
-  @Specialization
-  boolean doAtom(
-      EnsoBigInteger _this,
-      Atom that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getNumberConstructor(ctxRef)") AtomConstructor numberCons,
-      @Cached("getIntegerConstructor(ctxRef)") AtomConstructor integerCons,
-      @Cached("getBigIntegerConstructor(ctxRef)") AtomConstructor bigIntCons) {
-    return (that.getConstructor() == numberCons)
-        || (that.getConstructor() == integerCons)
-        || (that.getConstructor() == bigIntCons);
+    var thisCons = _this.getConstructor();
+    var thatCons = that.getConstructor();
+    return (thatCons == bigIntCons) && (thisCons == thatCons);
   }
 
   @Fallback
   boolean doOther(Object _this, Object that) {
     return false;
-  }
-
-  AtomConstructor getNumberConstructor(ContextReference<Context> ctxRef) {
-    return ctxRef.get().getBuiltins().number().getNumber();
-  }
-
-  AtomConstructor getIntegerConstructor(ContextReference<Context> ctxRef) {
-    return ctxRef.get().getBuiltins().number().getInteger();
   }
 
   AtomConstructor getBigIntegerConstructor(ContextReference<Context> ctxRef) {

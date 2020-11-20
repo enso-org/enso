@@ -42,35 +42,15 @@ public abstract class EqualsNode extends Node {
       Atom _this,
       Atom that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getNumberConstructor(ctxRef)") AtomConstructor numberCons,
       @Cached("getDecimalConstructor(ctxRef)") AtomConstructor decimalCons) {
     var thatCons = that.getConstructor();
     var thisCons = _this.getConstructor();
-    if (thatCons == numberCons) {
-      return (thisCons == numberCons) || (thisCons == decimalCons);
-    } else if (that.getConstructor() == decimalCons) {
-      return thisCons == decimalCons;
-    }
-    return false;
-  }
-
-  @Specialization
-  boolean doAtom(
-      double _this,
-      Atom that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef,
-      @Cached("getNumberConstructor(ctxRef)") AtomConstructor numberCons,
-      @Cached("getDecimalConstructor(ctxRef)") AtomConstructor decimalCons) {
-    return (that.getConstructor() == numberCons) || (that.getConstructor() == decimalCons);
+    return (thatCons == decimalCons) && (thisCons == thatCons);
   }
 
   @Fallback
   boolean doOther(Object _this, Object that) {
     return false;
-  }
-
-  AtomConstructor getNumberConstructor(ContextReference<Context> ctxRef) {
-    return ctxRef.get().getBuiltins().number().getNumber();
   }
 
   AtomConstructor getDecimalConstructor(ContextReference<Context> ctxRef) {
