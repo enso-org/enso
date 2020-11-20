@@ -701,6 +701,7 @@ class IrToTruffle(
           )
 
           runtimeConsOpt.map { atomCons =>
+            val any = context.getBuiltins.any
             val array = context.getBuiltins.mutable.constructor
             val bool = context.getBuiltins.bool
             val decimal = context.getBuiltins.number.getDecimal
@@ -725,6 +726,8 @@ class IrToTruffle(
                 ArrayBranchNode.build(array, branchCodeNode.getCallTarget)
               } else if (atomCons == polyglot) {
                 PolyglotBranchNode.build(polyglot, branchCodeNode.getCallTarget)
+              } else if (atomCons == any) {
+                CatchAllBranchNode.build(branchCodeNode.getCallTarget)
               } else {
                 ConstructorBranchNode.build(
                   atomCons,
