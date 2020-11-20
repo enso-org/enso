@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -13,27 +14,35 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @NodeInfo(shortName = "IntegerMatch", description = "Allows matching on the Integer type.")
 public abstract class IntegerBranchNode extends BranchNode {
   private final AtomConstructor integer;
+  private final AtomConstructor smallInteger;
+  private final AtomConstructor bigInteger;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  public IntegerBranchNode(AtomConstructor integer, RootCallTarget branch) {
+  public IntegerBranchNode(Number number, RootCallTarget branch) {
     super(branch);
-    this.integer = integer;
+    this.integer = number.getInteger();
+    this.smallInteger = number.getSmallInteger();
+    this.bigInteger = number.getBigInteger();
   }
 
   /**
    * Create a new node to handle matching with the Integer constructor.
    *
-   * @param integer the constructor used for matching
+   * @param number the constructor used for matching
    * @param branch the code to execute
    * @return an integer branch node
    */
-  public static IntegerBranchNode build(AtomConstructor integer, RootCallTarget branch) {
-    return IntegerBranchNodeGen.create(integer, branch);
+  public static IntegerBranchNode build(Number number, RootCallTarget branch) {
+    return IntegerBranchNodeGen.create(number, branch);
   }
 
   @Specialization
   void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(integer == target.getConstructor())) {
+    var shouldMatch =
+        (integer == target.getConstructor())
+            || (smallInteger == target.getConstructor())
+            || (bigInteger == target.getConstructor());
+    if (profile.profile(shouldMatch)){
       accept(frame, state, target.getFields());
     }
   }

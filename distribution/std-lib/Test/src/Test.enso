@@ -54,15 +54,8 @@ expect_fail_with ~action matcher =
     case res of
         _ -> here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded.")
     err = res.catch x->x
-    case Meta.meta matcher of
-        Meta.Atom _ -> if err == matcher then Success else
-            here.fail ("Expected a " + matcher.to_text + "be thrown, but found " + err.to_text + ".")
-        Meta.Constructor _ ->
-            meta_err = Meta.meta err
-            case meta_err of
-                Meta.Atom _ -> if meta_err.constructor == matcher then Success else
-                    here.fail ("Unexpected error " + err.to_text + " thrown.")
-                _ -> here.fail ("Incorrect instance " + err.to_text + ".")
+    if err.is_a matcher then Nothing else
+        here.fail ("Unexpected error " + err.to_text + " thrown.")
 
 ## Asserts that `this` value is equal to the expected value.
 Any.should_equal that = case this == that of

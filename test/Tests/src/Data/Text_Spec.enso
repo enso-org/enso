@@ -20,6 +20,11 @@ spec = describe "Text" <|
     utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
     utf_8_vertical = 'foo\n   bar \v baz \r quux'
     utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
+    sentences = '''
+        I have a very long block of text, here. It goes on and on, containing
+        things like decimal points (1.0314e3) and other language scripts as well
+        건반(Korean).
+    sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
     it "should allow naive length computation over grapheme clusters" <|
         kshi.length . should_equal 1
         facepalm.length . should_equal 1
@@ -29,6 +34,8 @@ spec = describe "Text" <|
     it "should split the text into grapheme clusters" <|
         str = kshi + facepalm + accent_1 + accent_2
         str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
+    it "should be able to split the text into words" <|
+        sentences.words . should_equal sentence_words
     it "should be able to split the text on UTF-8 whitespace" <|
         utf_8_whitespace.split . should_equal utf_8_whitespace_split
     it "should be able to split the text on UTF-8 newlines" <|
