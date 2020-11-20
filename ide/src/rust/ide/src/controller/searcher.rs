@@ -209,6 +209,29 @@ impl ParsedInput {
             CompletedFragmentId::Argument {..}                  => TypingArgument,
         }
     }
+
+    /// Convert the current input to Prefix Chain representation.
+    pub fn as_prefix_chain
+    (&self, parser:&Parser) -> Option<ast::Shifted<ast::prefix::Chain>> {
+        let parsed_pattern = parser.parse_line(&self.pattern).ok();
+        let pattern_sast   = parsed_pattern.map(|p| ast::Shifted::new(self.pattern_offset,p));
+        // If there is an expression part of input, we add current pattern as the last argument.
+        if let Some(chain) = &self.expression {
+            let mut chain = chain.clone();
+            if let Some(sast) = pattern_sast {
+                let prefix_id = None;
+                let argument  = ast::prefix::Argument {sast,prefix_id};
+                chain.wrapped.args.push(argument);
+            }
+            Some(chain)
+        // If there isn't any expression part, the pattern is the whole input.
+        } else if let Some(sast) = pattern_sast {
+            let chain = ast::prefix::Chain::from_ast_non_strict(&sast.wrapped);
+            Some(ast::Shifted::new(self.pattern_offset,chain))
+        } else {
+            None
+        }
+    }
 }
 
 impl HasRepr for ParsedInput {
@@ -312,8 +335,8 @@ pub struct FragmentAddedByPickingSuggestion {
 impl FragmentAddedByPickingSuggestion {
     /// Check if the picked fragment is still unmodified by user.
     fn is_still_unmodified
-    (&self, input:&ParsedInput, this_var:Option<&str>, current_module:&QualifiedName) -> bool {
-        let expected_code = &self.picked_suggestion.code_to_insert(this_var,Some(current_module));
+    (&self, input:&ParsedInput, current_module:&QualifiedName) -> bool {
+        let expected_code = &self.picked_suggestion.code_to_insert(Some(current_module));
         input.completed_fragment(self.id).contains(expected_code)
     }
 }
@@ -354,10 +377,10 @@ impl Data {
                 id                : CompletedFragmentId::Function,
                 picked_suggestion : entry
             };
-            // When editing node, we don't have any special handling for "this" node.
-            // This might be revisited in the future.
-            let this_var = None;
-            fragment.is_still_unmodified(&input,this_var,&current_module).and_option(Some(fragment))
+            // This is meant to work with single function calls (without "this" argument).
+            // In other case we should know what the function is from the engine, as the function
+            // should be resolved.
+            fragment.is_still_unmodified(&input,&current_module).and_option(Some(fragment))
         });
         let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
         initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
@@ -475,18 +498,18 @@ impl Searcher {
         self.this_arg.deref().as_ref().map(|this| this.var.as_ref())
     }
 
-    /// The variable name that is used for `this` argument due to the selected node.
-    fn this_var_for(&self, id:CompletedFragmentId) -> Option<&str> {
-        (id == CompletedFragmentId::Function).and_option(self.this_var())
-    }
-
     /// Code that will be inserted by expanding given suggestion at given location.
     ///
-    /// Code depends on the location, as the first fragment can introduce `this` variable access.
-    fn code_to_insert(&self, suggestion:&suggestion::Completion, id:CompletedFragmentId) -> String {
-        let var = self.this_var_for(id);
+    /// Code depends on the location, as the first fragment can introduce `this` variable access,
+    /// and then we don't want to put any module name.
+    fn code_to_insert
+    (&self, suggestion:&suggestion::Completion, loc:CompletedFragmentId) -> String {
         let current_module = self.module_qualified_name();
-        suggestion.code_to_insert(var,Some(&current_module))
+        if loc == CompletedFragmentId::Function && self.this_arg.is_some() {
+            suggestion.code_to_insert_skip_module()
+        } else {
+            suggestion.code_to_insert(Some(&current_module))
+        }
     }
 
     /// Pick a completion suggestion.
@@ -546,12 +569,11 @@ impl Searcher {
     ///
     /// False if it was modified after picking or if it wasn't picked at all.
     pub fn is_function_fragment_unmodified(&self) -> bool {
-        let this_var       = self.this_var();
         let current_module = self.module_qualified_name();
         with(self.data.borrow(), |data| {
             data.fragments_added_by_picking.first().contains_if(|frag| {
                 let is_function = frag.id == CompletedFragmentId::Function;
-                is_function && frag.is_still_unmodified(&data.input,this_var,&current_module)
+                is_function && frag.is_still_unmodified(&data.input,&current_module)
             })
         })
     }
@@ -562,19 +584,23 @@ impl Searcher {
     /// expression, otherwise a new node is added. This will also add all imports required by
     /// picked suggestions.
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
-        let data_borrowed   = self.data.borrow();
-        let expression      = data_borrowed.input.repr();
+        let input_chain = self.data.borrow().input.as_prefix_chain(&self.parser);
+
+        let expression = match (self.this_var(),input_chain) {
+            (Some(this_var),Some(input)) =>
+                apply_this_argument(this_var,&input.wrapped.into_ast()).repr(),
+            (None,Some(input)) => input.wrapped.into_ast().repr(),
+            (_,None)           => "".to_owned(),
+        };
         let intended_method = self.intended_method();
 
         let id = match *self.mode {
             Mode::NewNode {position} => {
-                let mut new_node    = NewNodeInfo::new_pushed_back(expression);
-                new_node.metadata   = Some(NodeMetadata {position,intended_method});
-                let graph           = self.graph.graph();
-                if self.is_function_fragment_unmodified() {
-                    if let Some(this) = self.this_arg.deref().as_ref() {
-                        this.introduce_pattern(graph.clone_ref())?;
-                    }
+                let mut new_node  = NewNodeInfo::new_pushed_back(expression);
+                new_node.metadata = Some(NodeMetadata {position,intended_method});
+                let graph         = self.graph.graph();
+                if let Some(this) = self.this_arg.deref().as_ref() {
+                    this.introduce_pattern(graph.clone_ref())?;
                 }
                 graph.add_node(new_node)?
             },
@@ -595,10 +621,9 @@ impl Searcher {
         let data           = data.deref_mut();
         let input          = &data.input;
         let current_module = self.module_qualified_name();
-        data.fragments_added_by_picking.drain_filter(|frag| {
-            let this = self.this_var_for(frag.id);
-            !frag.is_still_unmodified(input,this,&current_module)
-        });
+        data.fragments_added_by_picking.drain_filter(
+            |frag| !frag.is_still_unmodified(input,&current_module)
+        );
     }
 
     fn add_required_imports(&self) -> FallibleResult {
@@ -661,6 +686,7 @@ impl Searcher {
             self.possible_function_calls()
         };
         suggestions.into_iter().filter_map(|suggestion| {
+            let arg_index = arg_index + if self.this_arg.is_some()  { 1 } else { 0 };
             let arg_index = arg_index + if self.has_this_argument() { 1 } else { 0 };
             let parameter = suggestion.arguments.get(arg_index)?;
             Some(parameter.repr_type.clone())
@@ -822,6 +848,36 @@ impl SimpleFunctionCall {
                 function_name : name.to_owned(),
             })
         }
+    }
+}
+
+fn apply_this_argument(this_var:&str, ast:&Ast) -> Ast {
+    if let Ok(opr) = ast::known::Opr::try_from(ast) {
+        let shape = ast::SectionLeft {
+            arg: Ast::var(this_var),
+            off: 1,
+            opr: opr.into()
+        };
+        Ast::new(shape,None)
+    } else if let Some(mut infix_chain) = ast::opr::Chain::try_new(ast) {
+        if let Some(ref mut target) = &mut infix_chain.target {
+             target.arg = apply_this_argument(this_var,&target.arg);
+        } else {
+            infix_chain.target = Some(ast::opr::ArgWithOffset {arg:Ast::var(this_var), offset:1});
+        }
+        infix_chain.into_ast()
+    } else if let Some(mut prefix_chain) = ast::prefix::Chain::from_ast(ast) {
+        prefix_chain.func = apply_this_argument(this_var, &prefix_chain.func);
+        prefix_chain.into_ast()
+    } else {
+        let shape = ast::Infix {
+            larg : Ast::var(this_var),
+            loff : 0,
+            opr  : Ast::opr(ast::opr::predefined::ACCESS),
+            roff : 0,
+            rarg : ast.clone_ref(),
+        };
+        Ast::new(shape,None)
     }
 }
 
@@ -1039,8 +1095,7 @@ pub mod test {
     ///    not immediately presented;
     /// 2) instead the searcher model obtains the type information for the selected node and uses it
     ///    to query Language Server for the suggestion list;
-    /// 3) the first (and only the first) picked completion gets the selected node variable's
-    ///    access prepended.
+    /// 3) The query for argument type takes the this-argument presence into consideration.
     #[wasm_bindgen_test]
     fn loading_list_w_self() {
         let mock_type = crate::test::mock::data::TYPE_NAME;
@@ -1052,27 +1107,29 @@ pub mod test {
             node_line:&'static str,
             /// If the searcher should enter "connect to this" mode at all and wait for type info.
             sets_this:bool,
-            /// Expected input after accepting "entry1" twice. `{}` will expand to the entry's
-            /// function name.
-            expected_input:&'static str,
         };
 
         let cases = [
-            Case {node_line:"2+2",             sets_this:true,  expected_input:"sum1.{} {} "},
-            Case {node_line:"the_sum = 2 + 2", sets_this:true,  expected_input:"the_sum.{} {} "},
-            Case {node_line:"[x,y] = 2 + 2",   sets_this:false, expected_input:"{} {} "},
+            Case {node_line:"2+2",             sets_this:true },
+            Case {node_line:"the_sum = 2 + 2", sets_this:true },
+            Case {node_line:"[x,y] = 2 + 2",   sets_this:false},
         ];
 
         for case in &cases {
-            let Fixture { mut test, searcher, entry1, .. } = Fixture::new_custom(|data,client| {
+            let Fixture { mut test, searcher, entry1, entry9,.. } = Fixture::new_custom(|data,client| {
                 data.change_main_body(case.node_line);
                 data.selected_node = true;
                 // We expect following calls:
                 // 1) for the function - with the "this" filled (if the test case says so);
                 // 2) for subsequent completions - without "this"
                 data.expect_completion(client,case.sets_this.as_some(mock_type),None,&[1,5,9]);
-                data.expect_completion(client,None,None,&[1,5,9]);
-                data.expect_completion(client,None,None,&[1,5,9]);
+                // If we are about to add the self type, then we expect the second argument first,
+                // and then none. Otherwise we expect all arguments starting from the first.
+                let expected_types = if case.sets_this {[Some("Number"),None          ]}
+                                     else              {[Some("Text")  ,Some("Number")]};
+
+                data.expect_completion(client,None,expected_types[0],&[1,5,9]);
+                data.expect_completion(client,None,expected_types[1],&[1,5,9]);
             });
 
             searcher.reload_list();
@@ -1092,9 +1149,9 @@ pub mod test {
 
             test.run_until_stalled();
             assert!(!searcher.suggestions().is_loading());
+            searcher.pick_completion(entry9.clone_ref()).unwrap();
             searcher.pick_completion(entry1.clone_ref()).unwrap();
-            searcher.pick_completion(entry1.clone_ref()).unwrap();
-            let expected_input = case.expected_input.replace("{}",&entry1.name);
+            let expected_input = format!("{} {} ",entry9.name,entry1.name);
             assert_eq!(searcher.data.borrow().input.repr(),expected_input);
         }
     }
@@ -1333,6 +1390,41 @@ pub mod test {
     }
 
     #[wasm_bindgen_test]
+    fn applying_this_var() {
+        #[derive(Copy,Clone,Debug)]
+        struct Case {
+            before : &'static str,
+            after  : &'static str,
+        }
+
+        impl Case {
+            fn new(before:&'static str, after:&'static str) -> Self {
+                Case{before,after}
+            }
+
+            fn run(&self) {
+                let parser  = Parser::new_or_panic();
+                let ast     = parser.parse_line(self.before).unwrap();
+                let new_ast = apply_this_argument("foo",&ast);
+                assert_eq!(new_ast.repr(),self.after,"Case {:?} failed: {:?}",self,ast);
+            }
+        }
+
+        let cases =
+            [ Case::new("bar", "foo.bar")
+            , Case::new("bar.baz", "foo.bar.baz")
+            , Case::new("bar baz", "foo.bar baz")
+            , Case::new("+ 2", "foo + 2")
+            , Case::new("+ 2 + 3", "foo + 2 + 3")
+            , Case::new("+ 2 - 3", "foo + 2 - 3")
+            , Case::new("+ bar baz", "foo + bar baz")
+            , Case::new("map x-> x.characters.length", "foo.map x-> x.characters.length")
+            ];
+
+        for case in &cases { case.run(); }
+    }
+
+    #[wasm_bindgen_test]
     fn adding_node_introducing_this_var() {
         struct Case {
             line   : &'static str,
@@ -1351,28 +1443,20 @@ pub mod test {
             }
         }
 
-
         let cases = vec![
-            // No need to introduce variable name, as the input was manually written, not picked.
-            Case::new("2 + 2",&["2 + 2","testFunction1"], |f| {
-                f.searcher.set_input("testFunction1 ".to_owned()).unwrap();
-            }),
-            // Need to introduce variable name, as the completion was picked.
+            // Completion was picked.
             Case::new("2 + 2",&["sum1 = 2 + 2","sum1.testFunction1"], |f| {
                 f.searcher.pick_completion(f.entry1.clone()).unwrap();
             }),
-            // No need to introduce variable name, as the input was modified after picking.
-            Case::new("2 + 2",&["2 + 2","var.testFunction1"], |f| {
+            // The input was manually written (not picked).
+            Case::new("2 + 2",&["sum1 = 2 + 2","sum1.testFunction1"], |f| {
+                f.searcher.set_input("testFunction1 ".to_owned()).unwrap();
+            }),
+            // Completion was picked and edited.
+            Case::new("2 + 2",&["sum1 = 2 + 2","sum1.var.testFunction1"], |f| {
                 f.searcher.pick_completion(f.entry1.clone()).unwrap();
                 let new_parsed_input = ParsedInput::new("var.testFunction1",&f.searcher.parser);
                 f.searcher.data.borrow_mut().input = new_parsed_input.unwrap();
-            }),
-            // Need to introduce variable name, as the completion was picked and edit was no-op.
-            Case::new("2 + 2",&["sum1 = 2 + 2","sum1.testFunction1"], |f| {
-                f.searcher.pick_completion(f.entry1.clone()).unwrap();
-                // TODO [mwu] is this ok that the trailing space is actually required for this?
-                let new_parsed_input = ParsedInput::new("sum1.testFunction1 ",&f.searcher.parser);
-                f.searcher.data.borrow_mut().input = dbg!(new_parsed_input.unwrap());
             }),
             // Variable name already present, need to use it. And not break it.
             Case::new("my_var = 2 + 2",&["my_var = 2 + 2","my_var.testFunction1"], |f| {
