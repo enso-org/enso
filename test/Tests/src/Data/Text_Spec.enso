@@ -1,0 +1,68 @@
+from Base import all
+import Test
+
+import Base.Data.Text.Split_Kind
+
+type Auto a
+
+type Manual b
+
+Manual.to_text = "[[[MyREP " + this.b.to_text + "]]]"
+
+spec = describe "Text" <|
+    kshi = '\u0915\u094D\u0937\u093F'
+    kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
+    facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
+    facepalm_codes = [129318, 127996, 8205, 9794, 65039]
+    accent_1 = '\u00E9'
+    accent_2 = '\u0065\u{301}'
+    utf_8_whitespace = 'foo\n bar     baz \u202F quux'
+    utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
+    utf_8_vertical = 'foo\n   bar \v baz \r quux'
+    utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
+    sentences = '''
+        I have a very long block of text, here. It goes on and on, containing
+        things like decimal points (1.0314e3) and other language scripts as well
+        건반(Korean).
+    sentence_words = ['I', 'have', 'a', 'very', 'long', 'block', 'of', 'text', ',', 'here', '.', 'It', 'goes', 'on', 'and', 'on', ',', 'containing', 'things', 'like', 'decimal', 'points', '(', '1.0314e3', ')', 'and', 'other', 'language', 'scripts', 'as', 'well', '건반', '(', 'Korean', ')', '.']
+    it "should allow naive length computation over grapheme clusters" <|
+        kshi.length . should_equal 1
+        facepalm.length . should_equal 1
+    it "should compare strings using utf normalization" <|
+        "abc"=="def" . should_be_false
+        accent_1 . should_equal accent_2
+    it "should split the text into grapheme clusters" <|
+        str = kshi + facepalm + accent_1 + accent_2
+        str.characters . should_equal [kshi, facepalm, accent_1, accent_2]
+    it "should be able to split the text into words" <|
+        sentences.words . should_equal sentence_words
+    it "should be able to split the text on UTF-8 whitespace" <|
+        utf_8_whitespace.split . should_equal utf_8_whitespace_split
+    it "should be able to split the text on UTF-8 newlines" <|
+        utf_8_vertical.split Split_Kind.Lines . should_equal utf_8_vertical_split
+    it "should be able to split the text on arbitrary text sequence" <|
+        "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
+    it "should dump utf-8 bytes to a vector" <|
+        kshi.utf_8.should_equal kshi_utf_8
+    it "should convert an array of bytes to text" <|
+        Text.from_utf_8 kshi_utf_8 . should_equal kshi
+    it "should dump utf codepoints to a vector" <|
+        facepalm.codepoints.should_equal facepalm_codes
+    it "should convert an array of codepoints to text" <|
+        Text.from_codepoints facepalm_codes . should_equal facepalm
+    it "should convert any type to text automatically and using provided methods" <|
+        t = Auto (Manual 123) . to_text
+        t.should_equal "(Auto [[[MyREP 123]]])"
+    it "should escape special characters when debug-printing text" <|
+        text_1 = '''
+            foo
+            bar\r\tbaz
+        text_1.to_text.should_equal "'foo\\nbar\\r\\tbaz'"
+        text_2 = '\n\t\a\b\f\r\v\e\''
+        text_2.to_text.should_equal "'\\n\\t\\a\\b\\f\\r\\v\\e\\''"
+    it "should allow selecting substrings by characters" <|
+        txt = kshi + facepalm + accent_1 + accent_2
+        txt.take_first 2 . should_equal (kshi + facepalm)
+        txt.drop_first 2 . should_equal (accent_1 + accent_2)
+        txt.take_last  2 . should_equal (accent_1 + accent_2)
+        txt.drop_last  2 . should_equal (kshi + facepalm)
