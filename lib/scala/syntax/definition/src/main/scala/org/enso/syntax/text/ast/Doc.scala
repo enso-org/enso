@@ -180,11 +180,12 @@ object Doc {
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
         val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
-        val btnAction    = onclick := s"""showHide($uniqueIDCode,$uniqueIDBtn);"""
-        val btnStyle     = HTML.`style` := "display: flex"
-        val btn          = HTML.button(btnAction)("Show")
-        val copyAction   = onclick := s"""copyCode($uniqueIDCode);"""
-        val copyBtn      = HTML.button(copyAction)(btnStyle)("Copy")
+        val btnAction =
+          onclick := s"""showHide('$uniqueIDCode','$uniqueIDBtn');"""
+        val btnStyle   = HTML.`style` := "display: flex"
+        val btn        = HTML.button(btnAction)(htmlIdBtn)("Show")
+        val copyAction = onclick := s"""copyCode('$uniqueIDCode');"""
+        val copyBtn    = HTML.button(copyAction)(btnStyle)("Copy")
         if (isInGui) {
           val htmlStyle = HTML.`style` := "display: block"
           Seq(
