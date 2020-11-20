@@ -23,7 +23,11 @@ impl Suggestion {
     /// The suggestion caption (suggested function name, or action name, etc.).
     pub fn caption(&self) -> String {
         match self {
-            Self::Completion(completion) => completion.code_to_insert(None,None)
+            Self::Completion(completion) => if let Some(self_type) = completion.self_type.as_ref() {
+                format!("{}.{}",self_type,completion.name)
+            } else {
+                completion.name.clone()
+            }
         }
     }
 }
