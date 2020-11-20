@@ -11,7 +11,7 @@ import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.service.ProjectServiceFailure.ProjectCreateFailed
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
-import org.enso.runtimeversionmanager.runner.{JVMSettings, Runner}
+import org.enso.runtimeversionmanager.runner.Runner
 
 import scala.concurrent.Future
 
@@ -21,9 +21,6 @@ class ProjectCreationService[
   override val distributionConfiguration: DistributionConfiguration
 ) extends ProjectCreationServiceApi[F]
     with RuntimeVersionManagerMixin {
-
-  /** JVM settings for the runner used to create the project. */
-  val jvmSettings: JVMSettings = JVMSettings.default
 
   override def createProject(
     progressTracker: ActorRef,
@@ -44,6 +41,7 @@ class ProjectCreationService[
 
       val settings =
         runner.newProject(path, name, version, None, None, Seq()).get
+      val jvmSettings = distributionConfiguration.defaultJVMSettings
       runner.withCommand(settings, jvmSettings) { command =>
         command.run().get
       }

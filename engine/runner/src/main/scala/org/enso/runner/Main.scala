@@ -5,7 +5,6 @@ import java.util.UUID
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
-import nl.gn0s1s.bump.SemVer
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
@@ -234,19 +233,13 @@ object Main {
   ): Unit = {
     val root = new File(path)
     val name = nameOption.getOrElse(PackageManager.Default.generateName(root))
-    val currentVersion = SemVer(buildinfo.Info.ensoVersion).getOrElse {
-      throw new IllegalStateException(
-        "Fatal error: Enso version included in buildinfo is not a valid " +
-        "semver string, this should never happen."
-      )
-    }
     val authors =
       if (authorName.isEmpty && authorEmail.isEmpty) List()
       else List(Contact(name = authorName, email = authorEmail))
     PackageManager.Default.create(
       root        = root,
       name        = name,
-      ensoVersion = SemVerEnsoVersion(currentVersion),
+      ensoVersion = SemVerEnsoVersion(CurrentVersion.version),
       authors     = authors,
       maintainers = authors
     )
@@ -432,8 +425,6 @@ object Main {
     * @param logLevel log level to set for the engine runtime
     */
   private def runLanguageServer(line: CommandLine, logLevel: LogLevel): Unit = {
-    val _ = logLevel // TODO [RW] handle logging in the Language Server (#1144)
-
     val maybeConfig = parseSeverOptions(line)
 
     maybeConfig match {
@@ -442,7 +433,7 @@ object Main {
         exitFail()
 
       case Right(config) =>
-        LanguageServerApp.run(config)
+        LanguageServerApp.run(config, logLevel)
         exitSuccess()
     }
   }
@@ -481,7 +472,8 @@ object Main {
   def displayVersion(useJson: Boolean): Unit = {
     val versionDescription = VersionDescription.make(
       "Enso Compiler and Runtime",
-      includeRuntimeJVMInfo = true
+      includeRuntimeJVMInfo = true,
+      customVersion         = Some(CurrentVersion.version.toString)
     )
     println(versionDescription.asString(useJson))
   }

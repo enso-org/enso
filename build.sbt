@@ -859,7 +859,6 @@ lazy val `polyglot-api` = project
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ akkaTest ++ circe ++ Seq(
-      "ch.qos.logback"              % "logback-classic"      % logbackClassicVersion,
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
@@ -893,6 +892,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service`)
 
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(

@@ -12,6 +12,7 @@ import org.enso.runtimeversionmanager.distribution.{
 import org.enso.runtimeversionmanager.locking.ResourceManager
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRelease
+import org.enso.runtimeversionmanager.runner.JVMSettings
 
 /** Specifies the configuration of project manager's distribution.
   *
@@ -43,4 +44,10 @@ trait DistributionConfiguration {
   def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager
+
+  /** Default set of JVM settings to use when launching the runner.
+    *
+    * This is exposed mostly for ease of overriding the settings in tests.
+    */
+  def defaultJVMSettings: JVMSettings
 }

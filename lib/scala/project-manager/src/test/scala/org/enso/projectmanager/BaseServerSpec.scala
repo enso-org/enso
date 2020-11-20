@@ -35,7 +35,6 @@ import org.enso.projectmanager.service.{
 }
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.OS
-import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
 import org.enso.runtimeversionmanager.test.{DropLogs, FakeReleases}
 import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource
@@ -45,7 +44,6 @@ import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.jdk.OptionConverters.RichOptional
 
 class BaseServerSpec
     extends JsonRpcServerTestKit
@@ -141,21 +139,7 @@ class BaseServerSpec
     )
 
   lazy val projectCreationService =
-    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration) {
-
-      /** Tests runner must use the system JVM to avoid installing GraalVM
-        * inside of tests which would take far too long.
-        */
-      override val jvmSettings: JVMSettings = {
-        val currentProcess =
-          ProcessHandle.current().info().command().toScala.getOrElse("java")
-        val javaCommand = JavaCommand(currentProcess, None)
-        new JVMSettings(
-          javaCommandOverride = Some(javaCommand),
-          jvmOptions          = Seq()
-        )
-      }
-    }
+    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration)
 
   lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
     distributionConfiguration

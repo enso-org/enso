@@ -34,7 +34,6 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegis
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
-import org.enso.runtimeversionmanager.runner.JVMSettings
 
 /** A language server controller responsible for managing the server lifecycle.
   * It delegates all tasks to other actors like bootloader or supervisor.
@@ -72,7 +71,7 @@ class LanguageServerController(
       networkConfig             = networkConfig,
       distributionConfiguration = distributionConfiguration,
       engineVersion             = engineVersion,
-      jvmSettings               = JVMSettings.default // TODO allow overriding
+      jvmSettings               = distributionConfiguration.defaultJVMSettings
     )
 
   override def supervisorStrategy: SupervisorStrategy =

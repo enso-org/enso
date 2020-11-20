@@ -15,6 +15,7 @@ sealed abstract class LogLevel(final val level: Int) {
   def shouldLog(other: LogLevel): Boolean =
     other.level <= level
 }
+
 object LogLevel {
 
   /** This log level should not be used by messages, instead it can be set as
@@ -107,5 +108,14 @@ object LogLevel {
           DecodingFailure(s"`$other` is not a valid log level.", json.history)
         )
     }
+  }
+
+  def toAkka(logLevel: LogLevel): akka.event.Logging.LogLevel = logLevel match {
+    case Off     => akka.event.Logging.LogLevel(Int.MinValue)
+    case Error   => akka.event.Logging.ErrorLevel
+    case Warning => akka.event.Logging.WarningLevel
+    case Info    => akka.event.Logging.InfoLevel
+    case Debug   => akka.event.Logging.DebugLevel
+    case Trace   => akka.event.Logging.DebugLevel
   }
 }

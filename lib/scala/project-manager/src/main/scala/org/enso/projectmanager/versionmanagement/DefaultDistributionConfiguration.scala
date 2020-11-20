@@ -16,6 +16,7 @@ import org.enso.runtimeversionmanager.releases.engine.{
   EngineRepository
 }
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
+import org.enso.runtimeversionmanager.runner.JVMSettings
 
 /** Default distribution configuration to use for the Project Manager in
   * production.
@@ -63,4 +64,7 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
       engineReleaseProvider     = engineReleaseProvider,
       runtimeReleaseProvider    = runtimeReleaseProvider
     )
+
+  /** @inheritdoc */
+  override def defaultJVMSettings: JVMSettings = JVMSettings.default
 }

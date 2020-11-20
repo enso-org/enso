@@ -203,7 +203,9 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       _        <- log.debug(s"Opening project $projectId")
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
-      updated   = project.copy(lastOpened = Some(openTime))
+      updated   = {
+        println(project.engineVersion)
+        project.copy(lastOpened = Some(openTime))}
       _        <- repo.update(updated).mapError(toServiceFailure)
       sockets  <- startServer(progressTracker, clientId, updated, missingComponentAction)
     } yield sockets

@@ -25,12 +25,14 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
+import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   HasTestDirectory,
   TestLocalLockManager
 }
 
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** A distribution configuration for use in tests.
@@ -71,6 +73,22 @@ class TestDistributionConfiguration(
     engineReleaseProvider     = engineReleaseProvider,
     runtimeReleaseProvider    = runtimeReleaseProvider
   )
+
+  /** JVM settings that will force to use the same JVM that we are running.
+    *
+    * This is done to avoiding downloading GraalVM in tests (that would be far
+    * too slow) and to ensure that a GraalVM instance is selected, regardless of
+    * the default JVM set in the current environment.
+    */
+  override def defaultJVMSettings: JVMSettings = {
+    val currentProcess =
+      ProcessHandle.current().info().command().toScala.getOrElse("java")
+    val javaCommand = JavaCommand(currentProcess, None)
+    new JVMSettings(
+      javaCommandOverride = Some(javaCommand),
+      jvmOptions          = Seq()
+    )
+  }
 }
 
 object TestDistributionConfiguration {
@@ -102,5 +120,4 @@ object TestDistributionConfiguration {
       engineReleaseProvider,
       runtimeReleaseProvider
     )
-
 }

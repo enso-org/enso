@@ -9,3 +9,4 @@ jvm-options:
     os: "linux"
   - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
     os: "macos"
+  - value: "-Denso.version.override=0.0.1"
