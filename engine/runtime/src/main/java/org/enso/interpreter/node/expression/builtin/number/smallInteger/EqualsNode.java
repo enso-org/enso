@@ -32,7 +32,7 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  boolean doAtomThis(
+  boolean doAtom(
       Atom _this,
       Atom that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef,

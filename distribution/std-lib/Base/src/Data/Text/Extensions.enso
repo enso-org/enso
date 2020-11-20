@@ -86,13 +86,13 @@ Text.split (separator = Split_Kind.Whitespace) =
    A word is defined based on the definition of Word Boundaries in the Unicode
    [Standard Annex #29](https://www.unicode.org/reports/tr29/#Word_Boundaries),
    supplemented by language-specific dictionaries for Chinese, Japanese, Thai,
-   or Khmer.
+   and Khmer.
 
    By default, the function doesn't include the whitespace between words, but
    this can be enabled.
 
    > Example
-     Getting the words in the sentence "A have not one, but two cats."
+     Getting the words in the sentence "I have not one, but two cats."
         "I have not one, but two cats.".words
 Text.words : Boolean -> Vector.Vector
 Text.words keep_whitespace=False =

@@ -39,7 +39,7 @@ spec = describe "Meta-Value Manipulation" <|
         True.is_a Boolean . should_be_true
         False.is_a Boolean . should_be_true
         True.is_an Integer . should_be_false
-#
+
         "".is_a Text . should_be_true
         "".is_a Decimal . should_be_false
 
