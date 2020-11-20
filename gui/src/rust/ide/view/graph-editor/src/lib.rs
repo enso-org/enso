@@ -339,6 +339,8 @@ ensogl::define_endpoints! {
 
         /// Enter the last selected node.
         enter_selected_node(),
+        /// Enter the node currently under the cursor.
+        enter_hovered_node(),
         /// Steps out of the current node, popping the topmost stack frame from the crumb list.
         exit_node(),
 
@@ -1690,7 +1692,7 @@ impl application::View for GraphEditor {
 
           // === Navigation ===
           , (Press       , ""              , "ctrl space"        , "cycle_visualization_for_selected_node")
-          , (DoublePress , ""              , "left-mouse-button" , "enter_selected_node")
+          , (DoublePress , ""              , "left-mouse-button" , "enter_hovered_node")
           , (Press       , "!node_editing" , "enter"             , "enter_selected_node")
           , (Press       , ""              , "alt enter"         , "exit_node")
 
@@ -1793,6 +1795,27 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     frp::extend! { network
         eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.debug_push_breadcrumb.emit(None));
         eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.debug_pop_breadcrumb.emit(()));
+    }
+
+
+
+    // =============================
+    // === Node Level Navigation ===
+    // =============================
+
+    frp::extend! { network
+
+        target_to_enter <- inputs.enter_hovered_node.map(f_!(scene.mouse.target.get()));
+
+        // Go level up on background click.
+        enter_on_background    <= target_to_enter.map(|target| target.is_background().as_some(()));
+        out.source.node_exited <+ enter_on_background;
+
+        // Go level down on node double click.
+        enter_node <= target_to_enter.map(|target| target.is_symbol().as_some(()));
+        node_switch_to_enter    <- out.node_hovered.sample(&enter_node).unwrap();
+        node_to_enter           <- node_switch_to_enter.map(|switch| switch.on().cloned()).unwrap();
+        out.source.node_entered <+ node_to_enter;
     }
 
 
