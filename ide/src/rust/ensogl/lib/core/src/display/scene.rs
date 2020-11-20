@@ -218,6 +218,20 @@ impl Target {
             panic!("Wrong internal format alpha for mouse target.")
         }
     }
+
+    pub fn is_background(&self) -> bool {
+        match self {
+            Self::Background => true,
+            _                => false,
+        }
+    }
+
+    pub fn is_symbol(&self) -> bool {
+        match self {
+            Self::Symbol {..} => true,
+            _                 => false,
+        }
+    }
 }
 
 impl Default for Target {
