@@ -42,7 +42,7 @@ jobs:
           node-version: '14.15.0'
 
       - name: Build
-        run: node ./run build
+        run: node ./run build --skip-version-validation
 
 
   check:
@@ -66,7 +66,7 @@ jobs:
           node-version: '14.15.0'
 
       - name: Building Rust Sources
-        run: node ./run lint
+        run: node ./run lint --skip-version-validation
 
 
   test:
@@ -87,7 +87,7 @@ jobs:
           node-version: '14.15.0'
 
       - name: Run tests
-        run: node ./run test --no-wasm
+        run: node ./run test --no-wasm --skip-version-validation
 
 
   wasm-test:
@@ -120,7 +120,7 @@ jobs:
           node-version: '14.15.0'
 
       - name: Run tests
-        run: node ./run test --no-native
+        run: node ./run test --no-native --skip-version-validation
 
 
   # TODO: enable after fixing https://github.com/actions-rs/grcov/issues/50
