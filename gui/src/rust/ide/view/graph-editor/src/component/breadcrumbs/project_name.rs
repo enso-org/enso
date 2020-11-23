@@ -66,12 +66,16 @@ ensogl::define_endpoints! {
        set_name (String),
        /// Reset the project name to the one before editing.
        cancel_editing (),
+       /// Enable editing the project name field and add a cursor at the mouse position.
+       start_editing  (),
        /// Commit current project name.
-       commit        (),
-       outside_press (),
-       select        (),
-       deselect      (),
-
+       commit             (),
+       outside_press      (),
+       select             (),
+       deselect           (),
+       /// Indicates the IDE is in edit mode. This means a click on some editable text should
+       /// start editing it.
+       ide_text_edit_mode (bool),
     }
     Output {
         pointer_style (cursor::Style),
@@ -79,7 +83,8 @@ ensogl::define_endpoints! {
         width         (f32),
         mouse_down    (),
         edit_mode     (bool),
-        selected      (bool)
+        selected      (bool),
+        is_hovered    (bool),
     }
 }
 
@@ -258,6 +263,10 @@ impl ProjectName {
 
             // === Mouse IO ===
 
+            frp.source.is_hovered <+ bool(&model.view.events.mouse_out,
+                                          &model.view.events.mouse_over);
+            frp.source.mouse_down <+ model.view.events.mouse_down;
+
             not_selected               <- frp.output.selected.map(|selected| !selected);
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
             mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
@@ -269,10 +278,10 @@ impl ProjectName {
             );
             on_deselect <- not_selected.gate(&not_selected).constant(());
 
-            frp.output.source.mouse_down <+ model.view.events.mouse_down;
-            start_edit_mode <- model.view.events.mouse_down.constant(());
-            eval_ start_edit_mode ( text.set_cursor_at_mouse_position() );
-            frp.source.edit_mode <+ start_edit_mode.to_true();
+            edit_click    <- model.view.events.mouse_down.gate(&frp.ide_text_edit_mode);
+            start_editing <- any(edit_click,frp.input.start_editing);
+            eval_ start_editing ( text.set_cursor_at_mouse_position() );
+            frp.source.edit_mode <+ start_editing.to_true();
 
             outside_press <- any(&frp.outside_press,&frp.deselect);
 
@@ -306,14 +315,14 @@ impl ProjectName {
 
             // === Selection ===
 
-            select <- any(&frp.select,&start_edit_mode);
+            select <- any(&frp.select,&frp.input.start_editing);
             eval_  select([text,animations]{
                 text.set_focus(true);
                 animations.color.set_target_value(selected_color);
             });
             frp.output.source.selected <+ select.to_true();
 
-            deselect <- any(&frp.deselect,&end_edit_mode);
+            deselect <- any3(&frp.deselect,&end_edit_mode,&outside_press);
             eval_ deselect ([text,animations]{
                 text.set_focus(false);
                 text.remove_all_cursors();
@@ -327,15 +336,22 @@ impl ProjectName {
             eval animations.color.value((value) model.set_color(*value));
             eval animations.position.value((value) model.set_position(*value));
 
+
              // === Pointer style ===
 
-             frp.output.source.pointer_style <+ model.view.events.mouse_over.map(|_|
+             editable <- all(&frp.output.edit_mode,&frp.ide_text_edit_mode).map(|(a,b)| *a || *b);
+             on_mouse_over_and_editable <- all(frp.output.is_hovered,editable).map(|(a,b)| *a && *b);
+             mouse_over_while_editing <- on_mouse_over_and_editable.gate(&on_mouse_over_and_editable);
+             frp.output.source.pointer_style <+ mouse_over_while_editing.map(|_|
                 cursor::Style::new_text_cursor()
              );
-             frp.output.source.pointer_style <+ model.view.events.mouse_out.map(|_|
+             no_mouse_or_edit <- on_mouse_over_and_editable.gate_not(&on_mouse_over_and_editable);
+             frp.output.source.pointer_style <+ no_mouse_or_edit.map(|_|
                 cursor::Style::default()
              );
-
+             frp.output.source.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
+                cursor::Style::new_text_cursor()
+             );
         }
 
         frp.deselect();
@@ -371,8 +387,9 @@ impl View for ProjectName {
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
-            (Press,   "enter",  "commit"        ),
-            (Release, "escape", "cancel_editing"),
-        ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
+            (      Press,            "",             "enter",          "commit"),
+            (    Release,            "",            "escape",  "cancel_editing"),
+            (DoublePress,  "is_hovered", "left-mouse-button",   "start_editing"),
+        ]).iter().map(|(a,b,c,d)|Self::self_shortcut_when(*a,*c,*d,*b)).collect()
     }
 }

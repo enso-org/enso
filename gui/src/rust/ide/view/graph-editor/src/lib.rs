@@ -1824,10 +1824,20 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Project Name Editing ===
     // ============================
 
+
+    // === Start project name edit ===
+    frp::extend! { network
+        edit_mode     <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
+        eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
+    }
+
+
     // === Commit project name edit ===
 
     frp::extend! { network
-        deactivate_breadcrumbs <- any3_(&touch.background.selected,&inputs.edit_mode_on,&inputs.add_node_at_cursor);
+        deactivate_breadcrumbs <- any3_(&touch.background.down,
+                                        &out.node_editing_started,
+                                        &out.node_entered);
         eval_ deactivate_breadcrumbs(model.breadcrumbs.outside_press());
     }
 
