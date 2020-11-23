@@ -11,6 +11,8 @@ import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.loggingservice.printers.StderrPrinterWithColors
+import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
@@ -179,9 +181,20 @@ class BaseServerSpec
   }
 
   val engineToInstall: Option[SemVer] = None
+  val debugLogs: Boolean              = false
 
   override def beforeAll(): Unit = {
     super.beforeAll()
+
+    if (debugLogs) {
+      LoggingServiceManager.setup(
+        LoggerMode.Local(
+          Seq(StderrPrinterWithColors.colorPrinterIfAvailable(true))
+        ),
+        LogLevel.Trace
+      )
+    }
+
     engineToInstall.foreach { version =>
       val os   = OS.operatingSystem.configName
       val ext  = if (OS.isWindows) "zip" else "tar.gz"

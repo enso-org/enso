@@ -7,8 +7,6 @@ import java.util.UUID
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.loggingservice.printers.StderrPrinterWithColors
-import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.FlakySpec
@@ -19,15 +17,6 @@ class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
     with ProjectManagementOps {
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    LoggingServiceManager.setup(
-      LoggerMode.Local(
-        Seq(StderrPrinterWithColors.colorPrinterIfAvailable(true))
-      ),
-      LogLevel.Trace
-    )
-  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()

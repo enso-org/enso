@@ -73,16 +73,11 @@ class LanguageServerProcess(
       runServer(processStartPromise)
     }
 
-    processStartPromise.future.onComplete { r =>
-      println(s"[RW] Promise completed with ${r}")
-    }
-
     (processStartPromise.future, stopped)
   }
 
   private def startingStage: Receive = {
     case ProcessStarted(process) =>
-      println("[RW] Process started, starting booting stage")
       import context.dispatcher
       val cancellable =
         context.system.scheduler.scheduleOnce(bootTimeout, self, TimedOut)
@@ -114,7 +109,6 @@ class LanguageServerProcess(
   ): Receive = {
     case AskServerIfStarted =>
       val socket = Socket(descriptor.networkConfig.interface, rpcPort)
-//      println("[RW] Spawning initial heartbeat")
       context.actorOf(
         HeartbeatSession.initialProps(
           socket,
@@ -125,16 +119,13 @@ class LanguageServerProcess(
         s"initial-heartbeat-${UUID.randomUUID()}"
       )
     case TimedOut =>
-      println("[RW] Initial heartbeat timed out, abandoning")
       self ! Stop
     case HeartbeatReceived =>
-      println("[RW] Received heartbeat, entering running stage")
       context.parent ! LanguageServerProcess.ServerConfirmedFinishedBooting
       bootTimeout.cancel()
       context.become(runningStage(process))
     case ServerUnresponsive =>
       import context.dispatcher
-//      println("[RW] Heartbeat failed, retrying in 100ms")
       context.system.scheduler.scheduleOnce(
         retryDelay,
         self,
@@ -143,10 +134,9 @@ class LanguageServerProcess(
       context.become(bootingStage(process, bootTimeout))
   }
 
-  // TODO restarting, retrying
+  // FIXME [RW] restarting, retrying
   private def runningStage(process: Process): Receive = {
     case Stop =>
-      println("[RW] Requested to shut down the LS")
       requestGracefulTermination(process)
     case Kill => process.destroyForcibly()
     case ServerTerminated(exitCode) =>
@@ -187,10 +177,7 @@ class LanguageServerProcess(
       }
 
       processStarted.success(process)
-      println("[RW] LS started, this thread will wait for exit")
-      val res = process.waitFor()
-      println(s"[RW] LS exited with $res")
-      res
+      process.waitFor()
     }
   }
 

@@ -37,13 +37,11 @@ case class FakeReleaseProvider(
       .map(FakeRelease(_, copyIntoArchiveRoot, lockManagerForAssets))
 
   /** @inheritdoc */
-  override def releaseForTag(tag: String): Try[Release] = {
-    println(releases.map(_.tag))
+  override def releaseForTag(tag: String): Try[Release] =
     releases
       .find(_.tag == tag)
       .toRight(ReleaseProviderException(s"Release $tag does not exist."))
       .toTry
-  }
 
   /** @inheritdoc */
   override def listReleases(): Try[Seq[Release]] = Success(releases)
@@ -132,13 +130,11 @@ case class FakeAsset(
       lock.release()
     }
 
-  private def copyFakeAsset(destination: Path): Unit = {
-    println(s"Copying $source to $destination")
+  private def copyFakeAsset(destination: Path): Unit =
     if (Files.isDirectory(source))
       copyArchive(destination)
     else
       copyNormalFile(destination)
-  }
 
   private def copyArchive(destination: Path): Unit = {
     val directoryName = source.getFileName.toString
