@@ -391,6 +391,33 @@ object SearchProtocol {
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
+  /** The request to know how to import given suggestion.
+    *
+    * @param id the suggestion id
+    */
+  case class Import(id: SuggestionId)
+
+  case class ImportSuggestion(suggestion: Suggestion)
+
+  /** The information about module re-export.
+    *
+    * @param module the module name that exports the given module
+    * @param alias new module name if the module was renamed in the export clause
+    */
+  case class Export(module: String, alias: Option[String])
+
+  /** The result of the import request.
+    *
+    * @param module the definition module of the symbol
+    * @param symbol the resolved symbol
+    * @param exports the list of exports of the symbol
+    */
+  case class ImportResult(
+    module: String,
+    symbol: String,
+    exports: Seq[Export]
+  )
+
   /** The request to invalidate the modules index. */
   case object InvalidateModulesIndex
 
@@ -408,6 +435,9 @@ object SearchProtocol {
 
   /** Signals that the project not found in the root directory. */
   case object ProjectNotFoundError extends SearchFailure
+
+  /** Signals that the requested suggestion was not found. */
+  case object SuggestionNotFoundError extends SearchFailure
 
   /** Signals that the module name can not be resolved for the given file.
     *

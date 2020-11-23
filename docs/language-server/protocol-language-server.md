@@ -3513,3 +3513,14 @@ Signals that the module name can not be resolved for the given file.
   "message" : "Module name can't be resolved for the given file"
 }
 ```
+
+### `SuggestionNotFoundError`
+
+Signals that the module name can not be resolved for the given file.
+
+```typescript
+"error" : {
+  "code" : 7004,
+  "message" : "Requested suggestion was not found"
+}
+```

@@ -78,9 +78,7 @@ class Compiler(val context: Context) {
     }
 
     def prettyModule(module: Module): String =
-      s"${module.getName} re-exports=[${new ModuleDiff(this)
-        .reexports(module)
-        .mkString(",")}] defines=[${ModuleDiff.defines(module).mkString(",")}]"
+      s"${module.getName} re-exports=[${new ModuleDiff(this).reexports(module).mkString(",")}]"
     println("REQUIRED_MODULES")
     println(requiredModules.reverse.map(prettyModule).mkString("\n\n"))
     println("REQUIRED_MODULES END")

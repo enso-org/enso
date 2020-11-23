@@ -45,6 +45,12 @@ object ModuleDiff {
         .map(n => QualifiedName(parts.init, n.name))
         .getOrElse(QualifiedName(parts.init, parts.last))
     }
+    val exp1 = module.getIr.exports.map { export =>
+      s"from ${export.name.name} as ${export.rename.map(
+        _.name
+      )} import (all=${export.isAll}) ${export.onlyNames.map(_.map(_.name))}"
+    }
+    println(exp1.mkString("\n"))
     val exportedModules = modules.filter { module =>
       exported.contains(module.getName)
     }
