@@ -154,13 +154,14 @@ Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Te
 Text.equals_ignore_case : Text -> Boolean
 Text.equals_ignore_case that = Text_Utils.equals_ignore_case [this, that]
 
-## Checks if `this` is lexicographically before `that`.
-Text.< : Text -> Boolean
-Text.< that = Text_Utils.lt [this, that]
+## Compare two texts to discover their ordering.
 
-## Checks if `this` is lexicographically after `that`.
-Text.> : Text -> Boolean
-Text.> that = Text_Utils.lt [that, this]
+   > Example
+     Checking how "a" orders in relation to "b".
+         "a".compare_to "b"
+Text.compare_to : Text -> Ordering
+Text.compare_to that = if this == that then Ordering.Equal else
+    if Text_Utils.lt [this, that] then Ordering.Less else Ordering.Greater
 
 ## Check if `this` is empty.
 Text.is_empty : Boolean

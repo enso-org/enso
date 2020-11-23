@@ -15,6 +15,7 @@ import Tests.Data.Map_Spec
 import Tests.Data.Noise.Generator_Spec
 import Tests.Data.Noise_Spec
 import Tests.Data.Numbers_Spec
+import Tests.Data.Ordering_Spec
 import Tests.Data.Range_Spec
 import Tests.Data.Text_Spec
 import Tests.Data.Time.Spec as Time_Spec
@@ -45,6 +46,7 @@ main = Test.Suite.runMain <|
     Names_Spec.spec
     Noise_Spec.spec
     Numbers_Spec.spec
+    Ordering_Spec.spec
     Process_Spec.spec
     Range_Spec.spec
     Request_Spec.spec
