@@ -11,6 +11,7 @@ import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionF
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProcess.{
   Kill,
   ServerTerminated,
+  ServerThreadFailed,
   Stop
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
@@ -44,8 +45,6 @@ class LanguageServerProcess(
     self ! Boot
   }
 
-  import context.dispatcher
-
   override def receive: Receive = initializationStage
 
   /** Sent by the Actor itself to start the boot process.
@@ -58,24 +57,45 @@ class LanguageServerProcess(
 
   private def initializationStage: Receive = {
     case Boot =>
-      val processStartPromise = Promise[Process]()
-      val stopped = Future {
-        runServer(processStartPromise)
-      }.map(ServerTerminated)
-
-      processStartPromise.future.map(ProcessStarted) pipeTo self
-      stopped pipeTo self
+      import context.dispatcher
+      val (process, stopped) = launchProcessInBackground()
       context.become(startingStage)
+      process.map(ProcessStarted) pipeTo self
+      stopped.map(ServerTerminated).recover(ServerThreadFailed(_)) pipeTo self
     case _ => stash()
+  }
+
+  private def launchProcessInBackground(): (Future[Process], Future[Int]) = {
+    // TODO [RW] what execution context to use for blocking on the launched process
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val processStartPromise = Promise[Process]()
+    val stopped = Future {
+      runServer(processStartPromise)
+    }
+
+    processStartPromise.future.onComplete { r =>
+      println(s"[RW] Promise completed with ${r}")
+    }
+
+    (processStartPromise.future, stopped)
   }
 
   private def startingStage: Receive = {
     case ProcessStarted(process) =>
-      self ! AskServerIfStarted
+      println("[RW] Process started, starting booting stage")
+      import context.dispatcher
       val cancellable =
         context.system.scheduler.scheduleOnce(bootTimeout, self, TimedOut)
       context.become(bootingStage(process, cancellable))
-    case _ => stash()
+      unstashAll()
+      self ! AskServerIfStarted
+    case ServerThreadFailed(error) => handleFatalError(error)
+    case _                         => stash()
+  }
+
+  private def handleFatalError(error: Throwable): Unit = {
+    context.parent ! ServerThreadFailed(error)
+    context.stop(self)
   }
 
   private def bootingStage(
@@ -94,6 +114,7 @@ class LanguageServerProcess(
   ): Receive = {
     case AskServerIfStarted =>
       val socket = Socket(descriptor.networkConfig.interface, rpcPort)
+//      println("[RW] Spawning initial heartbeat")
       context.actorOf(
         HeartbeatSession.initialProps(
           socket,
@@ -104,12 +125,16 @@ class LanguageServerProcess(
         s"initial-heartbeat-${UUID.randomUUID()}"
       )
     case TimedOut =>
+      println("[RW] Initial heartbeat timed out, abandoning")
       self ! Stop
     case HeartbeatReceived =>
+      println("[RW] Received heartbeat, entering running stage")
       context.parent ! LanguageServerProcess.ServerConfirmedFinishedBooting
       bootTimeout.cancel()
       context.become(runningStage(process))
     case ServerUnresponsive =>
+      import context.dispatcher
+//      println("[RW] Heartbeat failed, retrying in 100ms")
       context.system.scheduler.scheduleOnce(
         retryDelay,
         self,
@@ -120,11 +145,14 @@ class LanguageServerProcess(
 
   // TODO restarting, retrying
   private def runningStage(process: Process): Receive = {
-    case Stop => requestGracefulTermination(process)
+    case Stop =>
+      println("[RW] Requested to shut down the LS")
+      requestGracefulTermination(process)
     case Kill => process.destroyForcibly()
     case ServerTerminated(exitCode) =>
       context.parent ! ServerTerminated(exitCode)
       context.stop(self)
+    case ServerThreadFailed(error) => handleFatalError(error)
   }
 
   private def runServer(processStarted: Promise[Process]): Int = {
@@ -159,7 +187,10 @@ class LanguageServerProcess(
       }
 
       processStarted.success(process)
-      process.waitFor()
+      println("[RW] LS started, this thread will wait for exit")
+      val res = process.waitFor()
+      println(s"[RW] LS exited with $res")
+      res
     }
   }
 
@@ -191,6 +222,8 @@ object LanguageServerProcess {
     * request or on its own, e.g. due to a signal or crash).
     */
   case class ServerTerminated(exitCode: Int)
+
+  case class ServerThreadFailed(throwable: Throwable)
 
   case object ServerConfirmedFinishedBooting
 

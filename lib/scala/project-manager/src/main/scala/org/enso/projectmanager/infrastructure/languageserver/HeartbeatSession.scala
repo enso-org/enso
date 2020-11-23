@@ -40,7 +40,8 @@ class HeartbeatSession(
   connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler,
   method: String,
-  sendConfirmations: Boolean
+  sendConfirmations: Boolean,
+  quietErrors: Boolean
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -73,7 +74,7 @@ class HeartbeatSession(
       context.become(pongStage(cancellable))
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during connecting to websocket $socket")
+      logError(th, s"An error occurred during connecting to websocket $socket")
       context.parent ! ServerUnresponsive
       stop()
 
@@ -88,7 +89,7 @@ class HeartbeatSession(
 
       maybeJson match {
         case Left(error) =>
-          log.error(error, "An error occurred during parsing pong reply")
+          logError(error, "An error occurred during parsing pong reply")
 
         case Right(id) =>
           if (id == requestId.toString) {
@@ -121,7 +122,7 @@ class HeartbeatSession(
       context.stop(self)
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during waiting for Pong message")
+      logError(th, s"An error occurred during waiting for Pong message")
       context.parent ! ServerUnresponsive
       cancellable.cancel()
       connection.disconnect()
@@ -138,12 +139,12 @@ class HeartbeatSession(
       cancellable.cancel()
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during closing web socket")
+      logError(th, s"An error occurred during closing web socket")
       context.stop(self)
       cancellable.cancel()
 
     case SocketClosureTimeout =>
-      log.error(s"Socket closure timed out")
+      logError(s"Socket closure timed out")
       context.stop(self)
 
     case GracefulStop => // ignoring it, because the actor is already closing
@@ -154,6 +155,22 @@ class HeartbeatSession(
     val closureTimeout =
       scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
     context.become(socketClosureStage(closureTimeout))
+  }
+
+  private def logError(throwable: => Throwable, message: String): Unit = {
+    if (quietErrors) {
+      log.debug(s"$message ($throwable)")
+    } else {
+      log.error(throwable, message)
+    }
+  }
+
+  private def logError(message: String): Unit = {
+    if (quietErrors) {
+      log.debug(message)
+    } else {
+      log.error(message)
+    }
   }
 
 }
@@ -190,7 +207,8 @@ object HeartbeatSession {
         connectionFactory,
         scheduler,
         "heartbeat/ping",
-        false
+        sendConfirmations = false,
+        quietErrors       = false
       )
     )
 
@@ -216,7 +234,8 @@ object HeartbeatSession {
         connectionFactory,
         scheduler,
         "heartbeat/init",
-        true
+        sendConfirmations = true,
+        quietErrors       = true
       )
     )
 

@@ -49,7 +49,7 @@ class LanguageServerBootLoader(
         s"binary:${descriptor.networkConfig.interface}:$binaryPort]"
       )
       self ! Boot
-      context.become(booting(jsonRpcPort, binaryPort, retry, context.parent))
+      context.become(booting(jsonRpcPort, binaryPort, retry))
 
     case GracefulStop =>
       context.stop(self)
@@ -58,8 +58,7 @@ class LanguageServerBootLoader(
   private def booting(
     rpcPort: Int,
     dataPort: Int,
-    retryCount: Int,
-    replyTo: ActorRef
+    retryCount: Int
   ): Receive = {
     case Boot =>
       log.debug("Booting a language server")
@@ -75,22 +74,19 @@ class LanguageServerBootLoader(
       )
 
     case LanguageServerProcess.ServerTerminated(exitCode) =>
-      val message =
+      handleBootFailure(
+        retryCount,
         s"Language server terminated with exit code $exitCode before " +
-        s"finishing booting."
-      log.warning(message)
+        s"finishing booting.",
+        None
+      )
 
-      if (retryCount < config.numberOfRetries) {
-        context.system.scheduler
-          .scheduleOnce(config.delayBetweenRetry, self, FindFreeSocket)
-        context.become(findingSocket(retryCount + 1))
-      } else {
-        log.error(
-          s"Tried $retryCount times to boot Language Server. Giving up."
-        )
-        replyTo ! ServerBootFailed(new RuntimeException(message))
-        context.stop(self)
-      }
+    case LanguageServerProcess.ServerThreadFailed(throwable) =>
+      handleBootFailure(
+        retryCount,
+        s"Language server thread failed with $throwable.",
+        Some(throwable)
+      )
 
     case LanguageServerProcess.ServerConfirmedFinishedBooting =>
       val connectionInfo = LanguageServerConnectionInfo(
@@ -100,21 +96,44 @@ class LanguageServerBootLoader(
       )
       log.info(s"Language server booted [$connectionInfo].")
       // TODO who is the manager?
-      replyTo ! ServerBooted(connectionInfo, sender())
+      context.parent ! ServerBooted(connectionInfo, sender())
       context.become(running)
 
     case GracefulStop =>
       context.children.foreach(_ ! LanguageServerProcess.Stop)
   }
 
+  private def handleBootFailure(
+    retryCount: Int,
+    message: String,
+    throwable: Option[Throwable]
+  ): Unit = {
+    log.warning(message)
+
+    if (retryCount < config.numberOfRetries) {
+      context.system.scheduler
+        .scheduleOnce(config.delayBetweenRetry, self, FindFreeSocket)
+      context.become(findingSocket(retryCount + 1))
+    } else {
+      log.error(
+        s"Tried $retryCount times to boot Language Server. Giving up."
+      )
+      context.parent ! ServerBootFailed(
+        throwable.getOrElse(new RuntimeException(message))
+      )
+      context.stop(self)
+    }
+  }
+
   /** After successfull boot, we cannot stop as it would stop our child process,
     * so we just wait for it to terminate, acting as a proxy.
     */
   private def running: Receive = {
-    case LanguageServerProcess.ServerTerminated(exitCode) =>
+    case msg @ LanguageServerProcess.ServerTerminated(exitCode) =>
       log.debug(
         s"Language Server process has terminated with exit code $exitCode"
       )
+      context.parent ! msg
       context.stop(self)
 
     case GracefulStop =>

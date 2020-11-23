@@ -173,7 +173,7 @@ class LanguageServerController(
       removeClient(config, serverProcess, clients, clientId, Some(sender()))
 
     case ShutDownServer =>
-      shutDownServer(serverProcess, None)
+      shutDownServer(None)
 
     case ClientDisconnected(clientId) =>
       removeClient(config, serverProcess, clients, clientId, None)
@@ -208,20 +208,16 @@ class LanguageServerController(
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
-      shutDownServer(serverProcess, maybeRequester)
+      shutDownServer(maybeRequester)
     } else {
       sender() ! CannotDisconnectOtherClients
       context.become(supervising(config, serverProcess, updatedClients))
     }
   }
 
-  private def shutDownServer(
-    serverProcess: ActorRef,
-    maybeRequester: Option[ActorRef]
-  ): Unit = {
+  private def shutDownServer(maybeRequester: Option[ActorRef]): Unit = {
     log.debug(s"Shutting down a language server for project ${project.id}")
     context.children.foreach(_ ! GracefulStop)
-    serverProcess ! LanguageServerProcess.Stop
     val cancellable =
       context.system.scheduler
         .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
