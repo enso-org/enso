@@ -38,7 +38,7 @@ jobs:
           node-version: '14.15.0'
 
       - name: Build
-        run: node ./run dist
+        run: node ./run dist --skip-version-validation
 
       - name: Upload Artifacts (Ubuntu, AppImage)
         uses: actions/upload-artifact@v1
