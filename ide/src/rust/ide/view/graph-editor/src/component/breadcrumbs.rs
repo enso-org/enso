@@ -87,6 +87,9 @@ ensogl::define_endpoints! {
         /// Signalizes we want to cancel project name renaming, bringing back the project name before
         /// editing.
         cancel_project_name_editing (),
+        /// Signalizes we want to start editing the project name. Adds a cursor to the text edit
+        /// field at the mouse position.
+        start_project_name_editing (),
         /// Sets the project name.
         project_name                (String),
         /// Select the breadcrumb by its index.
@@ -98,6 +101,8 @@ ensogl::define_endpoints! {
         debug_pop_breadcrumb        (),
         /// Selects the breadcrumb by its index without sending signals to the controller.
         debug_select_breadcrumb     (usize),
+        /// Indicates the IDE is in text edit mode.
+        ide_text_edit_mode          (bool)
     }
     Output {
         /// Signalizes when a new breadcrumb is pushed.
@@ -113,6 +118,10 @@ ensogl::define_endpoints! {
         /// Indicates the pointer style that should be shown based on the interactions with the
         /// breadcrumb.
         pointer_style      (cursor::Style),
+        /// Indicates whether the cursor hovers over the project name.
+        project_name_hovered (bool),
+        /// Indicates whether the project name was clicked.
+        project_mouse_down (),
     }
 }
 
@@ -402,6 +411,11 @@ impl Breadcrumbs {
             eval frp.input.project_name((name) model.project_name.set_name.emit(name));
             frp.source.project_name <+ model.project_name.output.name;
 
+            eval_ frp.input.start_project_name_editing( model.project_name.start_editing.emit(()) );
+            eval frp.ide_text_edit_mode((value) model.project_name.ide_text_edit_mode.emit(value) );
+
+            frp.source.project_name_hovered <+ model.project_name.is_hovered;
+            frp.source.project_mouse_down   <+ model.project_name.mouse_down;
 
             // === GUI Update ===
 
