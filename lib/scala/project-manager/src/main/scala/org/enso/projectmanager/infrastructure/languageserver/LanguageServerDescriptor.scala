@@ -18,6 +18,8 @@ import org.enso.runtimeversionmanager.runner.JVMSettings
   *                                  versions
   * @param engineVersion version of the langauge server's engine to use
   * @param jvmSettings settings to use for the JVM that will host the engine
+  * @param discardOutput specifies if the process output should be discarded or
+  *                      printed to parent's streams
   */
 case class LanguageServerDescriptor(
   name: String,
@@ -26,5 +28,6 @@ case class LanguageServerDescriptor(
   networkConfig: NetworkConfig,
   distributionConfiguration: DistributionConfiguration,
   engineVersion: SemVer,
-  jvmSettings: JVMSettings
+  jvmSettings: JVMSettings,
+  discardOutput: Boolean
 )

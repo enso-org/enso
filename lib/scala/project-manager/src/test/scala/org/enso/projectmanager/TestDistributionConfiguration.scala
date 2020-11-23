@@ -45,7 +45,8 @@ import scala.util.{Failure, Success, Try}
 class TestDistributionConfiguration(
   distributionRoot: Path,
   override val engineReleaseProvider: ReleaseProvider[EngineRelease],
-  runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
+  runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
+  discardChildOutput: Boolean
 ) extends DistributionConfiguration
     with FakeEnvironment
     with HasTestDirectory {
@@ -89,10 +90,15 @@ class TestDistributionConfiguration(
       jvmOptions          = Seq()
     )
   }
+
+  override def shouldDiscardChildOutput: Boolean = discardChildOutput
 }
 
 object TestDistributionConfiguration {
-  def withoutReleases(distributionRoot: Path): TestDistributionConfiguration = {
+  def withoutReleases(
+    distributionRoot: Path,
+    discardChildOutput: Boolean
+  ): TestDistributionConfiguration = {
     val noReleaseProvider = new SimpleReleaseProvider {
       override def releaseForTag(tag: String): Try[Release] = Failure(
         new IllegalStateException(
@@ -106,18 +112,21 @@ object TestDistributionConfiguration {
     new TestDistributionConfiguration(
       distributionRoot       = distributionRoot,
       engineReleaseProvider  = new EngineReleaseProvider(noReleaseProvider),
-      runtimeReleaseProvider = new GraalCEReleaseProvider(noReleaseProvider)
+      runtimeReleaseProvider = new GraalCEReleaseProvider(noReleaseProvider),
+      discardChildOutput
     )
   }
 
   def apply(
     distributionRoot: Path,
     engineReleaseProvider: ReleaseProvider[EngineRelease],
-    runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
+    runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
+    discardChildOutput: Boolean
   ): TestDistributionConfiguration =
     new TestDistributionConfiguration(
       distributionRoot,
       engineReleaseProvider,
-      runtimeReleaseProvider
+      runtimeReleaseProvider,
+      discardChildOutput
     )
 }

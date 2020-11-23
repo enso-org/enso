@@ -67,4 +67,7 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
 
   /** @inheritdoc */
   override def defaultJVMSettings: JVMSettings = JVMSettings.default
+
+  /** @inheritdoc */
+  override def shouldDiscardChildOutput: Boolean = false
 }

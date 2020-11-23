@@ -71,7 +71,8 @@ class LanguageServerController(
       networkConfig             = networkConfig,
       distributionConfiguration = distributionConfiguration,
       engineVersion             = engineVersion,
-      jvmSettings               = distributionConfiguration.defaultJVMSettings
+      jvmSettings               = distributionConfiguration.defaultJVMSettings,
+      discardOutput             = distributionConfiguration.shouldDiscardChildOutput
     )
 
   override def supervisorStrategy: SupervisorStrategy =

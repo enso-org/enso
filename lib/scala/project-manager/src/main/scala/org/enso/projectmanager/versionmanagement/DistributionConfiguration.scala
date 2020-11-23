@@ -50,4 +50,13 @@ trait DistributionConfiguration {
     * This is exposed mostly for ease of overriding the settings in tests.
     */
   def defaultJVMSettings: JVMSettings
+
+  /** Specifies if output of the child Language Server process should be ignored
+    * or piped to parent's streams.
+    *
+    * This option is used to easily turn off logging in tests.
+    *
+    * TODO [RW] It will likely become obsolete once #1151 (or #1144) is done.
+    */
+  def shouldDiscardChildOutput: Boolean
 }

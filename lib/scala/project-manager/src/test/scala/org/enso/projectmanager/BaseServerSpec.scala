@@ -114,7 +114,8 @@ class BaseServerSpec
     TestDistributionConfiguration(
       distributionRoot       = testDistributionRoot.toPath,
       engineReleaseProvider  = FakeReleases.engineReleaseProvider,
-      runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider
+      runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider,
+      discardChildOutput     = !debugChildLogs
     )
 
   lazy val languageServerRegistry =
@@ -182,6 +183,7 @@ class BaseServerSpec
 
   val engineToInstall: Option[SemVer] = None
   val debugLogs: Boolean              = false
+  val debugChildLogs: Boolean         = false
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -206,7 +208,6 @@ class BaseServerSpec
         .resolve(s"enso-$version")
         .resolve("component")
       val root = Path.of("../../../").toAbsolutePath.normalize
-      println(s"$path --> $root")
       FileUtils.copyFile(
         root.resolve("runner.jar").toFile,
         path.resolve("runner.jar").toFile

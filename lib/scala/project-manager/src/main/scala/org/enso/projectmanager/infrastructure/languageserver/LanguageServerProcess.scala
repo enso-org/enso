@@ -172,7 +172,13 @@ class LanguageServerProcess(
       val process = {
         val pb = command.builder()
         pb.inheritIO()
+
         pb.redirectInput(Redirect.PIPE)
+        if (descriptor.discardOutput) {
+          pb.redirectError(Redirect.DISCARD)
+          pb.redirectOutput(Redirect.DISCARD)
+        }
+
         pb.start()
       }
 
