@@ -115,4 +115,9 @@ spec = describe "Vectors" <|
         non_empty_vec.rest . should_equal [2, 3, 4, 5]
         singleton_vec.rest . should_equal []
         empty_vec.rest . should_equal Nothing
+    # it "should be able to be sorted" <|
+        # vec = [14, 4, 2, 3, 141, 0, -1]
+        # vec.sort
+    # it "should have a stable sort" <|
+        # Test.fail "nope"
 
