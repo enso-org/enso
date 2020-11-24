@@ -1,0 +1,23 @@
+from Base import all
+
+## Types representing the ordering of values.
+
+   These are intended to be returned from the `compare_to` function, that has a
+   type as follows for a type `A`: `A.compare_to : A -> Ordering`.
+
+   The result should be returned in terms of how `this` orders in comparison to
+   `that`. So, if `this` is greater than `that`, you should return `Greater.`
+type Ordering
+    ## An ordering where a compared value is less than another.
+    type Less
+    ## An ordering where a compared value is equal to another.
+    type Equal
+    ## An ordering where a compared value is greater than another.
+    type Greater
+
+## A descriptor for a sort ordering.
+type Sort_Order
+    ## Elements should be sorted in ascending order.
+    type Ascending
+    ## Elements should be sorted in descending order.
+    type Descending

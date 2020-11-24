@@ -25,6 +25,26 @@ Any.== that = if Meta.is_same_object this that then True else
            Therefore, there is no more cases to handle in this method.
         _ -> False
 
+## Checks if `this` is greater than `that`.
+
+   To have `>` defined, a type must define `compare_to`, returning an Ordering.
+
+   > Example
+     Compare two integers.
+         1 > 10 == False
+Any.> : Any -> Boolean
+Any.> that = this.compare_to that == Ordering.Greater
+
+## Checks if `this` is less than `that`.
+
+   To have `<` defined, a type must define `compare_to`, returning an Ordering.
+
+   > Example
+     Compare two integers.
+         1 < 10 == True
+Any.< : Any -> Boolean
+Any.< that = this.compare_to that == Ordering.Less
+
 ## Checks if the type is an instance of `Nothing`.
 
    > Example
