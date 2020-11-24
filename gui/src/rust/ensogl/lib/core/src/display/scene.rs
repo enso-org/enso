@@ -250,13 +250,13 @@ mod target_tests {
     /// Asserts that decoding encoded the given values returns the correct initial values again.
     /// That means that `decode(encode(value1,value2)) == (value1,value2)`.
     fn assert_valid_roundtrip(value1:u32, value2:u32) {
-        let pack   = Target::encode(value1,value2);
+        let pack   = PointerTarget::encode(value1,value2);
         match pack {
             DecodingResult::Truncated {..} => {
                panic!("Values got truncated. This is an invalid test case: {}, {}", value1, value1)
             },
             DecodingResult::Ok(pack0,pack1,pack2) => {
-                let unpack = Target::decode(pack0.into(),pack1.into(),pack2.into());
+                let unpack = PointerTarget::decode(pack0.into(),pack1.into(),pack2.into());
                 assert_eq!(unpack.0,value1);
                 assert_eq!(unpack.1,value2);
             },
@@ -274,22 +274,22 @@ mod target_tests {
 
     #[test]
     fn test_encoding() {
-        let pack = Target::encode(0,0);
+        let pack = PointerTarget::encode(0,0);
         assert_eq!(pack,DecodingResult::Ok(0,0,0));
 
-        let pack = Target::encode(3,7);
+        let pack = PointerTarget::encode(3,7);
         assert_eq!(pack,DecodingResult::Ok(0,48,7));
 
-        let pack = Target::encode(3,256);
+        let pack = PointerTarget::encode(3,256);
         assert_eq!(pack,DecodingResult::Ok(0,49,0));
 
-        let pack = Target::encode(255,356);
+        let pack = PointerTarget::encode(255,356);
         assert_eq!(pack,DecodingResult::Ok(15,241,100));
 
-        let pack = Target::encode(256,356);
+        let pack = PointerTarget::encode(256,356);
         assert_eq!(pack,DecodingResult::Ok(16,1,100));
 
-        let pack = Target::encode(31256,0);
+        let pack = PointerTarget::encode(31256,0);
         assert_eq!(pack,DecodingResult::Truncated(161,128,0));
     }
 }
