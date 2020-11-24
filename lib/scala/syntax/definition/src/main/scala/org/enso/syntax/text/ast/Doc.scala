@@ -186,9 +186,9 @@ object Doc {
         val btn      = HTML.button(btnAction)("Show")
         val copyBtn  = HTML.button(htmlIdBtn)(btnStyle)("Copy")
         val script = HTML.script {
-          s"""document.getElementByID($uniqueIDBtn)
+          s"""document.getElementByID('$uniqueIDBtn')
              |.addEventListener('click', function(){
-             |    copyCode($uniqueIDCode)
+             |    copyCode('$uniqueIDCode')
              |}""".stripMargin
         }
         if (isInGui) {
