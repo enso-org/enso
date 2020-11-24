@@ -5,6 +5,7 @@ import Base.Data.List
 import Base.Data.Map
 import Base.Data.Noise
 import Base.Data.Number.Extensions
+import Base.Data.Ordering
 import Base.Data.Pair
 import Base.Data.Range
 import Base.Data.Text.Extensions
@@ -21,6 +22,7 @@ from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean
 export Base.Data.Interval
 export Base.Data.Json
 export Base.Data.Map
+export Base.Data.Ordering
 export Base.Data.Vector
 export Base.Math
 export Base.Meta
