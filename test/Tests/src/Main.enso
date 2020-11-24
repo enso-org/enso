@@ -21,7 +21,6 @@ import Tests.Data.Text_Spec
 import Tests.Data.Time.Spec as Time_Spec
 import Tests.Data.Time.Locale_Spec
 import Tests.Data.Vector_Spec
-import Tests.Data.Vector.Sort_Spec as Vector_Sort_Spec
 import Tests.Network.Http.Header_Spec as Http_Header_Spec
 import Tests.Network.Http.Request_Spec as Http_Request_Spec
 import Tests.Network.Http_Spec
@@ -55,5 +54,4 @@ main = Test.Suite.runMain <|
     Text_Spec.spec
     Time_Spec.spec
     Uri_Spec.spec
-    Vector_Sort_Spec.spec
     Vector_Spec.spec

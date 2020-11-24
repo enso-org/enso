@@ -46,6 +46,49 @@ spec =
         it "should support integral hexadecimal literals" <|
             lit = 16_6D
             lit . should_equal 109
+        it "should support bitwise and" <|
+            left  = 2_01101101
+            right = 2_11000100
+            big_left = 16_17ffffffffffffffa
+            big_right = 16_17ffffffffffffffc
+            left.bit_and right . should_equal 2_01000100
+            left.bit_and big_right . should_equal 2_01101100
+            big_left.bit_and right . should_equal 2_11000000
+            big_left.bit_and big_right . should_equal 16_17ffffffffffffff8
+        it "should support bitwise or" <|
+            left  = 2_01101101
+            right = 2_11000100
+            big_left = 16_17ffffffffffffffa
+            big_right = 16_17ffffffffffffffc
+            left.bit_or right . should_equal 2_11101101
+            left.bit_or big_right . should_equal 16_17ffffffffffffffd
+            big_left.bit_or right . should_equal 16_17ffffffffffffffe
+            big_left.bit_or right . should_equal 16_17ffffffffffffffe
+        it "should support bitwise exclusive or" <|
+            left  = 2_01101101
+            right = 2_11000100
+            big_left = 16_17ffffffffffffffa
+            big_right = 16_17ffffffffffffffc
+            left.bit_xor right . should_equal 2_10101001
+            left.bit_xor big_right . should_equal 16_17fffffffffffff91
+            big_left.bit_xor right . should_equal 16_17fffffffffffff3e
+            big_left.bit_xor big_right . should_equal 2_00000110
+        it "should support bitwise negation" <|
+            bits  = 2_01101101
+            big_bits = 16_17ffffffffffffffa
+            bits.bit_not . should_equal -2_01101110
+            bits.bit_not.bit_not . should_equal bits
+            big_bits.bit_not . should_equal -16_17ffffffffffffffb
+            big_bits.bit_not.bit_not . should_equal big_bits
+        # it "should support left bit shifts" <|
+            # bits = 2_01101101
+            # big_bits = 16_17ffffffffffffffc
+            # bits.bit_shift_l 2 . should_equal 2_0110110100
+            # bits.bit_shift_l 64 . should_equal 0
+        # it "should support right bit shifts, preserving sign" <|
+            # bits  = -1632
+            # expected = -408
+            # bits.bit_shift_r 2 . should_equal expected
     describe "Decimals" <|
         it "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
@@ -87,33 +130,4 @@ spec =
             1.ceil . should_equal 1
             almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
-    describe "Small Integers" <|
-        it "should support bitwise and" <|
-            left  = 2_01101101
-            right = 2_11000100
-            left.bit_and right . should_equal 2_01000100
-        it "should support bitwise or" <|
-            left  = 2_01101101
-            right = 2_11000100
-            left.bit_or right . should_equal 2_11101101
-        it "should support bitwise exclusive or" <|
-            left  = 2_01101101
-            right = 2_11000100
-            left.bit_xor right . should_equal 2_10101001
-        it "should support bitwise negation" <|
-            bits  = 2_01101101
-            expected = -110
-            bits.bit_not . should_equal expected
-        it "should support left bit shifts" <|
-            bits  = 2_01101101
-            expected = 2_0110110100
-            bits.bit_shift_l 2 . should_equal expected
-        it "should support right bit shifts, preserving sign" <|
-            bits  = -1632
-            expected = -408
-            bits.bit_shift_r 2 . should_equal expected
-        it "should support right bit shifts, zero-filling" <|
-            bits  = 2_01101101
-            expected = 2_00011011
-            bits.bit_shift_r 2 zero_fill=True . should_equal expected
 

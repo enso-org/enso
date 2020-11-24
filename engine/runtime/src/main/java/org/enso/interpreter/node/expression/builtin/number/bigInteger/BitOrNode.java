@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "bit_or", description = "Bitwise or.")
+@BuiltinMethod(type = "Big_Integer", name = "bit_or", description = "Bitwise or.")
 public abstract class BitOrNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
@@ -21,13 +21,13 @@ public abstract class BitOrNode extends Node {
   }
 
   @Specialization
-  long doLong(long _this, long that) {
-    return _this | that;
+  Object doLong(EnsoBigInteger _this, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitOr(_this.getValue(), that));
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitOr(_this, that.getValue()));
+  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitOr(_this.getValue(), that.getValue()));
   }
 
   @Specialization

@@ -10,15 +10,15 @@ import org.enso.interpreter.runtime.error.TypeError;
 
 @BuiltinMethod(
     type = "Small_Integer",
-    name = "bit_shift_r_sign_fill",
-    description = "Bitwise right-shift, preserving sign.")
-public abstract class BitShiftRightSignFillNode extends Node {
+    name = "bit_shift_r",
+    description = "Bitwise right-shift.")
+public abstract class BitShiftRightNode extends Node {
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   abstract Object execute(Object _this, Object that);
 
-  static BitShiftRightSignFillNode build() {
-    return BitShiftRightSignFillNodeGen.create();
+  static BitShiftRightNode build() {
+    return BitShiftRightNodeGen.create();
   }
 
   @Specialization
@@ -29,12 +29,12 @@ public abstract class BitShiftRightSignFillNode extends Node {
   @Specialization
   Object doAtomThis(Atom _this, Object that) {
     throw new TypeError(
-        "Unexpected type provided for `this` in Integer.bit_shift_r_sign_fill", this);
+        "Unexpected type provided for `this` in Integer.bit_shift_r", this);
   }
 
   @Fallback
   Object doOther(Object _this, Object that) {
     throw new TypeError(
-        "Unexpected types provided for that in Integer.bit_shift_r_sign_fill", this);
+        "Unexpected types provided for that in Integer.bit_shift_r", this);
   }
 }

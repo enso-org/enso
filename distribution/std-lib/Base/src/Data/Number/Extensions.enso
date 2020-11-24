@@ -107,9 +107,3 @@ Number.compare_to : Number -> Ordering
 Number.compare_to that = if this == that then Ordering.Equal else
     if this > that then Ordering.Greater else Ordering.Less
 
-## Right bit shift on small integers.
-Small_Integer.bit_shift_r : Small_Integer -> Boolean -> Small_Integer
-Small_Integer.bit_shift_r shift zero_fill=False =
-    if zero_fill then this.bit_shift_r_zero_fill shift else
-        this.bit_shift_r_sign_fill shift
-

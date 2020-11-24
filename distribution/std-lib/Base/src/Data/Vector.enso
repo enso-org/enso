@@ -407,7 +407,10 @@ type Vector
     rest : Vector | Nothing
     rest = this.tail
 
-    ## Sort the Vector.
+    ## PRIVATE
+       Doesn't work yet.
+
+       Sort the Vector.
 
        Arguments:
        - `on`: A projection from the element type to the value of that element
