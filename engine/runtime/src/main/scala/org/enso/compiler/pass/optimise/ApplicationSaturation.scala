@@ -7,8 +7,10 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.optimise.config.{IfThen, IfThenElse}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
@@ -178,13 +180,17 @@ case object ApplicationSaturation extends IRPass {
     * @param knownFunctions the mapping of known functions
     */
   sealed case class Configuration(
-    knownFunctions: KnownFunctionsMapping = Map()
+    knownFunctions: KnownFunctionsMapping = Map(
+      "if_then_else" -> FunctionSpec(3, IfThenElse.build),
+      "if_then"      -> FunctionSpec(2, IfThen.build)
+    )
   ) extends IRPass.Configuration {
     override var shouldWriteToContext: Boolean = false
   }
 
   /** A function for constructing the optimised node for a function. */
-  type CodegenHelper = List[CallArgument] => RuntimeExpression
+  type CodegenHelper =
+    ModuleScope => LocalScope => List[CallArgument] => RuntimeExpression
 
   /** The configuration for this pass.
     *

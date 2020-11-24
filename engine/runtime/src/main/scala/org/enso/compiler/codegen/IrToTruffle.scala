@@ -35,7 +35,7 @@ import org.enso.interpreter.node.callable.{
   InvokeCallableNode,
   SequenceLiteralNode
 }
-import org.enso.interpreter.node.controlflow._
+import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
 import org.enso.interpreter.node.expression.constant.{
   ConstantObjectNode,
@@ -935,18 +935,19 @@ class IrToTruffle(
                   )
               }
             try {
-              val longVal = java.lang.Long.parseLong(value,baseNum)
+              val longVal = java.lang.Long.parseLong(value, baseNum)
               IntegerLiteralNode.build(longVal)
             } catch {
-              case _: NumberFormatException => try {
-                val bigInt = new BigInteger(value, baseNum)
-                BigIntegerLiteralNode.build(bigInt)
-              } catch {
-                case _: NumberFormatException =>
-                  throw new CompilerError(
-                    s"Invalid number base $base seen during codegen."
-                  )
-              }
+              case _: NumberFormatException =>
+                try {
+                  val bigInt = new BigInteger(value, baseNum)
+                  BigIntegerLiteralNode.build(bigInt)
+                } catch {
+                  case _: NumberFormatException =>
+                    throw new CompilerError(
+                      s"Invalid number base $base seen during codegen."
+                    )
+                }
             }
           } else {
             value.toLongOption
@@ -1140,7 +1141,7 @@ class IrToTruffle(
             case Some(
                   ApplicationSaturation.CallSaturation.Exact(createOptimised)
                 ) =>
-              createOptimised(callArgs.toList)
+              createOptimised(moduleScope)(scope)(callArgs.toList)
             case _ =>
               ApplicationNode.build(
                 this.run(fn),

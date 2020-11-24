@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.controlflow;
+package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;

@@ -2,7 +2,8 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.callable.ApplicationNode
-import org.enso.interpreter.node.controlflow.CaseNode
+import org.enso.interpreter.node.controlflow.IfThenElseNode
+import org.enso.interpreter.node.controlflow.caseexpr.CaseNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
@@ -58,7 +59,7 @@ class CodeLocationsTest extends InterpreterTest {
           |
           |main = (2-2 == 0).if_then_else (Cons 5 6) 0
           |""".stripMargin
-      instrumenter.assertNodeExists(33, 36, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(33, 36, classOf[IfThenElseNode])
       instrumenter.assertNodeExists(58, 8, classOf[ApplicationNode])
       eval(code)
       ()

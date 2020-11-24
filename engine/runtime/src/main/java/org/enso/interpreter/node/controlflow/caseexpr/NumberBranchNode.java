@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.controlflow;
+package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -11,38 +11,44 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@NodeInfo(shortName = "IntegerMatch", description = "Allows matching on the Integer type.")
-public abstract class IntegerBranchNode extends BranchNode {
+@NodeInfo(shortName = "NumberMatch", description = "Allows matching on the Number type.")
+public abstract class NumberBranchNode extends BranchNode {
+  private final AtomConstructor number;
   private final AtomConstructor integer;
-  private final AtomConstructor smallInteger;
   private final AtomConstructor bigInteger;
+  private final AtomConstructor smallInteger;
+  private final AtomConstructor decimal;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  public IntegerBranchNode(Number number, RootCallTarget branch) {
+  NumberBranchNode(Number number, RootCallTarget branch) {
     super(branch);
+    this.number = number.getNumber();
     this.integer = number.getInteger();
-    this.smallInteger = number.getSmallInteger();
     this.bigInteger = number.getBigInteger();
+    this.smallInteger = number.getSmallInteger();
+    this.decimal = number.getDecimal();
   }
 
   /**
-   * Create a new node to handle matching with the Integer constructor.
+   * Create a new node to handle matching with the Number constructor.
    *
    * @param number the constructor used for matching
    * @param branch the code to execute
    * @return an integer branch node
    */
-  public static IntegerBranchNode build(Number number, RootCallTarget branch) {
-    return IntegerBranchNodeGen.create(number, branch);
+  public static NumberBranchNode build(Number number, RootCallTarget branch) {
+    return NumberBranchNodeGen.create(number, branch);
   }
 
   @Specialization
   void doConstructor(VirtualFrame frame, Object state, Atom target) {
     var shouldMatch =
-        (integer == target.getConstructor())
-            || (smallInteger == target.getConstructor())
-            || (bigInteger == target.getConstructor());
-    if (profile.profile(shouldMatch)){
+        (target.getConstructor() == number)
+            || (target.getConstructor() == integer)
+            || (target.getConstructor() == bigInteger)
+            || (target.getConstructor() == smallInteger)
+            || (target.getConstructor() == decimal);
+    if (profile.profile(shouldMatch)) {
       accept(frame, state, target.getFields());
     }
   }
@@ -54,6 +60,11 @@ public abstract class IntegerBranchNode extends BranchNode {
 
   @Specialization
   void doBigInteger(VirtualFrame frame, Object state, EnsoBigInteger target) {
+    accept(frame, state, new Object[0]);
+  }
+
+  @Specialization
+  void doDecimal(VirtualFrame frame, Object state, double target) {
     accept(frame, state, new Object[0]);
   }
 
