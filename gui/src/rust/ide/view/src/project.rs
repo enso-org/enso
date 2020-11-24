@@ -15,6 +15,8 @@ use ensogl::application::Application;
 use ensogl::application::shortcut;
 use ensogl::display;
 use ensogl::gui::component::DEPRECATED_Animation;
+use ensogl::system::web;
+use ensogl_theme::Theme as Theme;
 
 
 
@@ -56,9 +58,26 @@ impl Model {
         Self{app,logger,display_object,graph_editor,searcher,code_editor}
     }
 
-    fn set_style(&self, is_light:bool) {
-        if is_light { self.app.themes.set_enabled(&["dark"])  }
-        else        { self.app.themes.set_enabled(&["light"]) }
+    /// Sets style of IDE to the one defined by parameter `theme`.
+    pub fn set_style(&self, theme:Theme) {
+        match theme {
+            Theme::Light => { self.set_light_style() },
+            _            => { self.set_dark_style()  },
+        }
+    }
+
+    fn set_light_style(&self) {
+        ensogl_theme::builtin::light::enable(&self.app);
+        self.set_html_style("light-theme");
+    }
+
+    fn set_dark_style(&self) {
+        ensogl_theme::builtin::dark::enable(&self.app);
+        self.set_html_style("dark-theme");
+    }
+
+    fn set_html_style(&self, style:&'static str) {
+        web::with_element_by_id_or_warn(&self.logger,"root",|root| root.set_class_name(style));
     }
 
     fn searcher_left_top_position_when_under_node_at(position:Vector2<f32>) -> Vector2<f32> {
@@ -134,7 +153,7 @@ ensogl::define_endpoints! {
         editing_aborted               (NodeId),
         editing_committed             (NodeId),
         code_editor_shown             (bool),
-        style_light                   (bool),
+        style                         (Theme),
     }
 }
 
@@ -169,6 +188,7 @@ impl View {
         let graph                      = &model.graph_editor.frp;
         let network                    = &frp.network;
         let searcher_left_top_position = DEPRECATED_Animation::<Vector2<f32>>::new(network);
+        model.set_style(Theme::Light);
 
         frp::extend!{ network
             // === Searcher Position and Size ===
@@ -246,13 +266,16 @@ impl View {
 
             // === Style toggle ===
 
-            let style_toggle_ev     = frp.toggle_style.clone_ref();
-            style_pressed          <- style_toggle_ev.toggle() ;
-            style_was_pressed      <- style_pressed.previous();
-            style_press            <- style_toggle_ev.gate_not(&style_was_pressed);
-            style_press_on_off     <- style_press.map2(&frp.style_light, |_,is_light| !is_light);
-            frp.source.style_light <+ style_press_on_off;
-            eval frp.style_light ((is_light) model.set_style(*is_light));
+            let style_toggle_ev   = frp.toggle_style.clone_ref();
+            style_pressed        <- style_toggle_ev.toggle() ;
+            style_was_pressed    <- style_pressed.previous();
+            style_press          <- style_toggle_ev.gate_not(&style_was_pressed);
+            style_press_on_off   <- style_press.map2(&frp.style, |_,s| match s {
+                Theme::Light => Theme::Dark ,
+                _            => Theme::Light,
+            });
+            frp.source.style     <+ style_press_on_off;
+            eval frp.style ((style) model.set_style(style.clone()));
         }
 
         Self{model,frp}

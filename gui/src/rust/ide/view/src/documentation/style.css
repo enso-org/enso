@@ -20,7 +20,7 @@
     padding: 0;
 }
 
-.dark .docVis {
+.dark-theme .docVis {
     color: #fafafa;
     background-color: #32302E;
 }
@@ -46,11 +46,11 @@
     transition: all 0.3s ease;
 }
 
-.dark .docVis a:hover {
+.dark-theme .docVis a:hover {
     color: #8dc9fa !important;
 }
 
-.dark .docVis a {
+.dark-theme .docVis a {
     color: #fafafa;
 }
 
@@ -68,7 +68,7 @@
     white-space: pre-wrap;
 }
 
-.dark .docVis code {
+.dark-theme .docVis code {
     color: #8dc9fa;
 }
 
@@ -91,12 +91,12 @@
     color: #e5e5e5;
 }
 
-.dark .docVis button {
+.dark-theme .docVis button {
     border: 1px solid #e5e5e5;
     color: #e5e5e5;
 }
 
-.dark .docVis button:hover {
+.dark-theme .docVis button:hover {
     background-color: #e5e5e5;
     color: #333333;
 }
@@ -207,36 +207,36 @@
     color: #42403e;
 }
 
-.dark .Tags .UPCOMING,
-.dark .Tags .REMOVED,
-.dark .Tags .UNRECOGNIZED,
-.dark .Tags .DEPRECATED,
-.dark .Tags .MODIFIED,
-.dark .Tags .ADDED{
+.dark-theme .Tags .UPCOMING,
+.dark-theme .Tags .REMOVED,
+.dark-theme .Tags .UNRECOGNIZED,
+.dark-theme .Tags .DEPRECATED,
+.dark-theme .Tags .MODIFIED,
+.dark-theme .Tags .ADDED{
     font-weight: 500;
     background-color: #42403e;
     border: 0;
 }
 
-.dark .Tags .DEPRECATED {
+.dark-theme .Tags .DEPRECATED {
     color: rgb(72.49% 41.04% 20.85%);
 }
-.dark .Tags .MODIFIED {
+.dark-theme .Tags .MODIFIED {
     color: rgb(54.13% 44.06% 80.36%);
 }
-.dark .Tags .ADDED {
+.dark-theme .Tags .ADDED {
     color: rgb(25.31% 55.97% 23.72%);
 }
-.dark .Tags .UPCOMING {
+.dark-theme .Tags .UPCOMING {
     color: rgb(15.32% 51.59% 84.81%);
 }
-.dark .Tags .REMOVED {
+.dark-theme .Tags .REMOVED {
     color:  rgb(80.24% 34.06% 37.72%);
 }
-.dark .Tags .UNRECOGNIZED {
+.dark-theme .Tags .UNRECOGNIZED {
     color: #fafafa;
 }
-.dark .ExtForTagDetails {
+.dark-theme .ExtForTagDetails {
     color: #eaeaea;
 }
 
@@ -263,7 +263,7 @@
     font-style: normal;
 }
 
-.dark .Body .Raw {
+.dark-theme .Body .Raw {
     color: #fafafa;
 }
 
@@ -295,19 +295,19 @@
     margin: 10px 0px;
 }
 
-.dark .Important {
+.dark-theme .Important {
     background-color: rgb(25.47% 26.23% 36.19%);
 }
 
-.dark .Info {
+.dark-theme .Info {
     background-color: rgb(17.72% 29.26% 22.78%);
 }
 
-.dark .Example {
+.dark-theme .Example {
     background-color: #3f3f3f;
 }
 
-.dark .CodeBlock {
+.dark-theme .CodeBlock {
     background-color: #474747;
 }
 
@@ -339,7 +339,7 @@
     font-style: normal;
 }
 
-.dark .Def .Synopsis {
+.dark-theme .Def .Synopsis {
     color: #fafafa;
 }
 
@@ -398,7 +398,7 @@
     color: #0070c9;
 }
 
-.dark .DefArgs {
+.dark-theme .DefArgs {
     color: #3e69c5;
 }
 
@@ -426,7 +426,7 @@
     margin: 20px auto 5px;
 }
 
-.dark .Documentation .ASTData{
+.dark-theme .Documentation .ASTData{
     background-color: #212121;
 }
 
@@ -442,7 +442,7 @@
     width: 100%;
     background-color: #ffffff;
 }
-.dark .Documentation .Documented {
+.dark-theme .Documentation .Documented {
     background-color: #212121;
 }
 .Documentation .DefNoBody {
