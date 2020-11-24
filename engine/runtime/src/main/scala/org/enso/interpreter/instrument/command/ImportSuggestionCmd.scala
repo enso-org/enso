@@ -8,7 +8,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that gathers info needed for suggestion import.
+/** A command that gathers info required for suggestion import.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for suggestion import
@@ -39,6 +39,10 @@ final class ImportSuggestionCmd(
     )
   }
 
+  /** Find re-exports of the given symbol.
+    *
+    * @param ctx contains suppliers of services to perform a request
+    */
   private def findExports(implicit ctx: RuntimeContext): Seq[Api.Export] = {
     val suggestion = request.suggestion
     val topScope =

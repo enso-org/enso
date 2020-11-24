@@ -391,12 +391,16 @@ object SearchProtocol {
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
-  /** The request to know how to import given suggestion.
+  /** The request returning the info about the suggestion import.
     *
-    * @param id the suggestion id
+    * @param id the requested suggestion id
     */
   case class Import(id: SuggestionId)
 
+  /** The request returning the info about the suggestion import.
+    *
+    * @param suggestion the requested suggestion
+    */
   case class ImportSuggestion(suggestion: Suggestion)
 
   /** Base trait for export statements. */
