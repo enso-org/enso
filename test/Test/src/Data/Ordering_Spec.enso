@@ -1,0 +1,30 @@
+from Base import all
+
+import Test
+
+# === Test Resources ===
+
+type Ord number
+
+Ord.compare_to : Ord -> Ordering
+Ord.compare_to that = if this.number == that.number then Ordering.Equal else
+    if this.number > that.number then Ordering.Greater else Ordering.Less
+
+
+# === The Tests ===
+
+spec =
+    describe "Ordering" <|
+        it "should allow comparing Less" <|
+            left = Ord 1032
+            right = Ord 101111
+            left.compare_to right . should_equal Ordering.Less
+        it "should allow comparing Equal" <|
+            left = Ord 1032
+            right = Ord 1032
+            left.compare_to right . should_equal Ordering.Equal
+        it "should allow comparing Greater" <|
+            left = Ord 1032
+            right = Ord -1
+            left.compare_to right . should_equal Ordering.Greater
+
