@@ -6,6 +6,8 @@ import org.enso.table.data.column.builder.object.InferredBuilder;
 import java.util.BitSet;
 import java.util.function.Function;
 
+import org.graalvm.polyglot.Value;
+
 /** An abstract representation of a data column. */
 public abstract class Storage {
   /** @return the number of elements in this column (including NAs) */
@@ -49,6 +51,8 @@ public abstract class Storage {
   public static final class Ops {
     public static final String EQ = "==";
     public static final String NOT = "not";
+    public static final String IS_MISSING = "is_missing";
+    public static final String IS_PRESENT = "is_present";
   }
 
   /**
@@ -96,4 +100,19 @@ public abstract class Storage {
     }
     return builder.seal();
   }
+
+  public final Storage mapFast(Value function) {
+    Builder builder = new InferredBuilder((int) size());
+    for (int i = 0; i < size(); i++) {
+      Object it = getItemBoxed(i);
+      if (it == null) {
+        builder.append(null);
+      } else {
+        builder.append(function.execute(it).asBoolean());
+      }
+    }
+    return builder.seal();
+  }
+
+  public abstract Storage orderMask(int[] positions);
 }

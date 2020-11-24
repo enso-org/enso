@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.index.Index;
+
 import java.util.BitSet;
 
 /** A column storing strings. */
@@ -29,7 +31,7 @@ public class StringStorage extends ObjectStorage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return op.equals("==");
+    return op.equals("==") || super.isOpVectorized(op);
   }
 
   @Override
@@ -37,7 +39,7 @@ public class StringStorage extends ObjectStorage {
     if (Ops.EQ.equals(name)) {
       return runVectorizedEq(operand);
     }
-    throw new UnsupportedOperationException();
+    return super.runVectorizedOp(name, operand);
   }
 
   public BoolStorage runVectorizedEq(Object that) {
@@ -57,5 +59,18 @@ public class StringStorage extends ObjectStorage {
   public StringStorage mask(BitSet mask, int cardinality) {
     ObjectStorage storage = super.mask(mask, cardinality);
     return new StringStorage(storage.getData(), cardinality);
+  }
+
+  @Override
+  public StringStorage orderMask(int[] positions) {
+    Object[] newData = new Object[positions.length];
+    for (int i = 0; i < positions.length; i++) {
+      if (positions[i] == Index.NOT_FOUND) {
+        newData[i] = null;
+      } else {
+        newData[i] = getData()[positions[i]];
+      }
+    }
+    return new StringStorage(newData, positions.length);
   }
 }

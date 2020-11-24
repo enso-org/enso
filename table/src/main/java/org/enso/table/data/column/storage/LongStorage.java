@@ -94,4 +94,29 @@ public class LongStorage extends Storage {
     }
     return new LongStorage(newData, cardinality, newMissing);
   }
+
+  @Override
+  public Storage orderMask(int[] positions) {
+    return null;
+  }
+
+  public long min() {
+    long x = Long.MAX_VALUE;
+    for (int i = 0; i < size; i++) {
+      if (!isMissing.get(i)) {
+        x = Math.min(x, data[i]);
+      }
+    }
+    return x;
+  }
+
+  public long max() {
+    long x = Long.MIN_VALUE;
+    for (int i = 0; i < size; i++) {
+      if (!isMissing.get(i)) {
+        x = Math.max(x, data[i]);
+      }
+    }
+    return x;
+  }
 }

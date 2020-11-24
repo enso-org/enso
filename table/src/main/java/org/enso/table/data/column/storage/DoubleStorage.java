@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.index.Index;
+
 import java.util.BitSet;
 import java.util.function.Function;
 
@@ -97,5 +99,19 @@ public class DoubleStorage extends Storage {
       }
     }
     return new DoubleStorage(newData, cardinality, newMissing);
+  }
+
+  @Override
+  public Storage orderMask(int[] positions) {
+    long[] newData = new long[positions.length];
+    BitSet newMissing = new BitSet();
+    for (int i = 0; i < positions.length; i++) {
+      if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
+        newMissing.set(i);
+      } else {
+        newData[i] = data[positions[i]];
+      }
+    }
+    return new DoubleStorage(newData, size, newMissing);
   }
 }

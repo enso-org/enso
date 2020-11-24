@@ -65,7 +65,7 @@ spec =
 
             t.to_json.should_equal expected
 
-    describe "Mapping operations" <|
+    describe "Mapping Operations" <|
         it "should allow mapping a function over a column" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             c_str.map (+ "x") . to_vector . should_equal ['ax', 'bx', Nothing, 'bx']
@@ -90,7 +90,7 @@ spec =
             c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
             (c_any == My 7 0).to_vector.should_equal [True, False, True, True, False]
 
-    describe "Masking tables" <|
+    describe "Masking Tables" <|
         it "should allow selecting table rows based on a boolean column" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
             r = df.where (Column.from_vector 'x' [True, False, False, True])
@@ -103,3 +103,7 @@ spec =
             r.at "a" . to_vector . should_equal [4]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
+
+    describe "Joining Tables" <|
+        it "should allow left joining tables index-on-index with unique indices" <|
+            

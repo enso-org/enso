@@ -1,10 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.index.Index;
+
 import java.util.BitSet;
 
-/**
- * A boolean column storage.
- */
+/** A boolean column storage. */
 public class BoolStorage extends Storage {
   private final BitSet values;
   private final BitSet isMissing;
@@ -96,6 +96,20 @@ public class BoolStorage extends Storage {
       }
     }
     return new BoolStorage(newValues, newMissing, cardinality, negated);
+  }
+
+  @Override
+  public Storage orderMask(int[] positions) {
+    BitSet newNa = new BitSet();
+    BitSet newVals = new BitSet();
+    for (int i = 0; i < positions.length; i++) {
+      if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
+        newNa.set(i);
+      } else if (values.get(positions[i])) {
+        values.set(i);
+      }
+    }
+    return new BoolStorage(newVals, newNa, positions.length, negated);
   }
 
   public boolean isNegated() {

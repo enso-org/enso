@@ -54,12 +54,25 @@ public class ObjectStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return false;
+    return Ops.IS_MISSING.equals(op);
   }
 
   @Override
   public Storage runVectorizedOp(String name, Object operand) {
+    if (Ops.IS_MISSING.equals(name)) {
+      return runIsMissing();
+    }
     throw new UnsupportedOperationException();
+  }
+
+  private BoolStorage runIsMissing() {
+    BitSet vals = new BitSet();
+    for (int i = 0; i < size; i++) {
+      if (data[i] == null) {
+        vals.set(i);
+      }
+    }
+    return new BoolStorage(vals, new BitSet(), size, false);
   }
 
   @Override
@@ -74,7 +87,12 @@ public class ObjectStorage extends Storage {
     return new ObjectStorage(newData, cardinality);
   }
 
-  protected Object[] getData() {
+  @Override
+  public Storage orderMask(int[] positions) {
+    return null;
+  }
+
+  public Object[] getData() {
     return data;
   }
 }

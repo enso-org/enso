@@ -200,6 +200,9 @@ type Vector
         0.up_to arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
         Vector new_arr
 
+    map_with_index : (Int -> Any -> Any) -> Vector
+    map_with_index function = here.new this.length i-> function i (this.at i)
+
     ## Applies a function to each element of the vector.
 
        Unlike `map`, this method does not return the individual results,
