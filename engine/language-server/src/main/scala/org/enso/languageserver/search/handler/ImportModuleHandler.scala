@@ -66,7 +66,12 @@ final class ImportModuleHandler(
   }
 
   private def toSearchExport(export: Api.Export): SearchProtocol.Export =
-    SearchProtocol.Export(export.module, export.alias)
+    export match {
+      case Api.Export.Unqualified(module) =>
+        SearchProtocol.Export.Unqualified(module)
+      case Api.Export.Qualified(module, alias) =>
+        SearchProtocol.Export.Qualified(module, alias)
+    }
 }
 
 object ImportModuleHandler {

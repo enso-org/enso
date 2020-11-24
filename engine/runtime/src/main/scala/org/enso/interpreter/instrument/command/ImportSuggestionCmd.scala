@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.compiler.core.IR
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.collection.mutable
@@ -12,16 +13,12 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param maybeRequestId an option with request id
   * @param request a request for suggestion import
   */
-class ImportSuggestionCmd(
+final class ImportSuggestionCmd(
   maybeRequestId: Option[Api.RequestId],
   val request: Api.ImportSuggestionRequest
 ) extends Command(maybeRequestId) {
 
-  private case class ModuleExport(
-    module: String,
-    name: String,
-    alias: Option[String]
-  )
+  import ImportSuggestionCmd._
 
   /** Executes a request.
     *
@@ -37,49 +34,73 @@ class ImportSuggestionCmd(
       Api.ImportSuggestionResponse(
         suggestion.module,
         suggestion.name,
-        findExports
+        findExports.sortBy(getDepth)
       )
     )
   }
 
   private def findExports(implicit ctx: RuntimeContext): Seq[Api.Export] = {
+    val suggestion = request.suggestion
+    val topScope =
+      ctx.executionService.getContext.getCompiler.context.getTopScope
     @scala.annotation.tailrec
     def go(
-      queue: mutable.Queue[ModuleExport],
+      queue: mutable.Queue[ExportingModule],
       builder: mutable.Builder[Api.Export, Vector[Api.Export]]
     ): Vector[Api.Export] =
       if (queue.isEmpty) {
         builder.result()
       } else {
-        val elem = queue.dequeue()
-        ctx.executionService.getContext.getCompiler.context.getTopScope.getModules
+        val current = queue.dequeue()
+        topScope.getModules
+          .stream()
+          .filter(isCompiled)
           .forEach { module =>
-            module.getIr.exports.foreach { moduleExport =>
-              if (
-                moduleExport.name.name == elem.module &&
-                exportsName(moduleExport, elem.name)
-              ) {
-                builder += Api.Export(
-                  elem.module,
-                  moduleExport.rename.map(_.name)
-                )
+            module.getIr.exports.foreach { export =>
+              if (export.name.name == current.name) {
+                if (!export.isAll) {
+                  builder += Api.Export.Qualified(
+                    module.getName.toString,
+                    export.rename.map(_.name)
+                  )
+                } else if (exportsSymbol(export, suggestion.name)) {
+                  builder += Api.Export.Unqualified(module.getName.toString)
+                  queue.enqueue(ExportingModule(module.getName.toString))
+                }
               }
             }
           }
         go(queue, builder)
       }
 
-    val suggestion = request.suggestion
     go(
-      mutable.Queue(ModuleExport(suggestion.module, suggestion.name, None)),
+      mutable.Queue(ExportingModule(suggestion.module)),
       Vector.newBuilder
     )
   }
 
-  private def exportsName(
+  private def getDepth(export: Api.Export): Int =
+    export.module.count(_ == '.')
+
+  private def isCompiled(module: Module): Boolean =
+    module.getIr != null
+
+  private def exportsSymbol(
     export: IR.Module.Scope.Export,
-    name: String
-  ): Boolean =
-    export.onlyNames.forall(_.exists(_.name == name))
+    symbol: String
+  ): Boolean = {
+    export.isAll &&
+    export.onlyNames.forall(_.exists(_.name == symbol))
+  }
+
+}
+
+object ImportSuggestionCmd {
+
+  /** Module that exports target symbol.
+    *
+    * @param name the module name
+    */
+  private case class ExportingModule(name: String)
 
 }

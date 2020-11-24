@@ -399,18 +399,32 @@ object SearchProtocol {
 
   case class ImportSuggestion(suggestion: Suggestion)
 
-  /** The information about module re-export.
-    *
-    * @param module the module name that exports the given module
-    * @param alias new module name if the module was renamed in the export clause
-    */
-  case class Export(module: String, alias: Option[String])
+  /** Base trait for export statements. */
+  sealed trait Export {
+    def module: String
+  }
+  object Export {
+
+    /** Qualified module re-export.
+      *
+      * @param module the module name that exports the given module
+      * @param alias new module name if the module was renamed in the export
+      * clause
+      */
+    case class Qualified(module: String, alias: Option[String]) extends Export
+
+    /** Unqualified module export.
+      *
+      * @param module the module name that exports the given module
+      */
+    case class Unqualified(module: String) extends Export
+  }
 
   /** The result of the import request.
     *
     * @param module the definition module of the symbol
     * @param symbol the resolved symbol
-    * @param exports the list of exports of the symbol
+    * @param exports the list of re-exports
     */
   case class ImportResult(
     module: String,

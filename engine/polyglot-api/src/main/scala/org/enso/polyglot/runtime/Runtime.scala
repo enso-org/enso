@@ -569,6 +569,39 @@ object Runtime {
 
     }
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[Export.Qualified],
+          name  = "exportQualified"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[Export.Unqualified],
+          name  = "exportUnqualified"
+        )
+      )
+    )
+    sealed trait Export {
+      def module: String
+    }
+    object Export {
+
+      /** Qualified module re-export.
+        *
+        * @param module the module name that exports the given module
+        * @param alias new module name if the module was renamed in the export
+        * clause
+        */
+      case class Qualified(module: String, alias: Option[String]) extends Export
+
+      /** Unqualified module export.
+        *
+        * @param module the module name that exports the given module
+        */
+      case class Unqualified(module: String) extends Export
+    }
+
     /** The notification about the execution status.
       *
       * @param contextId the context's id
@@ -907,14 +940,6 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     case class InvalidateModulesIndexResponse() extends ApiResponse
-
-    /** The information about module re-export.
-      *
-      * @param module the module name that exports the given module
-      * @param alias new module name if the module was renamed in the export
-      * clause
-      */
-    case class Export(module: String, alias: Option[String])
 
     /** A request to return info needed to import the suggestion.
       *
