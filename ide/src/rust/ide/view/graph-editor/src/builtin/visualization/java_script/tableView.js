@@ -239,8 +239,8 @@ class TableViewVisualization extends Visualization {
         }
 
         let style = style_light
-        if (document.getElementById("root").classList.contains("dark")){
-            style = style_dark + table;
+        if (document.getElementById("root").classList.contains("dark-theme")){
+            style = style_dark;
         }
         let table         = genTable(parsedData.data || parsedData, 0, parsedData.header);
         tabElem.innerHTML = style + table;

@@ -89,7 +89,7 @@ class MapViewVisualization extends Visualization {
 
         let defaultMapStyle = 'mapbox://styles/mapbox/light-v9';
         let accentColor     = LIGHT_ACCENT_COLOR;
-        if (document.getElementById("root").classList.contains("dark")){
+        if (document.getElementById("root").classList.contains("dark-theme")){
             defaultMapStyle = 'mapbox://styles/mapbox/dark-v9';
             accentColor     = DARK_ACCENT_COLOR;
         }

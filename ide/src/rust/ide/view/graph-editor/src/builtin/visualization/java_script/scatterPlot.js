@@ -518,17 +518,17 @@ class ScatterPlot extends Visualization {
             color: ${darkSelectionFill};
         `)
 
-        addStyleToElem('.dark button',`
+        addStyleToElem('.dark-theme button',`
             border: 0;
             background-color: ${darkStrokeColor};
         `)
-        addStyleToElem('.dark button:hover',`
+        addStyleToElem('.dark-theme button:hover',`
             background-color: ${darkBtnHoverColor};
         `)
-        addStyleToElem('.dark .selection',`fill: ${darkSelectionFill}`)
-        addStyleToElem('.dark line',`stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark .domain',`stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark text',`fill: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .selection',`fill: ${darkSelectionFill}`)
+        addStyleToElem('.dark-theme line',`stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .domain',`stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme text',`fill: ${darkStrokeColor};`)
 
         return divElem;
     }

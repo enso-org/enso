@@ -240,11 +240,22 @@ pub fn performance() -> Performance {
     window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
 }
 
+/// Gets `Element` by ID.
 pub fn get_element_by_id(id:&str) -> Result<Element> {
     try_document()?.get_element_by_id(id).ok_or_else(||
         Error(format!("Element with id '{}' not found.",id)))
 }
 
+/// Tries to get `Element` by ID, and runs function on it.
+pub fn with_element_by_id_or_warn<F>(logger:&Logger, id:&str, f:F) where F : FnOnce(Element) {
+    let root_elem = get_element_by_id(id);
+    match root_elem {
+        Ok(v)  => f(v),
+        Err(_) => logger.warning("Failed to get element by ID."),
+    }
+}
+
+/// Gets `Element`s by class name.
 pub fn get_elements_by_class_name(name:&str) -> Result<Vec<Element>> {
     let collection = try_document()?.get_elements_by_class_name(name);
     let indices    = 0..collection.length();
