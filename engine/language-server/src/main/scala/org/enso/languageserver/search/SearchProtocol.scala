@@ -418,6 +418,41 @@ object SearchProtocol {
       * @param module the module name that exports the given module
       */
     case class Unqualified(module: String) extends Export
+
+    private object CodecType {
+
+      val Qualified = "Qualified"
+
+      val Unqualified = "Unqualified"
+    }
+
+    implicit val encoder: Encoder[Export] =
+      Encoder.instance {
+        case qualified: Qualified =>
+          Encoder[Export.Qualified]
+            .apply(qualified)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Qualified.asJson))
+            .dropNullValues
+
+        case unqualified: Unqualified =>
+          Encoder[Export.Unqualified]
+            .apply(unqualified)
+            .deepMerge(
+              Json.obj(CodecField.Type -> CodecType.Unqualified.asJson)
+            )
+            .dropNullValues
+      }
+
+    implicit val decoder: Decoder[Export] =
+      Decoder.instance { cursor =>
+        cursor.downField(CodecField.Type).as[String].flatMap {
+          case CodecType.Qualified =>
+            Decoder[Export.Qualified].tryDecode(cursor)
+
+          case CodecType.Unqualified =>
+            Decoder[Export.Unqualified].tryDecode(cursor)
+        }
+      }
   }
 
   /** The result of the import request.
