@@ -12,18 +12,19 @@
 //!
 //! **WARNING**
 //! Be extra careful when developing color conversion equations. Many equations were re-scaled to
-//! make them more pleasant to work, however, the equations you will fnd will probably work on
+//! make them more pleasant to work with, however, the equations you will fnd will probably work on
 //! different value ranges. Read documentation for each color space very carefully.
 
 pub mod component;
 pub mod data;
 pub mod gradient;
+pub mod mix;
 pub mod space;
 pub mod animation;
 
-pub use component::*;
-pub use self::data::*;
-pub use gradient::*;
-pub use space::*;
 pub use animation::Animation;
-pub use animation::DEPRECARTED_Animation;
+pub use component::*;
+pub use gradient::*;
+pub use mix::mix;
+pub use self::data::*;
+pub use space::*;

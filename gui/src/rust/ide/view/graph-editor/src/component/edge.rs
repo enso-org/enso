@@ -311,7 +311,7 @@ fn corner_base_shape
     shape.into()
 }
 
-// FIXME [WD]: The 2 follwoing impls are almost the same. Should be merged. This task should will
+// FIXME [WD]: The 2 following impls are almost the same. Should be merged. This task should will
 //             handled by Wojciech.
 macro_rules! define_corner_start { () => {
     /// Shape definition.
@@ -1070,8 +1070,8 @@ pub struct Frp {
     pub target_attached : frp::Source<bool>,
     pub source_attached : frp::Source<bool>,
     pub redraw          : frp::Source,
-    pub set_dimmed      : frp::Source<bool>,
-    pub set_color       : frp::Source<color::Rgba>,
+    pub set_disabled    : frp::Source<bool>,
+    pub set_color       : frp::Source<color::Lcha>,
 
     pub hover_position  : frp::Source<Option<Vector2<f32>>>,
     pub shape_events    : ShapeViewEventsProxy
@@ -1088,12 +1088,12 @@ impl Frp {
             def source_attached = source();
             def redraw          = source();
             def hover_position  = source();
-            def set_dimmed      = source();
+            def set_disabled    = source();
             def set_color       = source();
         }
         let shape_events = ShapeViewEventsProxy::new(&network);
         Self {source_width,source_height,target_position,target_attached,source_attached,redraw,
-              hover_position,shape_events,set_dimmed,set_color}
+              hover_position,shape_events,set_disabled,set_color}
     }
 }
 
@@ -1172,26 +1172,25 @@ impl Edge {
         let input           = &self.frp;
         let target_position = &self.target_position;
         let target_attached = &self.target_attached;
-        // FIXME This should be used for #672
+        // FIXME This should be used for #672 (Edges created from Input Ports do not overlay nodes)
         let _source_attached = &self.source_attached;
         let source_width    = &self.source_width;
         let source_height   = &self.source_height;
         let hover_position  = &self.hover_position;
         let hover_target    = &self.hover_target;
 
-        let model           = &self.model;
-        let shape_events    = &self.frp.shape_events;
-        let edge_color      = color::DEPRECARTED_Animation::new();
-        let style           = StyleWatch::new(&app.display.scene().style_sheet);
-
-
+        let model            = &self.model;
+        let shape_events     = &self.frp.shape_events;
+        let edge_color       = color::Animation::new(network);
+        let edge_focus_color = color::Animation::new(network);
+        let _style           = StyleWatch::new(&app.display.scene().style_sheet);
 
         model.data.front.register_proxy_frp(network, &input.shape_events);
         model.data.back.register_proxy_frp(network, &input.shape_events);
 
         frp::extend! { network
             eval input.target_position ((t) target_position.set(*t));
-            // FIXME This should be enabled for #672
+            // FIXME This should be enabled for #672 (Edges created from Input Ports do not overlay nodes)
             // eval input.source_attached ((t) source_attached.set(*t));
             eval input.target_attached ((t) target_attached.set(*t));
             eval input.source_width    ((t) source_width.set(*t));
@@ -1199,27 +1198,23 @@ impl Edge {
             eval input.hover_position  ((t) hover_position.set(*t));
 
             eval  shape_events.on_mouse_over ((id) hover_target.set(Some(*id)));
-            eval_ shape_events.on_mouse_out  (     hover_target.set(None));
+            eval_ shape_events.on_mouse_out       (hover_target.set(None));
+            eval_ input.redraw                    (model.redraw());
 
-            eval_ input.redraw (model.redraw());
 
             // === Colors ===
 
-            color_update <- all(input.set_color,input.set_dimmed);
+            is_hovered      <- input.hover_position.map(|t| t.is_some());
+            new_color       <- all_with(&input.set_color,&input.set_disabled,f!((c,t) model.base_color(*c,*t)));
+            new_focus_color <- new_color.map(f!((color) model.focus_color(*color)));
+            focus_color     <- switch(&is_hovered,&new_color,&new_focus_color);
 
-            eval color_update ([edge_color,style]((color,should_dim)) {
-                let target_color = if *should_dim {
-                   style.get_color_dim(*color)
-                } else {
-                  color.into()
-                };
-                edge_color.set_target(target_color);
-            });
+            edge_color.target       <+ new_color;
+            edge_focus_color.target <+ focus_color;
 
-            eval edge_color.value ((color) model.set_color(color.into()));
-
+            eval edge_color.value       ((color) model.set_color(color.into()));
+            eval edge_focus_color.value ((color) model.set_focus_color(color.into()));
         }
-
         self
     }
 }
@@ -1309,28 +1304,34 @@ impl EdgeModelData {
               layout_state,hover_target,joint,scene}
     }
 
-    /// Set the color of the edge. Also updates the focus color (which will be a dimmed version
-    /// of the main color).
+    /// Set the color of the edge.
     fn set_color(&self, color:color::Lcha) {
         // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
         let color:color::Lcha = color.opaque.into();
-
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles         = StyleWatch::new(&self.scene.style_sheet);
-        let factor_l_path  = theme::graph_editor::edge::split::lightness_factor;
-        let factor_c_path  = theme::graph_editor::edge::split::chroma_factor;
-        let split_factor_l = styles.get_number_or(factor_l_path,1.2);
-        let split_factor_c = styles.get_number_or(factor_c_path,0.8);
-        let lightness      = color.lightness * split_factor_l;
-        let chroma         = color.chroma * split_factor_c;
-        let focus_color    = color::Lcha::new(lightness,chroma,color.hue,color.alpha);
-        let color_rgba     = color::Rgba::from(color);
-        self.shapes().iter().for_each(|shape| {
-            shape.set_color_focus(focus_color.into());
-            shape.set_color(color_rgba)
-        });
-
+        let color_rgba        = color::Rgba::from(color);
+        self.shapes().iter().for_each(|shape| shape.set_color(color_rgba));
         self.joint.shape.color_rgba.set(color_rgba.into());
+    }
+
+    fn set_focus_color(&self, color:color::Lcha) {
+        let color:color::Lcha = color.opaque.into();
+        self.shapes().iter().for_each(|shape| shape.set_color_focus(color.into()));
+    }
+
+    fn base_color(&self, color:color::Lcha, is_disabled:bool) -> color::Lcha {
+        let color:color::Lcha = color.opaque.into();
+        if !is_disabled {color} else {
+            let styles = StyleWatch::new(&self.scene.style_sheet);
+            styles.get_color(theme::code::syntax::disabled)
+        }
+    }
+
+    fn focus_color(&self, color:color::Lcha) -> color::Lcha {
+        // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
+        let color:color::Lcha = color.opaque.into();
+        let styles            = StyleWatch::new(&self.scene.style_sheet);
+        let bg_color          = styles.get_color(theme::application::background);
+        color::mix(bg_color,color,0.25)
     }
 
     /// Redraws the connection.

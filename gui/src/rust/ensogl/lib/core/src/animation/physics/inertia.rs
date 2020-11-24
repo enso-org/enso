@@ -15,13 +15,12 @@ use crate::animation;
 /// The type of the value of the simulation. In particular, the Value could be `f32`
 /// (1-dimensional simulation), or `Vector3<f32>` (3-dimensional simulation).
 pub trait Value
-    = 'static + Copy + Default + Debug + Normalize + PartialEq
+    = 'static + Copy + Default
+    + PartialEq
+    + Normalize
     + Magnitude <Output=f32>
-    + Neg<       Output=Self>
-    + Sub<Self , Output=Self>
-    + Add<Self , Output=Self>
-    + Div<f32  , Output=Self>
-    + Mul<f32  , Output=Self>;
+    + Add       <Output=Self>
+    + Mul   <f32,Output=Self>;
 
 
 
@@ -199,7 +198,24 @@ impl Thresholds {
 // === SimulationData ===
 // ======================
 
-/// A fixed step physics simulator used to simulate `PhysicsState`.
+/// A fixed step physics simulator data.
+///
+/// Please note that the simulator equations are not physically correct and were optimized for
+/// performance and animation correctness (lack of numerical errors). In particular, the aerodynamic
+/// drag force increases linearly with the velocity instead of with velocity ^ 2. Moreover, please
+/// note that because of the simplified equation model the simulator behaves the same way regardless
+/// the scale. Animation between 0.1 and 0.15 looks the same was as between 10 and 15. The only part
+/// that needs to be tweaked are the snapping thresholds, which you can set with the `set_precision`
+/// function.
+///
+/// The equations used here are:
+/// ```ignore
+///     spring_force = spring_stretch * self.spring;
+///     drag_force   = - velocity * self.drag;
+///     force        = spring_force + drag_force;
+///     acceleration = force / self.mass;
+///     new_velocity = velocity + acceleration * delta_time;
+/// ```
 #[derive(Clone,Copy,Debug,Default)]
 pub struct SimulationData<T> {
     value        : T,
@@ -222,7 +238,7 @@ impl<T:Value> SimulationData<T> {
     fn step(&mut self, delta_seconds:f32) {
         if self.active {
             let velocity      = self.velocity.magnitude();
-            let distance      = (self.value - self.target_value).magnitude();
+            let distance      = (self.value + self.target_value * -1.0).magnitude();
             let snap_velocity = velocity < self.thresholds.speed;
             let snap_distance = distance < self.thresholds.distance;
             let should_snap   = snap_velocity && snap_distance;
@@ -232,7 +248,7 @@ impl<T:Value> SimulationData<T> {
                 self.active   = false;
             } else {
                 let force        = self.spring_force() + self.drag_force();
-                let acceleration = force / self.mass.value;
+                let acceleration = force * (1.0 / self.mass.value);
                 self.velocity    = self.velocity + acceleration * delta_seconds;
                 self.value       = self.value + self.velocity * delta_seconds;
             }
@@ -241,19 +257,26 @@ impl<T:Value> SimulationData<T> {
 
     /// Compute spring force.
     fn spring_force(&self) -> T {
-        let value_delta = self.target_value - self.value;
-        let distance    = value_delta.magnitude();
-        if distance > 0.0 {
-            let coefficient = distance * self.spring.value;
-            value_delta.normalize() * coefficient
-        } else {
-            default()
-        }
+        let value_delta    = self.target_value + self.value * -1.0;
+        let spring_stretch = value_delta.magnitude();
+        let coefficient    = spring_stretch * self.spring.value;
+        value_delta.normalize() * coefficient
     }
 
-    /// Compute air drag force.
+    /// Compute air drag force. Please note that this is physically incorrect. Read the docs of
+    /// `SimulationData` to learn more.
     fn drag_force(&self) -> T {
-        -self.velocity * self.drag.value
+        self.velocity * -1.0 * self.drag.value
+    }
+
+    /// Set the snapping thresholds of the animation. The rule of thumb is that you should set the
+    /// precision to one order of magnitude smaller value than your unit value. For example, when
+    /// moving things on the stage with a single pixel being your unit value, you should set the
+    /// precision to 0.1. In case of a color alpha animation between 0.0 and 1.0, two digits after
+    /// the dot are important, so your precision should be 0.001.
+    fn set_precision(&mut self, precision:f32) {
+        self.thresholds.speed    = precision;
+        self.thresholds.distance = precision;
     }
 }
 
@@ -435,6 +458,10 @@ impl<T:Value> Simulation<T> {
         self.data.update(|mut sim| {sim.update_target_value(f); sim});
     }
 
+    pub fn set_precision(&self, precision:f32) {
+        self.data.update(|mut sim| {sim.set_precision(precision); sim});
+    }
+
     pub fn skip(&self) {
         self.data.update(|mut sim| {sim.skip(); sim});
     }
@@ -455,14 +482,20 @@ pub type DynSimulator<T> = Simulator<T,Box<dyn Fn(T)>>;
 /// The `Simulation` with an associated animation loop. The simulation is updated every frame in an
 /// efficient way – when the simulation finishes, it automatically unregisters in the animation loop
 /// and registers back only when needed.
-#[derive(CloneRef,Derivative,Shrinkwrap)]
+#[derive(CloneRef,Derivative)]
 #[derivative(Clone(bound=""))]
 pub struct Simulator<T,Cb> {
-    #[shrinkwrap(main_field)]
     simulation     : Simulation<T>,
     animation_loop : Rc<CloneCell<Option<FixedFrameRateAnimationStep<T,Cb>>>>,
     frame_rate     : Rc<Cell<f32>>,
     callback       : Rc<Cb>,
+}
+
+impl<T,Cb> Deref for Simulator<T,Cb> {
+    type Target = Simulation<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.simulation
+    }
 }
 
 impl<T:Value,Cb> Simulator<T,Cb>

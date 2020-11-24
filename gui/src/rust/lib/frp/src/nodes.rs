@@ -72,24 +72,6 @@ impl Network {
         self.register(OwnedConstant::new(label,src,value))
     }
 
-    /// Replace the incoming event with `true`.
-    pub fn to_true<T:EventOutput> (&self, label:Label, src:&T) -> Stream<bool> {
-        self.constant(label,src,true)
-    }
-
-    /// Replace the incoming event with `false`.
-    pub fn to_false<T:EventOutput> (&self, label:Label, src:&T) -> Stream<bool> {
-        self.constant(label,src,false)
-    }
-
-    /// Replace the incoming event from first input with `false` and from second with `true`.
-    pub fn bool<T1,T2> (&self, label:Label, src1:&T1, src2:&T2) -> Stream<bool>
-    where T1:EventOutput, T2:EventOutput {
-        let false_ = self.to_false (label,src1);
-        let true_  = self.to_true  (label,src2);
-        self.any(label,&false_,&true_)
-    }
-
     /// Remembers the value of the input stream and outputs the previously received one.
     pub fn previous<T:EventOutput> (&self, label:Label, src:&T) -> Stream<Output<T>> {
         self.register(OwnedPrevious::new(label,src))
@@ -143,6 +125,69 @@ impl Network {
     pub fn _2<T1>(&self, label:Label, event:&T1) -> Stream<generics::ItemAt2<Output<T1>>>
         where T1:EventOutput, T1::Output:generics::GetItemAt2, generics::ItemAt2<T1::Output>:Data {
         self.register(OwnedGet2::new(label,event))
+    }
+
+
+    // === Bool Utils ===
+
+    /// Replace the incoming event with `true`.
+    pub fn to_true<T:EventOutput> (&self, label:Label, src:&T) -> Stream<bool> {
+        self.constant(label,src,true)
+    }
+
+    /// Replace the incoming event with `false`.
+    pub fn to_false<T:EventOutput> (&self, label:Label, src:&T) -> Stream<bool> {
+        self.constant(label,src,false)
+    }
+
+    /// Whenever the input event is `true`, emit the output event.
+    pub fn on_true<T>(&self, label:Label, t:&T) -> Stream
+    where T:EventOutput<Output=bool> {
+        let t_ = self.constant(label,t,());
+        self.gate(label,&t_,t)
+    }
+
+    /// Whenever the input event is `false`, emit the output event.
+    pub fn on_false<T>(&self, label:Label, t:&T) -> Stream
+    where T:EventOutput<Output=bool> {
+        let t_ = self.constant(label,t,());
+        self.gate_not(label,&t_,t)
+    }
+
+    /// Replace the incoming event from first input with `false` and from second with `true`.
+    pub fn bool<T1,T2> (&self, label:Label, src1:&T1, src2:&T2) -> Stream<bool>
+    where T1:EventOutput, T2:EventOutput {
+        let false_ = self.to_false (label,src1);
+        let true_  = self.to_true  (label,src2);
+        self.any(label,&false_,&true_)
+    }
+
+    /// On every input event, output its negation.
+    pub fn not<T>(&self, label:Label, src:&T) -> Stream<bool>
+    where T:EventOutput<Output=bool> {
+        self.map(label,src,|t|!t)
+    }
+
+    /// On every input event, sample all input streams and output their `or` value.
+    pub fn or<T1,T2>(&self, label:Label, t1:&T1, t2:&T2) -> Stream<bool>
+    where T1:EventOutput<Output=bool>, T2:EventOutput<Output=bool> {
+        self.all_with(label,t1,t2,|a,b| *a || *b)
+    }
+
+    /// On every input event, sample all input streams and output their `and` value.
+    pub fn and<T1,T2>(&self, label:Label, t1:&T1, t2:&T2) -> Stream<bool>
+    where T1:EventOutput<Output=bool>, T2:EventOutput<Output=bool> {
+        self.all_with(label,t1,t2,|a,b| *a && *b)
+    }
+
+    /// Redirect second or third input to the output when the value of the first input is `false` or
+    /// `true` respectively. The redirection is persistent. The first input doesn't have to fire to
+    /// propagate the events fromm second and third input streams. Moreover, when first input
+    /// changes, an output event will be emitted with the updated value.
+    pub fn switch<T1,T2,T3,T>
+    (&self, label:Label, check:&T1, t2:&T2, t3:&T3) -> Stream<T>
+    where T1:EventOutput<Output=bool>, T2:EventOutput<Output=T>, T3:EventOutput<Output=T>, T:Data {
+        self.all_with3(label,check,t2,t3,|check,t1,t2| if *check {t2.clone()} else {t1.clone()})
     }
 
 
@@ -2074,9 +2119,9 @@ impl<T1,T2,F> Debug for AllWith2Data<T1,T2,F> {
 
 
 
-// ==============
+// ================
 // === AllWith3 ===
-// ==============
+// ================
 
 pub struct AllWith3Data <T1,T2,T3,F>
     { src1:watch::Ref<T1>, src2:watch::Ref<T2>, src3:watch::Ref<T3>, function:F }
@@ -2127,9 +2172,9 @@ impl<T1,T2,T3,F> Debug for AllWith3Data<T1,T2,T3,F> {
 
 
 
-// ==============
+// ================
 // === AllWith4 ===
-// ==============
+// ================
 
 pub struct AllWith4Data <T1,T2,T3,T4,F>
     { src1:watch::Ref<T1>, src2:watch::Ref<T2>, src3:watch::Ref<T3>, src4:watch::Ref<T4>

@@ -294,6 +294,11 @@ fn code_color(styles:&StyleWatch, tp:Option<&Type>) -> color::Lcha {
     opt_color.unwrap_or_else(||styles.get_color(theme::graph_editor::node::text))
 }
 
+fn select_color(styles:&StyleWatch, tp:Option<&Type>) -> color::Lcha {
+    let opt_color = tp.as_ref().map(|tp| type_coloring::compute(tp,styles));
+    opt_color.unwrap_or_else(||styles.get_color(theme::code::types::any::selection))
+}
+
 
 
 // ============
@@ -376,7 +381,7 @@ impl Area {
             // === Properties ===
 
             frp.output.source.width      <+ model.label.width;
-            frp.output.source.expression <+ model.label.content.map(|t| t.clone_ref());
+            frp.output.source.expression <+ model.label.content;
 
 
             // === Expression Type ===
@@ -470,10 +475,6 @@ impl Area {
         self.model.label.select_all();
         self.model.label.insert(&expression.viz_code);
         self.model.label.remove_all_cursors();
-        if self.frp.editing.value() {
-            self.model.label.set_cursor(&default());
-            self.model.label.set_cursor_at_end();
-        }
     }
 
     fn build_port_shapes_on_new_expression(&self, expression:&mut Expression) {
@@ -508,7 +509,6 @@ impl Area {
                 let skipped = if not_a_port { "(skip)" } else { "" };
                 println!("{}[{},{}] {} {:?} (tp: {:?}) (id: {:?})",indent,node.payload.index,
                          node.payload.length,skipped,node.kind.variant_name(),node.tp(),node.ast_id);
-                println!("?? {} {}",node.is_chained(),builder.parent_parensed);
             }
 
             let new_parent = if not_a_port {
@@ -539,7 +539,7 @@ impl Area {
 
                 // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
                 let styles             = StyleWatch::new(&self.model.app.display.scene().style_sheet);
-                let missing_type_color = styles.get_color(theme::code::types::missing);
+                let any_type_sel_color = styles.get_color(theme::code::types::any::selection);
                 let crumbs             = port.crumbs.clone_ref();
                 let port_network       = &port.network;
                 let frp                = &self.frp.output;
@@ -598,7 +598,7 @@ impl Area {
                         move |_,(_,edge_tp),port_tp| {
                             let tp    = port_tp.as_ref().or_else(||edge_tp.as_ref());
                             let color = tp.map(|tp| type_coloring::compute(tp,&styles));
-                            let color = color.unwrap_or(missing_type_color);
+                            let color = color.unwrap_or(any_type_sel_color);
                             cursor::Style::new_highlight(&port_shape_hover,padded_size,Some(color))
                         }
                     );
@@ -693,7 +693,7 @@ impl Area {
                         let start_bytes = (index as i32).bytes();
                         let end_bytes   = ((index + length) as i32).bytes();
                         let range       = ensogl_text::buffer::Range::from(start_bytes..end_bytes);
-                        label.set_color_bytes(range,color::Rgba::from(color)); // FIXME: removes cursor on tab in searcher
+                        label.set_color_bytes(range,color::Rgba::from(color));
                     });
                 }
             }
@@ -706,7 +706,7 @@ impl Area {
                     port_tp_on_hover <- all_with(&frp.set_hover,&final_tp,|_,t|t.clone());
                     viz_color <- all_with(&port_tp_on_hover,&frp.set_connected,f!([styles](port_tp,(is_connected,edge_tp)) {
                         let tp    = port_tp.as_ref().or_else(||edge_tp.as_ref());
-                        let color = code_color(&styles,tp);
+                        let color = select_color(&styles,tp);
                         if *is_connected {color} else { color::Lcha::transparent() }
                     }));
                     eval viz_color ((t) port_shape.viz.shape.color.set(color::Rgba::from(t).into()));
@@ -719,18 +719,22 @@ impl Area {
         });
     }
 
-    pub(crate) fn set_expression(&self, expression:impl Into<node::Expression>) {
-        let model          = &self.model;
-        let expression     = expression.into();
-        let mut expression = Expression::from(expression);
-        if DEBUG { println!("\n\n=====================\nSET EXPR: {}", expression.code) }
+    pub(crate) fn set_expression(&self, new_expression:impl Into<node::Expression>) {
+        let model              = &self.model;
+        let new_expression     = new_expression.into();
+        let mut new_expression = Expression::from(new_expression);
+        if DEBUG { println!("\n\n=====================\nSET EXPR: {}", new_expression.code) }
 
-        self.set_label_on_new_expression(&expression);
-        self.build_port_shapes_on_new_expression(&mut expression);
-        self.init_port_frp_on_new_expression(&mut expression);
+        self.set_label_on_new_expression(&new_expression);
+        self.build_port_shapes_on_new_expression(&mut new_expression);
+        self.init_port_frp_on_new_expression(&mut new_expression);
 
-        *model.expression.borrow_mut() = expression;
+        *model.expression.borrow_mut() = new_expression;
         model.init_port_coloring();
+
+        if self.frp.editing.value() {
+            self.model.label.set_cursor_at_end();
+        }
     }
 }
 

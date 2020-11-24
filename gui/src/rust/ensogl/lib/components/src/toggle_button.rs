@@ -97,7 +97,7 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
         let frp     = &self.frp;
         let model   = &self.model;
         let style   = StyleWatch::new(&app.display.scene().style_sheet);
-        let color   = color::DEPRECARTED_Animation::new();
+        let color   = color::Animation::new(network);
         let icon    = &model.icon.events;
 
         frp::extend! { network
@@ -118,8 +118,8 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
 
             // === Color ===
 
-            invisible <- frp.set_visibility.gate_not(&frp.set_visibility);
-            eval_ invisible (color.set_target_alpha(0.0));
+            invisible <- frp.set_visibility.on_false().constant(0.0);
+            color.target_alpha <+ invisible;
 
             visible    <- frp.set_visibility.gate(&frp.set_visibility);
             is_hovered <- bool(&icon.mouse_out,&icon.mouse_over);
@@ -129,17 +129,17 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
             eval state_change ([color,style]((source,(visible,hovered,state))) {
                 let source = source.clone();
                 match(*visible,*hovered,*state) {
-                    (false,_,_)        => color.set_target_alpha(0.0),
-                    (true,true,_)      => color.set_target(style.get_color(source)),
-                    (true,false,true)  => color.set_target(style.get_color(source)),
-                    (true,false,false) => color.set_target(style.get_color_dim(source)),
+                    (false,_,_)        => color.target_alpha.emit(0.0),
+                    (true,true,_)      => color.target.emit(style.get_color(source)),
+                    (true,false,true)  => color.target.emit(style.get_color(source)),
+                    (true,false,false) => color.target.emit(style.get_color_dim(source)),
                 }
             });
 
             eval color.value ((color) model.icon.shape.set_color(color.into()));
         }
 
-        color.alpha.set_value(0.0);
+        color.target_alpha.emit(0.0);
         self
     }
 

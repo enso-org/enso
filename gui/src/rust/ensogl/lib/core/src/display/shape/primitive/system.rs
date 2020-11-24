@@ -149,11 +149,11 @@ pub type ShapeSystemOf<T> = <T as Shape>::System;
 /// Additional operations implemented for all structures implementing `Shape`.
 pub trait ShapeOps {
     /// Check if given mouse-event-target means this shape.
-    fn is_this_target(&self,target:display::scene::Target) -> bool;
+    fn is_this_target(&self, target:display::scene::PointerTarget) -> bool;
 }
 
 impl<T:Shape> ShapeOps for T {
-    fn is_this_target(&self, target:display::scene::Target) -> bool {
+    fn is_this_target(&self, target:display::scene::PointerTarget) -> bool {
         self.sprites().iter().any(|s| s.is_this_target(target))
     }
 }

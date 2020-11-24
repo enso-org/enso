@@ -4,6 +4,7 @@ pub mod color;
 pub mod container;
 pub mod dirty;
 pub mod function;
+pub mod mix;
 pub mod seq;
 
 pub use enso_data::hash_map_tree;

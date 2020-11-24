@@ -157,7 +157,7 @@ pub struct Model {
     pub index           : usize,
     pub local_index     : usize,
     pub length          : usize,
-    pub highlight_color : color::Lcha,
+    pub highlight_color : color::Lcha, // TODO needed? and other fields?
 }
 
 impl Deref for Model {
