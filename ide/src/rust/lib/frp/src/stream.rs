@@ -175,7 +175,10 @@ impl<Out:Data> HasOutput for NodeData<Out> {
 
 impl<Out:Data> EventEmitter for NodeData<Out> {
     fn emit_event(&self, value:&Out) {
-        if !self.during_call.get() {
+        if self.during_call.get() {
+            let logger = Logger::new("frp");
+            warning!(&logger, "Encountered a loop in the reactive dataflow at '{self.label}'");
+        } else {
             self.during_call.set(true);
             if self.use_caching() {
                 *self.value_cache.borrow_mut() = value.clone();
@@ -183,7 +186,7 @@ impl<Out:Data> EventEmitter for NodeData<Out> {
             self.targets.borrow_mut().retain(|target| target.data.on_event_if_exists(value));
             let mut new_targets = self.new_targets.borrow_mut();
             if !new_targets.is_empty() {
-                let new_targets_ref : &mut Vec<EventInput<Out>> = &mut new_targets;
+                let new_targets_ref: &mut Vec<EventInput<Out>> = &mut new_targets;
                 self.targets.borrow_mut().extend(mem::take(new_targets_ref));
             }
             self.during_call.set(false);
