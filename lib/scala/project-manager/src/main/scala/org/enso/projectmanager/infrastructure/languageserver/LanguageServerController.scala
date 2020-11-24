@@ -115,13 +115,13 @@ class LanguageServerController(
       unstashAll()
       context.become(bootFailed(LanguageServerProtocol.ServerBootFailed(th)))
 
-    case ServerBooted(connectionInfo, server) =>
+    case ServerBooted(connectionInfo, serverProcessManager) =>
       unstashAll()
-      context.become(supervising(connectionInfo, server))
+      context.become(supervising(connectionInfo, serverProcessManager))
       context.actorOf(
         LanguageServerSupervisor.props(
           connectionInfo,
-          server,
+          serverProcessManager,
           supervisionConfig,
           new AkkaBasedWebSocketConnectionFactory(),
           context.system.scheduler

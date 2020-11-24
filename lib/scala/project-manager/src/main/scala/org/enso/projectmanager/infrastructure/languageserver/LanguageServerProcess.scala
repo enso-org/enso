@@ -2,6 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.io.PrintWriter
 import java.lang.ProcessBuilder.Redirect
 import java.util.UUID
+import java.util.concurrent.Executor
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash}
 import akka.pattern.pipe
@@ -23,7 +24,12 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{
+  ExecutionContext,
+  ExecutionContextExecutor,
+  Future,
+  Promise
+}
 import scala.util.Using
 
 class LanguageServerProcess(
@@ -66,12 +72,10 @@ class LanguageServerProcess(
   }
 
   private def launchProcessInBackground(): (Future[Process], Future[Int]) = {
-    // TODO [RW] what execution context to use for blocking on the launched process
-    import scala.concurrent.ExecutionContext.Implicits.global
     val processStartPromise = Promise[Process]()
     val stopped = Future {
       runServer(processStartPromise)
-    }
+    }(LanguageServerProcess.forkedProcessExecutionContext)
 
     (processStartPromise.future, stopped)
   }
@@ -134,7 +138,6 @@ class LanguageServerProcess(
       context.become(bootingStage(process, bootTimeout))
   }
 
-  // FIXME [RW] restarting, retrying
   private def runningStage(process: Process): Receive = {
     case Stop =>
       requestGracefulTermination(process)
@@ -226,4 +229,13 @@ object LanguageServerProcess {
   /** Sent to gracefully request to stop the server. */
   case object Stop
 
+  private object ForkedProcessExecutor extends Executor {
+    override def execute(command: Runnable): Unit = {
+      val thread = new Thread(command)
+      thread.start()
+    }
+  }
+
+  val forkedProcessExecutionContext: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(ForkedProcessExecutor)
 }

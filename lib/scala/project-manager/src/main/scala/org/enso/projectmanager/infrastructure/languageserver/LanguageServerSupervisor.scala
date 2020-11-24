@@ -14,6 +14,10 @@ import akka.actor.{
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
+  ServerBootFailed,
+  ServerBooted
+}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
   SendHeartbeat,
@@ -27,14 +31,15 @@ import org.enso.projectmanager.util.UnhandledLogging
   * monitoring to the [[HeartbeatSession]] actor.
   *
   * @param config a server config
-  * @param serverProcess a server handle
+  * @param serverProcessManager an actor that manages the lifecycle of the
+  *                             server process
   * @param supervisionConfig a supervision config
   * @param connectionFactory a web socket connection factory
   * @param scheduler a scheduler
   */
 class LanguageServerSupervisor(
   config: LanguageServerConnectionInfo,
-  serverProcess: ActorRef,
+  serverProcessManager: ActorRef,
   supervisionConfig: SupervisionConfig,
   connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler
@@ -80,7 +85,7 @@ class LanguageServerSupervisor(
       log.info(s"Server is unresponsive [$config]. Restarting it...")
       cancellable.cancel()
       log.info(s"Restarting the server")
-      serverProcess ! Restart
+      serverProcessManager ! Restart
       context.become(restarting)
 
     case GracefulStop =>
@@ -89,12 +94,18 @@ class LanguageServerSupervisor(
   }
 
   private def restarting: Receive = {
-    case LanguageServerProcess.ServerTerminated(_) =>
+    case ServerBootFailed(_) =>
       log.error("Cannot restart language server")
       context.parent ! ServerDied
       context.stop(self)
 
-    case LanguageServerProcess.ServerConfirmedFinishedBooting =>
+    case ServerBooted(_, newProcessManager) =>
+      if (newProcessManager != serverProcessManager) {
+        log.error(
+          "The process manager actor has changed. This should never happen. " +
+          "Supervisor may no longer work correctly."
+        )
+      }
       log.info(s"Language server restarted [$config]")
       val cancellable =
         scheduler.scheduleAtFixedRate(
@@ -145,7 +156,8 @@ object LanguageServerSupervisor {
   /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
     *
     * @param connectionInfo a server config
-    * @param serverProcess a server handle
+    * @param serverProcessManager an actor that manages the lifecycle of the
+    *                             server process
     * @param supervisionConfig a supervision config
     * @param connectionFactory a web socket connection factory
     * @param scheduler a scheduler
@@ -153,7 +165,7 @@ object LanguageServerSupervisor {
     */
   def props(
     connectionInfo: LanguageServerConnectionInfo,
-    serverProcess: ActorRef,
+    serverProcessManager: ActorRef,
     supervisionConfig: SupervisionConfig,
     connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler
@@ -161,7 +173,7 @@ object LanguageServerSupervisor {
     Props(
       new LanguageServerSupervisor(
         connectionInfo,
-        serverProcess,
+        serverProcessManager,
         supervisionConfig,
         connectionFactory,
         scheduler

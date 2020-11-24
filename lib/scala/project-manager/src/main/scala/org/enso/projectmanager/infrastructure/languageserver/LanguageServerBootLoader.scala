@@ -14,6 +14,8 @@ import scala.concurrent.duration.FiniteDuration
 /** It boots a Language Sever described by the `descriptor`. Upon boot failure
   * looks up new available port and retries to boot the server.
   *
+  * Once the server is booted it can restart it on request.
+  *
   * @param descriptor a LS descriptor
   * @param config a bootloader config
   */
@@ -49,16 +51,36 @@ class LanguageServerBootLoader(
         s"binary:${descriptor.networkConfig.interface}:$binaryPort]"
       )
       self ! Boot
-      context.become(booting(jsonRpcPort, binaryPort, retry))
+      context.become(
+        bootingFirstTime(
+          rpcPort    = jsonRpcPort,
+          dataPort   = binaryPort,
+          retryCount = retry
+        )
+      )
 
     case GracefulStop =>
       context.stop(self)
   }
 
-  private def booting(
+  private def bootingFirstTime(
     rpcPort: Int,
     dataPort: Int,
     retryCount: Int
+  ): Receive = booting(
+    rpcPort       = rpcPort,
+    dataPort      = dataPort,
+    shouldRetry   = true,
+    retryCount    = retryCount,
+    bootRequester = context.parent
+  )
+
+  private def booting(
+    rpcPort: Int,
+    dataPort: Int,
+    shouldRetry: Boolean,
+    retryCount: Int,
+    bootRequester: ActorRef
   ): Receive = {
     case Boot =>
       log.debug("Booting a language server")
@@ -75,7 +97,9 @@ class LanguageServerBootLoader(
 
     case LanguageServerProcess.ServerTerminated(exitCode) =>
       handleBootFailure(
+        shouldRetry,
         retryCount,
+        bootRequester,
         s"Language server terminated with exit code $exitCode before " +
         s"finishing booting.",
         None
@@ -83,7 +107,9 @@ class LanguageServerBootLoader(
 
     case LanguageServerProcess.ServerThreadFailed(throwable) =>
       handleBootFailure(
+        shouldRetry,
         retryCount,
+        bootRequester,
         s"Language server thread failed with $throwable.",
         Some(throwable)
       )
@@ -95,40 +121,46 @@ class LanguageServerBootLoader(
         dataPort = dataPort
       )
       log.info(s"Language server booted [$connectionInfo].")
-      // TODO who is the manager?
-      context.parent ! ServerBooted(connectionInfo, sender())
-      context.become(running)
+
+      bootRequester ! ServerBooted(connectionInfo, self)
+      context.become(running(connectionInfo))
 
     case GracefulStop =>
       context.children.foreach(_ ! LanguageServerProcess.Stop)
   }
 
   private def handleBootFailure(
+    shouldRetry: Boolean,
     retryCount: Int,
+    bootRequester: ActorRef,
     message: String,
     throwable: Option[Throwable]
   ): Unit = {
     log.warning(message)
 
-    if (retryCount < config.numberOfRetries) {
+    if (shouldRetry && retryCount < config.numberOfRetries) {
       context.system.scheduler
         .scheduleOnce(config.delayBetweenRetry, self, FindFreeSocket)
       context.become(findingSocket(retryCount + 1))
     } else {
-      log.error(
-        s"Tried $retryCount times to boot Language Server. Giving up."
-      )
-      context.parent ! ServerBootFailed(
+      if (shouldRetry) {
+        log.error(
+          s"Tried $retryCount times to boot Language Server. Giving up."
+        )
+      } else {
+        log.error("Failed to restart the server. Giving up.")
+      }
+      bootRequester ! ServerBootFailed(
         throwable.getOrElse(new RuntimeException(message))
       )
       context.stop(self)
     }
   }
 
-  /** After successfull boot, we cannot stop as it would stop our child process,
+  /** After successful boot, we cannot stop as it would stop our child process,
     * so we just wait for it to terminate, acting as a proxy.
     */
-  private def running: Receive = {
+  private def running(connectionInfo: LanguageServerConnectionInfo): Receive = {
     case msg @ LanguageServerProcess.ServerTerminated(exitCode) =>
       log.debug(
         s"Language Server process has terminated with exit code $exitCode"
@@ -136,36 +168,45 @@ class LanguageServerBootLoader(
       context.parent ! msg
       context.stop(self)
 
+    case Restart =>
+      context.children.foreach(_ ! LanguageServerProcess.Stop)
+      context.become(
+        restartingWaitingForShutdown(connectionInfo, rebootRequester = sender())
+      )
+
     case GracefulStop =>
       context.children.foreach(_ ! LanguageServerProcess.Stop)
   }
 
-//  def restarting(
-//    connectionInfo: LanguageServerConnectionInfo,
-//    replyTo: ActorRef
-//  ): Receive = {
-//    case LanguageServerProcess.ServerTerminated(exitCode) =>
-//      log.debug(
-//        s"Language Server process has terminated (as requested to reboot) " +
-//        s"with exit code $exitCode"
-//      )
-//
-//      context.become(rebooting(connectionInfo, replyTo))
-//      self ! Boot
-//
-//    case GracefulStop =>
-//      context.children.foreach(_ ! LanguageServerProcess.Stop)
-//  }
-//
-//  def rebooting(
-//    connectionInfo: LanguageServerConnectionInfo,
-//    replyTo: ActorRef
-//  ): Receive = booting(
-//    connectionInfo.rpcPort,
-//    connectionInfo.dataPort,
-//    config.numberOfRetries,
-//    replyTo
-//  )
+  // TODO [RW] handling stop timeout
+  //  may also consider a stop timeout for GracefulStop and killing the process?
+  def restartingWaitingForShutdown(
+    connectionInfo: LanguageServerConnectionInfo,
+    rebootRequester: ActorRef
+  ): Receive = {
+    case LanguageServerProcess.ServerTerminated(exitCode) =>
+      log.debug(
+        s"Language Server process has terminated (as requested to reboot) " +
+        s"with exit code $exitCode"
+      )
+
+      context.become(rebooting(connectionInfo, rebootRequester))
+      self ! Boot
+
+    case GracefulStop =>
+      context.children.foreach(_ ! LanguageServerProcess.Stop)
+  }
+
+  def rebooting(
+    connectionInfo: LanguageServerConnectionInfo,
+    rebootRequester: ActorRef
+  ): Receive = booting(
+    rpcPort       = connectionInfo.rpcPort,
+    dataPort      = connectionInfo.dataPort,
+    shouldRetry   = false,
+    retryCount    = config.numberOfRetries,
+    bootRequester = rebootRequester
+  )
 
   private def findPort(): Int =
     Tcp.findAvailablePort(
