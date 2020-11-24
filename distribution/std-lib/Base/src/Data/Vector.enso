@@ -428,10 +428,10 @@ type Vector
 
        > Example
          Sorting a vector of `Pair`s on the first element, descending.
-             [Pair 1 2, Pair -1 8, Pair 3 0].sort (_.first) (order = Sort_Order.Descending)
+             [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
     sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
     sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
-        this
+        Sort.run this on by order
 
 ## A builder type for Enso vectors.
 

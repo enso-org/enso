@@ -116,8 +116,8 @@ spec = describe "Vectors" <|
         singleton_vec.rest . should_equal []
         empty_vec.rest . should_equal Nothing
     # it "should be able to be sorted" <|
-        # vec = [14, 4, 2, 3, 141, 0, -1]
-        # vec.sort
     # it "should have a stable sort" <|
-        # Test.fail "nope"
+    # it "should be able to use a custom element projection" <|
+    # it "should be able to use a custom comparator" <|
+    # it "should be able to sort in ascending and descending order" <|
 

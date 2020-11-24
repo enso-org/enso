@@ -122,6 +122,41 @@ public class Number {
         "ceil",
         org.enso.interpreter.node.expression.builtin.number.smallInteger.CeilMethodGen.makeFunction(
             language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_and",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitAndMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_or",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitOrMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_xor",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitXorMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_not",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitNotMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_shift_l",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftLeftMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_shift_r_sign_fill",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftRightSignFillMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_shift_r_zero_fill",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftRightZeroFillMethodGen
+            .makeFunction(language));
   }
 
   private void registerBigIntegerMethods(Language language, ModuleScope scope) {

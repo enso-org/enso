@@ -40,6 +40,12 @@ spec =
         it "should use floating point arithmetic for division" <|
             (3 / 4) . should_equal 0.75 epsilon=eps
             (almost_max_long * 2 / almost_max_long_times_three) . should_equal 0.6666666 epsilon=eps
+        it "should support integral binary literals" <|
+            lit = 2_01101101
+            lit . should_equal 109
+        it "should support integral hexadecimal literals" <|
+            lit = 16_6D
+            lit . should_equal 109
     describe "Decimals" <|
         it "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
@@ -81,4 +87,33 @@ spec =
             1.ceil . should_equal 1
             almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
+    describe "Small Integers" <|
+        it "should support bitwise and" <|
+            left  = 2_01101101
+            right = 2_11000100
+            left.bit_and right . should_equal 2_01000100
+        it "should support bitwise or" <|
+            left  = 2_01101101
+            right = 2_11000100
+            left.bit_or right . should_equal 2_11101101
+        it "should support bitwise exclusive or" <|
+            left  = 2_01101101
+            right = 2_11000100
+            left.bit_xor right . should_equal 2_10101001
+        it "should support bitwise negation" <|
+            bits  = 2_01101101
+            expected = -110
+            bits.bit_not . should_equal expected
+        it "should support left bit shifts" <|
+            bits  = 2_01101101
+            expected = 2_0110110100
+            bits.bit_shift_l 2 . should_equal expected
+        it "should support right bit shifts, preserving sign" <|
+            bits  = -1632
+            expected = -408
+            bits.bit_shift_r 2 . should_equal expected
+        it "should support right bit shifts, zero-filling" <|
+            bits  = 2_01101101
+            expected = 2_00011011
+            bits.bit_shift_r 2 zero_fill=True . should_equal expected
 
