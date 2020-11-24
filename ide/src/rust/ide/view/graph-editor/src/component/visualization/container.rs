@@ -469,7 +469,7 @@ impl ContainerModel {
     }
 
     /// Check if given mouse-event-target means this visualization.
-    fn is_this_target(&self, target:scene::Target) -> bool {
+    fn is_this_target(&self, target:scene::PointerTarget) -> bool {
         use ensogl::display::shape::primitive::system::ShapeOps;
         self.view.overlay.shape.is_this_target(target)
     }

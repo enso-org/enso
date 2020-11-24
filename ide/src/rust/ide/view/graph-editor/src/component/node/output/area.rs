@@ -755,7 +755,7 @@ impl Area {
     fn set_port_colors_based_on_available_types(&self) {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles             = StyleWatch::new(&self.scene.style_sheet);
-        let missing_type_color = styles.get_color(theme::code::types::missing);
+        let missing_type_color = styles.get_color(theme::code::types::any::selection);
 
         self.id_map.borrow().iter().for_each(|(id, crumb)|{
             let color = self.get_port_color(crumb).unwrap_or(missing_type_color);

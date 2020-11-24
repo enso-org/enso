@@ -99,10 +99,10 @@ impl {
         self.mouse_target_map.remove(&(symbol_id,instance_id));
     }
 
-    pub fn get_mouse_target(&mut self, target:Target) -> Option<Rc<dyn MouseTarget>> {
+    pub fn get_mouse_target(&mut self, target:PointerTarget) -> Option<Rc<dyn MouseTarget>> {
         match target {
-            Target::Background => None,
-            Target::Symbol {symbol_id,instance_id} => {
+            PointerTarget::Background => None,
+            PointerTarget::Symbol {symbol_id,instance_id} => {
                 let symbol_id   = symbol_id   as i32;
                 let instance_id = instance_id as usize;
                 self.mouse_target_map.get(&(symbol_id,instance_id)).map(|t| t.clone_ref())
@@ -128,7 +128,7 @@ enum DecodingResult{
 
 /// Mouse target. Contains a path to an object pointed by mouse.
 #[derive(Debug,Clone,Copy,Eq,PartialEq)]
-pub enum Target {
+pub enum PointerTarget {
     Background,
     Symbol {
         symbol_id   : u32,
@@ -136,7 +136,7 @@ pub enum Target {
     }
 }
 
-impl Target {
+impl PointerTarget {
 
     /// Encode two u32 values into three u8 values.
     ///
@@ -234,7 +234,7 @@ impl Target {
     }
 }
 
-impl Default for Target {
+impl Default for PointerTarget {
     fn default() -> Self {
         Self::Background
     }
@@ -306,7 +306,7 @@ pub struct Mouse {
     pub last_position : Rc<Cell<Vector2<i32>>>,
     pub position      : Uniform<Vector2<i32>>,
     pub hover_ids     : Uniform<Vector4<u32>>,
-    pub target        : Rc<Cell<Target>>,
+    pub target        : Rc<Cell<PointerTarget>>,
     pub handles       : Rc<[callback::Handle;3]>,
     pub frp           : enso_frp::io::Mouse,
     pub scene_frp     : Frp,
@@ -318,7 +318,7 @@ impl Mouse {
     (scene_frp:&Frp, variables:&UniformScope, current_js_event:&CurrentJsEvent, logger:Logger)
     -> Self {
         let scene_frp       = scene_frp.clone_ref();
-        let target          = Target::default();
+        let target          = PointerTarget::default();
         let last_position   = Rc::new(Cell::new(Vector2::new(0,0)));
         let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
         let hover_ids       = variables.add_or_panic("mouse_hover_ids",target.to_internal(&logger));
@@ -926,7 +926,7 @@ impl SceneData {
     }
 
     fn handle_mouse_events(&self) {
-        let new_target     = Target::from_internal(self.mouse.hover_ids.get());
+        let new_target     = PointerTarget::from_internal(self.mouse.hover_ids.get());
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);

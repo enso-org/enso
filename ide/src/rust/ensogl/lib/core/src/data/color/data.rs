@@ -57,6 +57,17 @@ impl<D> Deref for Color<D> {
 }
 
 
+// === Color Model ===
+
+/// Type family for accessing color models.
+#[allow(missing_docs)]
+pub trait HasModel              { type Model; }
+impl<M>   HasModel for Color<M> { type Model = M; }
+
+/// Accessor for `HasModel::Model`.
+pub type Model<T> = <T as HasModel>::Model;
+
+
 // === Component Generics ===
 
 impl<D:HasComponentsRepr> HasComponentsRepr for Color<D> {

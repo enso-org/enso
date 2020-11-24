@@ -142,8 +142,8 @@ fn init(app:&Application) {
         }
     });
 
-    let src = graph_editor::EdgeTarget::new(node1_id,span_tree::Crumbs::new(default()));
-    let tgt = graph_editor::EdgeTarget::new(node2_id,span_tree::Crumbs::new(vec![0,0,0,0,1]));
+    let src = graph_editor::EdgeEndpoint::new(node1_id,span_tree::Crumbs::new(default()));
+    let tgt = graph_editor::EdgeEndpoint::new(node2_id,span_tree::Crumbs::new(vec![0,0,0,0,1]));
     graph_editor.frp.connect_nodes.emit((src,tgt));
 
 

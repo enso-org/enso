@@ -256,22 +256,14 @@ macro_rules! define_endpoints {
             /// Create Frp endpoints within and the associated network.
             pub fn new() -> Self {
                 let network = $crate::frp::Network::new();
-                let input   = FrpInputs::new(&network);
-                let output  = FrpEndpoints::new(&network,input);
+                let output  = Self::extend(&network);
                 Self {network,output}
             }
 
             /// Create Frp endpoints within the provided network.
-            pub fn extend(network:&$crate::frp::Network) -> Self {
-                let input   = FrpInputs::new(network);
-                let output  = FrpEndpoints::new(network,input);
-                let network = network.clone_ref();
-                Self {network,output}
-            }
-
-            /// Deprecated constructor. Use `new` or `default` instead.
-            pub fn deprecated_new(network:$crate::frp::Network, output:FrpEndpoints) -> Self {
-                Self {network,output}
+            pub fn extend(network:&$crate::frp::Network) -> FrpEndpoints {
+                let input = FrpInputs::new(network);
+                FrpEndpoints::new(network,input)
             }
         }
 

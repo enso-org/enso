@@ -399,10 +399,11 @@ impl Deref for View {
 impl View {
     /// Constructor.
     pub fn new(view_buffer:impl Into<ViewBuffer>) -> Self {
-        let network = frp::Network::new();
-        let model   = ViewModel::new(&network,view_buffer);
-        let input   = model.frp.clone_ref();
-        let output  = FrpEndpoints::new(&network,input.clone_ref());
+        let frp     = Frp::new();
+        let network = &frp.network;
+        let input   = &frp.input;
+        let output  = &frp.output;
+        let model   = ViewModel::new(input,view_buffer);
         let m       = &model;
 
         frp::extend! { network
@@ -467,7 +468,6 @@ impl View {
             eval output.source.selection_edit_mode     ((t) m.set_selection(t));
             eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
         }
-        let frp = Frp::deprecated_new(network,output);
         Self {frp,model}
     }
 }
@@ -503,8 +503,8 @@ impl Deref for ViewModel {
 
 impl ViewModel {
     /// Constructor.
-    pub fn new(network:&frp::Network, view_buffer:impl Into<ViewBuffer>) -> Self {
-        let frp                   = FrpInputs::new(network);
+    pub fn new(frp:&FrpInputs, view_buffer:impl Into<ViewBuffer>) -> Self {
+        let frp                   = frp.clone_ref();
         let view_buffer           = view_buffer.into();
         let first_view_line_index = default();
         let view_line_count       = Rc::new(Cell::new(DEFAULT_LINE_COUNT));

@@ -116,10 +116,11 @@ define_default_theme! { __light_theme__
             selection = Lcha(0.7,0.0,0.125,0.7);
         }
         types {
-            luminance  = 0.8;
-            chroma     = 0.6;
-            missing    = Lcha(0.8,0.0,0.0,1.0);
-            selected   = code::syntax::base;
+            luminance     = 0.8;
+            chroma        = 0.6;
+            any           = code::syntax::base;
+            any.selection = Lcha(0.8,0.0,0.0,1.0);
+            selected      = code::syntax::base;
             overriden {
                 Text.hue   = 0.22;
                 Number.hue = 0.68;
