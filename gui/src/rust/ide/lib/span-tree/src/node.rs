@@ -474,11 +474,19 @@ impl<'a,T:Payload> Ref<'a,T> {
             let remaining_ast_crumbs = ast_crumbs;
             Some(NodeFoundByAstCrumbs{node, ast_crumbs: remaining_ast_crumbs })
         } else {
-            let mut children = self.node.children.iter();
-            // Please be advised, that the `ch.ast_crumhs` is not a field of Ref, but Child, and
+            // Please be advised, that the `ch.ast_crumbs` is not a field of Ref, but Child, and
             // therefore have different meaning!
-            let next = children.find_position(|ch| {
+            let next = self.node.children.iter().find_position(|ch| {
                 !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
+            }).or_else(|| {
+                // We try to find appriopriate node second time, this time expecting case of
+                // "prefix-like" nodes with `InsertionPoint(ExpectedArgument(_))`. See also docs for
+                // `generate::generate_expected_argument`.
+                // TODO[ao]: As implementation of SpanTree will extend there may be some day more
+                //  cases. Should be reconsidered in https://github.com/enso-org/ide/issues/787
+                self.node.children.iter().find_position(|ch| {
+                    ch.ast_crumbs.is_empty() && !ch.kind.is_insertion_point()
+                })
             });
             next.and_then(|(id,child)| {
                 let ast_subcrumbs = &ast_crumbs[child.ast_crumbs.len()..];
@@ -677,11 +685,12 @@ impl<'a,T:Payload> RefMut<'a,T> {
 mod test {
     use crate::builder::Builder;
     use crate::builder::TreeBuilder;
+    use crate::Crumbs;
     use crate::node;
+    use crate::node::InsertionPointType;
     use crate::SpanTree;
 
     use ast::crumbs;
-    use crate::node::InsertionPointType;
 
     #[test]
     fn node_lookup() {
@@ -769,6 +778,32 @@ mod test {
             let result = root.clone().get_descendant_by_ast_crumbs(&crumbs).unwrap();
             assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs);
             assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice());
+        }
+    }
+
+    #[test]
+    fn node_lookup_by_ast_crumbs_expected_arguments_case() {
+        use ast::crumbs::InfixCrumb::*;
+
+        // An example with single call and expected arguments.
+        // See also `generate::test::generating_span_tree_for_unfinished_call`
+        let tree : SpanTree = TreeBuilder::new(8)
+            .add_child(0,8,node::Kind::Chained,ast::crumbs::Crumbs::default())
+                .add_child(0,8,node::Kind::Operation,ast::crumbs::Crumbs::default())
+                    .add_leaf(0,4,node::Kind::this(),LeftOperand)
+                    .add_leaf(4,1,node::Kind::Operation,Operator)
+                    .add_leaf(5,3,node::Kind::argument(),RightOperand)
+                    .done()
+                .add_empty_child(8,InsertionPointType::ExpectedArgument(0))
+                .done()
+            .add_empty_child(8,InsertionPointType::ExpectedArgument(1))
+            .build();
+
+        let cases = &[(crumbs!(LeftOperand),vec![0,0,0]), (crumbs!(RightOperand),vec![0,0,2])];
+
+        for (ast_crumbs,expected_crumbs) in cases {
+            let result = tree.root_ref().get_descendant_by_ast_crumbs(ast_crumbs).unwrap();
+            assert_eq!(result.node.crumbs,Crumbs::new(expected_crumbs.clone()));
         }
     }
 }

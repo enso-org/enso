@@ -249,9 +249,11 @@ impl Connections {
     /// Converts Connection from double representation to the span tree crumbs.
     pub fn convert_connection
     (&self, connection:&double_representation::connection::Connection) -> Option<Connection> {
+        let source = self.convert_endpoint(&connection.source)?;
+        let destination = self.convert_endpoint(&connection.destination)?;
         Some(Connection {
-            source      : self.convert_endpoint(&connection.source)?,
-            destination : self.convert_endpoint(&connection.destination)?,
+            source      ,
+            destination ,
         })
     }
 }
@@ -1351,7 +1353,6 @@ main =
 
                 test.data.code = main;
                 test.run(|graph| async move {
-                    println!("The nodes: {:?}", graph.nodes());
                     let (node0,node1) = graph.nodes().unwrap().expect_tuple();
                     let source        = Endpoint::new(node0.info.id(),src_port.to_vec());
                     let destination   = Endpoint::new(node1.info.id(),dst_port.to_vec());
