@@ -130,14 +130,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(updateAllQuery(expressions))
 
   /** @inheritdoc */
-  override def updateExports(
-    exportingModule: String,
-    exportedModule: String,
-    exportedSymbol: String
-  ): Future[Seq[Long]] =
-    db.run(updateExportsQuery(exportingModule, exportedModule, exportedSymbol))
-
-  /** @inheritdoc */
   override def renameProject(oldName: String, newName: String): Future[Unit] =
     db.run(renameProjectQuery(oldName, newName))
 
@@ -466,35 +458,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       )
       version <- currentVersionQuery
     } yield (version, idOpt)
-
-  private def updateExportsQuery(
-    exportingModule: String,
-    exportedModule: String,
-    exportedSymbol: String
-  ): DBIO[Seq[Long]] = {
-    val depth = exportingModule.count(_ == '.')
-    val selectQuery =
-      Suggestions
-        .filter(_.module === exportedModule)
-        .filter(_.name === exportedSymbol)
-        .filter(_.kind.inSet(Seq(SuggestionKind.ATOM, SuggestionKind.METHOD)))
-        .filter(s => s.module.length - s.module.replace(".", "").length < depth)
-    for {
-      ids <- selectQuery.map(_.id).result
-      n <- DBIO.sequence {
-        ids.map { id =>
-          Suggestions
-            .filter(_.id === id)
-            .map(_.module)
-            .update(exportingModule)
-        }
-      }
-    } yield {
-      ids.zip(n).collect {
-        case (id, n) if n > 0 => id
-      }
-    }
-  }
 
   /** The query to update the suggestion.
     *
