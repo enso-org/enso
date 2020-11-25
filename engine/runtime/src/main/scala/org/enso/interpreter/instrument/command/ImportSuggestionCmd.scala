@@ -34,7 +34,7 @@ final class ImportSuggestionCmd(
       Api.ImportSuggestionResponse(
         suggestion.module,
         suggestion.name,
-        findExports.sortBy(getDepth)
+        findExports.sortBy(_.depth).map(_.export)
       )
     )
   }
@@ -43,15 +43,15 @@ final class ImportSuggestionCmd(
     *
     * @param ctx contains suppliers of services to perform a request
     */
-  private def findExports(implicit ctx: RuntimeContext): Seq[Api.Export] = {
+  private def findExports(implicit ctx: RuntimeContext): Seq[ExportResult] = {
     val suggestion = request.suggestion
     val topScope =
       ctx.executionService.getContext.getCompiler.context.getTopScope
     @scala.annotation.tailrec
     def go(
       queue: mutable.Queue[ExportingModule],
-      builder: mutable.Builder[Api.Export, Vector[Api.Export]]
-    ): Vector[Api.Export] =
+      builder: mutable.Builder[ExportResult, Vector[ExportResult]]
+    ): Vector[ExportResult] =
       if (queue.isEmpty) {
         builder.result()
       } else {
@@ -63,12 +63,15 @@ final class ImportSuggestionCmd(
             module.getIr.exports.foreach { export =>
               if (export.name.name == current.name) {
                 if (!export.isAll) {
-                  builder += Api.Export.Qualified(
+                  val qualified = Api.Export.Qualified(
                     module.getName.toString,
                     export.rename.map(_.name)
                   )
+                  builder += ExportResult(qualified, getDepth(export.name))
                 } else if (exportsSymbol(export, suggestion.name)) {
-                  builder += Api.Export.Unqualified(module.getName.toString)
+                  val unqualified =
+                    Api.Export.Unqualified(module.getName.toString)
+                  builder += ExportResult(unqualified, getDepth(export.name))
                   queue.enqueue(ExportingModule(module.getName.toString))
                 }
               }
@@ -83,8 +86,8 @@ final class ImportSuggestionCmd(
     )
   }
 
-  private def getDepth(export: Api.Export): Int =
-    export.module.count(_ == '.')
+  private def getDepth(name: IR.Name.Qualified): Int =
+    name.parts.size
 
   private def isCompiled(module: Module): Boolean =
     module.getIr != null
@@ -106,5 +109,12 @@ object ImportSuggestionCmd {
     * @param name the module name
     */
   private case class ExportingModule(name: String)
+
+  /** An intermediate result of exports resolution.
+    *
+    * @param export the module export
+    * @param depth how nested is the exporting module
+    */
+  private case class ExportResult(export: Api.Export, depth: Int)
 
 }
