@@ -54,6 +54,9 @@ type Column
     is_missing : Column
     is_missing = here.run_vectorized_op this "is_missing" (== Nothing) Nothing
 
+    / : Any -> Column
+    / that = here.run_vectorized_op this "/" (/ that) that
+
     ## Applies `function` to each item in this column and returns the column
        of results.
     map function =

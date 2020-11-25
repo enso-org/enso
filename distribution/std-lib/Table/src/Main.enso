@@ -8,3 +8,15 @@ from Table.Io.Csv export all hiding Parser
 export Table.Data.Column
 from Table.Data.Table export new
 
+Json.Array.to_table fnames = case this of
+    Json.Array items ->
+        rows = items.map <| case _ of
+            Json.Object fields ->
+                fnames.map n-> case fields.get n of
+                    Nothing -> Nothing
+                    js -> js.unwrap
+            _ -> Vector.fill fnames.length Nothing
+        cols = fnames.map_with_index i-> n->
+            [n, rows.map (_.at i)]
+        Table.new cols
+

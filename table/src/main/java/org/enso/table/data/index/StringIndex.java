@@ -2,17 +2,15 @@ package org.enso.table.data.index;
 
 import org.enso.table.data.column.storage.StringStorage;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class StringIndex extends Index {
   private final Object[] items;
-  private final Map<String, Integer> locs;
+  private final Map<String, List<Integer>> locs;
   private final String name;
   private final int size;
 
-  private StringIndex(Object[] items, Map<String, Integer> locs, String name, int size) {
+  private StringIndex(Object[] items, Map<String, List<Integer>> locs, String name, int size) {
     this.items = items;
     this.locs = locs;
     this.name = name;
@@ -20,14 +18,10 @@ public class StringIndex extends Index {
   }
 
   private StringIndex(String name, Object[] items, int start, int size) {
-    Map<String, Integer> locations = new HashMap<>();
+    Map<String, List<Integer>> locations = new HashMap<>();
     for (int i = start; i < size; i++) {
-      if (items[i] == null) {
-        throw new RuntimeException("Null in index at " + i);
-      }
-      if (locations.putIfAbsent((String) items[i], i) != null) {
-        throw new RuntimeException("Non uniq in index");
-      }
+      List<Integer> its = locations.computeIfAbsent((String) items[i], x -> new ArrayList<>());
+      its.add(i);
     }
     this.locs = locations;
     this.items = items;

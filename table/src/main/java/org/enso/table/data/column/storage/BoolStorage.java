@@ -44,7 +44,7 @@ public class BoolStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return op.equals(Ops.EQ) || op.equals(Ops.NOT);
+    return op.equals(Ops.EQ) || op.equals(Ops.NOT) || op.equals(Ops.IS_MISSING);
   }
 
   @Override
@@ -53,6 +53,8 @@ public class BoolStorage extends Storage {
       return runVectorizedEq(operand);
     } else if (Ops.NOT.equals(name)) {
       return new BoolStorage(values, isMissing, size, !negated);
+    } else if (Ops.IS_MISSING.equals(name)) {
+      return new BoolStorage(isMissing, new BitSet(), size, false);
     }
     throw new UnsupportedOperationException();
   }
