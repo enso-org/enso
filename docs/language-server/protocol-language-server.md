@@ -550,12 +550,14 @@ type Export = Qualified | Unqualified;
 
 interface Qualified {
   /**
-   * The module name that re-exports the given module.
+   * The module that re-exports the given module.
    */
   module: String;
 
   /**
-   * The new module name if the module was renamed in the export clause.
+   * The new name of the given module if it was renamed in the export clause.
+   *
+   * I.e. `X` in `export A.B as X`.
    */
   alias?: String;
 }
