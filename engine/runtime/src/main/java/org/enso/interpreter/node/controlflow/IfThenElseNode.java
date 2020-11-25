@@ -88,4 +88,10 @@ public abstract class IfThenElseNode extends ExpressionNode {
     frame.setObject(getStateFrameSlot(), result.getState());
     return result.getValue();
   }
+
+  @Override
+  public void setTailStatus(TailStatus tailStatus) {
+    super.setTailStatus(tailStatus);
+    onFunction.setTailStatus(tailStatus);
+  }
 }
