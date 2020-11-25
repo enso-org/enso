@@ -7,7 +7,6 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.optimise.config.{IfThen, IfThenElse}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
@@ -180,10 +179,7 @@ case object ApplicationSaturation extends IRPass {
     * @param knownFunctions the mapping of known functions
     */
   sealed case class Configuration(
-    knownFunctions: KnownFunctionsMapping = Map(
-      "if_then_else" -> FunctionSpec(3, IfThenElse.build),
-      "if_then"      -> FunctionSpec(2, IfThen.build)
-    )
+    knownFunctions: KnownFunctionsMapping = Map()
   ) extends IRPass.Configuration {
     override var shouldWriteToContext: Boolean = false
   }

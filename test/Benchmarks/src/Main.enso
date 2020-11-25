@@ -66,36 +66,20 @@ sum_co n =
     res = here.sum_co_2 n 0
     res
 
-measure_corecursion =
-    before = System.nano_time
-    Runtime.no_inline (here.sum_co 100000000)
-    after = System.nano_time
-    IO.println ((after - before) / 1000000)
-
 main =
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    here.measure_corecursion
-    # hundred_mil = 100000000
-    # IO.println "Measuring Sum TCO Corecursive"
-    # Bench.measure (here.sum_co hundred_mil) "sum_tco_corecursive" 1 20
-    # IO.println "Measuring Sum TCO Decimal"
-    # Bench.measure (here.sum_tco_decimal hundred_mil) "sum_tco_float" 10 20
-    # IO.println "Measuring SumTCO"
-    # Bench.measure (here.sum_tco hundred_mil) "sum_tco" 10 20
-    # IO.println "Measuring SumTCO Java"
-    # Bench.measure (here.sum_tco_java hundred_mil) "sum_tco_java" 10 20
-    # IO.println "Measuring SumTCO Eval"
-    # Bench.measure (here.sum_tco_eval hundred_mil) "sum_tco_eval" 10 20
-    # IO.println "Measuring State"
-    # Bench.measure (here.sum_state hundred_mil) "sum_state" 10 20
-    # IO.println "Measuring Co-State"
-    # Bench.measure (here.sum_co_state hundred_mil) "sum_co_state" 10 20
-    # IO.println "Bye."
+    hundred_mil = 100000000
+    IO.println "Measuring Sum TCO Corecursive"
+    Bench.measure (here.sum_co hundred_mil) "sum_tco_corecursive" 100 10
+    IO.println "Measuring Sum TCO Decimal"
+    Bench.measure (here.sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
+    IO.println "Measuring SumTCO"
+    Bench.measure (here.sum_tco hundred_mil) "sum_tco" 100 10
+    IO.println "Measuring SumTCO Java"
+    Bench.measure (here.sum_tco_java hundred_mil) "sum_tco_java" 100 10
+    IO.println "Measuring SumTCO Eval"
+    Bench.measure (here.sum_tco_eval hundred_mil) "sum_tco_eval" 100 10
+    IO.println "Measuring State"
+    Bench.measure (here.sum_state hundred_mil) "sum_state" 100 10
+    IO.println "Measuring Co-State"
+    Bench.measure (here.sum_co_state hundred_mil) "sum_co_state" 100 10
+    IO.println "Bye."

@@ -25,7 +25,7 @@ public abstract class BitShiftLeftNode extends Node {
     return BitShiftLeftNodeGen.create();
   }
 
-  // TODO [AA] Handle negative shift values.
+  // TODO [AA] Handle negative shift values by delegating to the other nodes
 
   @Specialization(guards = {"fitsInInt(that)", "hasFreeBits(_this, that)", "that > 0"})
   Object doLong(long _this, long that) {
