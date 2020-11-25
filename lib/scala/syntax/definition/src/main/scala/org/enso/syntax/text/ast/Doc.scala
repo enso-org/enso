@@ -189,7 +189,7 @@ object Doc {
           s"""document.getElementByID('$uniqueIDBtn')
              |.addEventListener('click', function(){
              |    copyCode('$uniqueIDCode')
-             |}""".stripMargin
+             |})""".stripMargin
         }
         if (isInGui) {
           val htmlStyle = HTML.`style` := "display: block"
