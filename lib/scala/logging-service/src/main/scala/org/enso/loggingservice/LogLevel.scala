@@ -94,19 +94,26 @@ object LogLevel {
       level.level.asJson
   }
 
+  /** Creates a [[LogLevel]] from its integer representation.
+    *
+    * Returns None if the number does not represent a valid log level.
+    */
+  def fromInteger(level: Int): Option[LogLevel] = level match {
+    case Error.level   => Some(Error)
+    case Warning.level => Some(Warning)
+    case Info.level    => Some(Info)
+    case Debug.level   => Some(Debug)
+    case Trace.level   => Some(Trace)
+    case _             => None
+  }
+
   /** [[Decoder]] instance for [[LogLevel]].
     */
   implicit val decoder: Decoder[LogLevel] = { json =>
-    json.as[Int].flatMap {
-      case Error.level   => Right(Error)
-      case Warning.level => Right(Warning)
-      case Info.level    => Right(Info)
-      case Debug.level   => Right(Debug)
-      case Trace.level   => Right(Trace)
-      case other =>
-        Left(
-          DecodingFailure(s"`$other` is not a valid log level.", json.history)
-        )
+    json.as[Int].flatMap { level =>
+      fromInteger(level).toRight(
+        DecodingFailure(s"`$level` is not a valid log level.", json.history)
+      )
     }
   }
 
