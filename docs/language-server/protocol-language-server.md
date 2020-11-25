@@ -3107,7 +3107,8 @@ import.
   symbol: String;
 
   /**
-   * The list of re-exports.
+   * The list of modules that re-export the suggestion. Modules are ordered
+   * from the least to most nested.
    */
   exports: Export[];
 }
