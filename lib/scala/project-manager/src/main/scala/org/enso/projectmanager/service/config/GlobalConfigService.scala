@@ -23,6 +23,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     distributionConfiguration.distributionManager
   )
 
+  /** @inheritdoc */
   override def getKey(
     key: String
   ): F[GlobalConfigServiceFailure, Option[String]] =
@@ -31,6 +32,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       valueOption.map(json => json.asString.getOrElse(json.toString()))
     }.recoverAccessErrors
 
+  /** @inheritdoc */
   override def setKey(
     key: String,
     value: String
@@ -38,16 +40,29 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     configurationManager.updateConfigRaw(key, Json.fromString(value))
   }.recoverAccessErrors
 
+  /** @inheritdoc */
   override def deleteKey(key: String): F[GlobalConfigServiceFailure, Unit] =
     Sync[F].blockingOp {
       configurationManager.removeFromConfig(key)
     }.recoverAccessErrors
 
+  /** @inheritdoc */
   override def getDefaultEnsoVersion: F[GlobalConfigServiceFailure, SemVer] =
     Sync[F].blockingOp {
       configurationManager.defaultVersion
     }.recoverAccessErrors
 
+  /** @inheritdoc */
+  override def resolveEnsoVersion(
+    ensoVersion: EnsoVersion
+  ): F[GlobalConfigServiceFailure, SemVer] = ensoVersion match {
+    case DefaultEnsoVersion         => getDefaultEnsoVersion
+    case SemVerEnsoVersion(version) => CovariantFlatMap[F].pure(version)
+  }
+
+  /** Syntax for recovering arbitrary errors into errors describing
+    * configuration access failure.
+    */
   implicit class AccessErrorRecovery[A](fa: F[Throwable, A]) {
     def recoverAccessErrors: F[GlobalConfigServiceFailure, A] = {
       ErrorChannel[F].mapError(fa) { throwable =>
@@ -56,10 +71,4 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     }
   }
 
-  override def resolveEnsoVersion(
-    ensoVersion: EnsoVersion
-  ): F[GlobalConfigServiceFailure, SemVer] = ensoVersion match {
-    case DefaultEnsoVersion         => getDefaultEnsoVersion
-    case SemVerEnsoVersion(version) => CovariantFlatMap[F].pure(version)
-  }
 }

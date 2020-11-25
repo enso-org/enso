@@ -181,9 +181,18 @@ class BaseServerSpec
     FileUtils.deleteQuietly(testProjectsRoot)
   }
 
+  /** Tests can override this value to request a specific engine version to be
+    * preinstalled when running the suite.
+    */
   val engineToInstall: Option[SemVer] = None
-  val debugLogs: Boolean              = false
-  val debugChildLogs: Boolean         = false
+
+  /** Tests can override this to set up a logging service that will print debug
+    * logs.
+    */
+  val debugLogs: Boolean = false
+
+  /** Tests can override this to allow child process output to be displayed. */
+  val debugChildLogs: Boolean = false
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -197,33 +206,41 @@ class BaseServerSpec
       )
     }
 
-    engineToInstall.foreach { version =>
-      val os   = OS.operatingSystem.configName
-      val ext  = if (OS.isWindows) "zip" else "tar.gz"
-      val arch = OS.architecture
-      val path = FakeReleases.releaseRoot
-        .resolve("enso")
-        .resolve(s"enso-$version")
-        .resolve(s"enso-engine-$version-$os-$arch.$ext")
-        .resolve(s"enso-$version")
-        .resolve("component")
-      val root = Path.of("../../../").toAbsolutePath.normalize
-      FileUtils.copyFile(
-        root.resolve("runner.jar").toFile,
-        path.resolve("runner.jar").toFile
-      )
-      FileUtils.copyFile(
-        root.resolve("runtime.jar").toFile,
-        path.resolve("runtime.jar").toFile
-      )
+    engineToInstall.foreach(preInstallEngine)
+  }
 
-      val blackhole = system.actorOf(blackholeProps)
-      val installAction = runtimeVersionManagementService.installEngine(
-        blackhole,
-        version,
-        forceInstallBroken = false
-      )
-      Runtime.default.unsafeRun(installAction)
-    }
+  /** This is a temporary solution to ensure that a valid engine distribution is
+    * preinstalled.
+    *
+    * In the future the fake release mechanism can be properly updated to allow
+    * for this kind of configuration without special logic.
+    */
+  private def preInstallEngine(version: SemVer): Unit = {
+    val os   = OS.operatingSystem.configName
+    val ext  = if (OS.isWindows) "zip" else "tar.gz"
+    val arch = OS.architecture
+    val path = FakeReleases.releaseRoot
+      .resolve("enso")
+      .resolve(s"enso-$version")
+      .resolve(s"enso-engine-$version-$os-$arch.$ext")
+      .resolve(s"enso-$version")
+      .resolve("component")
+    val root = Path.of("../../../").toAbsolutePath.normalize
+    FileUtils.copyFile(
+      root.resolve("runner.jar").toFile,
+      path.resolve("runner.jar").toFile
+    )
+    FileUtils.copyFile(
+      root.resolve("runtime.jar").toFile,
+      path.resolve("runtime.jar").toFile
+    )
+
+    val blackhole = system.actorOf(blackholeProps)
+    val installAction = runtimeVersionManagementService.installEngine(
+      blackhole,
+      version,
+      forceInstallBroken = false
+    )
+    Runtime.default.unsafeRun(installAction)
   }
 }

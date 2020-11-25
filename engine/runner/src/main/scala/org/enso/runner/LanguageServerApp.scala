@@ -17,6 +17,7 @@ object LanguageServerApp {
   /** Runs a Language Server
     *
     * @param config a config
+    * @param logLevel log level
     */
   def run(config: LanguageServerConfig, logLevel: LogLevel): Unit = {
     println("Starting Language Server...")

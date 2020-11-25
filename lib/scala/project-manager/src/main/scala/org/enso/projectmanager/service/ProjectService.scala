@@ -72,7 +72,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   override def createUserProject(
     progressTracker: ActorRef,
     name: String,
-    version: SemVer,
+    engineVersion: SemVer,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, UUID] = for {
     projectId    <- gen.randomUUID()
@@ -86,7 +86,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       progressTracker,
       path,
       name,
-      version,
+      engineVersion,
       missingComponentAction
     )
     _ <- repo

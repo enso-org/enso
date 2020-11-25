@@ -38,7 +38,7 @@ class Runner(
   def newProject(
     path: Path,
     name: String,
-    version: SemVer,
+    engineVersion: SemVer,
     authorName: Option[String],
     authorEmail: Option[String],
     additionalArguments: Seq[String]
@@ -55,7 +55,7 @@ class Runner(
           "--new-project-name",
           name
         ) ++ authorNameOption ++ authorEmailOption ++ additionalArguments
-      RunSettings(version, arguments, connectLoggerIfAvailable = false)
+      RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
     }
 
   /** Creates [[RunSettings]] for launching the Language Server. */
@@ -168,7 +168,7 @@ class Runner(
       action(Command(command, extraEnvironmentOverrides))
     }
 
-    val engineVersion = runSettings.version
+    val engineVersion = runSettings.engineVersion
     jvmSettings.javaCommandOverride match {
       case Some(overriddenCommand) =>
         runtimeVersionManager.withEngine(engineVersion) { engine =>

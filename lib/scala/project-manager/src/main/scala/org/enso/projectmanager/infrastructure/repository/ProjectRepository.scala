@@ -19,14 +19,6 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def exists(name: String): F[ProjectRepositoryFailure, Boolean]
 
-  /** Creates the provided user project in the storage.
-    *
-    * @param project the project to insert
-    * @return
-    */
-  @deprecated("Projects should be created using runner.")
-  def create(project: Project): F[ProjectRepositoryFailure, Unit]
-
   /** Ensures that the path property is set in the project.
     *
     * If it was not set, a new path is generated for it. Otherwise, the function

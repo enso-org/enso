@@ -44,6 +44,7 @@ import scala.util.{Failure, Success}
 /** A main module containing all components of the server.
   *
   * @param serverConfig configuration for the language server
+  * @param logLevel log level for the Language Server
   */
 class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
@@ -212,6 +213,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
+  /** A promise that is completed once the module has been fully initialized.
+    *
+    * Completion of this promise will make the server reply to the initial
+    * heartbeat requests.
+    */
   val initializationFinished = Promise[Unit]()
 
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(

@@ -123,7 +123,7 @@ object LanguageServerRegistry {
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
     * @param distributionConfiguration configuration of the distribution
-    * @return
+    * @return a configuration object
     */
   def props(
     networkConfig: NetworkConfig,

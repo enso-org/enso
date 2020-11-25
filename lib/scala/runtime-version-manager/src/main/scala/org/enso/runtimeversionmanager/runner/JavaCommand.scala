@@ -4,8 +4,9 @@ import org.enso.runtimeversionmanager.components.GraalRuntime
 
 /** Represents a way of launching the JVM.
   *
-  * Stores the name of the `java` executable to run and a possible JAVA_HOME
-  * environment variable override.
+  * @param executableName name of the `java` executable to run
+  * @param javaHomeOverride if set, asks to override the JAVA_HOME environment
+  *                         variable when launching the JVM
   */
 case class JavaCommand(
   executableName: String,

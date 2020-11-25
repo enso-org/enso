@@ -65,6 +65,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/canModify`](#executioncontextcanmodify)
   - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
   - [`search/receivesSuggestionsDatabaseUpdates`](#searchreceivessuggestionsdatabaseupdates)
+  - [Enables](#enables-4)
+  - [Disables](#disables-4)
 - [File Management Operations](#file-management-operations)
   - [`file/write`](#filewrite)
   - [`file/read`](#fileread)
@@ -94,6 +96,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
   - [`heartbeat/ping`](#heartbeatping)
+  - [`heartbeat/init`](#heartbeatinit)
+- [Refactoring](#refactoring)
+  - [`refactoring/renameProject`](#refactoringrenameproject)
 - [Execution Management Operations](#execution-management-operations)
   - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
@@ -113,9 +118,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
 - [Search Operations](#search-operations)
-  - [Suggestions Database Example](#suggestionsdatabaseexample)
+  - [Suggestions Database Example](#suggestions-database-example)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
-  - [`search/invalidateSuggestionsDatabase`](#invalidatesuggestionsdatabase)
+  - [`search/invalidateSuggestionsDatabase`](#searchinvalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
@@ -124,17 +129,17 @@ transport formats, please look [here](./protocol-architecture).
   - [`io/redirectStandardOutput`](#ioredirectstdardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstdardoutput)
   - [`io/standardOutputAppended`](#iostandardoutputappended)
-  - [`io/redirectStandardError`](#ioredirectstdarderror)
-  - [`io/suppressStandardError`](#iosuppressstdarderror)
+  - [`io/redirectStandardError`](#ioredirectstandarderror)
+  - [`io/suppressStandardError`](#iosuppressstandarderror)
   - [`io/standardErrorAppended`](#iostandarderrorappended)
   - [`io/feedStandardInput`](#iofeedstandardinput)
   - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
-- [Errors](#errors)
+- [Errors](#errors-57)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
   - [`ContentRootNotFoundError`](#contentrootnotfounderror)
   - [`FileNotFound`](#filenotfound)
-  - [`FileExists`](#fileexists-1)
+  - [`FileExists`](#fileexists)
   - [`OperationTimeoutError`](#operationtimeouterror)
   - [`NotDirectory`](#notdirectory)
   - [`StackItemNotFoundError`](#stackitemnotfounderror)
@@ -145,7 +150,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`VisualisationNotFoundError`](#visualisationnotfounderror)
   - [`VisualisationExpressionError`](#visualisationexpressionerror)
   - [`VisualisationEvaluationError`](#visualisationevaluationerror)
-  - [`ExecutionFailedError`](#executionfailederror)
   - [`FileNotOpenedError`](#filenotopenederror)
   - [`TextEditValidationError`](#texteditvalidationerror)
   - [`InvalidVersionError`](#invalidversionerror)
@@ -154,6 +158,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`SessionNotInitialisedError`](#sessionnotinitialisederror)
   - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror)
   - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror)
+  - [`ProjectNotFoundError`](#projectnotfounderror)
+  - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror)
 
 <!-- /MarkdownTOC -->
 
@@ -2063,6 +2069,33 @@ server. This API is private and should be used only by the Project Manager.
 
 This request is sent from the supervisor process to the server to check the
 health of the Language Server.
+
+- **Type:** Request
+- **Direction:** Supervisor -> Server
+- **Connection:** Protocol
+- **Visibility:** Private
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+None
+
+### `heartbeat/init`
+
+This request is sent from the bootloader to check if the started language server
+instance has finished initialization. A reply should only be sent when the main
+module has been fully initialized.
 
 - **Type:** Request
 - **Direction:** Supervisor -> Server

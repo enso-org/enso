@@ -74,18 +74,6 @@ class ProjectFileRepository[
     getAll().map(_.find(_.id == projectId))
 
   /** @inheritdoc */
-  override def create(
-    project: Project
-  ): F[ProjectRepositoryFailure, Unit] =
-    for {
-      projectPath <- findTargetPath(project)
-      _           <- createProjectStructure(project, projectPath)
-      _ <- metadataStorage(projectPath)
-        .persist(ProjectMetadata(project))
-        .mapError(th => StorageFailure(th.toString))
-    } yield ()
-
-  /** @inheritdoc */
   override def findPathForNewProject(
     project: Project
   ): F[ProjectRepositoryFailure, Path] = findTargetPath(project).map(_.toPath)
@@ -121,14 +109,6 @@ class ProjectFileRepository[
       .load()
       .map(Some(_))
       .mapError(_.fold(convertFileStorageFailure))
-
-  private def createProjectStructure(
-    project: Project,
-    projectPath: File
-  ): F[StorageFailure, Package[File]] =
-    Sync[F]
-      .blockingOp { PackageManager.Default.create(projectPath, project.name) }
-      .mapError(th => StorageFailure(th.toString))
 
   /** @inheritdoc */
   override def rename(

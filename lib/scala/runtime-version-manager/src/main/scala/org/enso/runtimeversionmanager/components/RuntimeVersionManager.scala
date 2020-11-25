@@ -4,10 +4,14 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.runtimeversionmanager.FileSystem
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
+import org.enso.runtimeversionmanager.distribution.{
+  DistributionManager,
+  TemporaryDirectoryManager
+}
 import org.enso.runtimeversionmanager.locking.{
-  Lock,
   LockType,
   Resource,
   ResourceManager
@@ -15,11 +19,6 @@ import org.enso.runtimeversionmanager.locking.{
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRelease
 import org.enso.runtimeversionmanager.releases.graalvm.GraalVMRuntimeReleaseProvider
-import org.enso.runtimeversionmanager.FileSystem
-import org.enso.runtimeversionmanager.distribution.{
-  DistributionManager,
-  TemporaryDirectoryManager
-}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -113,13 +112,6 @@ class RuntimeVersionManager(
       action(engine)
     }
   }
-
-  def lockEngine[R](version: SemVer): Lock =
-    resourceManager.acquireResource(
-      userInterface,
-      Resource.Engine(version),
-      LockType.Shared
-    )
 
   /** Executes the provided action with a requested engine version and its
     * corresponding runtime.

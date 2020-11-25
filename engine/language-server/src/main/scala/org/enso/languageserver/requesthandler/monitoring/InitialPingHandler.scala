@@ -13,20 +13,20 @@ import scala.util.{Failure, Success}
   * @param initializationFuture a future that is completed when initialization
   *                             is finished
   */
-class InitializationNotificationHandler(initializationFuture: Future[_])
+class InitialPingHandler(initializationFuture: Future[_])
     extends Actor
     with ActorLogging {
 
   import context.dispatcher
 
   override def receive: Receive = {
-    case Request(MonitoringApi.InitializationNotify, id, Unused) =>
+    case Request(MonitoringApi.InitialPing, id, Unused) =>
       initializationFuture.onComplete {
         case Failure(_) =>
           sender() ! ResponseError(Some(id), ServiceError)
         case Success(_) =>
           sender() ! ResponseResult(
-            MonitoringApi.InitializationNotify,
+            MonitoringApi.InitialPing,
             id,
             Unused
           )
@@ -35,16 +35,16 @@ class InitializationNotificationHandler(initializationFuture: Future[_])
 
 }
 
-object InitializationNotificationHandler {
+object InitialPingHandler {
 
   /** Creates a configuration object used to create a
-    * [[InitializationNotificationHandler]]
+    * [[InitialPingHandler]]
     *
     * @param initializationFuture a future that is completed when initialization
     *                             is finished
     * @return a configuration object
     */
   def props(initializationFuture: Future[_]): Props =
-    Props(new InitializationNotificationHandler(initializationFuture))
+    Props(new InitialPingHandler(initializationFuture))
 
 }

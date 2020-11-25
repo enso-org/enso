@@ -17,7 +17,7 @@ object LanguageServerProtocol {
     * @param project the project to start
     * @param engineVersion version of the engine to use
     * @param progressTracker an actor that should be sent notifications about
-    *                        installation progress or locks
+    *                        locks
     */
   case class StartServer(
     clientId: UUID,

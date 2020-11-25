@@ -30,7 +30,7 @@ import org.enso.projectmanager.util.UnhandledLogging
   * restarting it when the server is unresponsive. It delegates server
   * monitoring to the [[HeartbeatSession]] actor.
   *
-  * @param config a server config
+  * @param connectionInfo a server connection info
   * @param serverProcessManager an actor that manages the lifecycle of the
   *                             server process
   * @param supervisionConfig a supervision config
@@ -38,7 +38,7 @@ import org.enso.projectmanager.util.UnhandledLogging
   * @param scheduler a scheduler
   */
 class LanguageServerSupervisor(
-  config: LanguageServerConnectionInfo,
+  connectionInfo: LanguageServerConnectionInfo,
   serverProcessManager: ActorRef,
   supervisionConfig: SupervisionConfig,
   connectionFactory: WebSocketConnectionFactory,
@@ -70,7 +70,7 @@ class LanguageServerSupervisor(
 
   private def supervising(cancellable: Cancellable): Receive = {
     case SendHeartbeat =>
-      val socket = Socket(config.interface, config.rpcPort)
+      val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
       context.actorOf(
         HeartbeatSession.props(
           socket,
@@ -82,7 +82,7 @@ class LanguageServerSupervisor(
       )
 
     case ServerUnresponsive =>
-      log.info(s"Server is unresponsive [$config]. Restarting it...")
+      log.info(s"Server is unresponsive [$connectionInfo]. Restarting it...")
       cancellable.cancel()
       log.info(s"Restarting the server")
       serverProcessManager ! Restart
@@ -106,7 +106,7 @@ class LanguageServerSupervisor(
           "Supervisor may no longer work correctly."
         )
       }
-      log.info(s"Language server restarted [$config]")
+      log.info(s"Language server restarted [$connectionInfo]")
       val cancellable =
         scheduler.scheduleAtFixedRate(
           supervisionConfig.initialDelay,

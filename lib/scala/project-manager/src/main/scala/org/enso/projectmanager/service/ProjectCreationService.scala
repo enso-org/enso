@@ -15,6 +15,9 @@ import org.enso.runtimeversionmanager.runner.Runner
 
 import scala.concurrent.Future
 
+/** A service for creating new project structures using the runner of the
+  * specific engine version selected for the project.
+  */
 class ProjectCreationService[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
 ](
@@ -22,11 +25,12 @@ class ProjectCreationService[
 ) extends ProjectCreationServiceApi[F]
     with RuntimeVersionManagerMixin {
 
+  /** @inheritdoc */
   override def createProject(
     progressTracker: ActorRef,
     path: Path,
     name: String,
-    version: SemVer,
+    engineVersion: SemVer,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, Unit] = Sync[F]
     .blockingOp {
@@ -40,7 +44,7 @@ class ProjectCreationService[
         )
 
       val settings =
-        runner.newProject(path, name, version, None, None, Seq()).get
+        runner.newProject(path, name, engineVersion, None, None, Seq()).get
       val jvmSettings = distributionConfiguration.defaultJVMSettings
       runner.withCommand(settings, jvmSettings) { command =>
         command.run().get

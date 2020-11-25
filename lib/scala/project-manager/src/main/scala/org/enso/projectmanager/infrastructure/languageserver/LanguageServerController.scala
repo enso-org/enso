@@ -39,13 +39,14 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * It delegates all tasks to other actors like bootloader or supervisor.
   *
   * @param project a project open by the server
-  * @param engineVersion
-  * @param bootProgressTracker
+  * @param engineVersion engine version to use for the language server
+  * @param bootProgressTracker an [[ActorRef]] that will get progress updates
+  *                            related to initializing the engine
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
-  * @param distributionConfiguration
+  * @param distributionConfiguration configuration of the distribution
   */
 class LanguageServerController(
   project: Project,
@@ -144,8 +145,8 @@ class LanguageServerController(
   }
 
   private def supervising(
-    config: LanguageServerConnectionInfo,
-    serverProcess: ActorRef,
+    connectionInfo: LanguageServerConnectionInfo,
+    serverProcessManager: ActorRef,
     clients: Set[UUID] = Set.empty
   ): Receive = {
     case StartServer(clientId, _, requestedEngineVersion, _) =>
@@ -161,26 +162,40 @@ class LanguageServerController(
       } else {
         sender() ! ServerStarted(
           LanguageServerSockets(
-            Socket(config.interface, config.rpcPort),
-            Socket(config.interface, config.dataPort)
+            Socket(connectionInfo.interface, connectionInfo.rpcPort),
+            Socket(connectionInfo.interface, connectionInfo.dataPort)
           )
         )
-        context.become(supervising(config, serverProcess, clients + clientId))
+        context.become(
+          supervising(connectionInfo, serverProcessManager, clients + clientId)
+        )
       }
     case Terminated(_) =>
       log.debug(s"Bootloader for $project terminated.")
 
     case StopServer(clientId, _) =>
-      removeClient(config, serverProcess, clients, clientId, Some(sender()))
+      removeClient(
+        connectionInfo,
+        serverProcessManager,
+        clients,
+        clientId,
+        Some(sender())
+      )
 
     case ShutDownServer =>
       shutDownServer(None)
 
     case ClientDisconnected(clientId) =>
-      removeClient(config, serverProcess, clients, clientId, None)
+      removeClient(
+        connectionInfo,
+        serverProcessManager,
+        clients,
+        clientId,
+        None
+      )
 
     case RenameProject(_, oldName, newName) =>
-      val socket = Socket(config.interface, config.rpcPort)
+      val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
       context.actorOf(
         ProjectRenameAction
           .props(
@@ -196,13 +211,13 @@ class LanguageServerController(
       )
 
     case ServerDied =>
-      log.error(s"Language server died [$config]")
+      log.error(s"Language server died [$connectionInfo]")
       context.stop(self)
   }
 
   private def removeClient(
-    config: LanguageServerConnectionInfo,
-    serverProcess: ActorRef,
+    connectionInfo: LanguageServerConnectionInfo,
+    serverProcessManager: ActorRef,
     clients: Set[UUID],
     clientId: UUID,
     maybeRequester: Option[ActorRef]
@@ -212,7 +227,9 @@ class LanguageServerController(
       shutDownServer(maybeRequester)
     } else {
       sender() ! CannotDisconnectOtherClients
-      context.become(supervising(config, serverProcess, updatedClients))
+      context.become(
+        supervising(connectionInfo, serverProcessManager, updatedClients)
+      )
     }
   }
 
@@ -282,13 +299,14 @@ object LanguageServerController {
   /** Creates a configuration object used to create a [[LanguageServerController]].
     *
     * @param project a project open by the server
-    * @param engineVersion
-    * @param bootProgressTracker
+    * @param engineVersion engine version to use for the language server
+    * @param bootProgressTracker an [[ActorRef]] that will get progress updates
+    *                            related to initializing the engine
     * @param networkConfig a net config
     * @param bootloaderConfig a bootloader config
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
-    * @param distributionConfiguration
+    * @param distributionConfiguration configuration of the distribution
     * @return a configuration object
     */
   def props(

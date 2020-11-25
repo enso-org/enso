@@ -18,15 +18,16 @@ trait ProjectServiceApi[F[+_, +_]] {
 
   /** Creates a user project.
     *
+    * @param progressTracker the actor to send progress updates to
     * @param name the name of th project
-    * @param version Enso version to use for the new project
+    * @param engineVersion Enso version to use for the new project
     * @param missingComponentAction specifies how to handle missing components
     * @return projectId
     */
   def createUserProject(
     progressTracker: ActorRef,
     name: String,
-    version: SemVer,
+    engineVersion: SemVer,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, UUID]
 
@@ -50,6 +51,7 @@ trait ProjectServiceApi[F[+_, +_]] {
 
   /** Opens a project. It starts up a Language Server if needed.
     *
+    * @param progressTracker the actor to send progress updates to
     * @param clientId the requester id
     * @param projectId the project id
     * @param missingComponentAction specifies how to handle missing components

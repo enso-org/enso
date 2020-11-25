@@ -117,6 +117,9 @@ object LogLevel {
     }
   }
 
+  /** Converts our internal [[LogLevel]] to the corresponding instance of
+    * Akka-specific log level.
+    */
   def toAkka(logLevel: LogLevel): akka.event.Logging.LogLevel = logLevel match {
     case Off     => akka.event.Logging.LogLevel(Int.MinValue)
     case Error   => akka.event.Logging.ErrorLevel

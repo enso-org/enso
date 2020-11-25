@@ -32,6 +32,21 @@ import scala.concurrent.{
 }
 import scala.util.Using
 
+/** An Actor that manages a single Language Server process.
+  *
+  * It starts the process upon creation and notifies the parent once the process
+  * has finished booting.
+  *
+  * @param progressTracker an [[ActorRef]] that will get progress updates
+  *                        related to initializing the engine
+  * @param descriptor a LS descriptor
+  * @param rpcPort port to bind for RPC connections
+  * @param dataPort port to bind for binary connections
+  * @param bootTimeout maximum time permitted to wait for the process to finish
+  *                    initializing; if the initialization heartbeat is not
+  *                    received within this time the boot is treated as failed
+  *                    and the process is gracefully stopped
+  */
 class LanguageServerProcess(
   progressTracker: ActorRef,
   descriptor: LanguageServerDescriptor,
@@ -53,14 +68,9 @@ class LanguageServerProcess(
 
   override def receive: Receive = initializationStage
 
-  /** Sent by the Actor itself to start the boot process.
-    *
-    * For internal use only.
+  /** First stage, it launches the child process and sets up the futures to send
+    * back the notifications and goes to the startingStage.
     */
-  case object Boot
-
-  case class ProcessStarted(process: Process)
-
   private def initializationStage: Receive = {
     case Boot =>
       import context.dispatcher
@@ -71,6 +81,14 @@ class LanguageServerProcess(
     case _ => stash()
   }
 
+  /** Starts the process in a background thread.
+    *
+    * It returns a pair of futures: first one is completed once the process has
+    * actually been started and contains a handle for that process; the second
+    * one is completed with the exit code once the process exits. The second
+    * future may also be completed with an exception if the process cannot be
+    * started, in such case the first future never completes.
+    */
   private def launchProcessInBackground(): (Future[Process], Future[Int]) = {
     val processStartPromise = Promise[Process]()
     val stopped = Future {
@@ -80,6 +98,11 @@ class LanguageServerProcess(
     (processStartPromise.future, stopped)
   }
 
+  /** Waits for the process to actually start (this may take a long time if
+    * there are locked locks).
+    *
+    * Once the process is started, it goes to the bootingStage.
+    */
   private def startingStage: Receive = {
     case ProcessStarted(process) =>
       import context.dispatcher
@@ -97,6 +120,18 @@ class LanguageServerProcess(
     context.stop(self)
   }
 
+  /** In booting stage, the actor is retrying to connect to the server to verify
+    * that it has finished initialization.
+    *
+    * Once initialization is confirmed, it notifies the parent and proceeds to
+    * runningStage.
+    *
+    * Before initialization is confirmed the actor can also:
+    * - trigger the timeout or receive a graceful stop message which will ask
+    *   the child process to terminate gracefully,
+    * - get a notification that the child process has terminated spuriously
+    *   (possibly a crash).
+    */
   private def bootingStage(
     process: Process,
     bootTimeout: Cancellable
@@ -138,6 +173,14 @@ class LanguageServerProcess(
       context.become(bootingStage(process, bootTimeout))
   }
 
+  /** When the process is running, the actor is monitoring it and managing its
+    * lifetime.
+    *
+    * If termination is requested, the process will be asked to gracefully
+    * terminate or be killed. If the process terminates (either on request or
+    * spuriously, e.g. by a crash), the parent is notified and the current actor
+    * is stopped.
+    */
   private def runningStage(process: Process): Receive = {
     case Stop =>
       requestGracefulTermination(process)
@@ -148,8 +191,14 @@ class LanguageServerProcess(
     case ServerThreadFailed(error) => handleFatalError(error)
   }
 
+  /** Runs the child process, ensuring that the proper locks are kept for the
+    * used engine for the whole lifetime of that process.
+    *
+    * Returns the exit code of the process. This function is blocking so it
+    * should be run in a backgroung thread.
+    */
   private def runServer(processStarted: Promise[Process]): Int = {
-    val mgr = makeRuntimeVersionManager(progressTracker)
+    val versionManager = makeRuntimeVersionManager(progressTracker)
     // TODO [RW] logging #1151
     val loggerConnection = Future.successful(None)
     val logLevel         = LogLevel.Info
@@ -160,8 +209,11 @@ class LanguageServerProcess(
       dataPort  = dataPort
     )
 
-    val runner =
-      new Runner(mgr, distributionConfiguration.environment, loggerConnection)
+    val runner = new Runner(
+      versionManager,
+      distributionConfiguration.environment,
+      loggerConnection
+    )
     val runSettings = runner
       .startLanguageServer(
         options             = options,
@@ -190,14 +242,35 @@ class LanguageServerProcess(
     }
   }
 
-  // TODO [RW] we may want to use a socket to send this termination message?
+  // TODO [RW] discuss: we may want to use a socket to send this termination
+  //  message? although stream seems to be more robust
+  /** Requests the child process to terminate gracefully by sending the
+    * termination request to its standard input stream.
+    */
   def requestGracefulTermination(process: Process): Unit =
     Using(new PrintWriter(process.getOutputStream)) { writer =>
       writer.println()
     }
+
+  private case object Boot
+  private case class ProcessStarted(process: Process)
 }
 
 object LanguageServerProcess {
+
+  /** Creates a configuration object used to create a [[LanguageServerProcess]].
+    *
+    * @param progressTracker an [[ActorRef]] that will get progress updates
+    *                        related to initializing the engine
+    * @param descriptor a LS descriptor
+    * @param rpcPort port to bind for RPC connections
+    * @param dataPort port to bind for binary connections
+    * @param bootTimeout maximum time permitted to wait for the process to finish
+    *                    initializing; if the initialization heartbeat is not
+    *                    received within this time the boot is treated as failed
+    *                    and the process is gracefully stopped
+    * @return a configuration object
+    */
   def props(
     progressTracker: ActorRef,
     descriptor: LanguageServerDescriptor,
@@ -219,8 +292,13 @@ object LanguageServerProcess {
     */
   case class ServerTerminated(exitCode: Int)
 
+  /** Sent to the parent when starting the server has failed with an exception.
+    */
   case class ServerThreadFailed(throwable: Throwable)
 
+  /** Sent to the parent when the child process has confirmed that it is fully
+    * initialized.
+    */
   case object ServerConfirmedFinishedBooting
 
   /** Sent to forcibly kill the server. */
@@ -229,13 +307,23 @@ object LanguageServerProcess {
   /** Sent to gracefully request to stop the server. */
   case object Stop
 
+  /** An executor that creates a new Thread for each job.
+    *
+    * It is used when creating the Future that will run the process in a
+    * background thread. It is blocking by design to ensure that the locking API
+    * is used correctly. This executor should start no more than one thread per
+    * Language Server instance.
+    */
   private object ForkedProcessExecutor extends Executor {
+
+    /** @inheritdoc */
     override def execute(command: Runnable): Unit = {
       val thread = new Thread(command)
       thread.start()
     }
   }
 
+  /** [[ExecutionContext]] associated with the [[ForkedProcessExecutor]]. */
   val forkedProcessExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(ForkedProcessExecutor)
 }

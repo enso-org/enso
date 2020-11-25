@@ -22,7 +22,7 @@ import scala.concurrent.{Await, Future}
 /** A lifecycle component used to start and stop a Language Server.
   *
   * @param config a LS config
-  * @param logLevel log level for Language Server
+  * @param logLevel log level for the Language Server
   */
 class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
     extends LifecycleComponent

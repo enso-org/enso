@@ -21,16 +21,13 @@ import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
-import org.enso.languageserver.monitoring.MonitoringApi.{
-  InitializationNotify,
-  Ping
-}
+import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
 import org.enso.languageserver.requesthandler.monitoring.{
-  InitializationNotificationHandler,
+  InitialPingHandler,
   PingHandler
 }
 import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
@@ -78,6 +75,9 @@ import scala.concurrent.duration._
   * @param fileManager performs operations with file system
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
+  * @param initializationFinished a future whose completion indicates that the
+  *                               system is initialized and the initial
+  *                               heartbeats can be replied to
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -254,7 +254,7 @@ class JsonConnectionController(
         ),
         requestTimeout
       ),
-      InitializationNotify -> InitializationNotificationHandler.props(
+      InitialPing -> InitialPingHandler.props(
         initializationFinished
       ),
       AcquireCapability -> AcquireCapabilityHandler
@@ -329,6 +329,9 @@ object JsonConnectionController {
     * @param fileManager performs operations with file system
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
+    * @param initializationFinished a future whose completion indicates that the
+    *                               system is initialized and the initial
+    *                               heartbeats can be replied to
     * @param requestTimeout a request timeout
     * @return a configuration object
     */

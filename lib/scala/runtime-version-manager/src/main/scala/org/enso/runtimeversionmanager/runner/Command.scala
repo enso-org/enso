@@ -44,9 +44,9 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
   /** Returns a [[ProcessBuilder]] that can be used to start the process.
     *
     * This is an advanced feature and it has to be used very carefully - the
-    * builder and the constructed process must not leak outside of the enclosing
-    * `withCommand` function to preserve guarantees that the environment the
-    * process requires still exists.
+    * builder and the constructed process (as long as it is running) must not
+    * leak outside of the enclosing `withCommand` function to preserve the
+    * guarantees that the environment the process requires still exists.
     */
   def builder(): ProcessBuilder = {
     val processBuilder = new java.lang.ProcessBuilder(command: _*)

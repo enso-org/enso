@@ -19,7 +19,7 @@ import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `project/create` commands.
   *
-  * @param configurationService
+  * @param configurationService the configuration service
   * @param projectService a project service
   * @param requestTimeout a request timeout
   */

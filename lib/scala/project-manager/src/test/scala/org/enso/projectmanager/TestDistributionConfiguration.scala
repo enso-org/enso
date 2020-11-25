@@ -41,6 +41,8 @@ import scala.util.{Failure, Success, Try}
   *                         within some temporary directory
   * @param engineReleaseProvider provider of (fake) engine releases
   * @param runtimeReleaseProvider provider of (fake) Graal releases
+  * @param discardChildOutput specifies if input of launched runner processes
+  *                           should be ignored
   */
 class TestDistributionConfiguration(
   distributionRoot: Path,
@@ -95,20 +97,15 @@ class TestDistributionConfiguration(
 }
 
 object TestDistributionConfiguration {
+
+  /** Creates a [[TestDistributionConfiguration]] with repositories that do not
+    * have any available releases.
+    */
   def withoutReleases(
     distributionRoot: Path,
     discardChildOutput: Boolean
   ): TestDistributionConfiguration = {
-    val noReleaseProvider = new SimpleReleaseProvider {
-      override def releaseForTag(tag: String): Try[Release] = Failure(
-        new IllegalStateException(
-          "This provider does not support fetching releases."
-        )
-      )
-
-      override def listReleases(): Try[Seq[Release]] = Success(Seq())
-    }
-
+    val noReleaseProvider = new NoReleaseProvider
     new TestDistributionConfiguration(
       distributionRoot       = distributionRoot,
       engineReleaseProvider  = new EngineReleaseProvider(noReleaseProvider),
@@ -117,6 +114,7 @@ object TestDistributionConfiguration {
     )
   }
 
+  /** Creates a [[TestDistributionConfiguration]] instance. */
   def apply(
     distributionRoot: Path,
     engineReleaseProvider: ReleaseProvider[EngineRelease],
@@ -129,4 +127,15 @@ object TestDistributionConfiguration {
       runtimeReleaseProvider,
       discardChildOutput
     )
+
+  /** A [[SimpleReleaseProvider]] that has no releases. */
+  private class NoReleaseProvider extends SimpleReleaseProvider {
+    override def releaseForTag(tag: String): Try[Release] = Failure(
+      new IllegalStateException(
+        "This provider does not support fetching releases."
+      )
+    )
+
+    override def listReleases(): Try[Seq[Release]] = Success(Seq())
+  }
 }

@@ -41,7 +41,10 @@ class ResourceManager(lockManager: LockManager) {
         action
     }
 
-  def acquireResource(
+  /** Acquires a resource, handling possible waiting, and returns its [[Lock]]
+    * instance that can be used to unlock it.
+    */
+  private def acquireResource(
     waitingInterface: LockUserInterface,
     resource: Resource,
     lockType: LockType

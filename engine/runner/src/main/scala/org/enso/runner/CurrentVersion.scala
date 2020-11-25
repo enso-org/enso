@@ -2,7 +2,16 @@ package org.enso.runner
 
 import nl.gn0s1s.bump.SemVer
 
+/** A helper object that allows to access current version of the runner.
+  *
+  * The current version is parsed from [[buildinfo]], but in development mode it
+  * can be overridden by setting `enso.version.override` property. This is used
+  * in project-manager tests to override the version of projects created using
+  * the runner.
+  */
 object CurrentVersion {
+
+  /** The version that the application should report. */
   lazy val version: SemVer = computeVersion()
 
   private def computeVersion(): SemVer = {

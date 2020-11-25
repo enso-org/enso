@@ -120,14 +120,14 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         .newProject(
           path                = projectPath,
           name                = "ProjectName",
-          version             = defaultEngineVersion,
+          engineVersion       = defaultEngineVersion,
           authorName          = Some(authorName),
           authorEmail         = Some(authorEmail),
           additionalArguments = Seq(additionalArgument)
         )
         .get
 
-      runSettings.version shouldEqual defaultEngineVersion
+      runSettings.engineVersion shouldEqual defaultEngineVersion
       runSettings.runnerArguments should contain(additionalArgument)
       val commandLine = runSettings.runnerArguments.mkString(" ")
       commandLine should include(
@@ -149,7 +149,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      runSettings.version shouldEqual defaultEngineVersion
+      runSettings.engineVersion shouldEqual defaultEngineVersion
       runSettings.runnerArguments should (contain("arg") and contain("--flag"))
       runSettings.runnerArguments.mkString(" ") should
       (include("--repl") and not include s"--in-project")
@@ -174,7 +174,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      outsideProject.version shouldEqual version
+      outsideProject.engineVersion shouldEqual version
       outsideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
@@ -188,7 +188,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      insideProject.version shouldEqual version
+      insideProject.engineVersion shouldEqual version
       insideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
@@ -202,7 +202,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      overriddenRun.version shouldEqual overridden
+      overriddenRun.engineVersion shouldEqual overridden
       overriddenRun.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
     }
@@ -230,7 +230,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      runSettings.version shouldEqual version
+      runSettings.engineVersion shouldEqual version
       val commandLine = runSettings.runnerArguments.mkString(" ")
       commandLine should include(s"--interface ${options.interface}")
       commandLine should include(s"--rpc-port ${options.rpcPort}")
@@ -250,7 +250,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           logLevel            = LogLevel.Info
         )
         .get
-        .version shouldEqual overridden
+        .engineVersion shouldEqual overridden
     }
 
     "run a project" in {
@@ -270,7 +270,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      outsideProject.version shouldEqual version
+      outsideProject.engineVersion shouldEqual version
       outsideProject.runnerArguments.mkString(" ") should
       include(s"--run $normalizedPath")
 
@@ -284,7 +284,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      insideProject.version shouldEqual version
+      insideProject.engineVersion shouldEqual version
       insideProject.runnerArguments.mkString(" ") should
       include(s"--run $normalizedPath")
 
@@ -298,7 +298,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      overriddenRun.version shouldEqual overridden
+      overriddenRun.engineVersion shouldEqual overridden
       overriddenRun.runnerArguments.mkString(" ") should
       include(s"--run $normalizedPath")
 
@@ -338,7 +338,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      runSettings.version shouldEqual defaultEngineVersion
+      runSettings.engineVersion shouldEqual defaultEngineVersion
       runSettings.runnerArguments.mkString(" ") should
       (include(s"--run $normalizedPath") and (not(include("--in-project"))))
     }
@@ -362,7 +362,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         )
         .get
 
-      runSettings.version shouldEqual version
+      runSettings.engineVersion shouldEqual version
       runSettings.runnerArguments.mkString(" ") should
       (include(s"--run $normalizedFilePath") and
       include(s"--in-project $normalizedProjectPath"))
@@ -374,7 +374,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         .version(useJSON = true)
         .get
 
-      runSettings.version shouldEqual defaultEngineVersion
+      runSettings.engineVersion shouldEqual defaultEngineVersion
       runSettings.runnerArguments should
       (contain("--version") and contain("--json"))
 
@@ -391,7 +391,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
         .version(useJSON = false)
         .get
 
-      runSettings.version shouldEqual version
+      runSettings.engineVersion shouldEqual version
       runSettings.runnerArguments should
       (contain("--version") and not(contain("--json")))
 

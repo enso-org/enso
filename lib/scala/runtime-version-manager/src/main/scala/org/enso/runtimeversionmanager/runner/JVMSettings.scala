@@ -30,6 +30,9 @@ object JVMSettings {
       jvmOptions
     )
 
+  /** Creates a default instance of [[JVMSettings]] that just use the default
+    * JVM with no options overrides.
+    */
   def default: JVMSettings =
     JVMSettings(useSystemJVM = false, jvmOptions = Seq())
 }

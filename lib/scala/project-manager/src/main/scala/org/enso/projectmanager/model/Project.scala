@@ -11,6 +11,7 @@ import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion}
   * @param name a project name
   * @param kind a project kind
   * @param created a project creation time
+  * @param engineVersion version of the engine associated with the project
   * @param lastOpened a project last open time
   * @param path a path to the project structure
   */

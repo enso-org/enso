@@ -25,6 +25,14 @@ trait RuntimeVersionManagerMixin {
   /** Creates a [[RuntimeVersionManager]] that will send
     * [[ProgressNotification]] to the specified [[ActorRef]] and with the
     * specified settings for handling missing and broken components.
+    *
+    * @param progressTracker the actor that tracks installation progress/lock
+    *                        notifications
+    * @param allowMissingComponents if set to true, missing components will be
+    *                               installed
+    * @param allowBrokenComponents if allowMissingComponents and this flag are
+    *                              set to true, missing components will be
+    *                              installed even if they are marked as broken
     */
   def makeRuntimeVersionManager(
     progressTracker: ActorRef,
@@ -42,6 +50,10 @@ trait RuntimeVersionManagerMixin {
   /** Creates a [[RuntimeVersionManager]] that will send
     * [[ProgressNotification]] to the specified [[ActorRef]] and with the
     * specified settings for handling missing and broken components.
+    *
+    * @param progressTracker the actor that tracks installation progress/lock
+    *                        notifications
+    * @param missingComponentAction specifies how to handle missing components
     */
   def makeRuntimeVersionManager(
     progressTracker: ActorRef,
@@ -74,9 +86,12 @@ trait RuntimeVersionManagerMixin {
 
     /** Converts relevant [[ComponentsException]] errors into their counterparts
       * in the protocol.
+      *
+      * @param mapDefault a mapping that should be used for other errors that do
+      *                   not have a direct counterpart
       */
     def mapRuntimeManagerErrors(
-      wrapDefault: Throwable => ProjectServiceFailure
+      mapDefault: Throwable => ProjectServiceFailure
     ): F[ProjectServiceFailure, A] = ErrorChannel[F].mapError(fa) {
       case componentsException: ComponentsException =>
         componentsException match {
@@ -90,10 +105,10 @@ trait RuntimeVersionManagerMixin {
             ProjectManagerUpgradeRequiredFailure(
               upgradeRequired.expectedVersion
             )
-          case _ => wrapDefault(componentsException)
+          case _ => mapDefault(componentsException)
         }
       case other: Throwable =>
-        wrapDefault(other)
+        mapDefault(other)
     }
   }
 }

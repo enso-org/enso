@@ -27,10 +27,18 @@ trait GlobalConfigServiceApi[F[+_, +_]] {
     */
   def deleteKey(key: String): F[GlobalConfigServiceFailure, Unit]
 
+  /** Returns the default engine version.
+    *
+    * It reads the setting from the config, or if no version is set, falls back
+    * to the latest installed (or latest available if none are installed)
+    * version.
+    */
   def getDefaultEnsoVersion: F[GlobalConfigServiceFailure, SemVer]
 
+  /** Resolves an [[EnsoVersion]] which can indicate to use a 'default' version
+    * to a concrete version.
+    */
   def resolveEnsoVersion(
     ensoVersion: EnsoVersion
   ): F[GlobalConfigServiceFailure, SemVer]
-
 }

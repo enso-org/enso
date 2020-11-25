@@ -12,6 +12,9 @@ import scala.concurrent.Future
   * @param bufferRegistry the buffer registry actor ref
   * @param capabilityRouter the capability router actor ref
   * @param system the actor system
+  * @param initializationFinished a future whose completion indicates that the
+  *                               system is initialized and the initial
+  *                               heartbeats can be replied to
   */
 class JsonConnectionControllerFactory(
   bufferRegistry: ActorRef,

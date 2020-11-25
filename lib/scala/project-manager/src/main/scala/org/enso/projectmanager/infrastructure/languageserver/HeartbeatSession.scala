@@ -32,7 +32,11 @@ import scala.concurrent.duration.FiniteDuration
   * @param connectionFactory a web socket connection factory
   * @param scheduler a scheduler
   * @param method api method to use for the heartbeat message
-  * @param sendConfirmations whether to send [[HeartbeatReceived]] to confirm response
+  * @param sendConfirmations whether to send [[HeartbeatReceived]] to confirm
+  *                          that a response has been received
+  * @param quietErrors if set, reports errors in debug level instead of error
+  *                    level, can be used when errors are expected (i.e. on
+  *                    startup)
   */
 class HeartbeatSession(
   socket: Socket,
@@ -185,8 +189,8 @@ object HeartbeatSession {
     */
   case object SocketClosureTimeout
 
-  /** Creates a configuration object used to create a normal
-    * [[HeartbeatSession]].
+  /** Creates a configuration object used to create an ordinary
+    * [[HeartbeatSession]] for monitoring server's status.
     *
     * @param socket a server socket
     * @param timeout a session timeout
@@ -213,7 +217,7 @@ object HeartbeatSession {
     )
 
   /** Creates a configuration object used to create an initial
-    * [[HeartbeatSession]].
+    * [[HeartbeatSession]] for checking if the server has finished booting.
     *
     * @param socket a server socket
     * @param timeout a session timeout
