@@ -3,6 +3,7 @@ use crate::prelude::*;
 use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
 use crate::control::callback;
+use crate::display::navigation::navigator::SharedSwitch;
 
 use nalgebra::Vector2;
 use nalgebra::zero;
@@ -68,7 +69,8 @@ enum MovementType {
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct NavigatorEventsProperties {
-    zoom_speed          : f32,
+    zoom_speed          : SharedSwitch<f32>,
+    pan_speed           : SharedSwitch<f32>,
     movement_type       : Option<MovementType>,
     last_mouse_position : Vector2<f32>,
     mouse_position      : Vector2<f32>,
@@ -93,7 +95,8 @@ impl NavigatorEventsData {
     fn new
     ( pan_callback:Box<dyn FnPanEvent>
     , zoom_callback:Box<dyn FnZoomEvent>
-    , zoom_speed:f32) -> Rc<Self> {
+    , zoom_speed:SharedSwitch<f32>
+    , pan_speed:SharedSwitch<f32>) -> Rc<Self> {
         let mouse_position      = zero();
         let last_mouse_position = zero();
         let movement_type       = None;
@@ -103,7 +106,8 @@ impl NavigatorEventsData {
             movement_type,
             pan_callback,
             zoom_callback,
-            zoom_speed
+            zoom_speed,
+            pan_speed,
 
         });
         Rc::new(Self {properties})
@@ -131,7 +135,11 @@ impl NavigatorEventsData {
     }
 
     fn zoom_speed(&self) -> f32 {
-        self.properties.borrow().zoom_speed
+        self.properties.borrow().zoom_speed.get().into_on().unwrap_or(0.0)
+    }
+
+    fn pan_speed(&self) -> f32 {
+        self.properties.borrow().pan_speed.get().into_on().unwrap_or(0.0)
     }
 
     fn movement_type(&self) -> Option<MovementType> {
@@ -179,17 +187,19 @@ pub struct NavigatorEvents {
 
 impl NavigatorEvents {
     pub fn new
-    <P,Z>(mouse_manager:&MouseManager, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Self
+    <P,Z>(mouse_manager:&MouseManager, pan_callback:P, zoom_callback:Z,
+          zoom_speed:SharedSwitch<f32>,pan_speed:SharedSwitch<f32>) -> Self
     where P : FnPanEvent, Z : FnZoomEvent {
-        let mouse_manager        = mouse_manager.clone_ref();
-        let pan_callback         = Box::new(pan_callback);
-        let zoom_callback        = Box::new(zoom_callback);
-        let mouse_move           = default();
-        let mouse_up             = default();
-        let mouse_down           = default();
-        let wheel_zoom           = default();
-        let mouse_leave          = default();
-        let data = NavigatorEventsData::new(pan_callback,zoom_callback,zoom_speed);
+        let mouse_manager = mouse_manager.clone_ref();
+        let pan_callback  = Box::new(pan_callback);
+        let zoom_callback = Box::new(zoom_callback);
+        let mouse_move    = default();
+        let mouse_up      = default();
+        let mouse_down    = default();
+        let wheel_zoom    = default();
+        let mouse_leave   = default();
+        let data          = NavigatorEventsData::new(pan_callback,zoom_callback,zoom_speed,
+                                                     pan_speed);
         let mut event_handler = Self {
             data,
             mouse_manager,
@@ -226,7 +236,8 @@ impl NavigatorEvents {
                 } else {
                     let x         = -event.delta_x() as f32;
                     let y         =  event.delta_y() as f32;
-                    let movement  = Vector2::new(x,y);
+                    let pan_speed = data.pan_speed();
+                    let movement  = Vector2::new(x,y) * pan_speed;
                     let pan_event = PanEvent::new(movement);
                     data.on_pan(pan_event);
                 }
