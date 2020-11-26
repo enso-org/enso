@@ -26,9 +26,9 @@
                 width  : 100vw;
                 height : 100vh;
             }
-            body {
-                margin:0;
-            }
+
+            body { margin:0; }
+
             #root {
                 width    : 100vw;
                 height   : 100vh;
@@ -36,6 +36,7 @@
                 position : absolute;
                 overflow : hidden;
             }
+
             .titlebar {
                 width    : 100vw;
                 height   : 36px;
@@ -45,17 +46,14 @@
                 -webkit-app-region  : drag;
                 -webkit-user-select : none;
             }
-            .scrollable::-webkit-scrollbar {
-                -webkit-appearance: none;
-            }
 
-            .scrollable::-webkit-scrollbar:vertical {
-                width: 11px;
-            }
+            .scrollable::-webkit-scrollbar { -webkit-appearance: none; }
 
-            .scrollable::-webkit-scrollbar:horizontal {
-                height: 11px;
-            }
+            .scrollable::-webkit-scrollbar-track { -webkit-box-shadow: none; }
+
+            .scrollable::-webkit-scrollbar:vertical { width: 11px; }
+
+            .scrollable::-webkit-scrollbar:horizontal { height: 11px; }
 
             .scrollable::-webkit-scrollbar-thumb {
                 border-radius: 8px;
@@ -63,15 +61,9 @@
                 background-color: rgba(190, 190, 190, .5);
             }
 
-            .scrollable::-webkit-scrollbar-corner {
-                background: rgba(0,0,0,0);
-            }
+            .scrollable::-webkit-scrollbar-corner { background: rgba(0,0,0,0); }
 
-            .visualization {
-                z-index: 2;
-                border-radius: 14px;
-                box-shadow: 0 0 10px hsla(0, 0%, 0%, 0.1);
-            }
+            .visualization { z-index: 2; }
         </style>
         <script type="module" src="/assets/index.js" defer></script>
     </head>
