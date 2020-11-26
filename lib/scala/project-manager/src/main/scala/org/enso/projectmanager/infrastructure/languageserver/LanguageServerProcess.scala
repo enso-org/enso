@@ -242,8 +242,6 @@ class LanguageServerProcess(
     }
   }
 
-  // TODO [RW] discuss: we may want to use a socket to send this termination
-  //  message? although stream seems to be more robust
   /** Requests the child process to terminate gracefully by sending the
     * termination request to its standard input stream.
     */

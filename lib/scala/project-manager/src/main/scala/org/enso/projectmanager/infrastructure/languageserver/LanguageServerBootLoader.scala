@@ -42,6 +42,7 @@ class LanguageServerBootLoader(
 
   // TODO [RW] consider adding a stop timeout so that if the graceful stop on
   //  timed-out boot also does not work, the process can be killed forcibly
+  //  (#1315)
 
   import context.dispatcher
 
@@ -214,7 +215,7 @@ class LanguageServerBootLoader(
       context.children.foreach(_ ! LanguageServerProcess.Stop)
   }
 
-  // TODO [RW] handling stop timeout
+  // TODO [RW] handling stop timeout (#1315)
   //  may also consider a stop timeout for GracefulStop and killing the process?
   /** First phase of restart waits fot the old process to shutdown and boots the
     * new process.

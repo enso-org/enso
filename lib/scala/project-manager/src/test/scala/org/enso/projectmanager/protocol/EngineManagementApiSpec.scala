@@ -64,7 +64,8 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
               }
             }
           """)
-      client.expectJson(
+      client.expectTaskStarted()
+      client.expectJsonAfterSomeProgress(
         json"""
           {
             "jsonrpc":"2.0",
@@ -84,7 +85,8 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
               }
             }
           """)
-      client.expectJson(
+      client.expectTaskStarted()
+      client.expectJsonAfterSomeProgress(
         json"""
           {
             "jsonrpc":"2.0",

@@ -7,6 +7,8 @@ import java.util.UUID
 
 import akka.testkit.TestActors.blackholeProps
 import akka.testkit._
+import io.circe.Json
+import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
@@ -176,9 +178,14 @@ class BaseServerSpec
     )
   }
 
+  /** Can be used to avoid deleting the project's root. */
+  val deleteProjectsRootAfterEachTest = true
+
   override def afterEach(): Unit = {
     super.afterEach()
-    FileUtils.deleteQuietly(testProjectsRoot)
+
+    if (deleteProjectsRootAfterEachTest)
+      FileUtils.deleteQuietly(testProjectsRoot)
   }
 
   /** Tests can override this value to request a specific engine version to be
@@ -215,7 +222,7 @@ class BaseServerSpec
     * In the future the fake release mechanism can be properly updated to allow
     * for this kind of configuration without special logic.
     */
-  private def preInstallEngine(version: SemVer): Unit = {
+  def preInstallEngine(version: SemVer): Unit = {
     val os   = OS.operatingSystem.configName
     val ext  = if (OS.isWindows) "zip" else "tar.gz"
     val arch = OS.architecture
@@ -242,5 +249,64 @@ class BaseServerSpec
       forceInstallBroken = false
     )
     Runtime.default.unsafeRun(installAction)
+  }
+
+  def uninstallEngine(version: SemVer): Unit = {
+    val blackhole = system.actorOf(blackholeProps)
+    val action = runtimeVersionManagementService.uninstallEngine(
+      blackhole,
+      version
+    )
+    Runtime.default.unsafeRun(action)
+  }
+
+  implicit class ClientSyntax(client: WsTestClient) {
+    def expectTaskStarted(
+      timeout: FiniteDuration = 10.seconds.dilated
+    ): Unit = {
+      inside(parse(client.expectMessage(timeout))) { case Right(json) =>
+        getMethod(json) shouldEqual Some("task/started")
+      }
+    }
+
+    private def getMethod(json: Json): Option[String] = for {
+      obj    <- json.asObject
+      method <- obj("method").flatMap(_.asString)
+    } yield method
+
+    def expectJsonIgnoring(
+      shouldIgnore: Json => Boolean,
+      timeout: FiniteDuration = 10.seconds.dilated
+    ): Json = {
+      inside(parse(client.expectMessage(timeout))) { case Right(json) =>
+        if (shouldIgnore(json)) expectJsonIgnoring(shouldIgnore, timeout)
+        else json
+      }
+    }
+
+    def expectError(
+      expectedCode: Int,
+      timeout: FiniteDuration = 10.seconds.dilated
+    ): Unit = {
+      withClue("Response should be an error: ") {
+        inside(parse(client.expectMessage(timeout))) { case Right(json) =>
+          val code = for {
+            obj   <- json.asObject
+            error <- obj("error").flatMap(_.asObject)
+            code  <- error("code").flatMap(_.asNumber).flatMap(_.toInt)
+          } yield code
+          code shouldEqual Some(expectedCode)
+        }
+      }
+    }
+
+    def expectJsonAfterSomeProgress(
+      json: Json,
+      timeout: FiniteDuration = 10.seconds.dilated
+    ): Unit =
+      expectJsonIgnoring(
+        json => getMethod(json).exists(_.startsWith("task/")),
+        timeout
+      ) shouldEqual json
   }
 }

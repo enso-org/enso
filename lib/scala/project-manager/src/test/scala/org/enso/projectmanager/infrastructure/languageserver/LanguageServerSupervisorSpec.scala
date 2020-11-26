@@ -104,6 +104,8 @@ class LanguageServerSupervisorSpec
     fakeServer.stop()
   }
 
+  // TODO [RW] this test is ignored for now as the restarting logic currently
+  //  allows one restart at a time #1315
   it should "restart server limited number of times" ignore new TestCtx {
     //given
     processManagerProbe

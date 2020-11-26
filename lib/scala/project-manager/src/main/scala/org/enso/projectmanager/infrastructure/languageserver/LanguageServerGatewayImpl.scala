@@ -44,10 +44,10 @@ class LanguageServerGatewayImpl[
     project: Project,
     version: SemVer
   ): F[ServerStartupFailure, LanguageServerSockets] = {
-    implicit val timeout: Timeout = Timeout(timeoutConfig.bootTimeout)
+    implicit val timeout: Timeout = Timeout(2 * timeoutConfig.bootTimeout)
 
     // TODO [RW] this can timeout if the boot is stuck waiting on a lock, how do
-    //  we want to handle that?
+    //  we want to handle that? #1315
     Async[F]
       .fromFuture { () =>
         (registry ? StartServer(

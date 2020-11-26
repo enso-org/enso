@@ -144,8 +144,8 @@ operation also includes spawning an instance of the language server open on the
 specified project.
 
 To open a project, an engine version that is specified in project settings needs
-to be installed. If `missingComponentAction` is set to `install` or
-`force-install-broken`, this action will install any missing components,
+to be installed. If `missingComponentAction` is set to `Install` or
+`ForceInstallBroken`, this action will install any missing components,
 otherwise, an error will be reported if a component is missing. A typical usage
 scenario may consist of first trying to open the project without installing
 missing components. If that fails with the `MissingComponentError`, the client
@@ -166,7 +166,7 @@ interface ProjectOpenRequest {
   /**
    * Specifies how to handle missing components.
    *
-   * If not provided, defaults to `fail`.
+   * If not provided, defaults to `Fail`.
    */
   missingComponentAction?: MissingComponentAction;
 }
@@ -304,7 +304,7 @@ interface ProjectCreateRequest {
   /**
    * Specifies how to handle missing components.
    *
-   * If not provided, defaults to `fail`.
+   * If not provided, defaults to `Fail`.
    */
   missingComponentAction?: MissingComponentAction;
 }
