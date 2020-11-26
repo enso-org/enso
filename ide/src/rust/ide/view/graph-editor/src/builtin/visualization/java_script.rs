@@ -27,7 +27,7 @@ pub fn scatter_plot_visualization() -> visualization::java_script::FallibleDefin
 
 /// Return a `JavaScript` Map visualization.
 pub fn map_view_visualization() -> visualization::java_script::FallibleDefinition {
-    let source = include_str!("java_script/mapView.js");
+    let source = include_str!("java_script/geoMap.js");
 
     visualization::java_script::Definition::new(data::builtin_library(),source)
 }
