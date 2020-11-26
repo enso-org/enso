@@ -46,10 +46,10 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
 
     for {
       sockets <- projectService.openProject(
-        self,
-        clientId,
-        params.projectId,
-        missingComponentAction
+        progressTracker        = self,
+        clientId               = clientId,
+        projectId              = params.projectId,
+        missingComponentAction = missingComponentAction
       )
     } yield ProjectOpen.Result(
       languageServerJsonAddress   = sockets.jsonSocket,

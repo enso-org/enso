@@ -166,11 +166,15 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
               }
             }
           """)
+
+      val message =
+        "Installation has been cancelled by the user because the requested " +
+        "engine release is marked as broken."
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
             "id":0,
-            "error": { "code": 4021, "message": "Installation has been cancelled by the user because the requested engine release is marked as broken." }
+            "error": { "code": 4021, "message": $message }
           }
           """)
 
@@ -184,7 +188,8 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
               }
             }
           """)
-      client.expectJson(
+      client.expectTaskStarted()
+      client.expectJsonAfterSomeProgress(
         json"""
           {
             "jsonrpc":"2.0",

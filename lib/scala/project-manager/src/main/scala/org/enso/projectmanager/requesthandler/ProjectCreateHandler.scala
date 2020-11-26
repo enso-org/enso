@@ -52,10 +52,10 @@ class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
           )
         }
       projectId <- projectService.createUserProject(
-        self,
-        params.name,
-        actualVersion,
-        missingComponentAction
+        progressTracker        = self,
+        name                   = params.name,
+        engineVersion          = actualVersion,
+        missingComponentAction = missingComponentAction
       )
     } yield ProjectCreate.Result(projectId)
   }
