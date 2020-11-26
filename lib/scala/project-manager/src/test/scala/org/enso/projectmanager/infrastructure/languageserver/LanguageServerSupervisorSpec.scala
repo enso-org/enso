@@ -5,11 +5,7 @@ import akka.testkit.{ImplicitSender, TestActor, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
-  ServerBootFailed,
-  ServerBooted
-}
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.ServerBooted
 import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.{
   Reject,
   ReplyWith
@@ -100,48 +96,6 @@ class LanguageServerSupervisorSpec
     //teardown
     parent ! GracefulStop
     parentProbe.expectMsg(ChildTerminated)
-    system.stop(parent)
-    fakeServer.stop()
-  }
-
-  // TODO [RW] this test is ignored for now as the restarting logic currently
-  //  allows one restart at a time #1315
-  it should "restart server limited number of times" ignore new TestCtx {
-    //given
-    processManagerProbe
-      .setAutoPilot((sender: ActorRef, msg: Any) =>
-        msg match {
-          case Restart =>
-            restartRequests += 1
-            sender ! ServerBootFailed(
-              new RuntimeException("Testing boot failures")
-            )
-            TestActor.KeepRunning
-          case _ => TestActor.KeepRunning
-        }
-      )
-    val probe = TestProbe()
-    fakeServer.withBehaviour { case ping @ PingMatcher(_) =>
-      probe.ref ! ping
-      Reject
-    }
-    probe.expectNoMessage()
-    //when
-    virtualTimeAdvances(testInitialDelay)
-    probe.expectMsgPF(5.seconds) { case PingMatcher(_) => () }
-    processManagerProbe.expectNoMessage()
-    virtualTimeAdvances(testHeartbeatTimeout)
-    (1 to testRestartLimit).foreach { i =>
-      processManagerProbe.expectMsg(Restart)
-      restartRequests mustEqual i
-      virtualTimeAdvances(testRestartDelay)
-    }
-    virtualTimeAdvances(testHeartbeatInterval)
-    probe.expectNoMessage()
-    //then
-    parentProbe.expectMsg(ServerDied)
-    parentProbe.expectMsg(ChildTerminated)
-    //teardown
     system.stop(parent)
     fakeServer.stop()
   }
