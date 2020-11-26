@@ -39,12 +39,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
     ctx.locking.acquireWriteCompilationLock()
     try {
-      val modules = files.flatMap { file =>
-        ctx.executionService.getContext.getModuleForFile(file).toScala
-      }
-      ensureIndexedModules(modules)
-      ensureIndexedImports(modules)
-      ensureCompiledScope()
+      ensureCompiledFiles(files)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
     }
@@ -53,54 +48,78 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /** Run the scheduled compilation and invalidation logic, and send the
     * suggestion updates.
     *
-    * @param modules the list of modules to compile.
+    * @param files the list of files to compile.
     * @param ctx the runtime context
     */
-  protected def ensureIndexedModules(
-    modules: Iterable[Module]
-  )(implicit ctx: RuntimeContext): Unit = {
-    modules
-      .foreach { module =>
-        compile(module)
-        val changeset = applyEdits(new File(module.getPath))
-        compile(module).foreach { module =>
+  protected def ensureCompiledFiles(
+    files: Iterable[File]
+  )(implicit ctx: RuntimeContext): CompilationStatus = {
+    val modules = files.flatMap { file =>
+      ctx.executionService.getContext.getModuleForFile(file).toScala
+    }
+    val moduleCompilationStatus = modules.flatMap { module =>
+      ensureCompiledModule(module) +: ensureCompiledImports(module)
+    }
+    val scopeCompilationStatus = ensureCompiledScope()
+    (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
+      .getOrElse(CompilationStatus.Success)
+  }
+
+  /** Run the scheduled compilation and invalidation logic, and send the
+    * suggestion updates.
+    *
+    * @param module the module to compile.
+    * @param ctx the runtime context
+    */
+  private def ensureCompiledModule(
+    module: Module
+  )(implicit ctx: RuntimeContext): CompilationStatus = {
+    compile(module)
+    val changeset = applyEdits(new File(module.getPath))
+    compile(module)
+      .map {
+        case Some(module) =>
           runInvalidationCommands(
-            buildCacheInvalidationCommands(changeset, module.getLiteralSource)
+            buildCacheInvalidationCommands(
+              changeset,
+              module.getLiteralSource
+            )
           )
           analyzeModule(module, changeset)
-        }
+          runCompilationDiagnostics(module)
+        case None =>
+          CompilationStatus.Success
       }
+      .getOrElse(CompilationStatus.Failure)
   }
 
   /** Compile the imported modules and send the suggestion updates.
     *
-    * @param modules the list of modules to analyze.
+    * @param module the modules to analyze.
     * @param ctx the runtime context
     */
-  protected def ensureIndexedImports(
-    modules: Iterable[Module]
-  )(implicit ctx: RuntimeContext): Unit = {
-    modules.foreach { module =>
-      compile(module).foreach { module =>
-        val importedModules =
-          new ImportResolver(ctx.executionService.getContext.getCompiler)
-            .mapImports(module)
-            .filter(_.getName != module.getName)
-        ctx.executionService.getLogger.finest(
-          s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
-        )
-        importedModules.foreach(analyzeImport)
-      }
-    }
+
+  private def ensureCompiledImports(module: Module)(implicit
+    ctx: RuntimeContext
+  ): Seq[CompilationStatus] = {
+    val importedModules =
+      new ImportResolver(ctx.executionService.getContext.getCompiler)
+        .mapImports(module)
+        .filter(_.getName != module.getName)
+    ctx.executionService.getLogger.finest(
+      s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
+    )
+    importedModules.foreach(analyzeImport)
+    importedModules.map(runCompilationDiagnostics)
   }
 
   /** Compile all modules in the scope and send the extracted suggestions.
     *
     * @param ctx the runtime context
     */
-  protected def ensureCompiledScope()(implicit
+  private def ensureCompiledScope()(implicit
     ctx: RuntimeContext
-  ): CompilationStatus = {
+  ): Iterable[CompilationStatus] = {
     val modulesInScope =
       ctx.executionService.getContext.getTopScope.getModules.asScala
     ctx.executionService.getLogger
@@ -118,13 +137,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
               )
             )
             CompilationStatus.Failure
-          case Right(module) =>
+          case Right(Some(module)) =>
             analyzeModuleInScope(module)
             runCompilationDiagnostics(module)
+          case Right(None) =>
+            CompilationStatus.Success
         }
       }
-      .maxOption
-      .getOrElse(CompilationStatus.Success)
   }
 
   private def analyzeImport(
@@ -296,17 +315,19 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def compile(
     module: Module
-  )(implicit ctx: RuntimeContext): Either[Throwable, Module] = {
+  )(implicit ctx: RuntimeContext): Either[Throwable, Option[Module]] = {
     val prevStage = module.getCompilationStage
     val compilationResult = Either.catchNonFatal {
       module.compileScope(ctx.executionService.getContext).getModule
     }
-    if (prevStage != module.getCompilationStage) {
-      ctx.executionService.getLogger.finest(
-        s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
-      )
+    compilationResult.map { compiledModule =>
+      if (prevStage != compiledModule.getCompilationStage) {
+        ctx.executionService.getLogger.finest(
+          s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
+        )
+        Some(compiledModule)
+      } else None
     }
-    compilationResult
   }
 
   /** Apply pending edits to the file.
