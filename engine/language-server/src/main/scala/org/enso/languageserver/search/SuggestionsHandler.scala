@@ -235,12 +235,9 @@ final class SuggestionsHandler(
     case Import(suggestionId) =>
       val action = for {
         result <- suggestionsRepo.select(suggestionId)
-      } yield {
-        result match {
-          case Some(suggestion) => SearchProtocol.ImportSuggestion(suggestion)
-          case None             => SearchProtocol.SuggestionNotFoundError
-        }
-      }
+      } yield result
+        .map(SearchProtocol.ImportSuggestion)
+        .getOrElse(SearchProtocol.SuggestionNotFoundError)
 
       val handler = context.system
         .actorOf(ImportModuleHandler.props(timeout, runtimeConnector))
