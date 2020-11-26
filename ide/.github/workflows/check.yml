@@ -57,13 +57,19 @@ jobs:
           toolchain: nightly-2019-11-04
           override: true
 
-      - name: Install Clippy
-        run: rustup component add clippy
-
       - name: Install Node
         uses: actions/setup-node@v1
         with:
           node-version: '14.15.0'
+
+      - name: Install prettier
+        run: npm install --save-dev --save-exact prettier
+
+      - name: Lint JS
+        run: npx prettier --check "src/**/*.js"
+
+      - name: Install Clippy
+        run: rustup component add clippy
 
       - name: Building Rust Sources
         run: node ./run lint --skip-version-validation
