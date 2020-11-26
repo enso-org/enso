@@ -11,16 +11,5 @@
 },
 {
   "name":"java.lang.NoSuchMethodError"
-},
-{
-  "name":"org.sqlite.core.DB",
-  "methods":[{"name":"throwex","parameterTypes":["int"] }]
-},
-{
-  "name":"org.sqlite.core.NativeDB",
-  "fields":[
-    {"name":"pointer"}, 
-    {"name":"udfdatalist"}
-  ]
 }
 ]

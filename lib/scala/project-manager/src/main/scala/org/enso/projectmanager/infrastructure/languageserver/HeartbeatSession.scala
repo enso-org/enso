@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
+import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler, Status}
 import akka.stream.SubscriptionWithCancelException.StageWasCompleted
 import io.circe.parser._
 import org.enso.projectmanager.data.Socket
@@ -78,6 +78,12 @@ class HeartbeatSession(
       context.become(pongStage(cancellable))
 
     case WebSocketStreamFailure(th) =>
+      logError(th, s"An error occurred during connecting to websocket $socket")
+      context.parent ! ServerUnresponsive
+      stop()
+
+    // TODO [RW] or maybe make WebSocket connection always reply with WebSocketStreamFailure instead of this? but there were some problems with that
+    case Status.Failure(th: Throwable) =>
       logError(th, s"An error occurred during connecting to websocket $socket")
       context.parent ! ServerUnresponsive
       stop()

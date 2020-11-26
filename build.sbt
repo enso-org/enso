@@ -719,11 +719,17 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "project-manager",
         staticOnLinux = true,
         Seq(
+          "-J-Xmx8G",
           "--enable-all-security-services", // Note [HTTPS in the Launcher]
 //            "-H:IncludeResources=.*Main.enso$",
           "--report-unsupported-elements-at-runtime", // FIXME debug
           "-H:+TraceClassInitialization",
           "-H:+AllowIncompleteClasspath",
+          "-H:+ReportExceptionStackTraces",
+          "-H:+TraceClassInitialization",
+          "-H:+PrintClassInitialization",
+          "-H:+RemoveSaturatedTypeFlows",
+          "--initialize-at-build-time=scala.runtime.Statics$VM",
           "--initialize-at-run-time=" +
           "akka.protobuf.DescriptorProtos," +
           "io.methvin.watchservice.jna.CarbonAPI"
@@ -733,6 +739,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       )
       .value
   )
+  .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`polyglot-api`)
