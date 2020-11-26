@@ -1,11 +1,12 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
 
-import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that gathers info required for suggestion import.
@@ -47,59 +48,64 @@ final class ImportSuggestionCmd(
     val suggestion = request.suggestion
     val topScope =
       ctx.executionService.getContext.getCompiler.context.getTopScope
-    @scala.annotation.tailrec
-    def go(
-      queue: mutable.Queue[ExportingModule],
-      builder: mutable.Builder[ExportResult, Vector[ExportResult]]
-    ): Vector[ExportResult] =
-      if (queue.isEmpty) {
-        builder.result()
-      } else {
-        val current = queue.dequeue()
-        topScope.getModules
-          .stream()
-          .filter(isCompiled)
-          .forEach { module =>
-            module.getIr.exports.foreach { export =>
-              if (export.name.name == current.name) {
-                if (!export.isAll) {
-                  val qualified = Api.Export.Qualified(
-                    module.getName.toString,
-                    export.rename.map(_.name)
-                  )
-                  builder += ExportResult(qualified, getDepth(export.name))
-                } else if (exportsSymbol(export, suggestion.name)) {
-                  val unqualified =
-                    Api.Export.Unqualified(module.getName.toString)
-                  builder += ExportResult(unqualified, getDepth(export.name))
-                  queue.enqueue(ExportingModule(module.getName.toString))
-                }
-              }
-            }
-          }
-        go(queue, builder)
+    val builder = Vector.newBuilder[ExportResult]
+
+    topScope.getModules
+      .stream()
+      .filter(isCompiled)
+      .forEach { module =>
+        module.getIr.getMetadata(BindingAnalysis).foreach { bindings =>
+          builder ++= getQualifiedExport(
+            module,
+            suggestion,
+            bindings
+          )
+          builder ++= getUnqualifiedExport(module, suggestion, bindings)
+        }
       }
 
-    go(
-      mutable.Queue(ExportingModule(suggestion.module)),
-      Vector.newBuilder
-    )
+    builder.result()
   }
 
-  private def getDepth(name: IR.Name.Qualified): Int =
-    name.parts.size
+  /** Extract the qualified export from the bindings map. */
+  private def getQualifiedExport(
+    module: Module,
+    suggestion: Suggestion,
+    bindings: BindingsMap
+  ): Option[ExportResult] = {
+    bindings.resolvedExports
+      .find(_.module.getName.toString == suggestion.module)
+      .filter(_.exportedAs.isDefined)
+      .map { exportedModule =>
+        val qualified = Api.Export.Qualified(
+          module.getName.toString,
+          exportedModule.exportedAs
+        )
+        ExportResult(qualified, getDepth(module))
+      }
+  }
+
+  /** Extract the unqualified export from the bindings map. */
+  private def getUnqualifiedExport(
+    module: Module,
+    suggestion: Suggestion,
+    bindings: BindingsMap
+  ): Option[ExportResult] = {
+    bindings.exportedSymbols.get(suggestion.name).flatMap { resolvedExports =>
+      resolvedExports
+        .find(_.module.getName.toString == suggestion.module)
+        .map { _ =>
+          val unqualified = Api.Export.Unqualified(module.getName.toString)
+          ExportResult(unqualified, getDepth(module))
+        }
+    }
+  }
+
+  private def getDepth(module: Module): Int =
+    module.getName.path.size
 
   private def isCompiled(module: Module): Boolean =
     module.getIr != null
-
-  private def exportsSymbol(
-    export: IR.Module.Scope.Export,
-    symbol: String
-  ): Boolean = {
-    export.isAll &&
-    export.onlyNames.forall(_.exists(_.name == symbol))
-  }
-
 }
 
 object ImportSuggestionCmd {
