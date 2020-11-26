@@ -172,7 +172,8 @@ ensogl::define_endpoints! {
     Output {
         preprocessor  (EnsoCode),
         visualisation (Option<visualization::Definition>),
-        size          (Vector2)
+        size          (Vector2),
+        is_selected   (bool),
     }
 }
 
@@ -517,9 +518,9 @@ impl Container {
         let fullscreen_position = DEPRECATED_Animation::<Vector3>::new(network);
         let scene               = &self.model.scene;
         let logger              = &self.model.logger;
-
         let action_bar          = &model.action_bar.frp;
         let registry            = &model.registry;
+
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
             eval_ frp.toggle_visibility (model.toggle_visibility());
@@ -549,18 +550,26 @@ impl Container {
             eval  frp.set_size          ((s) size.set_target_value(*s));
 
             mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
-            eval mouse_down_target ([model] (target){
+            selected <= mouse_down_target.map(f!([model] (target){
                 let vis        = &model.visualization;
                 let activate   = || vis.borrow().as_ref().map(|v| v.activate.clone_ref());
                 let deactivate = || vis.borrow().as_ref().map(|v| v.deactivate.clone_ref());
                 if model.is_this_target(*target) {
                     if let Some(activate) = activate() {
                         activate.emit(());
+                        return Some(true);
                     }
                 } else if let Some(deactivate) = deactivate() {
                     deactivate.emit(());
+                    return Some(false);
                 }
+                None
+            }));
+
+            is_selected_changed <= selected.map2(&frp.output.is_selected, |&new,&old| {
+                (new != old).as_some(new)
             });
+            frp.source.is_selected <+ is_selected_changed;
 
             _eval <- fullscreen.value.all_with3(&size.value,&frp.scene_shape,
                 f!([model] (weight,viz_size,scene_size) {

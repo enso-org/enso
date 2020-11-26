@@ -43,17 +43,17 @@ use ensogl::application::Application;
 use ensogl::application::shortcut;
 use ensogl::application;
 use ensogl::data::color;
-use ensogl::display;
-use ensogl::display::object::Id;
 use ensogl::display::Scene;
+use ensogl::display::navigation::navigator::Navigator;
+use ensogl::display::object::Id;
 use ensogl::display::shape::StyleWatch;
+use ensogl::display;
 use ensogl::gui::component::DEPRECATED_Animation;
 use ensogl::gui::component::Tween;
 use ensogl::gui::cursor;
 use ensogl::prelude::*;
 use ensogl::system::web;
 use ensogl_theme as theme;
-
 
 
 // ===============
@@ -381,6 +381,14 @@ ensogl::define_endpoints! {
         toggle_fullscreen_for_selected_visualization(),
 
 
+        // === Scene Navigation ===
+
+        /// Stop the scene camera from moving around, locking the scene in place.
+        /// Can be used, e.g., if there is a fullscreen visualisation active, or navigation should
+        ///only work for a selected visualisation.
+        set_navigator_disabled(bool),
+
+
         // === Debug ===
 
         /// Push a hardcoded breadcrumb without notifying the controller.
@@ -471,8 +479,13 @@ ensogl::define_endpoints! {
         visualization_enable_fullscreen (NodeId),
         visualization_set_preprocessor  ((NodeId,data::EnsoCode)),
 
+        on_visualization_select     (Switch<NodeId>),
+        some_visualisation_selected (bool),
+
         node_being_edited (Option<NodeId>),
-        node_editing (bool)
+        node_editing (bool),
+
+        navigator_active (bool),
     }
 }
 
@@ -850,6 +863,18 @@ impl Edges {
 
 
 
+#[derive(Debug,Clone,CloneRef,Default)]
+struct Visualisations {
+    /// This keeps track of the currently selected visualisation. There should only ever be one
+    /// visualisations selected, however due to the way that the selection is determined, it can
+    /// happen that while the FRP is resolved, temporarily, we have multiple visualisation in this
+    /// set. This happens because the selection status is determined bottom up from each
+    /// visualisation and the reported via FRP to the graph editor. That means if the status
+    /// we might see the new selection status for a visualisation getting set before we see the
+    /// previously selected visualisation report its deselection. If we ever have more than one
+    /// visualisation in this set after the status updates have been resolved, that is a bug.
+    selected : SharedHashSet<NodeId>,
+}
 
 
 
@@ -947,7 +972,7 @@ impl GraphEditorModelWithNetwork {
     , input_press   : &frp::Source<EdgeEndpoint>
     , output        : &FrpEndpoints
     ) -> NodeId {
-        let view    = component::Node::new(&self.app,self.visualizations.clone_ref());
+        let view    = component::Node::new(&self.app,self.vis_registry.clone_ref());
         let node    = Node::new(view);
         let node_id = node.id();
         self.add_child(&node);
@@ -1012,6 +1037,14 @@ impl GraphEditorModelWithNetwork {
 
             vis_enabled  <- vis_visible.gate(&vis_visible);
             vis_disabled <- vis_visible.gate_not(&vis_visible);
+
+            let vis_is_selected = node.model.visualization.frp.is_selected.clone_ref();
+
+            selected    <- vis_is_selected.on_true();
+            deselected  <- vis_is_selected.on_false();
+            output.source.on_visualization_select <+ selected.constant(Switch::On(node_id));
+            output.source.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
+
 
             // Ensure the graph editor knows about internal changes to the visualisation. If the
             // visualisation changes that should indicate that the old one has been disabled and a
@@ -1118,9 +1151,12 @@ pub struct GraphEditorModel {
     pub cursor         : cursor::Cursor,
     pub nodes          : Nodes,
     pub edges          : Edges,
-    pub visualizations : visualization::Registry,
+    pub vis_registry   : visualization::Registry,
     touch_state        : TouchState,
+    visualisations     : Visualisations,
     frp                : FrpEndpoints,
+    navigator          : Navigator,
+
 }
 
 
@@ -1138,13 +1174,16 @@ impl GraphEditorModel {
         let display_object = display::object::Instance::new(&logger);
         let nodes          = Nodes::new(&logger);
         let edges          = default();
-        let visualizations = visualization::Registry::with_default_visualizations();
+        let vis_registry   = visualization::Registry::with_default_visualizations();
+        let visualisations = default();
         let touch_state    = TouchState::new(network,&scene.mouse.frp);
         let breadcrumbs    = component::Breadcrumbs::new(app.clone_ref());
         let app            = app.clone_ref();
         let frp            = frp.output.clone_ref();
+        let navigator      = Navigator::new(&scene,&scene.camera());
         Self {
-            logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs,visualizations
+            logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs,
+            vis_registry,visualisations,navigator
         }.init()
     }
 
@@ -1775,24 +1814,48 @@ impl Default for SelectionMode {
 
 #[allow(unused_parens)]
 fn new_graph_editor(app:&Application) -> GraphEditor {
-    let world          = &app.display;
-    let scene          = world.scene();
-    let cursor         = &app.cursor;
-    let frp            = Frp::new();
-    let model          = GraphEditorModelWithNetwork::new(app,cursor.clone_ref(),&frp);
-    let network        = &frp.network;
-    let nodes          = &model.nodes;
-    let edges          = &model.edges;
-    let inputs         = &model.frp;
-    let mouse          = &scene.mouse.frp;
-    let touch          = &model.touch_state;
-    let visualizations = &model.visualizations;
-    let logger         = &model.logger;
-    let out            = &frp.output;
+    let world        = &app.display;
+    let scene        = world.scene();
+    let cursor       = &app.cursor;
+    let frp          = Frp::new();
+    let model        = GraphEditorModelWithNetwork::new(app,cursor.clone_ref(),&frp);
+    let network      = &frp.network;
+    let nodes        = &model.nodes;
+    let edges        = &model.edges;
+    let inputs       = &model.frp;
+    let mouse        = &scene.mouse.frp;
+    let touch        = &model.touch_state;
+    let vis_registry = &model.vis_registry;
+    let logger       = &model.logger;
+    let out          = &frp.output;
 
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
     let styles             = StyleWatch::new(&scene.style_sheet);
     let any_type_sel_color = styles.get_color(theme::code::types::any::selection);
+
+
+
+    // ========================
+    // === Scene Navigation ===
+    // ========================
+
+    frp::extend! { network
+
+        no_vis_selected   <- out.some_visualisation_selected.on_false();
+        some_vis_selected <- out.some_visualisation_selected.on_true();
+
+        set_navigator_true  <- inputs.set_navigator_disabled.on_true();
+        set_navigator_false <- inputs.set_navigator_disabled.on_false();
+
+        disable_navigator <- any_(&set_navigator_false,&some_vis_selected);
+        enable_navigator  <- any_(&set_navigator_true,&no_vis_selected);
+
+        eval_ disable_navigator ( model.navigator.disable() );
+        eval_ enable_navigator  ( model.navigator.enable()  );
+
+        out.source.navigator_active <+ inputs.set_navigator_disabled
+                                       || out.some_visualisation_selected;
+    }
 
 
 
@@ -2446,10 +2509,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
    // === Vis Set ===
    frp::extend! { network
 
-   def _update_vis_data = inputs.set_visualization.map(f!([logger,nodes,visualizations]((node_id,vis_path)) {
+   def _update_vis_data = inputs.set_visualization.map(f!([logger,nodes,vis_registry]((node_id,vis_path)) {
        match (&nodes.get_cloned_ref(node_id), vis_path) {
             (Some(node), Some(vis_path)) => {
-                let vis_definition = visualizations.definition_from_path(vis_path);
+                let vis_definition = vis_registry.definition_from_path(vis_path);
                 node.model.visualization.frp.set_visualization.emit(vis_definition);
             },
             (Some(node), None) => node.model.visualization.frp.set_visualization.emit(None),
@@ -2457,6 +2520,22 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
        }
    }));
+
+
+   // === Vis Selection ===
+    frp::extend! { network
+        eval out.on_visualization_select ([model](switch) {
+            if switch.is_on() {
+                model.visualisations.selected.insert(switch.value);
+            } else {
+                model.visualisations.selected.remove(&switch.value);
+            }
+        });
+
+        out.source.some_visualisation_selected <+  out.on_visualization_select.map(f_!([model] {
+            !model.visualisations.selected.is_empty()
+        }));
+    };
 
 
     // === Vis Update Data ===
@@ -2482,8 +2561,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
      node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
 
     let cycle_count = Rc::new(Cell::new(0));
-    def _cycle_visualization = node_to_cycle.map(f!([inputs,visualizations,logger](node_id) {
-        let visualizations = visualizations.valid_sources(&"Any".into());
+    def _cycle_visualization = node_to_cycle.map(f!([inputs,vis_registry,logger](node_id) {
+        let visualizations = vis_registry.valid_sources(&"Any".into());
         cycle_count.set(cycle_count.get() % visualizations.len());
         if let Some(vis) = visualizations.get(cycle_count.get()) {
             let path = vis.signature.path.clone();
@@ -2537,9 +2616,9 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Register Visualization ===
 
-    def _register_visualization = inputs.register_visualization.map(f!([visualizations](handle) {
+    def _register_visualization = inputs.register_visualization.map(f!([vis_registry](handle) {
         if let Some(handle) = handle {
-            visualizations.add(handle);
+            vis_registry.add(handle);
         }
     }));
 

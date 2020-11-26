@@ -9,7 +9,6 @@ use crate::model::module::Path as ModulePath;
 use crate::view::integration::Integration;
 
 use ensogl::application::Application;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use enso_protocol::language_server::MethodPointer;
 use ensogl_theme as theme;
@@ -65,7 +64,6 @@ pub fn main_method_ptr(project_name:impl Str, module_path:&model::module::Path) 
 #[derive(Debug)]
 pub struct View {
     application : Application,
-    navigator   : Navigator,
     integration : Integration,
 }
 
@@ -91,9 +89,6 @@ impl View {
         let visualization = project.visualization().clone();
 
         let application   = Application::new(&web::get_html_element_by_id("root").unwrap());
-        let scene         = application.display.scene();
-        let camera        = scene.camera();
-        let navigator     = Navigator::new(&scene,&camera);
 
         theme::builtin::dark::setup(&application);
         theme::builtin::light::setup(&application);
@@ -101,7 +96,7 @@ impl View {
         application.display.add_child(&view);
 
         let integration = Integration::new(view,graph,text,visualization,project);
-        Ok(View {application,navigator,integration})
+        Ok(View {application,integration})
     }
 }
 
