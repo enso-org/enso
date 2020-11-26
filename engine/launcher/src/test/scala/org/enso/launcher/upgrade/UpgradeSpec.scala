@@ -156,7 +156,7 @@ class UpgradeSpec
   }
 
   "upgrade" should {
-    "upgrade to latest version (excluding broken)" in {
+    "upgrade to latest version (excluding broken)" taggedAs Retry in {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 2))
@@ -166,7 +166,7 @@ class UpgradeSpec
       checkVersion() shouldEqual SemVer(0, 0, 4)
     }
 
-    "not downgrade without being explicitly asked to do so" in {
+    "not downgrade without being explicitly asked to do so" taggedAs Retry in {
       // precondition for the test to make sense
       SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
 
@@ -177,7 +177,7 @@ class UpgradeSpec
     }
 
     "upgrade/downgrade to a specific version " +
-    "(and update necessary files)" in {
+    "(and update necessary files)" taggedAs Retry in {
       // precondition for the test to make sense
       SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
 
@@ -194,7 +194,7 @@ class UpgradeSpec
         .trim shouldEqual "Test license"
     }
 
-    "upgrade also in installed mode" in {
+    "upgrade also in installed mode" taggedAs Retry in {
       prepareDistribution(
         portable        = false,
         launcherVersion = Some(SemVer(0, 0, 0))

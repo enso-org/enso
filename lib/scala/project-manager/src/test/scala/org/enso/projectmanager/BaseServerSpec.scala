@@ -188,6 +188,12 @@ class BaseServerSpec
       FileUtils.deleteQuietly(testProjectsRoot)
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+
+    FileUtils.deleteQuietly(testProjectsRoot)
+  }
+
   /** Tests can override this value to request a specific engine version to be
     * preinstalled when running the suite.
     */
