@@ -1,5 +1,6 @@
-class TableViewVisualization extends Visualization {
+class TableVisualization extends Visualization {
     static inputType = 'Any'
+    static label = 'Table'
 
     onDataReceived(data) {
         function tableOf(content, level) {
@@ -274,4 +275,4 @@ class TableViewVisualization extends Visualization {
     }
 }
 
-return TableViewVisualization
+return TableVisualization

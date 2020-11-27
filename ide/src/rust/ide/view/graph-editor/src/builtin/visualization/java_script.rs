@@ -11,9 +11,9 @@ use crate::component::visualization;
 // JavaScript builtin visualizations //
 ///////////////////////////////////////
 
-/// Return a `JavaScript` Table view visualization.
-pub fn table_view_visualization() -> visualization::java_script::FallibleDefinition {
-    let source = include_str!("java_script/tableView.js");
+/// Return a `JavaScript` Table visualization.
+pub fn table_visualization() -> visualization::java_script::FallibleDefinition {
+    let source = include_str!("java_script/table.js");
 
     visualization::java_script::Definition::new(data::builtin_library(),source)
 }
@@ -37,7 +37,7 @@ pub fn histogram_visualization() -> visualization::java_script::FallibleDefiniti
 }
 
 /// Return a `JavaScript` Map visualization.
-pub fn map_view_visualization() -> visualization::java_script::FallibleDefinition {
+pub fn geo_map_visualization() -> visualization::java_script::FallibleDefinition {
     let loading_scripts = include_str!("java_script/loading.js");
     let source          = include_str!("java_script/geoMap.js");
     let source          = format!("{}{}",loading_scripts,source);
@@ -45,7 +45,7 @@ pub fn map_view_visualization() -> visualization::java_script::FallibleDefinitio
     visualization::java_script::Definition::new(data::builtin_library(),source)
 }
 
-/// Return a `JavaScript` Bubble visualization.
+/// Return a `JavaScript` Bubble visualization. This should not be used as it is a demo visualization.
 pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition {
     let source = include_str!("java_script/bubbleVisualization.js");
 
