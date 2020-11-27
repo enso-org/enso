@@ -1,1367 +1,885 @@
 [
-{
-  "name":"akka.actor.ActorCell",
-  "fields":[
-    {"name":"akka$actor$dungeon$Children$$_childrenRefsDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"akka$actor$dungeon$Children$$_functionRefsDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"akka$actor$dungeon$Children$$_nextNameDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"akka$actor$dungeon$Dispatch$$_mailboxDoNotCallMeDirectly", "allowUnsafeAccess":true}
-  ]
-},
-{
-  "name":"akka.actor.DefaultSupervisorStrategy",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"akka.actor.LightArrayRevolverScheduler",
-  "methods":[{"name":"<init>","parameterTypes":["com.typesafe.config.Config","akka.event.LoggingAdapter","java.util.concurrent.ThreadFactory"] }]
-},
-{
-  "name":"akka.actor.LightArrayRevolverScheduler$TaskHolder",
-  "fields":[{"name":"task", "allowUnsafeAccess":true}]
-},
-{
-  "name":"akka.actor.LightArrayRevolverScheduler$TaskQueue[]"
-},
-{
-  "name":"akka.actor.LocalActorRefProvider",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","akka.actor.ActorSystem$Settings","akka.event.EventStream","akka.actor.DynamicAccess"] }]
-},
-{
-  "name":"akka.actor.LocalActorRefProvider$Guardian",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.actor.LocalActorRefProvider$SystemGuardian",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.actor.Props$EmptyActor",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"akka.actor.RepointableActorRef",
-  "fields":[
-    {"name":"_cellDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"_lookupDoNotCallMeDirectly", "allowUnsafeAccess":true}
-  ]
-},
-{
-  "name":"akka.actor.typed.ActorRef"
-},
-{
-  "name":"akka.actor.typed.internal.MiscMessageSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.actor.typed.internal.adapter.ActorRefAdapter"
-},
-{
-  "name":"akka.actor.typed.internal.adapter.ActorSystemAdapter$LoadTypedExtensions$",
-  "fields":[{"name":"MODULE$"}]
-},
-{
-  "name":"akka.actor.typed.internal.receptionist.DefaultServiceKey"
-},
-{
-  "name":"akka.actor.typed.internal.receptionist.ServiceKeySerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.actor.typed.receptionist.Receptionist$",
-  "fields":[{"name":"MODULE$"}]
-},
-{
-  "name":"akka.dispatch.AbstractNodeQueue",
-  "fields":[{"name":"_tailDoNotCallMeDirectly", "allowUnsafeAccess":true}]
-},
-{
-  "name":"akka.dispatch.AbstractNodeQueue$Node",
-  "fields":[{"name":"_nextDoNotCallMeDirectly", "allowUnsafeAccess":true}]
-},
-{
-  "name":"akka.dispatch.BoundedControlAwareMessageQueueSemantics"
-},
-{
-  "name":"akka.dispatch.BoundedDequeBasedMessageQueueSemantics"
-},
-{
-  "name":"akka.dispatch.BoundedMessageQueueSemantics"
-},
-{
-  "name":"akka.dispatch.ControlAwareMessageQueueSemantics"
-},
-{
-  "name":"akka.dispatch.DequeBasedMessageQueueSemantics"
-},
-{
-  "name":"akka.dispatch.Mailbox",
-  "fields":[
-    {"name":"_statusDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"_systemQueueDoNotCallMeDirectly", "allowUnsafeAccess":true}
-  ]
-},
-{
-  "name":"akka.dispatch.MessageDispatcher",
-  "fields":[
-    {"name":"_inhabitantsDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"_shutdownScheduleDoNotCallMeDirectly", "allowUnsafeAccess":true}
-  ]
-},
-{
-  "name":"akka.dispatch.MultipleConsumerSemantics"
-},
-{
-  "name":"akka.dispatch.SingleConsumerOnlyUnboundedMailbox",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
-},
-{
-  "name":"akka.dispatch.UnboundedControlAwareMessageQueueSemantics"
-},
-{
-  "name":"akka.dispatch.UnboundedDequeBasedMailbox",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
-},
-{
-  "name":"akka.dispatch.UnboundedDequeBasedMessageQueueSemantics"
-},
-{
-  "name":"akka.dispatch.UnboundedMailbox",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
-},
-{
-  "name":"akka.dispatch.UnboundedMessageQueueSemantics"
-},
-{
-  "name":"akka.event.DeadLetterListener",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"akka.event.EventStreamUnsubscriber",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.event.LoggerMailboxType",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","com.typesafe.config.Config"] }]
-},
-{
-  "name":"akka.event.LoggerMessageQueueSemantics"
-},
-{
-  "name":"akka.event.slf4j.Slf4jLogger",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"akka.event.slf4j.Slf4jLoggingFilter",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ActorSystem$Settings","akka.event.EventStream"] }]
-},
-{
-  "name":"akka.http.DefaultParsingErrorHandler$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"akka.http.impl.engine.client.PoolMasterActor",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"akka.io.InetAddressDnsProvider",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"akka.io.InetAddressDnsResolver",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.io.SelectionHandler",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.io.SimpleDnsManager",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.io.TcpIncomingConnection",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.io.TcpListener",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.io.TcpManager",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.io.TcpOutgoingConnection",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.io.dns.RecordType[]"
-},
-{
-  "name":"akka.pattern.PromiseActorRef",
-  "fields":[
-    {"name":"_stateDoNotCallMeDirectly", "allowUnsafeAccess":true}, 
-    {"name":"_watchedByDoNotCallMeDirectly", "allowUnsafeAccess":true}
-  ]
-},
-{
-  "name":"akka.routing.ConsistentHashingPool",
-  "methods":[{"name":"<init>","parameterTypes":["com.typesafe.config.Config"] }]
-},
-{
-  "name":"akka.routing.ConsistentRoutee[]"
-},
-{
-  "name":"akka.routing.RoundRobinPool",
-  "methods":[{"name":"<init>","parameterTypes":["com.typesafe.config.Config"] }]
-},
-{
-  "name":"akka.routing.RoutedActorCell$RouterActorCreator",
-  "allDeclaredConstructors":true
-},
-{
-  "name":"akka.serialization.BooleanSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.serialization.ByteArraySerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.serialization.ByteStringSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.serialization.DisabledJavaSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.serialization.IntSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.serialization.LongSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.serialization.SerializationExtension$",
-  "fields":[{"name":"MODULE$"}]
-},
-{
-  "name":"akka.serialization.StringSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.stream.SinkRef"
-},
-{
-  "name":"akka.stream.SourceRef"
-},
-{
-  "name":"akka.stream.SystemMaterializer$",
-  "fields":[{"name":"MODULE$"}]
-},
-{
-  "name":"akka.stream.impl.streamref.StreamRefsProtocol"
-},
-{
-  "name":"akka.stream.serialization.StreamRefSerializer",
-  "methods":[{"name":"<init>","parameterTypes":["akka.actor.ExtendedActorSystem"] }]
-},
-{
-  "name":"akka.stream.stage.GraphStageLogic[]"
-},
-{
-  "name":"akka.util.ByteString$ByteString1"
-},
-{
-  "name":"akka.util.ByteString$ByteString1C"
-},
-{
-  "name":"akka.util.ByteString$ByteStrings"
-},
-{
-  "name":"com.sun.crypto.provider.TlsMasterSecretGenerator",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"java.io.Serializable"
-},
-{
-  "name":"java.lang.Boolean"
-},
-{
-  "name":"java.lang.Class[]"
-},
-{
-  "name":"java.lang.Integer"
-},
-{
-  "name":"java.lang.Long"
-},
-{
-  "name":"java.lang.Object[]"
-},
-{
-  "name":"java.lang.String",
-  "fields":[{"name":"value", "allowUnsafeAccess":true}]
-},
-{
-  "name":"java.lang.String[]"
-},
-{
-  "name":"java.lang.invoke.VarHandle"
-},
-{
-  "name":"java.nio.file.Path[]"
-},
-{
-  "name":"java.security.AlgorithmParametersSpi"
-},
-{
-  "name":"java.security.KeyStoreSpi"
-},
-{
-  "name":"java.security.MessageDigestSpi"
-},
-{
-  "name":"java.security.SecureRandomParameters"
-},
-{
-  "name":"java.sql.Date"
-},
-{
-  "name":"java.sql.Timestamp"
-},
-{
-  "name":"javax.net.ssl.KeyManager[]"
-},
-{
-  "name":"javax.net.ssl.TrustManager[]"
-},
-{
-  "name":"javax.security.auth.x500.X500Principal",
-  "fields":[{"name":"thisX500Name"}],
-  "methods":[{"name":"<init>","parameterTypes":["sun.security.x509.X500Name"] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1620/0x000000084087f440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1621/0x000000084087d840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1622/0x000000084087e440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1623/0x000000084087c840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1624/0x0000000840877440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1625/0x0000000840875840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1626/0x0000000840876440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1627/0x0000000840874840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1629/0x0000000840888840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1633/0x000000084088b040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1636/0x0000000840884040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1636/0x000000084088c440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1638/0x0000000840885040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1640/0x0000000840885c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1641/0x000000084088f040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1642/0x000000084088f840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1644/0x0000000840890440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1645/0x0000000840888840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1645/0x0000000840891040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1646/0x0000000840889040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1646/0x0000000840891840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1648/0x0000000840889c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1649/0x000000084088a840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$1650/0x000000084088b040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$263/0x000000084021a040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$264/0x0000000840238040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$498/0x000000084035e440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$499/0x000000084035d840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$499/0x0000000840370040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$500/0x0000000840370040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$501/0x0000000840371840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$502/0x0000000840371840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$936/0x00000008405cd840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$936/0x00000008405d5040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$937/0x00000008405ce440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$937/0x00000008405d8040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$937/0x00000008405e8040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$938/0x00000008405e0840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$939/0x00000008405d9840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$939/0x00000008405e9840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$940/0x00000008405e2040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$943/0x00000008405e2c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$944/0x00000008405e3840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$945/0x00000008405e3440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$946/0x00000008405e4840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$956/0x00000008405ea040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$958/0x00000008405eb040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$984/0x00000008405f8840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$989/0x00000008405fb040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$990/0x00000008405fc040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$992/0x00000008405ff840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$993/0x00000008405ffc40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.boot.ProjectManager$$$Lambda$994/0x00000008405fe840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.CovariantFlatMapOps$$Lambda$1188/0x00000008406ee840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.CovariantFlatMapOps$$Lambda$1188/0x00000008406f6840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.CovariantFlatMapOps$$Lambda$954/0x00000008405e8840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1218/0x00000008406fbc40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1218/0x0000000840704c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1224/0x000000084070b040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1224/0x0000000840713040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1322/0x000000084076b840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioApplicative$$Lambda$1322/0x0000000840776840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioCovariantFlatMap$$Lambda$1215/0x00000008406fc040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioCovariantFlatMap$$Lambda$1215/0x0000000840705040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.core.ZioCovariantFlatMap$$Lambda$983/0x00000008405f8440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1446/0x00000008407d2040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1447/0x00000008407db040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1589/0x000000084085e040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$1593/0x0000000840856040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$950/0x00000008405e6840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioAsync$$Lambda$982/0x00000008405f8040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioEnvExec$$Lambda$1196/0x00000008406f3c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioEnvExec$$Lambda$1196/0x00000008406fbc40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1191/0x00000008406f1040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1191/0x00000008406f9040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1216/0x00000008406fc440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.control.effect.ZioErrorChannel$$Lambda$1216/0x0000000840705440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1185/0x00000008406ec840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1185/0x00000008406f4840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1269/0x0000000840747040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1269/0x000000084074f040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1351/0x000000084078c440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$1351/0x0000000840794440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.BlockingFileSystem$$Lambda$589/0x00000008403d1840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1279/0x0000000840755040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1279/0x000000084075d040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1280/0x0000000840755840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.file.JsonFileStorage$$Lambda$1280/0x000000084075d840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1447/0x00000008407d3040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1448/0x00000008407d3840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1448/0x00000008407db840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.languageserver.LanguageServerGatewayImpl$$Lambda$1449/0x00000008407dc840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.log.Slf4jLogging$$Lambda$1339/0x000000084077e440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.log.Slf4jLogging$$Lambda$1339/0x0000000840786440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1192/0x00000008406f1840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1192/0x00000008406f9840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1193/0x00000008406f2840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1193/0x00000008406fa840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1220/0x00000008406fac40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1220/0x0000000840703c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1221/0x0000000840709040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1221/0x0000000840711040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1222/0x0000000840709840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1222/0x0000000840711840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1282/0x0000000840757040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1282/0x000000084075f040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1352/0x000000084078d840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.repository.ProjectFileRepository$$Lambda$1352/0x0000000840795840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.time.RealClock$$Lambda$1348/0x000000084078b040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.infrastructure.time.RealClock$$Lambda$1348/0x0000000840793040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1340/0x000000084077d040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1340/0x0000000840785040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1343/0x000000084077b040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1343/0x0000000840783040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1344/0x0000000840788840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1344/0x0000000840790840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1350/0x000000084078c840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1350/0x0000000840794840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1353/0x000000084078e040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1353/0x0000000840796040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1356/0x0000000840790040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1357/0x0000000840790840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1357/0x0000000840798840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1358/0x0000000840799840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1436/0x00000008407c4440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1437/0x00000008407cd040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1439/0x00000008407c6840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1440/0x00000008407ce040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1449/0x00000008407d4840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$1450/0x00000008407dd040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.ProjectService$$Lambda$608/0x00000008403e2840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.config.GlobalConfigService$$Lambda$1354/0x000000084078e840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.config.GlobalConfigService$$Lambda$1355/0x0000000840796c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.config.GlobalConfigService$AccessErrorRecovery$$Lambda$1355/0x000000084078f040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.config.GlobalConfigService$AccessErrorRecovery$$Lambda$1356/0x0000000840798040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin$ErrorRecovery$$Lambda$1438/0x00000008407c5840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin$ErrorRecovery$$Lambda$1439/0x00000008407ce840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"scala.Boolean"
-},
-{
-  "name":"scala.Int"
-},
-{
-  "name":"scala.Long"
-},
-{
-  "name":"scala.Symbol"
-},
-{
-  "name":"scala.Tuple2[]"
-},
-{
-  "name":"sun.misc.Unsafe",
-  "allDeclaredFields":true
-},
-{
-  "name":"sun.security.pkcs12.PKCS12KeyStore",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.provider.JavaKeyStore$JKS",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.provider.NativePRNG",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.provider.SHA",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.provider.X509Factory",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.rsa.RSAKeyFactory$Legacy",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.ssl.KeyManagerFactoryImpl$SunX509",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.ssl.SSLContextImpl$DefaultSSLContext",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.ssl.SSLContextImpl$TLS12Context",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"sun.security.x509.AuthorityInfoAccessExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.AuthorityKeyIdentifierExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.BasicConstraintsExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.CRLDistributionPointsExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.CertificatePoliciesExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.ExtendedKeyUsageExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.IssuerAlternativeNameExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.KeyUsageExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.NetscapeCertTypeExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.PrivateKeyUsageExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.SubjectAlternativeNameExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"sun.security.x509.SubjectKeyIdentifierExtension",
-  "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-},
-{
-  "name":"zio.App$$Lambda$1039/0x0000000840622840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$Lambda$1665/0x00000008408a3040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$Lambda$1670/0x000000084089c840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$Lambda$247/0x0000000840216840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$Lambda$265/0x0000000840238840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$Lambda$294/0x0000000840252440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$Lambda$295/0x0000000840253040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$Lambda$299/0x0000000840255840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$anon$1$$Lambda$1043/0x0000000840621440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$anon$1$$Lambda$1693/0x00000008408b6840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.App$$anon$1$$Lambda$1697/0x00000008408b0440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.Fiber$$Lambda$1038/0x0000000840623040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.Fiber$$Lambda$1664/0x00000008408a2040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.Fiber$$Lambda$1668/0x000000084089b840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.Fiber$$Lambda$297/0x0000000840254840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.Fiber$$Lambda$298/0x0000000840254440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$1211/0x00000008406fd840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$1211/0x0000000840706840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$22/0x0000000840077840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$23/0x0000000840076840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$262/0x000000084021a840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$305/0x000000084025a440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$306/0x000000084025b840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$317/0x000000084026a840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$318/0x000000084026b040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$319/0x000000084026b440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$320/0x000000084026c040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$321/0x000000084026c840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$33/0x00000008400c7840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$33/0x00000008400c9040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$$Lambda$330/0x0000000840271840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1204/0x00000008406f7040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1204/0x00000008406ff040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1205/0x00000008406f8040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1205/0x0000000840700040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1208/0x00000008406fa040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1208/0x0000000840702040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1272/0x0000000840750840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1272/0x0000000840758840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1275/0x0000000840752040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1275/0x000000084075a040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1277/0x0000000840753840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1277/0x000000084075b840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1278/0x0000000840754040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1278/0x000000084075c040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1305/0x0000000840764040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1305/0x000000084076c040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1309/0x0000000840765840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$1309/0x000000084076d840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$333/0x0000000840273840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$334/0x0000000840274840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$$Lambda$59/0x0000000840141040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$TimeoutTo$$Lambda$1274/0x0000000840751440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$TimeoutTo$$Lambda$1274/0x0000000840759440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$ZipLeftFn$$Lambda$1037/0x0000000840624440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$ZipLeftFn$$Lambda$1660/0x00000008408a0440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZIO$ZipLeftFn$$Lambda$1664/0x0000000840899440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZScope$$$Lambda$1027/0x0000000840620440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZScope$$$Lambda$1297/0x0000000840760040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.ZScope$$$Lambda$1297/0x0000000840768040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.blocking.package$$$Lambda$1186/0x00000008406ed040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.blocking.package$$$Lambda$1186/0x00000008406f5040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.clock.PlatformSpecific$$anon$1$$Lambda$1292/0x000000084075dc40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.clock.PlatformSpecific$$anon$1$$Lambda$1292/0x0000000840765c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.clock.package$$$Lambda$28/0x0000000840073840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.clock.package$Clock$Service$$anon$1$$Lambda$1290/0x000000084075d040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.clock.package$Clock$Service$$anon$1$$Lambda$1290/0x0000000840765040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.console.package$$$Lambda$938/0x00000008405d9040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.console.package$$$Lambda$938/0x00000008405e9040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.console.package$$$Lambda$939/0x00000008405e1040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.console.package$Console$Service$$anon$1$$Lambda$58/0x00000008400d0c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1010/0x000000084060c840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1200/0x00000008406f5c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1200/0x00000008406fdc40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1201/0x00000008406f6040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1201/0x00000008406fe040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1202/0x00000008406f6440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1202/0x00000008406fe440",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1203/0x00000008406f6840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1203/0x00000008406fe840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1289/0x000000084075c840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1289/0x0000000840764840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1296/0x000000084075fc40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1296/0x0000000840767c40",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1301/0x0000000840762040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1301/0x000000084076a040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$1354/0x0000000840797040",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$$Lambda$296/0x0000000840253840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-},
-{
-  "name":"zio.internal.FiberContext$InterruptExit$$$Lambda$338/0x0000000840276840",
-  "methods":[{"name":"writeReplace","parameterTypes":[] }]
-}
+  {
+    "name": "akka.actor.ActorCell",
+    "fields": [
+      {
+        "name": "akka$actor$dungeon$Children$$_childrenRefsDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "akka$actor$dungeon$Children$$_functionRefsDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "akka$actor$dungeon$Children$$_nextNameDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "akka$actor$dungeon$Dispatch$$_mailboxDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.DefaultSupervisorStrategy",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.LightArrayRevolverScheduler",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.typesafe.config.Config",
+          "akka.event.LoggingAdapter",
+          "java.util.concurrent.ThreadFactory"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.LightArrayRevolverScheduler$TaskHolder",
+    "fields": [
+      {
+        "name": "task",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.LightArrayRevolverScheduler$TaskQueue[]"
+  },
+  {
+    "name": "akka.actor.LocalActorRefProvider",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "akka.actor.ActorSystem$Settings",
+          "akka.event.EventStream",
+          "akka.actor.DynamicAccess"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.LocalActorRefProvider$Guardian",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.actor.LocalActorRefProvider$SystemGuardian",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.actor.Props$EmptyActor",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.RepointableActorRef",
+    "fields": [
+      {
+        "name": "_cellDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "_lookupDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.typed.ActorRef"
+  },
+  {
+    "name": "akka.actor.typed.internal.MiscMessageSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.typed.internal.adapter.ActorRefAdapter"
+  },
+  {
+    "name": "akka.actor.typed.internal.adapter.ActorSystemAdapter$LoadTypedExtensions$",
+    "fields": [
+      {
+        "name": "MODULE$"
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.typed.internal.receptionist.DefaultServiceKey"
+  },
+  {
+    "name": "akka.actor.typed.internal.receptionist.ServiceKeySerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.typed.receptionist.Receptionist$",
+    "fields": [
+      {
+        "name": "MODULE$"
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.AbstractNodeQueue",
+    "fields": [
+      {
+        "name": "_tailDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.AbstractNodeQueue$Node",
+    "fields": [
+      {
+        "name": "_nextDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.BoundedControlAwareMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.BoundedDequeBasedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.BoundedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.ControlAwareMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.DequeBasedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.Mailbox",
+    "fields": [
+      {
+        "name": "_statusDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "_systemQueueDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.MessageDispatcher",
+    "fields": [
+      {
+        "name": "_inhabitantsDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "_shutdownScheduleDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.MultipleConsumerSemantics"
+  },
+  {
+    "name": "akka.dispatch.SingleConsumerOnlyUnboundedMailbox",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.UnboundedControlAwareMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.UnboundedDequeBasedMailbox",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.UnboundedDequeBasedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.UnboundedMailbox",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.UnboundedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.event.DeadLetterListener",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "akka.event.EventStreamUnsubscriber",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.event.LoggerMailboxType",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.event.LoggerMessageQueueSemantics"
+  },
+  {
+    "name": "akka.event.slf4j.Slf4jLogger",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "akka.event.slf4j.Slf4jLoggingFilter",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "akka.event.EventStream"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.http.DefaultParsingErrorHandler$",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "akka.http.impl.engine.client.PoolMasterActor",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "akka.io.InetAddressDnsProvider",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "akka.io.InetAddressDnsResolver",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.SelectionHandler",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.SimpleDnsManager",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpIncomingConnection",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpListener",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpManager",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpOutgoingConnection",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.dns.RecordType[]"
+  },
+  {
+    "name": "akka.pattern.PromiseActorRef",
+    "fields": [
+      {
+        "name": "_stateDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "_watchedByDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.routing.ConsistentHashingPool",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.routing.ConsistentRoutee[]"
+  },
+  {
+    "name": "akka.routing.RoundRobinPool",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.routing.RoutedActorCell$RouterActorCreator",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.serialization.BooleanSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.serialization.ByteArraySerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.serialization.ByteStringSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.serialization.DisabledJavaSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.serialization.IntSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.serialization.LongSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.serialization.SerializationExtension$",
+    "fields": [
+      {
+        "name": "MODULE$"
+      }
+    ]
+  },
+  {
+    "name": "akka.serialization.StringSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.stream.SinkRef"
+  },
+  {
+    "name": "akka.stream.SourceRef"
+  },
+  {
+    "name": "akka.stream.SystemMaterializer$",
+    "fields": [
+      {
+        "name": "MODULE$"
+      }
+    ]
+  },
+  {
+    "name": "akka.stream.impl.streamref.StreamRefsProtocol"
+  },
+  {
+    "name": "akka.stream.serialization.StreamRefSerializer",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ExtendedActorSystem"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.stream.stage.GraphStageLogic[]"
+  },
+  {
+    "name": "akka.util.ByteString$ByteString1"
+  },
+  {
+    "name": "akka.util.ByteString$ByteString1C"
+  },
+  {
+    "name": "akka.util.ByteString$ByteStrings"
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsMasterSecretGenerator",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "java.io.Serializable"
+  },
+  {
+    "name": "java.lang.Boolean"
+  },
+  {
+    "name": "java.lang.Class[]"
+  },
+  {
+    "name": "java.lang.Integer"
+  },
+  {
+    "name": "java.lang.Long"
+  },
+  {
+    "name": "java.lang.Object[]"
+  },
+  {
+    "name": "java.lang.String",
+    "fields": [
+      {
+        "name": "value",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "java.lang.String[]"
+  },
+  {
+    "name": "java.lang.invoke.VarHandle"
+  },
+  {
+    "name": "java.nio.file.Path[]"
+  },
+  {
+    "name": "java.security.AlgorithmParametersSpi"
+  },
+  {
+    "name": "java.security.KeyStoreSpi"
+  },
+  {
+    "name": "java.security.MessageDigestSpi"
+  },
+  {
+    "name": "java.security.SecureRandomParameters"
+  },
+  {
+    "name": "java.sql.Date"
+  },
+  {
+    "name": "java.sql.Timestamp"
+  },
+  {
+    "name": "javax.net.ssl.KeyManager[]"
+  },
+  {
+    "name": "javax.net.ssl.TrustManager[]"
+  },
+  {
+    "name": "javax.security.auth.x500.X500Principal",
+    "fields": [
+      {
+        "name": "thisX500Name"
+      }
+    ],
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "sun.security.x509.X500Name"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "scala.Boolean"
+  },
+  {
+    "name": "scala.Int"
+  },
+  {
+    "name": "scala.Long"
+  },
+  {
+    "name": "scala.Symbol"
+  },
+  {
+    "name": "scala.Tuple2[]"
+  },
+  {
+    "name": "sun.misc.Unsafe",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "sun.security.pkcs12.PKCS12KeyStore",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.provider.JavaKeyStore$JKS",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.provider.NativePRNG",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.provider.SHA",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.provider.X509Factory",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.rsa.RSAKeyFactory$Legacy",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.ssl.KeyManagerFactoryImpl$SunX509",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.ssl.SSLContextImpl$DefaultSSLContext",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.ssl.SSLContextImpl$TLS12Context",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.AuthorityInfoAccessExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.AuthorityKeyIdentifierExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.BasicConstraintsExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.CRLDistributionPointsExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.CertificatePoliciesExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.ExtendedKeyUsageExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.IssuerAlternativeNameExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.KeyUsageExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.NetscapeCertTypeExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.PrivateKeyUsageExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.SubjectAlternativeNameExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.SubjectKeyIdentifierExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.Boolean",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  }
 ]
