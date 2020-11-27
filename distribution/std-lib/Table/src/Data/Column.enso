@@ -19,7 +19,7 @@ type Column
         num_rows = java_col.getSize []
         display_rows = min num_rows show_rows
         items = Vector.new display_rows num->
-            row = if storage.isNa [num] then "NA" else
+            row = if storage.isNa [num] then "Nothing" else
                 here.get_item_string storage num
             [index.ilocString [num], row]
         table = Table.print_table [index.getName [], col_name] items
@@ -51,11 +51,10 @@ type Column
     not =
         here.run_vectorized_op this "not" not Nothing
 
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column contains a `Nothing`.
     is_missing : Column
     is_missing = here.run_vectorized_op this "is_missing" (== Nothing) Nothing
-
-    / : Any -> Column
-    / that = here.run_vectorized_op this "/" (/ that) that
 
     ## Applies `function` to each item in this column and returns the column
        of results.

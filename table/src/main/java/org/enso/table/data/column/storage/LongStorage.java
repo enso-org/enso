@@ -55,13 +55,15 @@ public class LongStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return Ops.EQ.equals(op);
+    return Ops.EQ.equals(op) || Ops.IS_MISSING.equals(op);
   }
 
   @Override
   public Storage runVectorizedOp(String name, Object operand) {
     if (Ops.EQ.equals(name)) {
       return runVectorizedEq(operand);
+    } else if (Ops.IS_MISSING.equals(name)) {
+      return new BoolStorage(isMissing, new BitSet(), size, false);
     }
     throw new UnsupportedOperationException();
   }

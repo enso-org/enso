@@ -57,13 +57,15 @@ public class DoubleStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return op.equals("==");
+    return Ops.EQ.equals(op) || Ops.IS_MISSING.equals(op);
   }
 
   @Override
   public Storage runVectorizedOp(String name, Object operand) {
-    if (name.equals("==")) {
+    if (name.equals(Ops.EQ)) {
       return runVectorizedEq(operand);
+    } else if (name.equals(Ops.IS_MISSING)) {
+      return new BoolStorage(isMissing, new BitSet(), size, false);
     }
     throw new UnsupportedOperationException();
   }

@@ -65,6 +65,17 @@ spec =
 
             t.to_json.should_equal expected
 
+    describe "JSON construction" <|
+        it "should allow converting a JSON array into a table" <|
+            r_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+            r_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
+            r_3 = Json.from_pairs [['baz', False], ['foo', 13]]
+            t = [r_1, r_2, r_3].to_json.to_table ['foo', 'bar', 'baz']
+            t.columns.map name . should_equal ['foo', 'bar', 'baz']
+            t.at 'foo' . to_vector . should_equal [20, Nothing, 13]
+            t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
+            t.at 'baz' . to_vector . should_equal [False, True, False]
+
     describe "Mapping Operations" <|
         it "should allow mapping a function over a column" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']

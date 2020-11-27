@@ -5,12 +5,10 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
+import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /** A representation of a table structure. */
@@ -127,13 +125,24 @@ public class Table {
     return new Table(newCols, index);
   }
 
+  /**
+   * Returns the index of this table.
+   *
+   * @return the index of this table
+   */
   public Index getIndex() {
     return index;
   }
 
+  /**
+   * Reindexes this table by using values from the column with the given name.
+   *
+   * @param name the column name to use as index
+   * @return a table indexed by the proper column
+   */
   public Table indexFromColumn(String name) {
     Column col = getColumnByName(name);
-    if (col == null) throw new RuntimeException("No column called " + name);
+    if (col == null) throw new NoSuchColumnException(name);
     Storage storage = col.getStorage();
     Index ix = HashIndex.fromStorage(col.getName(), storage);
     Column[] newColumns = new Column[columns.length - 1];
@@ -146,17 +155,35 @@ public class Table {
     return new Table(newColumns, ix);
   }
 
+  /**
+   * Selects a subset of columns of this table, by names.
+   *
+   * @param colNames the column names to select
+   * @return a table containing only selected columns
+   */
   public Table selectColumns(List<String> colNames) {
-    Column[] newCols = new Column[colNames.size()];
-    int j = 0;
-    for (String name : colNames) {
-      newCols[j++] = getColumnByName(name);
-    }
+    Column[] newCols =
+        colNames.stream()
+            .map(this::getColumnByName)
+            .filter(Objects::nonNull)
+            .toArray(Column[]::new);
     return new Table(newCols, index);
   }
 
+  /**
+   * Joins this table with another, by combining rows from this with rows of other with a matching
+   * index.
+   *
+   * @param other the table being joined with
+   * @param dropUnmatched whether the rows containing unmatched values in this should be dropped
+   * @param on a column name in this that should be used as the join key. If this is null, index is
+   *     used instead
+   * @param lsuffix the suffix to add to names of columns of this in case there's a name conflict
+   * @param rsuffix the suffix to add to names of columns of other in case there's a name conflict
+   * @return the result of performing the join
+   */
   @SuppressWarnings("unchecked")
-  public Table join(Table other, boolean isInner, String on, String lsuffix, String rsuffix) {
+  public Table join(Table other, boolean dropUnmatched, String on, String lsuffix, String rsuffix) {
     int s = (int) nrows();
     List<Integer>[] matches = new List[s];
     if (on == null) {
@@ -173,7 +200,7 @@ public class Table {
     int[] countMask = new int[s];
     for (int i = 0; i < s; i++) {
       if (matches[i] == null) {
-        countMask[i] = isInner ? 0 : 1;
+        countMask[i] = dropUnmatched ? 0 : 1;
       } else {
         countMask[i] = matches[i].size();
       }
@@ -183,7 +210,7 @@ public class Table {
     int orderMaskPosition = 0;
     for (int i = 0; i < s; i++) {
       if (matches[i] == null) {
-        if (!isInner) {
+        if (!dropUnmatched) {
           orderMask[orderMaskPosition++] = -1;
         }
       } else {
