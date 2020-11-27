@@ -12,6 +12,7 @@
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(matches_macro)]
+#![feature(range_is_empty)]
 #![feature(result_cloned)]
 #![feature(slice_patterns)]
 #![feature(result_map_or_else)]

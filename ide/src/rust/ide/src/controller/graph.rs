@@ -6,6 +6,7 @@ pub mod executed;
 
 use crate::prelude::*;
 
+use crate::double_representation::connection;
 use crate::double_representation::definition;
 use crate::double_representation::graph::GraphInfo;
 use crate::double_representation::identifier::LocatedName;
@@ -604,17 +605,26 @@ impl Handle {
         }
     }
 
-    /// Reorders lines so the former node is placed after the latter.
-    /// Does nothing, if the latter node is already placed after former.
-    pub fn place_node_line_after
+    /// Reorders lines so the former node is placed after the latter. Does nothing, if the latter
+    /// node is already placed after former.
+    ///
+    /// Additionally all dependent node the `node_to_be_after` being before its new line are also
+    /// moved after it, keeping their order.
+    pub fn place_node_and_dependencies_lines_after
     (&self, node_to_be_before:node::Id, node_to_be_after:node::Id) -> FallibleResult {
-        let definition = self.graph_definition_info()?;
-        let mut lines  = definition.block_lines()?;
+        let definition      = self.graph_definition_info()?;
+        let definition_ast  = &definition.body().item;
+        let dependent_nodes = connection::dependent_nodes_in_def(definition_ast,node_to_be_after);
+        let mut lines       = definition.block_lines()?;
 
         let before_node_position = node::index_in_lines(&lines,node_to_be_before)?;
         let after_node_position  = node::index_in_lines(&lines,node_to_be_after)?;
         if before_node_position > after_node_position {
-            lines[after_node_position..=before_node_position].rotate_left(1);
+            let should_be_at_end = |line:&ast::BlockLine<Option<Ast>>| {
+                let id = NodeInfo::from_block_line(line).map(|node| node.id());
+                id.map_or(false, |id| id == node_to_be_after || dependent_nodes.contains(&id))
+            };
+            lines[after_node_position..=before_node_position].sort_by_key(should_be_at_end);
             self.update_definition_ast(|mut def| {
                 def.set_block_lines(lines)?;
                 Ok(def)
@@ -639,10 +649,9 @@ impl Handle {
         self.set_expression_ast(connection.destination.node,updated_target_node_expr)?;
 
         // Reorder node lines, so the connection target is after connection source.
-        // Actually this is needed only in some order-dependant context. Once we have better
-        // information about the graph's underlying monadic context, we might want to constrain
-        // this operation.
-        self.place_node_line_after(connection.source.node,connection.destination.node)
+        let source_node      = connection.source.node;
+        let destination_node = connection.destination.node;
+        self.place_node_and_dependencies_lines_after(source_node,destination_node)
     }
 
     /// Remove the connections from the graph.
@@ -1397,7 +1406,45 @@ main =
                 },
                 destination : Endpoint {
                     node      : node0.info.id(),
-                    port      : vec![4].into(), // `_` in `print _`
+                    port      : vec![4].into(),
+                    var_crumbs: default()
+                }
+            };
+            graph.connect(&connection_to_add,&span_tree::generate::context::Empty).unwrap();
+            let new_main = graph.graph_definition_info().unwrap().ast.repr();
+            assert_eq!(new_main,EXPECTED);
+        })
+    }
+
+    #[wasm_bindgen_test]
+    fn graph_controller_create_connection_reordering_with_dependency() {
+        let mut test  = Fixture::set_up();
+        const PROGRAM:&str = r"main =
+    sum = _ + _
+    IO.println sum
+    a = 1
+    b = sum + 2
+    c = 3
+    d = 4";
+        const EXPECTED:&str = r"main =
+    a = 1
+    c = 3
+    sum = _ + c
+    IO.println sum
+    b = sum + 2
+    d = 4";
+        test.data.code = PROGRAM.into();
+        test.run(|graph| async move {
+            let (node0,_node1,_node2,_node3,node4,_node5) = graph.nodes().unwrap().expect_tuple();
+            let connection_to_add = Connection {
+                source : Endpoint {
+                    node      : node4.info.id(),
+                    port      : default(),
+                    var_crumbs: default()
+                },
+                destination : Endpoint {
+                    node      : node0.info.id(),
+                    port      : vec![4].into(),
                     var_crumbs: default()
                 }
             };

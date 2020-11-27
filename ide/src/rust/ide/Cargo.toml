@@ -13,7 +13,7 @@ enso-data             = { version = "0.1.1"                                     
 enso-frp              = { version = "0.1.0" , path = "../lib/frp"                  }
 enso-logger           = { version = "0.1.2"                                        }
 enso-prelude          = { version = "0.1.8"                                        }
-enso-shapely          = { version = "0.1.1"                                        }
+enso-shapely          = { version = "0.1.2"                                        }
 ensogl                = { version = "0.1.0" , path = "../ensogl"                   }
 ensogl-examples       = { version = "0.1.0" , path = "../ensogl/example"           }
 ensogl-gui-components = { version = "0.1.0" , path = "../ensogl/lib/components"    }
