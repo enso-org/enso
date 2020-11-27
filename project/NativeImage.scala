@@ -23,80 +23,92 @@ object NativeImage {
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
-    additionalOptions: Seq[String] = Seq.empty
-  ): Def.Initialize[Task[Unit]] =
-    Def
-      .task {
-        val log            = state.value.log
-        val javaHome       = System.getProperty("java.home")
-        val subProjectRoot = baseDirectory.value
-        val nativeImagePath =
-          if (Platform.isWindows)
-            s"$javaHome\\bin\\native-image.cmd"
-          else s"$javaHome/bin/native-image"
-        val classPath =
-          (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
+    additionalOptions: Seq[String]    = Seq.empty,
+    memoryLimitGigabytes: Option[Int] = Some(4),
+    initializeAtRunTime: Seq[String]  = Seq.empty
+  ): Def.Initialize[Task[Unit]] = Def
+    .task {
+      val log            = state.value.log
+      val javaHome       = System.getProperty("java.home")
+      val subProjectRoot = baseDirectory.value
+      val nativeImagePath =
+        if (Platform.isWindows)
+          s"$javaHome\\bin\\native-image.cmd"
+        else s"$javaHome/bin/native-image"
+      val classPath =
+        (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
 
-        if (!file(nativeImagePath).exists()) {
-          log.error("Native Image component not found in the JVM distribution.")
-          log.error(
-            "You can install Native Image with `gu install native-image`."
-          )
-          throw new RuntimeException(
-            "Native Image build failed, " +
-            "because Native Image component was not found."
-          )
-        }
-
-        val debugParameters =
-          if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
-
-        val (staticParameters, pathExts) =
-          if (staticOnLinux && Platform.isLinux) {
-            // Note [Static Build On Linux]
-            val buildCache =
-              subProjectRoot / "build-cache"
-            val path = ensureMuslIsInstalled(buildCache, log)
-            (Seq("--static", "--libc=musl"), Seq(path.toString))
-          } else (Seq(), Seq())
-
-        val configLocation =
-          subProjectRoot / "native-image-config"
-        val configs =
-          if (configLocation.exists()) {
-            val path = configLocation.toPath.toAbsolutePath
-            log.debug(s"Picking up Native Image configuration from `$path`.")
-            Seq(s"-H:ConfigurationFileDirectories=$path")
-          } else {
-            log.debug(
-              "No Native Image configuration found, proceeding without it."
-            )
-            Seq()
-          }
-
-        val cmd =
-          Seq(nativeImagePath) ++
-          debugParameters ++ staticParameters ++ configs ++
-          Seq("--no-fallback", "--initialize-at-build-time", "--no-server") ++
-          additionalOptions ++
-          Seq("-cp", classPath, (Compile / mainClass).value.get, artifactName)
-
-        val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
-        val newPath   = pathParts.mkString(File.pathSeparator)
-
-        log.debug(s"""PATH="$newPath" ${cmd.mkString(" ")}""")
-
-        val process =
-          Process(cmd, None, "PATH" -> newPath)
-
-        if (process.! != 0) {
-          log.error("Native Image build failed.")
-          throw new RuntimeException("Native Image build failed")
-        }
-
-        log.info("Native Image build successful.")
+      if (!file(nativeImagePath).exists()) {
+        log.error("Native Image component not found in the JVM distribution.")
+        log.error(
+          "You can install Native Image with `gu install native-image`."
+        )
+        throw new RuntimeException(
+          "Native Image build failed, " +
+          "because Native Image component was not found."
+        )
       }
-      .dependsOn(Compile / compile)
+
+      val debugParameters =
+        if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
+
+      val (staticParameters, pathExts) =
+        if (staticOnLinux && Platform.isLinux) {
+          // Note [Static Build On Linux]
+          val buildCache =
+            subProjectRoot / "build-cache"
+          val path = ensureMuslIsInstalled(buildCache, log)
+          (Seq("--static", "--libc=musl"), Seq(path.toString))
+        } else (Seq(), Seq())
+
+      val configLocation =
+        subProjectRoot / "native-image-config"
+      val configs =
+        if (configLocation.exists()) {
+          val path = configLocation.toPath.toAbsolutePath
+          log.debug(s"Picking up Native Image configuration from `$path`.")
+          Seq(s"-H:ConfigurationFileDirectories=$path")
+        } else {
+          log.debug(
+            "No Native Image configuration found, proceeding without it."
+          )
+          Seq()
+        }
+
+      val memoryLimitOptions =
+        memoryLimitGigabytes.map(gigs => s"-J-Xmx${gigs}G").toSeq
+
+      val initializeAtRuntimeOptions =
+        if (initializeAtRunTime.isEmpty) Seq()
+        else {
+          val classes = initializeAtRunTime.mkString(",")
+          Seq(s"--initialize-at-run-time=$classes")
+        }
+
+      val cmd =
+        Seq(nativeImagePath) ++
+        debugParameters ++ staticParameters ++ configs ++
+        Seq("--no-fallback", "--initialize-at-build-time", "--no-server") ++
+        memoryLimitOptions ++ initializeAtRuntimeOptions ++
+        additionalOptions ++
+        Seq("-cp", classPath, (Compile / mainClass).value.get, artifactName)
+
+      val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
+      val newPath   = pathParts.mkString(File.pathSeparator)
+
+      log.debug(s"""PATH="$newPath" ${cmd.mkString(" ")}""")
+
+      val process =
+        Process(cmd, None, "PATH" -> newPath)
+
+      if (process.! != 0) {
+        log.error("Native Image build failed.")
+        throw new RuntimeException("Native Image build failed")
+      }
+
+      log.info("Native Image build successful.")
+    }
+    .dependsOn(Compile / compile)
 
   /** Creates a task which watches for changes of any compiled files or
     * dependencies and triggers a rebuild if and only if there are any changes.

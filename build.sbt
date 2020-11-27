@@ -718,23 +718,17 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       .buildNativeImage(
         "project-manager",
         staticOnLinux = true,
-        Seq(
-          "-J-Xmx8G",
-          "--enable-all-security-services", // Note [HTTPS in the Launcher]
-//            "-H:IncludeResources=.*Main.enso$",
-          "--report-unsupported-elements-at-runtime", // FIXME debug
-          "-H:+TraceClassInitialization",
-          "-H:+AllowIncompleteClasspath",
+        additionalOptions = Seq(
+          // "--report-unsupported-elements-at-runtime", // FIXME debug
           "-H:+ReportExceptionStackTraces",
-          "-H:+TraceClassInitialization",
-          "-H:+PrintClassInitialization",
-          "-H:+RemoveSaturatedTypeFlows",
-          "--initialize-at-build-time=scala.runtime.Statics$VM",
-          "--initialize-at-run-time=" +
-          "akka.protobuf.DescriptorProtos," +
+          "-H:+TraceClassInitialization"
+          // "--initialize-at-build-time=scala.runtime.Statics$VM",
+        ),
+        initializeAtRunTime = Seq(
+          "akka.protobuf.DescriptorProtos",
           "io.methvin.watchservice.jna.CarbonAPI"
-//            "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," + // TODO this should be added back
-//            "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
+          // "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder", // TODO this should be added back
+          // "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
         )
       )
       .value
@@ -1187,16 +1181,17 @@ lazy val launcher = project
       .buildNativeImage(
         "enso",
         staticOnLinux = true,
-        Seq(
-          "-J-Xmx4G",
+        additionalOptions = Seq(
           "--enable-all-security-services", // Note [HTTPS in the Launcher]
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$",
-          "--initialize-at-run-time=" +
-          "akka.protobuf.DescriptorProtos," +
-          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
-          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder," +
-          "org.enso.loggingservice.WSLoggerManager$" // Note [WSLoggerManager Shutdown Hook]
+          "-H:IncludeResources=.*Main.enso$"
+        ),
+        initializeAtRunTime = Seq(
+          "akka.protobuf.DescriptorProtos",
+          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
+          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder",
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$"
         )
       )
       .value,
