@@ -63,14 +63,13 @@ public class StringStorage extends ObjectStorage {
 
   @Override
   public StringStorage orderMask(int[] positions) {
-    Object[] newData = new Object[positions.length];
-    for (int i = 0; i < positions.length; i++) {
-      if (positions[i] == Index.NOT_FOUND) {
-        newData[i] = null;
-      } else {
-        newData[i] = getData()[positions[i]];
-      }
-    }
-    return new StringStorage(newData, positions.length);
+    ObjectStorage storage = super.orderMask(positions);
+    return new StringStorage(storage.getData(), (int) storage.size());
+  }
+
+  @Override
+  public StringStorage countMask(int[] counts, int total) {
+    ObjectStorage storage = super.countMask(counts, total);
+    return new StringStorage(storage.getData(), total);
   }
 }

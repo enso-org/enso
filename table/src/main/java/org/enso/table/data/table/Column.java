@@ -3,7 +3,7 @@ package org.enso.table.data.table;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.Index;
-import org.enso.table.data.index.NoIndex;
+import org.enso.table.data.index.DefaultIndex;
 
 import java.util.BitSet;
 import java.util.List;
@@ -74,7 +74,7 @@ public class Column {
     for (Object item : items) {
       builder.append(item);
     }
-    return new Column(name, new NoIndex(), builder.seal());
+    return new Column(name, new DefaultIndex(items.size()), builder.seal());
   }
 
   public Column withIndex(Index ix) {

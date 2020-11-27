@@ -1,16 +1,17 @@
 package org.enso.table.data.table;
 
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.LongStorage;
-import org.enso.table.data.column.storage.StringStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.Index;
-import org.enso.table.data.index.LongIndex;
-import org.enso.table.data.index.NoIndex;
-import org.enso.table.data.index.StringIndex;
+import org.enso.table.data.index.DefaultIndex;
+import org.enso.table.data.index.HashIndex;
 import org.enso.table.error.UnexpectedColumnTypeException;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** A representation of a table structure. */
 public class Table {
@@ -24,7 +25,10 @@ public class Table {
    * @param columns the columns contained in this table.
    */
   public Table(Column[] columns) {
-    this(columns, new NoIndex());
+    this(
+        columns,
+        new DefaultIndex(
+            (columns == null || columns.length == 0) ? 0 : (int) columns[0].getSize()));
   }
 
   private Table(Column[] columns, Index index) {
@@ -130,23 +134,16 @@ public class Table {
   public Table indexFromColumn(String name) {
     Column col = getColumnByName(name);
     if (col == null) throw new RuntimeException("No column called " + name);
-    if (col.getStorage() instanceof StringStorage) {
-      StringStorage storage = (StringStorage) col.getStorage();
-      Index ix = StringIndex.fromStorage(col.getName(), storage);
-      Column[] newColumns = new Column[columns.length - 1];
-      int j = 0;
-      for (int i = 0; i < columns.length; i++) {
-        if (!columns[i].getName().equals(name)) {
-          newColumns[j++] = columns[i].withIndex(ix);
-        }
+    Storage storage = col.getStorage();
+    Index ix = HashIndex.fromStorage(col.getName(), storage);
+    Column[] newColumns = new Column[columns.length - 1];
+    int j = 0;
+    for (int i = 0; i < columns.length; i++) {
+      if (!columns[i].getName().equals(name)) {
+        newColumns[j++] = columns[i].withIndex(ix);
       }
-      return new Table(newColumns, ix);
-    } else if (col.getStorage() instanceof LongStorage) {
-      LongIndex.fromStorage((LongStorage) col.getStorage());
-      throw new RuntimeException("Unsupported column type for index");
-    } else {
-      throw new RuntimeException("Unsupported column type for index");
     }
+    return new Table(newColumns, ix);
   }
 
   public Table selectColumns(List<String> colNames) {
@@ -158,19 +155,69 @@ public class Table {
     return new Table(newCols, index);
   }
 
-  public Table join(Table other) {
+  @SuppressWarnings("unchecked")
+  public Table join(Table other, boolean isInner, String on, String lsuffix, String rsuffix) {
     int s = (int) nrows();
-    int[] matches = new int[s];
+    List<Integer>[] matches = new List[s];
+    if (on == null) {
+      for (int i = 0; i < s; i++) {
+        matches[i] = other.index.loc(index.iloc(i));
+      }
+    } else {
+      Storage onS = getColumnByName(on).getStorage();
+      for (int i = 0; i < s; i++) {
+        matches[i] = other.index.loc(onS.getItemBoxed(i));
+      }
+    }
+    int outSize = 0;
+    int[] countMask = new int[s];
     for (int i = 0; i < s; i++) {
-      matches[i] = other.index.loc(index.iloc(i));
+      if (matches[i] == null) {
+        countMask[i] = isInner ? 0 : 1;
+      } else {
+        countMask[i] = matches[i].size();
+      }
+      outSize += countMask[i];
+    }
+    int[] orderMask = new int[outSize];
+    int orderMaskPosition = 0;
+    for (int i = 0; i < s; i++) {
+      if (matches[i] == null) {
+        if (!isInner) {
+          orderMask[orderMaskPosition++] = -1;
+        }
+      } else {
+        for (Integer x : matches[i]) {
+          orderMask[orderMaskPosition++] = x;
+        }
+      }
     }
     Column[] newColumns = new Column[this.columns.length + other.columns.length];
-    System.arraycopy(columns, 0, newColumns, 0, columns.length);
+    Index newIndex = index.countMask(countMask, outSize);
+    Set<String> lnames =
+        Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toSet());
+    Set<String> rnames =
+        Arrays.stream(other.columns).map(Column::getName).collect(Collectors.toSet());
+    for (int i = 0; i < columns.length; i++) {
+      Column original = columns[i];
+      newColumns[i] =
+          new Column(
+              suffixIfNecessary(rnames, original.getName(), lsuffix),
+              newIndex,
+              original.getStorage().countMask(countMask, outSize));
+    }
     for (int i = 0; i < other.columns.length; i++) {
       Column original = other.columns[i];
-      newColumns[i + other.columns.length] =
-          new Column(original.getName(), index, original.getStorage().orderMask(matches));
+      newColumns[i + columns.length] =
+          new Column(
+              suffixIfNecessary(lnames, original.getName(), rsuffix),
+              newIndex,
+              original.getStorage().orderMask(orderMask));
     }
-    return new Table(newColumns, index);
+    return new Table(newColumns, newIndex);
+  }
+
+  private String suffixIfNecessary(Set<String> names, String name, String suffix) {
+    return names.contains(name) ? name + suffix : name;
   }
 }

@@ -26,7 +26,7 @@ public class DoubleStorage extends Storage {
 
   /** @inheritDoc */
   @Override
-  public long size() {
+  public int size() {
     return size;
   }
 
@@ -112,6 +112,25 @@ public class DoubleStorage extends Storage {
         newData[i] = data[positions[i]];
       }
     }
-    return new DoubleStorage(newData, size, newMissing);
+    return new DoubleStorage(newData, positions.length, newMissing);
+  }
+
+  @Override
+  public Storage countMask(int[] counts, int total) {
+    long[] newData = new long[total];
+    BitSet newMissing = new BitSet();
+    int pos = 0;
+    for (int i = 0; i < counts.length; i++) {
+      if (isMissing.get(i)) {
+        for (int j = 0; j < counts[i]; j++) {
+          newMissing.set(pos++);
+        }
+      } else {
+        for (int j = 0; j < counts[i]; j++) {
+          newData[pos++] = data[i];
+        }
+      }
+    }
+    return new DoubleStorage(newData, total, newMissing);
   }
 }

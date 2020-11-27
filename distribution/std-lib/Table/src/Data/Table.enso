@@ -75,7 +75,8 @@ type Table
 
     select columns = Table (this.java_table.selectColumns [columns.to_array])
 
-    join other = Table (this.java_table.join [other.java_table])
+    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
+        Table (this.java_table.join [other.java_table, drop_unmatched, on, left_suffix, right_suffix])
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)

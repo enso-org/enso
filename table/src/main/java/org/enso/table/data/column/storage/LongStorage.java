@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.index.Index;
+
 import java.util.BitSet;
 
 /** A column storing 64-bit integers. */
@@ -22,7 +24,7 @@ public class LongStorage extends Storage {
 
   /** @inheritDoc */
   @Override
-  public long size() {
+  public int size() {
     return size;
   }
 
@@ -95,28 +97,35 @@ public class LongStorage extends Storage {
     return new LongStorage(newData, cardinality, newMissing);
   }
 
-  @Override
   public Storage orderMask(int[] positions) {
-    return null;
-  }
-
-  public long min() {
-    long x = Long.MAX_VALUE;
-    for (int i = 0; i < size; i++) {
-      if (!isMissing.get(i)) {
-        x = Math.min(x, data[i]);
+    long[] newData = new long[positions.length];
+    BitSet newMissing = new BitSet();
+    for (int i = 0; i < positions.length; i++) {
+      if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
+        newMissing.set(i);
+      } else {
+        newData[i] = data[positions[i]];
       }
     }
-    return x;
+    return new LongStorage(newData, positions.length, newMissing);
   }
 
-  public long max() {
-    long x = Long.MIN_VALUE;
-    for (int i = 0; i < size; i++) {
-      if (!isMissing.get(i)) {
-        x = Math.max(x, data[i]);
+  @Override
+  public Storage countMask(int[] counts, int total) {
+    long[] newData = new long[total];
+    BitSet newMissing = new BitSet();
+    int pos = 0;
+    for (int i = 0; i < counts.length; i++) {
+      if (isMissing.get(i)) {
+        for (int j = 0; j < counts[i]; j++) {
+          newMissing.set(pos++);
+        }
+      } else {
+        for (int j = 0; j < counts[i]; j++) {
+          newData[pos++] = data[i];
+        }
       }
     }
-    return x;
+    return new LongStorage(newData, total, newMissing);
   }
 }

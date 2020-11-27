@@ -19,7 +19,7 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public long size() {
+  public int size() {
     return size;
   }
 
@@ -112,6 +112,22 @@ public class BoolStorage extends Storage {
       }
     }
     return new BoolStorage(newVals, newNa, positions.length, negated);
+  }
+
+  @Override
+  public Storage countMask(int[] counts, int total) {
+    BitSet newNa = new BitSet();
+    BitSet newVals = new BitSet();
+    int pos = 0;
+    for (int i = 0; i < counts.length; i++) {
+      if (isMissing.get(i)) {
+        newNa.set(pos, pos + counts[i]);
+      } else if (values.get(i)) {
+        newVals.set(pos, pos + counts[i]);
+      }
+      pos += counts[i];
+    }
+    return new BoolStorage(newVals, newNa, total, negated);
   }
 
   public boolean isNegated() {

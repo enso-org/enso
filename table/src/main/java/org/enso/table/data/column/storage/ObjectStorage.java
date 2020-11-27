@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.index.Index;
 
 import java.util.BitSet;
 import java.util.function.Function;
@@ -23,7 +24,7 @@ public class ObjectStorage extends Storage {
 
   /** @inheritDoc */
   @Override
-  public long size() {
+  public int size() {
     return size;
   }
 
@@ -88,8 +89,28 @@ public class ObjectStorage extends Storage {
   }
 
   @Override
-  public Storage orderMask(int[] positions) {
-    return null;
+  public ObjectStorage orderMask(int[] positions) {
+    Object[] newData = new Object[positions.length];
+    for (int i = 0; i < positions.length; i++) {
+      if (positions[i] == Index.NOT_FOUND) {
+        newData[i] = null;
+      } else {
+        newData[i] = data[positions[i]];
+      }
+    }
+    return new ObjectStorage(newData, positions.length);
+  }
+
+  @Override
+  public ObjectStorage countMask(int[] counts, int total) {
+    Object[] newData = new Object[total];
+    int pos = 0;
+    for (int i = 0; i < counts.length; i++) {
+      for (int j = 0; j < counts[i]; j++) {
+        newData[pos++] = data[i];
+      }
+    }
+    return new ObjectStorage(newData, total);
   }
 
   public Object[] getData() {

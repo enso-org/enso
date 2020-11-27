@@ -15,4 +15,6 @@ public abstract class Index {
   public abstract String getName();
 
   public abstract Index mask(BitSet mask, int cardinality);
+
+  public abstract Index countMask(int[] counts, int total);
 }

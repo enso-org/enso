@@ -11,7 +11,7 @@ import org.graalvm.polyglot.Value;
 /** An abstract representation of a data column. */
 public abstract class Storage {
   /** @return the number of elements in this column (including NAs) */
-  public abstract long size();
+  public abstract int size();
 
   /** @return the type tag of this column's storage. Must be one of {@link Type} */
   public abstract long getType();
@@ -74,15 +74,6 @@ public abstract class Storage {
   public abstract Storage runVectorizedOp(String name, Object operand);
 
   /**
-   * Return a new storage, containing only the items marked true in the mask.
-   *
-   * @param mask the mask to use
-   * @param cardinality the number of true values in mask
-   * @return a new storage, masked with the given mask
-   */
-  public abstract Storage mask(BitSet mask, int cardinality);
-
-  /**
    * Runs a function on each non-missing element in this storage and gathers the results.
    *
    * @param function the function to run.
@@ -114,5 +105,16 @@ public abstract class Storage {
     return builder.seal();
   }
 
+  /**
+   * Return a new storage, containing only the items marked true in the mask.
+   *
+   * @param mask the mask to use
+   * @param cardinality the number of true values in mask
+   * @return a new storage, masked with the given mask
+   */
+  public abstract Storage mask(BitSet mask, int cardinality);
+
   public abstract Storage orderMask(int[] positions);
+
+  public abstract Storage countMask(int[] counts, int total);
 }
