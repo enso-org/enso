@@ -41,7 +41,7 @@ const visilbe_points = 'visible'
  */
 class ScatterPlot extends Visualization {
     static inputType = 'Any'
-    static label = 'Scatter Plot (JS)'
+    static label = 'Scatter Plot'
 
     /**
      * Presents a scatterplot visualization after receiving `data`.
