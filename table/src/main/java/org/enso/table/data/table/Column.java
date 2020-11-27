@@ -77,10 +77,17 @@ public class Column {
     return new Column(name, new DefaultIndex(items.size()), builder.seal());
   }
 
+  /**
+   * Changes the index of this column.
+   *
+   * @param ix the index to use
+   * @return a column indexed by {@code ix}
+   */
   public Column withIndex(Index ix) {
     return new Column(name, ix, storage);
   }
 
+  /** @return the index of this column */
   public Index getIndex() {
     return index;
   }

@@ -44,8 +44,8 @@ public class HashIndex extends Index {
   }
 
   @Override
-  public List<Integer> loc(Object i) {
-    return locs.get(i);
+  public List<Integer> loc(Object item) {
+    return locs.get(item);
   }
 
   @Override

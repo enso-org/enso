@@ -99,6 +99,7 @@ public class LongStorage extends Storage {
     return new LongStorage(newData, cardinality, newMissing);
   }
 
+  @Override
   public Storage orderMask(int[] positions) {
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();

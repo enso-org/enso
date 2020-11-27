@@ -17,13 +17,13 @@ public class DefaultIndex extends Index {
   }
 
   @Override
-  public List<Integer> loc(Object loc) {
-    if (loc instanceof Integer) {
-      if ((Integer) loc < size) {
-        return Collections.singletonList((Integer) loc);
+  public List<Integer> loc(Object item) {
+    if (item instanceof Integer) {
+      if ((Integer) item < size) {
+        return Collections.singletonList((Integer) item);
       }
-    } else if (loc instanceof Long) {
-      long l = (Long) loc;
+    } else if (item instanceof Long) {
+      long l = (Long) item;
       if (l < size) {
         return Collections.singletonList((int) l);
       }
