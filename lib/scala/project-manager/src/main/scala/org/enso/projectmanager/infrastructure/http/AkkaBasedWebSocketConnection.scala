@@ -8,7 +8,10 @@ import akka.pattern.pipe
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{CompletionStrategy, OverflowStrategy}
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnection._
-import org.enso.projectmanager.infrastructure.http.FanOutReceiver.Listen
+import org.enso.projectmanager.infrastructure.http.FanOutReceiver.{
+  Attach,
+  Detach
+}
 import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
   WebSocketConnected,
   WebSocketMessage,
@@ -65,7 +68,11 @@ class AkkaBasedWebSocketConnection(address: String)(implicit
 
   /** @inheritdoc */
   override def attachListener(listener: ActorRef): Unit =
-    receiver ! Listen(listener)
+    receiver ! Attach(listener)
+
+  /** @inheritdoc */
+  override def detachListener(listener: ActorRef): Unit =
+    receiver ! Detach(listener)
 
   /** @inheritdoc */
   def connect(): Unit = {
@@ -83,6 +90,7 @@ class AkkaBasedWebSocketConnection(address: String)(implicit
         case InvalidUpgradeResponse(_, cause) =>
           WebSocketStreamFailure(new Exception(s"Cannot connect $cause"))
       }
+      .recover(WebSocketStreamFailure(_))
       .pipeTo(receiver)
     ()
   }

@@ -104,10 +104,7 @@ class HeartbeatSession(
             }
 
             cancellable.cancel()
-            connection.disconnect()
-            val closureTimeout =
-              scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
-            context.become(socketClosureStage(closureTimeout))
+            stop()
           } else {
             log.warning(s"Received unknown response $payload")
           }
@@ -116,10 +113,7 @@ class HeartbeatSession(
     case HeartbeatTimeout =>
       log.debug(s"Heartbeat timeout detected for $requestId")
       context.parent ! ServerUnresponsive
-      connection.disconnect()
-      val closureTimeout =
-        scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
-      context.become(socketClosureStage(closureTimeout))
+      stop()
 
     case WebSocketStreamClosed =>
       context.parent ! ServerUnresponsive
@@ -129,8 +123,7 @@ class HeartbeatSession(
       logError(th, s"An error occurred during waiting for Pong message")
       context.parent ! ServerUnresponsive
       cancellable.cancel()
-      connection.disconnect()
-      context.stop(self)
+      stop()
 
     case GracefulStop =>
       cancellable.cancel()
@@ -150,6 +143,7 @@ class HeartbeatSession(
     case SocketClosureTimeout =>
       logError(s"Socket closure timed out")
       context.stop(self)
+      connection.detachListener(self)
 
     case GracefulStop => // ignoring it, because the actor is already closing
   }
