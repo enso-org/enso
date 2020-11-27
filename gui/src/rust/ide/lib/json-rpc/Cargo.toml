@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-prelude      = { version = "0.1.8"                                    }
-enso-shapely      = { version = "0.1.1"                                    }
+enso-shapely      = { version = "0.1.2"                                    }
 ensogl-system-web = { version = "0.1.0" , path = "../../../lib/system/web" }
 
 futures           = { version = "0.3.1"                         }

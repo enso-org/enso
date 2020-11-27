@@ -12,7 +12,7 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 enso-frp                   = { version = "0.1.0" , path = "../../../lib/frp"          }
 enso-prelude               = { version = "0.1.8"                                      }
-enso-shapely               = { version = "0.1.1"                                      }
+enso-shapely               = { version = "0.1.2"                                      }
 enso-types                 = { version = "0.1.0" , path = "../../../lib/types"        }
 ensogl-core                = { version = "0.1.0" , path = "../../../ensogl/lib/core"  }
 ensogl-text-embedded-fonts = { version = "0.1.0" , path = "embedded-fonts"            }

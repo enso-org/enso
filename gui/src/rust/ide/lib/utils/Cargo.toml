@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-prelude = { version = "0.1.8" }
+enso-shapely = { version = "0.1.2" }
 
 failure   = "0.1.5"
 futures   = "0.3.1"

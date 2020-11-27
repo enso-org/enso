@@ -11,6 +11,8 @@ pub mod traits {
     pub use super::stream::StreamTestExt;
 }
 
+use enso_shapely::replace;
+
 
 
 // ===================
@@ -27,73 +29,27 @@ pub trait ExpectTuple<T> {
 
 
 // === Implementations ===
-// TODO [MWU] boilerplate below should be generated with macro
 
-impl<Collection:IntoIterator>
-ExpectTuple<(Collection::Item,)> for Collection {
-    fn expect_tuple(self) -> (Collection::Item,) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,)
-    }
+
+/// Implements ExpectTuple of tuple of various sizes for collection
+/// (something implementing IntoIterator).
+///
+/// It takes a list of some identifiers. Passing _n_ identifiers generate implementations of tuples
+/// up to size _n_. Identifiers shall differ.
+macro_rules! impl_expect_tuple_for_collections {
+    () => {};
+    ($first:ident $(,$ident:ident)*) => {
+        impl<T:IntoIterator> ExpectTuple<(T::Item, $(replace!{$ident,T::Item}),*)> for T {
+            fn expect_tuple(self) -> (T::Item, $(replace!{$ident,T::Item}),*) {
+                let mut iter = self.into_iter();
+                let $first   = iter.next().unwrap();
+                $(let $ident = iter.next().unwrap();)*
+                assert!(iter.next().is_none());
+                ($first,$($ident),*)
+            }
+        }
+        impl_expect_tuple_for_collections!{$($ident),*}
+    };
 }
 
-impl<Collection: IntoIterator>
-ExpectTuple<(Collection::Item,Collection::Item)>
-for Collection {
-    fn expect_tuple(self) -> (Collection::Item,Collection::Item) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        let     v2   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,v2)
-    }
-}
-
-impl<Collection: IntoIterator>
-ExpectTuple<(Collection::Item,Collection::Item,Collection::Item)>
-for Collection {
-    fn expect_tuple
-    (self) -> (Collection::Item,Collection::Item,Collection::Item) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        let     v2   = iter.next().unwrap();
-        let     v3   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,v2,v3)
-    }
-}
-
-impl<Collection: IntoIterator>
-ExpectTuple<(Collection::Item,Collection::Item,Collection::Item,Collection::Item)>
-for Collection {
-    fn expect_tuple
-    (self) -> (Collection::Item,Collection::Item,Collection::Item,Collection::Item) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        let     v2   = iter.next().unwrap();
-        let     v3   = iter.next().unwrap();
-        let     v4   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,v2,v3,v4)
-    }
-}
-
-#[allow(clippy::type_complexity)]
-impl<Collection: IntoIterator>
-ExpectTuple<(Collection::Item,Collection::Item,Collection::Item,Collection::Item,Collection::Item)>
-for Collection {
-    fn expect_tuple
-    (self)
-     -> (Collection::Item,Collection::Item,Collection::Item,Collection::Item,Collection::Item) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        let     v2   = iter.next().unwrap();
-        let     v3   = iter.next().unwrap();
-        let     v4   = iter.next().unwrap();
-        let     v5   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,v2,v3,v4,v5)
-    }
-}
+impl_expect_tuple_for_collections!(v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12);
