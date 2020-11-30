@@ -27,7 +27,7 @@ pub struct NetworkId(usize);
 /// Network manages lifetime of set of FRP nodes. FRP networks are designed to be static. You can
 /// add new elements while constructing it, but you are not allowed to remove the elements.
 /// Moreover, you should not grow the FRP network after it is constructed.
-#[derive(Clone,CloneRef,Debug,Default,)]
+#[derive(Clone,CloneRef,Debug)]
 pub struct Network {
     data : Rc<NetworkData>,
 }
@@ -44,8 +44,10 @@ impl<T> Item for T where T : HasId + HasLabel + stream::HasOutputTypeLabel {}
 
 /// Internal data of `Network`.
 #[derive(Derivative)]
-#[derivative(Debug,Default)]
+#[derivative(Debug)]
 pub struct NetworkData {
+    /// Label of the network.
+    pub label : String,
     #[derivative(Debug="ignore")]
     nodes   : RefCell<Vec<Box<dyn Item>>>,
     links   : RefCell<HashMap<Id,Link>>,
@@ -59,8 +61,13 @@ pub struct NetworkData {
 
 impl NetworkData {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new(label:impl Into<String>) -> Self {
+        let label   = label.into();
+        let nodes   = default();
+        let links   = default();
+        let bridges = default();
+        let storage = default();
+        Self {label,nodes,links,bridges,storage}
     }
 }
 
@@ -72,7 +79,10 @@ impl Drop for NetworkData {
 
 impl Network {
     /// Constructor.
-    pub fn new() -> Self { default() }
+    pub fn new(label:impl Into<String>) -> Self {
+        let data = Rc::new(NetworkData::new(label));
+        Self {data}
+    }
 
     /// Get the weak version.
     pub fn downgrade(&self) -> WeakNetwork {
@@ -161,19 +171,13 @@ pub struct BridgeNetwork {
 
 impl BridgeNetwork {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new(label:impl Into<String>) -> Self {
+        let data = Rc::new(RefCell::new(Some(Network::new(label))));
+        Self {data}
     }
 
     fn destroy(&self) {
         *self.data.borrow_mut() = None
-    }
-}
-
-impl Default for BridgeNetwork {
-    fn default() -> Self {
-        let data = Rc::new(RefCell::new(Some(default())));
-        Self {data}
     }
 }
 

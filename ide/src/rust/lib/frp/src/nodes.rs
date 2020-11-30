@@ -14,6 +14,7 @@ use crate::network::*;
 use crate::node::*;
 use crate::stream::EventOutput;
 use crate::stream::ValueProvider;
+use crate::stream::CallStack;
 use crate::stream::Stream;
 use crate::stream::OwnedStream;
 use crate::stream;
@@ -750,26 +751,26 @@ impl<Out:Data> OwnedSource<Out> {
 impl<Out:Data> OwnedSource<Out> {
     /// Emit new event.
     pub fn emit<T:IntoParam<Out>>(&self, value:T) {
-        self.emit_event(&value.into_param())
+        self.emit_event(&default(), &value.into_param())
     }
 }
 
 impl<Out:Data> Source<Out> {
     /// Emit new event.
     pub fn emit<T:IntoParam<Out>>(&self, value:T) {
-        self.emit_event(&value.into_param())
+        self.emit_event(&default(), &value.into_param())
     }
 }
 
 /// The parameter of FRP system. It allows passing wide range of values to the `emit` function for
 /// easy of use.
 #[allow(missing_docs)]
-pub trait     IntoParam<T>                { fn into_param(self) -> T; }
-impl<T>       IntoParam<T>         for  T { fn into_param(self) -> T {self} }
-impl<T:Clone> IntoParam<T>         for &T { fn into_param(self) -> T {self.clone()} }
-impl<T>       IntoParam<Option<T>> for T  { fn into_param(self) -> Option<T> {Some(self)} }
-impl<T:Clone> IntoParam<Option<T>> for &T { fn into_param(self) -> Option<T> {Some(self.clone())} }
-impl          IntoParam<String>    for &str { fn into_param(self) -> String {self.into()} }
+pub trait     IntoParam<T>                  {fn into_param(self) -> T;}
+impl<T>       IntoParam<T>         for  T   {fn into_param(self) -> T {self}}
+impl<T:Clone> IntoParam<T>         for &T   {fn into_param(self) -> T {self.clone()}}
+impl<T>       IntoParam<Option<T>> for T    {fn into_param(self) -> Option<T> {Some(self)}}
+impl<T:Clone> IntoParam<Option<T>> for &T   {fn into_param(self) -> Option<T> {Some(self.clone())}}
+impl          IntoParam<String>    for &str {fn into_param(self) -> String {self.into()}}
 
 
 
@@ -823,9 +824,9 @@ impl<Out:Data> Sampler<Out> {
 }
 
 impl<Out:Data> stream::EventConsumer<Out> for OwnedSampler<Out> {
-    fn on_event(&self, event:&Out) {
+    fn on_event(&self, stack:CallStack, event:&Out) {
         *self.value.borrow_mut() = event.clone();
-        self.emit_event(event);
+        self.emit_event(stack,event);
     }
 }
 
@@ -854,9 +855,9 @@ impl<T:EventOutput> OwnedTrace<T> {
 }
 
 impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
-    fn on_event(&self, event:&Output<T>) {
+    fn on_event(&self, stack:CallStack, event:&Output<T>) {
         println!("[FRP] {}: {:?}", self.label(), event);
-        self.emit_event(event);
+        self.emit_event(stack,event);
     }
 }
 
@@ -891,10 +892,10 @@ impl<T:EventOutput> OwnedToggle<T> {
 }
 
 impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedToggle<T> {
-    fn on_event(&self, _:&Output<T>) {
+    fn on_event(&self, stack:CallStack, _:&Output<T>) {
         let value = !self.value.get();
         self.value.set(value);
-        self.emit_event(&value);
+        self.emit_event(stack,&value);
     }
 }
 
@@ -924,10 +925,10 @@ impl<T:EventOutput> OwnedCount<T> {
 }
 
 impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedCount<T> {
-    fn on_event(&self, _:&Output<T>) {
+    fn on_event(&self, stack:CallStack, _:&Output<T>) {
         let value = self.value.get() + 1;
         self.value.set(value);
-        self.emit_event(&value);
+        self.emit_event(stack,&value);
     }
 }
 
@@ -956,8 +957,8 @@ impl<T:EventOutput,Out:Data> OwnedConstant<T,Out> {
 }
 
 impl<T:EventOutput,Out:Data> stream::EventConsumer<Output<T>> for OwnedConstant<T,Out> {
-    fn on_event(&self, _:&Output<T>) {
-        self.emit_event(&self.value);
+    fn on_event(&self, stack:CallStack, _:&Output<T>) {
+        self.emit_event(stack,&self.value);
     }
 }
 
@@ -987,9 +988,9 @@ impl<T:EventOutput> OwnedPrevious<T> {
 }
 
 impl<T:EventOutput> stream::EventConsumer<Output<T>> for OwnedPrevious<T> {
-    fn on_event(&self, event:&Output<T>) {
+    fn on_event(&self, stack:CallStack, event:&Output<T>) {
         let previous = mem::replace(&mut *self.previous.borrow_mut(),event.clone());
-        self.emit_event(&previous);
+        self.emit_event(stack,&previous);
     }
 }
 
@@ -1019,8 +1020,8 @@ impl<T1:EventOutput,T2:EventOutput> OwnedSample<T1,T2> {
 }
 
 impl<T1:EventOutput,T2:EventOutput> stream::EventConsumer<Output<T2>> for OwnedSample<T1,T2> {
-    fn on_event(&self, _:&Output<T2>) {
-        self.emit_event(&self.behavior.value());
+    fn on_event(&self, stack:CallStack, _:&Output<T2>) {
+        self.emit_event(stack,&self.behavior.value());
     }
 }
 
@@ -1058,9 +1059,9 @@ where T1:EventOutput,T2:EventOutput<Output=bool> {
 
 impl<T1,T2> stream::EventConsumer<Output<T1>> for OwnedGate<T1,T2>
 where T1:EventOutput, T2:EventOutput<Output=bool> {
-    fn on_event(&self, event:&Output<T1>) {
+    fn on_event(&self, stack:CallStack, event:&Output<T1>) {
         if self.behavior.value() {
-            self.emit_event(event)
+            self.emit_event(stack,event)
         }
     }
 }
@@ -1100,9 +1101,9 @@ impl<T1,T2> OwnedGateNot<T1,T2>
 
 impl<T1,T2> stream::EventConsumer<Output<T1>> for OwnedGateNot<T1,T2>
     where T1:EventOutput, T2:EventOutput<Output=bool> {
-    fn on_event(&self, event:&Output<T1>) {
+    fn on_event(&self, stack:CallStack, event:&Output<T1>) {
         if !self.behavior.value() {
-            self.emit_event(event)
+            self.emit_event(stack,event)
         }
     }
 }
@@ -1142,9 +1143,9 @@ where T:EventOutput<Output=Option<S>>, S:Data {
 
 impl<T,S> stream::EventConsumer<Output<T>> for OwnedUnwrap<T>
 where T:EventOutput<Output=Option<S>>, S:Data {
-    fn on_event(&self, event:&Output<T>) {
+    fn on_event(&self, stack:CallStack, event:&Output<T>) {
         if let Some(t) = event {
-            self.emit_event(t)
+            self.emit_event(stack,t)
         }
     }
 }
@@ -1217,7 +1218,7 @@ impl<Out:Data> OwnedAny<Out> {
     /// define sources of frp output streams. Sources allow multiple streams to be attached and
     /// sometimes emitting events directly from the model is the cleanest solution possible.
     pub fn emit<T:IntoParam<Out>>(&self, value:T) {
-        self.emit_event(&value.into_param())
+        self.emit_event(&default(),&value.into_param())
     }
 }
 
@@ -1242,13 +1243,13 @@ impl<Out:Data> Any<Out> {
     /// define sources of frp output streams. Sources allow multiple streams to be attached and
     /// sometimes emitting events directly from the model is the cleanest solution possible.
     pub fn emit<T:IntoParam<Out>>(&self, value:T) {
-        self.emit_event(&value.into_param())
+        self.emit_event(&default(),&value.into_param())
     }
 }
 
 impl<Out:Data> stream::EventConsumer<Out> for OwnedAny<Out> {
-    fn on_event(&self, event:&Out) {
-        self.emit_event(event);
+    fn on_event(&self, stack:CallStack, event:&Out) {
+        self.emit_event(stack,event);
     }
 }
 
@@ -1326,8 +1327,8 @@ impl Any_ {
 }
 
 impl<T> stream::EventConsumer<T> for OwnedAny_ {
-    fn on_event(&self, _:&T) {
-        self.emit_event(&());
+    fn on_event(&self, stack:CallStack, _:&T) {
+        self.emit_event(stack,&());
     }
 }
 
@@ -1359,8 +1360,8 @@ where T1:EventOutput, T1::Output:generics::GetItemAt0, generics::ItemAt0<T1::Out
 
 impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet0<T1>
 where T1:EventOutput, T1::Output:generics::GetItemAt0, generics::ItemAt0<T1::Output>:Data {
-    fn on_event(&self, event:&Output<T1>) {
-        self.emit_event((*event)._0())
+    fn on_event(&self, stack:CallStack, event:&Output<T1>) {
+        self.emit_event(stack,(*event)._0())
     }
 }
 
@@ -1398,8 +1399,8 @@ impl<T1> OwnedGet1<T1>
 
 impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet1<T1>
     where T1:EventOutput, T1::Output:generics::GetItemAt1, generics::ItemAt1<T1::Output>:Data {
-    fn on_event(&self, event:&Output<T1>) {
-        self.emit_event((*event)._1())
+    fn on_event(&self, stack:CallStack, event:&Output<T1>) {
+        self.emit_event(stack,(*event)._1())
     }
 }
 
@@ -1437,8 +1438,8 @@ impl<T1> OwnedGet2<T1>
 
 impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet2<T1>
     where T1:EventOutput, T1::Output:generics::GetItemAt2, generics::ItemAt2<T1::Output>:Data {
-    fn on_event(&self, event:&Output<T1>) {
-        self.emit_event((*event)._2())
+    fn on_event(&self, stack:CallStack, event:&Output<T1>) {
+        self.emit_event(stack,(*event)._2())
     }
 }
 
@@ -1476,9 +1477,9 @@ where T1:EventOutput, X:Data, for<'t> &'t T1::Output:IntoIterator<Item=&'t X> {
 
 impl<T1,X> stream::EventConsumer<Output<T1>> for OwnedIter<T1>
 where T1:EventOutput, X:Data, for<'t> &'t T1::Output:IntoIterator<Item=&'t X> {
-    fn on_event(&self, event:&Output<T1>) {
+    fn on_event(&self, stack:CallStack, event:&Output<T1>) {
         for val in event {
-            self.emit_event(val)
+            self.emit_event(stack,val)
         }
     }
 }
@@ -1517,8 +1518,8 @@ impl<T1,X> OwnedFold<T1>
 
 impl<T1,X> stream::EventConsumer<Output<T1>> for OwnedFold<T1>
     where T1:EventOutput, X:Data+Monoid, for<'t> &'t T1::Output:IntoIterator<Item=&'t X> {
-    fn on_event(&self, event:&Output<T1>) {
-        self.emit_event(&event.into_iter().fold(default(),|t,s| t.concat(s)))
+    fn on_event(&self, stack:CallStack, event:&Output<T1>) {
+        self.emit_event(stack,&event.into_iter().fold(default(),|t,s| t.concat(s)))
     }
 }
 
@@ -1622,9 +1623,9 @@ impl<Out:Data> AllMut<Out> {
 }
 
 impl<Out:Data> stream::EventConsumer<Out> for OwnedAllMut<Out> {
-    fn on_event(&self, _event:&Out) {
+    fn on_event(&self, stack:CallStack, _event:&Out) {
         let values = self.srcs.borrow().iter().map(|src| src.value()).collect();
-        self.emit_event(&values);
+        self.emit_event(stack,&values);
     }
 }
 
@@ -1661,10 +1662,10 @@ where T1:EventOutput, T2:EventOutput {
 
 impl<T1,T2,Out> stream::EventConsumer<Out> for OwnedAll2<T1,T2>
 where T1:EventOutput, T2:EventOutput {
-    fn on_event(&self, _:&Out) {
+    fn on_event(&self, stack:CallStack, _:&Out) {
         let value1 = self.src1.value();
         let value2 = self.src2.value();
-        self.emit_event(&(value1,value2));
+        self.emit_event(stack,&(value1,value2));
     }
 }
 
@@ -1711,11 +1712,11 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput {
 
 impl<T1,T2,T3,Out> stream::EventConsumer<Out> for OwnedAll3<T1,T2,T3>
 where T1:EventOutput, T2:EventOutput, T3:EventOutput {
-    fn on_event(&self, _:&Out) {
+    fn on_event(&self, stack:CallStack, _:&Out) {
         let value1 = self.src1.value();
         let value2 = self.src2.value();
         let value3 = self.src3.value();
-        self.emit_event(&(value1,value2,value3));
+        self.emit_event(stack,&(value1,value2,value3));
     }
 }
 
@@ -1764,12 +1765,12 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
 
 impl<T1,T2,T3,T4,Out> stream::EventConsumer<Out> for OwnedAll4<T1,T2,T3,T4>
 where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
-    fn on_event(&self, _:&Out) {
+    fn on_event(&self, stack:CallStack, _:&Out) {
         let value1 = self.src1.value();
         let value2 = self.src2.value();
         let value3 = self.src3.value();
         let value4 = self.src4.value();
-        self.emit_event(&(value1,value2,value3,value4));
+        self.emit_event(stack,&(value1,value2,value3,value4));
     }
 }
 
@@ -1810,9 +1811,9 @@ where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
 
 impl<T,P> stream::EventConsumer<Output<T>> for OwnedFilter<T,P>
 where T:EventOutput, P:'static+Fn(&Output<T>)->bool {
-    fn on_event(&self, value:&Output<T>) {
+    fn on_event(&self, stack:CallStack, value:&Output<T>) {
         if (self.predicate)(value) {
-            self.emit_event(value);
+            self.emit_event(stack,value);
         }
     }
 }
@@ -1849,9 +1850,9 @@ where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Option<Out> {
 
 impl<T,F,Out> stream::EventConsumer<Output<T>> for OwnedFilterMap<T,F>
 where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Option<Out> {
-    fn on_event(&self, value:&Output<T>) {
+    fn on_event(&self, stack:CallStack, value:&Output<T>) {
         if let Some(out) = (self.function)(value) {
-            self.emit_event(&out);
+            self.emit_event(stack,&out);
         }
     }
 }
@@ -1888,9 +1889,9 @@ where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Out {
 
 impl<T,F,Out> stream::EventConsumer<Output<T>> for OwnedMap<T,F>
 where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Out {
-    fn on_event(&self, value:&Output<T>) {
+    fn on_event(&self, stack:CallStack, value:&Output<T>) {
         let out = (self.function)(value);
-        self.emit_event(&out);
+        self.emit_event(stack,&out);
     }
 }
 
@@ -1921,9 +1922,9 @@ where T1:EventOutput, T2:EventOutput, Out:Data, F:'static+Fn(&Output<T1>,&Output
     pub fn new(label:Label, t1:&T1, t2:&T2, function:F) -> Self {
         let _src1 = t1.clone_ref();
         let src2  = watch_stream(t2);
-        let def      = Map2Data {_src1,src2,function};
-        let this     = Self::construct(label,def);
-        let weak     = this.downgrade();
+        let def   = Map2Data {_src1,src2,function};
+        let this  = Self::construct(label,def);
+        let weak  = this.downgrade();
         t1.register_target(weak.into());
         this
     }
@@ -1931,10 +1932,10 @@ where T1:EventOutput, T2:EventOutput, Out:Data, F:'static+Fn(&Output<T1>,&Output
 
 impl<T1,T2,F,Out> stream::EventConsumer<Output<T1>> for OwnedMap2<T1,T2,F>
 where T1:EventOutput, T2:EventOutput, Out:Data, F:'static+Fn(&Output<T1>,&Output<T2>)->Out {
-    fn on_event(&self, value1:&Output<T1>) {
+    fn on_event(&self, stack:CallStack, value1:&Output<T1>) {
         let value2 = self.src2.value();
         let out    = (self.function)(&value1,&value2);
-        self.emit_event(&out);
+        self.emit_event(stack,&out);
     }
 }
 
@@ -1976,9 +1977,9 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, Out:Data,
         let _src1 = t1.clone_ref();
         let src2  = watch_stream(t2);
         let src3  = watch_stream(t3);
-        let def      = Map3Data {_src1,src2,src3,function};
-        let this     = Self::construct(label,def);
-        let weak     = this.downgrade();
+        let def   = Map3Data {_src1,src2,src3,function};
+        let this  = Self::construct(label,def);
+        let weak  = this.downgrade();
         t1.register_target(weak.into());
         this
     }
@@ -1987,11 +1988,11 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, Out:Data,
 impl<T1,T2,T3,F,Out> stream::EventConsumer<Output<T1>> for OwnedMap3<T1,T2,T3,F>
 where T1:EventOutput, T2:EventOutput, T3:EventOutput, Out:Data,
       F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>)->Out {
-    fn on_event(&self, value1:&Output<T1>) {
+    fn on_event(&self, stack:CallStack, value1:&Output<T1>) {
         let value2 = self.src2.value();
         let value3 = self.src3.value();
         let out    = (self.function)(&value1,&value2,&value3);
-        self.emit_event(&out);
+        self.emit_event(stack,&out);
     }
 }
 
@@ -2035,9 +2036,9 @@ impl<T1,T2,T3,T4,F,Out> OwnedMap4<T1,T2,T3,T4,F>
         let src2  = watch_stream(t2);
         let src3  = watch_stream(t3);
         let src4  = watch_stream(t4);
-        let def      = Map4Data {_src1,src2,src3,src4,function};
-        let this     = Self::construct(label,def);
-        let weak     = this.downgrade();
+        let def   = Map4Data {_src1,src2,src3,src4,function};
+        let this  = Self::construct(label,def);
+        let weak  = this.downgrade();
         t1.register_target(weak.into());
         this
     }
@@ -2046,12 +2047,12 @@ impl<T1,T2,T3,T4,F,Out> OwnedMap4<T1,T2,T3,T4,F>
 impl<T1,T2,T3,T4,F,Out> stream::EventConsumer<Output<T1>> for OwnedMap4<T1,T2,T3,T4,F>
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, Out:Data,
           F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>)->Out {
-    fn on_event(&self, value1:&Output<T1>) {
+    fn on_event(&self, stack:CallStack, value1:&Output<T1>) {
         let value2 = self.src2.value();
         let value3 = self.src3.value();
         let value4 = self.src4.value();
         let out    = (self.function)(&value1,&value2,&value3,&value4);
-        self.emit_event(&out);
+        self.emit_event(stack,&out);
     }
 }
 
@@ -2073,9 +2074,9 @@ impl<T1,T2,T3,T4,F> Debug for Map4Data<T1,T2,T3,T4,F> {
 
 
 
-// ==============
+// ================
 // === AllWith2 ===
-// ==============
+// ================
 
 pub struct AllWith2Data  <T1,T2,F> { src1:watch::Ref<T1>, src2:watch::Ref<T2>, function:F }
 pub type   OwnedAllWith2 <T1,T2,F> = stream::Node     <AllWith2Data<T1,T2,F>>;
@@ -2103,11 +2104,11 @@ where T1:EventOutput, T2:EventOutput, Out:Data, F:'static+Fn(&Output<T1>,&Output
 
 impl<T1,T2,F,Out,T> stream::EventConsumer<T> for OwnedAllWith2<T1,T2,F>
 where T1:EventOutput, T2:EventOutput, Out:Data, F:'static+Fn(&Output<T1>,&Output<T2>)->Out {
-    fn on_event(&self, _:&T) {
+    fn on_event(&self, stack:CallStack, _:&T) {
         let value1 = self.src1.value();
         let value2 = self.src2.value();
         let out    = (self.function)(&value1,&value2);
-        self.emit_event(&out);
+        self.emit_event(stack,&out);
     }
 }
 
@@ -2155,12 +2156,12 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, Out:Data,
 impl<T1,T2,T3,F,Out,T> stream::EventConsumer<T> for OwnedAllWith3<T1,T2,T3,F>
 where T1:EventOutput, T2:EventOutput, T3:EventOutput, Out:Data,
       F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>)->Out {
-    fn on_event(&self, _:&T) {
+    fn on_event(&self, stack:CallStack, _:&T) {
         let value1 = self.src1.value();
         let value2 = self.src2.value();
         let value3 = self.src3.value();
         let out    = (self.function)(&value1,&value2,&value3);
-        self.emit_event(&out);
+        self.emit_event(stack,&out);
     }
 }
 
@@ -2211,13 +2212,13 @@ impl<T1,T2,T3,T4,F,Out> OwnedAllWith4<T1,T2,T3,T4,F>
 impl<T1,T2,T3,T4,F,Out,T> stream::EventConsumer<T> for OwnedAllWith4<T1,T2,T3,T4,F>
 where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, Out:Data,
       F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>)->Out {
-    fn on_event(&self, _:&T) {
+    fn on_event(&self, stack:CallStack, _:&T) {
         let value1 = self.src1.value();
         let value2 = self.src2.value();
         let value3 = self.src3.value();
         let value4 = self.src4.value();
         let out    = (self.function)(&value1,&value2,&value3,&value4);
-        self.emit_event(&out);
+        self.emit_event(stack,&out);
     }
 }
 

@@ -78,9 +78,10 @@ pub struct BufferData<T> {
 impl<T:Storable> {
     /// Constructor.
     pub fn new<OnMut:CallbackFn,OnResize:CallbackFn>
-    (logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut, on_resize:OnResize) -> Self {
-        info!(logger,"Creating new {T::type_display()} buffer.",{
+    (lgr:Logger, stats:&Stats, context:&Context, on_mut:OnMut, on_resize:OnResize) -> Self {
+        info!(lgr,"Creating new {T::type_display()} buffer.", || {
             stats.inc_buffer_count();
+            let logger        = lgr.clone();
             let sublogger     = Logger::sub(&logger,"mut_dirty");
             let mut_dirty     = MutDirty::new(sublogger,Callback(on_mut));
             let sublogger     = Logger::sub(&logger,"resize_dirty");
@@ -146,14 +147,14 @@ impl<T:Storable> {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        info!(self.logger, "Updating.", {
+        info!(self.logger, "Updating.", || {
             self.context.bind_buffer(Context::ARRAY_BUFFER,Some(&self.gl_buffer));
             if self.resize_dirty.check() {
                 self.upload_data(&None);
             } else if self.mut_dirty.check_all() {
                 self.upload_data(&self.mut_dirty.take().range);
             } else {
-                internal_warning!(self.logger,"Update requested but it was not needed.");
+                warning!(self.logger,"Update requested but it was not needed.");
             }
             self.mut_dirty.unset_all();
             self.resize_dirty.unset();
@@ -221,7 +222,7 @@ impl<T:Storable> BufferData<T> {
     /// Upload the provided data range to the GPU buffer. In case the local buffer was resized,
     /// it will be re-created on the GPU.
     fn upload_data(&mut self, opt_range:&Option<RangeInclusive<usize>>) {
-        info!(self.logger,"Uploading buffer data.",{
+        info!(self.logger,"Uploading buffer data.", || {
             self.stats.inc_data_upload_count();
             match opt_range {
                 None        => self.replace_gpu_buffer(),

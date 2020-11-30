@@ -1,10 +1,10 @@
 [package]
-name    = "eval-tt"
+name = "eval-tt"
 version = "0.1.0"
-authors = ["Enso Team <contact@luna-lang.org>"]
+authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [lib]
 
 [dependencies]
-paste        = "0.1"
+paste = "0.1"

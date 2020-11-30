@@ -7,6 +7,73 @@ use crate::data::watch;
 
 
 
+// =================
+// === CallStack ===
+// =================
+
+/// Owned call stack type.
+#[cfg(feature="stack-trace")]
+pub type OwnedCallStack = EnabledCallStack;
+
+/// Owned call stack type.
+#[cfg(not(feature="stack-trace"))]
+pub type OwnedCallStack = DisabledCallStack;
+
+/// A call stack trace for FRP events.
+pub type CallStack<'a> = &'a OwnedCallStack;
+
+
+// === Ops ===
+
+/// Call stack operations available on both enabled and disabled stack implementations.
+pub trait CallStackOps : Default + Display {
+    /// Create a sub stack trace.
+    fn sub(&self, label:Label) -> Self;
+}
+
+
+// === Enabled ===
+
+/// A call stack trace for FRP events.
+#[derive(Debug,Default)]
+pub struct EnabledCallStack {
+    stack: Vec<Label>
+}
+
+impl CallStackOps for EnabledCallStack {
+    fn sub(&self, label:Label) -> Self {
+        let stack = self.stack.to_vec().pushed(label);
+        Self {stack}
+    }
+}
+
+impl Display for EnabledCallStack {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        let indent = "\n    ";
+        let trace  = indent.to_string() + &self.stack.join(indent);
+        write!(f,"Call stack trace:{}",trace)
+    }
+}
+
+
+// === Disabled ===
+
+/// A call stack trace for FRP events.
+#[derive(Debug,Clone,Copy,Default)]
+pub struct DisabledCallStack;
+
+impl CallStackOps for DisabledCallStack {
+    fn sub(&self, _label:Label) -> Self {
+        *self
+    }
+}
+
+impl Display for DisabledCallStack {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"Compile time disabled call stack trace.")
+    }
+}
+
 
 
 // =================
@@ -50,9 +117,9 @@ pub trait EventOutput = 'static + ValueProvider + EventEmitter + CloneRef + HasI
 /// register new event receivers.
 pub trait EventEmitter : HasOutput {
     /// Emit a new event.
-    fn emit_event(&self , value:&Self::Output);
-    /// Register new event target. All emited events will be send to every registered target.
-    fn register_target(&self , target:EventInput<Output<Self>>);
+    fn emit_event(&self, stack:CallStack, value:&Self::Output);
+    /// Register new event target. All emitted events will be send to every registered target.
+    fn register_target(&self, target:EventInput<Output<Self>>);
     /// Register that someone is watching value of this node.
     fn register_watch(&self) -> watch::Handle;
 }
@@ -66,7 +133,7 @@ pub trait EventEmitter : HasOutput {
 /// Implementors of this trait have to know how to consume incoming events.
 pub trait EventConsumer<T> {
     /// Callback for a new incoming event.
-    fn on_event(&self, value:&T);
+    fn on_event(&self, stack:CallStack, value:&T);
 }
 
 /// Implementors of this trait have to know how to consume incoming events. However, it is allowed
@@ -74,7 +141,7 @@ pub trait EventConsumer<T> {
 pub trait WeakEventConsumer<T> {
     /// Callback for a new incoming event. Returns true if the event was consumed or false if it was
     /// not. Not consuming an event means that the event receiver was already dropped.
-    fn on_event_if_exists(&self, value:&T) -> bool;
+    fn on_event_if_exists(&self, stack:CallStack, value:&T) -> bool;
 }
 
 
@@ -174,16 +241,21 @@ impl<Out:Data> HasOutput for NodeData<Out> {
 }
 
 impl<Out:Data> EventEmitter for NodeData<Out> {
-    fn emit_event(&self, value:&Out) {
+    fn emit_event(&self, stack:CallStack, value:&Out) {
+        let new_stack = stack.sub(self.label);
         if self.during_call.get() {
-            let logger = Logger::new("frp");
-            warning!(&logger, "Encountered a loop in the reactive dataflow at '{self.label}'");
+            let logger : Logger = Logger::new("frp");
+            warning!(logger,"Encountered a loop in the reactive dataflow.", || {
+                warning!(logger,"{new_stack}");
+            })
         } else {
             self.during_call.set(true);
             if self.use_caching() {
                 *self.value_cache.borrow_mut() = value.clone();
             }
-            self.targets.borrow_mut().retain(|target| target.data.on_event_if_exists(value));
+            self.targets.borrow_mut().retain(
+                |target| target.data.on_event_if_exists(&new_stack,value)
+            );
             let mut new_targets = self.new_targets.borrow_mut();
             if !new_targets.is_empty() {
                 let new_targets_ref: &mut Vec<EventInput<Out>> = &mut new_targets;
@@ -392,8 +464,8 @@ where Def:HasOutputStatic {
 // === EventEmitter ===
 
 impl<Out:Data> EventEmitter for OwnedStream<Out> {
-    fn emit_event(&self, value:&Self::Output) {
-        self.data.emit_event(value)
+    fn emit_event(&self, stack:CallStack, value:&Self::Output) {
+        self.data.emit_event(stack,value)
     }
 
     fn register_target(&self,target:EventInput<Output<Self>>) {
@@ -406,8 +478,8 @@ impl<Out:Data> EventEmitter for OwnedStream<Out> {
 }
 
 impl<Out:Data> EventEmitter for Stream<Out> {
-    fn emit_event(&self, value:&Self::Output) {
-        self.upgrade().for_each(|t| t.emit_event(value))
+    fn emit_event(&self, stack:CallStack, value:&Self::Output) {
+        self.upgrade().for_each(|t| t.emit_event(stack,value))
     }
 
     fn register_target(&self,target:EventInput<Output<Self>>) {
@@ -420,24 +492,24 @@ impl<Out:Data> EventEmitter for Stream<Out> {
 }
 
 impl<Def:HasOutputStatic> EventEmitter for Node<Def>  {
-    fn emit_event      (&self, value:&Output<Def>)          { self.stream.emit_event(value) }
-    fn register_target (&self,tgt:EventInput<Output<Self>>) { self.stream.register_target(tgt) }
-    fn register_watch  (&self) -> watch::Handle             { self.stream.register_watch() }
+    fn emit_event (&self, stack:CallStack, value:&Output<Def>) {self.stream.emit_event(stack,value)}
+    fn register_target (&self,tgt:EventInput<Output<Self>>)    {self.stream.register_target(tgt)}
+    fn register_watch  (&self) -> watch::Handle                {self.stream.register_watch()}
 }
 
 impl<Def:HasOutputStatic> EventEmitter for WeakNode<Def> {
-    fn emit_event      (&self, value:&Output<Def>)          { self.stream.emit_event(value) }
-    fn register_target (&self,tgt:EventInput<Output<Self>>) { self.stream.register_target(tgt) }
-    fn register_watch  (&self) -> watch::Handle             { self.stream.register_watch() }
+    fn emit_event (&self, stack:CallStack, value:&Output<Def>) {self.stream.emit_event(stack,value)}
+    fn register_target (&self,tgt:EventInput<Output<Self>>)    {self.stream.register_target(tgt)}
+    fn register_watch  (&self) -> watch::Handle                {self.stream.register_watch()}
 }
 
 
 // === WeakEventConsumer ===
 
 impl<Def,T> WeakEventConsumer<T> for WeakNode<Def>
-    where Def:HasOutputStatic, Node<Def>:EventConsumer<T> {
-    fn on_event_if_exists(&self, value:&T) -> bool {
-        self.upgrade().map(|node| {node.on_event(value);}).is_some()
+where Def:HasOutputStatic, Node<Def>:EventConsumer<T> {
+    fn on_event_if_exists(&self, stack:CallStack, value:&T) -> bool {
+        self.upgrade().map(|node| {node.on_event(stack,value);}).is_some()
     }
 }
 

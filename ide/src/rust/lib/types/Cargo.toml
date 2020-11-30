@@ -1,13 +1,13 @@
 [package]
-name    = "enso-types"
+name = "enso-types"
 version = "0.1.0"
-authors = ["Enso Team <contact@luna-lang.org>"]
+authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [lib]
 
 [dependencies]
-nalgebra   = { version = "0.21.1" }
+nalgebra = { version = "0.21.1" }
 num-traits = { version = "0.2" }
 
 [dev-dependencies]

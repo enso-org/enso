@@ -76,16 +76,16 @@ mod background {
 
 ensogl::define_endpoints! {
     Input {
-        set_size                       (Vector2),
-        show_icons                     (),
-        hide_icons                     (),
-        set_selected_visualization     (Option<visualization::Path>),
+        set_size                   (Vector2),
+        show_icons                 (),
+        hide_icons                 (),
+        set_selected_visualization (Option<visualization::Path>),
     }
 
     Output {
-        visualisation_selection  (Option<visualization::Path>),
-        mouse_over               (),
-        mouse_out                (),
+        visualisation_selection (Option<visualization::Path>),
+        mouse_over              (),
+        mouse_out               (),
     }
 }
 

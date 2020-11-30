@@ -192,7 +192,8 @@
 /// ```
 #[macro_export]
 macro_rules! define_endpoints {
-    ( $([$($global_opts:tt)*])?
+    (
+        $([$($global_opts:tt)*])?
         $(Input { $([$($input_opts:tt)*])?
             $($(#[doc=$($in_doc:tt)*])*
             $in_field : ident ($($in_field_type : tt)*)),* $(,)?
@@ -207,7 +208,7 @@ macro_rules! define_endpoints {
             NORMALIZED
             $([$($global_opts)*])?
 
-            Input  { $([$($input_opts)*])?
+            Input  { $($([$($input_opts)*])?)?
                 /// Focus the element. Focused elements are meant to receive shortcut events.
                 focus(),
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
@@ -219,7 +220,7 @@ macro_rules! define_endpoints {
                 $in_field ($($in_field_type )*)),*)?
             }
 
-            Output { $([$($output_opts)*])?
+            Output { $($([$($output_opts)*])?)?
                 /// Focus state checker.
                 focused(bool),
                 $($($(#[doc=$($out_doc)*])*
@@ -232,7 +233,7 @@ macro_rules! define_endpoints {
         NORMALIZED
         $([$($global_opts:tt)*])?
 
-        Input  { $([$($input_opts:tt)*])?
+        Input { $([$($input_opts:tt)*])?
             $($(#[doc=$($in_doc :tt)*])*
             $in_field : ident ($($in_field_type : tt)*)),* $(,)?
         }
@@ -255,7 +256,7 @@ macro_rules! define_endpoints {
         impl Frp {
             /// Create Frp endpoints within and the associated network.
             pub fn new() -> Self {
-                let network = $crate::frp::Network::new();
+                let network = $crate::frp::Network::new(file!());
                 let output  = Self::extend(&network);
                 Self {network,output}
             }

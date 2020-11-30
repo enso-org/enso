@@ -94,7 +94,7 @@ impl {
     // TODO: this is very work-in-progress function. It should be refactored in the next PR.
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self, bindings:&[VarBinding]) {
-        group!(self.logger, "Updating.", {
+        debug!(self.logger, "Updating.", || {
             if self.dirty.check_all() {
 
                 self.stats.inc_shader_compile_count();
@@ -107,7 +107,8 @@ impl {
                     let tp   = &binding.decl.tp;
                     match binding.scope {
                         None => {
-                            self.logger.warning("TODO: default shader values.");
+                            warning!(self.logger,"[TODO] Fefault shader values are not \
+                                implemented. This will cause visual glitches.");
                             shader_cfg.add_uniform(name,tp);
                         },
                         Some(scope_type) => match scope_type {
@@ -134,7 +135,7 @@ impl {
                 let vert_shader = compile_vertex_shader  (&self.context,&shader.vertex);
                 let frag_shader = compile_fragment_shader(&self.context,&shader.fragment);
                 if let Err(ref err) = frag_shader {
-                    self.logger.error(|| format!("{}", err))
+                    error!(self.logger,"{err}")
                 }
 
                 let vert_shader = vert_shader.unwrap();

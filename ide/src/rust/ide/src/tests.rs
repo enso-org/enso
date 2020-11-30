@@ -20,7 +20,7 @@ async fn failure_to_open_most_recent_project_is_reported() {
     let transport   = MockTransport::new();
     let mut fixture = TestWithMockedTransport::set_up(&transport);
     fixture.run_test(async move {
-        let logger           = default();
+        let logger           = Logger::new("test");
         let client           = IdeInitializer::setup_project_manager(transport);
         let name             = crate::constants::DEFAULT_PROJECT_NAME;
         let project_metadata = IdeInitializer::get_most_recent_project_or_create_new
@@ -42,7 +42,7 @@ async fn failure_to_open_most_recent_project_is_reported() {
 
 #[wasm_bindgen_test(async)]
 async fn get_project_or_create_new() {
-    let logger      = default();
+    let logger      = Logger::new("test");
     let mock_client = project_manager::MockClient::default();
 
     let name             = project_manager::ProjectName::new("TestProject");
@@ -61,7 +61,7 @@ async fn get_project_or_create_new() {
 
 #[wasm_bindgen_test(async)]
 async fn get_most_recent_project_or_create_new() {
-    let logger      = default();
+    let logger      = Logger::new("test");
     let mock_client = project_manager::MockClient::default();
 
     let name             = project_manager::ProjectName::new("TestProject");

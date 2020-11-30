@@ -10,15 +10,16 @@
 #![feature(cell_update)]
 #![feature(clamp)]
 #![feature(drain_filter)]
+#![feature(fn_traits)]
 #![feature(overlapping_marker_traits)]
 #![feature(slice_patterns)]
 #![feature(specialization)]
-#![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![feature(vec_remove_item)]
 #![feature(weak_into_raw)]
+
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -67,7 +68,7 @@ pub mod prelude {
     pub use enso_logger as logger;
     pub use enso_logger::*;
     pub use enso_logger::AnyLogger;
-    pub use enso_logger::disabled::Logger;
+    pub use enso_logger::DefaultWarningLogger as Logger;
     pub use enso_shapely::CloneRef;
     pub use enso_shapely::newtype_copy;
     pub use enso_shapely::shared;

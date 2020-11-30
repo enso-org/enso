@@ -111,15 +111,15 @@ pub struct DirtyFlags<Host> {
 impl<Host> DirtyFlags<Host> {
     #![allow(trivial_casts)]
     fn new(logger:impl AnyLogger) -> Self {
-        let logger           = Logger::sub(&logger,"dirty");
+        let logger : Logger  = Logger::sub(&logger,"dirty");
         let on_dirty         = Rc::new(RefCell::new(Box::new(||{}) as Box<dyn Fn()>));
-        let sub_logger       = logger::disabled::Logger::sub(&logger,"parent");
+        let sub_logger       = logger::WarningLogger::sub(&logger,"parent");
         let parent           = NewParentDirty  :: new(sub_logger,());
-        let sub_logger       = logger::disabled::Logger::sub(&logger,"children");
+        let sub_logger       = logger::WarningLogger::sub(&logger,"children");
         let children         = ChildrenDirty   :: new(sub_logger,on_dirty_callback(&on_dirty));
-        let sub_logger       = logger::disabled::Logger::sub(&logger,"removed_children");
+        let sub_logger       = logger::WarningLogger::sub(&logger,"removed_children");
         let removed_children = RemovedChildren :: new(sub_logger,on_dirty_callback(&on_dirty));
-        let sub_logger       = logger::disabled::Logger::sub(&logger,"transform");
+        let sub_logger       = logger::WarningLogger::sub(&logger,"transform");
         let transform        = TransformDirty  :: new(sub_logger,on_dirty_callback(&on_dirty));
         Self {parent,children,removed_children,transform,on_dirty}
     }
@@ -187,7 +187,7 @@ pub struct Model<Host=Scene> {
 impl<Host> Model<Host> {
     /// Constructor.
     pub fn new(logger:impl AnyLogger) -> Self {
-        let logger      = Logger::from_logger(logger);
+        let logger      = Logger::new_from(logger);
         let parent_bind = default();
         let children    = default();
         let transform   = default();
@@ -235,7 +235,7 @@ impl<Host> Model<Host> {
 
     /// Removes the binding to the parent object. Parent is not updated.
     fn unsafe_unset_parent_without_update(&self) {
-        self.logger.info("Removing parent bind.");
+        info!(self.logger,"Removing parent bind.");
         self.dirty.unset_on_dirty();
         self.dirty.parent.set();
     }
@@ -254,23 +254,23 @@ impl<Host> Model<Host> {
         let is_origin_dirty     = has_new_parent || parent_origin_changed;
         let new_parent_origin   = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() {"new"} else {"old"};
-        group!(self.logger, "Update with {parent_origin_label} parent origin.", {
+        debug!(self.logger, "Update with {parent_origin_label} parent origin.", || {
             let origin_changed = self.transform.borrow_mut().update(new_parent_origin);
             let new_origin     = self.transform.borrow().matrix;
             if origin_changed {
-                self.logger.info("Self origin changed.");
+                info!(self.logger,"Self origin changed.");
                 self.callbacks.on_updated(self);
                 if !self.children.borrow().is_empty() {
-                    group!(self.logger, "Updating all children.", {
+                    debug!(self.logger, "Updating all children.", || {
                         self.children.borrow().iter().for_each(|child| {
                             child.upgrade().for_each(|t|t.update_with_origin(host,new_origin,true));
                         });
                     })
                 }
             } else {
-                self.logger.info("Self origin did not change.");
+                info!(self.logger,"Self origin did not change.");
                 if self.dirty.children.check_all() {
-                    group!(self.logger, "Updating dirty children.", {
+                    debug!(self.logger, "Updating dirty children.", || {
                         self.dirty.children.take().iter().for_each(|ix| {
                             self.children.borrow().safe_index(*ix).and_then(|t|t.upgrade())
                                 .for_each(|t|t.update_with_origin(host,new_origin,false))
@@ -295,7 +295,7 @@ impl<Host> Model<Host> {
 
     fn hide_removed_children(&self, host:&Host) {
         if self.dirty.removed_children.check_all() {
-            group!(self.logger, "Updating removed children", {
+            debug!(self.logger, "Updating removed children", || {
                 for child in self.dirty.removed_children.take().into_iter() {
                     if let Some(child) = child.upgrade() {
                         if child.is_orphan() {
@@ -320,7 +320,7 @@ impl<Host> Model<Host> {
 
     fn show(&self, host:&Host) {
        if !self.visible.get() {
-           self.logger.info("Showing.");
+           info!(self.logger,"Showing.");
            self.visible.set(true);
            self.callbacks.on_show(host);
            self.children.borrow().iter().for_each(|child| {
@@ -348,7 +348,7 @@ impl<Host> Model<Host> {
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
     fn set_parent_bind(&self, bind:ParentBind<Host>) {
-        self.logger.info("Adding new parent bind.");
+        info!(self.logger,"Adding new parent bind.");
         if let Some(parent) = bind.parent() {
             let index = bind.index;
             let dirty = parent.dirty.children.clone_ref();
@@ -504,11 +504,11 @@ impl<Host> Instance<Host> {
     /// Adds a new `Object` as a child to the current one. This is the same as `add_child` but takes
     /// the ownership of `self`.
     pub fn add_child_take<T:Object<Host>>(self, child:&T) {
-        self.rc.logger.info("Adding new child.");
+        info!(self.rc.logger,"Adding new child.");
         let child = child.display_object();
         child.unset_parent();
         let index = self.register_child(child);
-        self.rc.logger.info(|| format!("Child index is {}.", index));
+        info!(self.rc.logger,"Child index is {index}.");
         let parent_bind = ParentBind {parent:self.downgrade(),index};
         child.set_parent_bind(parent_bind);
     }

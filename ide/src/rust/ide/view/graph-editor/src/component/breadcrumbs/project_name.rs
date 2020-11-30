@@ -21,8 +21,7 @@ use ensogl::gui::cursor;
 use ensogl_text as text;
 use ensogl_text::style::Size as TextSize;
 use ensogl_theme as theme;
-use logger::AnyLogger;
-use logger::enabled::Logger;
+use logger::DefaultWarningLogger as Logger;
 
 
 
@@ -77,6 +76,7 @@ ensogl::define_endpoints! {
        /// start editing it.
        ide_text_edit_mode (bool),
     }
+
     Output {
         pointer_style (cursor::Style),
         name          (String),

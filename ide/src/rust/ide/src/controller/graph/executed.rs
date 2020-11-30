@@ -303,7 +303,7 @@ pub mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
     use crate::model::module::NodeMetadata;
-    use logger::enabled::Logger;
+    use logger::DefaultWarningLogger;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -331,7 +331,7 @@ pub mod tests {
             model::project::test::expect_suggestion_db(&mut project,suggestion_db);
 
             let project = Rc::new(project);
-            Handle::new(Logger::default(),project.clone_ref(),method).boxed_local().expect_ok()
+            Handle::new(Logger::new("test"),project.clone_ref(),method).boxed_local().expect_ok()
         }
     }
 

@@ -353,7 +353,7 @@ pub struct Keyboard {
 impl Keyboard {
     /// Constructor.
     pub fn new() -> Self {
-        let network = frp::Network::new();
+        let network = frp::Network::new("keyboard");
         let model   = KeyboardModel::default();
         let source  = KeyboardSource::new(&network);
         frp::extend! { network

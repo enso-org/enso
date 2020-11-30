@@ -252,7 +252,7 @@ Very important information is how visualization architecture works to make them
 interactive and fast. Whenever new data is computed by the compiler and
 visualization is attached to it, it is sent to GUI to be displayed. However,
 sending really big chunks of data will kill the performance. When defining a
-visualization user is capable of defining a chunk of Luna code (as a string).
+visualization user is capable of defining a chunk of Enso code (as a string).
 This code is part of the visualization definition and is stored server-side.
 Visualizations are allowed to change the code at runtime. This code defines an
 Enso function, which will be run by the compiler on data the visualization is

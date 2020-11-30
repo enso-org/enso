@@ -237,7 +237,7 @@ pub mod test {
             ls_client.require_all_calls();
             let connection = language_server::Connection::new_mock_rc(ls_client);
             let mut test   = TestWithLocalPoolExecutor::set_up();
-            let logger     = Logger::default();
+            let logger     = Logger::new("Fixture");
             let method     = data.main_method_pointer();
             let context    = ExecutionContext::create(logger,connection,method);
             let context    = test.expect_completion(context).unwrap();

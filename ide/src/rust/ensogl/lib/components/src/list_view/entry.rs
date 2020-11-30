@@ -7,7 +7,6 @@ use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_text as text;
 use ensogl_theme;
-use enabled::Logger;
 
 
 
@@ -423,7 +422,7 @@ impl List {
         entry
     }
 
-    fn update_entry(logger:impl AnyLogger, entry:&Entry, id:Id, model:&Option<Model>) {
+    fn update_entry(logger:&Logger, entry:&Entry, id:Id, model:&Option<Model>) {
         debug!(logger, "Setting new model {model:?} for entry {id}; \
                         old entry: {entry.id.get():?}.");
         match model {

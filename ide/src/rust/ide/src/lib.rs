@@ -52,7 +52,7 @@ mod tests;
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {
     pub use ensogl::prelude::*;
-    pub use ensogl::prelude::disabled::Logger;
+    pub use ensogl::prelude::DefaultWarningLogger as Logger;
     pub use enso_prelude::*;
     pub use ast::prelude::*;
     pub use wasm_bindgen::prelude::*;

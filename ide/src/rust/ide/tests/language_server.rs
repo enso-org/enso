@@ -228,7 +228,8 @@ async fn ls_text_protocol_test() {
 // #[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn file_events() {
-    let ws         = WebSocket::new_opened(default(),SERVER_ENDPOINT).await;
+    let logger     = Logger::new("test");
+    let ws         = WebSocket::new_opened(logger,SERVER_ENDPOINT).await;
     let ws         = ws.expect("Couldn't connect to WebSocket server.");
     let client     = Client::new(ws);
     let mut stream = client.events();

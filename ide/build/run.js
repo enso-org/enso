@@ -1,13 +1,14 @@
-const cmd    = require('./cmd')
-const fs     = require('fs').promises
-const fss    = require('fs')
-const glob   = require('glob')
-const ncp    = require('ncp').ncp
-const path   = require('path')
-const paths  = require('./paths')
-const stream = require('stream');
-const yargs  = require('yargs')
-const zlib   = require('zlib');
+const cmd      = require('./cmd')
+const fs       = require('fs').promises
+const fss      = require('fs')
+const glob     = require('glob')
+const ncp      = require('ncp').ncp
+const path     = require('path')
+const paths    = require('./paths')
+const prettier = require("prettier")
+const stream   = require('stream')
+const yargs    = require('yargs')
+const zlib     = require('zlib')
 
 process.on('unhandledRejection', error => { throw(error) })
 process.chdir(paths.root)
@@ -135,7 +136,7 @@ commands.build.rust = async function(argv) {
 
         console.log('Checking the resulting WASM size.')
         let stats = fss.statSync(paths.dist.wasm.mainOptGz)
-        let limit = 4.21
+        let limit = 4.23
         let size = Math.round(100 * stats.size / 1024 / 1024) / 100
         if (size > limit) {
             throw(`Output file size exceeds the limit (${size}MB > ${limit}MB).`)
@@ -198,6 +199,22 @@ commands.lint = command(`Lint the codebase`)
 commands.lint.rust = async function() {
     // We run clippy-preview due to https://github.com/rust-lang/rust-clippy/issues/4612
     await run_cargo('cargo',['clippy-preview','-Z','unstable-options','--','-D','warnings'])
+}
+
+
+// === TomlFmt ===
+
+commands['toml-fmt'] = command(`Lint the codebase`)
+commands['toml-fmt'].rust = async function() {
+    console.log("Looking for all TOML files.")
+    let files = glob.sync(paths.rust.root + "/**/*.toml", {cwd:paths.root});
+    console.log(`Found ${files.length} entries. Running auto-formatter.`)
+    for (let file of files) {
+        console.log(`    Formatting '${file}'.`)
+        let text = fss.readFileSync(file, "utf8")
+        let out  = prettier.format(text,{parser:'toml'})
+        fss.writeFileSync(file,out)
+    }
 }
 
 
@@ -314,15 +331,15 @@ function defaultConfig() {
         version: "2.0.0-alpha.0",
         author: {
             name: "Enso Team",
-            email: "contact@luna-lang.org"
+            email: "contact@enso.org"
         },
-        homepage: "https://github.com/luna/ide",
+        homepage: "https://github.com/enso-org/ide",
         repository: {
             type: "git",
-            url: "git@github.com:luna/ide.git"
+            url: "git@github.com:enso-org/ide.git"
         },
         bugs: {
-            url: "https://github.com/luna/ide/issues"
+            url: "https://github.com/enso-org/ide/issues"
         },
     }
 }
@@ -383,6 +400,10 @@ async function installJsDeps() {
 async function runCommand(command,argv) {
     let config = commands[command]
     cargoArgs  = argv['--']
+    if (config === undefined) {
+        console.error(`Invalid command '${command}'.`)
+        return
+    }
     if(cargoArgs === undefined) { cargoArgs = [] }
     let index = cargoArgs.indexOf('--')
     if (index == -1) {

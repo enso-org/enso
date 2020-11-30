@@ -121,6 +121,69 @@ function show_debug_screen(wasm,msg) {
 }
 
 
+// ====================
+// === Scam Warning ===
+// ====================
+
+function printScamWarning() {
+    let headerCSS = `
+        color : white;
+        background : crimson;
+        display : block;
+        border-radius : 8px;
+        font-weight : bold;
+        padding: 10px 20px 10px 20px;
+    `
+    let headerCSS1 = headerCSS + "font-size : 46px;"
+    let headerCSS2 = headerCSS + "font-size : 20px;"
+    let msgCSS     = "font-size:16px;"
+
+    let msg1 = "This is a browser feature intended for developers. If someone told you to " +
+               "copy-paste something here, it is a scam and will give them access to your " +
+               "account and data."
+    let msg2 = "See https://github.com/enso-org/ide/blob/main/docs/security/selfxss.md for more " +
+               "information."
+    console.log("%cStop!",headerCSS1)
+    console.log("%cYou may be victim of a scam!",headerCSS2)
+    console.log("%c"+msg1,msgCSS)
+    console.log("%c"+msg2,msgCSS)
+}
+
+
+
+// ======================
+// === Logs Buffering ===
+// ======================
+
+let   logsBuffer = []
+const logsFns    = ['log','info','debug','warn','error','group','groupCollapsed','groupEnd']
+
+function hideLogs() {
+    console.log('All subsequent logs will be hidden. Eval `showLogs()` to reveal them.')
+    console.raw = {}
+    for (let name of logsFns) {
+        console.raw[name] = console[name]
+        console[name] = (...args) => {
+            logsBuffer.push({name,args})
+        }
+    }
+}
+
+function showLogs() {
+    for (let name of logsFns) {
+        console[name] = console.raw[name]
+    }
+    for (let {name,args} of logsBuffer) {
+        console[name](...args)
+    }
+    logsBuffer = []
+    console.autoFlush = true
+}
+
+window.showLogs = showLogs
+window.logsBuffer = logsBuffer
+
+
 
 // ========================
 // === Main Entry Point ===
@@ -157,6 +220,8 @@ function disableContextMenu() {
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function main() {
+    printScamWarning()
+    hideLogs()
     disableContextMenu()
     let location = window.location.pathname.split('/')
     location.splice(0,1)

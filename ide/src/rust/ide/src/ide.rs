@@ -196,7 +196,7 @@ impl IdeInitializer {
             let project_manager = project_manager.expect("Failed to initialize Project Manager.");
             let view            = self.initialize_project_view(&config,project_manager).await;
             let view            = view.expect("Failed to setup initial project view.");
-            self.logger.info("Setup done.");
+            info!(self.logger,"Setup done.");
             let ide = Ide{view};
             std::mem::forget(ide);
             std::mem::forget(executor);

@@ -1161,7 +1161,7 @@ impl display::Object for EdgeModelData {
 impl Edge {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-        let network = frp::Network::new();
+        let network = frp::Network::new("node_edge");
         let data    = Rc::new(EdgeModelData::new(app.display.scene(),&network));
         let model   = Rc::new(EdgeModel {data});
         Self {model,network}.init(app)

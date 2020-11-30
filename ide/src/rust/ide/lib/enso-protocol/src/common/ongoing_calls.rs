@@ -10,7 +10,7 @@ use crate::common::error::NoSuchRequest;
 /// their answer.
 /// `Id` identifies the request.
 /// `Reply` represents the answer.
-#[derive(Debug,Default)]
+#[derive(Debug)]
 pub struct OngoingCalls<Id,Reply> where Id:Hash+Eq {
     logger        : Logger,
     ongoing_calls : HashMap<Id,oneshot::Sender<Reply>>,

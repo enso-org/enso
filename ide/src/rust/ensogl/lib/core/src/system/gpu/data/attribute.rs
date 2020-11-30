@@ -58,8 +58,9 @@ pub struct AttributeScopeData {
 impl {
     /// Create a new scope with the provided dirty callback.
     pub fn new<OnMut:CallbackFn+Clone>
-    (logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
-        info!(logger,"Initializing.",{
+    (lgr:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
+        info!(lgr,"Initializing.",|| {
+            let logger          = lgr.clone();
             let stats           = stats.clone_ref();
             let buffer_logger   = Logger::sub(&logger,"buffer_dirty");
             let shape_logger    = Logger::sub(&logger,"shape_dirty");
@@ -82,7 +83,7 @@ impl {
         let buffer_dirty = self.buffer_dirty.clone();
         let shape_dirty  = self.shape_dirty.clone();
         let ix           = self.buffers.reserve_index();
-        group!(self.logger, "Adding buffer '{name}' at index {ix}.", {
+        debug!(self.logger, "Adding buffer '{name}' at index {ix}.", || {
             let on_set     = Box::new(move || { buffer_dirty.set(ix) });
             let on_resize  = Box::new(move || { shape_dirty.set() });
             let logger     = Logger::sub(&self.logger,&name);
@@ -108,7 +109,7 @@ impl {
     /// Add a new instance to every buffer in the scope.
     pub fn add_instance(&mut self) -> AttributeInstanceIndex {
         let instance_count = 1;
-        group!(self.logger, "Adding {instance_count} instance(s).", {
+        debug!(self.logger, "Adding {instance_count} instance(s).", || {
             match self.free_ids.pop() {
                 Some(ix) => ix,
                 None     => {
@@ -124,7 +125,7 @@ impl {
     /// Dispose instance for reuse in the future. All data in all buffers at the provided `id` will
     /// be set to default.
     pub fn dispose(&mut self, id:AttributeInstanceIndex) {
-        group!(self.logger, "Disposing instance {id}.", {
+        debug!(self.logger, "Disposing instance {id}.", || {
             for buffer in &self.buffers {
                 buffer.set_to_default(id.into())
             }
@@ -134,7 +135,7 @@ impl {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        group!(self.logger, "Updating.", {
+        debug!(self.logger, "Updating.", || {
             if self.shape_dirty.check() {
                 for i in 0..self.buffers.len() {
                     self.buffers[i].update()

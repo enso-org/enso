@@ -1,10 +1,10 @@
 [package]
 name = "build-scripts"
 version = "0.1.0"
-authors = ["Enso Team <contact@luna-lang.org>"]
+authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [workspace]
 
 [dependencies]
-toml="0.5.5"
+toml = "0.5.5"

@@ -823,7 +823,7 @@ impl Nodes {
 
 
 
-#[derive(Debug,Clone,CloneRef,Default)]
+#[derive(Debug,Clone,CloneRef)]
 pub struct Edges {
     pub logger          : Logger,
     pub all             : SharedHashMap<EdgeId,Edge>,
@@ -840,8 +840,8 @@ impl Deref for Edges {
 
 impl Edges {
     pub fn new(logger:impl AnyLogger) -> Self {
-        let logger   = Logger::sub(logger,"edges");
-        let all      = default();
+        let logger          = Logger::sub(logger,"edges");
+        let all             = default();
         let detached_source = default();
         let detached_target = default();
         Self {logger,all,detached_source,detached_target}
@@ -980,7 +980,7 @@ impl GraphEditorModelWithNetwork {
         let touch = &self.touch_state;
         let model = &self.model;
 
-        frp::new_bridge_network! { [self.network, node.frp.network]
+        frp::new_bridge_network! { [self.network, node.frp.network] graph_node_bridge
             eval_ node.frp.background_press(touch.nodes.down.emit(node_id));
 
             hovered <- node.output.hover.map (move |t| Some(Switch::new(node_id,*t)));
@@ -1173,7 +1173,7 @@ impl GraphEditorModel {
         let logger         = Logger::new("GraphEditor");
         let display_object = display::object::Instance::new(&logger);
         let nodes          = Nodes::new(&logger);
-        let edges          = default();
+        let edges          = Edges::new(&logger);
         let vis_registry   = visualization::Registry::with_default_visualizations();
         let visualisations = default();
         let touch_state    = TouchState::new(network,&scene.mouse.frp);
@@ -2514,7 +2514,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
                 node.model.visualization.frp.set_visualization.emit(vis_definition);
             },
             (Some(node), None) => node.model.visualization.frp.set_visualization.emit(None),
-             _                 => logger.warning(|| format!("Failed to get node: {:?}",node_id)),
+             _                 => warning!(logger,"Failed to get node: {node_id:?}"),
 
        }
    }));
@@ -2566,7 +2566,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
             let path = vis.signature.path.clone();
             inputs.set_visualization.emit((*node_id,Some(path)));
         } else {
-            logger.warning(|| "Failed to get visualization while cycling.".to_string());
+            warning!(logger,"Failed to get visualization while cycling.");
         };
         cycle_count.set(cycle_count.get() + 1);
     }));

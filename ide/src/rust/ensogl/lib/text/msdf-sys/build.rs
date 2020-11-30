@@ -8,7 +8,7 @@ mod msdfgen_wasm {
     use std::path;
 
     pub const PACKAGE : GithubRelease<&str> = GithubRelease {
-        project_url : "https://github.com/luna/msdfgen-wasm",
+        project_url : "https://github.com/enso-org/msdfgen-wasm",
         version     : "v1.1",
         filename    : "msdfgen_wasm.js"
     };

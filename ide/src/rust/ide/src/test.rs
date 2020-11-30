@@ -153,7 +153,7 @@ pub mod mock {
             suggestions.insert(2,suggestion_entry_bar());
             Unified {
                 suggestions,
-                logger          : Logger::default(),
+                logger          : Logger::new("Unified"),
                 project_name    : PROJECT_NAME.to_owned(),
                 module_path     : module_path(),
                 code            : CODE.to_owned(),

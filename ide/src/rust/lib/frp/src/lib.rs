@@ -181,7 +181,7 @@ pub use stream::Stream;
 pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_logger::*;
-    pub use enso_logger::disabled::*;
+    pub use enso_logger::WarningLogger as Logger;
 }
 
 
