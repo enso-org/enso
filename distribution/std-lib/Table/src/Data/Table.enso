@@ -1,6 +1,7 @@
 from Base import all
 import Table.Io.Csv
 import Table.Data.Column
+import Base.System.Platform
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 
@@ -12,17 +13,20 @@ type Table
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
-    display : Integer -> Text
-    display show_rows=10 =
+         - format_terminal: whether ANSI-terminal formatting should be used
+    display : Integer -> Boolean -> Text
+    display show_rows=10 format_terminal=False =
         cols = Vector.Vector (this.java_table.getColumns [])
-        col_names = cols.map (_.getName [])
+        index =  this.java_table.getIndex []
+        col_names = [index.getName[]] + cols.map (_.getName [])
         col_vals = cols.map (_.getStorage [])
         num_rows = this.java_table.nrows []
         display_rows = min num_rows show_rows
         rows = Vector.new display_rows row_num->
-            col_vals.map col->
-                if col.isNa [row_num] then "NA" else Column.get_item_string col row_num
-        table = here.print_table col_names rows
+            cols = col_vals.map col->
+                if col.isNa [row_num] then "Nothing" else Column.get_item_string col row_num
+            [index.ilocString [row_num]] + cols
+        table = here.print_table col_names rows format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -32,7 +36,8 @@ type Table
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
     print show_rows=10 =
-        IO.println (this.display show_rows)
+        IO.println (this.display show_rows format_terminal=True)
+        IO.println ''
 
     ## Converts this table to a JSON structure.
     to_json : Json
@@ -67,6 +72,34 @@ type Table
     columns =
         Vector.Vector (this.java_table.getColumns []) . map Column.Column
 
+    ## Sets the index of this table, using the column with the provided name.
+    set_index : Text -> Table
+    set_index index =
+        Table (this.java_table.indexFromColumn [index])
+
+    ## Selects a subset of columns from this table by name.
+    select columns = Table (this.java_table.selectColumns [columns.to_array])
+
+    ## Efficiently joins two tables based on either the index or a key column.
+
+       The resulting table contains rows of `this` extended with rows of
+       `other` with matching indexes. If the index in `other` is not unique,
+       the corresponding rows of `this` will be duplicated in the result.
+
+       Arguments:
+         - other: the table being the right operand of this join operation.
+         - on: the column of `this` that should be used as the join key. If
+               this argument is not provided, the index of `this` will be used.
+         - drop_unmatched: whether the rows of `this` without corresponding
+                           matches in `other` should be dropped from the result.
+         - left_suffix: a suffix that should be added to the columns of `this`
+                        when there's a name conflict with a column of `other`.
+         - right_suffix: a suffix that should be added to the columns of `other`
+                         when there's a name conflict with a column of `this`.
+    join : Table -> Text | Nothing -> Boolean -> Text -> Text -> Table
+    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
+        Table (this.java_table.join [other.java_table, drop_unmatched, on, left_suffix, right_suffix])
+
 ## PRIVATE
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
 
@@ -86,13 +119,22 @@ pad txt len =
     txt + (" ".repeat (len - true_len))
 
 ## PRIVATE
-print_table header rows =
+ansi_bold enabled txt =
+    case Platform.os of
+        ## Output formatting for Windows is not currently supported.
+        Platform.Windows -> txt
+        _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
+
+## PRIVATE
+print_table header rows format_term =
     content_lengths = Vector.new header.length i->
         max_row = 0.up_to rows.length . fold 0 a-> j-> max a (rows.at j . at i . characters . length)
         max max_row (header.at i . characters . length)
-    header_line = zip header content_lengths here.pad . join ' | '
+    header_line = zip header content_lengths here.pad . map (here.ansi_bold format_term) . join ' | '
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
-        x = zip r content_lengths here.pad . join ' | '
-        " " + x
+        x = zip r content_lengths here.pad
+        with_bold_ix = [here.ansi_bold format_term (x.at 0)] + x.drop_start 1
+        y = with_bold_ix . join ' | '
+        " " + y
     ([" " + header_line, divider] + row_lines).join '\n'

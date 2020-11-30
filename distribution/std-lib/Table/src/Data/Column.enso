@@ -10,16 +10,20 @@ type Column
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
-    display : Integer -> Text
-    display show_rows=10 =
+         - format_terminal: whether ANSI-terminal formatting should be used
+    display : Integer -> Boolean -> Text
+    display show_rows=10 format_terminal=False =
         java_col = this.java_column
+        index = java_col.getIndex []
         col_name = java_col.getName []
         storage = java_col.getStorage []
         num_rows = java_col.getSize []
         display_rows = min num_rows show_rows
         items = Vector.new display_rows num->
-            [if storage.isNa [num] then "NA" else here.get_item_string storage num]
-        table = Table.print_table [col_name] items
+            row = if storage.isNa [num] then "Nothing" else
+                here.get_item_string storage num
+            [index.ilocString [num], row]
+        table = Table.print_table [index.getName [], col_name] items format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -29,7 +33,8 @@ type Column
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
     print show_rows=10 =
-        IO.println (this.display show_rows)
+        IO.println (this.display show_rows format_terminal=True)
+        IO.println ''
 
     ## Element-wise equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
@@ -47,12 +52,18 @@ type Column
     not =
         here.run_vectorized_op this "not" not Nothing
 
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column contains a `Nothing`.
+    is_missing : Column
+    is_missing = here.run_vectorized_op this "is_missing" (== Nothing) Nothing
+
     ## Applies `function` to each item in this column and returns the column
        of results.
     map function =
         storage = this.java_column.getStorage []
+        index = this.java_column.getIndex []
         new_st = storage.map [function]
-        col = Java_Column.new ["Result", new_st].to_array
+        col = Java_Column.new ["Result", index, new_st].to_array
         Column col
 
     ## Returns a new column, containing the same elements as `this`, but with
@@ -104,9 +115,10 @@ from_vector name items = Column (Java_Column.fromItems [name, items.to_array])
 ## PRIVATE
 run_vectorized_op column java_op_name fallback_method operand =
     storage = column.java_column.getStorage []
+    ix = column.java_column.getIndex []
     rs = if storage.isOpVectorized [java_op_name] then storage.runVectorizedOp [java_op_name, operand] else
         storage.map [fallback_method]
-    Column (Java_Column.new ["Result", rs].to_array)
+    Column (Java_Column.new ["Result", ix, rs].to_array)
 
 
 ## PRIVATE

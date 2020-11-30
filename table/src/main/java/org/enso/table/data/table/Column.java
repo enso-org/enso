@@ -2,6 +2,8 @@ package org.enso.table.data.table;
 
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.index.Index;
+import org.enso.table.data.index.DefaultIndex;
 
 import java.util.BitSet;
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.List;
 public class Column {
   private final String name;
   private final Storage storage;
+  private final Index index;
 
   /**
    * Creates a new column.
@@ -17,9 +20,10 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Storage storage) {
+  public Column(String name, Index index, Storage storage) {
     this.name = name;
     this.storage = storage;
+    this.index = index;
   }
 
   /** @return the column name */
@@ -44,8 +48,8 @@ public class Column {
    * @param cardinality the number of true values in mask
    * @return a new column, masked with the given mask
    */
-  public Column mask(BitSet mask, int cardinality) {
-    return new Column(name, storage.mask(mask, cardinality));
+  public Column mask(Index maskedIndex, BitSet mask, int cardinality) {
+    return new Column(name, maskedIndex, storage.mask(mask, cardinality));
   }
 
   /**
@@ -55,7 +59,7 @@ public class Column {
    * @return a new column with the given name
    */
   public Column rename(String name) {
-    return new Column(name, storage);
+    return new Column(name, index, storage);
   }
 
   /**
@@ -70,6 +74,21 @@ public class Column {
     for (Object item : items) {
       builder.append(item);
     }
-    return new Column(name, builder.seal());
+    return new Column(name, new DefaultIndex(items.size()), builder.seal());
+  }
+
+  /**
+   * Changes the index of this column.
+   *
+   * @param ix the index to use
+   * @return a column indexed by {@code ix}
+   */
+  public Column withIndex(Index ix) {
+    return new Column(name, ix, storage);
+  }
+
+  /** @return the index of this column */
+  public Index getIndex() {
+    return index;
   }
 }
