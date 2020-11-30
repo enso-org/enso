@@ -677,6 +677,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
       "commons-cli"                 % "commons-cli"         % commonsCliVersion,
       "commons-io"                  % "commons-io"          % commonsIoVersion,
+      "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
       "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
       "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test

@@ -1,9 +1,10 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import java.lang.ProcessBuilder.Redirect
-import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 import akka.actor.ActorRef
+import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.loggingservice.LogLevel
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerExecutor.SpawnResult
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin
@@ -139,23 +140,19 @@ object LanguageServerExecutor {
     executor.spawn()
   }
 
-  /** An executor that creates a new Thread for each job.
+  /** An execution context that ensures each job runs in a separate thread.
     *
     * It is used when creating the Future that will run the process in a
     * background thread. It is blocking by design to ensure that the locking API
     * is used correctly. This executor should start no more than one thread per
     * Language Server instance.
     */
-  private object ForkedProcessExecutor extends Executor {
-
-    /** @inheritdoc */
-    override def execute(command: Runnable): Unit = {
-      val thread = new Thread(command)
-      thread.start()
-    }
+  private val forkedProcessExecutionContext: ExecutionContextExecutor = {
+    val threadFactory =
+      new BasicThreadFactory.Builder()
+        .namingPattern("language-server-fork-wrapper-%d")
+        .build()
+    val executor = Executors.newCachedThreadPool(threadFactory)
+    ExecutionContext.fromExecutor(executor)
   }
-
-  /** [[ExecutionContext]] associated with the [[ForkedProcessExecutor]]. */
-  private val forkedProcessExecutionContext: ExecutionContextExecutor =
-    ExecutionContext.fromExecutor(ForkedProcessExecutor)
 }
