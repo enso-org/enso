@@ -1,12 +1,8 @@
 package org.enso.projectmanager.infrastructure.languageserver
-import java.io.PrintWriter
-import java.lang.ProcessBuilder.Redirect
 import java.util.UUID
-import java.util.concurrent.Executor
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash}
 import akka.pattern.pipe
-import org.enso.loggingservice.LogLevel
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProcess.{
@@ -19,18 +15,8 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSuper
   HeartbeatReceived,
   ServerUnresponsive
 }
-import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin
-import org.enso.projectmanager.versionmanagement.DistributionConfiguration
-import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.concurrent.{
-  ExecutionContext,
-  ExecutionContextExecutor,
-  Future,
-  Promise
-}
-import scala.util.Using
 
 /** An Actor that manages a single Language Server process.
   *
@@ -54,12 +40,9 @@ class LanguageServerProcess(
   dataPort: Int,
   bootTimeout: FiniteDuration
 ) extends Actor
-    with Stash
-    with RuntimeVersionManagerMixin {
+    with Stash {
 
-  /** @inheritdoc */
-  override def distributionConfiguration: DistributionConfiguration =
-    descriptor.distributionConfiguration
+  import context.dispatcher
 
   override def preStart(): Unit = {
     super.preStart()
@@ -73,29 +56,19 @@ class LanguageServerProcess(
     */
   private def initializationStage: Receive = {
     case Boot =>
-      import context.dispatcher
-      val (process, stopped) = launchProcessInBackground()
+      val spawnResult = LanguageServerExecutor.spawn(
+        descriptor      = descriptor,
+        progressTracker = progressTracker,
+        rpcPort         = rpcPort,
+        dataPort        = dataPort
+      )
+
       context.become(startingStage)
-      process.map(ProcessStarted) pipeTo self
-      stopped.map(ServerTerminated).recover(ServerThreadFailed(_)) pipeTo self
+      spawnResult.processHandleFuture.map(ProcessStarted) pipeTo self
+      spawnResult.exitCodeFuture
+        .map(ServerTerminated)
+        .recover(ServerThreadFailed(_)) pipeTo self
     case _ => stash()
-  }
-
-  /** Starts the process in a background thread.
-    *
-    * It returns a pair of futures: first one is completed once the process has
-    * actually been started and contains a handle for that process; the second
-    * one is completed with the exit code once the process exits. The second
-    * future may also be completed with an exception if the process cannot be
-    * started, in such case the first future never completes.
-    */
-  private def launchProcessInBackground(): (Future[Process], Future[Int]) = {
-    val processStartPromise = Promise[Process]()
-    val stopped = Future {
-      runServer(processStartPromise)
-    }(LanguageServerProcess.forkedProcessExecutionContext)
-
-    (processStartPromise.future, stopped)
   }
 
   /** Waits for the process to actually start (this may take a long time if
@@ -105,7 +78,6 @@ class LanguageServerProcess(
     */
   private def startingStage: Receive = {
     case ProcessStarted(process) =>
-      import context.dispatcher
       val cancellable =
         context.system.scheduler.scheduleOnce(bootTimeout, self, TimedOut)
       context.become(bootingStage(process, cancellable))
@@ -133,7 +105,7 @@ class LanguageServerProcess(
     *   (possibly a crash).
     */
   private def bootingStage(
-    process: Process,
+    process: LanguageServerProcessHandle,
     bootTimeout: Cancellable
   ): Receive =
     handleBootResponse(process, bootTimeout).orElse(runningStage(process))
@@ -143,7 +115,7 @@ class LanguageServerProcess(
   private val retryDelay = 100.milliseconds
 
   private def handleBootResponse(
-    process: Process,
+    process: LanguageServerProcessHandle,
     bootTimeout: Cancellable
   ): Receive = {
     case AskServerIfStarted =>
@@ -181,77 +153,17 @@ class LanguageServerProcess(
     * spuriously, e.g. by a crash), the parent is notified and the current actor
     * is stopped.
     */
-  private def runningStage(process: Process): Receive = {
-    case Stop =>
-      requestGracefulTermination(process)
-    case Kill => process.destroyForcibly()
+  private def runningStage(process: LanguageServerProcessHandle): Receive = {
+    case Stop => process.requestGracefulTermination()
+    case Kill => process.kill()
     case ServerTerminated(exitCode) =>
       context.parent ! ServerTerminated(exitCode)
       context.stop(self)
     case ServerThreadFailed(error) => handleFatalError(error)
   }
 
-  /** Runs the child process, ensuring that the proper locks are kept for the
-    * used engine for the whole lifetime of that process.
-    *
-    * Returns the exit code of the process. This function is blocking so it
-    * should be run in a backgroung thread.
-    */
-  private def runServer(processStarted: Promise[Process]): Int = {
-    val versionManager = makeRuntimeVersionManager(progressTracker)
-    // TODO [RW] logging #1151
-    val loggerConnection = Future.successful(None)
-    val logLevel         = LogLevel.Info
-    val options = LanguageServerOptions(
-      rootId    = descriptor.rootId,
-      interface = descriptor.networkConfig.interface,
-      rpcPort   = rpcPort,
-      dataPort  = dataPort
-    )
-
-    val runner = new Runner(
-      versionManager,
-      distributionConfiguration.environment,
-      loggerConnection
-    )
-    val runSettings = runner
-      .startLanguageServer(
-        options             = options,
-        projectPath         = descriptor.rootPath,
-        version             = descriptor.engineVersion,
-        logLevel            = logLevel,
-        additionalArguments = Seq()
-      )
-      .get
-    runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
-      val process = {
-        val pb = command.builder()
-        pb.inheritIO()
-
-        pb.redirectInput(Redirect.PIPE)
-        if (descriptor.discardOutput) {
-          pb.redirectError(Redirect.DISCARD)
-          pb.redirectOutput(Redirect.DISCARD)
-        }
-
-        pb.start()
-      }
-
-      processStarted.success(process)
-      process.waitFor()
-    }
-  }
-
-  /** Requests the child process to terminate gracefully by sending the
-    * termination request to its standard input stream.
-    */
-  def requestGracefulTermination(process: Process): Unit =
-    Using(new PrintWriter(process.getOutputStream)) { writer =>
-      writer.println()
-    }
-
   private case object Boot
-  private case class ProcessStarted(process: Process)
+  private case class ProcessStarted(process: LanguageServerProcessHandle)
 }
 
 object LanguageServerProcess {
@@ -304,24 +216,4 @@ object LanguageServerProcess {
 
   /** Sent to gracefully request to stop the server. */
   case object Stop
-
-  /** An executor that creates a new Thread for each job.
-    *
-    * It is used when creating the Future that will run the process in a
-    * background thread. It is blocking by design to ensure that the locking API
-    * is used correctly. This executor should start no more than one thread per
-    * Language Server instance.
-    */
-  private object ForkedProcessExecutor extends Executor {
-
-    /** @inheritdoc */
-    override def execute(command: Runnable): Unit = {
-      val thread = new Thread(command)
-      thread.start()
-    }
-  }
-
-  /** [[ExecutionContext]] associated with the [[ForkedProcessExecutor]]. */
-  val forkedProcessExecutionContext: ExecutionContextExecutor =
-    ExecutionContext.fromExecutor(ForkedProcessExecutor)
 }

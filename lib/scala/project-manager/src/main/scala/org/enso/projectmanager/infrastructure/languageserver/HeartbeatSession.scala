@@ -155,7 +155,7 @@ class HeartbeatSession(
     context.become(socketClosureStage(closureTimeout))
   }
 
-  private def logError(throwable: => Throwable, message: String): Unit = {
+  private def logError(throwable: Throwable, message: String): Unit = {
     if (quietErrors) {
       log.debug(s"$message ($throwable)")
     } else {
