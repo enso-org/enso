@@ -60,7 +60,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
       }
       _ <- initMainModule
       _ <- Future {
-        module.initializationFinished.success(())
         logger.info(
           s"Started server at json:${config.interface}:${config.rpcPort}, " +
           s"binary:${config.interface}:${config.dataPort}"

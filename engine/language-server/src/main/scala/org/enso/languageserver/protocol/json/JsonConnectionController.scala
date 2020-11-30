@@ -45,13 +45,7 @@ import org.enso.languageserver.runtime.VisualisationApi.{
   DetachVisualisation,
   ModifyVisualisation
 }
-import org.enso.languageserver.search.SearchApi.{
-  Completion,
-  GetSuggestionsDatabase,
-  GetSuggestionsDatabaseVersion,
-  Import,
-  InvalidateSuggestionsDatabase
-}
+import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
@@ -63,7 +57,6 @@ import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -75,9 +68,6 @@ import scala.concurrent.duration._
   * @param fileManager performs operations with file system
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
-  * @param initializationFinished a future whose completion indicates that the
-  *                               system is initialized and the initial
-  *                               heartbeats can be replied to
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -91,7 +81,6 @@ class JsonConnectionController(
   val stdErrController: ActorRef,
   val stdInController: ActorRef,
   val runtimeConnector: ActorRef,
-  initializationFinished: Future[Unit],
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -254,9 +243,7 @@ class JsonConnectionController(
         ),
         requestTimeout
       ),
-      InitialPing -> InitialPingHandler.props(
-        initializationFinished
-      ),
+      InitialPing -> InitialPingHandler.props,
       AcquireCapability -> AcquireCapabilityHandler
         .props(capabilityRouter, requestTimeout, rpcSession),
       ReleaseCapability -> ReleaseCapabilityHandler
@@ -329,9 +316,6 @@ object JsonConnectionController {
     * @param fileManager performs operations with file system
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
-    * @param initializationFinished a future whose completion indicates that the
-    *                               system is initialized and the initial
-    *                               heartbeats can be replied to
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
@@ -346,7 +330,6 @@ object JsonConnectionController {
     stdErrController: ActorRef,
     stdInController: ActorRef,
     runtimeConnector: ActorRef,
-    initializationFinished: Future[Unit],
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -361,7 +344,6 @@ object JsonConnectionController {
         stdErrController,
         stdInController,
         runtimeConnector,
-        initializationFinished,
         requestTimeout
       )
     )

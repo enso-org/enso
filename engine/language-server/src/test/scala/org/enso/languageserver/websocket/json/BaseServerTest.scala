@@ -29,7 +29,7 @@ import org.enso.languageserver.text.BufferRegistry
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.Sha3_224VersionCalculator
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -154,6 +154,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
     Await.ready(suggestionsRepoInit, timeout)
     Await.ready(versionsRepoInit, timeout)
+    system.eventStream.publish(InitializedEvent.InitializationFinished)
 
     new JsonConnectionControllerFactory(
       bufferRegistry,
@@ -164,8 +165,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       stdOutController,
       stdErrController,
       stdInController,
-      runtimeConnectorProbe.ref,
-      Future.successful(())
+      runtimeConnectorProbe.ref
     )
   }
 

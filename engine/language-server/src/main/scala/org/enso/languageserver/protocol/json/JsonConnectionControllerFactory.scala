@@ -5,16 +5,11 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 
-import scala.concurrent.Future
-
 /** Language server client controller factory.
   *
   * @param bufferRegistry the buffer registry actor ref
   * @param capabilityRouter the capability router actor ref
   * @param system the actor system
-  * @param initializationFinished a future whose completion indicates that the
-  *                               system is initialized and the initial
-  *                               heartbeats can be replied to
   */
 class JsonConnectionControllerFactory(
   bufferRegistry: ActorRef,
@@ -25,8 +20,7 @@ class JsonConnectionControllerFactory(
   stdOutController: ActorRef,
   stdErrController: ActorRef,
   stdInController: ActorRef,
-  runtimeConnector: ActorRef,
-  initializationFinished: Future[Unit]
+  runtimeConnector: ActorRef
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
 
@@ -47,8 +41,7 @@ class JsonConnectionControllerFactory(
         stdOutController,
         stdErrController,
         stdInController,
-        runtimeConnector,
-        initializationFinished
+        runtimeConnector
       )
     )
 }

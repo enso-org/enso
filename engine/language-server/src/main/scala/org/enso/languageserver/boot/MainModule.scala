@@ -37,7 +37,7 @@ import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -213,13 +213,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
-  /** A promise that is completed once the module has been fully initialized.
-    *
-    * Completion of this promise will make the server reply to the initial
-    * heartbeat requests.
-    */
-  val initializationFinished = Promise[Unit]()
-
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
@@ -229,8 +222,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     stdOutController,
     stdErrController,
     stdInController,
-    runtimeConnector,
-    initializationFinished.future
+    runtimeConnector
   )
   log.trace("Created JsonConnectionControllerFactory")
 
@@ -271,9 +263,18 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         log.error("Failed to initialize SQL versions repo", ex)
     }(system.dispatcher)
 
-    Future
+    val initialization = Future
       .sequence(Seq(suggestionsRepoInit, versionsRepoInit))
       .map(_ => ())
+
+    initialization.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.InitializationFinished)
+      case _ =>
+        system.eventStream.publish(InitializedEvent.InitializationFailed)
+    }
+
+    initialization
   }
 
   /** Close the main module releasing all resources. */

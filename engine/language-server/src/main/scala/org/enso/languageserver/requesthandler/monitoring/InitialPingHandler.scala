@@ -1,38 +1,49 @@
 package org.enso.languageserver.requesthandler.monitoring
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Request, ResponseError, ResponseResult, Unused}
+import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult, Unused}
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.monitoring.MonitoringApi
 
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
+/** A request handler for `heartbeat/init` commands. */
+class InitialPingHandler extends Actor with ActorLogging {
 
-/** A request handler for `heartbeat/init` commands.
-  *
-  * @param initializationFuture a future that is completed when initialization
-  *                             is finished
-  */
-class InitialPingHandler(initializationFuture: Future[_])
-    extends Actor
-    with ActorLogging {
-
-  import context.dispatcher
-
-  override def receive: Receive = {
-    case Request(MonitoringApi.InitialPing, id, Unused) =>
-      initializationFuture.onComplete {
-        case Failure(_) =>
-          sender() ! ResponseError(Some(id), ServiceError)
-        case Success(_) =>
-          sender() ! ResponseResult(
-            MonitoringApi.InitialPing,
-            id,
-            Unused
-          )
-      }
+  override def preStart(): Unit = {
+    context.system.eventStream.subscribe(self, classOf[InitializedEvent])
   }
 
+  override def receive: Receive = waitingForInitialization(Nil)
+
+  private def waitingForInitialization(
+    pendingRequests: List[(ActorRef, Id)]
+  ): Receive = {
+    case Request(MonitoringApi.InitialPing, id, Unused) =>
+      context.become(
+        waitingForInitialization((sender() -> id) :: pendingRequests)
+      )
+    case InitializedEvent.InitializationFinished =>
+      for ((ref, id) <- pendingRequests) {
+        ref ! ResponseResult(MonitoringApi.InitialPing, id, Unused)
+      }
+      context.become(initialized)
+    case InitializedEvent.InitializationFailed =>
+      for ((ref, id) <- pendingRequests) {
+        ref ! ResponseError(Some(id), ServiceError)
+      }
+      context.become(failed)
+    case _: InitializedEvent =>
+  }
+
+  private def initialized: Receive = {
+    case Request(MonitoringApi.InitialPing, id, Unused) =>
+      sender() ! ResponseResult(MonitoringApi.InitialPing, id, Unused)
+  }
+
+  private def failed: Receive = {
+    case Request(MonitoringApi.InitialPing, id, Unused) =>
+      ResponseError(Some(id), ServiceError)
+  }
 }
 
 object InitialPingHandler {
@@ -40,11 +51,7 @@ object InitialPingHandler {
   /** Creates a configuration object used to create a
     * [[InitialPingHandler]]
     *
-    * @param initializationFuture a future that is completed when initialization
-    *                             is finished
     * @return a configuration object
     */
-  def props(initializationFuture: Future[_]): Props =
-    Props(new InitialPingHandler(initializationFuture))
-
+  def props: Props = Props(new InitialPingHandler)
 }
