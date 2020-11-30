@@ -1236,7 +1236,6 @@ impl GraphEditorModel {
 
 impl GraphEditorModel {
     fn remove_edge<E:Into<EdgeId>>(&self, edge_id:E) {
-        println!("REMOVE EDGE");
         let edge_id = edge_id.into();
         if let Some(edge) = self.edges.remove(&edge_id) {
             if let Some(source) = edge.take_source() {
@@ -1840,7 +1839,6 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // ========================
 
     frp::extend! { network
-
         no_vis_selected   <- out.some_visualisation_selected.on_false();
         some_vis_selected <- out.some_visualisation_selected.on_true();
 

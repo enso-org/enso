@@ -161,18 +161,19 @@ impl Integration {
 
 #[derive(Debug)]
 struct Model {
-    logger             : Logger,
-    view               : ide_view::project::View,
-    graph              : controller::ExecutedGraph,
-    text               : controller::Text,
-    searcher           : RefCell<Option<controller::Searcher>>,
-    project            : model::Project,
-    visualization      : controller::Visualization,
-    node_views         : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
-    expression_views   : RefCell<HashMap<graph_editor::NodeId,graph_editor::component::node::Expression>>,
-    connection_views   : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
-    code_view          : CloneRefCell<ensogl_text::Text>,
-    visualizations     : SharedHashMap<graph_editor::NodeId,VisualizationId>,
+    logger                  : Logger,
+    view                    : ide_view::project::View,
+    graph                   : controller::ExecutedGraph,
+    text                    : controller::Text,
+    searcher                : RefCell<Option<controller::Searcher>>,
+    project                 : model::Project,
+    visualization           : controller::Visualization,
+    node_views              : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
+    node_view_by_expression : RefCell<HashMap<ast::Id,graph_editor::NodeId>>,
+    expression_views        : RefCell<HashMap<graph_editor::NodeId,graph_editor::component::node::Expression>>,
+    connection_views        : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
+    code_view               : CloneRefCell<ensogl_text::Text>,
+    visualizations          : SharedHashMap<graph_editor::NodeId,VisualizationId>,
 }
 
 
@@ -353,15 +354,16 @@ impl Model {
     , text          : controller::Text
     , visualization : controller::Visualization
     , project       : model::Project) -> Self {
-        let node_views       = default();
-        let connection_views = default();
-        let expression_views = default();
-        let code_view        = default();
-        let visualizations   = default();
-        let searcher         = default();
-        let this             = Model
+        let node_views              = default();
+        let node_view_by_expression = default();
+        let connection_views        = default();
+        let expression_views        = default();
+        let code_view               = default();
+        let visualizations          = default();
+        let searcher                = default();
+        let this                    = Model
             {view,graph,text,searcher,node_views,expression_views,connection_views,code_view,logger
-            ,visualization,visualizations,project};
+            ,visualization,visualizations,project,node_view_by_expression};
 
         this.init_project_name();
         this.init_visualizations();
@@ -528,19 +530,18 @@ impl Model {
         if let Some(position) = position {
             self.view.graph().frp.input.set_node_position.emit_event(&(id, position.vector));
         }
-        let expression = node.info.expression().repr();
-
-        // TODO [MWU]
-        //  Currently we cannot limit updates, as each invalidation can affect span tree generation
-        //  context and as such may require updating span trees. So no matter whether expression
-        //  changed or not, we shall emit the updates.
-        //  This should be addressed as part of https://github.com/enso-org/ide/issues/787
+        let expression     = node.info.expression().repr();
         let code_and_trees = graph_editor::component::node::Expression {
             code             : expression,
             input_span_tree  : trees.inputs,
             output_span_tree : trees.outputs.unwrap_or_else(default)
         };
         if !self.expression_views.borrow().get(&id).contains(&&code_and_trees) {
+            for sub_expression in node.info.ast().iter_recursive() {
+                if let Some(expr_id) = sub_expression.id {
+                    self.node_view_by_expression.borrow_mut().insert(expr_id,id);
+                }
+            }
             self.view.graph().frp.input.set_node_expression.emit_event(&(id, code_and_trees.clone()));
             self.expression_views.borrow_mut().insert(id,code_and_trees);
         }
@@ -570,7 +571,7 @@ impl Model {
         let info     = self.lookup_computed_info(&id);
         let info     = info.as_ref();
         let typename = info.and_then(|info| info.typename.clone().map(graph_editor::Type));
-        if let Some(node_id) = self.node_views.borrow().get_by_left(&id).cloned() {
+        if let Some(node_id) = self.node_view_by_expression.borrow().get(&id).cloned() {
             self.set_type(node_id,id,typename);
             let method_pointer = info.and_then(|info| {
                 info.method_call.and_then(|entry_id| {
