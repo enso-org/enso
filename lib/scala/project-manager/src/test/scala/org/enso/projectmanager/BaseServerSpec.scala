@@ -268,7 +268,7 @@ class BaseServerSpec
 
   implicit class ClientSyntax(client: WsTestClient) {
     def expectTaskStarted(
-      timeout: FiniteDuration = 10.seconds.dilated
+      timeout: FiniteDuration = 20.seconds.dilated
     ): Unit = {
       inside(parse(client.expectMessage(timeout))) { case Right(json) =>
         getMethod(json) shouldEqual Some("task/started")
@@ -282,7 +282,7 @@ class BaseServerSpec
 
     def expectJsonIgnoring(
       shouldIgnore: Json => Boolean,
-      timeout: FiniteDuration = 10.seconds.dilated
+      timeout: FiniteDuration = 20.seconds.dilated
     ): Json = {
       inside(parse(client.expectMessage(timeout))) { case Right(json) =>
         if (shouldIgnore(json)) expectJsonIgnoring(shouldIgnore, timeout)

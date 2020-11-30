@@ -10,12 +10,12 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.SemVerEnsoVersion
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.RetrySpec
 import zio.Runtime
 
 class ProjectOpenMissingComponentsSpec
     extends BaseServerSpec
-    with FlakySpec
+    with RetrySpec
     with ProjectManagementOps
     with MissingComponentBehavior {
   val ordinaryVersion                          = SemVer(0, 0, 1)

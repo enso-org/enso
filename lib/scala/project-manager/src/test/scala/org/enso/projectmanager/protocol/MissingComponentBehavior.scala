@@ -4,9 +4,11 @@ import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.testkit.RetrySpec
 import org.scalatest.wordspec.AnyWordSpecLike
 
-trait MissingComponentBehavior { this: BaseServerSpec with AnyWordSpecLike =>
+trait MissingComponentBehavior {
+  this: BaseServerSpec with AnyWordSpecLike with RetrySpec =>
   def buildRequest(
     version: SemVer,
     missingComponentAction: MissingComponentAction
@@ -24,7 +26,7 @@ trait MissingComponentBehavior { this: BaseServerSpec with AnyWordSpecLike =>
       client.expectError(4020)
     }
 
-    "install the missing version and succeed with Install" in {
+    "install the missing version and succeed with Install" taggedAs Retry in {
       val client = new WsTestClient(address)
       client.send(
         buildRequest(defaultVersion, MissingComponentAction.Install)
@@ -45,7 +47,7 @@ trait MissingComponentBehavior { this: BaseServerSpec with AnyWordSpecLike =>
     }
 
     "succeed even if the requested missing version is marked as broken " +
-    "with ForceInstallBroken" in {
+    "with ForceInstallBroken" taggedAs Retry in {
       val client = new WsTestClient(address)
       client.send(
         buildRequest(brokenVersion, MissingComponentAction.ForceInstallBroken)

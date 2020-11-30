@@ -5,12 +5,12 @@ import io.circe.literal.JsonStringContext
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.RetrySpec
 import org.enso.pkg.SemVerJson._
 
 class ProjectCreateMissingComponentsSpec
     extends BaseServerSpec
-    with FlakySpec
+    with RetrySpec
     with ProjectManagementOps
     with MissingComponentBehavior {
   override def buildRequest(

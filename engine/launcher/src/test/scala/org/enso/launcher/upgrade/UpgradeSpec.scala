@@ -72,7 +72,7 @@ class UpgradeSpec
     *
     * If `launcherVersion` is not provided, the default one is used.
     *
-    * It waits a 100ms delay after creating the launcher copy to ensure that the
+    * It waits a 250ms delay after creating the launcher copy to ensure that the
     * copy can be called right away after calling this function. It is not
     * absolutely certain that this is helpful, but from time to time, the tests
     * fail because the filesystem does not allow to access the executable as
@@ -94,7 +94,7 @@ class UpgradeSpec
       val root = launcherPath.getParent.getParent
       FileSystem.writeTextFile(root / ".enso.portable", "mark")
     }
-    Thread.sleep(100)
+    Thread.sleep(250)
   }
 
   /** Path to the launcher executable in the temporary distribution.
