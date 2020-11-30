@@ -1,5 +1,6 @@
 import Test
 
+import Tests.Semantic.Case_Spec
 import Tests.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import Tests.Semantic.Error_Spec
 import Tests.Semantic.Import_Loop.Spec as Import_Loop_Spec
@@ -14,6 +15,7 @@ import Tests.Data.Map_Spec
 import Tests.Data.Noise.Generator_Spec
 import Tests.Data.Noise_Spec
 import Tests.Data.Numbers_Spec
+import Tests.Data.Ordering_Spec
 import Tests.Data.Range_Spec
 import Tests.Data.Text_Spec
 import Tests.Data.Time.Spec as Time_Spec
@@ -27,6 +29,7 @@ import Tests.System.File_Spec
 import Tests.System.Process_Spec
 
 main = Test.Suite.runMain <|
+    Case_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
     File_Spec.spec
@@ -43,6 +46,7 @@ main = Test.Suite.runMain <|
     Names_Spec.spec
     Noise_Spec.spec
     Numbers_Spec.spec
+    Ordering_Spec.spec
     Process_Spec.spec
     Range_Spec.spec
     Request_Spec.spec

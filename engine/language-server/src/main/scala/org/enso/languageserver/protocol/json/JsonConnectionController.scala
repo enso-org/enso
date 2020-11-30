@@ -41,6 +41,7 @@ import org.enso.languageserver.search.SearchApi.{
   Completion,
   GetSuggestionsDatabase,
   GetSuggestionsDatabaseVersion,
+  Import,
   InvalidateSuggestionsDatabase
 }
 import org.enso.languageserver.runtime.VisualisationApi.{
@@ -287,6 +288,7 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),
+      Import -> search.ImportHandler.props(requestTimeout, suggestionsHandler),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       DetachVisualisation -> DetachVisualisationHandler

@@ -34,6 +34,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+  - [`Export`](#export)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
   - [`FileAttributes`](#fileattributes)
@@ -118,6 +119,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
+  - [`search/import`](#searchimport)
 - [Input/Output Operations](#input-output-operations)
   - [`io/redirectStandardOutput`](#ioredirectstdardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstdardoutput)
@@ -534,6 +536,37 @@ interface Modify {
    * The scope to update.
    */
   scope?: FieldUpdate<SuggestionEntryScope>;
+}
+```
+
+### `Export`
+
+The info about module re-export.
+
+#### Format
+
+```typescript
+type Export = Qualified | Unqualified;
+
+interface Qualified {
+  /**
+   * The module that re-exports the given module.
+   */
+  module: String;
+
+  /**
+   * The new name of the given module if it was renamed in the export clause.
+   *
+   * I.e. `X` in `export A.B as X`.
+   */
+  alias?: String;
+}
+
+interface Unqualified {
+  /**
+   * The module name that re-exports the given module.
+   */
+  module: String;
 }
 ```
 
@@ -3038,6 +3071,56 @@ Sent from client to the server to receive the autocomplete suggestion.
 - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
   cannot be extracted from the provided file path parameter
 
+### `search/import`
+
+Sent from client to the server to receive the information required for module
+import.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * The id of suggestion to import.
+   */
+  id: SuggestionId;
+}
+```
+
+#### Result
+
+```typescript
+{
+  /**
+   * The definition module of the suggestion.
+   */
+  module: String;
+
+  /**
+   * The name of the resolved suggestion.
+   */
+  symbol: String;
+
+  /**
+   * The list of modules that re-export the suggestion. Modules are ordered
+   * from the least to most nested.
+   */
+  exports: Export[];
+}
+```
+
+#### Errors
+
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`SuggestionNotFoundError`](#suggestionnotfounderror) the requested suggestion
+  was not found in the suggestions database
+
 ## Input/Output Operations
 
 The input/output portion of the language server API deals with redirecting
@@ -3511,5 +3594,16 @@ Signals that the module name can not be resolved for the given file.
 "error" : {
   "code" : 7003,
   "message" : "Module name can't be resolved for the given file"
+}
+```
+
+### `SuggestionNotFoundError`
+
+Signals that the requested suggestion was not found.
+
+```typescript
+"error" : {
+  "code" : 7004,
+  "message" : "Requested suggestion was not found"
 }
 ```

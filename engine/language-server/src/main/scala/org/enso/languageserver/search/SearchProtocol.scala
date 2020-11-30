@@ -391,6 +391,86 @@ object SearchProtocol {
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
+  /** The request returning the info about the suggestion import.
+    *
+    * @param id the requested suggestion id
+    */
+  case class Import(id: SuggestionId)
+
+  /** The request returning the info about the suggestion import.
+    *
+    * @param suggestion the requested suggestion
+    */
+  case class ImportSuggestion(suggestion: Suggestion)
+
+  /** Base trait for export statements. */
+  sealed trait Export {
+    def module: String
+  }
+  object Export {
+
+    /** Qualified module re-export.
+      *
+      * @param module the module name that exports the given module
+      * @param alias new module name if the module was renamed in the export
+      * clause
+      */
+    case class Qualified(module: String, alias: Option[String]) extends Export
+
+    /** Unqualified module export.
+      *
+      * @param module the module name that exports the given module
+      */
+    case class Unqualified(module: String) extends Export
+
+    private object CodecType {
+
+      val Qualified = "Qualified"
+
+      val Unqualified = "Unqualified"
+    }
+
+    implicit val encoder: Encoder[Export] =
+      Encoder.instance {
+        case qualified: Qualified =>
+          Encoder[Export.Qualified]
+            .apply(qualified)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Qualified.asJson))
+            .dropNullValues
+
+        case unqualified: Unqualified =>
+          Encoder[Export.Unqualified]
+            .apply(unqualified)
+            .deepMerge(
+              Json.obj(CodecField.Type -> CodecType.Unqualified.asJson)
+            )
+            .dropNullValues
+      }
+
+    implicit val decoder: Decoder[Export] =
+      Decoder.instance { cursor =>
+        cursor.downField(CodecField.Type).as[String].flatMap {
+          case CodecType.Qualified =>
+            Decoder[Export.Qualified].tryDecode(cursor)
+
+          case CodecType.Unqualified =>
+            Decoder[Export.Unqualified].tryDecode(cursor)
+        }
+      }
+  }
+
+  /** The result of the import request.
+    *
+    * @param module the definition module of the symbol
+    * @param symbol the resolved symbol
+    * @param exports the list of re-exports
+    */
+  case class ImportResult(
+    module: String,
+    symbol: String,
+    exports: Seq[Export]
+  )
+
   /** The request to invalidate the modules index. */
   case object InvalidateModulesIndex
 
@@ -408,6 +488,9 @@ object SearchProtocol {
 
   /** Signals that the project not found in the root directory. */
   case object ProjectNotFoundError extends SearchFailure
+
+  /** Signals that the requested suggestion was not found. */
+  case object SuggestionNotFoundError extends SearchFailure
 
   /** Signals that the module name can not be resolved for the given file.
     *

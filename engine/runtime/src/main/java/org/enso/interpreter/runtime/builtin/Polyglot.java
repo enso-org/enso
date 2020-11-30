@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** A container class for all Polyglot-related stdlib builtins. */
 public class Polyglot {
 
+  private final AtomConstructor polyglot;
   private final RootCallTarget interopDispatchRoot;
   private final FunctionSchema interopDispatchSchema;
   private final Function newInstanceFunction;
@@ -30,6 +31,7 @@ public class Polyglot {
    * @param scope the builtin scope.
    */
   public Polyglot(Language language, ModuleScope scope) {
+    this.polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
 
     // Note [Syntactic Functions]
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
@@ -60,7 +62,6 @@ public class Polyglot {
    */
 
   private void createPolyglot(Language language, ModuleScope scope) {
-    AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
     scope.registerConstructor(polyglot);
     scope.registerMethod(polyglot, "execute", ExecuteMethodGen.makeFunction(language));
     scope.registerMethod(polyglot, "invoke", InvokeMethodGen.makeFunction(language));
@@ -79,6 +80,11 @@ public class Polyglot {
   public Function buildPolyglotMethodDispatch(UnresolvedSymbol method) {
     Object[] preAppliedArr = new Object[] {null, method, null};
     return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
+  }
+
+  /** @return the atom constructor for polyglot */
+  public AtomConstructor getPolyglot() {
+    return polyglot;
   }
 
   /** @return a function taking a polyglot array and returning its length. */
