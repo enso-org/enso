@@ -274,7 +274,7 @@ impl Symbol {
     , on_mut           : OnMut
     ) -> Self {
         let init_logger = logger.clone();
-        group!(init_logger, "Initializing.", {
+        debug!(init_logger, "Initializing.", || {
             let on_mut2           = on_mut.clone();
             let surface_logger    = Logger::sub(&logger,"surface");
             let shader_logger     = Logger::sub(&logger,"shader");
@@ -303,7 +303,7 @@ impl Symbol {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self) {
-        group!(self.logger, "Updating.", {
+        debug!(self.logger, "Updating.", || {
             if self.surface_dirty.check() {
                 self.surface.update();
                 self.surface_dirty.unset();
@@ -327,7 +327,7 @@ impl Symbol {
     }
 
     pub fn render(&self) {
-        group!(self.logger, "Rendering.", {
+        debug!(self.logger, "Rendering.", || {
             if self.is_hidden() {
                 return;
             }
@@ -420,9 +420,9 @@ impl Symbol {
     /// and initializes the VAO with the bindings.
     fn init_variable_bindings(&self, var_bindings:&[shader::VarBinding]) {
         let max_texture_units = self.context.get_parameter(Context::MAX_TEXTURE_IMAGE_UNITS);
-        let max_texture_units = max_texture_units.unwrap_or_else(|err| {
-            self.logger.error(fmt!("Cannot retrieve max texture units: {:?}. Assuming minimal \
-                texture units possible",err));
+        let max_texture_units = max_texture_units.unwrap_or_else(|num| {
+            error!(self.logger,"Cannot retrieve max texture units: {num:?}. Assuming minimal \
+                texture units possible");
             JsValue::from_f64(2.0)
         });
         let max_texture_units     = max_texture_units.as_f64().unwrap() as u32;
@@ -447,7 +447,7 @@ impl Symbol {
         let scope    = self.surface.scope_by_type(mesh_scope_type);
         let location = self.context.get_attrib_location(program, &vtx_name);
         if location < 0 {
-            self.logger.error(|| format!("Attribute '{}' not found.",vtx_name));
+            error!(self.logger,"Attribute '{vtx_name}' not found.");
         } else {
             let location     = location as u32;
             let buffer       = &scope.buffer(&binding.name).unwrap();
@@ -489,7 +489,7 @@ impl Symbol {
                             self.bindings.borrow_mut().textures.push(binding);
                         }
                         None => {
-                            self.logger.error("Texture unit limit exceeded.");
+                            error!(self.logger,"Texture unit limit exceeded.");
                         }
                     }
                 }
@@ -503,8 +503,7 @@ impl Symbol {
         var_decls.into_iter().map(|(var_name,var_decl)| {
             let target = self.lookup_variable(&var_name);
             if target.is_none() {
-                let msg = || format!("Unable to bind variable '{}' to geometry buffer.", var_name);
-                self.logger.warning(msg);
+                warning!(self.logger,"Unable to bind variable '{var_name}' to geometry buffer.");
             }
             shader::VarBinding::new(var_name,var_decl,target)
         }).collect()

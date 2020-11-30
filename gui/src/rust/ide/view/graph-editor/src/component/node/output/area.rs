@@ -633,7 +633,7 @@ impl Area {
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
         let pattern_span_tree = SpanTree::<()>::default();
-        let network           = default();
+        let network           = frp::Network::new("node_outputs");
         let id_map            = default();
         let frp               = Frp::new(&network,&id_map);
         let number_of_ports   = pattern_span_tree.root_ref().leaf_iter().count();
@@ -641,7 +641,7 @@ impl Area {
         let data              = Rc::new(data);
         let pattern_span_tree = Rc::new(RefCell::new(pattern_span_tree));
         let scene             = scene.clone_ref();
-        let port_network      = default();
+        let port_network      = Rc::new(RefCell::new(frp::Network::new("node_output_ports")));
 
 
         // TODO memory leak from tween?
@@ -653,9 +653,7 @@ impl Area {
         let delay_hide = Tween::new(&network);
         delay_hide.set_duration(HIDE_DELAY_DURATION);
 
-
-        Area{scene,data,network,frp,pattern_span_tree,port_network,id_map,
-                     delay_show,delay_hide}
+        Area{scene,data,network,frp,pattern_span_tree,port_network,id_map,delay_show,delay_hide}
     }
 
     /// Set the pattern for which output ports should be presented. Triggers a rebinding of the

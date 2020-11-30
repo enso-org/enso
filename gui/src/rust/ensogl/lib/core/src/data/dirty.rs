@@ -135,7 +135,7 @@ HasSet0 for  DirtyFlag<T,OnMut> {
         let is_set = self.data.check_all();
         if !is_set {
             self.data.set();
-            group!(self.logger, "Setting.", {
+            debug!(self.logger, "Setting.", || {
                 self.on_set.call()
             })
         }
@@ -149,7 +149,7 @@ HasSet1 for DirtyFlag<T,OnMut> {
         let is_set    = self.data.check(&arg);
         if !is_set {
             self.data.set(arg);
-            group!(self.logger, "Setting to {self.data:?}.", {
+            debug!(self.logger, "Setting to {self.data:?}.", || {
                 if first_set { self.on_set.call() }
             })
         }

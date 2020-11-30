@@ -245,7 +245,6 @@ pub mod shape {
 // === Frp ===
 // ===========
 
-
 crate::define_endpoints! {
     Input {
         set_style (Style),

@@ -1,6 +1,7 @@
 //! EnsoGL Components.
 //!
 //! A collection of useful standard UI components for EnsoGL.
+
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 

@@ -1,7 +1,7 @@
 [package]
-name    = "ast-macros"
+name = "ast-macros"
 version = "0.1.0"
-authors = ["Enso Team <contact@luna-lang.org>"]
+authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [lib]
@@ -11,16 +11,16 @@ proc-macro = true
 default = []
 
 [dependencies]
-proc-macro2    = "1.0"
-quote          = "1.0"
-Inflector      = "0.11.4"
-
+proc-macro2 = "1.0"
+quote = "1.0"
+Inflector = "0.11.4"
 enso-macro-utils = { version = "0.1.1" }
-enso-prelude     = { version = "0.1.8" }
+enso-prelude = { version = "0.1.8" }
 
 [dependencies.syn]
 version = "1.0"
 features = [
   'extra-traits',
-  'full' # for syn::File and syn::ItemFn
+  'full'
+  # for syn::File and syn::ItemFn
 ]

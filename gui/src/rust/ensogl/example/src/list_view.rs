@@ -10,7 +10,7 @@ use ensogl_core::data::color;
 use ensogl_core::gui;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ensogl_gui_components::list_view;
-use logger::enabled::Logger;
+use logger::TraceLogger as Logger;
 use wasm_bindgen::prelude::*;
 use ensogl_core::display::Scene;
 use ensogl_text::buffer::data::unit::Bytes;
@@ -104,8 +104,8 @@ fn init(app:&Application) {
     select.frp.set_entries(provider);
     app.display.add_child(&select);
 
-    let logger  = Logger::new("SelectDebugScene");
-    let network = enso_frp::Network::new();
+    let logger : Logger = Logger::new("SelectDebugScene");
+    let network = enso_frp::Network::new("test");
     enso_frp::extend! {network
         eval select.chosen_entry([logger](entry) {
             info!(logger, "Chosen entry {entry:?}")

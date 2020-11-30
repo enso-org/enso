@@ -101,7 +101,7 @@ impl<T:Into<Shape<Ast>>> KnownAst<T> {
     /// Creates a new `KnownAst<T>` from `shape` with no ID.
     /// Should be only used on nodes that can't have ID because of scala AST design.
     /// Example: Module, Section.opr, MacroMatchSegment.head
-    /// Tracking issue: https://github.com/luna/ide/issues/434
+    /// Tracking issue: https://github.com/enso-org/ide/issues/434
     pub fn new_no_id(shape:T) -> KnownAst<T> {
         let ast = Ast::new_no_id(shape);
         Self::new_unchecked(ast)

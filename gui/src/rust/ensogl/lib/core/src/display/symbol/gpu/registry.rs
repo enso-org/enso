@@ -50,8 +50,8 @@ impl SymbolRegistry {
     pub fn mk<OnMut:Fn()+'static,Log:AnyLogger>
     (variables:&UniformScope, stats:&Stats, context:&Context, logger:&Log, on_mut:OnMut)
     -> Self {
-        let logger          = Logger::sub(logger,"symbol_registry");
-        logger.info("Initializing.");
+        let logger = Logger::sub(logger,"symbol_registry");
+        debug!(logger,"Initializing.");
         let symbol_logger   = Logger::sub(&logger,"symbol_dirty");
         let symbol_dirty    = SymbolDirty::new(symbol_logger,Box::new(on_mut));
         let symbols         = default();
@@ -92,7 +92,7 @@ impl SymbolRegistry {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self) {
-        group!(self.logger, "Updating.", {
+        debug!(self.logger, "Updating.", || {
             for id in self.symbol_dirty.take().iter() {
                 self.symbols.borrow()[*id].update()
             }

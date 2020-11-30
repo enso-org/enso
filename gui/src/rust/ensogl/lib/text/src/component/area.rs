@@ -152,7 +152,7 @@ impl Selection {
         let logger         = Logger::sub(logger,"selection");
         let display_object = display::object::Instance::new(&logger);
         let right_side     = display::object::Instance::new(&logger);
-        let network        = frp::Network::new();
+        let network        = frp::Network::new("text_selection");
         let shape_view     = component::ShapeView::<selection::Shape>::new(&logger,scene);
         let position       = DEPRECATED_Animation::new(&network);
         let width          = DEPRECATED_Animation::new(&network);

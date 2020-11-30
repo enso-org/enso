@@ -20,7 +20,7 @@ use ensogl_system_web as web;
 
 pub use enso_logger::*;
 pub use enso_logger::AnyLogger;
-pub use enso_logger::disabled::Logger;
+pub use enso_logger::WarningLogger as Logger;
 pub use enso_logger as logger;
 
 

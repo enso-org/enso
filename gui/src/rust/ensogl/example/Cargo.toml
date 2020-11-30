@@ -1,5 +1,5 @@
 [package]
-name    = "ensogl-examples"
+name = "ensogl-examples"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
@@ -8,21 +8,23 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-frp              = { version = "0.1.0", path = "../../lib/frp"                  }
-enso-logger           = { version = "0.1.2"                                          }
-enso-prelude          = { version = "0.1.8"                                          }
-enso-shapely          = { version = "0.1.2"                                          }
-ensogl-core           = { version = "0.1.0", path = "../../ensogl/lib/core"          }
-ensogl-gui-components = { version = "0.1.0", path = "../../ensogl/lib/components"    }
-ensogl-text           = { version = "0.1.0", path = "../../ensogl/lib/text"          }
-ensogl-text-msdf-sys  = { version = "0.1.0", path = "../../ensogl/lib/text/msdf-sys" }
-ensogl-theme          = { version = "0.1.0", path = "../../ensogl/lib/theme"         }
-
-wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
-nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }
-serde_json   = { version = "1.0"                                                }
-serde        = { version = "1.0"     , features = ["derive"]                    }
-js-sys       = { version = "0.3.28"                                             }
+enso-frp = { path = "../../lib/frp" }
+enso-logger = { version = "0.2.1" }
+enso-prelude = { version = "0.1.8" }
+enso-shapely = { version = "0.1.2" }
+ensogl-core = { path = "../../ensogl/lib/core" }
+ensogl-gui-components = { path = "../../ensogl/lib/components" }
+ensogl-text = { path = "../../ensogl/lib/text" }
+ensogl-text-msdf-sys = { path = "../../ensogl/lib/text/msdf-sys" }
+ensogl-theme = { path = "../../ensogl/lib/theme" }
+wasm-bindgen = { version = "=0.2.58", features = [
+  "nightly",
+  "serde-serialize"
+] }
+nalgebra = { version = "0.21.1", features = ["serde-serialize"] }
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
+js-sys = { version = "0.3.28" }
 
 [dependencies.web-sys]
 version = "0.3.4"

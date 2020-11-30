@@ -110,13 +110,12 @@ impl BubbleChart {
         let logger         = Logger::new("bubble");
         let display_object = display::object::Instance::new(&logger);
         let views          = Rc::new(RefCell::new(vec![]));
-        let network        = default();
+        let network        = frp::Network::new("bubble_chart");
         let frp            = visualization::instance::Frp::new(&network);
         let size           = default();
         let scene          = scene.clone_ref();
         let signature      = Self::signature();
-        let model = BubbleChartModel{display_object,views,logger,size,scene,signature};
-
+        let model          = BubbleChartModel{display_object,views,logger,size,scene,signature};
         BubbleChart {frp,network,model} . init()
     }
 

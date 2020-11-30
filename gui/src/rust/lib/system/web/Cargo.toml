@@ -1,7 +1,7 @@
 [package]
-name    = "ensogl-system-web"
+name = "ensogl-system-web"
 version = "0.1.0"
-authors = ["Enso Team <contact@luna-lang.org>"]
+authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [lib]
@@ -10,16 +10,15 @@ edition = "2018"
 default = ["console_error_panic_hook"]
 
 [dependencies]
-enso-data    = { version = "0.1.1" }
-enso-logger  = { version = "0.1.2" }
+enso-data = { version = "0.1.1" }
+enso-logger = { version = "0.2.1" }
 enso-prelude = { version = "0.1.8" }
-
-console_error_panic_hook = { version = "0.1.1"   , optional = true        }
-failure                  = { version = "0.1.5"                            }
-gloo-timers              = { version = "0.2.1"   , features = ["futures"] }
-js-sys                   = { version = "0.3.28"                           }
-nalgebra                 = { version = "0.21.1"                           }
-wasm-bindgen             = { version = "=0.2.58" , features = ["nightly"] }
+console_error_panic_hook = { version = "0.1.1", optional = true }
+failure = { version = "0.1.5" }
+gloo-timers = { version = "0.2.1", features = ["futures"] }
+js-sys = { version = "0.3.28" }
+nalgebra = { version = "0.21.1" }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 async-std = { version = "1.5.0" }

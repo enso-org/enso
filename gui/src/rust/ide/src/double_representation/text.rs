@@ -27,7 +27,7 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
     let inserted      = change.inserted.as_str();
     let new_code      = change.applied(code);
     let non_white     = |c:char| !c.is_whitespace();
-    let logger        = logger::disabled::Logger::new("apply_code_change_to_id_map");
+    let logger        = logger::DefaultWarningLogger::new("apply_code_change_to_id_map");
     let vector        = &mut id_map.vec;
     let inserted_size = Size::from_text(inserted);
 

@@ -579,7 +579,7 @@ impl Renderer {
 
     /// Run the renderer.
     pub fn run(&self) {
-        group!(self.logger, "Running.", {
+        debug!(self.logger, "Running.", || {
             self.composer.get().run();
         })
     }
@@ -853,7 +853,7 @@ impl SceneData {
     /// Create new instance with the provided on-dirty callback.
     pub fn new<OnMut:Fn()+Clone+'static>
     (parent_dom:&HtmlElement, logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
-        logger.trace("Initializing.");
+        debug!(logger,"Initializing.");
 
         let dom = Dom::new(&logger);
         parent_dom.append_child(&dom.root).unwrap();
@@ -978,7 +978,7 @@ impl SceneData {
     /// set the dirty flag.
     fn resize_canvas(&self, screen:Shape) {
         let canvas = screen.device_pixels();
-        group!(self.logger,"Resized to {screen.width}px x {screen.height}px.", {
+        debug!(self.logger,"Resized to {screen.width}px x {screen.height}px.", || {
             self.dom.layers.canvas.set_attribute("width",  &canvas.width.to_string()).unwrap();
             self.dom.layers.canvas.set_attribute("height", &canvas.height.to_string()).unwrap();
             self.context.viewport(0,0,canvas.width as i32, canvas.height as i32);
@@ -1061,7 +1061,7 @@ impl Deref for Scene {
 
 impl Scene {
     pub fn update(&self, t:animation::TimeInfo) {
-        group!(self.logger, "Updating.", {
+        debug!(self.logger, "Updating.", || {
             self.frp.frame_time_source.emit(t.local);
             // Please note that `update_camera` is called first as it may trigger FRP events which
             // may change display objects layout.

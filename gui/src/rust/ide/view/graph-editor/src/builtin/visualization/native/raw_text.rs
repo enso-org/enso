@@ -51,9 +51,9 @@ impl RawText {
 
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
-        let network = default();
-        let frp   = visualization::instance::Frp::new(&network);
-        let model = RawTextModel::new(scene);
+        let network = frp::Network::new("js_visualization_raw_text");
+        let frp     = visualization::instance::Frp::new(&network);
+        let model   = RawTextModel::new(scene);
         Self {model,frp,network} . init()
     }
 

@@ -73,6 +73,7 @@
 #![feature(clamp)]
 #![feature(saturating_neg)]
 #![feature(trait_alias)]
+#![feature(type_ascription)]
 
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

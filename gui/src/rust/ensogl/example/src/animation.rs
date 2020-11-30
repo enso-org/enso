@@ -6,7 +6,7 @@ use ensogl_core::system::web;
 use ensogl_core::application::Application;
 use ensogl_core::gui::component::DEPRECATED_Animation;
 use ensogl_text_msdf_sys::run_once_initialized;
-use logger::enabled::Logger;
+use logger::TraceLogger as Logger;
 use wasm_bindgen::prelude::*;
 
 
@@ -36,8 +36,8 @@ pub fn entry_point_animation() {
 
 fn init() {
 
-    let logger  = Logger::new("AnimationTest");
-    let network = enso_frp::Network::new();
+    let logger : Logger = Logger::new("AnimationTest");
+    let network = enso_frp::Network::new("test");
     let animation = DEPRECATED_Animation::<f32>::new(&network);
     animation.set_target_value(-259_830.0);
 

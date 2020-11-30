@@ -11,7 +11,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 #[wasm_bindgen_test]
 fn missing_macro_segment() {
     // TODO: should succeed
-    //  https://github.com/luna/enso/issues/256
+    //  https://github.com/enso-org/enso/issues/256
     assert!(parser::Parser::new_or_panic().parse_line("a ->").is_err());
     assert!(parser::Parser::new_or_panic().parse_line("-> a").is_err());
 }
@@ -19,7 +19,7 @@ fn missing_macro_segment() {
 #[wasm_bindgen_test]
 fn nested_macros() {
     // TODO: should succeed
-    //   https://github.com/luna/enso/issues/256 or https://github.com/luna/enso/issues/343
+    //   https://github.com/enso-org/enso/issues/256 or https://github.com/enso-org/enso/issues/343
     assert!(parser::Parser::new_or_panic().parse_line("(a -> b) -> c").is_err());
 }
 
@@ -29,7 +29,7 @@ fn extension_operator_methods() {
 
     use ast::*;
     // TODO: Here we should not get invalid suffix, likely whole thing should be infix . with
-    //  argument being an Opr(+). https://github.com/luna/enso/issues/565
+    //  argument being an Opr(+). https://github.com/enso-org/enso/issues/565
     if let Shape::Prefix(Prefix {arg,..}) = ast.shape() {
         if let Shape::InvalidSuffix(InvalidSuffix{..}) = arg.shape() {
             return;

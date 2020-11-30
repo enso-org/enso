@@ -901,6 +901,7 @@ pub mod test {
     use json_rpc::expect_call;
     use utils::test::traits::*;
     use enso_protocol::language_server::SuggestionId;
+    use crate::model::SuggestionDatabase;
 
     pub fn completion_response(results:&[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
@@ -978,13 +979,13 @@ pub mod test {
             let node        = &graph.graph().nodes().unwrap()[0];
             let this        = ThisNode::new(vec![node.info.id()],&graph.graph());
             let this        = data.selected_node.and_option(this);
+            let logger      = Logger::new("Searcher");// new_empty
+            let database    = Rc::new(SuggestionDatabase::new_empty(&logger));
             let searcher = Searcher {
-                graph,
-                logger           : default(),
+                graph,logger,database,
                 data             : default(),
                 notifier         : default(),
                 mode             : Immutable(Mode::NewNode {position:default()}),
-                database         : default(),
                 language_server  : language_server::Connection::new_mock_rc(client),
                 parser           : Parser::new_or_panic(),
                 this_arg         : Rc::new(this),

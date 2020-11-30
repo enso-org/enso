@@ -20,8 +20,8 @@ use crate::prelude::*;
 
 pub use web_sys::console;
 use js_sys::Function;
-use enso_logger::disabled::Logger;
-use enso_logger::AnyLogger;
+use enso_logger::WarningLogger as Logger;
+use enso_logger::warning;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::Closure;
 
@@ -251,7 +251,7 @@ pub fn with_element_by_id_or_warn<F>(logger:&Logger, id:&str, f:F) where F : FnO
     let root_elem = get_element_by_id(id);
     match root_elem {
         Ok(v)  => f(v),
-        Err(_) => logger.warning("Failed to get element by ID."),
+        Err(_) => warning!(logger,"Failed to get element by ID."),
     }
 }
 
@@ -342,7 +342,7 @@ impl AttributeSetter for web_sys::Element {
         let values          = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
         let warn_msg : &str = &format!("Failed to set attribute {}", values);
         if self.set_attribute(name,value).is_err() {
-            logger.warning(warn_msg)
+            warning!(logger,warn_msg)
         }
     }
 }
@@ -368,7 +368,7 @@ impl StyleSetter for web_sys::HtmlElement {
         let values          = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
         let warn_msg : &str = &format!("Failed to set style {}",values);
         if self.style().set_property(name, value).is_err() {
-            logger.warning(warn_msg);
+            warning!(logger,warn_msg);
         }
     }
 }
@@ -398,7 +398,7 @@ impl NodeInserter for Node {
     fn append_or_warn(&self, node:&Node, logger:&Logger) {
         let warn_msg : &str = &format!("Failed to append child {:?} to {:?}",node,self);
         if self.append_child(node).is_err() {
-            logger.warning(warn_msg)
+            warning!(logger,warn_msg)
         };
     }
 
@@ -412,7 +412,7 @@ impl NodeInserter for Node {
         let warn_msg : &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"",node,self);
         let first_c = self.first_child();
         if self.insert_before(node, first_c.as_ref()).is_err() {
-            logger.warning(warn_msg)
+            warning!(logger,warn_msg)
         }
     }
 
@@ -425,7 +425,7 @@ impl NodeInserter for Node {
         let warn_msg : &str =
             &format!("Failed to insert {:?} before {:?} in {:?}",node,ref_node,self);
         if self.insert_before(node, Some(ref_node)).is_err() {
-            logger.warning(warn_msg)
+            warning!(logger,warn_msg)
         }
     }
 }
@@ -453,7 +453,7 @@ impl NodeRemover for Node {
         if let Some(parent) = self.parent_node() {
             let warn_msg : &str = &format!("Failed to remove {:?} from parent", self);
             if parent.remove_child(self).is_err() {
-                logger.warning(warn_msg)
+                warning!(logger,warn_msg)
             }
         }
     }
@@ -466,7 +466,7 @@ impl NodeRemover for Node {
     fn remove_child_or_warn(&self, node:&Node, logger:&Logger) {
         let warn_msg : &str = &format!("Failed to remove child {:?} from {:?}",node,self);
         if self.remove_child(node).is_err() {
-            logger.warning(warn_msg)
+            warning!(logger,warn_msg)
         }
     }
 }

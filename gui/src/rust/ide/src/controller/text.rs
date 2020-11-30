@@ -1,8 +1,7 @@
 //! Text Controller module.
 //!
-//! Facade over filesystem API or module text API for text editor. Does discerning between Luna
-//! module file and plain text file. In case of luna module idmap and metadata are hidden for the
-//! user.
+//! Facade over filesystem API or module text API for text editor. Does discerning between a module
+//! file and plain text file. In case of the module, idmap and metadata are hidden for the user.
 
 use crate::prelude::*;
 
@@ -12,6 +11,7 @@ use data::text::TextChange;
 use enso_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
+
 
 
 // ====================

@@ -677,7 +677,7 @@ mod tests {
         //  Due to a parser bug, extension methods defining operators cannot be currently
         //  correctly recognized. When it is fixed, the following should be also supported
         //  and covered in test: `Int.+ a = _` and `Int.+ = _`.
-        //  Issue link: https://github.com/luna/enso/issues/565
+        //  Issue link: https://github.com/enso-org/enso/issues/565
         let definition_lines = vec![
             "main = _",
             "Foo.Bar.foo = _",

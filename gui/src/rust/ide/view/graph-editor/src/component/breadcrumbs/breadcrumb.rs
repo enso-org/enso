@@ -19,11 +19,11 @@ use ensogl::gui::component::DEPRECATED_Animation;
 use ensogl::gui::component;
 use ensogl_text as text;
 use ensogl_theme as theme;
-use logger::AnyLogger;
-use logger::enabled::Logger;
+use logger::DefaultTraceLogger as Logger;
 use nalgebra::Vector2;
 use std::f32::consts::PI;
 use ensogl::application::Application;
+
 
 
 // =================
@@ -228,7 +228,7 @@ impl Default for Frp {
 impl Frp {
     /// Constructor.
     pub fn new() -> Self {
-        let network = frp::Network::new();
+        let network = frp::Network::new("breadcrumbs");
         let inputs  = FrpInputs::new(&network);
         let outputs = FrpOutputs::new(&network);
         Self{network,inputs,outputs}

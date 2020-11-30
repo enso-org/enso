@@ -1,7 +1,7 @@
 [package]
-name    = "ensogl-core"
+name = "ensogl-core"
 version = "0.1.0"
-authors = ["Enso Team <contact@luna-lang.org>"]
+authors = ["Enso Team <contact@enso.org>"]
 edition = "2018"
 
 [lib]
@@ -13,80 +13,79 @@ statistics = []
 no_unboxed_callbacks = []
 
 [dependencies]
-code-builder               = { version = "0.1.0" , path = "../../../lib/code-builder" }
-enso-callback              = { version = "0.1.0" , path = "../../../lib/callback"     }
-enso-data                  = { version = "0.1.1"                                      }
-enso-frp                   = { version = "0.1.0" , path = "../../../lib/frp"          }
-enso-generics              = { version = "0.1.1"                                      }
-enso-logger                = { version = "0.1.2"                                      }
-enso-optics                = { version = "0.1.1"                                      }
-enso-prelude               = { version = "0.1.8"                                      }
-enso-shapely               = { version = "0.1.2"                                      }
-enso-shortcuts             = { version = "0.1.0" , path = "../../../lib/shortcuts"    }
-enso-types                 = { version = "0.1.0" , path = "../../../lib/types"        }
-ensogl-system-web          = { version = "0.1.0" , path = "../../../lib/system/web"   }
-ensogl-text-embedded-fonts = { version = "0.1.0" , path = "../text/embedded-fonts"    }
-ensogl-text-msdf-sys       = { version = "0.1.0" , path = "../text/msdf-sys"          }
-eval-tt                    = { version = "0.1.0" , path = "../../../lib/eval-tt"      }
-
-bit_field                  = { version = "0.10.0" }
-console_error_panic_hook   = { version = "0.1.6"  }
-enum_dispatch              = { version = "0.2.0"  }
-failure                    = { version = "0.1.5"  }
-Inflector                  = { version = "0.11.4" }
-itertools                  = { version = "0.8"    }
-js-sys                     = { version = "0.3.28" }
-nalgebra                   = { version = "0.21.1" }
-num_enum                   = { version = "0.4.2"  }
-num-traits                 = { version = "0.2"    }
-paste                      = { version = "0.1.6"  }
-rustc-hash                 = { version = "1.0.1"  }
-shrinkwraprs               = { version = "0.3.0"  }
-smallvec                   = { version = "1.0.0"  }
-typenum                    = { version = "1.11.2" }
+code-builder = { path = "../../../lib/code-builder" }
+enso-callback = { path = "../../../lib/callback" }
+enso-data = { version = "0.1.1" }
+enso-frp = { path = "../../../lib/frp" }
+enso-generics = { version = "0.1.1" }
+enso-logger = { version = "0.2.1" }
+enso-optics = { version = "0.1.1" }
+enso-prelude = { version = "0.1.8" }
+enso-shapely = { version = "0.1.2" }
+enso-shortcuts = { path = "../../../lib/shortcuts" }
+enso-types = { path = "../../../lib/types" }
+ensogl-system-web = { path = "../../../lib/system/web" }
+ensogl-text-embedded-fonts = { path = "../text/embedded-fonts" }
+ensogl-text-msdf-sys = { path = "../text/msdf-sys" }
+eval-tt = { path = "../../../lib/eval-tt" }
+bit_field = { version = "0.10.0" }
+console_error_panic_hook = { version = "0.1.6" }
+enum_dispatch = { version = "0.2.0" }
+failure = { version = "0.1.5" }
+Inflector = { version = "0.11.4" }
+itertools = { version = "0.8" }
+js-sys = { version = "0.3.28" }
+nalgebra = { version = "0.21.1" }
+num_enum = { version = "0.4.2" }
+num-traits = { version = "0.2" }
+paste = { version = "0.1.6" }
+rustc-hash = { version = "1.0.1" }
+shrinkwraprs = { version = "0.3.0" }
+smallvec = { version = "1.0.0" }
+typenum = { version = "1.11.2" }
 
 # We require exact version of wasm-bindgen because we do patching final js in our build process,
 # and this is vulnerable to any wasm-bindgen version change.
-wasm-bindgen = { version = "=0.2.58" , features = ["nightly"] }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
 
 [dependencies.web-sys]
 version = "0.3.4"
 features = [
-    'CanvasRenderingContext2d',
-    'CssStyleDeclaration',
-    'Document',
-    'Element',
-    'EventTarget',
-    'KeyboardEvent',
-    'HtmlCanvasElement',
-    'HtmlCollection',
-    'HtmlDivElement',
-    'HtmlElement',
-    'HtmlImageElement',
-    'Location',
-    'Node',
-    'Url',
-    'WebGlBuffer',
-    'WebGlFramebuffer',
-    'WebGlProgram',
-    'WebGlRenderingContext',
-    'WebGlShader',
-    'WebGlSync',
-    'WebGlTexture',
-    'WebGlUniformLocation',
-    'WebGlUniformLocation',
-    'WebGlVertexArrayObject',
-    'Window',
-    'console',
-    'EventTarget',
-    'Event',
-    'MouseEvent',
-    'WheelEvent',
-    'DomRect',
-    'AddEventListenerOptions'
+  'CanvasRenderingContext2d',
+  'CssStyleDeclaration',
+  'Document',
+  'Element',
+  'EventTarget',
+  'KeyboardEvent',
+  'HtmlCanvasElement',
+  'HtmlCollection',
+  'HtmlDivElement',
+  'HtmlElement',
+  'HtmlImageElement',
+  'Location',
+  'Node',
+  'Url',
+  'WebGlBuffer',
+  'WebGlFramebuffer',
+  'WebGlProgram',
+  'WebGlRenderingContext',
+  'WebGlShader',
+  'WebGlSync',
+  'WebGlTexture',
+  'WebGlUniformLocation',
+  'WebGlUniformLocation',
+  'WebGlVertexArrayObject',
+  'Window',
+  'console',
+  'EventTarget',
+  'Event',
+  'MouseEvent',
+  'WheelEvent',
+  'DomRect',
+  'AddEventListenerOptions'
 ]
 
 [dev-dependencies]
-assert_approx_eq  = { version = "1.1.0" }
+assert_approx_eq = { version = "1.1.0" }
 wasm-bindgen-test = { version = "0.3.8" }
-web-test          = { version = "0.1.0", path = "../../../lib/web-test" }
+web-test = { path = "../../../lib/web-test" }

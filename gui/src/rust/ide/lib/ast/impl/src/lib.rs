@@ -261,7 +261,7 @@ impl Ast {
     /// Length will ba automatically calculated based on Shape.
     /// Should be only used on nodes that can't have ID because of scala AST design.
     /// Example: Module, Section.opr, MacroMatchSegment.head.
-    /// Tracking issue: https://github.com/luna/ide/issues/434
+    /// Tracking issue: https://github.com/enso-org/ide/issues/434
     pub fn new_no_id<S:Into<Shape<Ast>>>(shape:S) -> Ast {
         let shape  = shape.into();
         let length = shape.len();
@@ -1140,7 +1140,7 @@ impl<T> HasID for WithLength<T>
 // === TO BE GENERATED =========================================================
 // =============================================================================
 // TODO: the definitions below should be removed and instead generated using
-//  macros, as part of https://github.com/luna/enso/issues/338
+//  macros, as part of https://github.com/enso-org/enso/issues/338
 
 // === Shape ===
 
@@ -1224,7 +1224,7 @@ impl Module<Ast> {
 
 impl Ast {
     // TODO smart constructors for other cases
-    //  as part of https://github.com/luna/enso/issues/338
+    //  as part of https://github.com/enso-org/enso/issues/338
 
     /// Creates Blank ast node (underscore).
     pub fn blank() -> Ast {

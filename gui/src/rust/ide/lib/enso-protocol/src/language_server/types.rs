@@ -18,7 +18,7 @@ pub type Event = json_rpc::handler::Event<Notification>;
 // ============
 
 /// A path is a representation of a path relative to a specified content root.
-// FIXME [mwu] Consider rename to something like `FilePath`, see https://github.com/luna/enso/issues/708
+// FIXME [mwu] Consider rename to something like `FilePath`, see https://github.com/enso-org/enso/issues/708
 #[derive(Clone,Debug,Serialize,Deserialize,Hash,PartialEq,Eq)]
 #[serde(rename_all="camelCase")]
 pub struct Path {
@@ -220,7 +220,7 @@ pub enum FileSystemObject {
     },
     /// A directory which contents have been truncated, i.e. with its subtree not listed
     /// any further due to depth limit being reached.
-    // FIXME: To be clarified in https://github.com/luna/enso/issues/708
+    // FIXME: To be clarified in https://github.com/enso-org/enso/issues/708
     DirectoryTruncated {
         name:String,
         path:Path,
@@ -230,7 +230,7 @@ pub enum FileSystemObject {
         path:Path,
     },
     /// Represents other, potenatially unrecognized object. Example is a broken symbolic link.
-    // FIXME: To be clarified in https://github.com/luna/enso/issues/708
+    // FIXME: To be clarified in https://github.com/enso-org/enso/issues/708
     Other {
         name:String,
         path:Path,
@@ -430,7 +430,7 @@ pub enum StackItem {
 #[serde(rename_all="camelCase")]
 pub struct CapabilityRegistration {
     /// Method is the name of the capability listed in
-    /// https://github.com/luna/enso/blob/main/docs/language-server/protocol-language-server.md#capabilities
+    /// https://github.com/enso-org/enso/blob/main/docs/language-server/protocol-language-server.md#capabilities
     pub method: String,
     /// One of the enumerated `RegisterOptions` depending of `method`.
     pub register_options: RegisterOptions
@@ -480,7 +480,7 @@ impl CapabilityRegistration {
 
 /// `capability/acquire` takes method and options specific to the method. This type represents the
 /// options. The used variant must match the method. See for details:
-/// https://github.com/luna/enso/blob/main/docs/language-server/protocol-language-server.md#capabilities
+/// https://github.com/enso-org/enso/blob/main/docs/language-server/protocol-language-server.md#capabilities
 //TODO[ao] we cannot have one variant for each cabability due to `untagged` attribute.
 // The best solution is make CapabilityRegistration an enum and write serialization and
 // deserialization by hand.

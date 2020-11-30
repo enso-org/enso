@@ -121,11 +121,11 @@ pub struct WebSocket {
 impl WebSocket {
     /// Wraps given WebSocket object.
     pub fn new
-    (ws:web_sys::WebSocket, parent:impl AnyLogger, name:impl Into<ImString>) -> WebSocket {
+    (ws:web_sys::WebSocket, parent:impl AnyLogger, name:impl AsRef<str>) -> WebSocket {
         ws.set_binary_type(BinaryType::Arraybuffer);
         WebSocket {
-            logger     : Logger::sub(parent,name),
             ws,
+            logger     : Logger::sub(parent,name),
             on_message : default(),
             on_close   : default(),
             on_open    : default(),
@@ -244,7 +244,7 @@ impl Transport for WebSocket {
 
     fn send_binary(&mut self, message:&[u8]) -> Result<(), Error> {
         info!(self.logger, "Sending binary message of length {message.len()}");
-        self.logger.debug(|| format!("Message contents: {:x?}", message));
+        debug!(self.logger,|| format!("Message contents: {:x?}", message));
         // TODO [mwu]
         //   Here we workaround issue from wasm-bindgen 0.2.58:
         //   https://github.com/rustwasm/wasm-bindgen/issues/2014
@@ -268,8 +268,8 @@ impl Transport for WebSocket {
             } else if let Ok(array_buffer) = data.dyn_into::<js_sys::ArrayBuffer>() {
                 let array       = js_sys::Uint8Array::new(&array_buffer);
                 let binary_data = array.to_vec();
-                logger_copy.debug(|| format!("Received a binary message: {:x?}", binary_data));
-                let event       = TransportEvent::BinaryMessage(binary_data);
+                debug!(logger_copy,|| format!("Received a binary message: {:x?}", binary_data));
+                let event = TransportEvent::BinaryMessage(binary_data);
                 channel::emit(&transmitter_copy,event);
             } else {
                 info!(logger_copy,"Received other kind of message: {js_to_string(e.data())}.");
