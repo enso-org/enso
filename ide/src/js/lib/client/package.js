@@ -16,7 +16,7 @@ let config = {
         "compression-webpack-plugin": "^3.1.0",
         "copy-webpack-plugin": "^5.1.1",
         "devtron": "^1.4.0",
-        "electron": "8.1.1",
+        "electron": "8.5.2",
         "electron-builder": "^22.3.2"
     },
 
