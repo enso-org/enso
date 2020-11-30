@@ -1,6 +1,7 @@
 from Base import all
 import Table.Io.Csv
 import Table.Data.Column
+import Base.System.Platform
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 
@@ -12,8 +13,9 @@ type Table
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
-    display : Integer -> Text
-    display show_rows=10 =
+         - format_terminal: whether ANSI-terminal formatting should be used
+    display : Integer -> Boolean -> Text
+    display show_rows=10 format_terminal=False =
         cols = Vector.Vector (this.java_table.getColumns [])
         index =  this.java_table.getIndex []
         col_names = [index.getName[]] + cols.map (_.getName [])
@@ -24,7 +26,7 @@ type Table
             cols = col_vals.map col->
                 if col.isNa [row_num] then "Nothing" else Column.get_item_string col row_num
             [index.ilocString [row_num]] + cols
-        table = here.print_table col_names rows
+        table = here.print_table col_names rows format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -34,7 +36,7 @@ type Table
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
     print show_rows=10 =
-        IO.println (this.display show_rows)
+        IO.println (this.display show_rows format_terminal=True)
         IO.println ''
 
     ## Converts this table to a JSON structure.
@@ -117,18 +119,22 @@ pad txt len =
     txt + (" ".repeat (len - true_len))
 
 ## PRIVATE
-ansi_bold txt = '\e[1m' + txt + '\e[m'
+ansi_bold enabled txt =
+    case Platform.os of
+        ## Output formatting for Windows is not currently supported.
+        Platform.Windows -> txt
+        _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE
-print_table header rows =
+print_table header rows format_term =
     content_lengths = Vector.new header.length i->
         max_row = 0.up_to rows.length . fold 0 a-> j-> max a (rows.at j . at i . characters . length)
         max max_row (header.at i . characters . length)
-    header_line = zip header content_lengths here.pad . map here.ansi_bold . join ' | '
+    header_line = zip header content_lengths here.pad . map (here.ansi_bold format_term) . join ' | '
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
         x = zip r content_lengths here.pad
-        with_bold_ix = [here.ansi_bold (x.at 0)] + x.drop_start 1
+        with_bold_ix = [here.ansi_bold format_term (x.at 0)] + x.drop_start 1
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'

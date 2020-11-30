@@ -124,9 +124,8 @@ public class DoubleStorage extends Storage {
     int pos = 0;
     for (int i = 0; i < counts.length; i++) {
       if (isMissing.get(i)) {
-        for (int j = 0; j < counts[i]; j++) {
-          newMissing.set(pos++);
-        }
+        newMissing.set(pos, pos + counts[i]);
+        pos += counts[i];
       } else {
         for (int j = 0; j < counts[i]; j++) {
           newData[pos++] = data[i];

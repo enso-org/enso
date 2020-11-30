@@ -10,10 +10,11 @@ type Column
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
-    display : Integer -> Text
-    display show_rows=10 =
+         - format_terminal: whether ANSI-terminal formatting should be used
+    display : Integer -> Boolean -> Text
+    display show_rows=10 format_terminal=False =
         java_col = this.java_column
-        index = this.java_column.getIndex []
+        index = java_col.getIndex []
         col_name = java_col.getName []
         storage = java_col.getStorage []
         num_rows = java_col.getSize []
@@ -22,7 +23,7 @@ type Column
             row = if storage.isNa [num] then "Nothing" else
                 here.get_item_string storage num
             [index.ilocString [num], row]
-        table = Table.print_table [index.getName [], col_name] items
+        table = Table.print_table [index.getName [], col_name] items format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -32,7 +33,7 @@ type Column
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
     print show_rows=10 =
-        IO.println (this.display show_rows)
+        IO.println (this.display show_rows format_terminal=True)
         IO.println ''
 
     ## Element-wise equality comparison. Returns a column with results of

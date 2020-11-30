@@ -211,7 +211,7 @@ public class Table {
     for (int i = 0; i < s; i++) {
       if (matches[i] == null) {
         if (!dropUnmatched) {
-          orderMask[orderMaskPosition++] = -1;
+          orderMask[orderMaskPosition++] = Index.NOT_FOUND;
         }
       } else {
         for (Integer x : matches[i]) {
