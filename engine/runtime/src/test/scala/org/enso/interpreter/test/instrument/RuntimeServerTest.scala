@@ -44,7 +44,7 @@ class RuntimeServerTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
@@ -862,6 +862,13 @@ class RuntimeServerTest
     val metadata  = new Metadata
     val idMain    = metadata.addItem(49, 23)
     val idMainFoo = metadata.addItem(54, 12)
+
+    // val idMainThis = metadata.addItem(54, 4)
+    // val idMainThisFoo = metadata.addItem(59, 3)
+    // println(s"main=$idMain")
+    // println(s"foo=$idMainFoo")
+    // println(s"this=$idMainThis")
+    // println(s"this.foo=$idMainThisFoo")
 
     val code =
       """from Builtins import all

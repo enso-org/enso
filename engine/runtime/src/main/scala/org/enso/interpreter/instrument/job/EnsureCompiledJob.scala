@@ -322,7 +322,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
     compilationResult.map { compiledModule =>
       if (prevStage != compiledModule.getCompilationStage) {
-        ctx.executionService.getLogger.finest(
+        ctx.executionService.getLogger.info(
           s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
         )
         Some(compiledModule)

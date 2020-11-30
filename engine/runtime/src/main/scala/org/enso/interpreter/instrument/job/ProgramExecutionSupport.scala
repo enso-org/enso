@@ -172,19 +172,25 @@ trait ProgramExecutionSupport {
       }
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.info(s"ON_CACHED_CALL $value")
+      ctx.executionService.getLogger.info(
+        s"ON_CACHED_CALL ${value.getExpressionId}"
+      )
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
     }
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId)) {
-        ctx.executionService.getLogger.info(s"ON_CACHED_VALUE $value")
+        ctx.executionService.getLogger.info(
+          s"ON_CACHED_VALUE ${value.getExpressionId}"
+        )
         fireVisualisationUpdates(contextId, value)
       }
     }
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.info(s"ON_COMPUTED $value")
+      ctx.executionService.getLogger.info(
+        s"ON_COMPUTED ${value.getExpressionId}"
+      )
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
       fireVisualisationUpdates(contextId, value)
     }
