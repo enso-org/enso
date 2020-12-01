@@ -13,6 +13,7 @@ const point_label_padding_y = 2
 const animation_duration = 1000
 const linear_scale = 'linear'
 const visilbe_points = 'visible'
+const buttonsHeight = 25
 
 /**
  * A d3.js ScatterPlot visualization.
@@ -51,66 +52,58 @@ class ScatterPlot extends Visualization {
             this.dom.removeChild(this.dom.lastChild)
         }
 
-        let width = this.dom.getAttributeNS(null, 'width')
-        let height = this.dom.getAttributeNS(null, 'height')
-        const buttonsHeight = 25
-        height = height - buttonsHeight
-        const divElem = this.createDivElem(width, height)
+        const divElem = this.createDivElem(
+            this.canvasWidth(),
+            this.canvasHeight()
+        )
         this.dom.appendChild(divElem)
 
-        let parsedData = data
-        if (typeof data === 'string') {
-            parsedData = JSON.parse(data)
-        }
-        let axis = parsedData.axis || {
-            x: { scale: linear_scale },
-            y: { scale: linear_scale },
-        }
-        let focus = parsedData.focus
-        let points = parsedData.points || { labels: 'invisible' }
-        let dataPoints = parsedData.data || {}
-
-        let margin = this.getMargins(axis)
-        let box_width = width - margin.left - margin.right
-        let box_height = height - margin.top - margin.bottom
+        let parsedData = this.parseData(data)
+        this.updateState(parsedData)
 
         let svg = d3
             .select(divElem)
             .append('svg')
-            .attr('width', width)
-            .attr('height', height)
+            .attr('width', this.canvasWidth())
+            .attr('height', this.canvasHeight())
             .append('g')
             .attr(
                 'transform',
-                'translate(' + margin.left + ',' + margin.top + ')'
+                'translate(' + this.margin.left + ',' + this.margin.top + ')'
             )
 
-        let extremesAndDeltas = this.getExtremesAndDeltas(dataPoints)
+        let extremesAndDeltas = this.getExtremesAndDeltas(this.dataPoints)
         let scaleAndAxis = this.createAxes(
-            axis,
+            this.axis,
             extremesAndDeltas,
-            box_width,
-            box_height,
+            this.box_width,
+            this.box_height,
             svg,
             focus
         )
-        this.createLabels(axis, svg, box_width, margin, box_height)
+        this.createLabels(
+            this.axis,
+            svg,
+            this.box_width,
+            this.margin,
+            this.box_height
+        )
         let scatter = this.createScatter(
             svg,
-            box_width,
-            box_height,
-            points,
-            dataPoints,
+            this.box_width,
+            this.box_height,
+            this.points,
+            this.dataPoints,
             scaleAndAxis
         )
         let zoom = this.addPanAndZoom(
-            box_width,
-            box_height,
+            this.box_width,
+            this.box_height,
             svg,
-            margin,
+            this.margin,
             scaleAndAxis,
             scatter,
-            points
+            this.points
         )
 
         // TODO [MM]: In task specification buttons were on top of the visualization, but because
@@ -119,21 +112,75 @@ class ScatterPlot extends Visualization {
         this.createButtonFitAll(
             scaleAndAxis,
             scatter,
-            points,
+            this.points,
             extremesAndDeltas,
             zoom,
-            box_width
+            this.box_width
         )
         let selectedZoomBtn = this.createButtonScaleToPoints()
         this.addBrushing(
-            box_width,
-            box_height,
+            this.box_width,
+            this.box_height,
             scatter,
             scaleAndAxis,
             selectedZoomBtn,
-            points,
+            this.points,
             zoom
         )
+    }
+
+    canvasWidth() {
+        return this.dom.getAttributeNS(null, 'width')
+    }
+
+    canvasHeight() {
+        let height = this.dom.getAttributeNS(null, 'height')
+        return height - buttonsHeight
+    }
+
+    updateState(parsedData) {
+        this.axis = parsedData.axis || {
+            x: { scale: linear_scale },
+            y: { scale: linear_scale },
+        }
+        this.focus = parsedData.focus
+        this.points = parsedData.points || { labels: 'invisible' }
+        this.dataPoints = this.extractValues(parsedData)
+
+        this.margin = this.getMargins(this.axis)
+        this.box_width =
+            this.canvasWidth() - this.margin.left - this.margin.right
+        this.box_height =
+            this.canvasHeight() - this.margin.top - this.margin.bottom
+    }
+
+    extractValues(data) {
+        /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
+        if (Array.isArray(data)) {
+            return this.arrayAsValues(data)
+        }
+        return data.data || {}
+    }
+
+    /**
+     * Return a array of values as valid scatterplot input.
+     * Uses the values of the array as y-coordinate and the index of the value as its x-coordinate.
+     */
+    arrayAsValues(dataArray) {
+        return dataArray.map((y, ix) => {
+            return { x: ix, y }
+        })
+    }
+
+    parseData(data) {
+        let parsedData
+        /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
+        if (typeof data === 'string' || data instanceof String) {
+            parsedData = JSON.parse(data)
+        } else {
+            parsedData = data
+        }
+        return parsedData
     }
 
     /**

@@ -42,8 +42,10 @@ class Histogram extends Visualization {
     static label = 'Histogram'
 
     onDataReceived(data) {
-        const parsedData = JSON.parse(data)
-        const isUpdate = parsedData.update === 'diff'
+        const { parsedData, isUpdate } = this.parseData(data)
+        if (!ok(parsedData)) {
+            console.error('Histogram got invalid data: ' + data.toString())
+        }
         this.updateState(parsedData, isUpdate)
 
         if (!this.isInitialised()) {
@@ -51,8 +53,20 @@ class Histogram extends Visualization {
             this.initLabels()
             this.initHistogram()
         }
+
         this.updateLabels()
         this.updateHistogram()
+    }
+
+    parseData(data) {
+        let parsedData
+        if (typeof data === 'string' || data instanceof String) {
+            parsedData = JSON.parse(data)
+        } else {
+            parsedData = data
+        }
+        const isUpdate = parsedData.update === 'diff'
+        return { parsedData, isUpdate }
     }
 
     /**
@@ -77,9 +91,19 @@ class Histogram extends Visualization {
         } else {
             this._axisSpec = data.axis
             this._focus = data.focus
-            this._dataValues = data.data.values
+            this._dataValues = this.extractValues(data)
             this._bins = data.bins
         }
+    }
+
+    extractValues(rawData) {
+        /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
+        if (ok(rawData.data)) {
+            return rawData.data.values
+        } else if (Array.isArray(rawData)) {
+            return rawData
+        }
+        return []
     }
 
     /**
