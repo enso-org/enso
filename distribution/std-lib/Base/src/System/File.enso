@@ -75,7 +75,7 @@ type Input_Stream
     read_all_bytes : Vector.Vector ! File_Error
     read_all_bytes = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
-            Vector.from_polyglot_array (java_stream.readAllBytes [])
+            Vector.Vector (java_stream.readAllBytes [])
 
     ## Reads _up to_ the provided number of bytes from the stream.
 
