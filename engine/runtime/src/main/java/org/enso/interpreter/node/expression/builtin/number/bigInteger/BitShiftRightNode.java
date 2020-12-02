@@ -1,15 +1,14 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "bit_shift_r", description = "Bitwise right-shift.")
+@BuiltinMethod(type = "Big_Integer", name = "bit_shift_r", description = "Bitwise right-shift.")
 public abstract class BitShiftRightNode extends Node {
   private @Child BitShiftNode bitShiftNode = BitShiftNode.build();
 
@@ -20,14 +19,21 @@ public abstract class BitShiftRightNode extends Node {
   }
 
   @Specialization
-  Object doBigInteger(long _this, long that) {
+  Object doBigInteger(EnsoBigInteger _this, long that) {
     return bitShiftNode.execute(_this, -1L * that);
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
-    return bitShiftNode.execute(_this, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
+  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
+    // Note [No Negation]
+    return bitShiftNode.execute(_this, that);
   }
+
+  /* Note [No Negation]
+   * ~~~~~~~~~~~~~~~~~~
+   * As having an `EnsoBigInteger` value as the shift size is always ill-formed, we need not bother
+   * with flipping the sign here.
+   */
 
   @Specialization
   Object doAtomThis(Atom _this, Object that) {

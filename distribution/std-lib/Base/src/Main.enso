@@ -18,7 +18,7 @@ import Base.Meta.Enso_Project
 import Base.Polyglot.Java
 import Base.System.File
 
-from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean
+from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
 
 export Base.Data.Interval
 export Base.Data.Json

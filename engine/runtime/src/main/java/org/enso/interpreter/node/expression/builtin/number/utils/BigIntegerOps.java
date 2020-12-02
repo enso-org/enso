@@ -64,7 +64,6 @@ public class BigIntegerOps {
   public static BigInteger divide(BigInteger a, long b) {
     return a.divide(BigInteger.valueOf(b));
   }
-
   @CompilerDirectives.TruffleBoundary
   public static BigInteger divide(BigInteger a, BigInteger b) {
     return a.divide(b);
@@ -176,11 +175,45 @@ public class BigIntegerOps {
   }
 
   @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftLeft(long a, int b) {
+    return BigIntegerOps.bitShiftLeft(BigInteger.valueOf(a), b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftLeft(BigInteger a, int b) {
+    return a.shiftLeft(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftRight(long a, int b) {
+    return BigIntegerOps.bitShiftRight(BigInteger.valueOf(a),b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftRight(BigInteger a, int b) {
+    return a.shiftRight(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static boolean nonNegative(BigInteger a) {
+    return BigIntegerOps.compare(a,BigInteger.ZERO) == 1;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static boolean isZero(BigInteger a) {
+    return BigIntegerOps.compare(a,BigInteger.ZERO) == 0;
+  }
+
+  @CompilerDirectives.TruffleBoundary
   public static boolean fitsInLong(BigInteger bigInteger) {
     return bigInteger.compareTo(MIN_LONG_BIGINT) >= 0 && bigInteger.compareTo(MAX_LONG_BIGINT) <= 0;
   }
 
   public static boolean fitsInLong(double decimal) {
     return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
+  }
+
+  public static boolean fitsInInt(long number) {
+    return number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE;
   }
 }

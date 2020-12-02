@@ -80,15 +80,44 @@ spec =
             bits.bit_not.bit_not . should_equal bits
             big_bits.bit_not . should_equal -16_17ffffffffffffffb
             big_bits.bit_not.bit_not . should_equal big_bits
-        # it "should support left bit shifts" <|
-            # bits = 2_01101101
-            # big_bits = 16_17ffffffffffffffc
-            # bits.bit_shift_l 2 . should_equal 2_0110110100
-            # bits.bit_shift_l 64 . should_equal 0
-        # it "should support right bit shifts, preserving sign" <|
-            # bits  = -1632
-            # expected = -408
-            # bits.bit_shift_r 2 . should_equal expected
+        it "should support left bit shifts" <|
+            positive_bits = 2_01101101
+            negative_bits = -2_01101101
+            positive_big_bits = almost_max_long_times_three
+            negative_big_bits = -almost_max_long_times_three
+
+            positive_bits.bit_shift_l 2 . should_equal 2_0110110100
+            positive_bits.bit_shift_l 64 . should_equal 16_6d0000000000000000
+            positive_bits.bit_shift_l -2 . should_equal 2_011011
+            positive_bits.bit_shift_l -64 . should_equal 0
+            Test.expect_fail_with (positive_bits.bit_shift_l positive_big_bits) Arithmetic_Error
+            positive_bits.bit_shift_l negative_big_bits . should_equal 0
+
+            negative_bits.bit_shift_l 2 . should_equal -436
+            negative_bits.bit_shift_l 64 . should_equal -2010695104034341126144
+            negative_bits.bit_shift_l -2 . should_equal -28
+            negative_bits.bit_shift_l -64 . should_equal -1
+            Test.expect_fail_with (negative_bits.bit_shift_l positive_big_bits) Arithmetic_Error
+            negative_bits.bit_shift_l negative_big_bits . should_equal -1
+        it "should support right bit shifts, preserving sign" <|
+            positive_bits = 2_01101101
+            negative_bits = -2_01101101
+            positive_big_bits = almost_max_long_times_three
+            negative_big_bits = -almost_max_long_times_three
+
+            positive_bits.bit_shift_r 2 . should_equal (positive_bits.bit_shift_l -2)
+            positive_bits.bit_shift_r 64 . should_equal (positive_bits.bit_shift_l -64)
+            positive_bits.bit_shift_r -2 . should_equal (positive_bits.bit_shift_l 2)
+            positive_bits.bit_shift_r -64 . should_equal (positive_bits.bit_shift_l 64)
+            Test.expect_fail_with (positive_bits.bit_shift_r negative_big_bits) Arithmetic_Error
+            positive_bits.bit_shift_r positive_big_bits . should_equal 0
+
+            negative_bits.bit_shift_r 2 . should_equal (negative_bits.bit_shift_l -2)
+            negative_bits.bit_shift_r 64 . should_equal (negative_bits.bit_shift_l -64)
+            negative_bits.bit_shift_r -2 . should_equal (negative_bits.bit_shift_l 2)
+            negative_bits.bit_shift_r -64 . should_equal (negative_bits.bit_shift_l 64)
+            Test.expect_fail_with (negative_bits.bit_shift_r negative_big_bits) Arithmetic_Error
+            negative_bits.bit_shift_r positive_big_bits . should_equal -1
     describe "Decimals" <|
         it "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
