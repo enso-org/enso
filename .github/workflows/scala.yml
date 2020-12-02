@@ -156,10 +156,10 @@ jobs:
           sbt --no-colors searcher/Benchmark/compile
 
       # Build Distribution
-      - name: Build the Project Manager Uberjar
+      - name: Build the Project Manager Executable
         run: |
           sleep 1
-          sbt --no-colors project-manager/assembly
+          sbt --no-colors project-manager/buildNativeImage
       - name: Build the Manifest
         run: |
           cp distribution/manifest.template.yaml manifest.yaml
@@ -244,11 +244,23 @@ jobs:
           mkdir $ENGINE_DIST_DIR/component
           cp runtime.jar $ENGINE_DIST_DIR/component
           mv runner.jar $ENGINE_DIST_DIR/component
-          mv project-manager.jar $ENGINE_DIST_DIR/component
           cp -r distribution/std-lib $ENGINE_DIST_DIR/std-lib
           cp -r distribution/bin $ENGINE_DIST_DIR/bin
           cp -r distribution/engine/THIRD-PARTY $ENGINE_DIST_DIR/THIRD-PARTY
           cp manifest.yaml $ENGINE_DIST_DIR
+
+      # TODO [RW] this is temporary - project manager will get a separate distribution
+      - name: Prepare Engine Distribution (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          cp project-manager ${{ env.ENGINE_DIST_DIR }}/bin/
+
+      - name: Prepare Engine Distribution (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cp project-manager.exe ${{ env.ENGINE_DIST_DIR }}/bin/
 
       # Test Distribution
       - name: Prepare Engine Test Environment
