@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -25,15 +26,8 @@ public abstract class BitShiftRightNode extends Node {
 
   @Specialization
   Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
-    // Note [No Negation]
-    return bitShiftNode.execute(_this, that);
+    return bitShiftNode.execute(_this, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
   }
-
-  /* Note [No Negation]
-   * ~~~~~~~~~~~~~~~~~~
-   * As having an `EnsoBigInteger` value as the shift size is always ill-formed, we need not bother
-   * with flipping the sign here.
-   */
 
   @Specialization
   Object doAtomThis(Atom _this, Object that) {

@@ -7,7 +7,6 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -22,7 +21,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Big_Integer", name = "bit_shift", description = "Bitwise shift.")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
-  private final ConditionProfile shiftPositive = ConditionProfile.createCountingProfile();
 
   abstract Object execute(Object _this, Object that);
 
@@ -30,38 +28,54 @@ public abstract class BitShiftNode extends Node {
     return BitShiftNodeGen.create();
   }
 
-  @Specialization(guards = {"fitsInInt(that)", "that >= 0"})
-  EnsoBigInteger doBigIntegerShiftLeft(EnsoBigInteger _this, long that) {
+  @Specialization(guards = {"that >= 0", "fitsInInt(that)"})
+  EnsoBigInteger doBigIntShiftLeft(EnsoBigInteger _this, long that) {
     return new EnsoBigInteger(BigIntegerOps.bitShiftLeft(_this.getValue(), (int) that));
   }
 
-  @Specialization(guards = {"fitsInInt(that)", "that < 0"})
-  Object doBigIntegerShiftRight(EnsoBigInteger _this, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitShiftRight(_this.getValue(), (int) that));
-  }
-
-  @Specialization
-  Object doBigIntegerThat(
-      EnsoBigInteger _this,
-      EnsoBigInteger that,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    CompilerDirectives.transferToInterpreter();
-    throw new PanicException(
-        ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
-  }
-
-  @Specialization(replaces = {"doBigIntegerShiftLeft", "doBigIntegerShiftRight"})
-  Object doBigIntegerExplicit(
+  @Specialization(guards = "that >= 0", replaces = "doBigIntShiftLeft")
+  EnsoBigInteger doBigIntShiftLeftExplicit(
       EnsoBigInteger _this,
       long that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    if (!BigIntegerOps.fitsInInt(that)) {
+    if (BigIntegerOps.fitsInInt(that)) {
+      return doBigIntShiftLeft(_this, that);
+    } else {
+      throw new PanicException(
+          ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
+    }
+  }
+
+  @Specialization(guards = {"that < 0", "fitsInInt(that)"})
+  Object doBigIntShiftRight(EnsoBigInteger _this, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitShiftRight(_this.getValue(), (int) -that));
+  }
+
+  @Specialization(guards = "that < 0", replaces = "doBigIntShiftRight")
+  Object doBigIntShiftRightExplicit(EnsoBigInteger _this, long that) {
+    if (BigIntegerOps.fitsInInt(that)) {
+      return doBigIntShiftRight(_this, -that);
+    } else if (BigIntegerOps.nonNegative(_this.getValue())) {
+      return 0L;
+    } else {
+      return -1L;
+    }
+  }
+
+  @Specialization
+  Object doBigIntThat(
+      EnsoBigInteger _this,
+      EnsoBigInteger that,
+      @CachedContext(Language.class) ContextReference<Context> ctxRef) {
+    if (BigIntegerOps.nonNegative(that.getValue())) {
+      // Note [Well-Formed BigIntegers]
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
+    } else if (BigIntegerOps.nonNegative(_this.getValue())) {
+      return 0L;
     } else {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException("Code should not be reachable.");
+      return -1L;
     }
   }
 

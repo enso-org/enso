@@ -22,8 +22,14 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Small_Integer", name = "bit_shift", description = "Bitwise shift.")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
-  private final ConditionProfile shiftPositive = ConditionProfile.createCountingProfile();
-  private final ConditionProfile positiveNotHasFreeBits = ConditionProfile.createCountingProfile();
+  private final ConditionProfile canShiftLeftInLongProfile =
+      ConditionProfile.createCountingProfile();
+  private final ConditionProfile positiveFitsInInt = ConditionProfile.createCountingProfile();
+  private final ConditionProfile negativeFitsInInt = ConditionProfile.createCountingProfile();
+  private final ConditionProfile rightShiftPositiveThis = ConditionProfile.createCountingProfile();
+  private final ConditionProfile bigIntNonNegative = ConditionProfile.createCountingProfile();
+  private final ConditionProfile rightShiftExceedsLongWidth =
+      ConditionProfile.createCountingProfile();
 
   abstract Object execute(Object _this, Object that);
 
@@ -39,9 +45,9 @@ public abstract class BitShiftNode extends Node {
   @Specialization(guards = "that >= 0", replaces = "doLongShiftLeft")
   Object doLongShiftLeftExplicit(
       long _this, long that, @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    if (canShiftLeftInLong(_this, that)) {
+    if (canShiftLeftInLongProfile.profile(canShiftLeftInLong(_this, that))) {
       return doLongShiftLeft(_this, that);
-    } else if (BigIntegerOps.fitsInInt(that)) {
+    } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(_this, (int) that));
     } else {
       throw new PanicException(
@@ -49,21 +55,24 @@ public abstract class BitShiftNode extends Node {
     }
   }
 
-  boolean canShiftLeftInLong(long _this, long that) {
-    return BigIntegerOps.fitsInInt(that) && hasFreeBitsLeftShift(_this, that);
-  }
-
   @Specialization(guards = {"that < 0", "fitsInInt(that)"})
   long doLongShiftRight(long _this, long that) {
-    return (-that) >= 64 ? (_this >= 0 ? 0L : -1L) : _this >> -that;
+    if (rightShiftExceedsLongWidth.profile(-that >= 64)) {
+      if (rightShiftPositiveThis.profile(_this >= 0)) {
+        return 0L;
+      } else {
+        return -1L;
+      }
+    } else {
+      return _this >> -that;
+    }
   }
 
   @Specialization(guards = "that < 0", replaces = "doLongShiftRight")
-  long doLongShiftRightExplicit(
-      long _this, long that, @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    if (BigIntegerOps.fitsInInt(that)) {
+  long doLongShiftRightExplicit(long _this, long that) {
+    if (negativeFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return doLongShiftRight(_this, that);
-    } else if (_this >= 0) {
+    } else if (rightShiftPositiveThis.profile(_this >= 0)) {
       return 0L;
     } else {
       return -1L;
@@ -75,13 +84,15 @@ public abstract class BitShiftNode extends Node {
       long _this,
       EnsoBigInteger that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    if (BigIntegerOps.nonNegative(that.getValue())) {
+    if (bigIntNonNegative.profile(BigIntegerOps.nonNegative(that.getValue()))) {
       // Note [Well-Formed BigIntegers]
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
+    } else if (rightShiftPositiveThis.profile(_this >= 0)) {
+      return 0L;
     } else {
-      return (_this >= 0) ? 0L : -1L;
+      return -1L;
     }
   }
 
@@ -103,5 +114,9 @@ public abstract class BitShiftNode extends Node {
 
   boolean hasFreeBitsLeftShift(long number, long shift) {
     return shift < 64 && number > (Long.MIN_VALUE >> shift) && number < (Long.MAX_VALUE >> shift);
+  }
+
+  boolean canShiftLeftInLong(long _this, long that) {
+    return BigIntegerOps.fitsInInt(that) && hasFreeBitsLeftShift(_this, that);
   }
 }
