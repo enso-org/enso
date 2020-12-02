@@ -460,7 +460,7 @@ impl Model {
             let default_pos = Vector2(x,y);
             let displayed   = self.node_views.borrow_mut().get_by_left(&id).cloned();
             match displayed {
-                Some(displayed) => self.refresh_node_view(displayed, node_info, node_trees),
+                Some(displayed) => self.refresh_node_view(displayed,node_info,node_trees),
                 None            => self.create_node_view(node_info,node_trees,default_pos),
             }
         }
@@ -485,9 +485,13 @@ impl Model {
         let id           = info.info.id();
         let displayed_id = self.view.graph().add_node();
         self.refresh_node_view(displayed_id, info, trees);
-        // If position wasn't present in metadata, we must initialize it.
         if info.metadata.as_ref().and_then(|md| md.position).is_none() {
             self.view.graph().frp.input.set_node_position.emit(&(displayed_id, default_pos));
+            // If position wasn't present in metadata, we initialize it.
+            if let Err(err) = self.set_node_metadata_position(id,default_pos) {
+                debug!(self.logger, "Failed to set default position information IDs: {id:?} because \
+                of error {err:?}");
+            }
         }
         self.node_views.borrow_mut().insert(id, displayed_id);
     }
@@ -592,6 +596,13 @@ impl Model {
     fn set_method_pointer(&self, id:ExpressionId, method:Option<graph_editor::MethodPointer>) {
         let event = (id,method);
         self.view.graph().frp.input.set_method_pointer.emit(&event);
+    }
+
+    /// Set the position in the node's metadata.
+    fn set_node_metadata_position(&self, node_id:ast::Id,pos:Vector2) -> FallibleResult {
+        self.graph.graph().module.with_node_metadata(node_id, Box::new(|md| {
+            md.position = Some(model::module::Position::new(pos.x,pos.y));
+        }))
     }
 
     fn refresh_connection_views
@@ -784,9 +795,7 @@ impl Model {
     (&self, (displayed_id,pos):&(graph_editor::NodeId,Vector2)) -> FallibleResult {
         debug!(self.logger, "Moving node.");
         if let Ok(id) = self.get_controller_node_id(*displayed_id) {
-            self.graph.graph().module.with_node_metadata(id, Box::new(|md| {
-                md.position = Some(model::module::Position::new(pos.x,pos.y));
-            }))?;
+           self.set_node_metadata_position(id,*pos)?;
         }
         Ok(())
     }
