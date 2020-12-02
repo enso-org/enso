@@ -106,9 +106,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -131,9 +129,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -377,9 +373,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "com.typesafe.config.Config"
-        ]
+        "parameterTypes": ["com.typesafe.config.Config"]
       }
     ]
   },
@@ -391,9 +385,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "com.typesafe.config.Config"
-        ]
+        "parameterTypes": ["com.typesafe.config.Config"]
       }
     ]
   },
@@ -406,9 +398,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -417,9 +407,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -428,9 +416,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -439,9 +425,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -450,9 +434,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -461,9 +443,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -480,9 +460,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -508,9 +486,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ExtendedActorSystem"
-        ]
+        "parameterTypes": ["akka.actor.ExtendedActorSystem"]
       }
     ]
   },
@@ -614,9 +590,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "sun.security.x509.X500Name"
-        ]
+        "parameterTypes": ["sun.security.x509.X500Name"]
       }
     ]
   },
@@ -743,10 +717,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -755,10 +726,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -767,10 +735,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -779,10 +744,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -791,10 +753,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -803,10 +762,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -815,10 +771,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -827,10 +780,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -839,10 +789,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -851,10 +798,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -863,10 +807,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   },
@@ -875,10 +816,7 @@
     "methods": [
       {
         "name": "<init>",
-        "parameterTypes": [
-          "java.lang.Boolean",
-          "java.lang.Object"
-        ]
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
   }
