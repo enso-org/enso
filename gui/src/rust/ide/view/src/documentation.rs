@@ -210,6 +210,11 @@ ensogl::define_endpoints! {
         /// Display documentation represented by docstring.
         display_docstring (String),
     }
+    Output {
+        /// Indicates whether the documentation panel has been selected through clicking into
+        /// it, or deselected by clicking somewhere else.
+        is_selected(bool),
+    }
 }
 
 
@@ -278,13 +283,19 @@ impl View {
             // === Activation ===
 
             mouse_down_target <- scene.mouse.frp.down.map(f_!(scene.mouse.target.get()));
-            eval mouse_down_target ([model,visualization] (target){
+            selected <- mouse_down_target.map(f!([model,visualization] (target){
                 if !model.overlay.shape.is_this_target(*target) {
-                    visualization.deactivate.emit(())
+                    visualization.deactivate.emit(());
+                    false
                 } else {
-                    visualization.activate.emit(())
+                    visualization.activate.emit(());
+                    true
                 }
+            }));
+            is_selected_changed <= selected.map2(&frp.output.is_selected, |&new,&old| {
+                (new != old).as_some(new)
             });
+            frp.source.is_selected <+ is_selected_changed;
         }
         visualization.pass_events_to_dom_if_active(scene,network);
         self

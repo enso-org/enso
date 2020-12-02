@@ -145,6 +145,7 @@ ensogl::define_endpoints! {
         editing_committed (),
         size              (Vector2<f32>),
         is_visible        (bool),
+        is_selected       (bool),
     }
 }
 
@@ -198,6 +199,7 @@ impl View {
             source.selected_entry <+ model.list.selected_entry;
             source.size           <+ height.value.map(|h| Vector2(SEARCHER_WIDTH,*h));
             source.is_visible     <+ model.list.size.map(|size| size.x*size.y > std::f32::EPSILON);
+            source.is_selected    <+ model.documentation.frp.is_selected.map(|&value|value);
 
             eval height.value ((h)  model.set_height(*h));
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));

@@ -208,6 +208,10 @@ impl View {
                 }
             });
 
+            // === Searcher Selection ===
+
+            eval searcher.is_selected ((is_selected) graph.set_navigator_disabled(is_selected));
+
 
             // === Editing ===
 
