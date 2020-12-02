@@ -14,6 +14,7 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
+import org.enso.loggingservice.LogLevel
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -21,8 +22,9 @@ import scala.concurrent.{Await, Future}
 /** A lifecycle component used to start and stop a Language Server.
   *
   * @param config a LS config
+  * @param logLevel log level for the Language Server
   */
-class LanguageServerComponent(config: LanguageServerConfig)
+class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
     extends LifecycleComponent
     with LazyLogging {
 
@@ -34,7 +36,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
-    val module = new MainModule(config)
+    val module = new MainModule(config, logLevel)
     val initMainModule =
       for {
         _ <- module.init

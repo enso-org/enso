@@ -16,6 +16,7 @@ import org.enso.runtimeversionmanager.releases.engine.{
   EngineRepository
 }
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
+import org.enso.runtimeversionmanager.runner.JVMSettings
 
 /** Default distribution configuration to use for the Project Manager in
   * production.
@@ -27,13 +28,13 @@ import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 object DefaultDistributionConfiguration extends DistributionConfiguration {
 
   /** The default [[Environment]] implementation, with no overrides. */
-  object DefaultEnvironment extends Environment
+  val environment: Environment = new Environment {}
 
   // TODO [RW, AO] should the PM support portable distributions?
   //  If so, where will be the project-manager binary located with respect to
   //  the distribution root?
   /** @inheritdoc */
-  lazy val distributionManager = new DistributionManager(DefaultEnvironment)
+  lazy val distributionManager = new DistributionManager(environment)
 
   /** @inheritdoc */
   lazy val lockManager = new FileLockManager(distributionManager.paths.locks)
@@ -63,4 +64,10 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
       engineReleaseProvider     = engineReleaseProvider,
       runtimeReleaseProvider    = runtimeReleaseProvider
     )
+
+  /** @inheritdoc */
+  override def defaultJVMSettings: JVMSettings = JVMSettings.default
+
+  /** @inheritdoc */
+  override def shouldDiscardChildOutput: Boolean = false
 }

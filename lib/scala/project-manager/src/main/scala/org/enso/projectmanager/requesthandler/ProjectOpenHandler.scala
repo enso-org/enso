@@ -2,88 +2,59 @@ package org.enso.projectmanager.requesthandler
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
-import akka.pattern.pipe
-import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
+import akka.actor.Props
+import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.data.{
-  LanguageServerSockets,
-  MissingComponentAction
-}
+import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
+import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
-import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `project/open` commands.
   *
   * @param clientId the requester id
-  * @param service a project service
+  * @param projectService a project service
   * @param requestTimeout a request timeout
   */
-class ProjectOpenHandler[F[+_, +_]: Exec](
+class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
   clientId: UUID,
-  service: ProjectServiceApi[F],
+  projectService: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
-) extends Actor
-    with ActorLogging
-    with UnhandledLogging {
-  override def receive: Receive = requestStage
+) extends RequestHandler[
+      F,
+      ProjectServiceFailure,
+      ProjectOpen.type,
+      ProjectOpen.Params,
+      ProjectOpen.Result
+    ](
+      ProjectOpen,
+      // TODO [RW] maybe we can get rid of this timeout since boot timeout is
+      //  handled by the LanguageServerProcess; still the ? message of
+      //  LanguageServerGateway will result in timeouts
+      Some(requestTimeout)
+    ) {
 
-  import context.dispatcher
+  override def handleRequest = { params =>
+    val missingComponentAction =
+      params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
 
-  private def requestStage: Receive = {
-    case Request(ProjectOpen, id, params: ProjectOpen.Params) =>
-      val missingComponentAction =
-        params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
-      Exec[F]
-        .exec(
-          service
-            .openProject(clientId, params.projectId, missingComponentAction)
-        )
-        .pipeTo(self)
-      val cancellable =
-        context.system.scheduler
-          .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
-  }
-
-  private def responseStage(
-    id: Id,
-    replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case Status.Failure(ex) =>
-      log.error(ex, s"Failure during $ProjectOpen operation:")
-      replyTo ! ResponseError(Some(id), ServiceError)
-      cancellable.cancel()
-      context.stop(self)
-
-    case RequestTimeout =>
-      log.error(s"Request $ProjectOpen with $id timed out")
-      replyTo ! ResponseError(Some(id), ServiceError)
-      context.stop(self)
-
-    case Left(failure: ProjectServiceFailure) =>
-      log.error(s"Request $id failed due to $failure")
-      replyTo ! ResponseError(Some(id), mapFailure(failure))
-      cancellable.cancel()
-      context.stop(self)
-
-    case Right(sockets: LanguageServerSockets) =>
-      replyTo ! ResponseResult(
-        ProjectOpen,
-        id,
-        ProjectOpen.Result(sockets.jsonSocket, sockets.binarySocket)
+    for {
+      sockets <- projectService.openProject(
+        progressTracker        = self,
+        clientId               = clientId,
+        projectId              = params.projectId,
+        missingComponentAction = missingComponentAction
       )
-      cancellable.cancel()
-      context.stop(self)
+    } yield ProjectOpen.Result(
+      languageServerJsonAddress   = sockets.jsonSocket,
+      languageServerBinaryAddress = sockets.binarySocket
+    )
   }
 
 }
@@ -93,15 +64,21 @@ object ProjectOpenHandler {
   /** Creates a configuration object used to create a [[ProjectOpenHandler]].
     *
     * @param clientId the requester id
-    * @param service a project service
+    * @param projectService a project service
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec](
+  def props[F[+_, +_]: Exec: CovariantFlatMap](
     clientId: UUID,
-    service: ProjectServiceApi[F],
+    projectService: ProjectServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props =
-    Props(new ProjectOpenHandler(clientId, service, requestTimeout))
+    Props(
+      new ProjectOpenHandler(
+        clientId,
+        projectService,
+        requestTimeout
+      )
+    )
 
 }

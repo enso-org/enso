@@ -29,7 +29,11 @@ class PingHandlerSpec
         .props(List(subsystem1.ref, subsystem2.ref, subsystem3.ref), 10.seconds)
     )
     //when
-    actorUnderTest ! Request(MonitoringApi.Ping, Number(1), Unused)
+    actorUnderTest ! Request(
+      MonitoringApi.Ping,
+      Number(1),
+      Unused
+    )
     //then
     subsystem1.expectMsg(Ping)
     subsystem2.expectMsg(Ping)
@@ -48,7 +52,11 @@ class PingHandlerSpec
         .props(List(subsystem1.ref, subsystem2.ref, subsystem3.ref), 10.seconds)
     )
     //when
-    actorUnderTest ! Request(MonitoringApi.Ping, Number(1), Unused)
+    actorUnderTest ! Request(
+      MonitoringApi.Ping,
+      Number(1),
+      Unused
+    )
     subsystem1.expectMsg(Ping)
     subsystem1.lastSender ! Pong
     subsystem2.expectMsg(Ping)
@@ -56,7 +64,9 @@ class PingHandlerSpec
     subsystem3.expectMsg(Ping)
     subsystem3.lastSender ! Pong
     //then
-    expectMsg(ResponseResult(MonitoringApi.Ping, Number(1), Unused))
+    expectMsg(
+      ResponseResult(MonitoringApi.Ping, Number(1), Unused)
+    )
     //teardown
     system.stop(actorUnderTest)
   }
@@ -72,7 +82,11 @@ class PingHandlerSpec
     )
     watch(actorUnderTest)
     //when
-    actorUnderTest ! Request(MonitoringApi.Ping, Number(1), Unused)
+    actorUnderTest ! Request(
+      MonitoringApi.Ping,
+      Number(1),
+      Unused
+    )
     subsystem2.expectMsg(Ping)
     subsystem2.lastSender ! Pong
     subsystem3.expectMsg(Ping)

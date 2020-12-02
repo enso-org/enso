@@ -17,4 +17,13 @@ object MonitoringApi {
     }
   }
 
+  case object InitialPing extends Method("heartbeat/init") {
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
 }

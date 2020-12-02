@@ -261,11 +261,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.auto.service.auto-service-annotations-1.0-rc7`.
 
 
-'logback-classic', licensed under the GNU Lesser General Public License, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `ch.qos.logback.logback-classic-1.2.3`.
-
-
 'scala-collection-compat_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-collection-compat_2.13-2.0.0`.
@@ -464,11 +459,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'enumeratum_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum_2.13-1.6.1`.
-
-
-'logback-core', licensed under the GNU Lesser General Public License, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `ch.qos.logback.logback-core-1.2.3`.
 
 
 'pureconfig_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the engine.

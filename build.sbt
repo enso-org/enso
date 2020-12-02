@@ -609,6 +609,26 @@ lazy val `logging-service` = project
   )
   .dependsOn(`akka-native`)
 
+ThisBuild / testOptions += Tests.Setup(_ =>
+  // Note [Logging Service in Tests]
+  sys.props("org.enso.loggingservice.test-log-level") = "2"
+)
+
+/* Note [Logging Service in Tests]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As migrating the runner to our new logging service has forced us to migrate
+ * other components that are related to it too, some tests that used to be
+ * configured by logback are not properly configured anymore and log a lot of
+ * debug information. This is a temporary fix to make sure that there are not
+ * too much logs in the CI - it sets the log level for all tests to be at most
+ * info by default. It can be overridden by particular tests if they set up a
+ * logging service.
+ *
+ * This is a temporary solution and it will be obsoleted once all of our
+ * components do a complete migration to the new logging service, which is
+ * planned in tasks #1144 and #1151.
+ */
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .configs(Test)
@@ -647,15 +667,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
-    javaOptions ++= {
-      // Note [Classpath Separation]
-      val runtimeClasspath =
-        (runtime / Compile / fullClasspath).value
-          .map(_.data)
-          .mkString(File.pathSeparator)
-      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
-    },
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"              % typesafeConfigVersion,
@@ -665,6 +677,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
       "commons-cli"                 % "commons-cli"         % commonsCliVersion,
       "commons-io"                  % "commons-io"          % commonsIoVersion,
+      "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
       "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
       "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
@@ -697,13 +710,12 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           )
         )
       ),
-    assembly := assembly
-      .dependsOn(runtime / assembly)
-      .value
+    assembly := assembly.dependsOn(`engine-runner` / assembly).value,
+    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
-  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
@@ -867,8 +879,7 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
-    libraryDependencies ++= akka ++ akkaTest ++ circe ++ Seq(
-      "ch.qos.logback"              % "logback-classic"      % logbackClassicVersion,
+    libraryDependencies ++= akka ++ circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
@@ -902,6 +913,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service`)
 
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(

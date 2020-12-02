@@ -26,12 +26,11 @@ class EngineInstallHandler[F[+_, +_]: Exec: CovariantFlatMap](
 
   /** @inheritdoc */
   override def handleRequest = { params =>
-    val progressTracker = sender()
     for {
       _ <- service.installEngine(
-        progressTracker,
-        params.version,
-        params.forceInstallBroken.getOrElse(false)
+        progressTracker    = self,
+        version            = params.version,
+        forceInstallBroken = params.forceInstallBroken.getOrElse(false)
       )
     } yield Unused
   }

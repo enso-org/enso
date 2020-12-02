@@ -2,6 +2,7 @@ package org.enso.projectmanager
 
 import java.util.UUID
 
+import akka.testkit.TestDuration
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.literal._
@@ -58,7 +59,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
               }
             }
           """)
-    val Right(openReply) = parse(client.expectMessage(10.seconds))
+    val Right(openReply) = parse(client.expectMessage(10.seconds.dilated))
     val socket = for {
       result <- openReply.hcursor.downExpectedField("result")
       addr   <- result.downExpectedField("languageServerJsonAddress")
@@ -81,13 +82,16 @@ trait ProjectManagementOps { this: BaseServerSpec =>
               }
             }
           """)
-    client.expectJson(json"""
+    client.expectJson(
+      json"""
           {
             "jsonrpc":"2.0",
             "id":0,
             "result": null
           }
-          """)
+          """,
+      10.seconds.dilated
+    )
   }
 
   def deleteProject(

@@ -1,15 +1,11 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.util.UUID
-
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.testkit.{ImplicitSender, TestActor, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
-import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
-import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.ServerBooted
 import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.{
   Reject,
   ReplyWith
@@ -17,14 +13,11 @@ import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSock
 import org.enso.projectmanager.infrastructure.languageserver.StepParent.ChildTerminated
 import org.enso.projectmanager.infrastructure.net.Tcp
 import org.enso.testkit.FlakySpec
-import org.mockito.BDDMockito._
-import org.mockito.Mockito._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class LanguageServerSupervisorSpec
@@ -55,7 +48,7 @@ class LanguageServerSupervisorSpec
       virtualTimeAdvances(testHeartbeatInterval / 2)
     }
     //then
-    `then`(serverComponent.restart()).shouldHaveNoInteractions()
+    processManagerProbe.expectNoMessage()
     //teardown
     parent ! GracefulStop
     parentProbe.expectMsg(ChildTerminated)
@@ -65,8 +58,6 @@ class LanguageServerSupervisorSpec
 
   it should "restart server when pong message doesn't arrive on time" taggedAs Flaky in new TestCtx {
     //given
-    when(serverComponent.restart())
-      .thenReturn(Future.successful(ComponentRestarted))
     val probe               = TestProbe()
     @volatile var pingCount = 0
     fakeServer.withBehaviour { case ping @ PingMatcher(requestId) =>
@@ -84,7 +75,7 @@ class LanguageServerSupervisorSpec
     //when
     virtualTimeAdvances(testInitialDelay)
     (1 to 2).foreach { _ =>
-      verifyNoInteractions(serverComponent)
+      processManagerProbe.expectNoMessage()
       probe.expectMsgPF() { case PingMatcher(_) => () }
       virtualTimeAdvances(testHeartbeatInterval / 2)
       probe.expectNoMessage()
@@ -92,10 +83,11 @@ class LanguageServerSupervisorSpec
     }
     probe.expectMsgPF() { case PingMatcher(_) => () }
     virtualTimeAdvances(testHeartbeatTimeout)
-    verify(serverComponent, timeout(VerificationTimeout).times(1)).restart()
+    processManagerProbe.expectMsg(Restart)
+    restartRequests mustEqual 1
     virtualTimeAdvances(testInitialDelay)
     (1 to 2).foreach { _ =>
-      verifyNoMoreInteractions(serverComponent)
+      processManagerProbe.expectNoMessage()
       probe.expectMsgPF() { case PingMatcher(_) => () }
       virtualTimeAdvances(testHeartbeatInterval / 2)
       probe.expectNoMessage()
@@ -104,35 +96,6 @@ class LanguageServerSupervisorSpec
     //teardown
     parent ! GracefulStop
     parentProbe.expectMsg(ChildTerminated)
-    system.stop(parent)
-    fakeServer.stop()
-  }
-
-  it should "restart server limited number of times" in new TestCtx {
-    //given
-    when(serverComponent.restart()).thenReturn(Future.failed(new Exception))
-    val probe = TestProbe()
-    fakeServer.withBehaviour { case ping @ PingMatcher(_) =>
-      probe.ref ! ping
-      Reject
-    }
-    probe.expectNoMessage()
-    //when
-    virtualTimeAdvances(testInitialDelay)
-    probe.expectMsgPF(5.seconds) { case PingMatcher(_) => () }
-    verifyNoInteractions(serverComponent)
-    virtualTimeAdvances(testHeartbeatTimeout)
-    (1 to testRestartLimit).foreach { i =>
-      verify(serverComponent, timeout(VerificationTimeout).times(i)).restart()
-      virtualTimeAdvances(testRestartDelay)
-    }
-    virtualTimeAdvances(testHeartbeatInterval)
-    probe.expectNoMessage()
-    verifyNoMoreInteractions(serverComponent)
-    //then
-    parentProbe.expectMsg(ServerDied)
-    parentProbe.expectMsg(ChildTerminated)
-    //teardown
     system.stop(parent)
     fakeServer.stop()
   }
@@ -146,8 +109,6 @@ class LanguageServerSupervisorSpec
     val VerificationTimeout = 120000
 
     val virtualTime = new VirtualTime
-
-    val serverComponent = mock[LifecycleComponent]
 
     val testHost = "127.0.0.1"
 
@@ -168,13 +129,11 @@ class LanguageServerSupervisorSpec
     val fakeServer = new ProgrammableWebSocketServer(testHost, testRpcPort)
     fakeServer.start()
 
-    val serverConfig =
-      LanguageServerConfig(
+    val connectionInfo =
+      LanguageServerConnectionInfo(
         testHost,
         testRpcPort,
-        testDataPort,
-        UUID.randomUUID(),
-        "/tmp"
+        testDataPort
       )
 
     val supervisionConfig =
@@ -188,15 +147,28 @@ class LanguageServerSupervisorSpec
 
     val parentProbe = TestProbe()
 
+    val processManagerProbe = TestProbe()
+    var restartRequests     = 0
+    processManagerProbe
+      .setAutoPilot((sender: ActorRef, msg: Any) =>
+        msg match {
+          case Restart =>
+            restartRequests += 1
+            sender ! ServerBooted(connectionInfo, processManagerProbe.ref)
+            TestActor.KeepRunning
+          case _ => TestActor.KeepRunning
+        }
+      )
+
     val parent = system.actorOf(
       Props(
         new StepParent(
           LanguageServerSupervisor.props(
-            serverConfig,
-            serverComponent,
-            supervisionConfig,
-            new AkkaBasedWebSocketConnectionFactory(),
-            virtualTime.scheduler
+            connectionInfo       = connectionInfo,
+            serverProcessManager = processManagerProbe.ref,
+            supervisionConfig    = supervisionConfig,
+            connectionFactory    = new AkkaBasedWebSocketConnectionFactory(),
+            scheduler            = virtualTime.scheduler
           ),
           parentProbe.ref
         )

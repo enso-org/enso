@@ -2,6 +2,8 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
+import akka.actor.ActorRef
+import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.model.Project
 
@@ -13,8 +15,16 @@ object LanguageServerProtocol {
     *
     * @param clientId the requester id
     * @param project the project to start
+    * @param engineVersion version of the engine to use
+    * @param progressTracker an actor that should be sent notifications about
+    *                        locks
     */
-  case class StartServer(clientId: UUID, project: Project)
+  case class StartServer(
+    clientId: UUID,
+    project: Project,
+    engineVersion: SemVer,
+    progressTracker: ActorRef
+  )
 
   /** Base trait for server startup results.
     */

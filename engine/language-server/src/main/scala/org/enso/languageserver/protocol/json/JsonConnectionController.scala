@@ -21,12 +21,15 @@ import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
-import org.enso.languageserver.monitoring.MonitoringApi.Ping
+import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
-import org.enso.languageserver.requesthandler.monitoring.PingHandler
+import org.enso.languageserver.requesthandler.monitoring.{
+  InitialPingHandler,
+  PingHandler
+}
 import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
@@ -37,18 +40,12 @@ import org.enso.languageserver.requesthandler.visualisation.{
 }
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.search.SearchApi.{
-  Completion,
-  GetSuggestionsDatabase,
-  GetSuggestionsDatabaseVersion,
-  Import,
-  InvalidateSuggestionsDatabase
-}
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
   ModifyVisualisation
 }
+import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
@@ -246,6 +243,7 @@ class JsonConnectionController(
         ),
         requestTimeout
       ),
+      InitialPing -> InitialPingHandler.props,
       AcquireCapability -> AcquireCapabilityHandler
         .props(capabilityRouter, requestTimeout, rpcSession),
       ReleaseCapability -> ReleaseCapabilityHandler

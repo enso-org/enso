@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
+import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
@@ -38,14 +39,23 @@ class LanguageServerGatewayImpl[
 
   /** @inheritdoc */
   override def start(
+    progressTracker: ActorRef,
     clientId: UUID,
-    project: Project
+    project: Project,
+    version: SemVer
   ): F[ServerStartupFailure, LanguageServerSockets] = {
-    implicit val timeout: Timeout = Timeout(timeoutConfig.bootTimeout)
+    implicit val timeout: Timeout = Timeout(2 * timeoutConfig.bootTimeout)
 
+    // TODO [RW] this can timeout if the boot is stuck waiting on a lock, how do
+    //  we want to handle that? #1315
     Async[F]
       .fromFuture { () =>
-        (registry ? StartServer(clientId, project)).mapTo[ServerStartupResult]
+        (registry ? StartServer(
+          clientId,
+          project,
+          version,
+          progressTracker
+        )).mapTo[ServerStartupResult]
       }
       .mapError(_ => ServerBootTimedOut)
       .flatMap {

@@ -62,7 +62,7 @@ abstract class JsonRpcServerTestKit
     val _ = binding.unbind()
   }
 
-  class WsTestClient(address: String) {
+  class WsTestClient(address: String, debugMessages: Boolean = false) {
     private var inActor: ActorRef   = _
     private val outActor: TestProbe = TestProbe()
     private val source: Source[Message, NotUsed] = Source
@@ -104,8 +104,11 @@ abstract class JsonRpcServerTestKit
 
     def send(json: Json): Unit = send(json.noSpaces)
 
-    def expectMessage(timeout: FiniteDuration = 3.seconds.dilated): String =
-      outActor.expectMsgClass[String](timeout, classOf[String])
+    def expectMessage(timeout: FiniteDuration = 3.seconds.dilated): String = {
+      val message = outActor.expectMsgClass[String](timeout, classOf[String])
+      if (debugMessages) println(message)
+      message
+    }
 
     def expectJson(
       json: Json,

@@ -29,9 +29,11 @@ class EngineUninstallHandler[F[+_, +_]: Exec: CovariantFlatMap](
 
   /** @inheritdoc */
   override def handleRequest = { params =>
-    val progressTracker = sender()
     for {
-      _ <- service.uninstallEngine(progressTracker, params.version)
+      _ <- service.uninstallEngine(
+        progressTracker = self,
+        version         = params.version
+      )
     } yield Unused
   }
 }

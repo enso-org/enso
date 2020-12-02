@@ -38,7 +38,7 @@ class Runner(
   def newProject(
     path: Path,
     name: String,
-    version: SemVer,
+    engineVersion: SemVer,
     authorName: Option[String],
     authorEmail: Option[String],
     additionalArguments: Seq[String]
@@ -55,7 +55,7 @@ class Runner(
           "--new-project-name",
           name
         ) ++ authorNameOption ++ authorEmailOption ++ additionalArguments
-      RunSettings(version, arguments, connectLoggerIfAvailable = false)
+      RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
     }
 
   /** Creates [[RunSettings]] for launching the Language Server. */
@@ -65,15 +65,33 @@ class Runner(
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
     additionalArguments: Seq[String]
+  ): Try[RunSettings] = {
+    val version     = versionOverride.getOrElse(project.version)
+    val projectPath = project.path.toAbsolutePath.normalize.toString
+    startLanguageServer(
+      options,
+      projectPath,
+      version,
+      logLevel,
+      additionalArguments
+    )
+  }
+
+  /** Creates [[RunSettings]] for launching the Language Server. */
+  def startLanguageServer(
+    options: LanguageServerOptions,
+    projectPath: String,
+    version: SemVer,
+    logLevel: LogLevel,
+    additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
-      val version = versionOverride.getOrElse(project.version)
       val arguments = Seq(
         "--server",
         "--root-id",
         options.rootId.toString,
         "--path",
-        project.path.toAbsolutePath.normalize.toString,
+        projectPath,
         "--interface",
         options.interface,
         "--rpc-port",
@@ -150,41 +168,19 @@ class Runner(
       action(Command(command, extraEnvironmentOverrides))
     }
 
-    val engineVersion = runSettings.version
-    if (jvmSettings.useSystemJVM) {
-      runtimeVersionManager.withEngine(engineVersion) { engine =>
-        prepareAndRunCommand(engine, systemJavaCommand)
-      }
-    } else {
-      runtimeVersionManager.withEngineAndRuntime(engineVersion) {
-        (engine, runtime) =>
-          prepareAndRunCommand(engine, javaCommandForRuntime(runtime))
-      }
+    val engineVersion = runSettings.engineVersion
+    jvmSettings.javaCommandOverride match {
+      case Some(overriddenCommand) =>
+        runtimeVersionManager.withEngine(engineVersion) { engine =>
+          prepareAndRunCommand(engine, overriddenCommand)
+        }
+      case None =>
+        runtimeVersionManager.withEngineAndRuntime(engineVersion) {
+          (engine, runtime) =>
+            prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+        }
     }
   }
-
-  /** Represents a way of launching the JVM.
-    *
-    * Stores the name of the `java` executable to run and a possible JAVA_HOME
-    * environment variable override.
-    */
-  private case class JavaCommand(
-    executableName: String,
-    javaHomeOverride: Option[String]
-  )
-
-  /** The [[JavaCommand]] representing the system-configured JVM.
-    */
-  private def systemJavaCommand: JavaCommand = JavaCommand("java", None)
-
-  /** The [[JavaCommand]] representing a managed [[GraalRuntime]].
-    */
-  private def javaCommandForRuntime(runtime: GraalRuntime): JavaCommand =
-    JavaCommand(
-      executableName = runtime.javaExecutable.toAbsolutePath.normalize.toString,
-      javaHomeOverride =
-        Some(runtime.javaHome.toAbsolutePath.normalize.toString)
-    )
 
   /** Returns arguments that should be added to a launched component to connect
     * it to launcher's logging service.

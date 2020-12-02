@@ -21,10 +21,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
   def run(): Try[Int] =
     wrapError {
       logger.debug(s"Executing $toString")
-      val processBuilder = new java.lang.ProcessBuilder(command: _*)
-      for ((key, value) <- extraEnv) {
-        processBuilder.environment().put(key, value)
-      }
+      val processBuilder = builder()
       processBuilder.inheritIO()
       val process = processBuilder.start()
       process.waitFor()
@@ -43,6 +40,21 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
       val processBuilder = Process(command, None, extraEnv: _*)
       processBuilder.!!
     }
+
+  /** Returns a [[ProcessBuilder]] that can be used to start the process.
+    *
+    * This is an advanced feature and it has to be used very carefully - the
+    * builder and the constructed process (as long as it is running) must not
+    * leak outside of the enclosing `withCommand` function to preserve the
+    * guarantees that the environment the process requires still exists.
+    */
+  def builder(): ProcessBuilder = {
+    val processBuilder = new java.lang.ProcessBuilder(command: _*)
+    for ((key, value) <- extraEnv) {
+      processBuilder.environment().put(key, value)
+    }
+    processBuilder
+  }
 
   /** Runs the provided action and wraps any errors into a [[Failure]]
     * containing a [[RunnerError]].

@@ -321,4 +321,8 @@ object ProjectManagementApi {
   case class GlobalConfigurationAccessError(msg: String)
       extends Error(4011, msg)
 
+  case class ProjectCreateError(msg: String) extends Error(4012, msg)
+
+  case class LoggingServiceUnavailable(msg: String) extends Error(4013, msg)
+
 }

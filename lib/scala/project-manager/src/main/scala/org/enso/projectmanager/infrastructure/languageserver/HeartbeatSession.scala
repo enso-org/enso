@@ -17,7 +17,10 @@ import org.enso.projectmanager.infrastructure.languageserver.HeartbeatSession.{
   HeartbeatTimeout,
   SocketClosureTimeout
 }
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.ServerUnresponsive
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
+  HeartbeatReceived,
+  ServerUnresponsive
+}
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -28,12 +31,21 @@ import scala.concurrent.duration.FiniteDuration
   * @param timeout a session timeout
   * @param connectionFactory a web socket connection factory
   * @param scheduler a scheduler
+  * @param method api method to use for the heartbeat message
+  * @param sendConfirmations whether to send [[HeartbeatReceived]] to confirm
+  *                          that a response has been received
+  * @param quietErrors if set, reports errors in debug level instead of error
+  *                    level, can be used when errors are expected (i.e. on
+  *                    startup)
   */
 class HeartbeatSession(
   socket: Socket,
   timeout: FiniteDuration,
   connectionFactory: WebSocketConnectionFactory,
-  scheduler: Scheduler
+  scheduler: Scheduler,
+  method: String,
+  sendConfirmations: Boolean,
+  quietErrors: Boolean
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -57,7 +69,7 @@ class HeartbeatSession(
       connection.send(s"""
                          |{ 
                          |   "jsonrpc": "2.0",
-                         |   "method": "heartbeat/ping",
+                         |   "method": "$method",
                          |   "id": "$requestId",
                          |   "params": null
                          |}
@@ -66,7 +78,7 @@ class HeartbeatSession(
       context.become(pongStage(cancellable))
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during connecting to websocket $socket")
+      logError(th, s"An error occurred during connecting to websocket $socket")
       context.parent ! ServerUnresponsive
       stop()
 
@@ -81,16 +93,18 @@ class HeartbeatSession(
 
       maybeJson match {
         case Left(error) =>
-          log.error(error, "An error occurred during parsing pong reply")
+          logError(error, "An error occurred during parsing pong reply")
 
         case Right(id) =>
           if (id == requestId.toString) {
             log.debug(s"Received correct pong message from $socket")
+
+            if (sendConfirmations) {
+              context.parent ! HeartbeatReceived
+            }
+
             cancellable.cancel()
-            connection.disconnect()
-            val closureTimeout =
-              scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
-            context.become(socketClosureStage(closureTimeout))
+            stop()
           } else {
             log.warning(s"Received unknown response $payload")
           }
@@ -99,21 +113,17 @@ class HeartbeatSession(
     case HeartbeatTimeout =>
       log.debug(s"Heartbeat timeout detected for $requestId")
       context.parent ! ServerUnresponsive
-      connection.disconnect()
-      val closureTimeout =
-        scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
-      context.become(socketClosureStage(closureTimeout))
+      stop()
 
     case WebSocketStreamClosed =>
       context.parent ! ServerUnresponsive
       context.stop(self)
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during waiting for Pong message")
+      logError(th, s"An error occurred during waiting for Pong message")
       context.parent ! ServerUnresponsive
       cancellable.cancel()
-      connection.disconnect()
-      context.stop(self)
+      stop()
 
     case GracefulStop =>
       cancellable.cancel()
@@ -126,13 +136,14 @@ class HeartbeatSession(
       cancellable.cancel()
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during closing web socket")
+      logError(th, s"An error occurred during closing web socket")
       context.stop(self)
       cancellable.cancel()
 
     case SocketClosureTimeout =>
-      log.error(s"Socket closure timed out")
+      logError(s"Socket closure timed out")
       context.stop(self)
+      connection.detachListener(self)
 
     case GracefulStop => // ignoring it, because the actor is already closing
   }
@@ -142,6 +153,22 @@ class HeartbeatSession(
     val closureTimeout =
       scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
     context.become(socketClosureStage(closureTimeout))
+  }
+
+  private def logError(throwable: Throwable, message: String): Unit = {
+    if (quietErrors) {
+      log.debug(s"$message ($throwable)")
+    } else {
+      log.error(throwable, message)
+    }
+  }
+
+  private def logError(message: String): Unit = {
+    if (quietErrors) {
+      log.debug(message)
+    } else {
+      log.error(message)
+    }
   }
 
 }
@@ -156,7 +183,8 @@ object HeartbeatSession {
     */
   case object SocketClosureTimeout
 
-  /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
+  /** Creates a configuration object used to create an ordinary
+    * [[HeartbeatSession]] for monitoring server's status.
     *
     * @param socket a server socket
     * @param timeout a session timeout
@@ -170,6 +198,43 @@ object HeartbeatSession {
     connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler
   ): Props =
-    Props(new HeartbeatSession(socket, timeout, connectionFactory, scheduler))
+    Props(
+      new HeartbeatSession(
+        socket,
+        timeout,
+        connectionFactory,
+        scheduler,
+        "heartbeat/ping",
+        sendConfirmations = false,
+        quietErrors       = false
+      )
+    )
+
+  /** Creates a configuration object used to create an initial
+    * [[HeartbeatSession]] for checking if the server has finished booting.
+    *
+    * @param socket a server socket
+    * @param timeout a session timeout
+    * @param connectionFactory a web socket connection factory
+    * @param scheduler a scheduler
+    * @return a configuration object
+    */
+  def initialProps(
+    socket: Socket,
+    timeout: FiniteDuration,
+    connectionFactory: WebSocketConnectionFactory,
+    scheduler: Scheduler
+  ): Props =
+    Props(
+      new HeartbeatSession(
+        socket,
+        timeout,
+        connectionFactory,
+        scheduler,
+        "heartbeat/init",
+        sendConfirmations = true,
+        quietErrors       = true
+      )
+    )
 
 }

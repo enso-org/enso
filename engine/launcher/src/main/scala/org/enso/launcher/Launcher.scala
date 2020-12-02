@@ -81,7 +81,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .newProject(
             path                = actualPath,
             name                = name,
-            version             = version,
+            engineVersion       = version,
             authorName          = globalConfig.authorName,
             authorEmail         = globalConfig.authorEmail,
             additionalArguments = additionalArguments
@@ -414,7 +414,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val (runtimeVersionRunSettings, whichEngine) = runner.version(useJSON).get
 
     val isEngineInstalled =
-      componentsManager.findEngine(runtimeVersionRunSettings.version).isDefined
+      componentsManager
+        .findEngine(runtimeVersionRunSettings.engineVersion)
+        .isDefined
     val runtimeVersionString = if (isEngineInstalled) {
       val output = runner.withCommand(
         runtimeVersionRunSettings,

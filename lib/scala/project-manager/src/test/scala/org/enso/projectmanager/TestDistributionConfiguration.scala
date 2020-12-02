@@ -25,12 +25,14 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
+import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   HasTestDirectory,
   TestLocalLockManager
 }
 
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** A distribution configuration for use in tests.
@@ -39,20 +41,23 @@ import scala.util.{Failure, Success, Try}
   *                         within some temporary directory
   * @param engineReleaseProvider provider of (fake) engine releases
   * @param runtimeReleaseProvider provider of (fake) Graal releases
+  * @param discardChildOutput specifies if input of launched runner processes
+  *                           should be ignored
   */
 class TestDistributionConfiguration(
   distributionRoot: Path,
   override val engineReleaseProvider: ReleaseProvider[EngineRelease],
-  runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
+  runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
+  discardChildOutput: Boolean
 ) extends DistributionConfiguration
     with FakeEnvironment
     with HasTestDirectory {
 
   def getTestDirectory: Path = distributionRoot
 
-  lazy val distributionManager = new DistributionManager(
-    fakeInstalledEnvironment()
-  )
+  lazy val environment = fakeInstalledEnvironment()
+
+  lazy val distributionManager = new DistributionManager(environment)
 
   lazy val lockManager = new TestLocalLockManager
 
@@ -71,36 +76,66 @@ class TestDistributionConfiguration(
     engineReleaseProvider     = engineReleaseProvider,
     runtimeReleaseProvider    = runtimeReleaseProvider
   )
-}
 
-object TestDistributionConfiguration {
-  def withoutReleases(distributionRoot: Path): TestDistributionConfiguration = {
-    val noReleaseProvider = new SimpleReleaseProvider {
-      override def releaseForTag(tag: String): Try[Release] = Failure(
-        new IllegalStateException(
-          "This provider does not support fetching releases."
-        )
-      )
-
-      override def listReleases(): Try[Seq[Release]] = Success(Seq())
-    }
-
-    new TestDistributionConfiguration(
-      distributionRoot       = distributionRoot,
-      engineReleaseProvider  = new EngineReleaseProvider(noReleaseProvider),
-      runtimeReleaseProvider = new GraalCEReleaseProvider(noReleaseProvider)
+  /** JVM settings that will force to use the same JVM that we are running.
+    *
+    * This is done to avoiding downloading GraalVM in tests (that would be far
+    * too slow) and to ensure that a GraalVM instance is selected, regardless of
+    * the default JVM set in the current environment.
+    */
+  override def defaultJVMSettings: JVMSettings = {
+    val currentProcess =
+      ProcessHandle.current().info().command().toScala.getOrElse("java")
+    val javaCommand = JavaCommand(currentProcess, None)
+    new JVMSettings(
+      javaCommandOverride = Some(javaCommand),
+      jvmOptions          = Seq()
     )
   }
 
+  override def shouldDiscardChildOutput: Boolean = discardChildOutput
+}
+
+object TestDistributionConfiguration {
+
+  /** Creates a [[TestDistributionConfiguration]] with repositories that do not
+    * have any available releases.
+    */
+  def withoutReleases(
+    distributionRoot: Path,
+    discardChildOutput: Boolean
+  ): TestDistributionConfiguration = {
+    val noReleaseProvider = new NoReleaseProvider
+    new TestDistributionConfiguration(
+      distributionRoot       = distributionRoot,
+      engineReleaseProvider  = new EngineReleaseProvider(noReleaseProvider),
+      runtimeReleaseProvider = new GraalCEReleaseProvider(noReleaseProvider),
+      discardChildOutput
+    )
+  }
+
+  /** Creates a [[TestDistributionConfiguration]] instance. */
   def apply(
     distributionRoot: Path,
     engineReleaseProvider: ReleaseProvider[EngineRelease],
-    runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
+    runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
+    discardChildOutput: Boolean
   ): TestDistributionConfiguration =
     new TestDistributionConfiguration(
       distributionRoot,
       engineReleaseProvider,
-      runtimeReleaseProvider
+      runtimeReleaseProvider,
+      discardChildOutput
     )
 
+  /** A [[SimpleReleaseProvider]] that has no releases. */
+  private class NoReleaseProvider extends SimpleReleaseProvider {
+    override def releaseForTag(tag: String): Try[Release] = Failure(
+      new IllegalStateException(
+        "This provider does not support fetching releases."
+      )
+    )
+
+    override def listReleases(): Try[Seq[Release]] = Success(Seq())
+  }
 }

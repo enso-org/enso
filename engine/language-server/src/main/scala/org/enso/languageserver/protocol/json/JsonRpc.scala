@@ -10,7 +10,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.io.InputOutputApi._
-import org.enso.languageserver.monitoring.MonitoringApi.Ping
+import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.search.SearchApi._
@@ -24,6 +24,7 @@ object JsonRpc {
     */
   val protocol: Protocol = Protocol.empty
     .registerRequest(Ping)
+    .registerRequest(InitialPing)
     .registerRequest(InitProtocolConnection)
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)

@@ -2,19 +2,21 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
+import akka.actor.ActorRef
 import cats.MonadError
-import org.enso.pkg.{EnsoVersion, PackageManager}
+import nl.gn0s1s.bump.SemVer
+import org.enso.pkg.PackageManager
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.control.effect.syntax._
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
   LanguageServerSockets,
   MissingComponentAction,
   ProjectMetadata
 }
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerGateway
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
@@ -35,11 +37,18 @@ import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
   NameContainsForbiddenCharacter
 }
+import org.enso.projectmanager.service.config.GlobalConfigServiceApi
+import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
 /** Implementation of business logic for project management.
   *
   * @param validator a project validator
   * @param repo a project repository
+  * @param projectCreationService a service for creating projects
+  * @param configurationService a service for managing configuration
   * @param log a logging facility
   * @param clock a clock
   * @param gen a random generator
@@ -47,10 +56,13 @@ import org.enso.projectmanager.service.ValidationFailure.{
 class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
+  projectCreationService: ProjectCreationServiceApi[F],
+  configurationService: GlobalConfigServiceApi[F],
   log: Logging[F],
   clock: Clock[F],
   gen: Generator[F],
-  languageServerGateway: LanguageServerGateway[F]
+  languageServerGateway: LanguageServerGateway[F],
+  distributionConfiguration: DistributionConfiguration
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
@@ -58,25 +70,30 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
 
   /** @inheritdoc */
   override def createUserProject(
+    progressTracker: ActorRef,
     name: String,
-    version: EnsoVersion,
+    engineVersion: SemVer,
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, UUID] = {
-    // TODO [RW] new component handling
-    val _ = (version, missingComponentAction)
-    // format: off
-    for {
-      projectId    <- gen.randomUUID()
-      _            <- log.debug(s"Creating project $name $projectId.")
-      _            <- validateName(name)
-      _            <- checkIfNameExists(name)
-      creationTime <- clock.nowInUtc()
-      project       = Project(projectId, name, UserProject, creationTime)
-      _            <- repo.create(project).mapError(toServiceFailure)
-      _            <- log.info(s"Project $project created.")
-    } yield projectId
-    // format: on
-  }
+  ): F[ProjectServiceFailure, UUID] = for {
+    projectId    <- gen.randomUUID()
+    _            <- log.debug(s"Creating project $name $projectId.")
+    _            <- validateName(name)
+    _            <- checkIfNameExists(name)
+    creationTime <- clock.nowInUtc()
+    project = Project(projectId, name, UserProject, creationTime)
+    path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
+    _ <- projectCreationService.createProject(
+      progressTracker,
+      path,
+      name,
+      engineVersion,
+      missingComponentAction
+    )
+    _ <- repo
+      .update(project.copy(path = Some(path.toString)))
+      .mapError(toServiceFailure)
+    _ <- log.info(s"Project $project created.")
+  } yield projectId
 
   /** @inheritdoc */
   override def deleteUserProject(
@@ -176,12 +193,11 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
 
   /** @inheritdoc */
   override def openProject(
+    progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, LanguageServerSockets] = {
-    // TODO [RW] new component handling
-    val _ = missingComponentAction
     // format: off
     for {
       _        <- log.debug(s"Opening project $projectId")
@@ -189,17 +205,46 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
       _        <- repo.update(updated).mapError(toServiceFailure)
-      sockets  <- startServer(clientId, updated)
+      sockets  <- startServer(progressTracker, clientId, updated, missingComponentAction)
     } yield sockets
     // format: on
   }
 
+  private def preinstallEngine(
+    progressTracker: ActorRef,
+    version: SemVer,
+    missingComponentAction: MissingComponentAction
+  ): F[ProjectServiceFailure, Unit] =
+    Sync[F]
+      .blockingOp {
+        RuntimeVersionManagerFactory(distributionConfiguration)
+          .makeRuntimeVersionManager(progressTracker, missingComponentAction)
+          .findOrInstallEngine(version)
+        ()
+      }
+      .mapRuntimeManagerErrors(th =>
+        ProjectOpenFailed(
+          s"Cannot install the required engine ${th.getMessage}"
+        )
+      )
+
   private def startServer(
+    progressTracker: ActorRef,
     clientId: UUID,
-    project: Project
-  ): F[ProjectServiceFailure, LanguageServerSockets] =
-    languageServerGateway
-      .start(clientId, project)
+    project: Project,
+    missingComponentAction: MissingComponentAction
+  ): F[ProjectServiceFailure, LanguageServerSockets] = for {
+    version <- configurationService
+      .resolveEnsoVersion(project.engineVersion)
+      .mapError { case ConfigurationFileAccessFailure(message) =>
+        ProjectOpenFailed(
+          s"Could not deduce the default version to use for the project: " +
+          s"$message"
+        )
+      }
+    _ <- preinstallEngine(progressTracker, version, missingComponentAction)
+    sockets <- languageServerGateway
+      .start(progressTracker, clientId, project, version)
       .mapError {
         case PreviousInstanceNotShutDown =>
           ProjectOpenFailed(
@@ -215,6 +260,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
             s"Language server boot failed: ${th.getMessage}"
           )
       }
+  } yield sockets
 
   /** @inheritdoc */
   override def closeProject(
