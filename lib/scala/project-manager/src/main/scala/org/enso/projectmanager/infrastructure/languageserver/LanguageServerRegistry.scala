@@ -31,13 +31,16 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
   * @param distributionConfiguration configuration of the distribution
+  * @param executor an executor service used to start the language server
+  *                 process
   */
 class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
   supervisionConfig: SupervisionConfig,
   timeoutConfig: TimeoutConfig,
-  distributionConfiguration: DistributionConfiguration
+  distributionConfiguration: DistributionConfiguration,
+  executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -61,7 +64,8 @@ class LanguageServerRegistry(
               bootloaderConfig,
               supervisionConfig,
               timeoutConfig,
-              distributionConfiguration
+              distributionConfiguration,
+              executor
             ),
           s"language-server-controller-${project.id}"
         )
@@ -123,6 +127,8 @@ object LanguageServerRegistry {
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
     * @param distributionConfiguration configuration of the distribution
+    * @param executor an executor service used to start the language server
+    *                 process
     * @return a configuration object
     */
   def props(
@@ -130,7 +136,8 @@ object LanguageServerRegistry {
     bootloaderConfig: BootloaderConfig,
     supervisionConfig: SupervisionConfig,
     timeoutConfig: TimeoutConfig,
-    distributionConfiguration: DistributionConfiguration
+    distributionConfiguration: DistributionConfiguration,
+    executor: LanguageServerExecutor
   ): Props =
     Props(
       new LanguageServerRegistry(
@@ -138,7 +145,8 @@ object LanguageServerRegistry {
         bootloaderConfig,
         supervisionConfig,
         timeoutConfig,
-        distributionConfiguration
+        distributionConfiguration,
+        executor
       )
     )
 

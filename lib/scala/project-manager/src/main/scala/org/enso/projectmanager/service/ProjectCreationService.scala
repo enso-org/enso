@@ -9,7 +9,8 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.service.ProjectServiceFailure.ProjectCreateFailed
-import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.Runner
 
@@ -21,9 +22,8 @@ import scala.concurrent.Future
 class ProjectCreationService[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
 ](
-  override val distributionConfiguration: DistributionConfiguration
-) extends ProjectCreationServiceApi[F]
-    with RuntimeVersionManagerMixin {
+  distributionConfiguration: DistributionConfiguration
+) extends ProjectCreationServiceApi[F] {
 
   /** @inheritdoc */
   override def createProject(
@@ -34,8 +34,9 @@ class ProjectCreationService[
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, Unit] = Sync[F]
     .blockingOp {
-      val versionManager =
-        makeRuntimeVersionManager(progressTracker, missingComponentAction)
+      val versionManager = RuntimeVersionManagerFactory(
+        distributionConfiguration
+      ).makeRuntimeVersionManager(progressTracker, missingComponentAction)
       val runner =
         new Runner(
           versionManager,

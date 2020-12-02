@@ -20,6 +20,7 @@ import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
+  ExecutorWithUnlimitedPool,
   LanguageServerGatewayImpl,
   LanguageServerRegistry,
   ShutdownHookActivator
@@ -128,7 +129,8 @@ class BaseServerSpec
           bootloaderConfig,
           supervisionConfig,
           timeoutConfig,
-          distributionConfiguration
+          distributionConfiguration,
+          ExecutorWithUnlimitedPool
         )
     )
 

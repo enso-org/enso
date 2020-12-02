@@ -2,9 +2,9 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash}
-import akka.pattern.pipe
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerExecutor.ProcessHandle
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProcess.{
   Kill,
   ServerTerminated,
@@ -32,13 +32,16 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
   *                    initializing; if the initialization heartbeat is not
   *                    received within this time the boot is treated as failed
   *                    and the process is gracefully stopped
+  * @param executor an executor service used to start the language server
+  *                 process
   */
 class LanguageServerProcess(
   progressTracker: ActorRef,
   descriptor: LanguageServerDescriptor,
   rpcPort: Int,
   dataPort: Int,
-  bootTimeout: FiniteDuration
+  bootTimeout: FiniteDuration,
+  executor: LanguageServerExecutor
 ) extends Actor
     with Stash {
 
@@ -51,23 +54,30 @@ class LanguageServerProcess(
 
   override def receive: Receive = initializationStage
 
+  object LifecycleListener extends LanguageServerExecutor.LifecycleListener {
+    override def onStarted(processHandle: ProcessHandle): Unit =
+      self ! ProcessStarted(processHandle)
+
+    override def onTerminated(exitCode: Int): Unit =
+      self ! ProcessTerminated(exitCode)
+
+    override def onFailed(throwable: Throwable): Unit =
+      self ! ProcessFailed(throwable)
+  }
+
   /** First stage, it launches the child process and sets up the futures to send
     * back the notifications and goes to the startingStage.
     */
   private def initializationStage: Receive = {
     case Boot =>
-      val spawnResult = LanguageServerExecutor.spawn(
-        descriptor      = descriptor,
-        progressTracker = progressTracker,
-        rpcPort         = rpcPort,
-        dataPort        = dataPort
+      executor.spawn(
+        descriptor        = descriptor,
+        progressTracker   = progressTracker,
+        rpcPort           = rpcPort,
+        dataPort          = dataPort,
+        lifecycleListener = LifecycleListener
       )
-
       context.become(startingStage)
-      spawnResult.processHandleFuture.map(ProcessStarted) pipeTo self
-      spawnResult.exitCodeFuture
-        .map(ServerTerminated)
-        .recover(ServerThreadFailed(_)) pipeTo self
     case _ => stash()
   }
 
@@ -83,8 +93,8 @@ class LanguageServerProcess(
       context.become(bootingStage(process, cancellable))
       unstashAll()
       self ! AskServerIfStarted
-    case ServerThreadFailed(error) => handleFatalError(error)
-    case _                         => stash()
+    case ProcessFailed(error) => handleFatalError(error)
+    case _                    => stash()
   }
 
   private def handleFatalError(error: Throwable): Unit = {
@@ -105,7 +115,7 @@ class LanguageServerProcess(
     *   (possibly a crash).
     */
   private def bootingStage(
-    process: LanguageServerProcessHandle,
+    process: ProcessHandle,
     bootTimeout: Cancellable
   ): Receive =
     handleBootResponse(process, bootTimeout).orElse(runningStage(process))
@@ -115,7 +125,7 @@ class LanguageServerProcess(
   private val retryDelay = 100.milliseconds
 
   private def handleBootResponse(
-    process: LanguageServerProcessHandle,
+    process: ProcessHandle,
     bootTimeout: Cancellable
   ): Receive = {
     case AskServerIfStarted =>
@@ -153,17 +163,19 @@ class LanguageServerProcess(
     * spuriously, e.g. by a crash), the parent is notified and the current actor
     * is stopped.
     */
-  private def runningStage(process: LanguageServerProcessHandle): Receive = {
+  private def runningStage(process: ProcessHandle): Receive = {
     case Stop => process.requestGracefulTermination()
     case Kill => process.kill()
-    case ServerTerminated(exitCode) =>
+    case ProcessTerminated(exitCode) =>
       context.parent ! ServerTerminated(exitCode)
       context.stop(self)
-    case ServerThreadFailed(error) => handleFatalError(error)
+    case ProcessFailed(error) => handleFatalError(error)
   }
 
   private case object Boot
-  private case class ProcessStarted(process: LanguageServerProcessHandle)
+  private case class ProcessStarted(process: ProcessHandle)
+  private case class ProcessTerminated(exitCode: Int)
+  private case class ProcessFailed(throwable: Throwable)
 }
 
 object LanguageServerProcess {
@@ -179,6 +191,8 @@ object LanguageServerProcess {
     *                    initializing; if the initialization heartbeat is not
     *                    received within this time the boot is treated as failed
     *                    and the process is gracefully stopped
+    * @param executor an executor service used to start the language server
+    *                 process
     * @return a configuration object
     */
   def props(
@@ -186,14 +200,16 @@ object LanguageServerProcess {
     descriptor: LanguageServerDescriptor,
     rpcPort: Int,
     dataPort: Int,
-    bootTimeout: FiniteDuration
+    bootTimeout: FiniteDuration,
+    executor: LanguageServerExecutor
   ): Props = Props(
     new LanguageServerProcess(
       progressTracker,
       descriptor,
       rpcPort,
       dataPort,
-      bootTimeout
+      bootTimeout,
+      executor
     )
   )
 

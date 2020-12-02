@@ -47,6 +47,8 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
   * @param distributionConfiguration configuration of the distribution
+  * @param executor an executor service used to start the language server
+  *                 process
   */
 class LanguageServerController(
   project: Project,
@@ -56,7 +58,8 @@ class LanguageServerController(
   bootloaderConfig: BootloaderConfig,
   supervisionConfig: SupervisionConfig,
   timeoutConfig: TimeoutConfig,
-  distributionConfiguration: DistributionConfiguration
+  distributionConfiguration: DistributionConfiguration,
+  executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
     with Stash
@@ -95,7 +98,8 @@ class LanguageServerController(
               bootProgressTracker,
               descriptor,
               bootloaderConfig,
-              timeoutConfig.bootTimeout
+              timeoutConfig.bootTimeout,
+              executor
             ),
           s"bootloader-${descriptor.name}"
         )
@@ -307,6 +311,8 @@ object LanguageServerController {
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
     * @param distributionConfiguration configuration of the distribution
+    * @param executor an executor service used to start the language server
+    *                 process
     * @return a configuration object
     */
   def props(
@@ -317,7 +323,8 @@ object LanguageServerController {
     bootloaderConfig: BootloaderConfig,
     supervisionConfig: SupervisionConfig,
     timeoutConfig: TimeoutConfig,
-    distributionConfiguration: DistributionConfiguration
+    distributionConfiguration: DistributionConfiguration,
+    executor: LanguageServerExecutor
   ): Props =
     Props(
       new LanguageServerController(
@@ -328,7 +335,8 @@ object LanguageServerController {
         bootloaderConfig,
         supervisionConfig,
         timeoutConfig,
-        distributionConfiguration
+        distributionConfiguration,
+        executor
       )
     )
 

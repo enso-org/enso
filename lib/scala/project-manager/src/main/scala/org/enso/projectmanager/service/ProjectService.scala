@@ -39,7 +39,8 @@ import org.enso.projectmanager.service.ValidationFailure.{
 }
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
-import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerMixin
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
 /** Implementation of business logic for project management.
@@ -61,10 +62,9 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   clock: Clock[F],
   gen: Generator[F],
   languageServerGateway: LanguageServerGateway[F],
-  override val distributionConfiguration: DistributionConfiguration
+  distributionConfiguration: DistributionConfiguration
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
-    extends ProjectServiceApi[F]
-    with RuntimeVersionManagerMixin {
+    extends ProjectServiceApi[F] {
 
   import E._
 
@@ -217,7 +217,8 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   ): F[ProjectServiceFailure, Unit] =
     Sync[F]
       .blockingOp {
-        makeRuntimeVersionManager(progressTracker, missingComponentAction)
+        RuntimeVersionManagerFactory(distributionConfiguration)
+          .makeRuntimeVersionManager(progressTracker, missingComponentAction)
           .findOrInstallEngine(version)
         ()
       }

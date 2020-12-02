@@ -30,12 +30,15 @@ import scala.concurrent.duration.FiniteDuration
   *                    starts but fails to initialize after this timeout, it is
   *                    treated as a boot failure and the process is gracefully
   *                    stopped
+  * @param executor an executor service used to start the language server
+  *                 process
   */
 class LanguageServerBootLoader(
   bootProgressTracker: ActorRef,
   descriptor: LanguageServerDescriptor,
   config: BootloaderConfig,
-  bootTimeout: FiniteDuration
+  bootTimeout: FiniteDuration,
+  executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -121,7 +124,8 @@ class LanguageServerBootLoader(
           descriptor      = descriptor,
           bootTimeout     = bootTimeout,
           rpcPort         = rpcPort,
-          dataPort        = dataPort
+          dataPort        = dataPort,
+          executor        = executor
         ),
         s"process-wrapper-${descriptor.name}"
       )
@@ -276,20 +280,24 @@ object LanguageServerBootLoader {
     * @param bootTimeout maximum time the server can use to boot,
     *                    does not include the time needed to install any missing
     *                    components
+    * @param executor an executor service used to start the language server
+    *                 process
     * @return a configuration object
     */
   def props(
     bootProgressTracker: ActorRef,
     descriptor: LanguageServerDescriptor,
     config: BootloaderConfig,
-    bootTimeout: FiniteDuration
+    bootTimeout: FiniteDuration,
+    executor: LanguageServerExecutor
   ): Props =
     Props(
       new LanguageServerBootLoader(
         bootProgressTracker,
         descriptor,
         config,
-        bootTimeout
+        bootTimeout,
+        executor: LanguageServerExecutor
       )
     )
 

@@ -9,6 +9,7 @@ import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
+  ExecutorWithUnlimitedPool,
   LanguageServerGatewayImpl,
   LanguageServerRegistry,
   ShutdownHookActivator
@@ -78,7 +79,8 @@ class MainModule[
           config.bootloader,
           config.supervision,
           config.timeout,
-          DefaultDistributionConfiguration
+          DefaultDistributionConfiguration,
+          ExecutorWithUnlimitedPool
         ),
       "language-server-registry"
     )
