@@ -26,6 +26,9 @@ pub struct NavigatorModel {
     resize_callback : callback::Handle,
     zoom_speed      : SharedSwitch<f32>,
     pan_speed       : SharedSwitch<f32>,
+    /// Indicates whether events handled the navigator should be stopped from propagating further
+    /// after being handled by the Navigator.
+    disable_events  : Rc<Cell<bool>>,
 }
 
 impl NavigatorModel {
@@ -34,9 +37,11 @@ impl NavigatorModel {
         let pan_speed              = Rc::new(Cell::new(Switch::On(1.0)));
         let min_zoom               = 10.0;
         let max_zoom               = 10000.0;
+        let disable_events         = Rc::new(Cell::new(true));
         let (simulator,resize_callback,_events) = Self::start_navigator_events
-            (&scene,camera,min_zoom,max_zoom,Rc::clone(&zoom_speed),Rc::clone(&pan_speed));
-        Self {simulator,_events,resize_callback,zoom_speed,pan_speed}
+            (&scene,camera,min_zoom,max_zoom,Rc::clone(&zoom_speed),Rc::clone(&pan_speed),
+             Rc::clone(&disable_events));
+        Self {simulator,_events,resize_callback,zoom_speed,pan_speed,disable_events}
     }
 
     fn create_simulator(camera:&Camera2d) -> physics::inertia::DynSimulator<Vector3> {
@@ -49,13 +54,13 @@ impl NavigatorModel {
     }
 
     fn start_navigator_events
-    ( scene         : &Scene
-    , camera        : &Camera2d
-    , min_zoom      : f32
-    , max_zoom      : f32
-    , zoom_speed    : SharedSwitch<f32>
-    , pan_speed     : SharedSwitch<f32>
-
+    ( scene          : &Scene
+    , camera         : &Camera2d
+    , min_zoom       : f32
+    , max_zoom       : f32
+    , zoom_speed     : SharedSwitch<f32>
+    , pan_speed      : SharedSwitch<f32>
+    , disable_events : Rc<Cell<bool>>
     ) -> (physics::inertia::DynSimulator<Vector3>,callback::Handle,NavigatorEvents) {
         let simulator        = Self::create_simulator(&camera);
         let panning_callback = enclose!((scene,camera,mut simulator,pan_speed) move |pan: PanEvent| {
@@ -105,17 +110,19 @@ impl NavigatorModel {
         });
         (simulator,resize_callback, NavigatorEvents::new(&scene.mouse.mouse_manager,
                                                          panning_callback,zoom_callback,
-                                                         zoom_speed,pan_speed))
+                                                         zoom_speed,pan_speed,disable_events))
     }
 
     pub fn enable(&self) {
         self.pan_speed.update(|switch| switch.switched(true));
         self.zoom_speed.update(|switch| switch.switched(true));
+        self.disable_events.set(true);
     }
 
     pub fn disable(&self) {
         self.pan_speed.update(|switch| switch.switched(false));
         self.zoom_speed.update(|switch| switch.switched(false));
+        self.disable_events.set(false);
     }
 }
 

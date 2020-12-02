@@ -71,6 +71,7 @@ enum MovementType {
 struct NavigatorEventsProperties {
     zoom_speed          : SharedSwitch<f32>,
     pan_speed           : SharedSwitch<f32>,
+    disable_events      : Rc<Cell<bool>>,
     movement_type       : Option<MovementType>,
     last_mouse_position : Vector2<f32>,
     mouse_position      : Vector2<f32>,
@@ -96,7 +97,8 @@ impl NavigatorEventsData {
     ( pan_callback:Box<dyn FnPanEvent>
     , zoom_callback:Box<dyn FnZoomEvent>
     , zoom_speed:SharedSwitch<f32>
-    , pan_speed:SharedSwitch<f32>) -> Rc<Self> {
+    , pan_speed:SharedSwitch<f32>
+    , disable_events:Rc<Cell<bool>>) -> Rc<Self> {
         let mouse_position      = zero();
         let last_mouse_position = zero();
         let movement_type       = None;
@@ -108,6 +110,7 @@ impl NavigatorEventsData {
             zoom_callback,
             zoom_speed,
             pan_speed,
+            disable_events,
 
         });
         Rc::new(Self {properties})
@@ -144,6 +147,10 @@ impl NavigatorEventsData {
 
     fn movement_type(&self) -> Option<MovementType> {
         self.properties.borrow().movement_type
+    }
+
+    fn events_disabled(&self) -> bool {
+        self.properties.borrow().disable_events.get()
     }
 }
 
@@ -188,7 +195,7 @@ pub struct NavigatorEvents {
 impl NavigatorEvents {
     pub fn new
     <P,Z>(mouse_manager:&MouseManager, pan_callback:P, zoom_callback:Z,
-          zoom_speed:SharedSwitch<f32>,pan_speed:SharedSwitch<f32>) -> Self
+          zoom_speed:SharedSwitch<f32>,pan_speed:SharedSwitch<f32>,disable_events:Rc<Cell<bool>>) -> Self
     where P : FnPanEvent, Z : FnZoomEvent {
         let mouse_manager = mouse_manager.clone_ref();
         let pan_callback  = Box::new(pan_callback);
@@ -199,7 +206,7 @@ impl NavigatorEvents {
         let wheel_zoom    = default();
         let mouse_leave   = default();
         let data          = NavigatorEventsData::new(pan_callback,zoom_callback,zoom_speed,
-                                                     pan_speed);
+                                                     pan_speed,disable_events);
         let mut event_handler = Self {
             data,
             mouse_manager,
@@ -224,9 +231,15 @@ impl NavigatorEvents {
     fn initialize_wheel_zoom(&mut self) {
         let data     = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_wheel.add(move |event:&mouse::OnWheel| {
-            event.prevent_default();
             if let Some(data) = data.upgrade() {
+                if data.events_disabled() {
+                    event.prevent_default();
+                }
                 if event.ctrl_key() {
+                    // Prevent zoom event to be handed to the browser. This avoids browser scaling
+                    // being applied to the whole IDE, thus we need to do this always when ctrl is
+                    // pressed.
+                    event.prevent_default();
                     let position   = data.mouse_position();
                     let zoom_speed = data.zoom_speed();
                     let movement   = Vector2::new(event.delta_x() as f32, -event.delta_y() as f32);
@@ -250,6 +263,9 @@ impl NavigatorEvents {
         let data     = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_down.add(move |event:&mouse::OnDown| {
             if let Some(data) = data.upgrade() {
+                if data.events_disabled() {
+                    event.prevent_default();
+                }
                 match event.button() {
                     mouse::MiddleButton => {
                         data.set_movement_type(Some(MovementType::Pan))
@@ -267,16 +283,22 @@ impl NavigatorEvents {
 
     fn initialize_mouse_end_event(&mut self) {
         let data     = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_up.add(move |_:&mouse::OnUp| {
+        let listener = self.mouse_manager.on_up.add(move |event:&mouse::OnUp| {
             if let Some(data) = data.upgrade() {
+                if data.events_disabled() {
+                    event.prevent_default();
+                }
                 data.set_movement_type(None);
             }
         });
         self.mouse_up = Some(listener);
 
         let data     = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.on_leave.add(move |_:&mouse::OnLeave| {
+        let listener = self.mouse_manager.on_leave.add(move |event:&mouse::OnLeave| {
             if let Some(data) = data.upgrade() {
+                if data.events_disabled() {
+                    event.prevent_default();
+                }
                 data.set_movement_type(None);
             }
         });
@@ -287,6 +309,9 @@ impl NavigatorEvents {
         let data     = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_move.add(move |event:&mouse::OnMove| {
             if let Some(data) = data.upgrade() {
+                if data.events_disabled() {
+                    event.prevent_default();
+                }
                 let position = Vector2::new(event.offset_x() as f32, event.offset_y() as f32);
                 data.set_mouse_position(position);
                 let movement = data.mouse_position() - data.last_mouse_position();

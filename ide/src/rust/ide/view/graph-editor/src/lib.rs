@@ -1842,8 +1842,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         no_vis_selected   <- out.some_visualisation_selected.on_false();
         some_vis_selected <- out.some_visualisation_selected.on_true();
 
-        set_navigator_true  <- inputs.set_navigator_disabled.on_true();
-        set_navigator_false <- inputs.set_navigator_disabled.on_false();
+        set_navigator_false  <- inputs.set_navigator_disabled.on_true();
+        set_navigator_true   <- inputs.set_navigator_disabled.on_false();
 
         disable_navigator <- any_(&set_navigator_false,&some_vis_selected);
         enable_navigator  <- any_(&set_navigator_true,&no_vis_selected);
