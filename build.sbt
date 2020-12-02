@@ -719,16 +719,14 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "project-manager",
         staticOnLinux = true,
         additionalOptions = Seq(
-          // "--report-unsupported-elements-at-runtime", // FIXME debug
           "-H:+ReportExceptionStackTraces",
           "-H:+TraceClassInitialization"
-          // "--initialize-at-build-time=scala.runtime.Statics$VM",
         ),
-        initializeAtRunTime = Seq(
+        initializeAtRuntime = Seq(
           "akka.protobuf.DescriptorProtos",
-          "io.methvin.watchservice.jna.CarbonAPI"
-          // "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder", // TODO this should be added back
-          // "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
+          "io.methvin.watchservice.jna.CarbonAPI",
+          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
+          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
         )
       )
       .value
@@ -1142,15 +1140,6 @@ lazy val `engine-runner` = project
     connectInput in run := true
   )
   .settings(
-    buildNativeImage := NativeImage
-      .buildNativeImage(
-        "enso",
-        staticOnLinux = false,
-        Seq("-H:IncludeResources=.*Main.enso$")
-      )
-      .value
-  )
-  .settings(
     assembly := assembly
       .dependsOn(runtime / assembly)
       .value
@@ -1186,7 +1175,7 @@ lazy val launcher = project
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$"
         ),
-        initializeAtRunTime = Seq(
+        initializeAtRuntime = Seq(
           "akka.protobuf.DescriptorProtos",
           "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
           "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder",

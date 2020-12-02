@@ -23,9 +23,10 @@ object NativeImage {
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
+    initializeAtBuildtime: Boolean    = true,
     additionalOptions: Seq[String]    = Seq.empty,
     memoryLimitGigabytes: Option[Int] = Some(4),
-    initializeAtRunTime: Seq[String]  = Seq.empty
+    initializeAtRuntime: Seq[String]  = Seq.empty
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -79,16 +80,20 @@ object NativeImage {
         memoryLimitGigabytes.map(gigs => s"-J-Xmx${gigs}G").toSeq
 
       val initializeAtRuntimeOptions =
-        if (initializeAtRunTime.isEmpty) Seq()
+        if (initializeAtRuntime.isEmpty) Seq()
         else {
-          val classes = initializeAtRunTime.mkString(",")
+          val classes = initializeAtRuntime.mkString(",")
           Seq(s"--initialize-at-run-time=$classes")
         }
+
+      val initializeAtBuildtimeOptions =
+        if (initializeAtBuildtime) Seq("--initialize-at-build-time") else Seq()
 
       val cmd =
         Seq(nativeImagePath) ++
         debugParameters ++ staticParameters ++ configs ++
-        Seq("--no-fallback", "--initialize-at-build-time", "--no-server") ++
+        Seq("--no-fallback", "--no-server") ++
+        initializeAtBuildtimeOptions ++
         memoryLimitOptions ++ initializeAtRuntimeOptions ++
         additionalOptions ++
         Seq("-cp", classPath, (Compile / mainClass).value.get, artifactName)
