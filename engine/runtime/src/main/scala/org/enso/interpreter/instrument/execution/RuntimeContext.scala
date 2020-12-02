@@ -16,6 +16,7 @@ import org.enso.text.ContentBasedVersioning
   * @param jobProcessor a processor responsible for executing jobs
   * @param jobControlPlane a job control plane
   * @param locking a locking service
+  * @param state a state of the runtime
   * @param versioning a version calculator
   */
 case class RuntimeContext(
@@ -26,5 +27,6 @@ case class RuntimeContext(
   jobProcessor: JobProcessor,
   jobControlPlane: JobControlPlane,
   locking: Locking,
+  state: ExecutionState,
   versioning: ContentBasedVersioning
 )

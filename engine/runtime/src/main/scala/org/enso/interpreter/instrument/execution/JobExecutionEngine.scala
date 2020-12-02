@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.execution
 
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{Callable, Executors}
+import java.util.concurrent.Executors
 import java.util.logging.Level
 
 import org.enso.interpreter.instrument.InterpreterContext
@@ -17,11 +17,13 @@ import scala.util.control.NonFatal
   * pending jobs and activates job execution in FIFO order.
   *
   * @param interpreterContext suppliers of services that provide interpreter
-  *                           specific functionality
+  * specific functionality
+  * @param executionState a state of the runtime
   * @param locking locking capability for runtime
   */
 class JobExecutionEngine(
   interpreterContext: InterpreterContext,
+  executionState: ExecutionState,
   locking: Locking
 ) extends JobProcessor
     with JobControlPlane {
@@ -50,31 +52,35 @@ class JobExecutionEngine(
       jobProcessor     = this,
       jobControlPlane  = this,
       locking          = locking,
-      versioning       = Sha3_224VersionCalculator
+      versioning       = Sha3_224VersionCalculator,
+      state            = executionState
     )
 
   /** @inheritdoc */
   override def run[A](job: Job[A]): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
-    val future = jobExecutor.submit[Unit](new Callable[Unit] {
-      override def call(): Unit = {
-        val logger = runtimeContext.executionService.getLogger
-        logger.log(Level.FINE, s"Executing job: $job...")
-        try {
-          val result = job.run(runtimeContext)
-          logger.log(Level.FINE, s"Job $job finished.")
-          promise.success(result)
-        } catch {
-          case NonFatal(ex) => promise.failure(ex)
-        } finally {
-          runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
-        }
+    runtimeContext.executionService.getLogger
+      .log(Level.FINE, s"Submitting job: $job...")
+    val future = jobExecutor.submit(() => {
+      val logger = runtimeContext.executionService.getLogger
+      logger.log(Level.FINE, s"Executing job: $job...")
+      try {
+        val result = job.run(runtimeContext)
+        logger.log(Level.FINE, s"Job $job finished.")
+        promise.success(result)
+      } catch {
+        case NonFatal(ex) =>
+          logger.log(Level.SEVERE, s"Error executing $job", ex)
+          promise.failure(ex)
+      } finally {
+        runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
       }
     })
     val runningJob = RunningJob(jobId, job, future)
 
     runningJobsRef.updateAndGet(_ :+ runningJob)
+    //runtimeContext.executionService.getLogger.log(Level.INFO, s"Running jobs=${runningJobsRef.get()}")
 
     promise.future
   }
@@ -88,6 +94,7 @@ class JobExecutionEngine(
     }
     runtimeContext.executionService.getContext.getThreadManager
       .checkInterrupts()
+    //runtimeContext.executionService.getLogger.log(Level.INFO, s"abortAllJobs cancellable=$cancellableJobs")
   }
 
   /** @inheritdoc */
