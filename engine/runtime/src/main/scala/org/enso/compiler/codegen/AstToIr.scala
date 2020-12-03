@@ -1,5 +1,6 @@
 package org.enso.compiler.codegen
 
+import java.math.BigInteger
 import java.nio.ByteBuffer
 
 import cats.Foldable
@@ -9,13 +10,7 @@ import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.Shape.{
-  SegmentEscape,
-  SegmentExpr,
-  SegmentPlain,
-  SegmentRawEscape,
-  TextUnclosed
-}
+import org.enso.syntax.text.Shape.{SegmentEscape, SegmentExpr, SegmentPlain, SegmentRawEscape, TextUnclosed}
 import org.enso.syntax.text.ast.text.Escape
 import org.enso.syntax.text.ast.text.Escape.Unicode
 
@@ -473,12 +468,13 @@ object AstToIr {
     if (int.base.isDefined && int.base.get != "10") {
       Error.Syntax(
         int,
-        Error.Syntax.UnsupportedSyntax("non-base-10 number literals")
+        Error.Syntax.UnsupportedSyntax("non-base-10 decimal literals")
       )
     } else if (frac.base.isDefined && frac.base.get != "10") {
       Error.Syntax(frac, Error.Syntax.InvalidBaseInDecimalLiteral)
     } else {
       Literal.Number(
+        None,
         s"${int.shape.int}.${frac.shape.int}",
         getIdentifiedLocation(ast)
       )
@@ -494,14 +490,26 @@ object AstToIr {
   def translateLiteral(literal: AST.Literal): Expression =
     literal match {
       case AST.Literal.Number(base, number) =>
-        if (base.isDefined && base.get != "10") {
-          Error.Syntax(
-            literal,
-            Error.Syntax.UnsupportedSyntax("non-base-10 number literals")
-          )
-        } else {
-          Literal.Number(number, getIdentifiedLocation(literal))
+        if (base.isDefined) {
+          val baseNum =
+            try { Integer.parseInt(base.get) }
+            catch {
+              case _: NumberFormatException =>
+                return Error.Syntax(
+                  literal,
+                  Error.Syntax.InvalidBase(base.get)
+                )
+            }
+          try { new BigInteger(number, baseNum) }
+          catch {
+            case _: NumberFormatException =>
+              return Error.Syntax(
+                literal,
+                Error.Syntax.InvalidNumberForBase(number, base.get)
+              )
+          }
         }
+        Literal.Number(base, number, getIdentifiedLocation(literal))
       case AST.Literal.Text.any(literal) =>
         literal.shape match {
           case AST.Literal.Text.Line.Raw(segments) =>

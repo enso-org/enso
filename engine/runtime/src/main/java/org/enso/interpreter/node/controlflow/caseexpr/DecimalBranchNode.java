@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.controlflow;
+package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -8,38 +8,37 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.Array;
 
-@NodeInfo(shortName = "ArrayMatch", description = "Allows matching on the Array type.")
-public abstract class ArrayBranchNode extends BranchNode {
-  private final AtomConstructor array;
+@NodeInfo(shortName = "TextMatch", description = "Allows matching on the Decimal type.")
+public abstract class DecimalBranchNode extends BranchNode {
+  private final AtomConstructor decimal;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  ArrayBranchNode(AtomConstructor array, RootCallTarget branch) {
+  DecimalBranchNode(AtomConstructor decimal, RootCallTarget branch) {
     super(branch);
-    this.array = array;
+    this.decimal = decimal;
   }
 
   /**
-   * Create a new node to handle matching with the Array constructor.
+   * Create a new node to handle matching with the Decimal constructor.
    *
-   * @param array the constructor used for matching in this case
+   * @param decimal the constructor used for matching
    * @param branch the code to execute in this case
-   * @return an array branch node
+   * @return a decimal branch node
    */
-  public static ArrayBranchNode build(AtomConstructor array, RootCallTarget branch) {
-    return ArrayBranchNodeGen.create(array, branch);
+  public static DecimalBranchNode build(AtomConstructor decimal, RootCallTarget branch) {
+    return DecimalBranchNodeGen.create(decimal, branch);
   }
 
   @Specialization
   void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(array == target.getConstructor())) {
+    if (profile.profile(decimal == target.getConstructor())) {
       accept(frame, state, target.getFields());
     }
   }
 
   @Specialization
-  void doArray(VirtualFrame frame, Object state, Array target) {
+  void doLiteral(VirtualFrame frame, Object state, double target) {
     accept(frame, state, new Object[0]);
   }
 

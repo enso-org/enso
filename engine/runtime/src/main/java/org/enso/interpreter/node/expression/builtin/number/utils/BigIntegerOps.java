@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.utils;
 
+import com.fasterxml.jackson.databind.node.BigIntegerNode;
 import com.oracle.truffle.api.CompilerDirectives;
 
 import java.math.BigInteger;
@@ -63,7 +64,6 @@ public class BigIntegerOps {
   public static BigInteger divide(BigInteger a, long b) {
     return a.divide(BigInteger.valueOf(b));
   }
-
   @CompilerDirectives.TruffleBoundary
   public static BigInteger divide(BigInteger a, BigInteger b) {
     return a.divide(b);
@@ -130,11 +130,90 @@ public class BigIntegerOps {
   }
 
   @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitAnd(long a, BigInteger b) {
+    return BigIntegerOps.bitAnd(BigInteger.valueOf(a), b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitAnd(BigInteger a, long b) {
+    return BigIntegerOps.bitAnd(a, BigInteger.valueOf(b));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitAnd(BigInteger a, BigInteger b) {
+    return a.and(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitOr(long a, BigInteger b) {
+    return BigIntegerOps.bitOr(BigInteger.valueOf(a), b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitOr(BigInteger a, long b) {
+    return BigIntegerOps.bitOr(a, BigInteger.valueOf(b));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitOr(BigInteger a, BigInteger b) {
+    return a.or(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitXor(long a, BigInteger b) {
+    return BigIntegerOps.bitXor(BigInteger.valueOf(a), b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitXor(BigInteger a, long b) {
+    return BigIntegerOps.bitXor(a, BigInteger.valueOf(b));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitXor(BigInteger a, BigInteger b) {
+    return a.xor(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftLeft(long a, int b) {
+    return BigIntegerOps.bitShiftLeft(BigInteger.valueOf(a), b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftLeft(BigInteger a, int b) {
+    return a.shiftLeft(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftRight(long a, int b) {
+    return BigIntegerOps.bitShiftRight(BigInteger.valueOf(a),b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger bitShiftRight(BigInteger a, int b) {
+    return a.shiftRight(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static boolean nonNegative(BigInteger a) {
+    return BigIntegerOps.compare(a,BigInteger.ZERO) == 1;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static boolean isZero(BigInteger a) {
+    return BigIntegerOps.compare(a,BigInteger.ZERO) == 0;
+  }
+
+  @CompilerDirectives.TruffleBoundary
   public static boolean fitsInLong(BigInteger bigInteger) {
     return bigInteger.compareTo(MIN_LONG_BIGINT) >= 0 && bigInteger.compareTo(MAX_LONG_BIGINT) <= 0;
   }
 
   public static boolean fitsInLong(double decimal) {
     return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
+  }
+
+  public static boolean fitsInInt(long number) {
+    return number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE;
   }
 }

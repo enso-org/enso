@@ -1,0 +1,15 @@
+from Base import all
+
+# TODO [AA] Implement vector sorting.
+
+## PRIVATE
+
+   Execute the sort.
+
+   In the use-cases we anticipate for Enso, we can see `sort` being run over
+   both partially-sorted data and random data.
+
+   TODO [AA] Explain why we chose this sort.
+run : Vector -> (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
+run vec _ _ _ = vec
+

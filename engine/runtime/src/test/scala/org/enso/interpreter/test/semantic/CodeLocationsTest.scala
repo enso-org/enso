@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.callable.ApplicationNode
-import org.enso.interpreter.node.controlflow.CaseNode
+import org.enso.interpreter.node.controlflow.caseexpr.CaseNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
