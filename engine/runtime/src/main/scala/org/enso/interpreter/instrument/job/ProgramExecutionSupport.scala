@@ -155,7 +155,7 @@ trait ProgramExecutionSupport {
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    ctx.executionService.getLogger.info("RUN PROGRAM")
+    ctx.executionService.getLogger.log(Level.FINEST, s"Run program $stack")
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -172,7 +172,8 @@ trait ProgramExecutionSupport {
       }
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.info(
+      ctx.executionService.getLogger.log(
+        Level.FINEST,
         s"ON_CACHED_CALL ${value.getExpressionId}"
       )
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
@@ -180,7 +181,8 @@ trait ProgramExecutionSupport {
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId)) {
-        ctx.executionService.getLogger.info(
+        ctx.executionService.getLogger.log(
+          Level.FINEST,
           s"ON_CACHED_VALUE ${value.getExpressionId}"
         )
         fireVisualisationUpdates(contextId, value)
@@ -188,7 +190,8 @@ trait ProgramExecutionSupport {
     }
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.info(
+      ctx.executionService.getLogger.log(
+        Level.FINEST,
         s"ON_COMPUTED ${value.getExpressionId}"
       )
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
@@ -196,7 +199,7 @@ trait ProgramExecutionSupport {
     }
 
     val onExceptionalCallback: Consumer[Throwable] = { value =>
-      ctx.executionService.getLogger.info(s"ON_ERROR $value")
+      ctx.executionService.getLogger.log(Level.FINEST, s"ON_ERROR $value")
       sendErrorUpdate(contextId, value)
     }
 
@@ -220,7 +223,8 @@ trait ProgramExecutionSupport {
           )
           .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
-    ctx.executionService.getLogger.info(s"RUN PROGRAM $executionResult")
+    ctx.executionService.getLogger
+      .log(Level.FINEST, s"Run program result $executionResult")
     executionResult.fold(Some(_), _ => None)
   }
 
@@ -242,10 +246,10 @@ trait ProgramExecutionSupport {
     executionUpdate match {
       case Some(_) =>
         ctx.executionService.getLogger
-          .log(Level.INFO, s"Error executing a function $itemName.")
+          .log(Level.FINEST, s"Error executing a function $itemName.")
       case None =>
         ctx.executionService.getLogger
-          .log(Level.INFO, s"Error executing a function $itemName.", error)
+          .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
     executionUpdate.getOrElse(
       Api.ExecutionResult

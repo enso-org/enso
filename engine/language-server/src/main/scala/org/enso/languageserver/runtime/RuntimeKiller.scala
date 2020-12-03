@@ -67,7 +67,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
       context.stop(self)
     } catch {
       case NonFatal(ex) =>
-        log.error(ex, s"An error occurred during stopping Truffle context: $ex")
+        log.error(ex, "An error occurred during stopping Truffle context")
         if (retryCount < MaxRetries) {
           context.system.scheduler
             .scheduleOnce((retryCount + 1).seconds, self, TryToStopTruffle)

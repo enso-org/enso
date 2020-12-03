@@ -52,8 +52,8 @@ class JobExecutionEngine(
       jobProcessor     = this,
       jobControlPlane  = this,
       locking          = locking,
-      versioning       = Sha3_224VersionCalculator,
-      state            = executionState
+      state            = executionState,
+      versioning       = Sha3_224VersionCalculator
     )
 
   /** @inheritdoc */
