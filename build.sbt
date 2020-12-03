@@ -51,9 +51,13 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(
       runtime,
       `engine-runner`,
-      `project-manager`,
       `language-server`
     )
+  ),
+  Distribution(
+    "project-manager",
+    file("distribution/project-manager/THIRD-PARTY"),
+    Distribution.sbtProjects(`project-manager`)
   ),
   Distribution(
     "std-lib-Base",
