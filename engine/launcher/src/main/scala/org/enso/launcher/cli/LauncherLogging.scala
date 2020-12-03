@@ -63,10 +63,14 @@ object LauncherLogging {
     * and does not know which logger to set up.
     */
   def setupFallback(): Unit = {
-    LoggingServiceManager.setup(
-      LoggerMode.Local(Seq(fallbackPrinter)),
-      defaultLogLevel
-    )
+    LoggingServiceManager
+      .setup(
+        LoggerMode.Local(Seq(fallbackPrinter)),
+        defaultLogLevel
+      )
+      .onComplete { _ =>
+        loggingServiceEndpointPromise.success(None)
+      }
   }
 
   private def fallbackPrinter = StderrPrinter.create(printExceptions = true)
