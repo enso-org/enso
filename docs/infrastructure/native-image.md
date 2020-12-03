@@ -123,6 +123,12 @@ accesses may have to be gathered manually. For some types of accesses it may be
 possible to force the Windows-specific code paths to run on Linux and gather
 these accesses semi-automatically.
 
+After updating the Native Image configuration, make sure to clean it by running
+
+```
+cd tools/native-image-config-cleanup && npm install && npm start
+```
+
 ### Launcher Configuration
 
 In case of the launcher, to gather the relevant reflective accesses one wants to
@@ -158,3 +164,25 @@ created that gathers workarounds required to be able to build native images
 using Akka, so it is enough to just add it as a dependency. It does not handle
 other reflective accesses that are related to Akka, because the ones that are
 needed are gathered automatically using the tool described above.
+
+### Project Manager Configuration
+
+Configuring the Native Image for the Project Manager goes similarly as with the
+launcher. You need to build the JAR with `project-manager/assembly` and execute
+the test scenarios by starting it with:
+
+```
+java -agentlib:native-image-agent=config-merge-dir=lib/scala/project-manager/native-image-config -jar project-manager.jar
+```
+
+For now it seems that it is enough to start the Project Manager and connect an
+IDE to it to trace all relevant reflection paths. You can try interacting with
+it a bit more, for example, rename a project or install a new engine version, to
+be sure all scenarios are covered.
+
+Remember to run the cleanup script as described above, as tracing the Project
+Manager seems to find recursive accesses of some ephemeral-like classes named
+`Foo/0x00001234...`. This classes are not accessible when building the Native
+Image and they lead to warnings. For now no clues have been found that ignoring
+these classes would impact the native build, it seems that they can be ignored
+safely.
