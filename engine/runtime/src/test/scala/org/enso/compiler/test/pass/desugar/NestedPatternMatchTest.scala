@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Expression, Pattern}
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.desugar.NestedPatternMatch
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -263,39 +263,5 @@ class NestedPatternMatchTest extends CompilerTest {
         .constructor
         .name shouldEqual "Nil"
     }
-  }
-
-  def showCode(ir: IR, ind: String = ""): String = ir match {
-    case Expression.Block(expressions, returnValue, _, suspended, _, _) =>
-      val r = if (suspended) {
-        (expressions :+ returnValue)
-          .map(ind + showCode(_, ind))
-      } else {
-        (expressions :+ returnValue).map(showCode(_, ind))
-      }
-      val x = "\n" + r.map(ind + _).mkString("\n")
-      x
-    case Expression.Binding(name, expression, _, _, _) =>
-      s"$ind${showCode(name)} = ${showCode(expression)}"
-
-    case n: IR.Name => n.name
-    case ap: IR.Application.Prefix =>
-      (showCode(ap.function) :: ap.arguments.map(v => showCode(v.value)))
-        .mkString(" ")
-    case IR.Case.Expr(scrut, branches, _, _, _) =>
-      val indAdd = "    " + ind
-      val s      = showCode(scrut)
-      val bs: List[String] =
-        branches.map(showCode(_, indAdd)).map(indAdd + _).toList
-      (s"case $s of" :: bs).mkString("\n")
-    case IR.Case.Branch(pat, expr, _, _, _) =>
-      val p = showCode(pat)
-      val e = showCode(expr, ind)
-      s"$p -> $e"
-    case IR.Pattern.Name(n, _, _, _) => n.name
-    case IR.Pattern.Constructor(c, fs, _, _, _) =>
-      (c.name :: fs.map(showCode(_))).mkString(" ")
-    case IR.Literal.Number(v, _, _, _) => v
-    case _                             => ir.pretty
   }
 }

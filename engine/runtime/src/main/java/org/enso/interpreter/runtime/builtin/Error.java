@@ -5,6 +5,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Container for builtin Error types */
@@ -16,6 +17,11 @@ public class Error {
   private final AtomConstructor noSuchMethodError;
   private final AtomConstructor polyglotError;
   private final AtomConstructor moduleNotInPackageError;
+  private final AtomConstructor arithmeticError;
+
+  private final Atom arithmeticErrorShiftTooBig;
+
+  private static final Text shiftTooBigMessage = Text.create("Shift amount too large.");
 
   /**
    * Creates and registers the relevant constructors.
@@ -51,6 +57,11 @@ public class Error {
                 new ArgumentDefinition(0, "cause", ArgumentDefinition.ExecutionMode.EXECUTE));
     moduleNotInPackageError =
         new AtomConstructor("Module_Not_In_Package_Error", scope).initializeFields();
+    arithmeticError =
+        new AtomConstructor("Arithmetic_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
+    arithmeticErrorShiftTooBig = arithmeticError.newInstance(shiftTooBigMessage);
 
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(compileError);
@@ -59,6 +70,7 @@ public class Error {
     scope.registerConstructor(noSuchMethodError);
     scope.registerConstructor(polyglotError);
     scope.registerConstructor(moduleNotInPackageError);
+    scope.registerConstructor(arithmeticError);
   }
 
   /** @return the builtin {@code Syntax_Error} atom constructor. */
@@ -105,5 +117,20 @@ public class Error {
    */
   public Atom makePolyglotError(Object cause) {
     return polyglotError.newInstance(cause);
+  }
+
+  /**
+   * Create an instance of the runtime representation of an {@code Arithmetic_Error}.
+   *
+   * @param reason the reason that the error is being thrown for
+   * @return a runtime representation of the arithmetic error
+   */
+  public Atom makeArithmeticError(Text reason) {
+    return arithmeticError.newInstance(reason);
+  }
+
+  /** @return An arithmetic error representing a too-large shift for the bit shift. */
+  public Atom getShiftAmountTooLargeError() {
+    return arithmeticErrorShiftTooBig;
   }
 }

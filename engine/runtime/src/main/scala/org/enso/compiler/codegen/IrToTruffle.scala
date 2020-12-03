@@ -35,7 +35,7 @@ import org.enso.interpreter.node.callable.{
   InvokeCallableNode,
   SequenceLiteralNode
 }
-import org.enso.interpreter.node.controlflow._
+import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
 import org.enso.interpreter.node.expression.constant.{
   ConstantObjectNode,
@@ -701,25 +701,31 @@ class IrToTruffle(
           )
 
           runtimeConsOpt.map { atomCons =>
-            val any = context.getBuiltins.any
-            val array = context.getBuiltins.mutable.constructor
-            val bool = context.getBuiltins.bool
-            val number = context.getBuiltins.number
+            val any      = context.getBuiltins.any
+            val array    = context.getBuiltins.mutable.constructor
+            val bool     = context.getBuiltins.bool
+            val number   = context.getBuiltins.number
             val polyglot = context.getBuiltins.polyglot.getPolyglot
-            val text = context.getBuiltins.text
+            val text     = context.getBuiltins.text
             val branchNode: BranchNode =
               if (atomCons == bool.getTrue) {
                 BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
               } else if (atomCons == bool.getFalse) {
                 BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
               } else if (atomCons == bool.getBool) {
-                BooleanConstructorBranchNode.build(bool, branchCodeNode.getCallTarget)
+                BooleanConstructorBranchNode.build(
+                  bool,
+                  branchCodeNode.getCallTarget
+                )
               } else if (atomCons == text.getText) {
                 TextBranchNode.build(text.getText, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getInteger) {
                 IntegerBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getDecimal) {
-                DecimalBranchNode.build(number.getDecimal, branchCodeNode.getCallTarget)
+                DecimalBranchNode.build(
+                  number.getDecimal,
+                  branchCodeNode.getCallTarget
+                )
               } else if (atomCons == number.getNumber) {
                 NumberBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == array) {
@@ -916,9 +922,33 @@ class IrToTruffle(
       */
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
-        case lit @ IR.Literal.Number(value, location, _, _) =>
+        case lit @ IR.Literal.Number(base, value, location, _, _) =>
           val node = if (lit.isFractional) {
             DecimalLiteralNode.build(value.toDouble)
+          } else if (base.isDefined) {
+            val baseNum =
+              try { Integer.parseInt(base.get) }
+              catch {
+                case _: NumberFormatException =>
+                  throw new CompilerError(
+                    s"Invalid number base $base seen during codegen."
+                  )
+              }
+            try {
+              val longVal = java.lang.Long.parseLong(value, baseNum)
+              IntegerLiteralNode.build(longVal)
+            } catch {
+              case _: NumberFormatException =>
+                try {
+                  val bigInt = new BigInteger(value, baseNum)
+                  BigIntegerLiteralNode.build(bigInt)
+                } catch {
+                  case _: NumberFormatException =>
+                    throw new CompilerError(
+                      s"Invalid number base $base seen during codegen."
+                    )
+                }
+            }
           } else {
             value.toLongOption
               .map(IntegerLiteralNode.build)
@@ -1111,7 +1141,7 @@ class IrToTruffle(
             case Some(
                   ApplicationSaturation.CallSaturation.Exact(createOptimised)
                 ) =>
-              createOptimised(callArgs.toList)
+              createOptimised(moduleScope)(scope)(callArgs.toList)
             case _ =>
               ApplicationNode.build(
                 this.run(fn),

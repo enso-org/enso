@@ -12,7 +12,7 @@ import Tests.Data.Interval_Spec
 import Tests.Data.Json_Spec
 import Tests.Data.List_Spec
 import Tests.Data.Map_Spec
-import Tests.Data.Noise.Generator_Spec
+import Tests.Data.Noise.Generator_Spec as Noise_Generator_Spec
 import Tests.Data.Noise_Spec
 import Tests.Data.Numbers_Spec
 import Tests.Data.Ordering_Spec
@@ -21,8 +21,8 @@ import Tests.Data.Text_Spec
 import Tests.Data.Time.Spec as Time_Spec
 import Tests.Data.Time.Locale_Spec
 import Tests.Data.Vector_Spec
-import Tests.Network.Http.Header_Spec
-import Tests.Network.Http.Request_Spec
+import Tests.Network.Http.Header_Spec as Http_Header_Spec
+import Tests.Network.Http.Request_Spec as Http_Request_Spec
 import Tests.Network.Http_Spec
 import Tests.Network.Uri_Spec
 import Tests.System.File_Spec
@@ -33,25 +33,25 @@ main = Test.Suite.runMain <|
     Deep_Export_Spec.spec
     Error_Spec.spec
     File_Spec.spec
-    Generator_Spec.spec
-    Header_Spec.spec
+    Http_Header_Spec.spec
+    Http_Request_Spec.spec
     Http_Spec.spec
     Import_Loop_Spec.spec
     Interval_Spec.spec
     Java_Interop_Spec.spec
     Json_Spec.spec
     List_Spec.spec
+    Locale_Spec.spec
     Map_Spec.spec
     Meta_Spec.spec
     Names_Spec.spec
+    Noise_Generator_Spec.spec
     Noise_Spec.spec
     Numbers_Spec.spec
     Ordering_Spec.spec
     Process_Spec.spec
     Range_Spec.spec
-    Request_Spec.spec
     Text_Spec.spec
     Time_Spec.spec
-    Locale_Spec.spec
     Uri_Spec.spec
     Vector_Spec.spec

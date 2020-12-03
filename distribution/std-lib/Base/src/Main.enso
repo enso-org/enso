@@ -6,6 +6,7 @@ import Base.Data.Map
 import Base.Data.Noise
 import Base.Data.Number.Extensions
 import Base.Data.Ordering
+import Base.Data.Ordering.Sort_Order
 import Base.Data.Pair
 import Base.Data.Range
 import Base.Data.Text.Extensions
@@ -17,12 +18,13 @@ import Base.Meta.Enso_Project
 import Base.Polyglot.Java
 import Base.System.File
 
-from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean
+from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
 
 export Base.Data.Interval
 export Base.Data.Json
 export Base.Data.Map
 export Base.Data.Ordering
+export Base.Data.Ordering.Sort_Order
 export Base.Data.Vector
 export Base.Math
 export Base.Meta

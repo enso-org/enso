@@ -14,10 +14,3 @@ type Ordering
     type Equal
     ## An ordering where a compared value is greater than another.
     type Greater
-
-## A descriptor for a sort ordering.
-type Sort_Order
-    ## Elements should be sorted in ascending order.
-    type Ascending
-    ## Elements should be sorted in descending order.
-    type Descending
