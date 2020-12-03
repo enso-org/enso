@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -11,8 +12,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "bit_shift_r", description = "Bitwise right-shift.")
 public abstract class BitShiftRightNode extends Node {
-  private @Child BitShiftNode bitShiftNode = BitShiftNode.build();
-
   abstract Object execute(Object _this, Object that);
 
   static BitShiftRightNode build() {
@@ -20,12 +19,14 @@ public abstract class BitShiftRightNode extends Node {
   }
 
   @Specialization
-  Object doBigInteger(long _this, long that) {
+  Object doBigInteger(
+      long _this, long that, @Cached("buildBitShiftNode()") BitShiftNode bitShiftNode) {
     return bitShiftNode.execute(_this, -1L * that);
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
+  Object doBigInteger(
+      long _this, EnsoBigInteger that, @Cached("buildBitShiftNode()") BitShiftNode bitShiftNode) {
     return bitShiftNode.execute(_this, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
   }
 
@@ -37,5 +38,9 @@ public abstract class BitShiftRightNode extends Node {
   @Fallback
   Object doOther(Object _this, Object that) {
     throw new TypeError("Unexpected type provided for `that` in Integer.bit_shift_r", this);
+  }
+
+  BitShiftNode buildBitShiftNode() {
+    return BitShiftNode.build();
   }
 }

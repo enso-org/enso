@@ -7,6 +7,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -21,6 +22,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Big_Integer", name = "bit_shift", description = "Bitwise shift.")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private final ConditionProfile fitsInIntProfileLeftShift = ConditionProfile.createCountingProfile();
+  private final ConditionProfile fitsInIntProfileRightShift = ConditionProfile.createCountingProfile();
 
   abstract Object execute(Object _this, Object that);
 
@@ -38,7 +41,7 @@ public abstract class BitShiftNode extends Node {
       EnsoBigInteger _this,
       long that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    if (BigIntegerOps.fitsInInt(that)) {
+    if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(_this, that);
     } else {
       throw new PanicException(
@@ -53,12 +56,10 @@ public abstract class BitShiftNode extends Node {
 
   @Specialization(guards = "that < 0", replaces = "doBigIntShiftRight")
   Object doBigIntShiftRightExplicit(EnsoBigInteger _this, long that) {
-    if (BigIntegerOps.fitsInInt(that)) {
+    if (fitsInIntProfileRightShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftRight(_this, -that);
-    } else if (BigIntegerOps.nonNegative(_this.getValue())) {
-      return 0L;
     } else {
-      return -1L;
+      return BigIntegerOps.nonNegative(_this.getValue()) ? 0L : -1L;
     }
   }
 
@@ -67,15 +68,13 @@ public abstract class BitShiftNode extends Node {
       EnsoBigInteger _this,
       EnsoBigInteger that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    if (BigIntegerOps.nonNegative(that.getValue())) {
+    if (!BigIntegerOps.nonNegative(that.getValue())) {
+      return BigIntegerOps.nonNegative(_this.getValue()) ? 0L : -1L;
+    } else {
       // Note [Well-Formed BigIntegers]
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
-    } else if (BigIntegerOps.nonNegative(_this.getValue())) {
-      return 0L;
-    } else {
-      return -1L;
     }
   }
 

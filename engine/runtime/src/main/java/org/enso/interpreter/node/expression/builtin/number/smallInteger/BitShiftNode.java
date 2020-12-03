@@ -26,8 +26,6 @@ public abstract class BitShiftNode extends Node {
       ConditionProfile.createCountingProfile();
   private final ConditionProfile positiveFitsInInt = ConditionProfile.createCountingProfile();
   private final ConditionProfile negativeFitsInInt = ConditionProfile.createCountingProfile();
-  private final ConditionProfile rightShiftPositiveThis = ConditionProfile.createCountingProfile();
-  private final ConditionProfile bigIntNonNegative = ConditionProfile.createCountingProfile();
   private final ConditionProfile rightShiftExceedsLongWidth =
       ConditionProfile.createCountingProfile();
 
@@ -57,14 +55,10 @@ public abstract class BitShiftNode extends Node {
 
   @Specialization(guards = {"that < 0", "fitsInInt(that)"})
   long doLongShiftRight(long _this, long that) {
-    if (rightShiftExceedsLongWidth.profile(-that >= 64)) {
-      if (rightShiftPositiveThis.profile(_this >= 0)) {
-        return 0L;
-      } else {
-        return -1L;
-      }
-    } else {
+    if (rightShiftExceedsLongWidth.profile(-that < 64)) {
       return _this >> -that;
+    } else {
+      return _this >= 0 ? 0L : -1L;
     }
   }
 
@@ -72,10 +66,8 @@ public abstract class BitShiftNode extends Node {
   long doLongShiftRightExplicit(long _this, long that) {
     if (negativeFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return doLongShiftRight(_this, that);
-    } else if (rightShiftPositiveThis.profile(_this >= 0)) {
-      return 0L;
     } else {
-      return -1L;
+      return _this >= 0 ? 0L : -1L;
     }
   }
 
@@ -84,15 +76,13 @@ public abstract class BitShiftNode extends Node {
       long _this,
       EnsoBigInteger that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef) {
-    if (bigIntNonNegative.profile(BigIntegerOps.nonNegative(that.getValue()))) {
+    if (!BigIntegerOps.nonNegative(that.getValue())) {
+      return _this >= 0 ? 0L : -1L;
+    } else {
       // Note [Well-Formed BigIntegers]
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
-    } else if (rightShiftPositiveThis.profile(_this >= 0)) {
-      return 0L;
-    } else {
-      return -1L;
     }
   }
 
