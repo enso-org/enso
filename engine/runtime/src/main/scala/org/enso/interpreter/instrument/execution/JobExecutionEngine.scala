@@ -60,10 +60,9 @@ class JobExecutionEngine(
   override def run[A](job: Job[A]): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
-    runtimeContext.executionService.getLogger
-      .log(Level.FINE, s"Submitting job: $job...")
+    val logger  = runtimeContext.executionService.getLogger
+    logger.log(Level.FINE, s"Submitting job: $job...")
     val future = jobExecutor.submit(() => {
-      val logger = runtimeContext.executionService.getLogger
       logger.log(Level.FINE, s"Executing job: $job...")
       try {
         val result = job.run(runtimeContext)
@@ -80,21 +79,19 @@ class JobExecutionEngine(
     val runningJob = RunningJob(jobId, job, future)
 
     runningJobsRef.updateAndGet(_ :+ runningJob)
-    //runtimeContext.executionService.getLogger.log(Level.INFO, s"Running jobs=${runningJobsRef.get()}")
 
     promise.future
   }
 
   /** @inheritdoc */
   override def abortAllJobs(): Unit = {
-    val allJobs         = runningJobsRef.get()
+    val allJobs         = runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
     val cancellableJobs = allJobs.filter(_.job.isCancellable)
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
     }
     runtimeContext.executionService.getContext.getThreadManager
       .checkInterrupts()
-    //runtimeContext.executionService.getLogger.log(Level.INFO, s"abortAllJobs cancellable=$cancellableJobs")
   }
 
   /** @inheritdoc */

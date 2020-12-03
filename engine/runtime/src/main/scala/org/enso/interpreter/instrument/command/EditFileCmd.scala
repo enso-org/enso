@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.command
 
+import java.util.logging.Level
+
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
@@ -22,7 +24,8 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
   ): Future[Unit] = {
     ctx.locking.acquireFileLock(request.path)
     try {
-      ctx.executionService.getLogger.finest(s"EditFileCmd ${request.path}")
+      ctx.executionService.getLogger
+        .log(Level.FINE, s"EditFileCmd ${request.path}")
       ctx.state.pendingEdits.enqueue(request.path, request.edits)
       for {
         _ <- Future { ctx.jobControlPlane.abortAllJobs() }
