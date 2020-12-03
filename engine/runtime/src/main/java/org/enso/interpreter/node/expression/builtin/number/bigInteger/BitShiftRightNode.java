@@ -20,7 +20,7 @@ public abstract class BitShiftRightNode extends Node {
 
   @Specialization
   Object doBigInteger(
-      EnsoBigInteger _this, long that, @Cached("buildBitShiftNode()") BitShiftNode bitShiftNode) {
+      EnsoBigInteger _this, long that, @Cached("build()") BitShiftNode bitShiftNode) {
     return bitShiftNode.execute(_this, -1L * that);
   }
 
@@ -28,7 +28,7 @@ public abstract class BitShiftRightNode extends Node {
   Object doBigInteger(
       EnsoBigInteger _this,
       EnsoBigInteger that,
-      @Cached("buildBitShiftNode()") BitShiftNode bitShiftNode) {
+      @Cached("build()") BitShiftNode bitShiftNode) {
     return bitShiftNode.execute(_this, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
   }
 
@@ -40,9 +40,5 @@ public abstract class BitShiftRightNode extends Node {
   @Fallback
   Object doOther(Object _this, Object that) {
     throw new TypeError("Unexpected type provided for `that` in Integer.bit_shift_r", this);
-  }
-
-  BitShiftNode buildBitShiftNode() {
-    return BitShiftNode.build();
   }
 }
