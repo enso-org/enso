@@ -1347,3 +1347,50 @@ lazy val `table` = project
  * initialization was done at build time, the shutdown hook would actually also
  * run at build time and have no effect at runtime.
  */
+
+lazy val engineDistributionRoot =
+  settingKey[File]("Root of built engine distribution")
+lazy val launcherDistributionRoot =
+  settingKey[File]("Root of built launcher distribution")
+lazy val projectManagerDistributionRoot =
+  settingKey[File]("Root of built project manager distribution")
+
+engineDistributionRoot := file("built-engine")
+launcherDistributionRoot := file("built-launcher")
+projectManagerDistributionRoot := file("built-project-manager")
+
+// TODO [RW] add dependencies on assembly, native-image for these tasks
+lazy val buildEngineDistribution =
+  taskKey[Unit]("Builds the engine distribution")
+buildEngineDistribution := {
+  val root         = engineDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot = root,
+    cacheFactory     = cacheFactory,
+    graalVersion     = graalVersion,
+    javaVersion      = javaVersion
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val buildLauncherDistribution =
+  taskKey[Unit]("Builds the launcher distribution")
+buildLauncherDistribution := {
+  val root         = launcherDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createLauncherPackage(root, cacheFactory)
+  log.info(s"Launcher package created at $root")
+}
+
+lazy val buildProjectManagerDistribution =
+  taskKey[Unit]("Builds the project manager distribution")
+buildProjectManagerDistribution := {
+  val root         = projectManagerDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createProjectManagerPackage(root, cacheFactory)
+  log.info(s"Project Manager package created at $root")
+}

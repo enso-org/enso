@@ -89,6 +89,9 @@ bench-report.xml
 /enso.lib
 *.pdb
 *.jar
+/built-engine/
+/built-project-manager/
+/built-launcher/
 
 
 #########
