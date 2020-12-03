@@ -201,10 +201,14 @@ jobs:
           LAUNCHER_DIST_DIR=$LAUNCHER_DIST_ROOT/enso
           ENGINE_DIST_ROOT=enso-engine-$DIST_VERSION-$DIST_OS-$DIST_ARCH
           ENGINE_DIST_DIR=$ENGINE_DIST_ROOT/enso-$DIST_VERSION
+          PROJECTMANAGER_DIST_ROOT=enso-launcher-$DIST_VERSION-$DIST_OS-$DIST_ARCH
+          PROJECTMANAGER_DIST_DIR=$PROJECTMANAGER_DIST_ROOT/enso
           echo "LAUNCHER_DIST_DIR=$LAUNCHER_DIST_DIR" >> $GITHUB_ENV
           echo "LAUNCHER_DIST_ROOT=$LAUNCHER_DIST_ROOT" >> $GITHUB_ENV
           echo "ENGINE_DIST_DIR=$ENGINE_DIST_DIR" >> $GITHUB_ENV
           echo "ENGINE_DIST_ROOT=$ENGINE_DIST_ROOT" >> $GITHUB_ENV
+          echo "PROJECTMANAGER_DIST_DIR=$PROJECTMANAGER_DIST_DIR" >> $GITHUB_ENV
+          echo "PROJECTMANAGER_DIST_ROOT=$PROJECTMANAGER_DIST_ROOT" >> $GITHUB_ENV
 
       - name: Prepare Launcher Distribution (Common)
         shell: bash
@@ -233,10 +237,9 @@ jobs:
       # executable bits for Unix. However putting artifacts into a ZIP would
       # create a twice nested ZIP file. For now, users downloading artifacts
       # from the CI builds have to set the bit themselves.
-      # So the following two lines have been removed from this step, as they do
+      # So the following line has been removed from this step, as it does
       # nothing useful:
       #  chmod +x $ENGINE_DIST_DIR/bin/enso
-      #  chmod +x $ENGINE_DIST_DIR/bin/project-manager
       - name: Prepare Engine Distribution
         shell: bash
         run: |
@@ -249,18 +252,24 @@ jobs:
           cp -r distribution/engine/THIRD-PARTY $ENGINE_DIST_DIR/THIRD-PARTY
           cp manifest.yaml $ENGINE_DIST_DIR
 
-      # TODO [RW] this is temporary - project manager will get a separate distribution
-      - name: Prepare Engine Distribution (Unix)
+      - name: Prepare Project Manager Distribution (Common)
+        shell: bash
+        run: |
+          mkdir -p ${{ env.PROJECTMANAGER_DIST_DIR }}
+          mkdir ${{ env.PROJECTMANAGER_DIST_DIR }}/bin
+          cp -r distribution/project-manager/THIRD-PARTY ${{ env.PROJECTMANAGER_DIST_DIR }}
+
+      - name: Prepare Project Manager Distribution (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          cp project-manager ${{ env.ENGINE_DIST_DIR }}/bin/
+          cp project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/bin/
 
-      - name: Prepare Engine Distribution (Windows)
+      - name: Prepare Project Manager Distribution (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          cp project-manager.exe ${{ env.ENGINE_DIST_DIR }}/bin/
+          cp project-manager.exe ${{ env.PROJECTMANAGER_DIST_DIR }}/bin/
 
       # Test Distribution
       - name: Prepare Engine Test Environment
@@ -298,11 +307,16 @@ jobs:
         with:
           name: ${{ env.ENGINE_DIST_ROOT }}
           path: ${{ env.ENGINE_DIST_ROOT }}
-      - name: Publish the Launcher Binary
+      - name: Publish the Launcher
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.LAUNCHER_DIST_ROOT }}
           path: ${{ env.LAUNCHER_DIST_ROOT }}
+      - name: Publish the Project Manager
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
 
       - name: Prepare the FlatBuffers Schemas for Upload
         # The builds are run on 3 platforms, but Flatbuffer schemas are platform
