@@ -160,11 +160,6 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors project-manager/buildNativeImage
-      - name: Build the Manifest
-        run: |
-          cp distribution/manifest.template.yaml manifest.yaml
-          echo "graal-vm-version: $graalVersion" >> manifest.yaml
-          echo "graal-java-version: $javaVersion" >> manifest.yaml
       - name: Build the Parser JS Bundle
         # The builds are run on 3 platforms, but Flatbuffer schemas are platform
         # agnostic, so they just need to be uploaded from one of the runners.
@@ -210,28 +205,11 @@ jobs:
           echo "PROJECTMANAGER_DIST_DIR=$PROJECTMANAGER_DIST_DIR" >> $GITHUB_ENV
           echo "PROJECTMANAGER_DIST_ROOT=$PROJECTMANAGER_DIST_ROOT" >> $GITHUB_ENV
 
-      - name: Prepare Launcher Distribution (Common)
+      - name: Prepare Launcher Distribution
         shell: bash
         run: |
-          mkdir -p ${{ env.LAUNCHER_DIST_DIR }}
-          mkdir ${{ env.LAUNCHER_DIST_DIR }}/bin
-          mkdir ${{ env.LAUNCHER_DIST_DIR }}/dist
-          mkdir ${{ env.LAUNCHER_DIST_DIR }}/runtime
-          cp distribution/launcher/.enso.portable ${{ env.LAUNCHER_DIST_DIR }}
-          cp distribution/launcher/README.md ${{ env.LAUNCHER_DIST_DIR }}
-          cp -r distribution/launcher/THIRD-PARTY ${{ env.LAUNCHER_DIST_DIR }}
-
-      - name: Prepare Launcher Distribution (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          cp enso ${{ env.LAUNCHER_DIST_DIR }}/bin/
-
-      - name: Prepare Launcher Distribution (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          cp enso.exe ${{ env.LAUNCHER_DIST_DIR }}/bin/
+          sleep 1
+          sbt 'set launcherDistributionRoot := file("${{ env.LAUNCHER_DIST_DIR }}"); buildLauncherDistribution'
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
@@ -243,33 +221,14 @@ jobs:
       - name: Prepare Engine Distribution
         shell: bash
         run: |
-          mkdir -p $ENGINE_DIST_DIR
-          mkdir $ENGINE_DIST_DIR/component
-          cp runtime.jar $ENGINE_DIST_DIR/component
-          mv runner.jar $ENGINE_DIST_DIR/component
-          cp -r distribution/std-lib $ENGINE_DIST_DIR/std-lib
-          cp -r distribution/bin $ENGINE_DIST_DIR/bin
-          cp -r distribution/engine/THIRD-PARTY $ENGINE_DIST_DIR/THIRD-PARTY
-          cp manifest.yaml $ENGINE_DIST_DIR
+          sleep 1
+          sbt 'set engineDistributionRoot := file("${{ env.ENGINE_DIST_DIR }}"); buildEngineDistribution'
 
-      - name: Prepare Project Manager Distribution (Common)
+      - name: Prepare Project Manager Distribution
         shell: bash
         run: |
-          mkdir -p ${{ env.PROJECTMANAGER_DIST_DIR }}
-          mkdir ${{ env.PROJECTMANAGER_DIST_DIR }}/bin
-          cp -r distribution/project-manager/THIRD-PARTY ${{ env.PROJECTMANAGER_DIST_DIR }}
-
-      - name: Prepare Project Manager Distribution (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          cp project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/bin/
-
-      - name: Prepare Project Manager Distribution (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          cp project-manager.exe ${{ env.PROJECTMANAGER_DIST_DIR }}/bin/
+          sleep 1
+          sbt 'set projectManagerDistributionRoot := file("${{ env.PROJECTMANAGER_DIST_DIR }}"); buildProjectManagerDistribution'
 
       # Test Distribution
       - name: Prepare Engine Test Environment
@@ -348,7 +307,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: manifest
-          path: manifest.yaml
+          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
 
       # Publish FlatBuffer Schemas and Parser Bundle to S3
       - name: Prepare AWS Session
