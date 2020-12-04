@@ -73,7 +73,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
 
     // TODO [RW] logging #1151
     val loggerConnection = Future.successful(None)
-    val logLevel         = LogLevel.Info
+    val logLevel         = LogLevel.Trace
     val options = LanguageServerOptions(
       rootId    = descriptor.rootId,
       interface = descriptor.networkConfig.interface,
