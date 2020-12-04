@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.command
 
+import java.util.logging.Level
+
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
@@ -20,17 +22,21 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    for {
-      _ <- Future { ctx.jobControlPlane.abortAllJobs() }
-      status <- ctx.jobProcessor.run(
-        EnsureCompiledJob(request.path, request.edits)
-      )
-      _ <-
-        if (status == EnsureCompiledJob.CompilationStatus.Success)
-          Future.traverse(executeJobs)(ctx.jobProcessor.run)
-        else
-          Future.successful(())
-    } yield ()
+    ctx.locking.acquireFileLock(request.path)
+    try {
+      ctx.executionService.getLogger
+        .log(Level.FINE, s"EditFileCmd ${request.path}")
+      ctx.state.pendingEdits.enqueue(request.path, request.edits)
+      for {
+        _ <- Future { ctx.jobControlPlane.abortAllJobs() }
+        _ <- Future {
+          ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
+        }
+        _ <- Future.traverse(executeJobs)(ctx.jobProcessor.run)
+      } yield ()
+    } finally {
+      ctx.locking.releaseFileLock(request.path)
+    }
   }
 
   private def executeJobs(implicit

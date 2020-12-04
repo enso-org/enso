@@ -155,6 +155,7 @@ trait ProgramExecutionSupport {
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
+    ctx.executionService.getLogger.log(Level.FINEST, s"Run program $stack")
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -171,25 +172,34 @@ trait ProgramExecutionSupport {
       }
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.finer(s"ON_CACHED_CALL $value")
+      ctx.executionService.getLogger.log(
+        Level.FINEST,
+        s"ON_CACHED_CALL ${value.getExpressionId}"
+      )
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
     }
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId)) {
-        ctx.executionService.getLogger.finer(s"ON_CACHED_VALUE $value")
+        ctx.executionService.getLogger.log(
+          Level.FINEST,
+          s"ON_CACHED_VALUE ${value.getExpressionId}"
+        )
         fireVisualisationUpdates(contextId, value)
       }
     }
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.finer(s"ON_COMPUTED $value")
+      ctx.executionService.getLogger.log(
+        Level.FINEST,
+        s"ON_COMPUTED ${value.getExpressionId}"
+      )
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
       fireVisualisationUpdates(contextId, value)
     }
 
     val onExceptionalCallback: Consumer[Throwable] = { value =>
-      ctx.executionService.getLogger.finer(s"ON_ERROR $value")
+      ctx.executionService.getLogger.log(Level.FINEST, s"ON_ERROR $value")
       sendErrorUpdate(contextId, value)
     }
 
@@ -213,6 +223,8 @@ trait ProgramExecutionSupport {
           )
           .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
+    ctx.executionService.getLogger
+      .log(Level.FINEST, s"Run program result $executionResult")
     executionResult.fold(Some(_), _ => None)
   }
 

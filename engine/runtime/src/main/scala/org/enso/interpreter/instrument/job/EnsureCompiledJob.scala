@@ -11,18 +11,20 @@ import org.enso.compiler.context.{
   SuggestionDiff
 }
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.analyse.GatherDiagnostics
+import org.enso.compiler.pass.analyse.{
+  CachePreferenceAnalysis,
+  GatherDiagnostics
+}
 import org.enso.compiler.phase.ImportResolver
-import org.enso.interpreter.instrument.CacheInvalidation
+import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.model.{Position, Range, TextEdit}
+import org.enso.text.editing.model.{Position, Range}
 
-import scala.collection.concurrent.TrieMap
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
@@ -39,7 +41,19 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
     ctx.locking.acquireWriteCompilationLock()
     try {
-      ensureCompiledFiles(files)
+      val compilationResult = ensureCompiledFiles(files)
+      ctx.contextManager.getAll.values.foreach { stack =>
+        getCacheMetadata(stack).foreach { metadata =>
+          CacheInvalidation.run(
+            stack,
+            CacheInvalidation(
+              CacheInvalidation.StackSelector.Top,
+              CacheInvalidation.Command.SetMetadata(metadata)
+            )
+          )
+        }
+      }
+      compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
     }
@@ -79,12 +93,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     compile(module)
       .map {
         case Some(module) =>
-          runInvalidationCommands(
-            buildCacheInvalidationCommands(
-              changeset,
-              module.getLiteralSource
-            )
-          )
+          val cacheInvalidationCommands =
+            buildCacheInvalidationCommands(changeset, module.getLiteralSource)
+          runInvalidationCommands(cacheInvalidationCommands)
           analyzeModule(module, changeset)
           runCompilationDiagnostics(module)
         case None =>
@@ -106,9 +117,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       new ImportResolver(ctx.executionService.getContext.getCompiler)
         .mapImports(module)
         .filter(_.getName != module.getName)
-    ctx.executionService.getLogger.finest(
-      s"Module ${module.getName} imports ${importedModules.map(_.getName)}"
-    )
     importedModules.foreach(analyzeImport)
     importedModules.map(runCompilationDiagnostics)
   }
@@ -322,7 +330,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
     compilationResult.map { compiledModule =>
       if (prevStage != compiledModule.getCompilationStage) {
-        ctx.executionService.getLogger.finest(
+        ctx.executionService.getLogger.log(
+          Level.FINEST,
           s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
         )
         Some(compiledModule)
@@ -342,7 +351,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
     try {
-      val edits = EnsureCompiledJob.dequeueEdits(file)
+      val edits = ctx.state.pendingEdits.dequeue(file)
       val suggestionBuilder = ctx.executionService
         .modifyModuleSources(file, edits.asJava)
       suggestionBuilder.build(edits)
@@ -457,6 +466,23 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       CompilationStatus.Error
     else
       CompilationStatus.Success
+
+  private def getCacheMetadata(
+    stack: Iterable[InstrumentFrame]
+  )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
+    stack.lastOption flatMap {
+      case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _) =>
+        ctx.executionService.getContext.findModule(ptr.module).toScala.map {
+          module =>
+            module.getIr
+              .unsafeGetMetadata(
+                CachePreferenceAnalysis,
+                s"Empty cache preference metadata ${module.getName}"
+              )
+        }
+      case _ => None
+    }
+
 }
 
 object EnsureCompiledJob {
@@ -482,54 +508,50 @@ object EnsureCompiledJob {
       }
   }
 
-  private val unappliedEdits =
-    new TrieMap[File, Seq[TextEdit]]()
-
-  private def dequeueEdits(file: File): Seq[TextEdit] =
-    unappliedEdits.remove(file).getOrElse(Seq())
-
-  private def enqueueEdits(file: File, edits: Seq[TextEdit]): Unit =
-    unappliedEdits.updateWith(file) {
-      case Some(v) => Some(v :++ edits)
-      case None    => Some(edits)
-    }
-
-  /** Create a job ensuring that files are compiled.
+  /** Create [[EnsureCompiledJob]] for a single file.
     *
-    * @param files the list of files to compile
-    * @return a new job
+    * @param file the file to compile
+    * @return new instance of [[EnsureCompiledJob]]
     */
-  def apply(files: Iterable[File]): EnsureCompiledJob = {
-    new EnsureCompiledJob(files)
-  }
+  def apply(file: File): EnsureCompiledJob =
+    new EnsureCompiledJob(Seq(file))
 
-  /** Create a job ensuring that files are compiled after applying the edits.
+  /** Create [[EnsureCompiledJob]] for a stack.
     *
-    * @param file a file to compile
-    * @param edits the list of edits to apply
-    * @return a new job
+    * @param stack the call stack to compile
+    * @return new instance of [[EnsureCompiledJob]]
     */
-  def apply(file: File, edits: Seq[TextEdit]): EnsureCompiledJob = {
-    EnsureCompiledJob.enqueueEdits(file, edits)
-    EnsureCompiledJob(List(file))
-  }
+  def apply(stack: Iterable[InstrumentFrame])(implicit
+    ctx: RuntimeContext
+  ): EnsureCompiledJob =
+    new EnsureCompiledJob(extractFiles(stack))
 
-  /** Create a job ensuring that modules are compiled.
+  /** Extract files to compile from a call stack.
     *
-    * @param modules a list of modules to compile
-    * @return a new job
+    * @param stack a call stack
+    * @return a list of files to compile
     */
-  def apply(
-    modules: Iterable[Module]
-  )(implicit ctx: RuntimeContext): EnsureCompiledJob = {
-    val files = modules.flatMap { module =>
-      val file = Option(module.getPath).map(new File(_))
-      if (file.isEmpty) {
-        ctx.executionService.getLogger
-          .severe(s"Failed to get file for module ${module.getName}")
+  private def extractFiles(stack: Iterable[InstrumentFrame])(implicit
+    ctx: RuntimeContext
+  ): Iterable[File] =
+    stack
+      .map(_.item)
+      .flatMap {
+        case Api.StackItem.ExplicitCall(methodPointer, _, _) =>
+          ctx.executionService.getContext
+            .findModule(methodPointer.module)
+            .flatMap { module =>
+              val path = java.util.Optional.ofNullable(module.getPath)
+              if (path.isEmpty) {
+                ctx.executionService.getLogger
+                  .severe(s"${module.getName} module path is empty")
+              }
+              path
+            }
+            .map(path => new File(path))
+            .toScala
+        case _ =>
+          None
       }
-      file
-    }
-    new EnsureCompiledJob(files)
-  }
+
 }

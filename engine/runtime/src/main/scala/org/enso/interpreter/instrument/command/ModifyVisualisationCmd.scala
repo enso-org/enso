@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{
-  EnsureCompiledStackJob,
+  EnsureCompiledJob,
   ExecuteJob,
   UpsertVisualisationJob
 }
@@ -66,7 +66,9 @@ class ModifyVisualisationCmd(
 
           case Some(exec) =>
             for {
-              _ <- ctx.jobProcessor.run(new EnsureCompiledStackJob(exec.stack))
+              _ <- Future {
+                ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
+              }
               _ <- ctx.jobProcessor.run(new ExecuteJob(exec))
             } yield ()
         }
