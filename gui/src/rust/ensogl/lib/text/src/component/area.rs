@@ -403,9 +403,11 @@ ensogl_core::define_endpoints! {
         undo(),
         /// Redo the last operation.
         redo(),
-        /// Copy selected text to clipboard.
+        /// Copy the selected text to the clipboard.
         copy(),
-        /// Paste selected text from clipboard.
+        /// Copy the selected text to the clipboard and remove it from the text area.
+        cut(),
+        /// Paste the selected text from the clipboard.
         paste(),
 
         hover(),
@@ -540,7 +542,7 @@ impl Area {
             });
 
 
-            // === Copy / Paste ===
+            // === Copy / Cut / Paste ===
 
             copy_sels      <- input.copy.map(f_!(m.buffer.selections_contents()));
             all_empty_sels <- copy_sels.map(|s|s.iter().all(|t|t.is_empty()));
@@ -551,6 +553,18 @@ impl Area {
             line_sel_mode_sels     <- line_sel_mode.map(f_!(m.buffer.selections_contents()));
             sels                   <- any(&line_sel_mode_sels,&non_line_sel_mode_sels);
             eval sels ((s) m.copy(s));
+
+            cut_sels           <- input.cut.map(f_!(m.buffer.selections_contents()));
+            all_empty_sels_cut <- cut_sels.map(|s|s.iter().all(|t|t.is_empty()));
+            line_sel_mode_cut  <- cut_sels.gate(&all_empty_sels_cut);
+
+            eval_ line_sel_mode_cut (m.buffer.frp.cursors_select(Some(Transform::Line)));
+            non_line_sel_mode_cut_sels <- cut_sels.gate_not(&all_empty_sels_cut);
+            line_sel_mode_cut_sels     <- line_sel_mode_cut.map(f_!(m.buffer.selections_contents()));
+            sels_cut                   <- any(&line_sel_mode_cut_sels,&non_line_sel_mode_cut_sels);
+            eval sels_cut ((s) m.cut(s));
+            eval_ sels_cut (m.buffer.frp.delete_left());
+
             eval_ input.paste (m.paste());
             eval input.paste_string ((s) m.buffer.frp.paste(m.decode_paste(s)));
 
@@ -903,6 +917,10 @@ impl AreaModel {
         clipboard::write_text(encoded);
     }
 
+    fn cut(&self, selections:&[String]) {
+        self.copy(selections);
+    }
+
     fn paste(&self) {
         let paste_string = self.frp_endpoints.input.paste_string.clone_ref();
         clipboard::read_text(move |t| paste_string.emit(t));
@@ -985,6 +1003,7 @@ impl application::View for Area {
           , (Release        , "cmd left-mouse-button"   , "stop_newest_selection_end_follow_mouse")
           , (Press          , "cmd a"                   , "select_all")
           , (Press          , "cmd c"                   , "copy")
+          , (Press          , "cmd x"                   , "cut")
           , (Press          , "cmd v"                   , "paste")
           , (Press          , "escape"                  , "keep_oldest_cursor_only")
           ]).iter().map(|(action,rule,command)| {
