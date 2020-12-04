@@ -41,9 +41,7 @@
     "name": "akka.actor.LightArrayRevolverScheduler$TaskHolder",
     "fields": [{ "name": "task", "allowUnsafeAccess": true }]
   },
-  {
-    "name": "akka.actor.LightArrayRevolverScheduler$TaskQueue[]"
-  },
+  { "name": "akka.actor.LightArrayRevolverScheduler$TaskQueue[]" },
   {
     "name": "akka.actor.LocalActorRefProvider",
     "methods": [
@@ -77,6 +75,29 @@
       { "name": "_lookupDoNotCallMeDirectly", "allowUnsafeAccess": true }
     ]
   },
+  { "name": "akka.actor.typed.ActorRef" },
+  {
+    "name": "akka.actor.typed.internal.MiscMessageSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  { "name": "akka.actor.typed.internal.adapter.ActorRefAdapter" },
+  {
+    "name": "akka.actor.typed.internal.adapter.ActorSystemAdapter$LoadTypedExtensions$",
+    "fields": [{ "name": "MODULE$" }]
+  },
+  { "name": "akka.actor.typed.internal.receptionist.DefaultServiceKey" },
+  {
+    "name": "akka.actor.typed.internal.receptionist.ServiceKeySerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.actor.typed.receptionist.Receptionist$",
+    "fields": [{ "name": "MODULE$" }]
+  },
   {
     "name": "akka.dispatch.AbstractNodeQueue",
     "fields": [
@@ -89,21 +110,11 @@
       { "name": "_nextDoNotCallMeDirectly", "allowUnsafeAccess": true }
     ]
   },
-  {
-    "name": "akka.dispatch.BoundedControlAwareMessageQueueSemantics"
-  },
-  {
-    "name": "akka.dispatch.BoundedDequeBasedMessageQueueSemantics"
-  },
-  {
-    "name": "akka.dispatch.BoundedMessageQueueSemantics"
-  },
-  {
-    "name": "akka.dispatch.ControlAwareMessageQueueSemantics"
-  },
-  {
-    "name": "akka.dispatch.DequeBasedMessageQueueSemantics"
-  },
+  { "name": "akka.dispatch.BoundedControlAwareMessageQueueSemantics" },
+  { "name": "akka.dispatch.BoundedDequeBasedMessageQueueSemantics" },
+  { "name": "akka.dispatch.BoundedMessageQueueSemantics" },
+  { "name": "akka.dispatch.ControlAwareMessageQueueSemantics" },
+  { "name": "akka.dispatch.DequeBasedMessageQueueSemantics" },
   {
     "name": "akka.dispatch.Mailbox",
     "fields": [
@@ -121,15 +132,33 @@
       }
     ]
   },
+  { "name": "akka.dispatch.MultipleConsumerSemantics" },
   {
-    "name": "akka.dispatch.MultipleConsumerSemantics"
+    "name": "akka.dispatch.SingleConsumerOnlyUnboundedMailbox",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
   },
+  { "name": "akka.dispatch.UnboundedControlAwareMessageQueueSemantics" },
   {
-    "name": "akka.dispatch.UnboundedControlAwareMessageQueueSemantics"
+    "name": "akka.dispatch.UnboundedDequeBasedMailbox",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
   },
-  {
-    "name": "akka.dispatch.UnboundedDequeBasedMessageQueueSemantics"
-  },
+  { "name": "akka.dispatch.UnboundedDequeBasedMessageQueueSemantics" },
   {
     "name": "akka.dispatch.UnboundedMailbox",
     "methods": [
@@ -142,24 +171,10 @@
       }
     ]
   },
-  {
-    "name": "akka.dispatch.UnboundedMessageQueueSemantics"
-  },
+  { "name": "akka.dispatch.UnboundedMessageQueueSemantics" },
   {
     "name": "akka.event.DeadLetterListener",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "akka.event.DefaultLoggingFilter",
-    "methods": [
-      {
-        "name": "<init>",
-        "parameterTypes": [
-          "akka.actor.ActorSystem$Settings",
-          "akka.event.EventStream"
-        ]
-      }
-    ]
   },
   {
     "name": "akka.event.EventStreamUnsubscriber",
@@ -177,9 +192,7 @@
       }
     ]
   },
-  {
-    "name": "akka.event.LoggerMessageQueueSemantics"
-  },
+  { "name": "akka.event.LoggerMessageQueueSemantics" },
   {
     "name": "akka.event.slf4j.Slf4jLogger",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
@@ -208,37 +221,14 @@
     "name": "akka.io.InetAddressDnsProvider",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
-  {
-    "name": "akka.io.InetAddressDnsResolver",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "akka.io.SelectionHandler",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "akka.io.SimpleDnsManager",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "akka.io.TcpIncomingConnection",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "akka.io.TcpListener",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "akka.io.TcpManager",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "akka.io.TcpOutgoingConnection",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "akka.io.dns.RecordType[]"
-  },
+  { "name": "akka.io.InetAddressDnsResolver", "allDeclaredConstructors": true },
+  { "name": "akka.io.SelectionHandler", "allDeclaredConstructors": true },
+  { "name": "akka.io.SimpleDnsManager", "allDeclaredConstructors": true },
+  { "name": "akka.io.TcpIncomingConnection", "allDeclaredConstructors": true },
+  { "name": "akka.io.TcpListener", "allDeclaredConstructors": true },
+  { "name": "akka.io.TcpManager", "allDeclaredConstructors": true },
+  { "name": "akka.io.TcpOutgoingConnection", "allDeclaredConstructors": true },
+  { "name": "akka.io.dns.RecordType[]" },
   {
     "name": "akka.pattern.PromiseActorRef",
     "fields": [
@@ -252,9 +242,7 @@
       { "name": "<init>", "parameterTypes": ["com.typesafe.config.Config"] }
     ]
   },
-  {
-    "name": "akka.routing.ConsistentRoutee[]"
-  },
+  { "name": "akka.routing.ConsistentRoutee[]" },
   {
     "name": "akka.routing.RoundRobinPool",
     "methods": [
@@ -311,134 +299,52 @@
       { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
     ]
   },
-  {
-    "name": "akka.stream.SinkRef"
-  },
-  {
-    "name": "akka.stream.SourceRef"
-  },
+  { "name": "akka.stream.SinkRef" },
+  { "name": "akka.stream.SourceRef" },
   {
     "name": "akka.stream.SystemMaterializer$",
     "fields": [{ "name": "MODULE$" }]
   },
-  {
-    "name": "akka.stream.impl.BatchingInputBuffer[]"
-  },
-  {
-    "name": "akka.stream.impl.FanOut$FanoutOutputs[]"
-  },
-  {
-    "name": "akka.stream.impl.streamref.StreamRefsProtocol"
-  },
+  { "name": "akka.stream.impl.streamref.StreamRefsProtocol" },
   {
     "name": "akka.stream.serialization.StreamRefSerializer",
     "methods": [
       { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
     ]
   },
-  {
-    "name": "akka.stream.stage.GraphStageLogic[]"
-  },
-  {
-    "name": "akka.util.ByteString$ByteString1"
-  },
-  {
-    "name": "akka.util.ByteString$ByteString1C"
-  },
-  {
-    "name": "akka.util.ByteString$ByteStrings"
-  },
-  {
-    "name": "com.sun.crypto.provider.AESCipher$General",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "com.sun.crypto.provider.DHParameters",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "com.sun.crypto.provider.TlsKeyMaterialGenerator",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
+  { "name": "akka.stream.stage.GraphStageLogic[]" },
+  { "name": "akka.util.ByteString$ByteString1" },
+  { "name": "akka.util.ByteString$ByteString1C" },
+  { "name": "akka.util.ByteString$ByteStrings" },
   {
     "name": "com.sun.crypto.provider.TlsMasterSecretGenerator",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "com.sun.crypto.provider.TlsPrfGenerator$V12",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
     "name": "com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
-  {
-    "name": "java.io.Serializable"
-  },
-  {
-    "name": "java.lang.Boolean"
-  },
-  {
-    "name": "java.lang.Class[]"
-  },
-  {
-    "name": "java.lang.Integer"
-  },
-  {
-    "name": "java.lang.Long"
-  },
+  { "name": "java.io.Serializable" },
+  { "name": "java.lang.Boolean" },
+  { "name": "java.lang.Class[]" },
+  { "name": "java.lang.Integer" },
+  { "name": "java.lang.Long" },
+  { "name": "java.lang.Object[]" },
   {
     "name": "java.lang.String",
     "fields": [{ "name": "value", "allowUnsafeAccess": true }]
   },
-  {
-    "name": "java.lang.String[]"
-  },
-  {
-    "name": "java.lang.invoke.VarHandle"
-  },
-  {
-    "name": "java.nio.file.Path[]"
-  },
-  {
-    "name": "java.security.AlgorithmParametersSpi"
-  },
-  {
-    "name": "java.security.KeyStoreSpi"
-  },
-  {
-    "name": "java.security.MessageDigestSpi"
-  },
-  {
-    "name": "java.security.SecureRandomParameters"
-  },
-  {
-    "name": "java.security.interfaces.ECPrivateKey"
-  },
-  {
-    "name": "java.security.interfaces.ECPublicKey"
-  },
-  {
-    "name": "java.security.interfaces.RSAPrivateKey"
-  },
-  {
-    "name": "java.security.interfaces.RSAPublicKey"
-  },
-  {
-    "name": "java.sql.Date"
-  },
-  {
-    "name": "java.sql.Timestamp"
-  },
-  {
-    "name": "java.util.Date"
-  },
-  {
-    "name": "javax.net.ssl.KeyManager[]"
-  },
-  {
-    "name": "javax.net.ssl.TrustManager[]"
-  },
+  { "name": "java.lang.String[]" },
+  { "name": "java.lang.invoke.VarHandle" },
+  { "name": "java.nio.file.Path[]" },
+  { "name": "java.security.AlgorithmParametersSpi" },
+  { "name": "java.security.KeyStoreSpi" },
+  { "name": "java.security.MessageDigestSpi" },
+  { "name": "java.security.SecureRandomParameters" },
+  { "name": "java.sql.Date" },
+  { "name": "java.sql.Timestamp" },
+  { "name": "javax.net.ssl.KeyManager[]" },
+  { "name": "javax.net.ssl.TrustManager[]" },
   {
     "name": "javax.security.auth.x500.X500Principal",
     "fields": [{ "name": "thisX500Name" }],
@@ -446,99 +352,18 @@
       { "name": "<init>", "parameterTypes": ["sun.security.x509.X500Name"] }
     ]
   },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.AsiExtraField",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.JarMarker",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.ResourceAlignmentExtraField",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.UnicodePathExtraField",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X000A_NTFS",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X0014_X509Certificates",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X0015_CertificateIdForFile",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X0016_CertificateIdForCentralDirectory",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X0017_StrongEncryptionHeader",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X0019_EncryptionRecipientCertificateList",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X5455_ExtendedTimestamp",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.X7875_NewUnix",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "scala.Boolean"
-  },
-  {
-    "name": "scala.Int"
-  },
-  {
-    "name": "scala.Long"
-  },
-  {
-    "name": "scala.Tuple2[]"
-  },
-  {
-    "name": "sun.misc.Unsafe",
-    "allDeclaredFields": true
-  },
-  {
-    "name": "sun.security.pkcs.SignerInfo[]"
-  },
+  { "name": "scala.Boolean" },
+  { "name": "scala.Int" },
+  { "name": "scala.Long" },
+  { "name": "scala.Symbol" },
+  { "name": "scala.Tuple2[]" },
+  { "name": "sun.misc.Unsafe", "allDeclaredFields": true },
   {
     "name": "sun.security.pkcs12.PKCS12KeyStore",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
     "name": "sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.provider.DSA$SHA224withDSA",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.provider.DSA$SHA256withDSA",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.provider.JavaKeyStore$DualFormatJKS",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
@@ -554,43 +379,11 @@
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
-    "name": "sun.security.provider.SHA2$SHA224",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.provider.SHA2$SHA256",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.provider.SHA5$SHA384",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.provider.SHA5$SHA512",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
     "name": "sun.security.provider.X509Factory",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
-    "name": "sun.security.provider.certpath.PKIXCertPathValidator",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
     "name": "sun.security.rsa.RSAKeyFactory$Legacy",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.rsa.RSAPSSSignature",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.rsa.RSASignature$SHA224withRSA",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.rsa.RSASignature$SHA256withRSA",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
@@ -608,9 +401,6 @@
   {
     "name": "sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "name": "sun.security.util.ObjectIdentifier"
   },
   {
     "name": "sun.security.x509.AuthorityInfoAccessExtension",
@@ -647,9 +437,6 @@
         "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
       }
     ]
-  },
-  {
-    "name": "sun.security.x509.CertificateExtensions"
   },
   {
     "name": "sun.security.x509.CertificatePoliciesExtension",
