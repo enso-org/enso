@@ -112,10 +112,12 @@ jobs:
 
       # Build Artifacts
       - name: Build the Runner & Runtime Uberjars
+        working-directory: repo
         run: |
           sleep 1
           sbt --no-colors engine-runner/assembly
       - name: Build the Project Manager Native Image
+        working-directory: repo
         run: |
           sleep 1
           sbt --no-colors project-manager/buildNativeImage
@@ -152,16 +154,19 @@ jobs:
           tools/ci/prepare-distribution-env.sh
 
       - name: Prepare Launcher Distribution
+        working-directory: repo
         shell: bash
         run: |
           sleep 1
           sbt 'set launcherDistributionRoot := file("${{ env.LAUNCHER_DIST_DIR }}"); buildLauncherDistribution'
       - name: Prepare Engine Distribution
+        working-directory: repo
         shell: bash
         run: |
           sleep 1
           sbt 'set engineDistributionRoot := file("${{ env.ENGINE_DIST_DIR }}"); buildEngineDistribution'
       - name: Prepare Project Manager Distribution
+        working-directory: repo
         shell: bash
         run: |
           sleep 1
