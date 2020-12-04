@@ -150,8 +150,9 @@ scalacOptions in (Compile, console) ~= (_ filterNot (_ == "-Xfatal-warnings"))
 lazy val Benchmark = config("bench") extend sbt.Test
 
 // Native Image Generation
+lazy val rebuildNativeImage = taskKey[Unit]("Force to rebuild native image")
 lazy val buildNativeImage =
-  taskKey[Unit]("Build native image for the Enso executable")
+  taskKey[Unit]("Ensure that the Native Image is built.")
 
 // Bootstrap task
 lazy val bootstrap =
@@ -718,7 +719,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value
   )
   .settings(
-    buildNativeImage := NativeImage
+    rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
         staticOnLinux = true,
@@ -732,6 +733,12 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
           "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
         )
+      )
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "project-manager"
       )
       .value
   )
@@ -1170,7 +1177,7 @@ lazy val launcher = project
     )
   )
   .settings(
-    buildNativeImage := NativeImage
+    rebuildNativeImage := NativeImage
       .buildNativeImage(
         "enso",
         staticOnLinux = true,
@@ -1188,20 +1195,19 @@ lazy val launcher = project
         )
       )
       .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "enso"
+      )
+      .value,
     test in assembly := {},
     assemblyOutputPath in assembly := file("launcher.jar")
   )
   .settings(
     (Test / test) := (Test / test)
-      .dependsOn(
-        NativeImage.incrementalNativeImageBuild(
-          buildNativeImage,
-          "enso"
-        )
-      )
-      .dependsOn(
-        LauncherShimsForTest.prepare(rustcVersion = rustVersion)
-      )
+      .dependsOn(buildNativeImage)
+      .dependsOn(LauncherShimsForTest.prepare(rustcVersion = rustVersion))
       .value,
     parallelExecution in Test := false
   )
@@ -1363,6 +1369,7 @@ projectManagerDistributionRoot := file("built-project-manager")
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
+  val _            = (`engine-runner` / assembly).value
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
@@ -1378,6 +1385,7 @@ buildEngineDistribution := {
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")
 buildLauncherDistribution := {
+  val _            = (launcher / buildNativeImage).value
   val root         = launcherDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
@@ -1388,6 +1396,7 @@ buildLauncherDistribution := {
 lazy val buildProjectManagerDistribution =
   taskKey[Unit]("Builds the project manager distribution")
 buildProjectManagerDistribution := {
+  val _            = (`project-manager` / buildNativeImage).value
   val root         = projectManagerDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory

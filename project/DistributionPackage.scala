@@ -32,7 +32,7 @@ object DistributionPackage {
       for (f <- diff.removed) {
         IO.delete(destinationDirectory / f.getName)
       }
-      for (f <- diff.modified) {
+      for (f <- diff.modified -- diff.removed) {
         IO.copyFile(f, destinationDirectory / f.getName)
       }
       for (f <- diff.unmodified) {
