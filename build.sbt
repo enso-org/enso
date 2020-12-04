@@ -722,17 +722,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
-        staticOnLinux = true,
-        additionalOptions = Seq(
-          "-H:+ReportExceptionStackTraces",
-          "-H:+TraceClassInitialization"
-        ),
-        initializeAtRuntime = Seq(
-          "akka.protobuf.DescriptorProtos",
-          "io.methvin.watchservice.jna.CarbonAPI",
-          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
-          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder"
-        )
+        staticOnLinux = true
       )
       .value,
     buildNativeImage := NativeImage
@@ -1187,9 +1177,6 @@ lazy val launcher = project
           "-H:IncludeResources=.*Main.enso$"
         ),
         initializeAtRuntime = Seq(
-          "akka.protobuf.DescriptorProtos",
-          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
-          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder",
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$"
         )

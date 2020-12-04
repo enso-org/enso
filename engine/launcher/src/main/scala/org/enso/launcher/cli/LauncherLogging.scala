@@ -69,7 +69,7 @@ object LauncherLogging {
         defaultLogLevel
       )
       .onComplete { _ =>
-        loggingServiceEndpointPromise.success(None)
+        loggingServiceEndpointPromise.trySuccess(None)
       }
   }
 
@@ -145,7 +145,7 @@ object LauncherLogging {
             exception
           )
           logger.warn("Falling back to local-only logger.")
-          loggingServiceEndpointPromise.success(None)
+          loggingServiceEndpointPromise.trySuccess(None)
           LoggingServiceManager
             .setup(
               LoggerMode.Local(createPrinters()),
@@ -193,7 +193,7 @@ object LauncherLogging {
         case Failure(exception) =>
           System.err.println(s"Failed to initialize the logger: $exception")
           exception.printStackTrace()
-          loggingServiceEndpointPromise.success(None)
+          loggingServiceEndpointPromise.trySuccess(None)
         case Success(connected) =>
           if (connected) {
             loggingServiceEndpointPromise.success(Some(uri))
@@ -201,7 +201,7 @@ object LauncherLogging {
               s"Log messages from this launcher are forwarded to `$uri`."
             )
           } else {
-            loggingServiceEndpointPromise.success(None)
+            loggingServiceEndpointPromise.trySuccess(None)
           }
       }
   }

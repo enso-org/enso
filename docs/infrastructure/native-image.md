@@ -83,8 +83,8 @@ To avoid such issues, additional configuration has to be added to the Native
 Image build so that it can include the missing constructors.
 
 This can be done manually by creating a file `reflect-config.json`. The build
-task looks for the configuration files in a directory called
-`native-image-config` inside the root of the compiled sub-project.
+task looks for the configuration files in every subdirectory of
+`META-INF/native-image` on the project classpath.
 
 Creating the configuration manually may be tedious and error-prone, so GraalVM
 includes
@@ -105,7 +105,7 @@ java \
 For example, to update settings for the Launcher:
 
 ```bash
-java -agentlib:native-image-agent=config-merge-dir=engine/launcher/native-image-config -jar launcher.jar <arguments>
+java -agentlib:native-image-agent=config-merge-dir=engine/launcher/src/main/resources/META-INF/native-image/org/enso/launcher -jar launcher.jar <arguments>
 ```
 
 The command may need to be re-run with different arguments to ensure that all
@@ -172,7 +172,7 @@ launcher. You need to build the JAR with `project-manager/assembly` and execute
 the test scenarios by starting it with:
 
 ```
-java -agentlib:native-image-agent=config-merge-dir=lib/scala/project-manager/native-image-config -jar project-manager.jar
+java -agentlib:native-image-agent=config-merge-dir=lib/scala/project-manager/src/main/resources/META-INF/native-image/org/enso/projectmanager -jar project-manager.jar
 ```
 
 For now it seems that it is enough to start the Project Manager and connect an
