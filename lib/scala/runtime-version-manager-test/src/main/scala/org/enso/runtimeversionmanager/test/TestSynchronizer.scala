@@ -75,7 +75,7 @@ class TestSynchronizer {
   }
 
   /** Timeout of various blocking operations. */
-  val timeOutSeconds: Long = 30
+  val timeOutSeconds: Long = 45
 
   /** Reports that the event has happened now.
     *

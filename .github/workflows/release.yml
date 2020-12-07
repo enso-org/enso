@@ -211,12 +211,12 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PROJECTMANAGER_DIST_ROOT }}
-          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+          path: repo/${{ env.PROJECTMANAGER_DIST_ROOT }}
       - name: Upload the Manifest Artifact
         uses: actions/upload-artifact@v2
         with:
           name: manifest
-          path: repo/manifest.yaml
+          path: repo/${{ env.ENGINE_DIST_ROOT }}/manifest.yaml
       - name: Upload the Launcher Manifest Artifact
         uses: actions/upload-artifact@v2
         with:
@@ -275,9 +275,7 @@ jobs:
         shell: bash
         run: |
           chmod +x artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin/enso
-          chmod +x artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin/project-manager
           chmod +x artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/enso-${{ env.DIST_VERSION }}/bin/enso
-          chmod +x artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/enso-${{ env.DIST_VERSION }}/bin/project-manager
           chmod +x artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/bin/enso
           chmod +x artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/bin/enso
           chmod +x artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/bin/project-manager
