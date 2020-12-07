@@ -407,10 +407,7 @@ type Vector
     rest : Vector | Nothing
     rest = this.tail
 
-    ## PRIVATE
-       Doesn't work yet.
-
-       Sort the Vector.
+    ## Sort the Vector.
 
        Arguments:
        - `on`: A projection from the element type to the value of that element
@@ -420,10 +417,16 @@ type Vector
        - `order`: The order in which the vector elements are sorted.
 
        By default, elements are sorted in ascending order, using the comparator
-       `>`. A custom comparator may be passed to the sort function.
+       `compare_to`. A custom comparator may be passed to the sort function.
 
-       This implements a stable sort, meaning that items that compare the same
-       will not have their order changed.
+       This is a stable sort, meaning that items that compare the same will not
+       have their order changed by the sorting process.
+
+       The complexities for this sort are:
+       - *Worst-Case Time:* `O(n * log n)`
+       - *Best-Case Time:* `O(n)`
+       - *Average Time:* `O(n * log n)`
+       - *Worst-Case Space:* `O(n)` additional
 
        > Example
          Sorting a vector of numbers.
@@ -434,7 +437,7 @@ type Vector
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
     sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
     sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
-        Sort.run this on by order
+        Sort.execute this on by order
 
 ## A builder type for Enso vectors.
 

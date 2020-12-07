@@ -1,15 +1,116 @@
 from Base import all
 
-# TODO [AA] Implement vector sorting.
-
 ## PRIVATE
 
    Execute the sort.
 
-   In the use-cases we anticipate for Enso, we can see `sort` being run over
-   both partially-sorted data and random data.
+   This is a _stable_ sort, meaning that two items that compare equal are
+   guarnteed to not have their order changed by the sorting process.
 
-   TODO [AA] Explain why we chose this sort.
-run : Vector -> (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
-run vec _ _ _ = vec
+   This sort implementation heavily borrows ideas from Timsort, described
+   [here](https://github.com/python/cpython/blob/master/Objects/listsort.txt).
+   However, as we anticipate users requiring good performance on both
+   partially-sorted and truly-random data, we do not borrow _all_ of the
+   optimisations.
 
+   The algorithm identifies strictly ascending and descending subsequences,
+   termed natural runs. These runs are maintained on a stack, from which pairs
+   of adjacent runs are merged until the following invariants are satisfied:
+
+   1. for every `i` in `1.up_to runs.length`: `runs.at i-1.length > runs.at i . length`
+   2. for every `i` in `2.up_to runs.length`: `runs.at i-2 . length > runs.at i-1 . length + runs.at i . length`
+
+   Maintaining these invariants ensures that the runtime of this sort is
+   worst-case `O(n * log n)`.
+
+   Thank you to the Rust team, whose implementation served as heavy inspiration
+   and reference for this one.
+execute : Vector -> (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
+execute vec project compare order =
+    ## Prepare the destination array that will underlie the vector. We do not
+       want to sort in place on the original vector, as `sort` is not intended
+       to be mutable.
+    new_vec_arr = Array.new vec.length
+    vec.to_array.copy 0 new_vec_arr 0 vec.length
+
+    ## Short arrays are sorted in place using insertion sort, thereby avoiding
+       the need for any significant additional allocations.
+    len = new_vec_arr.length
+    if len <= here.max_insertion then here.run_insertion new_vec_arr project compare order else
+        run_merge new_vec_arr project compare order
+
+    Vector.Vector new_vec_arr
+
+## PRIVATE
+
+   Executes insertion sort on the array `arr`, sorting it in place by mutation.
+run_insertion arr project compare order = if arr.length < 2 then arr else
+    indices = 0.up_to (arr.length + 1) . to_vector . reverse
+    indices.each i-> here.insert_head arr i project compare order
+    arr
+
+## PRIVATE
+
+   TODO [AA] deal with ordering (use a set_order function on the comparison that inverts its results)
+insert_head arr offset project compare _ =
+    is_less a b = (compare a b) == Ordering.Less
+
+    if (arr.length - offset) >= 2 then
+        elem = project (arr.at offset)
+        next_elem = project (arr.at offset+1)
+
+        if is_less next_elem elem then
+            elem_ofs = project (arr.at offset+1)
+            arr.set_at offset elem_ofs
+
+            iterate i = if i >= arr.length then arr.set_at i-1 elem else
+                elem_i = project (arr.at i)
+                if (is_less elem_i elem).not then arr.set_at i-1 elem else
+                    arr.set_at i-1 elem_i
+                    @Tail_Call iterate i+1
+
+            iterate offset+2
+
+## PRIVATE
+run_merge arr _ _ _ = arr
+
+## PRIVATE
+
+   TODO [AA] tune this constant based on benchmarking
+max_insertion = 20
+
+# TODO [AA] deal with min_run properly
+
+## PRIVATE
+type Run start len
+
+## PRIVATE
+
+   Examines the stack of runs and identifies the next pair of runs to merge.
+
+   If an Integer `i` is returned, this means that the runs at indices `i` and
+   `i + 1` should be merged next. If the algorithm should continue building a
+   new run, this function instead returns `Nothing`.
+
+   Timsort implementations are known to suffer from bugs with this computation
+   ([example](http://envisage-project.eu/timsort-specification-and-verification/)).
+   In short, it is insufficient to enforce the invariants on only the top three
+   runs on the stack. We must instead enforce them for the top _four_ runs in
+   order to ensure that they hold for all runs in the stack.
+
+   This function correctly checks the invariant across the top four runs on the
+   stack. In addition, if the top run starts at index 0 in the vector being
+   sorted, then it will always demand a merge operation until the stack is fully
+   collapsed. This ensures that the sort completes successfully.
+collapse : Vector -> Integer | Nothing
+collapse _ = Nothing
+    n = runs.length
+    starts_at_zero = runs.at (n - 1) . start == 0
+    top_three_good = (n >= 3) && (runs.at (n - 3) . length) <= ((runs.at (n - 2) . length) + (runs.at (n - 1) . length))
+    top_four_good = (n >= 4) && (runs.at (n - 4) . length) <= ((runs.at (n - 3) . length) + (runs.at (n - 2) . length))
+
+    check_merge = (n >= 2) && (starts_at_zero || top_three_good || top_four_good)
+
+    if check_merge.not then Nothing else
+        well_ordered = (n >= 3) && ((runs.at (n - 3) . length) < runs.at (n - 1) . length)
+        if well_ordered then n - 3 else n - 2
