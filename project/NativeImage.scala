@@ -11,8 +11,8 @@ import scala.sys.process._
 
 object NativeImage {
 
-  /** Specifies whether the build executable should include debug symbols. Should
-    * be set to false for production builds. May work only on Linux.
+  /** Specifies whether the build executable should include debug symbols.
+    * Should be set to false for production builds. May work only on Linux.
     */
   private val includeDebugInfo: Boolean = false
 

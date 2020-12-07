@@ -110,24 +110,13 @@ jobs:
           sleep 1
           sbt --no-colors verifyLicensePackages
 
-      # Build Artifacts
-      - name: Build the Runner & Runtime Uberjars
-        working-directory: repo
-        run: |
-          sleep 1
-          sbt --no-colors engine-runner/assembly
-      - name: Build the Project Manager Native Image
-        working-directory: repo
-        run: |
-          sleep 1
-          sbt --no-colors project-manager/buildNativeImage
+      # Prepare distributions
       - name: Build the Launcher Native Image
         working-directory: repo
         run: |
           sleep 1
           sbt --no-colors launcher/buildNativeImage
 
-      # Prepare distributions
       - name: Prepare Distribution Version (Unix)
         working-directory: repo
         if: runner.os != 'Windows'
