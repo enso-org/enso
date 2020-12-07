@@ -715,15 +715,13 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           )
         )
       ),
-    assembly := assembly.dependsOn(`engine-runner` / assembly).value,
-    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value
-  )
-  .settings(
+    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
         staticOnLinux = true
       )
+      .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
@@ -1181,6 +1179,7 @@ lazy val launcher = project
           "org.enso.loggingservice.WSLoggerManager$"
         )
       )
+      .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(

@@ -4,6 +4,8 @@ import java.nio.file.Path
 import sbt.{Def, File, _}
 import sbt.Keys._
 import sbt.internal.util.ManagedLogger
+import sbtassembly.AssemblyKeys.assembly
+import sbtassembly.AssemblyPlugin.autoImport.assemblyOutputPath
 
 import scala.sys.process._
 
@@ -16,9 +18,29 @@ object NativeImage {
 
   /** Creates a task that builds a native image for the current project.
     *
+    * This task must be setup in such a way that the assembly JAR is built
+    * before it starts, as it uses this JAR for the build. Usually this can be
+    * done by appending `.dependsOn(LocalProject("project-name") / assembly)`.
+    *
+    * Additional Native Image configuration can be set for each project by
+    * editing configuration files in subdirectories of `META-INF/native-image`
+    * of its resources directory. More information can be found at
+    * [[https://github.com/oracle/graal/blob/master/substratevm/BuildConfiguration.md]].
+    *
     * @param artifactName name of the artifact to create
     * @param staticOnLinux specifies whether to link statically (applies only
     *                      on Linux)
+    * @param initializeAtBuildtime specifies if classes should be initialized at
+    *                              build time by default
+    * @param additionalOptions additional options for the Native Image build
+    *                          tool
+    * @param memoryLimitGigabytes a memory limit for the build tool, in
+    *                             gigabytes; it is good to set this limit to
+    *                             make GC more aggressive thus allowing it to
+    *                             build successfully even with limited memory
+    * @param initializeAtRuntime a list of classes that should be initialized at
+    *                            run time - useful to set exceptions if build
+    *                            time initialization is set to default
     */
   def buildNativeImage(
     artifactName: String,
@@ -36,8 +58,8 @@ object NativeImage {
         if (Platform.isWindows)
           s"$javaHome\\bin\\native-image.cmd"
         else s"$javaHome/bin/native-image"
-      val classPath =
-        (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
+      val pathToJAR =
+        (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
       if (!file(nativeImagePath).exists()) {
         log.error("Native Image component not found in the JVM distribution.")
@@ -96,7 +118,8 @@ object NativeImage {
         initializeAtBuildtimeOptions ++
         memoryLimitOptions ++ initializeAtRuntimeOptions ++
         additionalOptions ++
-        Seq("-cp", classPath, (Compile / mainClass).value.get, artifactName)
+        Seq("-jar", pathToJAR.toString) ++
+        Seq(artifactName)
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
       val newPath   = pathParts.mkString(File.pathSeparator)
