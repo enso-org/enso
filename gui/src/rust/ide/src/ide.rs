@@ -83,7 +83,8 @@ impl IdeInitializer {
     , project_manager  : Rc<dyn project_manager::API>
     , project_metadata : ProjectMetadata
     ) -> FallibleResult<model::Project> {
-        let endpoints       = project_manager.open_project(&project_metadata.id).await?;
+        use project_manager::MissingComponentAction::*;
+        let endpoints       = project_manager.open_project(&project_metadata.id,&Install).await?;
         let json_endpoint   = endpoints.language_server_json_address;
         let binary_endpoint = endpoints.language_server_binary_address;
         info!(logger, "Establishing Language Server connection.");
@@ -110,8 +111,11 @@ impl IdeInitializer {
     , project_manager : &impl project_manager::API
     , name            : &str
     ) -> FallibleResult<ProjectMetadata> {
+        use project_manager::MissingComponentAction::Install;
         info!(logger, "Creating a new project named '{name}'.");
-        let id          = project_manager.create_project(&name.to_string()).await?.project_id;
+        let version     = None;
+        let response    = project_manager.create_project(&name.to_string(),&version,&Install);
+        let id          = response.await?.project_id;
         let name        = name.to_string();
         let name        = ProjectName::new(name);
         let last_opened = default();

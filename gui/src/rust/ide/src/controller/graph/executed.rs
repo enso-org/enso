@@ -296,16 +296,17 @@ pub mod tests {
     use super::*;
 
     use crate::model::execution_context::ExpressionId;
+    use crate::model::module::NodeMetadata;
 
     use enso_protocol::language_server::types::test::value_update_with_type;
     use enso_protocol::language_server::types::test::value_update_with_method_ptr;
     use utils::test::traits::*;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
-    use crate::model::module::NodeMetadata;
-    use logger::DefaultWarningLogger;
 
     wasm_bindgen_test_configure!(run_in_browser);
+
+
 
     #[derive(Debug,Default)]
     pub struct MockData {

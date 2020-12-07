@@ -38,7 +38,9 @@ trait API {
     /// Request the project manager to open a specified project. This operation also
     /// includes spawning an instance of the language server open on the specified project.
     #[MethodInput=OpenProjectInput,rpc_name="project/open"]
-    fn open_project(&self, project_id:Uuid) -> response::OpenProject;
+    fn open_project
+    (&self, project_id:Uuid, missing_component_action:MissingComponentAction)
+    -> response::OpenProject;
 
     /// Request the project manager to close a specified project. This operation
     /// includes shutting down the language server gracefully so that it can persist state to disk
@@ -53,7 +55,9 @@ trait API {
 
     /// Request the creation of a new project.
     #[MethodInput=CreateProjectInput,rpc_name="project/create"]
-    fn create_project(&self, name:String) -> response::CreateProject;
+    fn create_project
+    (&self, name:String, version:Option<String>, missing_component_action:MissingComponentAction)
+    -> response::CreateProject;
 
     /// Request project renaming.
     #[MethodInput=RenameProject,rpc_name="project/rename"]
@@ -104,6 +108,18 @@ pub struct ProjectMetadata {
     pub id : Uuid,
     /// Last time the project was opened.
     pub last_opened : Option<UTCDateTime>
+}
+
+/// This type specifies what action should be taken if a component required to complete an operation
+/// is missing.
+#[derive(Debug,Clone,Copy,Serialize,Deserialize,Eq,PartialEq)]
+pub enum MissingComponentAction {
+    /// Will make the operation fail if any components are missing.
+    Fail,
+    /// Will try to install any missing components, unless they are marked as broken.
+    Install,
+    /// Will try to install all missing components, even if some of them are marked as broken.
+    ForceInstallBroken
 }
 
 
@@ -180,23 +196,28 @@ mod mock_client_tests {
             language_server_json_address   : language_server_address.clone(),
             language_server_binary_address : language_server_address,
         };
-        let open_result             = Ok(expected_ip_with_socket.clone());
-        expect_call!(mock_client.create_project(name="HelloWorld".to_string()) => Ok(creation_response));
-        expect_call!(mock_client.open_project(expected_uuid) => open_result);
+        let open_result              = Ok(expected_ip_with_socket.clone());
+        let missing_component_action = MissingComponentAction::Fail;
+        expect_call!(mock_client.create_project(
+            name                     = "HelloWorld".to_string(),
+            version                  = None,
+            missing_component_action = missing_component_action
+        ) => Ok(creation_response));
+        expect_call!(mock_client.open_project(expected_uuid,missing_component_action) => open_result);
         expect_call!(mock_client.close_project(expected_uuid) => error("Project isn't open."));
         expect_call!(mock_client.delete_project(expected_uuid) => error("Project doesn't exist."));
 
         let delete_result = mock_client.delete_project(&expected_uuid);
         result(delete_result).expect_err("Project shouldn't exist.");
 
-        let creation_response = mock_client.create_project(&"HelloWorld".to_string());
+        let creation_response = mock_client.create_project(&"HelloWorld".to_string(),&None,&missing_component_action);
         let uuid = result(creation_response).expect("Couldn't create project").project_id;
         assert_eq!(uuid, expected_uuid);
 
         let close_result = result(mock_client.close_project(&uuid));
         close_result.expect_err("Project shouldn't be open.");
 
-        let ip_with_socket = result(mock_client.open_project(&uuid));
+        let ip_with_socket = result(mock_client.open_project(&uuid,&missing_component_action));
         let ip_with_socket = ip_with_socket.expect("Couldn't open project");
         assert_eq!(ip_with_socket, expected_ip_with_socket);
 
@@ -311,10 +332,16 @@ mod remote_client_tests {
 
     #[test]
     fn test_requests() {
-        let unit_json               = json!(null);
-        let project_id              = Uuid::default();
-        let create_project_response = response::CreateProject { project_id };
-        let project_id_json         = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
+        let unit_json                = json!(null);
+        let project_id               = Uuid::default();
+        let missing_component_action = MissingComponentAction::Install;
+        let engine_version           = Some("1.0.0".to_owned());
+        let create_project_response  = response::CreateProject { project_id };
+        let project_id_json          = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
+        let project_id_and_mca       = json!({
+            "projectId"              : "00000000-0000-0000-0000-000000000000",
+            "missingComponentAction" : "Install"
+        });
 
         let language_server_json_address   = IpWithSocket{host:"localhost".to_string(),port:27015};
         let language_server_binary_address = IpWithSocket{host:"localhost".to_string(),port:27016};
@@ -332,8 +359,12 @@ mod remote_client_tests {
                 "port" : 27016
             }
         });
-        let project_name            = String::from("HelloWorld");
-        let project_name_json       = json!({"name":serde_json::to_value(&project_name).unwrap()});
+        let project_name        = String::from("HelloWorld");
+        let project_create_json = json!({
+            "name"                   : serde_json::to_value(&project_name).unwrap(),
+            "missingComponentAction" : "Install",
+            "version"                : "1.0.0",
+        });
         let number_of_projects      = 2;
         let number_of_projects_json = json!({"numberOfProjects":number_of_projects});
         let num_projects_json       = json!({"numProjects":number_of_projects});
@@ -378,9 +409,9 @@ mod remote_client_tests {
             &project_list
         );
         test_request(
-            |client| client.open_project(&project_id),
+            |client| client.open_project(&project_id,&missing_component_action),
             "project/open",
-            &project_id_json,
+            &project_id_and_mca,
             &ip_with_address_json,
             &ip_with_address
         );
@@ -399,9 +430,9 @@ mod remote_client_tests {
             &()
         );
         test_request(
-            |client| client.create_project(&project_name),
+            |client| client.create_project(&project_name,&engine_version,&missing_component_action),
             "project/create",
-            &project_name_json,
+            &project_create_json,
             &project_id_json,
             &create_project_response
         );

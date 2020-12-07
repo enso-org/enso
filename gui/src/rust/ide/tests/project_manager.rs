@@ -10,6 +10,7 @@ mod tests {
     use ide::transport::web::WebSocket;
 
     use wasm_bindgen_test::wasm_bindgen_test_configure;
+    use enso_protocol::project_manager::MissingComponentAction::Install;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -26,9 +27,9 @@ mod tests {
         executor::global::spawn(client.runner());
 
         let name     = "TestProject".to_string();
-        let creation = client.create_project(&name).await.expect("Couldn't create project.");
+        let creation = client.create_project(&name,&None,&Install).await.expect("Couldn't create project.");
         let uuid     = creation.project_id;
-        let _address = client.open_project(&uuid).await.expect("Couldn't open project.");
+        let _address = client.open_project(&uuid,&Install).await.expect("Couldn't open project.");
         client.close_project(&uuid).await.expect("Couldn't close project.");
         let list_response = client.list_projects(&None).await;
         let list_response = list_response.expect("Couldn't list recent projects.");
