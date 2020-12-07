@@ -102,7 +102,7 @@ final class ContextEventsListener(
       val payload =
         ContextRegistryProtocol.VisualisationEvaluationFailed(contextId, msg)
 
-      sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
+      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
       def toMethodPointer(call: Api.MethodPointer): (String, String, String) =
