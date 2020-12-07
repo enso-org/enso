@@ -11,6 +11,8 @@ class ReentrantLocking extends Locking {
 
   private val compilationLock = new ReentrantReadWriteLock(true)
 
+  private val pendingEditsLock = new ReentrantLock()
+
   private val contextMapLock = new ReentrantLock()
 
   private var contextLocks = Map.empty[UUID, ReentrantLock]
@@ -84,6 +86,14 @@ class ReentrantLocking extends Locking {
   /** @inheritdoc */
   override def releaseReadCompilationLock(): Unit =
     compilationLock.readLock().unlock()
+
+  /** @inheritdoc */
+  override def acquirePendingEditsLock(): Unit =
+    pendingEditsLock.lock()
+
+  /** @inheritdoc */
+  override def releasePendingEditsLock(): Unit =
+    pendingEditsLock.unlock()
 
   /** @inheritdoc */
   override def acquireContextLock(contextId: UUID): Unit =
