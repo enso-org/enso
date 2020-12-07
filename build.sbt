@@ -39,6 +39,13 @@ lazy val verifyLicensePackages =
     "has no warnings and is up-to-date with dependencies."
   )
 verifyLicensePackages := GatherLicenses.verifyReports.value
+lazy val verifyGeneratedPackage =
+  inputKey[Unit](
+    "Verifies if the license package in a generated distribution is " +
+    "up-to-date with the one from the report."
+  )
+verifyGeneratedPackage := GatherLicenses.verifyGeneratedPackage.evaluated
+
 GatherLicenses.distributions := Seq(
   Distribution(
     "launcher",

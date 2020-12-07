@@ -119,12 +119,13 @@ object GatherLicenses {
     reports
   }
 
-  /** The task that verifies if the report has been generated and is up-to-date.
-    */
-  lazy val verifyReports = Def.task {
-    val configRoot = configurationRoot.value
-    val log        = streams.value.log
-    val targetRoot = target.value
+  private def verifyReportStatus(
+    log: Logger,
+    targetRoot: File,
+    distributionDescription: DistributionDescription,
+    distributionConfig: File
+  ): Unit = {
+    val name = distributionDescription.artifactName
 
     def warnAndThrow(exceptionMessage: String): Nothing = {
       log.error(exceptionMessage)
@@ -140,46 +141,108 @@ object GatherLicenses {
       throw LegalReviewException(exceptionMessage)
     }
 
-    for (distribution <- distributions.value) {
-      val distributionRoot = configRoot / distribution.artifactName
-      val name             = distribution.artifactName
-      ReportState.read(distributionRoot / stateFileName, log) match {
-        case Some(reviewState) =>
-          val currentInputHash = ReportState.computeInputHash(distribution)
-          if (currentInputHash != reviewState.inputHash) {
-            warnAndThrow(
-              s"Report for the $name is not up to date - " +
-              s"it seems that some dependencies were added or removed."
-            )
-          }
+    ReportState.read(distributionConfig / stateFileName, log) match {
+      case Some(reviewState) =>
+        val currentInputHash =
+          ReportState.computeInputHash(distributionDescription)
+        if (currentInputHash != reviewState.inputHash) {
+          warnAndThrow(
+            s"Report for the $name is not up to date - " +
+            s"it seems that some dependencies were added or removed."
+          )
+        }
 
-          if (reviewState.warningsCount > 0) {
-            warnAndThrow(
-              s"Report for the $name has ${reviewState.warningsCount} warnings."
-            )
-          }
+        if (reviewState.warningsCount > 0) {
+          warnAndThrow(
+            s"Report for the $name has ${reviewState.warningsCount} warnings."
+          )
+        }
 
-          val currentOutputHash = ReportState.computeOutputHash(distribution)
-          if (currentOutputHash != reviewState.outputHash) {
-            log.error(
-              s"Report for the $name seems to be up-to-date but the notice " +
-              s"package has been changed."
-            )
-            log.warn(
-              "Re-run `enso / gatherLicenses` and make sure that all files " +
-              "from the notice package are committed and no unexpected files " +
-              "have been added."
-            )
-            throw LegalReviewException(
-              s"Output directory for $name has different content than expected."
-            )
-          }
-
-          log.info(s"Report and package for $name are reviewed and up-to-date.")
-        case None =>
-          warnAndThrow(s"Report for $name has not been generated.")
-      }
+        log.info(s"Report for $name is reviewed.")
+      case None =>
+        warnAndThrow(s"Report for $name has not been generated.")
     }
+  }
+
+  private def verifyPackage(
+    log: Logger,
+    distributionConfig: File,
+    packageDestination: File
+  ): Unit = {
+    val reportState = ReportState
+      .read(distributionConfig / stateFileName, log)
+      .getOrElse(
+        throw LegalReviewException(
+          s"Report at $distributionConfig is not available. " +
+          s"Make sure to run `enso/gatherLicenses`."
+        )
+      )
+
+    val currentOutputHash = ReportState.computeOutputHash(packageDestination)
+    if (currentOutputHash != reportState.outputHash) {
+      log.error(
+        s"Generated package at $packageDestination seems to be not up-to-date."
+      )
+      log.warn(
+        "Re-run `enso/gatherLicenses` and make sure that all files " +
+        "from the notice package are committed, no unexpected files " +
+        "have been added and the package is created in a consistent way."
+      )
+      throw LegalReviewException(
+        s"Package $packageDestination has different content than expected."
+      )
+    } else {
+      log.info(s"Package $packageDestination is up-to-date.")
+    }
+  }
+
+  /** The task that verifies if the report has been generated and is up-to-date.
+    */
+  lazy val verifyReports = Def.task {
+    val configRoot = configurationRoot.value
+    val log        = streams.value.log
+    val targetRoot = target.value
+
+    for (distribution <- distributions.value) {
+      val distributionConfig = configRoot / distribution.artifactName
+      verifyReportStatus(
+        log                     = log,
+        targetRoot              = targetRoot,
+        distributionDescription = distribution,
+        distributionConfig      = distributionConfig
+      )
+      verifyPackage(
+        log                = log,
+        distributionConfig = distributionConfig,
+        packageDestination = distribution.packageDestination
+      )
+    }
+  }
+
+  /** A task that verifies if contents of the provided package directory are
+    * up-to-date with the review state.
+    *
+    * It takes two arguments:
+    * - an artifact name identifying the distribution
+    * - a path to the generated packages.
+    */
+  lazy val verifyGeneratedPackage = Def.inputTask {
+    val configRoot        = configurationRoot.value
+    val log               = streams.value.log
+    val args: Seq[String] = spaceDelimited("<arg>").parsed
+    val (distributionName, packagePathString) = args match {
+      case Seq(distribution, path) => (distribution, path)
+      case _ =>
+        throw new IllegalArgumentException(
+          "The task expects exactly 2 arguments."
+        )
+    }
+    val packageDestination = file(packagePathString)
+    verifyPackage(
+      log                = log,
+      distributionConfig = configRoot / distributionName,
+      packageDestination = packageDestination
+    )
   }
 
   case class LegalReviewException(string: String)
