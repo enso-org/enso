@@ -216,7 +216,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: manifest
-          path: repo/${{ env.ENGINE_DIST_ROOT }}/manifest.yaml
+          path: repo/${{ env.ENGINE_DIST_DIR }}/manifest.yaml
       - name: Upload the Launcher Manifest Artifact
         uses: actions/upload-artifact@v2
         with:
