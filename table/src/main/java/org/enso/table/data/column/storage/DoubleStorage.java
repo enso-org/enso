@@ -1,5 +1,9 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
 
 import java.util.BitSet;
@@ -10,7 +14,7 @@ public class DoubleStorage extends Storage {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
-  private static final long NAN = 0x7ff0000000000000L;
+  private static final MapOpStorage<DoubleStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -57,33 +61,12 @@ public class DoubleStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return Ops.EQ.equals(op) || Ops.IS_MISSING.equals(op);
+    return ops.isSupported(op);
   }
 
   @Override
   public Storage runVectorizedOp(String name, Object operand) {
-    if (name.equals(Ops.EQ)) {
-      return runVectorizedEq(operand);
-    } else if (name.equals(Ops.IS_MISSING)) {
-      return new BoolStorage(isMissing, new BitSet(), size, false);
-    }
-    throw new UnsupportedOperationException();
-  }
-
-  private BoolStorage runVectorizedEq(Object operand) {
-    BitSet isNa = new BitSet();
-    BitSet values = new BitSet();
-    if (operand instanceof Double) {
-      long seek = Double.doubleToRawLongBits((Double) operand);
-      if ((seek & NAN) != NAN) {
-        for (int i = 0; i < size; i++) {
-          if (data[i] == seek && (data[i] & NAN) != NAN && !isMissing.get(i)) {
-            values.set(i);
-          }
-        }
-      }
-    }
-    return new BoolStorage(values, isNa, size, false);
+    return ops.run(name, this, operand);
   }
 
   @Override
@@ -133,5 +116,89 @@ public class DoubleStorage extends Storage {
       }
     }
     return new DoubleStorage(newData, total, newMissing);
+  }
+
+  public BitSet getIsMissing() {
+    return isMissing;
+  }
+
+  private static MapOpStorage<DoubleStorage> buildOps() {
+    MapOpStorage<DoubleStorage> ops = new MapOpStorage<>();
+    ops.add(
+            new DoubleNumericOp(Ops.ADD) {
+              @Override
+              protected double runDouble(double a, double b) {
+                return a + b;
+              }
+            })
+        .add(
+            new DoubleNumericOp(Ops.SUB) {
+              @Override
+              protected double runDouble(double a, double b) {
+                return a - b;
+              }
+            })
+        .add(
+            new DoubleNumericOp(Ops.MUL) {
+              @Override
+              protected double runDouble(double a, double b) {
+                return a * b;
+              }
+            })
+        .add(
+            new DoubleNumericOp(Ops.DIV) {
+              @Override
+              protected double runDouble(double a, double b) {
+                return a / b;
+              }
+            })
+        .add(
+            new DoubleBooleanOp(Ops.LT) {
+              @Override
+              protected boolean doDouble(double a, double b) {
+                return a < b;
+              }
+            })
+        .add(
+            new DoubleBooleanOp(Ops.LTE) {
+              @Override
+              protected boolean doDouble(double a, double b) {
+                return a <= b;
+              }
+            })
+        .add(
+            new DoubleBooleanOp(Ops.EQ) {
+              @Override
+              protected boolean doDouble(double a, double b) {
+                return a == b;
+              }
+
+              @Override
+              protected BoolStorage doObject(DoubleStorage storage, Object o) {
+                return new BoolStorage(new BitSet(), storage.isMissing, storage.size, false);
+              }
+            })
+        .add(
+            new DoubleBooleanOp(Ops.GT) {
+              @Override
+              protected boolean doDouble(double a, double b) {
+                return a > b;
+              }
+            })
+        .add(
+            new DoubleBooleanOp(Ops.GTE) {
+              @Override
+              protected boolean doDouble(double a, double b) {
+                return a >= b;
+              }
+            })
+        .add(
+            new MapOperation<>(Ops.IS_MISSING) {
+              @Override
+              public Storage run(DoubleStorage storage, Object arg) {
+                return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
+              }
+            });
+    return ops;
   }
 }

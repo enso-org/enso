@@ -6,8 +6,6 @@ import org.enso.table.data.column.builder.object.InferredBuilder;
 import java.util.BitSet;
 import java.util.function.Function;
 
-import org.graalvm.polyglot.Value;
-
 /** An abstract representation of a data column. */
 public abstract class Storage {
   /** @return the number of elements in this column (including NAs) */
@@ -50,6 +48,14 @@ public abstract class Storage {
   /** A container for names of vectorizable operation. */
   public static final class Ops {
     public static final String EQ = "==";
+    public static final String LT = "<";
+    public static final String LTE = "<=";
+    public static final String GT = ">";
+    public static final String GTE = ">=";
+    public static final String MUL = "*";
+    public static final String ADD = "+";
+    public static final String SUB = "-";
+    public static final String DIV = "/";
     public static final String NOT = "not";
     public static final String IS_MISSING = "is_missing";
   }
