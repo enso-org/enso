@@ -65,6 +65,10 @@ spec =
             time . second . should_equal 45
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Zone.utc.zone_id
+        it "should convert to Json" <|
+            date = Date.new 2001 12 21
+            date.to_json.should_equal <|
+                Json.from_pairs [["type", "Date"], ["day", date.day], ["month", date.month], ["year", date.year]]
         it "should add date-based interval" <|
             date = Date.new 1970 + 1.day
             date . year . should_equal 1970

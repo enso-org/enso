@@ -131,6 +131,10 @@ type Uri
     to_text : Text
     to_text = this.internal_uri.toString []
 
+    ## An Uri to JSON conversion.
+    to_json : Json.String
+    to_json : Json.String this.to_text
+
     ## Check Uri equality.
     == : Uri -> Boolean
     == that = this.internal_uri.equals [that.internal_uri]
