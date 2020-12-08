@@ -1,7 +1,6 @@
 package org.enso.languageserver.requesthandler.capability
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
-import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.capability.CapabilityApi.{
   CapabilityNotAcquired,
@@ -52,7 +51,7 @@ class ReleaseCapabilityHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Releasing capability for ${session.clientId} timed out")
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case CapabilityReleased =>
@@ -61,7 +60,7 @@ class ReleaseCapabilityHandler(
       context.stop(self)
 
     case CapabilityReleaseBadRequest =>
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()
       context.stop(self)
 
