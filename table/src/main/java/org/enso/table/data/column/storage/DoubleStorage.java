@@ -127,28 +127,28 @@ public class DoubleStorage extends Storage {
     ops.add(
             new DoubleNumericOp(Ops.ADD) {
               @Override
-              protected double runDouble(double a, double b) {
+              protected double doDouble(double a, double b) {
                 return a + b;
               }
             })
         .add(
             new DoubleNumericOp(Ops.SUB) {
               @Override
-              protected double runDouble(double a, double b) {
+              protected double doDouble(double a, double b) {
                 return a - b;
               }
             })
         .add(
             new DoubleNumericOp(Ops.MUL) {
               @Override
-              protected double runDouble(double a, double b) {
+              protected double doDouble(double a, double b) {
                 return a * b;
               }
             })
         .add(
             new DoubleNumericOp(Ops.DIV) {
               @Override
-              protected double runDouble(double a, double b) {
+              protected double doDouble(double a, double b) {
                 return a / b;
               }
             })
@@ -174,8 +174,8 @@ public class DoubleStorage extends Storage {
               }
 
               @Override
-              protected BoolStorage doObject(DoubleStorage storage, Object o) {
-                return new BoolStorage(new BitSet(), storage.isMissing, storage.size, false);
+              protected boolean doObject(double a, Object o) {
+                return false;
               }
             })
         .add(
@@ -195,8 +195,13 @@ public class DoubleStorage extends Storage {
         .add(
             new MapOperation<>(Ops.IS_MISSING) {
               @Override
-              public Storage run(DoubleStorage storage, Object arg) {
+              public Storage runMap(DoubleStorage storage, Object arg) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
+              }
+
+              @Override
+              public Storage runZip(DoubleStorage storage, Storage arg) {
+                return runMap(storage, null);
               }
             });
     return ops;

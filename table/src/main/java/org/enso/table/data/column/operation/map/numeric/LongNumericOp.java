@@ -6,6 +6,8 @@ import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
 
+import java.util.BitSet;
+
 public abstract class LongNumericOp extends MapOperation<LongStorage> {
   private final boolean alwaysCast;
 
@@ -23,7 +25,7 @@ public abstract class LongNumericOp extends MapOperation<LongStorage> {
   public abstract long doLong(long in, long arg);
 
   @Override
-  public Storage run(LongStorage storage, Object arg) {
+  public Storage runMap(LongStorage storage, Object arg) {
     if (arg instanceof Long && !alwaysCast) {
       long x = (Long) arg;
       long[] newVals = new long[storage.size()];
@@ -44,5 +46,36 @@ public abstract class LongNumericOp extends MapOperation<LongStorage> {
       return new DoubleStorage(newVals, newVals.length, storage.getIsMissing());
     }
     throw new UnexpectedTypeException("a Number");
+  }
+
+  @Override
+  public Storage runZip(LongStorage storage, Storage arg) {
+    if (arg instanceof LongStorage) {
+      LongStorage v = (LongStorage) arg;
+      long[] out = new long[storage.size()];
+      BitSet newMissing = new BitSet();
+      for (int i = 0; i < storage.size(); i++) {
+        if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
+          out[i] = doLong(storage.getItem(i), v.getItem(i));
+        } else {
+          newMissing.set(i);
+        }
+      }
+      return new LongStorage(out, storage.size(), newMissing);
+    } else if (arg instanceof DoubleStorage) {
+      DoubleStorage v = (DoubleStorage) arg;
+      long[] out = new long[storage.size()];
+      BitSet newMissing = new BitSet();
+      for (int i = 0; i < storage.size(); i++) {
+        if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
+          out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), v.getItem(i)));
+        } else {
+          newMissing.set(i);
+        }
+      }
+      return new DoubleStorage(out, storage.size(), newMissing);
+    } else {
+      throw new UnexpectedTypeException("a Number.");
+    }
   }
 }

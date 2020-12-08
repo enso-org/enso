@@ -9,7 +9,9 @@ public abstract class MapOperation<I extends Storage> {
     this.name = name;
   }
 
-  public abstract Storage run(I storage, Object arg);
+  public abstract Storage runMap(I storage, Object arg);
+
+  public abstract Storage runZip(I storage, Storage arg);
 
   public String getName() {
     return name;

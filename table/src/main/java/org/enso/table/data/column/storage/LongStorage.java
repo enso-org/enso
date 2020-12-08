@@ -232,15 +232,20 @@ public class LongStorage extends Storage {
               }
 
               @Override
-              protected BoolStorage doObject(LongStorage storage, Object o) {
-                return new BoolStorage(new BitSet(), storage.isMissing, storage.size, false);
+              protected boolean doObject(long x, Object o) {
+                return false;
               }
             })
         .add(
             new MapOperation<>(Ops.IS_MISSING) {
               @Override
-              public Storage run(LongStorage storage, Object arg) {
+              public Storage runMap(LongStorage storage, Object arg) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
+              }
+
+              @Override
+              public Storage runZip(LongStorage storage, Storage arg) {
+                return runMap(storage, null);
               }
             });
     return ops;
