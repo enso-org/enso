@@ -254,7 +254,7 @@ class ContextEventsListenerSpec
         listener ! Api.VisualisationEvaluationFailed(contextId, message)
 
         router.expectMsg(
-          DeliverToBinaryController(
+          DeliverToJsonController(
             clientId,
             VisualisationEvaluationFailed(contextId, message)
           )
