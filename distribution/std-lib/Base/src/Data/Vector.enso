@@ -428,6 +428,16 @@ type Vector
        - *Average Time:* `O(n * log n)`
        - *Worst-Case Space:* `O(n)` additional
 
+       ? Implementation Note
+         The sort implementation is based upon an adaptive, iterative mergesort
+         that requires far fewer than `n * log(n)` comparisons when the vector
+         is partially sorted. When the vector is randomly ordered, the
+         performance is equivalent to a standard mergesort.
+
+         It takes equal advantage of ascending and descending runs in the array,
+         making it much simpler to merge two or more sorted arrays: simply
+         concatenate them and sort.
+
        > Example
          Sorting a vector of numbers.
              [5, 2, 3, 45, 15].sort == [2, 3, 5, 15, 45]
@@ -437,7 +447,25 @@ type Vector
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
     sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
     sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
-        Sort.execute this on by order
+        ## Prepare the destination array that will underlie the vector. We do not
+           want to sort in place on the original vector, as `sort` is not intended
+           to be mutable.
+        new_vec_arr = Array.new this.length
+        this.to_array.copy 0 new_vec_arr 0 this.length
+
+        ## As we want to account for both custom projections and custom
+           comparisons we need to construct a comparator for internal use that
+           does both.
+
+           As Java does not use Enso's notion of ordering, we instead need to
+           map Enso's notion of ordering to Java's notion of ordering.
+        comp_ascending l r  = (by (on l) (on r)).to_java
+        comp_descending l r = (by (on r) (on l)).to_java
+        compare = if order == Sort_Order.Ascending then comp_ascending else comp_descending
+
+        new_vec_arr.sort compare
+
+        Vector new_vec_arr
 
 ## A builder type for Enso vectors.
 
