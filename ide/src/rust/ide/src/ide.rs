@@ -2,9 +2,10 @@
 
 use crate::prelude::*;
 
+use crate::config;
 use crate::transport::web::ConnectingError;
 use crate::transport::web::WebSocket;
-use crate::config;
+use crate::view::View;
 
 use enso_protocol::binary;
 use enso_protocol::language_server;
@@ -12,7 +13,18 @@ use enso_protocol::project_manager;
 use enso_protocol::project_manager::ProjectMetadata;
 use enso_protocol::project_manager::ProjectName;
 use uuid::Uuid;
-use crate::view::View;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+// TODO[ao] We need to set a big timeout on Project Manager to make sure it will have time to
+//          download required version of Engine. This should be handled properly when implementing
+//          https://github.com/enso-org/ide/issues/1034
+const PROJECT_MANAGER_TIMEOUT_SEC:u64 = 2 * 60 * 60;
+
 
 
 // ==============
@@ -37,6 +49,7 @@ pub struct ProjectNotFound {
 pub struct Ide {
     view : View
 }
+
 
 
 
@@ -72,7 +85,8 @@ impl IdeInitializer {
     /// within the global executor.
     pub fn setup_project_manager
     (transport:impl json_rpc::Transport + 'static) -> project_manager::Client {
-        let project_manager = project_manager::Client::new(transport);
+        let mut project_manager = project_manager::Client::new(transport);
+        project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
         executor::global::spawn(project_manager.runner());
         project_manager
     }
