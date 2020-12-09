@@ -24,3 +24,7 @@ type Response
     ## Get the response status code.
     code : Status_Code
     code = Status_Code.status_code (this.internal_http_response.statusCode [])
+
+    ## A Response to Json conversion.
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Response"], ["headers", this.headers], ["body", this.body], ["code", this.code]]

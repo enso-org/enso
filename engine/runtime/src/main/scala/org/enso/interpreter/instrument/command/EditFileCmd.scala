@@ -23,6 +23,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ec: ExecutionContext
   ): Future[Unit] = {
     ctx.locking.acquireFileLock(request.path)
+    ctx.locking.acquirePendingEditsLock()
     try {
       ctx.executionService.getLogger
         .log(Level.FINE, s"EditFileCmd ${request.path}")
@@ -35,6 +36,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
         _ <- Future.traverse(executeJobs)(ctx.jobProcessor.run)
       } yield ()
     } finally {
+      ctx.locking.releasePendingEditsLock()
       ctx.locking.releaseFileLock(request.path)
     }
   }

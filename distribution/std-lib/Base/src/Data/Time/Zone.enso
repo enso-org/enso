@@ -15,6 +15,10 @@ type Zone
     zone_id : Text
     zone_id = this.internal_zone_id . getId []
 
+    ## A Zone to Json conversion
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
+
 ## This method parses the ID producing a `Zone`.
 
    > Example

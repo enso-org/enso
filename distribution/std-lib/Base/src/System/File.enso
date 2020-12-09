@@ -219,6 +219,10 @@ type File
     to_text : Text
     to_text = this.prim_file.to_text
 
+    ## A File to JSON conversion.
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "File"], ["path", this.path]]
+
     ## Checks whether the file exists.
     exists : Boolean
     exists = this.prim_file.exists []
