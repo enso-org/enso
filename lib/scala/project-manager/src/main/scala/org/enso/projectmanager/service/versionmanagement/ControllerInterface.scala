@@ -3,6 +3,7 @@ package org.enso.projectmanager.service.versionmanagement
 import java.util.UUID
 
 import akka.actor.ActorRef
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.{ProgressListener, TaskProgress}
 import org.enso.projectmanager.data.ProgressUnit
@@ -89,7 +90,8 @@ class ControllerInterface(
     allowBrokenComponents
 
   /** @inheritdoc */
-  override def logInfo(message: => String): Unit = ()
+  override def logInfo(message: => String): Unit =
+    Logger[ControllerInterface].info(message)
 
   private val waitingForResources =
     collection.concurrent.TrieMap[String, UUID]()

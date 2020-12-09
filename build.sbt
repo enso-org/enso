@@ -39,6 +39,13 @@ lazy val verifyLicensePackages =
     "has no warnings and is up-to-date with dependencies."
   )
 verifyLicensePackages := GatherLicenses.verifyReports.value
+lazy val verifyGeneratedPackage =
+  inputKey[Unit](
+    "Verifies if the license package in a generated distribution is " +
+    "up-to-date with the one from the report."
+  )
+verifyGeneratedPackage := GatherLicenses.verifyGeneratedPackage.evaluated
+
 GatherLicenses.distributions := Seq(
   Distribution(
     "launcher",
@@ -51,9 +58,13 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(
       runtime,
       `engine-runner`,
-      `project-manager`,
       `language-server`
     )
+  ),
+  Distribution(
+    "project-manager",
+    file("distribution/project-manager/THIRD-PARTY"),
+    Distribution.sbtProjects(`project-manager`)
   ),
   Distribution(
     "std-lib-Base",
@@ -146,8 +157,9 @@ scalacOptions in (Compile, console) ~= (_ filterNot (_ == "-Xfatal-warnings"))
 lazy val Benchmark = config("bench") extend sbt.Test
 
 // Native Image Generation
+lazy val rebuildNativeImage = taskKey[Unit]("Force to rebuild native image")
 lazy val buildNativeImage =
-  taskKey[Unit]("Build native image for the Enso executable")
+  taskKey[Unit]("Ensure that the Native Image is built.")
 
 // Bootstrap task
 lazy val bootstrap =
@@ -710,9 +722,25 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           )
         )
       ),
-    assembly := assembly.dependsOn(`engine-runner` / assembly).value,
-    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value
+    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "project-manager",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "--enable-all-security-services" // Note [HTTPS in the Native Images]
+        )
+      )
+      .dependsOn(assembly)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "project-manager"
+      )
+      .value
   )
+  .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`polyglot-api`)
@@ -1121,15 +1149,6 @@ lazy val `engine-runner` = project
     connectInput in run := true
   )
   .settings(
-    buildNativeImage := NativeImage
-      .buildNativeImage(
-        "enso",
-        staticOnLinux = false,
-        Seq("-H:IncludeResources=.*Main.enso$")
-      )
-      .value
-  )
-  .settings(
     assembly := assembly
       .dependsOn(runtime / assembly)
       .value
@@ -1156,21 +1175,26 @@ lazy val launcher = project
     )
   )
   .settings(
-    buildNativeImage := NativeImage
+    rebuildNativeImage := NativeImage
       .buildNativeImage(
         "enso",
         staticOnLinux = true,
-        Seq(
-          "-J-Xmx4G",
-          "--enable-all-security-services", // Note [HTTPS in the Launcher]
+        additionalOptions = Seq(
+          "--enable-all-security-services", // Note [HTTPS in the Native Images]
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$",
-          "--initialize-at-run-time=" +
-          "akka.protobuf.DescriptorProtos," +
-          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
-          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder," +
-          "org.enso.loggingservice.WSLoggerManager$" // Note [WSLoggerManager Shutdown Hook]
+          "-H:IncludeResources=.*Main.enso$"
+        ),
+        initializeAtRuntime = Seq(
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$"
         )
+      )
+      .dependsOn(assembly)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "enso"
       )
       .value,
     test in assembly := {},
@@ -1178,15 +1202,8 @@ lazy val launcher = project
   )
   .settings(
     (Test / test) := (Test / test)
-      .dependsOn(
-        NativeImage.incrementalNativeImageBuild(
-          buildNativeImage,
-          "enso"
-        )
-      )
-      .dependsOn(
-        LauncherShimsForTest.prepare(rustcVersion = rustVersion)
-      )
+      .dependsOn(buildNativeImage)
+      .dependsOn(LauncherShimsForTest.prepare(rustcVersion = rustVersion))
       .value,
     parallelExecution in Test := false
   )
@@ -1292,13 +1309,13 @@ lazy val `table` = project
     }.value
   )
 
-/* Note [HTTPS in the Launcher]
+/* Note [HTTPS in the Native Images]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * The launcher uses Apache HttpClient for making web requests. It does not use
- * Java's stdlib implementation, because there is a bug (not fixed in JDK 11)
- * (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS handling that
- * causes long running requests to freeze forever. However, Apache HttpClient
- * still needs the stdlib's SSL implementation and it is not included in the
+ * The launcher and project-manager use Akka Http for making web requests. They
+ * do not use Java's stdlib implementation, because there is a bug (not fixed in
+ * JDK 11) (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS
+ * handling that causes long running requests to freeze forever. However, Akka
+ * Http still needs the stdlib's SSL implementation which is not included in the
  * Native Images by default (because of its size). The
  * `--enable-all-security-services` flag is used to ensure it is available in
  * the built executable.
@@ -1332,3 +1349,52 @@ lazy val `table` = project
  * initialization was done at build time, the shutdown hook would actually also
  * run at build time and have no effect at runtime.
  */
+
+lazy val engineDistributionRoot =
+  settingKey[File]("Root of built engine distribution")
+lazy val launcherDistributionRoot =
+  settingKey[File]("Root of built launcher distribution")
+lazy val projectManagerDistributionRoot =
+  settingKey[File]("Root of built project manager distribution")
+
+engineDistributionRoot := file("built-distribution/engine")
+launcherDistributionRoot := file("built-distribution/launcher")
+projectManagerDistributionRoot := file("built-distribution/project-manager")
+
+lazy val buildEngineDistribution =
+  taskKey[Unit]("Builds the engine distribution")
+buildEngineDistribution := {
+  val _            = (`engine-runner` / assembly).value
+  val root         = engineDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot = root,
+    cacheFactory     = cacheFactory,
+    graalVersion     = graalVersion,
+    javaVersion      = javaVersion
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val buildLauncherDistribution =
+  taskKey[Unit]("Builds the launcher distribution")
+buildLauncherDistribution := {
+  val _            = (launcher / buildNativeImage).value
+  val root         = launcherDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createLauncherPackage(root, cacheFactory)
+  log.info(s"Launcher package created at $root")
+}
+
+lazy val buildProjectManagerDistribution =
+  taskKey[Unit]("Builds the project manager distribution")
+buildProjectManagerDistribution := {
+  val _            = (`project-manager` / buildNativeImage).value
+  val root         = projectManagerDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createProjectManagerPackage(root, cacheFactory)
+  log.info(s"Project Manager package created at $root")
+}

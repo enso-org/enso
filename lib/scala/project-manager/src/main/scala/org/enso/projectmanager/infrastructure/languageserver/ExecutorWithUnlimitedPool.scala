@@ -5,6 +5,7 @@ import java.lang.ProcessBuilder.Redirect
 import java.util.concurrent.Executors
 
 import akka.actor.ActorRef
+import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.loggingservice.LogLevel
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
@@ -96,6 +97,10 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       )
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
+      Logger[ExecutorWithUnlimitedPool.type].trace(
+        s"Starting Language Server Process: $command"
+      )
+
       val process = {
         val pb = command.builder()
         pb.inheritIO()

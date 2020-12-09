@@ -124,11 +124,13 @@ they do not have to be set, as they use system-specific defaults.
 If not set, each of these three environment variables defaults to the following
 value, depending on the system:
 
-|                         | Linux                                                              | macOS                                         | Windows                      |
-| ----------------------- | ------------------------------------------------------------------ | --------------------------------------------- | ---------------------------- |
-| `ENSO_DATA_DIRECTORY`   | `$XDG_DATA_HOME/enso/` which defaults to `$HOME/.local/share/enso` | `$HOME/Library/Application Support/org.enso/` | `%LocalAppData%/enso`        |
-| `ENSO_CONFIG_DIRECTORY` | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`    | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
-| `ENSO_BIN_DIRECTORY`    | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`               | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
+|                          | Linux                                                               | macOS                                         | Windows                      |
+| ------------------------ | ------------------------------------------------------------------- | --------------------------------------------- | ---------------------------- |
+| `ENSO_DATA_DIRECTORY`    | `$XDG_DATA_HOME/enso/` which defaults to `$HOME/.local/share/enso`  | `$HOME/Library/Application Support/org.enso/` | `%LocalAppData%/enso`        |
+| `ENSO_CONFIG_DIRECTORY`  | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`     | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
+| `ENSO_BIN_DIRECTORY`     | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`                | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
+| `ENSO_RUNTIME_DIRECTORY` | `$XDG_RUNTIME_DIR/enso/` or if its missing, `ENSO_DATA_DIRECTORY`   | `ENSO_DATA_DIRECTORY`                         | `%LocalAppData%/enso`        |
+| `ENSO_LOG_DIRECTORY`     | `$XDG_CACHE_HOME/enso` or if its missing, `ENSO_DATA_DIRECTORY/log` | `$HOME/Library/Logs/org.enso/`                | `%LocalAppData%/enso/log`    |
 
 ### Installing from a Portable Distribution
 

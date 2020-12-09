@@ -63,10 +63,14 @@ object LauncherLogging {
     * and does not know which logger to set up.
     */
   def setupFallback(): Unit = {
-    LoggingServiceManager.setup(
-      LoggerMode.Local(Seq(fallbackPrinter)),
-      defaultLogLevel
-    )
+    LoggingServiceManager
+      .setup(
+        LoggerMode.Local(Seq(fallbackPrinter)),
+        defaultLogLevel
+      )
+      .onComplete { _ =>
+        loggingServiceEndpointPromise.trySuccess(None)
+      }
   }
 
   private def fallbackPrinter = StderrPrinter.create(printExceptions = true)
@@ -141,7 +145,7 @@ object LauncherLogging {
             exception
           )
           logger.warn("Falling back to local-only logger.")
-          loggingServiceEndpointPromise.success(None)
+          loggingServiceEndpointPromise.trySuccess(None)
           LoggingServiceManager
             .setup(
               LoggerMode.Local(createPrinters()),
@@ -189,7 +193,7 @@ object LauncherLogging {
         case Failure(exception) =>
           System.err.println(s"Failed to initialize the logger: $exception")
           exception.printStackTrace()
-          loggingServiceEndpointPromise.success(None)
+          loggingServiceEndpointPromise.trySuccess(None)
         case Success(connected) =>
           if (connected) {
             loggingServiceEndpointPromise.success(Some(uri))
@@ -197,7 +201,7 @@ object LauncherLogging {
               s"Log messages from this launcher are forwarded to `$uri`."
             )
           } else {
-            loggingServiceEndpointPromise.success(None)
+            loggingServiceEndpointPromise.trySuccess(None)
           }
       }
   }

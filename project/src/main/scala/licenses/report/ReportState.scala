@@ -1,10 +1,8 @@
 package src.main.scala.licenses.report
 
-import java.nio.file.Files
 import java.security.MessageDigest
 
-import sbt.internal.util.ManagedLogger
-import sbt.{File, IO}
+import sbt.{File, IO, Logger}
 import src.main.scala.licenses.{
   DistributionDescription,
   FilesHelper,
@@ -39,7 +37,7 @@ object ReportState {
     * The file consists of three lines: input hash, output hash and the warning
     * count.
     */
-  def read(file: File, log: ManagedLogger): Option[ReportState] = {
+  def read(file: File, log: Logger): Option[ReportState] = {
     try {
       IO.readLines(file) match {
         case List(inputHash, outputHash, count) =>
@@ -99,10 +97,10 @@ object ReportState {
 
   /** Computes a hash of all files included in the generated notice package. */
   def computeOutputHash(
-    distributionDescription: DistributionDescription
+    distributionPackageDestination: File
   ): String = {
     val digest = MessageDigest.getInstance("SHA-256")
-    val root   = distributionDescription.packageDestination.toPath
+    val root   = distributionPackageDestination.toPath
     val allFiles =
       FilesHelper
         .walk(root)(Seq(_))
@@ -136,8 +134,9 @@ object ReportState {
     warningsCount: Int
   ): Unit = {
     val state = ReportState(
-      inputHash     = computeInputHash(distributionDescription),
-      outputHash    = computeOutputHash(distributionDescription),
+      inputHash = computeInputHash(distributionDescription),
+      outputHash =
+        computeOutputHash(distributionDescription.packageDestination),
       warningsCount = warningsCount
     )
     write(file, state)
