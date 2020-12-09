@@ -1354,9 +1354,9 @@ lazy val launcherDistributionRoot =
 lazy val projectManagerDistributionRoot =
   settingKey[File]("Root of built project manager distribution")
 
-engineDistributionRoot := file("built-engine")
-launcherDistributionRoot := file("built-launcher")
-projectManagerDistributionRoot := file("built-project-manager")
+engineDistributionRoot := file("built-distribution/engine")
+launcherDistributionRoot := file("built-distribution/launcher")
+projectManagerDistributionRoot := file("built-distribution/project-manager")
 
 // TODO [RW] add dependencies on assembly, native-image for these tasks
 lazy val buildEngineDistribution =

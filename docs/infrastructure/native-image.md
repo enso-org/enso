@@ -20,6 +20,9 @@ Native Image is used for building the Launcher.
   - [Additional Linux Dependencies](#additional-linux-dependencies)
 - [Static Builds](#static-builds)
 - [No Cross-Compilation](#no-cross-compilation)
+- [Configuration](#configuration)
+  - [Launcher Configuration](#launcher-configuration)
+  - [Project Manager Configuration](#project-manager-configuration)
 
 <!-- /MarkdownTOC -->
 
