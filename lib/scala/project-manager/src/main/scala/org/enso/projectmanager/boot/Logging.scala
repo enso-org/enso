@@ -1,22 +1,22 @@
 package org.enso.projectmanager.boot
 
-import org.enso.loggingservice.printers.StderrPrinterWithColors
-import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
+import java.nio.file.Path
 
-import scala.concurrent.{ExecutionContext, Future}
+import org.enso.loggingservice.{LogLevel, LoggingServiceSetupHelper}
+import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /** A helper for setting up the logging service in the Project Manager. */
-object Logging {
+object Logging extends LoggingServiceSetupHelper {
 
-  /** Sets up the logging service for local logging. */
-  def setup(
-    logLevel: LogLevel,
-    executionContext: ExecutionContext
-  ): Future[Unit] = {
-    // TODO [RW] setting up the logging server will be added in #1151
-    val printer = StderrPrinterWithColors.colorPrinterIfAvailable(false)
-    LoggingServiceManager.setup(LoggerMode.Local(Seq(printer)), logLevel)(
-      executionContext
-    )
-  }
+  /** @inheritdoc */
+  override val defaultLogLevel: LogLevel = LogLevel.Info
+
+  /** @inheritdoc */
+  override lazy val logPath: Path =
+    DefaultDistributionConfiguration.distributionManager.paths.logs
+
+  /** @inheritdoc */
+  override val logFileSuffix: String = "enso-project-manager"
 }
