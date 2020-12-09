@@ -1358,7 +1358,6 @@ engineDistributionRoot := file("built-distribution/engine")
 launcherDistributionRoot := file("built-distribution/launcher")
 projectManagerDistributionRoot := file("built-distribution/project-manager")
 
-// TODO [RW] add dependencies on assembly, native-image for these tasks
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
