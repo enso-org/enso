@@ -10,8 +10,8 @@
 /lib/scala/flexer @iamrecursion @kustosz
 /lib/scala/graph @iamrecursion @kustosz
 /lib/scala/interpreter-dsl @iamrecursion @kustosz
-/lib/scala/json-rpc-server @lolczak @4e6 @iamrecursion
-/lib/scala/json-rpc-server-test @lolczak @4e6 @iamrecursion
+/lib/scala/json-rpc-server @lolczak @4e6 @iamrecursion @kustosz
+/lib/scala/json-rpc-server-test @lolczak @4e6 @iamrecursion @kustosz
 /lib/scala/logger @kustosz @iamrecursion
 /lib/scala/parser-service @kustosz @iamrecursion
 /lib/scala/pkg @iamrecursion @kustosz

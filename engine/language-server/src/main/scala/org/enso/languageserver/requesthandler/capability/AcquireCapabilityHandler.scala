@@ -1,7 +1,6 @@
 package org.enso.languageserver.requesthandler.capability
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
-import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.capability.CapabilityApi.AcquireCapability
 import org.enso.languageserver.capability.CapabilityProtocol
@@ -54,7 +53,7 @@ class AcquireCapabilityHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Acquiring capability for ${session.clientId} timed out")
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case CapabilityAcquired =>
@@ -63,7 +62,7 @@ class AcquireCapabilityHandler(
       context.stop(self)
 
     case CapabilityAcquisitionBadRequest =>
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()
       context.stop(self)
 

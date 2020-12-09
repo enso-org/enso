@@ -28,6 +28,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`InvalidParams`](#invalidparams)
   - [`ServiceError`](#serviceerror)
   - [`NotImplementedError`](#notimplementederror)
+  - [`RequestTimeoutError`](#requesttimeouterror)
 
 <!-- /MarkdownTOC -->
 
@@ -195,5 +196,16 @@ implemented yet.
 "error" : {
   "code" : 10,
   "message" : "The requested method is not implemented"
+}
+```
+
+### `RequestTimeoutError`
+
+Signals that request exceeded the waiting time.
+
+```typescript
+"error" : {
+  "code" : 11,
+  "message" : "Request timeout"
 }
 ```

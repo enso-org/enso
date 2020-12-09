@@ -1,8 +1,7 @@
 package org.enso.languageserver.requesthandler.session
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
-import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
+import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerProtocol
 import org.enso.languageserver.filemanager.FileManagerProtocol.ContentRootsResult
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -42,7 +41,7 @@ class InitProtocolConnectionHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Getting content roots timed out")
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case ContentRootsResult(contentRoots) =>

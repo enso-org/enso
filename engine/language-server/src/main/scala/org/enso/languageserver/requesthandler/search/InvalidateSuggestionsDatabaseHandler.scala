@@ -1,7 +1,6 @@
 package org.enso.languageserver.requesthandler.search
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
-import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
@@ -54,7 +53,7 @@ class InvalidateSuggestionsDatabaseHandler(
 
     case RequestTimeout =>
       log.error(s"Request $id timed out")
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case msg: SearchProtocol.SearchFailure =>
