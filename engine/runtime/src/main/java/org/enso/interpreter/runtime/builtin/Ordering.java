@@ -7,14 +7,17 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A container for builtin ordering types. */
 public class Ordering {
+  private final AtomConstructor ordering;
   private final AtomConstructor less;
   private final AtomConstructor equal;
   private final AtomConstructor greater;
 
   public Ordering(Language language, ModuleScope scope) {
+    ordering = new AtomConstructor("Ordering", scope).initializeFields();
     less = new AtomConstructor("Less", scope).initializeFields();
     equal = new AtomConstructor("Equal", scope).initializeFields();
     greater = new AtomConstructor("Greater", scope).initializeFields();
+    scope.registerConstructor(ordering);
     scope.registerConstructor(less);
     scope.registerConstructor(equal);
     scope.registerConstructor(greater);
@@ -49,6 +52,11 @@ public class Ordering {
   /** @return a new instance of Greater */
   public Atom newGreater() {
     return greater.newInstance();
+  }
+
+  /** @return the Ordering constructor. */
+  public AtomConstructor ordering() {
+    return ordering;
   }
 
   /** @return the Less constructor */

@@ -61,9 +61,9 @@ public class JavaSortBenchmarks {
     return array;
   }
 
-  public static Long[] makeRandom(int size) {
+  public static Object[] makeRandom(int size) {
     var generator = new Random(size);
-    var array = new Long[size];
+    var array = new Object[size];
     for (int i = 0; i < size; ++i) {
       array[i] = generator.nextLong();
     }
@@ -74,7 +74,7 @@ public class JavaSortBenchmarks {
   public static class BenchState {
     public Long[] sorted;
     public Long[] partiallySorted;
-    public Long[] random;
+    public Object[] random;
 
     @Setup(Level.Iteration)
     public void doSetup() {
@@ -91,52 +91,53 @@ public class JavaSortBenchmarks {
     }
   }
 
-  @Benchmark
-  public void alreadySorted(BenchState state) {
-    Arrays.sort(state.sorted);
-  }
-
-  @Benchmark
-  public void sortedOppositeOrder(BenchState state) {
-    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
-    Arrays.sort(state.sorted, comp);
-  }
-
-  @Benchmark
-  public void sortedRunsAscending(BenchState state) {
-    Arrays.sort(state.partiallySorted);
-  }
-
-  @Benchmark
-  public void sortedRunsDescending(BenchState state) {
-    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
-    Arrays.sort(state.partiallySorted, comp);
-  }
+//  @Benchmark
+//  public void alreadySorted(BenchState state) {
+//    Arrays.sort(state.sorted);
+//  }
+//
+//  @Benchmark
+//  public void sortedOppositeOrder(BenchState state) {
+//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
+//    Arrays.sort(state.sorted, comp);
+//  }
+//
+//  @Benchmark
+//  public void sortedRunsAscending(BenchState state) {
+//    Arrays.sort(state.partiallySorted);
+//  }
+//
+//  @Benchmark
+//  public void sortedRunsDescending(BenchState state) {
+//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
+//    Arrays.sort(state.partiallySorted, comp);
+//  }
 
   @Benchmark
   public void randomElementsAscending(BenchState state) {
-    Arrays.sort(state.random);
-  }
-
-  @Benchmark
-  public void randomElementsDescending(BenchState state) {
-    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
+    Comparator<Object> comp = (Object l, Object r) -> { return ((Long) l).compareTo((Long) r);};
     Arrays.sort(state.random, comp);
   }
 
-  @Benchmark
-  public void customProjection(BenchState state) {
-    Comparator<Long> comp = (Long l, Long r) -> {
-      Long new_l = l % 10;
-      Long new_r = r % 10;
-      return new_l.compareTo(new_r);
-    };
-    Arrays.sort(state.random, comp);
-  }
-
-  @Benchmark
-  public void customComparison(BenchState state) {
-    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
-    Arrays.sort(state.random, comp);
-  }
+//  @Benchmark
+//  public void randomElementsDescending(BenchState state) {
+//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
+//    Arrays.sort(state.random, comp);
+//  }
+//
+//  @Benchmark
+//  public void customProjection(BenchState state) {
+//    Comparator<Long> comp = (Long l, Long r) -> {
+//      Long new_l = l % 10;
+//      Long new_r = r % 10;
+//      return new_l.compareTo(new_r);
+//    };
+//    Arrays.sort(state.random, comp);
+//  }
+//
+//  @Benchmark
+//  public void customComparison(BenchState state) {
+//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
+//    Arrays.sort(state.random, comp);
+//  }
 }

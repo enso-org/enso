@@ -12,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.concurrent.locks.Condition;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -30,6 +31,9 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @BuiltinMethod(type = "Array", name = "sort", description = "Sorts a mutable array in place.")
 public abstract class SortNode extends Node {
   private final ConditionProfile consProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile lessProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile equalsProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile greaterProfile = ConditionProfile.createCountingProfile();
 
   abstract Object execute(VirtualFrame frame, Object _this, Object comparator);
 
@@ -43,19 +47,29 @@ public abstract class SortNode extends Node {
       Array _this,
       Object comparator,
       @Cached("buildInvokeNode()") InvokeCallableNode invokeNode,
-      @CachedContext(Language.class) ContextReference<Context> ctxRef) {
+      @CachedContext(Language.class) ContextReference<Context> ctxRef,
+      @Cached("ctxRef.get().getBuiltins().ordering().newLess()") Atom less,
+      @Cached("ctxRef.get().getBuiltins().ordering().newEqual()") Atom equal,
+      @Cached("ctxRef.get().getBuiltins().ordering().newGreater()") Atom greater) {
     Comparator<Object> compare =
         (l, r) -> {
           Stateful result =
               invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
-          if (TypesGen.isImplicitLong(result.getValue())) {
-            return (int) TypesGen.asImplicitLong(result.getValue());
-          } else {
-            CompilerDirectives.transferToInterpreter();
-            var integer = ctxRef.get().getBuiltins().number().getInteger().newInstance();
-            throw new PanicException(
-                ctxRef.get().getBuiltins().error().makeTypeError(integer, result.getValue()), this);
+          if (TypesGen.isAtom(result.getValue())) {
+            Atom atom = TypesGen.asAtom(result.getValue());
+            if (lessProfile.profile(atom == less)) {
+              return -1;
+            } else if (equalsProfile.profile(atom == equal)) {
+              return 0;
+            } else if (greaterProfile.profile(atom == greater)) {
+              return 1;
+            }
           }
+
+          CompilerDirectives.transferToInterpreter();
+          var ordering = ctxRef.get().getBuiltins().ordering().ordering();
+          throw new PanicException(
+              ctxRef.get().getBuiltins().error().makeTypeError(ordering, result.getValue()), this);
         };
     doSort(_this.getItems(), compare);
     return ctxRef.get().getBuiltins().nothing().newInstance();
@@ -77,7 +91,6 @@ public abstract class SortNode extends Node {
     }
   }
 
-  @TruffleBoundary
   void doSort(Object[] items, Comparator<Object> compare) {
     Arrays.sort(items, compare);
   }
