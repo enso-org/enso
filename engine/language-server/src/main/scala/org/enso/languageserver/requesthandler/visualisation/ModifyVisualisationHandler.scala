@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.visualisation
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -51,7 +52,7 @@ class ModifyVisualisationHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Request $id timed out")
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case ContextRegistryProtocol.VisualisationModified =>

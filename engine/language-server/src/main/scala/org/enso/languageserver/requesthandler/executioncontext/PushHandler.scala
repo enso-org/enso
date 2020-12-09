@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.executioncontext
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
@@ -56,7 +57,7 @@ class PushHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Request $id timed out")
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case PushContextResponse(_) =>

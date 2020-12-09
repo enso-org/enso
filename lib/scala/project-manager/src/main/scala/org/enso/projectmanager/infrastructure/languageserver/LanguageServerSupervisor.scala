@@ -2,44 +2,44 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
+import akka.actor.Status.Failure
 import akka.actor.{
   Actor,
   ActorLogging,
-  ActorRef,
   Cancellable,
   Props,
   Scheduler,
   Terminated
 }
+import akka.pattern.pipe
+import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
+import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
-  ServerBootFailed,
-  ServerBooted
-}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
+  RestartServer,
   SendHeartbeat,
   ServerUnresponsive,
   StartSupervision
 }
 import org.enso.projectmanager.util.UnhandledLogging
 
-/** A supervisor process responsible for monitoring language server and
+/**
+  * A supervisor process responsible for monitoring language server and
   * restarting it when the server is unresponsive. It delegates server
   * monitoring to the [[HeartbeatSession]] actor.
   *
-  * @param connectionInfo a server connection info
-  * @param serverProcessManager an actor that manages the lifecycle of the
-  *                             server process
+  * @param config a server config
+  * @param server a server handle
   * @param supervisionConfig a supervision config
   * @param connectionFactory a web socket connection factory
   * @param scheduler a scheduler
   */
 class LanguageServerSupervisor(
-  connectionInfo: LanguageServerConnectionInfo,
-  serverProcessManager: ActorRef,
+  config: LanguageServerConfig,
+  server: LifecycleComponent,
   supervisionConfig: SupervisionConfig,
   connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler
@@ -70,7 +70,7 @@ class LanguageServerSupervisor(
 
   private def supervising(cancellable: Cancellable): Receive = {
     case SendHeartbeat =>
-      val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
+      val socket = Socket(config.interface, config.rpcPort)
       context.actorOf(
         HeartbeatSession.props(
           socket,
@@ -82,31 +82,40 @@ class LanguageServerSupervisor(
       )
 
     case ServerUnresponsive =>
-      log.info(s"Server is unresponsive [$connectionInfo]. Restarting it...")
+      log.info(s"Server is unresponsive [$config]. Restarting it...")
       cancellable.cancel()
-      log.info(s"Restarting the server")
-      serverProcessManager ! Restart
-      context.become(restarting)
+      log.info(s"Restarting first time the server")
+      server.restart() pipeTo self
+      context.become(restarting())
 
     case GracefulStop =>
       cancellable.cancel()
       stop()
   }
 
-  private def restarting: Receive = {
-    case ServerBootFailed(_) =>
-      log.error("Cannot restart language server")
-      context.parent ! ServerDied
-      context.stop(self)
+  private def restarting(restartCount: Int = 1): Receive = {
+    case RestartServer =>
+      log.info(s"Restarting $restartCount time the server")
+      server.restart() pipeTo self
+      ()
 
-    case ServerBooted(_, newProcessManager) =>
-      if (newProcessManager != serverProcessManager) {
-        log.error(
-          "The process manager actor has changed. This should never happen. " +
-          "Supervisor may no longer work correctly."
+    case Failure(th) =>
+      log.error(th, s"An error occurred during restarting the server [$config]")
+      if (restartCount < supervisionConfig.numberOfRestarts) {
+        scheduler.scheduleOnce(
+          supervisionConfig.delayBetweenRestarts,
+          self,
+          RestartServer
         )
+        context.become(restarting(restartCount + 1))
+      } else {
+        log.error("Cannot restart language server")
+        context.parent ! ServerDied
+        context.stop(self)
       }
-      log.info(s"Language server restarted [$connectionInfo]")
+
+    case ComponentRestarted =>
+      log.info(s"Language server restarted [$config]")
       val cancellable =
         scheduler.scheduleAtFixedRate(
           supervisionConfig.initialDelay,
@@ -120,10 +129,11 @@ class LanguageServerSupervisor(
       stop()
   }
 
-  private def waitingForChildren(): Receive = { case Terminated(_) =>
-    if (context.children.isEmpty) {
-      context.stop(self)
-    }
+  private def waitingForChildren(): Receive = {
+    case Terminated(_) =>
+      if (context.children.isEmpty) {
+        context.stop(self)
+      }
   }
 
   private def stop(): Unit = {
@@ -142,38 +152,39 @@ object LanguageServerSupervisor {
 
   private case object StartSupervision
 
-  /** A command responsible for initiating heartbeat session.
+  private case object RestartServer
+
+  /**
+    * A command responsible for initiating heartbeat session.
     */
   case object SendHeartbeat
 
-  /** Signals that server is unresponsive.
+  /**
+    * Signals that server is unresponsive.
     */
   case object ServerUnresponsive
 
-  /** Signals that the heartbeat has been received (only sent if demanded). */
-  case object HeartbeatReceived
-
-  /** Creates a configuration object used to create a [[LanguageServerSupervisor]].
+  /**
+    * Creates a configuration object used to create a [[LanguageServerSupervisor]].
     *
-    * @param connectionInfo a server config
-    * @param serverProcessManager an actor that manages the lifecycle of the
-    *                             server process
+    * @param config a server config
+    * @param server a server handle
     * @param supervisionConfig a supervision config
     * @param connectionFactory a web socket connection factory
     * @param scheduler a scheduler
     * @return a configuration object
     */
   def props(
-    connectionInfo: LanguageServerConnectionInfo,
-    serverProcessManager: ActorRef,
+    config: LanguageServerConfig,
+    server: LifecycleComponent,
     supervisionConfig: SupervisionConfig,
     connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler
   ): Props =
     Props(
       new LanguageServerSupervisor(
-        connectionInfo,
-        serverProcessManager,
+        config,
+        server,
         supervisionConfig,
         connectionFactory,
         scheduler

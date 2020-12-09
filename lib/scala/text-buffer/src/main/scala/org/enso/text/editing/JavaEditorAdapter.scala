@@ -1,7 +1,8 @@
 package org.enso.text.editing
 
+import java.util.Optional
+
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.EditorOps.EditorOp
 import org.enso.text.editing.model.TextEdit
 
 import scala.jdk.CollectionConverters._
@@ -22,7 +23,9 @@ object JavaEditorAdapter {
   def applyEdits(
     rope: Rope,
     edits: java.util.List[TextEdit]
-  ): EditorOp[Rope] =
-    EditorOps.applyEdits(rope, edits.asScala.toList)
-
+  ): java.util.Optional[Rope] =
+    EditorOps
+      .applyEdits(rope, edits.asScala.toList)
+      .map(Optional.of[Rope])
+      .getOrElse(Optional.empty[Rope]())
 }

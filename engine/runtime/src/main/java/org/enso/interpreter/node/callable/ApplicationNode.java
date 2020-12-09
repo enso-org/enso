@@ -40,7 +40,7 @@ public class ApplicationNode extends ExpressionNode {
 
     this.callable = callable;
     this.invokeCallableNode =
-        InvokeCallableNode.build(
+        InvokeCallableNodeGen.create(
             argSchema, defaultsExecutionMode, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
   }
 

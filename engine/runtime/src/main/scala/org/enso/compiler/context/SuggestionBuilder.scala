@@ -348,9 +348,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   private def buildDefaultValue(expr: IR): Option[String] =
     expr match {
-      case IR.Literal.Number(_, value, _, _, _) => Some(value)
-      case IR.Literal.Text(text, _, _, _)       => Some(text)
-      case _                                    => None
+      case IR.Literal.Number(value, _, _, _) => Some(value)
+      case IR.Literal.Text(text, _, _, _)    => Some(text)
+      case _                                 => None
     }
 
   private def buildScope(location: Location): Suggestion.Scope =

@@ -15,7 +15,7 @@ import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.argument.CallArgument
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.LocalScope
 
 import scala.annotation.unused
 
@@ -44,9 +44,7 @@ class ApplicationSaturationTest extends CompilerTest {
   // === Test Setup ===========================================================
 
   // The functions are unused, so left undefined for ease of testing
-  def dummyFn(@unused mod: ModuleScope)(@unused loc: LocalScope)(
-    @unused args: List[CallArgument]
-  ): ExpressionNode = ???
+  def dummyFn(@unused args: List[CallArgument]): ExpressionNode = ???
 
   val knownFunctions: ApplicationSaturation.Configuration =
     ApplicationSaturation.Configuration(

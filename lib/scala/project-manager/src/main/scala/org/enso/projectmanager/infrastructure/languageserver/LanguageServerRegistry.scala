@@ -20,28 +20,22 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.util.UnhandledLogging
-import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
 /**
   * An actor that routes request regarding lang. server lifecycle to the
   * right controller that manages the server.
-  * It creates a controller actor, if a server doesn't exist.
+  * It creates a controller actor, if a server doesn't exists.
   *
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
-  * @param distributionConfiguration configuration of the distribution
-  * @param executor an executor service used to start the language server
-  *                 process
   */
 class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
   supervisionConfig: SupervisionConfig,
-  timeoutConfig: TimeoutConfig,
-  distributionConfiguration: DistributionConfiguration,
-  executor: LanguageServerExecutor
+  timeoutConfig: TimeoutConfig
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -51,7 +45,7 @@ class LanguageServerRegistry(
   private def running(
     serverControllers: Map[UUID, ActorRef] = Map.empty
   ): Receive = {
-    case msg @ StartServer(_, project, engineVersion, progressTracker) =>
+    case msg @ StartServer(_, project) =>
       if (serverControllers.contains(project.id)) {
         serverControllers(project.id).forward(msg)
       } else {
@@ -59,14 +53,10 @@ class LanguageServerRegistry(
           LanguageServerController
             .props(
               project,
-              engineVersion,
-              progressTracker,
               networkConfig,
               bootloaderConfig,
               supervisionConfig,
-              timeoutConfig,
-              distributionConfiguration,
-              executor
+              timeoutConfig
             ),
           s"language-server-controller-${project.id}"
         )
@@ -129,27 +119,20 @@ object LanguageServerRegistry {
     * @param bootloaderConfig a bootloader config
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
-    * @param distributionConfiguration configuration of the distribution
-    * @param executor an executor service used to start the language server
-    *                 process
-    * @return a configuration object
+    * @return
     */
   def props(
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
     supervisionConfig: SupervisionConfig,
-    timeoutConfig: TimeoutConfig,
-    distributionConfiguration: DistributionConfiguration,
-    executor: LanguageServerExecutor
+    timeoutConfig: TimeoutConfig
   ): Props =
     Props(
       new LanguageServerRegistry(
         networkConfig,
         bootloaderConfig,
         supervisionConfig,
-        timeoutConfig,
-        distributionConfiguration,
-        executor
+        timeoutConfig
       )
     )
 

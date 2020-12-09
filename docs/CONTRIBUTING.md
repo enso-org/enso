@@ -124,21 +124,10 @@ compiler that they relate to.
 
 ### System Requirements
 
-The following operating systems are supported for developing Enso:
-
-- Windows 10
-- macOS 10.14 and above
-- Linux 4.4 and above
-
-Currently only the x86_64 (amd64) architecture is supported. You may be able to
-develop Enso on other systems, but issues arising from unsupported
-configurations will not be fixed by the core team.
-
 In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
   [`project/build.properties`](../project/build.properties).
-- [Maven](https://maven.apache.org/) with version at least 3.6.3.
 - [GraalVM](https://www.graalvm.org/) with the same version as described in the
   [`build.sbt`](../build.sbt) file, configured as your default JVM. GraalVM is
   distributed for different Java versions, so you need a GraalVM distribution
@@ -148,14 +137,6 @@ In order to build and run Enso you will need the following tools:
 - [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
   the rust build tool.
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
-- On MacOS and Linux, the `tar` command is required for running some tests. It
-  should be installed by default on most distributions.
-- If you want to be able to build the Launcher Native Image, you will need a
-  native C compiler for your platform as described in the
-  [Native Image Prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
-  On Linux that will be `gcc`, on macOS you may need `xcode` and on Windows you
-  need to configure the Developer Command Prompt for Microsoft Visual C++ for
-  the x64 architecture.
 
 Managing multiple JVM installations can be a pain, so some of the team use
 [Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
@@ -191,9 +172,9 @@ git clone git@github.com:enso-org/enso.git
 
 ### Getting Set Up (Rust)
 
-The SBT project requires a specific nightly rust toolchain. To get it set up,
-you will need to install [rustup](https://rustup.rs/) and then run the following
-commands:
+This project currently requires a specific nightly rust toolchain, as well as a
+special set-up step in SBT. To get this project set up, you can run the
+following commands:
 
 ```bash
 rustup toolchain install nightly-2019-11-04
@@ -204,7 +185,10 @@ rustup component add clippy
 You will also need `node` in order to run the `wasm` tests. We only support the
 latest LTS version of [NodeJS](https://nodejs.org/en/download) and NPM. We
 recommend using [`nvm`](https://github.com/nvm-sh/nvm) to manage node versions.
-The current LTS is `v12.18.4`.
+The current LTS is `v12.18.0`.
+
+Please note that once the parser is integrated into the SBT build, the
+rust-related commands will be automatically performed for you.
 
 ### Getting Set Up (JVM)
 
@@ -252,7 +236,7 @@ npx prettier --write <dir>
 
 There are multiple projects in this repository, but all can be built, run and
 tested using `sbt`. As long as your configuration is correct, with the correct
-versions of SBT, Rust and GraalVM, the same steps can be followed on all of our
+versions of SBT and GraalVM, the same steps can be followed on all of our
 supported platforms (Linux, MacOS and Windows).
 
 SBT will handle downloading and building library dependencies as needed, meaning
@@ -285,24 +269,16 @@ In order to build a fat jar with the CLI component, run the `assembly` task
 inside the `runner` subproject:
 
 ```bash
-sbt "engine-runner/assembly"
+sbt "runner/assembly"
 ```
 
 This will produce an executable `runner.jar` fat jar and a `runtime.jar` fat jar
 in the repository root. The `runner.jar` depends only on the `runtime.jar` and a
-vanilla GraalVM distribution.
-
-#### Building the Project Manager Fat Jar
-
-In order to build a fat jar with the Project Manager component, run the
-`assembly` task on the `project-manager` subproject:
+vanilla GraalVM distribution. To run it, use:
 
 ```bash
-sbt "project-manager/assembly"
+JAVA_HOME=<PATH_TO_GRAAL_HOME> ./runner.jar <CLI_ARGS>
 ```
-
-This will produce a `project-manager` fat jar and a `runtime.jar` fat jar in the
-repository root.
 
 #### Building the Launcher Native Binary
 
@@ -311,7 +287,7 @@ Native Image component is installed in your GraalVM distribution. To install it,
 run:
 
 ```bash
-<path-to-graal-home>/bin/gu install native-image
+gu install native-image
 ```
 
 Then, you can build the launcher using:
@@ -325,6 +301,23 @@ sbt launcher/buildNativeImage
 Running the tests for the JVM enso components is as simple as running
 `sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
 can run the WASM tests for the rust components by using `./run --test-wasm`.
+
+#### Installing the Jupyter kernel
+
+Enso has a highly experimental and not-actively-maintained Jupyer Kernel. To run
+it:
+
+1. Build (or download from the CI server) the CLI Fat Jar.
+2. Fill in the `engine/language-server/jupyter-kernel/enso/kernel.json` file,
+   providing correct paths to the `runner.jar` distribution and GraalVM
+   `JAVA_HOME`.
+3. Run:
+
+```bash
+jupyter kernelspec install <ROOT_OF_THIS_REPO>/engine/language-server/jupyter-kernel/enso
+```
+
+Congratulations, your Jupyter Kernel should now be installed and ready to use.
 
 #### Passing Debug Options
 
@@ -425,12 +418,7 @@ need to follow these steps:
    and add them to `truffleRunOptions` in [`build.sbt`](build.sbt). Remove the
    portion of these options after `suspend=y`, including the comma. They are
    placeholders that we don't use.
-6. Alternatively, certain tasks, such as `run`, `benchOnly` and `testOnly` can
-   be used through the `withDebug` SBT command. For this to work, your remote
-   configuration must specify the host of `localhost` and the port `5005`. The
-   command syntax is `withDebug --debugger TASK_NAME -- TASK_PARAMETERS`, e.g.
-   `withDebug --debugger testOnly -- *AtomConstructors*`.
-7. Now, when you want to debug something, you can place a breakpoint as usual in
+6. Now, when you want to debug something, you can place a breakpoint as usual in
    IntelliJ, and then execute your remote debugging configuration. Now, in the
    SBT shell, run a command to execute the code you want to debug (e.g.
    `testOnly *CurryingTest*`). This will open the standard debugger interface
@@ -466,100 +454,13 @@ interpreter. It can be run using the sbt `run` command in the project `runner`
 and provides a rudimentary command-line interface to the basic capabilities of
 the interpreter.
 
-Enso should be launched using the `distribution/bin` scripts.
-
-#### Interpreter
-
-Interpreter is started with the `distribution/bin/enso` script and requires
-`runner.jar` and `runtime.jar` (see
-[Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
-to be built and copied (or linked) to the `distribution/component` directory.
-
-##### Bash
-
-```bash
-# build runtime.jar and runner.jar
-sbt engine-runner/assembly
-# link or copy jars to the distributiong
-mkdir -p distribution/component
-cd distribution/component
-ln -s ../../runtime.jar .
-ln -s ../../runner.jar .
-```
-
-##### PowerShell
-
-```powershell
-# build runtime.jar and runner.jar
-sbt.bat engine-runner/assembly
-# copy jars to the distributiong
-mkdir -p .\distribution\component
-cp .\runtime.jar .\distribution\component\
-cp .\runner.jar .\distribution\component\
-```
-
-Detailed information on the flags it supports is shown by the `--help` flag, but
-the primary functionality is as follows:
+Detailed information on the flags it supports can be obtained by executing
+`run --help`, but the primary functionality is as follows:
 
 - `--new PATH`: Creates a new Enso project at the location spcified by `PATH`.
 - `--run PATH`: Executes the interpreter on the Enso source specified by `PATH`.
   In this case, `PATH` must point to either a standalone Enso file or an Enso
   project.
-
-##### Bash
-
-```bash
-distribution/bin/enso --new ~/Hello
-distribution/bin/enso --run ~/Hello
-Hello, World!
-```
-
-##### PowerShell
-
-```bash
-distribution/bin/enso.bat --new ~/Hello
-distribution/bin/enso.bat --run ~/Hello
-Hello, World!
-```
-
-#### Project Manager
-
-Project manager is required to run the
-[Enso IDE](https://github.com/enso-org/ide). It is started with the
-`distribution/bin/project-manager` script and requires `runtime.jar` and
-`project-manager.jar` (see
-[Building the Project Manager Fat Jar](#building-the-project-manager-fat-jar))
-to be built and copied (or linked) to the `distribution/component` directory.
-
-##### Bash
-
-```bash
-# build project-manager.jar and runtime.jar
-sbt project-manager/assembly
-# link or copy jars to the distribution
-mkdir -p distribution/component
-cd distribution/component
-ln -s ../../runtime.jar .
-ln -s ../../project-manager.jar .
-```
-
-##### PowerShell
-
-```powershell
-# build project-manager.jar and runtime.jar
-sbt.bat project-manager/assembly
-# copy jars to the distribution
-mkdir -p .\distribution\component
-cp .\runtime.jar .\distribution\component\
-cp .\project-manager.jar .\distribution\component\
-```
-
-Detailed information on the flags it supports is shown by the `--help` flag. To
-run the Project Manager, execute the following script:
-
-```bash
-distribution/bin/project-manager
-```
 
 #### Language Server Mode
 
@@ -575,10 +476,8 @@ Below are options uses by the Language Server:
 - `--path <path>`: Path to the content root.
 - `--interface <interface>`: Interface for processing all incoming connections.
   Default value is 127.0.0.1
-- `--rpc-port <port>`: RPC port for processing all incoming connections. Default
-  value is 8080.
-- `--data-port <port>`: Data port for visualisation protocol. Default value
-  is 8081.
+- `--port <port>`: Port for processing all incoming connections. Default value
+  is 8080.
 
 To run the Language Server on 127.0.0.1:8080 type:
 

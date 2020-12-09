@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{
-  EnsureCompiledJob,
+  EnsureCompiledStackJob,
   ExecuteJob,
   UpsertVisualisationJob
 }
@@ -61,9 +61,9 @@ class AttachVisualisationCmd(
 
       case Some(executable) =>
         for {
-          _ <- Future {
-            ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
-          }
+          _ <- ctx.jobProcessor.run(
+            new EnsureCompiledStackJob(executable.stack)
+          )
           _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
         } yield ()
     }

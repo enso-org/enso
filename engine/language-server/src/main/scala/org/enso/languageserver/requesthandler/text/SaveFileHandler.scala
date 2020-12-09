@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.text
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -55,7 +56,7 @@ class SaveFileHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Saving file for ${rpcSession.clientId} timed out")
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case FileSaved =>

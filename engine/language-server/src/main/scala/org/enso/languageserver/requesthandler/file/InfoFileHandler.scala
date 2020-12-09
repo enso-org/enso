@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.file
 
 import akka.actor._
+import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
@@ -12,7 +13,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `file/info` command.
+/**
+  * A request handler for `file/info` command.
   *
   * @param requestTimeout a request timeout
   * @param fileManager a file system manager actor
@@ -41,13 +43,13 @@ class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   ): Receive = {
     case Status.Failure(ex) =>
       log.error(s"Failure during $InfoFile operation:", ex)
-      replyTo ! ResponseError(Some(id), Errors.ServiceError)
+      replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
       log.error(s"Request $id timed out")
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case FileManagerProtocol.InfoFileResult(Left(failure)) =>
@@ -67,9 +69,10 @@ class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
 
 object InfoFileHandler {
 
-  /** Creates a configuration object used to create a [[InfoFileHandler]].
+  /**
+    * Creates a configuration object used to create a [[InfoFileHandler]]
     *
-    * @param timeout a request timeout
+    * @param requestTimeout a request timeout
     * @param fileManager a file system manager actor
     */
   def props(timeout: FiniteDuration, fileManager: ActorRef): Props =

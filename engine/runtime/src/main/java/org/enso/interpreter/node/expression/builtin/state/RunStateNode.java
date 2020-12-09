@@ -8,10 +8,11 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.state.data.SingletonMap;
 import org.enso.interpreter.runtime.state.data.SmallMap;
+import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
     type = "State",

@@ -1,13 +1,14 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
+import org.enso.interpreter.instrument.job.{EnsureCompiledStackJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that pushes an item onto a stack.
+/**
+  * A command that pushes an item onto a stack.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -17,9 +18,9 @@ class PushContextCmd(
   request: Api.PushContextRequest
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc */
-  override def execute(implicit
-    ctx: RuntimeContext,
+  /** @inheritdoc **/
+  override def execute(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     if (doesContextExist) {
@@ -32,8 +33,8 @@ class PushContextCmd(
     ctx.contextManager.contains(request.contextId)
   }
 
-  private def replyWithContextNotExistError()(implicit
-    ctx: RuntimeContext,
+  private def replyWithContextNotExistError()(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     Future {
@@ -41,8 +42,8 @@ class PushContextCmd(
     }
   }
 
-  private def pushItemOntoStack()(implicit
-    ctx: RuntimeContext,
+  private def pushItemOntoStack()(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Boolean] =
     Future {
@@ -68,22 +69,15 @@ class PushContextCmd(
       pushed
     }
 
-  private def scheduleExecutionIfNeeded(pushed: Boolean)(implicit
-    ctx: RuntimeContext,
+  private def scheduleExecutionIfNeeded(pushed: Boolean)(
+    implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     if (pushed) {
-      val stack = ctx.contextManager.getStack(request.contextId)
-      val executable = Executable(
-        request.contextId,
-        stack,
-        Seq(),
-        sendMethodCallUpdates = false
-      )
+      val stack      = ctx.contextManager.getStack(request.contextId)
+      val executable = Executable(request.contextId, stack, Seq())
       for {
-        _ <- Future {
-          ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
-        }
+        _ <- ctx.jobProcessor.run(new EnsureCompiledStackJob(executable.stack))
         _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
       } yield ()
     } else {

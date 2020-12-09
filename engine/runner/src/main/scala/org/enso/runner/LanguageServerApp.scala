@@ -4,7 +4,6 @@ import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
 }
-import org.enso.loggingservice.LogLevel
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -19,11 +18,10 @@ object LanguageServerApp {
     * Runs a Language Server
     *
     * @param config a config
-    * @param logLevel log level
     */
-  def run(config: LanguageServerConfig, logLevel: LogLevel): Unit = {
+  def run(config: LanguageServerConfig): Unit = {
     println("Starting Language Server...")
-    val server = new LanguageServerComponent(config, logLevel)
+    val server = new LanguageServerComponent(config)
     Await.result(server.start(), 10.seconds)
     StdIn.readLine()
     Await.result(server.stop(), 10.seconds)

@@ -32,7 +32,7 @@ object ProjectManager extends App with LazyLogging {
   /**
     * A configuration of the project manager.
     */
-  lazy val config: ProjectManagerConfig =
+  val config: ProjectManagerConfig =
     ConfigSource
       .resources(ConfigFilename)
       .withFallback(ConfigSource.systemProperties)

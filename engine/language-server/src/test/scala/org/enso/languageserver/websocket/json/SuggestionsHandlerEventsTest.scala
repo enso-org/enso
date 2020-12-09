@@ -5,13 +5,13 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.FlakySpec
 
-class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
+class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
   "SuggestionsHandlerEvents" must {
 
-    "send suggestions database notifications" taggedAs Retry in {
+    "send suggestions database notifications" taggedAs Flaky in {
       val client = getInitialisedWsClient()
       system.eventStream.publish(ProjectNameChangedEvent("Test"))
 

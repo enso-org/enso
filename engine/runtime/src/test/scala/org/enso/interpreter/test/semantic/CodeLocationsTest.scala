@@ -1,11 +1,11 @@
 package org.enso.interpreter.test.semantic
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
-import org.enso.interpreter.node.callable.ApplicationNode
-import org.enso.interpreter.node.controlflow.caseexpr.CaseNode
+import org.enso.interpreter.node.callable.{ApplicationNode, SequenceLiteralNode}
+import org.enso.interpreter.node.controlflow.CaseNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 import org.enso.polyglot.MethodNames
 
 class CodeLocationsTest extends InterpreterTest {
@@ -16,8 +16,8 @@ class CodeLocationsTest extends InterpreterTest {
     var off = 0
     code.linesIterator.toList.foreach { line =>
       val chars: List[Any] = line.toList.map { c =>
-        s" ${if (c == ' ') '_' else c} "
-      } :+ '↵'
+          s" ${if (c == ' ') '_' else c} "
+        } :+ '↵'
       val ixes = off.until(off + chars.length).map { i =>
         if (i.toString.length == 1) s" $i " else s"$i "
       }
@@ -28,8 +28,8 @@ class CodeLocationsTest extends InterpreterTest {
     }
   }
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
 
     "be correct in simple arithmetic expressions" in
@@ -53,13 +53,9 @@ class CodeLocationsTest extends InterpreterTest {
 
     "be correct in applications and method calls" in
     withLocationsInstrumenter { instrumenter =>
-      val code =
-        """from Builtins import all
-          |
-          |main = (2-2 == 0).if_then_else (Cons 5 6) 0
-          |""".stripMargin
-      instrumenter.assertNodeExists(33, 36, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(58, 8, classOf[ApplicationNode])
+      val code = "main = (2-2 == 0).if_then_else (Cons 5 6) 0"
+      instrumenter.assertNodeExists(7, 36, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(32, 8, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -68,18 +64,16 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
-          |
           |main =
           |    x = 2 + 2 * 2
           |    y = x * x
           |    IO.println y
           |""".stripMargin
-      instrumenter.assertNodeExists(38, 13, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(56, 9, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(60, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(64, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(81, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(12, 13, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(30, 9, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(34, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(38, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(55, 1, classOf[ReadLocalVariableNode])
       eval(code)
       ()
     }
@@ -88,22 +82,20 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
-          |
-          |Nothing.method =
+          |Unit.method =
           |    foo = a -> b ->
           |        IO.println a
           |        add = a -> b -> a + b
           |        add a b
           |    foo 10 20
           |
-          |main = Nothing.method
+          |main = Unit.method
           |""".stripMargin
 
-      instrumenter.assertNodeExists(109, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(127, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(123, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(135, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(80, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(98, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(94, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(106, 9, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -112,8 +104,6 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
-          |
           |main =
           |    x = Cons 1 2
           |    y = Nil
@@ -129,10 +119,10 @@ class CodeLocationsTest extends InterpreterTest {
           |
           |    foo x + foo y
           |""".stripMargin
-      instrumenter.assertNodeExists(106, 109, classOf[CaseNode])
-      instrumenter.assertNodeExists(152, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(172, 9, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(209, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(80, 109, classOf[CaseNode])
+      instrumenter.assertNodeExists(126, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(146, 9, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(183, 5, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -186,6 +176,23 @@ class CodeLocationsTest extends InterpreterTest {
       ()
     }
 
+    "be correct for vector literals" in
+    withLocationsInstrumenter { instrumenter =>
+      val code = "main = [11, 2 + 2, 31 * 42, [1,2,3] ]"
+      instrumenter.assertNodeExists( // outer list
+        7,
+        30,
+        classOf[SequenceLiteralNode]
+      )
+      instrumenter.assertNodeExists( // inner list
+        28,
+        7,
+        classOf[SequenceLiteralNode]
+      )
+      instrumenter.assertNodeExists(19, 7, classOf[ApplicationNode]) // 31 * 42
+      eval(code)
+    }
+
     "be correct for negated literals" in
     withLocationsInstrumenter { instrumenter =>
       val code = "main = (-1)"
@@ -217,12 +224,8 @@ class CodeLocationsTest extends InterpreterTest {
       val mod    = interpreterContext.executionContext.evalModule(code, "Test")
       val tpe    = mod.getAssociatedConstructor
       val method = mod.getMethod(tpe, "foo")
-      method.value.invokeMember(
-        MethodNames.Function.GET_SOURCE_START
-      ) shouldEqual 1
-      method.value.invokeMember(
-        MethodNames.Function.GET_SOURCE_LENGTH
-      ) shouldEqual 24
+      method.value.invokeMember(MethodNames.Function.GET_SOURCE_START) shouldEqual 1
+      method.value.invokeMember(MethodNames.Function.GET_SOURCE_LENGTH) shouldEqual 24
 
       instrumenter.assertNodeExists(16, 9, classOf[ApplicationNode])
 
@@ -265,8 +268,6 @@ class CodeLocationsTest extends InterpreterTest {
       instrumenter =>
         val code =
           """
-            |from Builtins import all
-            |
             |type MyAtom
             |
             |main =
@@ -276,9 +277,10 @@ class CodeLocationsTest extends InterpreterTest {
             |    f (Cons (Cons MyAtom Nil) Nil)
             |""".stripMargin
 
-        instrumenter.assertNodeExists(55, 67, classOf[CaseNode])
-        instrumenter.assertNodeExists(60, 1, classOf[ReadLocalVariableNode])
-        instrumenter.assertNodeExists(103, 3, classOf[IntegerLiteralNode])
+        instrumenter.assertNodeExists(29, 67, classOf[CaseNode])
+        instrumenter.assertNodeExists(34, 1, classOf[ReadLocalVariableNode])
+        instrumenter.assertNodeExists(77, 3, classOf[IntegerLiteralNode])
+        instrumenter.assertNodeExists(47, 33, classOf[CreateFunctionNode])
 
         eval(code) shouldEqual 100
     }

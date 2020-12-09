@@ -21,15 +21,12 @@ import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
-import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
+import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
-import org.enso.languageserver.requesthandler.monitoring.{
-  InitialPingHandler,
-  PingHandler
-}
+import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
@@ -38,15 +35,22 @@ import org.enso.languageserver.requesthandler.visualisation.{
   DetachVisualisationHandler,
   ModifyVisualisationHandler
 }
-import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  SearchApi,
+  SearchProtocol
+}
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.SearchApi.{
+  Completion,
+  GetSuggestionsDatabase,
+  GetSuggestionsDatabaseVersion
+}
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
   ModifyVisualisation
 }
-import org.enso.languageserver.search.SearchApi._
-import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,
@@ -59,7 +63,8 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration._
 
-/** An actor handling communications between a single client and the language
+/**
+  * An actor handling communications between a single client and the language
   * server.
   *
   * @param connectionId the internal connection id.
@@ -173,26 +178,10 @@ class JsonConnectionController(
         ExecutionContextExpressionValuesComputed.Params(contextId, updates)
       )
 
-    case ContextRegistryProtocol.ExecutionFailedNotification(
-          contextId,
-          failure
-        ) =>
+    case ContextRegistryProtocol.ExecutionFailedNotification(contextId, msg) =>
       webActor ! Notification(
         ExecutionContextExecutionFailed,
-        ExecutionContextExecutionFailed.Params(
-          contextId,
-          failure.message,
-          failure.path
-        )
-      )
-
-    case ContextRegistryProtocol.ExecutionDiagnosticNotification(
-          contextId,
-          diagnostics
-        ) =>
-      webActor ! Notification(
-        ExecutionContextExecutionStatus,
-        ExecutionContextExecutionStatus.Params(contextId, diagnostics)
+        ExecutionContextExecutionFailed.Params(contextId, msg)
       )
 
     case SearchProtocol.SuggestionsDatabaseUpdateNotification(
@@ -243,7 +232,6 @@ class JsonConnectionController(
         ),
         requestTimeout
       ),
-      InitialPing -> InitialPingHandler.props,
       AcquireCapability -> AcquireCapabilityHandler
         .props(capabilityRouter, requestTimeout, rpcSession),
       ReleaseCapability -> ReleaseCapabilityHandler
@@ -282,11 +270,8 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       GetSuggestionsDatabase -> search.GetSuggestionsDatabaseHandler
         .props(requestTimeout, suggestionsHandler),
-      InvalidateSuggestionsDatabase -> search.InvalidateSuggestionsDatabaseHandler
-        .props(requestTimeout, suggestionsHandler),
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),
-      Import -> search.ImportHandler.props(requestTimeout, suggestionsHandler),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       DetachVisualisation -> DetachVisualisationHandler
@@ -308,7 +293,8 @@ class JsonConnectionController(
 
 object JsonConnectionController {
 
-  /** Creates a configuration object used to create a [[JsonConnectionController]].
+  /**
+    * Creates a configuration object used to create a [[JsonConnectionController]].
     *
     * @param connectionId the internal connection id.
     * @param bufferRegistry a router that dispatches text editing requests

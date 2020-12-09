@@ -20,7 +20,6 @@ object ProjectServiceFailureMapper {
     case DataStoreFailure(msg)      => ProjectDataStoreError(msg)
     case ProjectExists              => ProjectExistsError
     case ProjectNotFound            => ProjectNotFoundError
-    case ProjectCreateFailed(msg)   => ProjectCreateError(msg)
     case ProjectOpenFailed(msg)     => ProjectOpenError(msg)
     case ProjectCloseFailed(msg)    => ProjectCloseError(msg)
     case ProjectNotOpen             => ProjectNotOpenError

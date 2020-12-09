@@ -3,6 +3,7 @@ package org.enso.languageserver.requesthandler.refactoring
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
@@ -43,7 +44,7 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Request $id timed out")
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case Api.Response(_, Api.ProjectRenamed(name)) =>
