@@ -9,7 +9,7 @@ polyglot java import java.util.Random
 ## Bench Utilities ============================================================
 
 vector_size = 1000000
-iter_size = 50
+iter_size = 10
 num_iterations = 1
 
 make_sorted_ascending_vec : Integer -> Base.Vector.Vector

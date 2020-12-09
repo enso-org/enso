@@ -29,29 +29,29 @@ import Tests.System.File_Spec
 import Tests.System.Process_Spec
 
 main = Test.Suite.runMain <|
-    Case_Spec.spec
-    Deep_Export_Spec.spec
-    Error_Spec.spec
-    File_Spec.spec
-    Http_Header_Spec.spec
-    Http_Request_Spec.spec
-    Http_Spec.spec
-    Import_Loop_Spec.spec
-    Interval_Spec.spec
-    Java_Interop_Spec.spec
-    Json_Spec.spec
-    List_Spec.spec
-    Locale_Spec.spec
-    Map_Spec.spec
-    Meta_Spec.spec
-    Names_Spec.spec
-    Noise_Generator_Spec.spec
-    Noise_Spec.spec
-    Numbers_Spec.spec
-    Ordering_Spec.spec
-    Process_Spec.spec
-    Range_Spec.spec
-    Text_Spec.spec
-    Time_Spec.spec
-    Uri_Spec.spec
+    # Case_Spec.spec
+    # Deep_Export_Spec.spec
+    # Error_Spec.spec
+    # File_Spec.spec
+    # Http_Header_Spec.spec
+    # Http_Request_Spec.spec
+    # Http_Spec.spec
+    # Import_Loop_Spec.spec
+    # Interval_Spec.spec
+    # Java_Interop_Spec.spec
+    # Json_Spec.spec
+    # List_Spec.spec
+    # Locale_Spec.spec
+    # Map_Spec.spec
+    # Meta_Spec.spec
+    # Names_Spec.spec
+    # Noise_Generator_Spec.spec
+    # Noise_Spec.spec
+    # Numbers_Spec.spec
+    # Ordering_Spec.spec
+    # Process_Spec.spec
+    # Range_Spec.spec
+    # Text_Spec.spec
+    # Time_Spec.spec
+    # Uri_Spec.spec
     Vector_Spec.spec
