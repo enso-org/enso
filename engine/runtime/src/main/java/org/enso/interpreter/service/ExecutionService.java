@@ -120,8 +120,11 @@ public class ExecutionService {
             onComputedCallback,
             onCachedCallback,
             onExceptionalCallback);
-    interopLibrary.execute(call);
-    listener.dispose();
+    try {
+      interopLibrary.execute(call);
+    } finally {
+      listener.dispose();
+    }
   }
 
   /**
