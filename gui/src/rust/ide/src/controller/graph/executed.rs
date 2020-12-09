@@ -152,11 +152,11 @@ impl Handle {
         let db_stream = self.project.suggestion_db().subscribe().map(|notification| {
             match notification {
                 model::suggestion_database::Notification::Updated =>
-                    Notification::Graph(controller::graph::Notification::Invalidate),
+                    Notification::Graph(controller::graph::Notification::PortsUpdate),
             }
         }).boxed_local();
         let update_stream = registry.subscribe().map(|_| {
-            Notification::Graph(controller::graph::Notification::Invalidate)
+            Notification::Graph(controller::graph::Notification::PortsUpdate)
         }).boxed_local();
 
         let streams = vec![value_stream,graph_stream,self_stream,db_stream,update_stream];
@@ -374,7 +374,7 @@ pub mod tests {
             },
             |notification| match notification {
                 Notification::Graph(graph_notification) => {
-                    assert_eq!(graph_notification,&controller::graph::Notification::Invalidate);
+                    assert_eq!(graph_notification,&controller::graph::Notification::PortsUpdate);
                     true
                 }
                 _ => false,
