@@ -180,10 +180,10 @@ object Doc {
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
         val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
-        val btnClass     = "showCodeBtn"
+        val btnClass     = HTML.`class` := "showCodeBtn"
         val btnStyle     = HTML.`style` := "display: flex"
         val showBtn      = HTML.button(btnClass)("Show")
-        val copyClass    = "copyCodeBtn"
+        val copyClass    = HTML.`class` := "copyCodeBtn"
         val copyBtn      = HTML.button(htmlIdBtn)(copyClass)(btnStyle)("Copy")
         if (isInGui) {
           val htmlStyle = HTML.`style` := "display: block"
