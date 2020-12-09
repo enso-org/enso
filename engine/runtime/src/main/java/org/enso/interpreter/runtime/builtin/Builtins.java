@@ -246,6 +246,11 @@ public class Builtins {
     return polyglot;
   }
 
+  /** @return the container for ordering-related builtins */
+  public Ordering ordering() {
+    return ordering;
+  }
+
   /**
    * Returns the builtin module scope.
    *

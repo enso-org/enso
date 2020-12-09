@@ -157,6 +157,11 @@ public class Number {
         "bit_shift_r",
         org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftRightMethodGen
             .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "compare_to",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.CompareToMethodGen
+            .makeFunction(language));
   }
 
   private void registerBigIntegerMethods(Language language, ModuleScope scope) {
@@ -281,6 +286,11 @@ public class Number {
         "bit_shift_r",
         org.enso.interpreter.node.expression.builtin.number.bigInteger.BitShiftRightMethodGen
             .makeFunction(language));
+    scope.registerMethod(
+        bigInteger,
+        "compare_to",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.CompareToMethodGen
+            .makeFunction(language));
   }
 
   private void registerDecimalMethods(Language language, ModuleScope scope) {
@@ -359,6 +369,11 @@ public class Number {
         decimal,
         "ceil",
         org.enso.interpreter.node.expression.builtin.number.decimal.CeilMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
+        "compare_to",
+        org.enso.interpreter.node.expression.builtin.number.decimal.CompareToMethodGen.makeFunction(
             language));
   }
 

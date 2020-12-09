@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -17,6 +18,37 @@ public class Ordering {
     scope.registerConstructor(less);
     scope.registerConstructor(equal);
     scope.registerConstructor(greater);
+  }
+
+  /**
+   * Convert the java notion of ordering to the Enso notion of ordering.
+   *
+   * @param ord the java ordering
+   * @return the Enso ordering corresponding to {@code ord}
+   */
+  public Atom fromJava(int ord) {
+    if (ord == 0) {
+      return newEqual();
+    } else if (ord > 0) {
+      return newGreater();
+    } else {
+      return newLess();
+    }
+  }
+
+  /** @return a new instance of Less */
+  public Atom newLess() {
+    return less.newInstance();
+  }
+
+  /** @return a new instance of Equal */
+  public Atom newEqual() {
+    return equal.newInstance();
+  }
+
+  /** @return a new instance of Greater */
+  public Atom newGreater() {
+    return greater.newInstance();
   }
 
   /** @return the Less constructor */
