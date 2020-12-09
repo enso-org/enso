@@ -36,7 +36,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
       ProjectOpen,
       // TODO [RW] maybe we can get rid of this timeout since boot timeout is
       //  handled by the LanguageServerProcess; still the ? message of
-      //  LanguageServerGateway will result in timeouts
+      //  LanguageServerGateway will result in timeouts (#1315)
       Some(requestTimeout)
     ) {
 

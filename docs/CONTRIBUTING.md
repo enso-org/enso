@@ -557,16 +557,8 @@ cp .\project-manager.jar .\distribution\component\
 Detailed information on the flags it supports is shown by the `--help` flag. To
 run the Project Manager, execute the following script:
 
-##### Bash
-
 ```bash
 distribution/bin/project-manager
-```
-
-##### PowerShell
-
-```powershell
-distribution/bin/project-manager.bat
 ```
 
 #### Language Server Mode

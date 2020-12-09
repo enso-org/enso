@@ -119,20 +119,11 @@ jobs:
         run: |
           echo "CI_TEST_TIMEFACTOR=2" >> $GITHUB_ENV
           echo "CI_TEST_FLAKY_ENABLE=true" >> $GITHUB_ENV
-      - name: Build Base Java Extensions
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors std-bits/package
       - name: Build the Launcher
         shell: bash
         run: |
           sleep 1
           sbt --no-colors launcher/buildNativeImage
-          # Prevents launcher/test from re-building the Native Image during
-          # test run. It is built before starting the tests to conserve system
-          # memory
-          echo "LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD=true" >> $GITHUB_ENV
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
@@ -156,15 +147,10 @@ jobs:
           sbt --no-colors searcher/Benchmark/compile
 
       # Build Distribution
-      - name: Build the Project Manager Uberjar
+      - name: Build the Project Manager Native Image
         run: |
           sleep 1
-          sbt --no-colors project-manager/assembly
-      - name: Build the Manifest
-        run: |
-          cp distribution/manifest.template.yaml manifest.yaml
-          echo "graal-vm-version: $graalVersion" >> manifest.yaml
-          echo "graal-java-version: $javaVersion" >> manifest.yaml
+          sbt --no-colors project-manager/buildNativeImage
       - name: Build the Parser JS Bundle
         # The builds are run on 3 platforms, but Flatbuffer schemas are platform
         # agnostic, so they just need to be uploaded from one of the runners.
@@ -194,61 +180,34 @@ jobs:
       # Currently the only architecture supported by Github runners is amd64
       - name: Prepare Distribution Environment
         shell: bash
-        run: |
-          DIST_ARCH=amd64
-          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}')
-          LAUNCHER_DIST_ROOT=enso-launcher-$DIST_VERSION-$DIST_OS-$DIST_ARCH
-          LAUNCHER_DIST_DIR=$LAUNCHER_DIST_ROOT/enso
-          ENGINE_DIST_ROOT=enso-engine-$DIST_VERSION-$DIST_OS-$DIST_ARCH
-          ENGINE_DIST_DIR=$ENGINE_DIST_ROOT/enso-$DIST_VERSION
-          echo "LAUNCHER_DIST_DIR=$LAUNCHER_DIST_DIR" >> $GITHUB_ENV
-          echo "LAUNCHER_DIST_ROOT=$LAUNCHER_DIST_ROOT" >> $GITHUB_ENV
-          echo "ENGINE_DIST_DIR=$ENGINE_DIST_DIR" >> $GITHUB_ENV
-          echo "ENGINE_DIST_ROOT=$ENGINE_DIST_ROOT" >> $GITHUB_ENV
+        run: >
+          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}') bash
+          tools/ci/prepare-distribution-env.sh
 
-      - name: Prepare Launcher Distribution (Common)
+      - name: Prepare Launcher Distribution
         shell: bash
         run: |
-          mkdir -p ${{ env.LAUNCHER_DIST_DIR }}
-          mkdir ${{ env.LAUNCHER_DIST_DIR }}/bin
-          mkdir ${{ env.LAUNCHER_DIST_DIR }}/dist
-          mkdir ${{ env.LAUNCHER_DIST_DIR }}/runtime
-          cp distribution/launcher/.enso.portable ${{ env.LAUNCHER_DIST_DIR }}
-          cp distribution/launcher/README.md ${{ env.LAUNCHER_DIST_DIR }}
-          cp -r distribution/launcher/THIRD-PARTY ${{ env.LAUNCHER_DIST_DIR }}
-
-      - name: Prepare Launcher Distribution (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          cp enso ${{ env.LAUNCHER_DIST_DIR }}/bin/
-
-      - name: Prepare Launcher Distribution (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          cp enso.exe ${{ env.LAUNCHER_DIST_DIR }}/bin/
+          sleep 1
+          sbt 'set launcherDistributionRoot := file("${{ env.LAUNCHER_DIST_DIR }}"); buildLauncherDistribution'
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
       # create a twice nested ZIP file. For now, users downloading artifacts
       # from the CI builds have to set the bit themselves.
-      # So the following two lines have been removed from this step, as they do
+      # So the following line has been removed from this step, as it does
       # nothing useful:
       #  chmod +x $ENGINE_DIST_DIR/bin/enso
-      #  chmod +x $ENGINE_DIST_DIR/bin/project-manager
       - name: Prepare Engine Distribution
         shell: bash
         run: |
-          mkdir -p $ENGINE_DIST_DIR
-          mkdir $ENGINE_DIST_DIR/component
-          cp runtime.jar $ENGINE_DIST_DIR/component
-          mv runner.jar $ENGINE_DIST_DIR/component
-          mv project-manager.jar $ENGINE_DIST_DIR/component
-          cp -r distribution/std-lib $ENGINE_DIST_DIR/std-lib
-          cp -r distribution/bin $ENGINE_DIST_DIR/bin
-          cp -r distribution/engine/THIRD-PARTY $ENGINE_DIST_DIR/THIRD-PARTY
-          cp manifest.yaml $ENGINE_DIST_DIR
+          sleep 1
+          sbt 'set engineDistributionRoot := file("${{ env.ENGINE_DIST_DIR }}"); buildEngineDistribution'
+
+      - name: Prepare Project Manager Distribution
+        shell: bash
+        run: |
+          sleep 1
+          sbt 'set projectManagerDistributionRoot := file("${{ env.PROJECTMANAGER_DIST_DIR }}"); buildProjectManagerDistribution'
 
       # Test Distribution
       - name: Prepare Engine Test Environment
@@ -286,11 +245,16 @@ jobs:
         with:
           name: ${{ env.ENGINE_DIST_ROOT }}
           path: ${{ env.ENGINE_DIST_ROOT }}
-      - name: Publish the Launcher Binary
+      - name: Publish the Launcher
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.LAUNCHER_DIST_ROOT }}
           path: ${{ env.LAUNCHER_DIST_ROOT }}
+      - name: Publish the Project Manager
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
 
       - name: Prepare the FlatBuffers Schemas for Upload
         # The builds are run on 3 platforms, but Flatbuffer schemas are platform
@@ -322,7 +286,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: manifest
-          path: manifest.yaml
+          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
 
       # Publish FlatBuffer Schemas and Parser Bundle to S3
       - name: Prepare AWS Session
