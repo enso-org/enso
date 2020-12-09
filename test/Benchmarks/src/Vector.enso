@@ -13,7 +13,7 @@ iter_size = 100
 num_iterations = 10
 
 make_sorted_ascending_vec : Integer -> Base.Vector.Vector
-make_sorted_ascending_vec n = 0.up_to n . to_vector
+make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
 
 make_partially_sorted_vec : Integer -> Base.Vector.Vector
 make_partially_sorted_vec n =
