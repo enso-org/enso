@@ -30,32 +30,6 @@ public class StringStorage extends ObjectStorage {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return op.equals("==") || super.isOpVectorized(op);
-  }
-
-  @Override
-  public Storage runVectorizedOp(String name, Object operand) {
-    if (Ops.EQ.equals(name)) {
-      return runVectorizedEq(operand);
-    }
-    return super.runVectorizedOp(name, operand);
-  }
-
-  public BoolStorage runVectorizedEq(Object that) {
-    Object[] data = getData();
-    int size = (int) size();
-    BitSet values = new BitSet();
-    BitSet missing = new BitSet();
-    for (int i = 0; i < size; i++) {
-      if (!(data[i] == null) && data[i].equals(that)) {
-        values.set(i);
-      }
-    }
-    return new BoolStorage(values, missing, size, false);
-  }
-
-  @Override
   public StringStorage mask(BitSet mask, int cardinality) {
     ObjectStorage storage = super.mask(mask, cardinality);
     return new StringStorage(storage.getData(), cardinality);

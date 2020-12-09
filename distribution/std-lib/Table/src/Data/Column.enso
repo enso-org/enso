@@ -40,29 +40,68 @@ type Column
        comparing this column's elements against `other`.
     == : Any -> Column
     == other =
-        here.run_vectorized_op this "==" (== other) other
+        here.run_vectorized_binary_op this "==" (==) other
 
     ## Element-wise non-equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
     != : Any -> Column
     != other = (this == other).not
 
+    ## Element-wise non-equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+    >= : Any -> Column
+    >= other =
+        here.run_vectorized_binary_op this ">=" (>=) other
+
+    ## Element-wise non-equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+    <= : Any -> Column
+    <= other =
+        here.run_vectorized_binary_op this "<=" (<=) other
+
+    ## Element-wise non-equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+    > : Any -> Column
+    > other =
+        here.run_vectorized_binary_op this ">" (>) other
+
+    ## Element-wise non-equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+    < : Any -> Column
+    < other = here.run_vectorized_binary_op this "<" (<) other
+
+    + other = here.run_vectorized_binary_op this '+' (+) other
+
+    - other = here.run_vectorized_binary_op this '-' (-) other
+
+    * other = here.run_vectorized_binary_op this '*' (*) other
+
+    / other = here.run_vectorized_binary_op this '/' (/) other
+
+    && : Any -> Column
+    && other =
+        here.run_vectorized_binary_op this "&&" (&&) other
+
+    || : Any -> Column
+    || other =
+        here.run_vectorized_binary_op this "||" (||) other
+
     ## Boolean negation of each element in this column.
     not : Column
     not =
-        here.run_vectorized_op this "not" not Nothing
+        here.run_vectorized_unary_op this "not" not
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing = here.run_vectorized_op this "is_missing" (== Nothing) Nothing
+    is_missing = here.run_vectorized_unary_op this "is_missing" (== Nothing)
 
     ## Applies `function` to each item in this column and returns the column
        of results.
     map function =
         storage = this.java_column.getStorage []
         index = this.java_column.getIndex []
-        new_st = storage.map [function]
+        new_st = storage.map [Nothing, function]
         col = Java_Column.new ["Result", index, new_st].to_array
         Column col
 
@@ -113,11 +152,24 @@ type Column
 from_vector name items = Column (Java_Column.fromItems [name, items.to_array])
 
 ## PRIVATE
-run_vectorized_op column java_op_name fallback_method operand =
-    storage = column.java_column.getStorage []
+run_vectorized_binary_op column name fallback_fn operand = case operand of
+    Column col2 ->
+        s1 = column.java_column.getStorage []
+        ix = column.java_column.getIndex []
+        s2 = col2.getStorage []
+        rs = s1.zip [name, fallback_fn, s2]
+        Column (Java_Column.new ["Result", ix, rs].to_array)
+    _ ->
+        s1 = column.java_column.getStorage []
+        ix = column.java_column.getIndex []
+        rs = s1.bimap [name, fallback_fn, operand]
+        Column (Java_Column.new ["Result", ix, rs].to_array)
+
+## PRIVATE
+run_vectorized_unary_op column name fallback_fn =
+    s = column.java_column.getStorage []
     ix = column.java_column.getIndex []
-    rs = if storage.isOpVectorized [java_op_name] then storage.runVectorizedOp [java_op_name, operand] else
-        storage.map [fallback_method]
+    rs = s.map [name, fallback_fn]
     Column (Java_Column.new ["Result", ix, rs].to_array)
 
 

@@ -54,26 +54,18 @@ public class ObjectStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return Ops.IS_MISSING.equals(op);
+  protected boolean isOpVectorized(String name) {
+    return false;
   }
 
   @Override
-  public Storage runVectorizedOp(String name, Object operand) {
-    if (Ops.IS_MISSING.equals(name)) {
-      return runIsMissing();
-    }
-    throw new UnsupportedOperationException();
+  protected Storage runVectorizedMap(String name, Object argument) {
+    return null;
   }
 
-  private BoolStorage runIsMissing() {
-    BitSet vals = new BitSet();
-    for (int i = 0; i < size; i++) {
-      if (data[i] == null) {
-        vals.set(i);
-      }
-    }
-    return new BoolStorage(vals, new BitSet(), size, false);
+  @Override
+  protected Storage runVectorizedZip(String name, Storage argument) {
+    return null;
   }
 
   @Override

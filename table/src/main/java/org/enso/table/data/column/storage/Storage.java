@@ -2,8 +2,10 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.operation.map.MapOpStorage;
 
 import java.util.BitSet;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /** An abstract representation of a data column. */
@@ -60,23 +62,11 @@ public abstract class Storage {
     public static final String IS_MISSING = "is_missing";
   }
 
-  /**
-   * Checks whether a vectorized version of operation exists for this storage.
-   *
-   * @param name the operation name
-   * @return whether a vectorized version is available
-   */
-  public abstract boolean isOpVectorized(String name);
+  protected abstract boolean isOpVectorized(String name);
 
-  /**
-   * Runs a vectorized operation on this storage. Can only be used if {@link
-   * #isOpVectorized(String)} returns true.
-   *
-   * @param name the operation to run
-   * @param operand an argument to the operation
-   * @return the result of running operation over this storage
-   */
-  public abstract Storage runVectorizedOp(String name, Object operand);
+  protected abstract Storage runVectorizedMap(String name, Object argument);
+
+  protected abstract Storage runVectorizedZip(String name, Storage argument);
 
   /**
    * Runs a function on each non-missing element in this storage and gathers the results.
@@ -84,14 +74,51 @@ public abstract class Storage {
    * @param function the function to run.
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage map(Function<Object, Object> function) {
-    Builder builder = new InferredBuilder((int) size());
+  public final Storage bimap(
+      String name, BiFunction<Object, Object, Object> function, Object argument) {
+    if (name != null && isOpVectorized(name)) {
+      return runVectorizedMap(name, argument);
+    }
+    Builder builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
         builder.append(null);
       } else {
-        builder.append(function.apply(it));
+        builder.append(function.apply(it, argument));
+      }
+    }
+    return builder.seal();
+  }
+
+  public final Storage map(String name, Function<Object, Object> fun) {
+    if (name != null && isOpVectorized(name)) {
+      return runVectorizedMap(name, null);
+    }
+    Builder builder = new InferredBuilder(size());
+    for (int i = 0; i < size(); i++) {
+      Object it = getItemBoxed(i);
+      if (it == null) {
+        builder.append(null);
+      } else {
+        builder.append(fun.apply(it));
+      }
+    }
+    return builder.seal();
+  }
+
+  public final Storage zip(String name, BiFunction<Object, Object, Object> fun, Storage arg) {
+    if (name != null && isOpVectorized(name)) {
+      return runVectorizedZip(name, arg);
+    }
+    Builder builder = new InferredBuilder(size());
+    for (int i = 0; i < size(); i++) {
+      Object it1 = getItemBoxed(i);
+      Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
+      if (it1 == null || it2 == null) {
+        builder.append(null);
+      } else {
+        builder.append(fun.apply(it1, it2));
       }
     }
     return builder.seal();

@@ -2,12 +2,12 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
 
 import java.util.BitSet;
-import java.util.function.Function;
 
 /** A column containing floating point numbers. */
 public class DoubleStorage extends Storage {
@@ -65,8 +65,13 @@ public class DoubleStorage extends Storage {
   }
 
   @Override
-  public Storage runVectorizedOp(String name, Object operand) {
-    return ops.run(name, this, operand);
+  protected Storage runVectorizedMap(String name, Object argument) {
+    return ops.runMap(name, this, argument);
+  }
+
+  @Override
+  protected Storage runVectorizedZip(String name, Storage argument) {
+    return ops.runMap(name, this, argument);
   }
 
   @Override
@@ -193,15 +198,10 @@ public class DoubleStorage extends Storage {
               }
             })
         .add(
-            new MapOperation<>(Ops.IS_MISSING) {
+            new UnaryMapOperation<>(Ops.IS_MISSING) {
               @Override
-              public Storage runMap(DoubleStorage storage, Object arg) {
+              public Storage run(DoubleStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
-              }
-
-              @Override
-              public Storage runZip(DoubleStorage storage, Storage arg) {
-                return runMap(storage, null);
               }
             });
     return ops;

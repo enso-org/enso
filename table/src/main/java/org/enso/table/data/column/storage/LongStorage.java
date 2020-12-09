@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
@@ -59,13 +60,18 @@ public class LongStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return ops.isSupported(op);
+  protected boolean isOpVectorized(String name) {
+    return ops.isSupported(name);
   }
 
   @Override
-  public Storage runVectorizedOp(String name, Object operand) {
-    return ops.run(name, this, operand);
+  protected Storage runVectorizedMap(String name, Object argument) {
+    return ops.runMap(name, this, argument);
+  }
+
+  @Override
+  protected Storage runVectorizedZip(String name, Storage argument) {
+    return ops.runZip(name, this, argument);
   }
 
   @Override
@@ -237,15 +243,10 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new MapOperation<>(Ops.IS_MISSING) {
+            new UnaryMapOperation<>(Ops.IS_MISSING) {
               @Override
-              public Storage runMap(LongStorage storage, Object arg) {
+              public Storage run(LongStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
-              }
-
-              @Override
-              public Storage runZip(LongStorage storage, Storage arg) {
-                return runMap(storage, null);
               }
             });
     return ops;

@@ -12,8 +12,12 @@ public class MapOpStorage<T extends Storage> {
     return ops.get(n) != null;
   }
 
-  public Storage run(String n, T storage, Object arg) {
+  public Storage runMap(String n, T storage, Object arg) {
     return ops.get(n).runMap(storage, arg);
+  }
+
+  public Storage runZip(String n, T storage, Storage arg) {
+    return ops.get(n).runZip(storage, arg);
   }
 
   public MapOpStorage<T> add(MapOperation<T> op) {
