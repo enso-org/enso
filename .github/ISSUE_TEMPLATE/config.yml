@@ -1,5 +1,14 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Have a question about Enso?
+    url: https://github.com/enso-org/enso/discussions/new?category=Questions
+    about: Ask your questions about Enso
+  - name: Want to discuss Enso?
+    url: https://github.com/enso-org/enso/discussions/new?category=general
+    about: Talk about Enso the language
+  - name: Have an idea?
+    url: https://github.com/enso-org/enso/discussions/new?category=ideas
+    about: Share your ideas for Enso
   - name: Issues with the IDE?
     url: https://github.com/enso-org/ide/issues/new/choose
     about: Please report problems with the IDE in the IDE repository
