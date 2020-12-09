@@ -197,7 +197,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       FunctionCallInfo that = (FunctionCallInfo) o;
       return Objects.equals(moduleName, that.moduleName)
           && Objects.equals(typeName, that.typeName)
-          && functionName.equals(that.functionName);
+          && Objects.equals(functionName, that.functionName);
     }
 
     @Override

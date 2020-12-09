@@ -29,6 +29,12 @@ spec =
         it "should format using default pattern" <|
             text = Time.new 1970 (zone = Zone.utc) . to_text
             text . should_equal "1970-01-01T00:00:00Z[UTC]"
+        it "should convert to Json" <|
+            time = Time.new 1970 12 21 (zone = Zone.utc)
+            time.to_json.should_equal <|
+                zone_pairs = [["zone", Zone.utc]]
+                time_pairs = [["year", time.year], ["month", time.month], ["day", time.day], ["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
+                Json.from_pairs ([["type", "Time"]] + time_pairs + zone_pairs)
         it "should parse default time format" <|
             text = Time.new 1970 (zone = Zone.utc) . to_text
             time = Time.parse text

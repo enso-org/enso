@@ -415,9 +415,12 @@ trait ProgramExecutionSupport {
         }
         .leftMap(_.getMessage)
         .flatMap {
-          case text: String       => Right(text.getBytes("UTF-8"))
-          case text: Text         => Right(text.toString.getBytes("UTF-8"))
-          case bytes: Array[Byte] => Right(bytes)
+          case text: String =>
+            Right(text.getBytes("UTF-8"))
+          case text: Text =>
+            Right(text.toString.getBytes("UTF-8"))
+          case bytes: Array[Byte] =>
+            Right(bytes)
           case other =>
             Left(s"Cannot encode ${other.getClass} to byte array")
         }

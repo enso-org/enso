@@ -188,10 +188,19 @@ type Locale
     to_text : Text | Nothing
     to_text = this.java_locale.toLanguageTag []
 
+    ## A Locale to Json conversion
+    to_json : Json.Object
+    to_json =
+        b = Vector.new_builder
+        b.append ["type", "Locale"]
+        if not this.language.is_nothing then b.append ["language", this.language]
+        if not this.country.is_nothing then b.append ["country", this.country]
+        if not this.variant.is_nothing then b.append ["variant", this.variant]
+        Json.from_pairs b.to_vector
+
 ## PRIVATE
 from_java : JavaLocale -> Locale
 from_java java = Locale java
 
 ## PRIVATE
 javaLocaleBuilder = Polyglot.get_member JavaLocale "Builder"
-

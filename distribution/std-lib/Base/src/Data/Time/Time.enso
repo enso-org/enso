@@ -112,6 +112,10 @@ type Time
     to_text : Text
     to_text = Time_Utils.default_time_formatter [] . format [this.internal_zoned_date_time]
 
+    ## A Time to Json conversion.
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Time"], ["year", this.year], ["month", this.month], ["day", this.day], ["hour", this.hour], ["minute", this.minute], ["second", this.second], ["nanosecond", this.nanosecond], ["zone", this.zone]]
+
     ## Format this time using formatter text.
 
        Patterns are based on a simple sequence of letters and symbols. For
