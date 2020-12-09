@@ -109,5 +109,5 @@ type Range
          Getting a vector of the numbers 1 to 5.
              1.up_to 6 . to_vector == [1, 2, 3, 4, 5]
     to_vector : Vector.Vector
-    to_vector = Vector.new (this.end - 1) (i -> i + this.start)
+    to_vector = Vector.new (this.end) (i -> i + this.start)
 
