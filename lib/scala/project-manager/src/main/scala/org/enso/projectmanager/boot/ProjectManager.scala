@@ -144,7 +144,8 @@ object ProjectManager extends App with LazyLogging {
   ): ZIO[Console, Nothing, ExitCode] = {
     val versionDescription = VersionDescription.make(
       "Enso Project Manager",
-      includeRuntimeJVMInfo = true
+      includeRuntimeJVMInfo         = false,
+      enableNativeImageOSWorkaround = true
     )
     putStrLn(versionDescription.asString(useJson)) *>
     ZIO.succeed(SuccessExitCode)
@@ -153,7 +154,8 @@ object ProjectManager extends App with LazyLogging {
   private def logServerStartup(): UIO[Unit] =
     effectTotal {
       logger.info(
-        s"Started server at ${config.server.host}:${config.server.port}, press enter to kill server"
+        s"Started server at ${config.server.host}:${config.server.port}, " +
+        s"press enter to kill server"
       )
     }
 
