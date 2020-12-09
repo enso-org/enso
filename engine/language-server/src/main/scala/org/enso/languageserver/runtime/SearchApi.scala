@@ -1,17 +1,17 @@
-package org.enso.languageserver.runtime
+package org.enso.languageserver.search
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.runtime.SearchProtocol.{
+import org.enso.languageserver.search.SearchProtocol.{
+  Export,
+  SuggestionDatabaseEntry,
   SuggestionId,
   SuggestionKind,
   SuggestionsDatabaseUpdate
 }
-import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
-/**
-  * The execution JSON RPC API provided by the language server.
+/** The execution JSON RPC API provided by the language server.
   *
   * @see `docs/language-server/protocol-language-server.md`
   */
@@ -34,7 +34,7 @@ object SearchApi {
       extends Method("search/getSuggestionsDatabase") {
 
     case class Result(
-      entries: Seq[SuggestionEntry],
+      entries: Seq[SuggestionDatabaseEntry],
       currentVersion: Long
     )
 
@@ -59,6 +59,17 @@ object SearchApi {
     }
   }
 
+  case object InvalidateSuggestionsDatabase
+      extends Method("search/invalidateSuggestionsDatabase") {
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case object Completion extends Method("search/completion") {
 
     case class Params(
@@ -79,6 +90,20 @@ object SearchApi {
     }
   }
 
+  case object Import extends Method("search/import") {
+
+    case class Params(id: Long)
+
+    case class Result(module: String, symbol: String, exports: Seq[Export])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Import.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Import.Result
+    }
+  }
+
   case object SuggestionsDatabaseError
       extends Error(7001, "Suggestions database error")
 
@@ -87,4 +112,7 @@ object SearchApi {
 
   case object ModuleNameNotResolvedError
       extends Error(7003, "Module name can't be resolved for the given file")
+
+  case object SuggestionNotFoundError
+      extends Error(7004, "Requested suggestion was not found")
 }

@@ -14,16 +14,17 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
+import org.enso.loggingservice.LogLevel
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-/**
-  * A lifecycle component used to start and stop a Language Server.
+/** A lifecycle component used to start and stop a Language Server.
   *
   * @param config a LS config
+  * @param logLevel log level for the Language Server
   */
-class LanguageServerComponent(config: LanguageServerConfig)
+class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
     extends LifecycleComponent
     with LazyLogging {
 
@@ -35,16 +36,29 @@ class LanguageServerComponent(config: LanguageServerConfig)
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
+    val module = new MainModule(config, logLevel)
+    val initMainModule =
+      for {
+        _ <- module.init
+        _ <- Future { logger.debug("Main module initialized") }
+      } yield ()
+    val bindJsonServer =
+      for {
+        binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
+        _       <- Future { logger.debug("Json RPC server initialized") }
+      } yield binding
+    val bindBinaryServer =
+      for {
+        binding <- module.binaryServer.bind(config.interface, config.dataPort)
+        _       <- Future { logger.debug("Binary server initialized") }
+      } yield binding
     for {
-      module      <- Future { new MainModule(config) }
-      _           <- Future { logger.debug("MainModule created") }
-      jsonBinding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-      binaryBinding <-
-        module.binaryServer
-          .bind(config.interface, config.dataPort)
+      jsonBinding   <- bindJsonServer
+      binaryBinding <- bindBinaryServer
       _ <- Future {
         maybeServerCtx = Some(ServerContext(module, jsonBinding, binaryBinding))
       }
+      _ <- initMainModule
       _ <- Future {
         logger.info(
           s"Started server at json:${config.interface}:${config.rpcPort}, " +
@@ -111,16 +125,15 @@ class LanguageServerComponent(config: LanguageServerConfig)
       _ <- start()
     } yield ComponentRestarted
 
-  private val logError: PartialFunction[Throwable, Unit] = {
-    case th => logger.error("An error occurred during stopping server", th)
+  private val logError: PartialFunction[Throwable, Unit] = { case th =>
+    logger.error("An error occurred during stopping server", th)
   }
 
 }
 
 object LanguageServerComponent {
 
-  /**
-    * A running server context.
+  /** A running server context.
     *
     * @param mainModule a main module containing all components of the server
     * @param jsonBinding a http binding for rpc protocol

@@ -2,13 +2,11 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.polyglot.runtime.Runtime.Api
 
-/**
-  * A factory that creates a command for an API request.
+/** A factory that creates a command for an API request.
   */
 object CommandFactory {
 
-  /**
-    * Creates a command that encapsulates a function request as an object.
+  /** Creates a command that encapsulates a function request as an object.
     *
     * @param request an API request
     * @return a command
@@ -45,6 +43,13 @@ object CommandFactory {
       case payload: Api.OpenFileNotification  => new OpenFileCmd(payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
       case payload: Api.EditFileNotification  => new EditFileCmd(payload)
+
+      case payload: Api.InvalidateModulesIndexRequest =>
+        new InvalidateModulesIndexCmd(request.requestId, payload)
+
+      case payload: Api.ImportSuggestionRequest =>
+        new ImportSuggestionCmd(request.requestId, payload)
+
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"

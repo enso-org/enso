@@ -2,24 +2,38 @@ package org.enso.projectmanager
 
 import java.util.UUID
 
+import akka.testkit.TestDuration
+import io.circe.Json
+import io.circe.syntax._
 import io.circe.literal._
+import org.enso.pkg.SemVerJson._
 import io.circe.parser.parse
-import org.enso.projectmanager.data.Socket
+import nl.gn0s1s.bump.SemVer
+import org.enso.projectmanager.data.{MissingComponentAction, Socket}
 
 import scala.concurrent.duration._
 
 trait ProjectManagementOps { this: BaseServerSpec =>
 
-  def createProject(name: String)(implicit client: WsTestClient): UUID = {
-    client.send(json"""
+  def createProject(
+    name: String,
+    version: Option[SemVer]                                = None,
+    missingComponentAction: Option[MissingComponentAction] = None
+  )(implicit client: WsTestClient): UUID = {
+    val fields = Seq("name" -> name.asJson) ++
+      version.map(v => "version" -> v.asJson).toSeq ++
+      missingComponentAction
+        .map(a => "missingComponentAction" -> a.asJson)
+        .toSeq
+    val params  = Json.obj(fields: _*)
+    val request = json"""
             { "jsonrpc": "2.0",
               "method": "project/create",
               "id": 0,
-              "params": {
-                "name": $name
-              }
+              "params": $params
             }
-          """)
+          """
+    client.send(request)
     val projectId = getGeneratedUUID
     client.expectJson(json"""
           {
@@ -45,7 +59,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
               }
             }
           """)
-    val Right(openReply) = parse(client.expectMessage(10.seconds))
+    val Right(openReply) = parse(client.expectMessage(10.seconds.dilated))
     val socket = for {
       result <- openReply.hcursor.downExpectedField("result")
       addr   <- result.downExpectedField("languageServerJsonAddress")
@@ -68,13 +82,16 @@ trait ProjectManagementOps { this: BaseServerSpec =>
               }
             }
           """)
-    client.expectJson(json"""
+    client.expectJson(
+      json"""
           {
             "jsonrpc":"2.0",
             "id":0,
             "result": null
           }
-          """)
+          """,
+      10.seconds.dilated
+    )
   }
 
   def deleteProject(

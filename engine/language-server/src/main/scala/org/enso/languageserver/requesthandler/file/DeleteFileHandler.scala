@@ -1,7 +1,6 @@
 package org.enso.languageserver.requesthandler.file
 
 import akka.actor._
-import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
   FileDeletedEvent,
@@ -40,13 +39,13 @@ class DeleteFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   ): Receive = {
     case Status.Failure(ex) =>
       log.error(s"Failure during $DeleteFile operation:", ex)
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
       log.error(s"Request $id timed out")
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case FileManagerProtocol.DeleteFileResult(Left(failure)) =>

@@ -1,0 +1,560 @@
+name: Release CI
+
+on:
+  push:
+    tags:
+      - "enso-*.*.*"
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 20.2.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.4.1
+  # Please ensure that this is in sync with rustVersion in build.sbt
+  rustToolchain: nightly-2019-11-04
+
+jobs:
+  # This job should be kept up-to-date with scala.yml#build (but keep the added version check)
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+      fail-fast: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: repo
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.4.1
+      - name: Disable TCP/UDP Offloading (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+      - name: Disable TCP/UDP Offloading (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo ethtool -K eth0 tx off rx off
+      - name: Disable TCP/UDP Offloading (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >
+          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
+          -UdpIPv6
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: true
+          conda-channels: anaconda, conda-forge
+      - name: Setup Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: |
+          conda create --name enso
+          conda init powershell
+      - name: Activate Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: conda activate enso
+      - name: Install FlatBuffers Compiler
+        run: conda install flatbuffers=1.12.0
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
+      - name: Set Up SBT
+        shell: bash
+        run: |
+          curl -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      # Bootstrap
+      - name: Enable Release Mode
+        shell: bash
+        run: echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
+      - name: Bootstrap the Project
+        working-directory: repo
+        run: |
+          sleep 1
+          sbt --no-colors bootstrap
+
+      # Verify Legal Review
+      - name: Verify Packages
+        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
+        working-directory: repo
+        run: |
+          sleep 1
+          sbt --no-colors verifyLicensePackages
+
+      # Prepare distributions
+      - name: Build the Launcher Native Image
+        working-directory: repo
+        run: |
+          sleep 1
+          sbt --no-colors launcher/buildNativeImage
+
+      - name: Prepare Distribution Version (Unix)
+        working-directory: repo
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          chmod +x enso
+          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      - name: Prepare Distribution Version (Windows)
+        working-directory: repo
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      # Currently the only architecture supported by Github runners is amd64
+      - name: Prepare Distribution Environment
+        working-directory: repo
+        shell: bash
+        run: >
+          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}') bash
+          tools/ci/prepare-distribution-env.sh
+
+      - name: Prepare Launcher Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt 'set launcherDistributionRoot := file("${{ env.LAUNCHER_DIST_DIR }}"); buildLauncherDistribution'
+      - name: Prepare Engine Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt 'set engineDistributionRoot := file("${{ env.ENGINE_DIST_DIR }}"); buildEngineDistribution'
+      - name: Prepare Project Manager Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt 'set projectManagerDistributionRoot := file("${{ env.PROJECTMANAGER_DIST_DIR }}"); buildProjectManagerDistribution'
+
+      # Ensure that the versions encoded in the binary and in the release match
+      - name: Check Versions (Unix)
+        working-directory: repo
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          ref=${{ github.ref }}
+          refversion=${ref#"refs/tags/enso-"}
+          binversion=${{ env.DIST_VERSION }}
+          engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
+          test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
+          test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
+      - name: Check Versions (Windows)
+        working-directory: repo
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          ref=${{ github.ref }}
+          refversion=${ref#"refs/tags/enso-"}
+          binversion=${{ env.DIST_VERSION }}
+          engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso.bat --version --json | jq -r '.version')
+          test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
+          test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
+
+      # Verify License Packages in Distributions
+      - name: Verify Engine Licenses Package
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt "enso/verifyGeneratedPackage engine ${{ env.ENGINE_DIST_DIR }}/THIRD-PARTY"
+      - name: Verify Launcher Licenses Package
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt "enso/verifyGeneratedPackage launcher ${{ env.LAUNCHER_DIST_DIR }}/THIRD-PARTY"
+      - name: Verify Project Manager Licenses Package
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt "enso/verifyGeneratedPackage project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/THIRD-PARTY"
+
+      - name: Verify std-lib-Base Licenses Package
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt "enso/verifyGeneratedPackage std-lib-Base ${{ env.ENGINE_DIST_DIR }}/std-lib/Base/THIRD-PARTY"
+      - name: Verify std-lib-Table Licenses Package
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt "enso/verifyGeneratedPackage std-lib-Table ${{ env.ENGINE_DIST_DIR }}/std-lib/Table/THIRD-PARTY"
+
+      # Publish
+      - name: Upload the Engine Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ENGINE_DIST_ROOT }}
+          path: repo/${{ env.ENGINE_DIST_ROOT }}
+      - name: Upload the Launcher Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.LAUNCHER_DIST_ROOT }}
+          path: repo/${{ env.LAUNCHER_DIST_ROOT }}
+      - name: Upload the Project Manager Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+          path: repo/${{ env.PROJECTMANAGER_DIST_ROOT }}
+      - name: Upload the Manifest Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: repo/${{ env.ENGINE_DIST_DIR }}/manifest.yaml
+      - name: Upload the Launcher Manifest Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: launcher-manifest
+          path: repo/distribution/launcher-manifest.yaml
+
+  create-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          path: repo
+      # Without specifying options, it downloads all artifacts
+      - uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      # This jobs can be used to debug errors, it may be removed
+      - name: Display Structure of Downloaded Files
+        run: ls -R
+        working-directory: artifacts
+
+      - name: Save Version to Environment
+        shell: bash
+        run: |
+          ref=${{ github.ref }}
+          DIST_VERSION=${ref#"refs/tags/enso-"}
+          echo "Preparing release for $DIST_VERSION"
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      - name: Download GraalVM for Bundles
+        shell: bash
+        run: |
+          curl -fsSL -o graalvm-linux.tar.gz "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${{ env.graalVersion }}/graalvm-ce-java${{ env.javaVersion }}-linux-amd64-${{ env.graalVersion }}.tar.gz"
+          echo "Linux JVM downloaded"
+          curl -fsSL -o graalvm-macos.tar.gz "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${{ env.graalVersion }}/graalvm-ce-java${{ env.javaVersion }}-darwin-amd64-${{ env.graalVersion }}.tar.gz"
+          echo "MacOS JVM downloaded"
+          curl -fsSL -o graalvm-windows.zip "https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-${{ env.graalVersion }}/graalvm-ce-java${{ env.javaVersion }}-windows-amd64-${{ env.graalVersion }}.zip"
+          echo "Windows JVM downloaded"
+          mkdir graalvm-linux
+          mkdir graalvm-macos
+          mkdir graalvm-windows
+          (cd graalvm-linux && tar xf ../graalvm-linux.tar.gz)
+          echo "Linux JVM extracted"
+          (cd graalvm-macos && tar xf ../graalvm-macos.tar.gz)
+          echo "MacOS JVM extracted"
+          (cd graalvm-windows && unzip -q ../graalvm-windows.zip)
+          echo "Windows JVM extracted"
+
+      # As the download-artifact action does not preserve the executable bits,
+      # we fix them here, so that the release assets are easy to use.
+      - name: Fix Package Structure
+        shell: bash
+        run: |
+          chmod +x artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin/enso
+          chmod +x artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/enso-${{ env.DIST_VERSION }}/bin/enso
+          chmod +x artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/bin/enso
+          chmod +x artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/bin/enso
+          chmod +x artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/bin/project-manager
+          chmod +x artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/bin/project-manager
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/config
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/dist
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/config
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/dist
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/config
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/dist
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
+
+      - name: Prepare Packages
+        shell: bash
+        run: |
+          (cd artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/ && tar -czf ../../enso-engine-${{ env.DIST_VERSION }}-linux-amd64.tar.gz enso-${{ env.DIST_VERSION }} )
+          echo "Linux Engine packaged"
+          (cd artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/ && tar -czf ../../enso-engine-${{ env.DIST_VERSION }}-macos-amd64.tar.gz enso-${{ env.DIST_VERSION }} )
+          echo "MacOS Engine packaged"
+          (cd artifacts/enso-engine-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-engine-${{ env.DIST_VERSION }}-windows-amd64.zip enso-${{ env.DIST_VERSION }} )
+          echo "Windows Engine packaged"
+
+          (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/ && tar -czf ../../enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz enso )
+          echo "Linux Launcher packaged"
+          (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/ && tar -czf ../../enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz enso )
+          echo "MacOS Launcher packaged"
+          (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip enso )
+          echo "Windows Launcher packaged"
+
+          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/ && tar -czf ../../enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz enso )
+          echo "Linux Project Manager packaged"
+          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/ && tar -czf ../../enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz enso )
+          echo "MacOS Project Manager packaged"
+          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip enso )
+          echo "Windows Project Manager packaged"
+
+      - name: Prepare Bundles
+        shell: bash
+        run: |
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/dist/${{ env.DIST_VERSION }}
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/dist/${{ env.DIST_VERSION }}
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-windows-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/dist/${{ env.DIST_VERSION }}
+          mv graalvm-linux/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
+          mv graalvm-macos/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
+          mv graalvm-windows/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
+
+          echo "Bundles prepared"
+          (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/ && tar -czf ../../enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz enso )
+          echo "Linux Bundle packaged"
+          (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/ && tar -czf ../../enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz enso )
+          echo "MacOS Bundle packaged"
+          (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip enso )
+          echo "Windows Bundle packaged"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: enso-${{ env.DIST_VERSION }}
+          release_name: Enso ${{ env.DIST_VERSION }}
+          body: "Please fill-in the release description"
+          draft: true
+          prerelease: true
+
+      # Publish the launcher packages to the backup/fallback S3 bucket
+      - name: Prepare AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
+          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+      - name: Upload the Linux Launcher Package to S3
+        shell: bash
+        run: >
+          aws s3 cp enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION }}/ --profile
+          s3-upload --acl public-read
+      - name: Upload the macOS Launcher Package to S3
+        shell: bash
+        run: >
+          aws s3 cp enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION }}/ --profile
+          s3-upload --acl public-read
+      - name: Upload the Windows Launcher Package to S3
+        shell: bash
+        run: >
+          aws s3 cp enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION }}/ --profile
+          s3-upload --acl public-read
+      - name: Upload the Launcher Manifest to S3
+        shell: bash
+        run: >
+          aws s3 cp artifacts/launcher-manifest/launcher-manifest.yaml
+          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION
+          }}/launcher-manifest.yaml --profile s3-upload --acl public-read
+      - name: Update the Release List in S3
+        shell: bash
+        run: |
+          aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
+          TAG="enso-${{ env.DIST_VERSION }}"
+          ./repo/tools/ci/releases/add-release.js release-list.json "$TAG" \
+          launcher-manifest.yaml \
+          "enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz" \
+          "enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz" \
+          "enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip"
+          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload --acl public-read
+      - name: Teardown AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF
+
+      # Upload the assets to the created release
+      - name: Publish the Engine (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-engine-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_name: enso-engine-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Engine (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-engine-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_name: enso-engine-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Engine (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-engine-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_name: enso-engine-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Launcher (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_name: enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Launcher (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_name: enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Launcher (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_name: enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Project Manager (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_name:
+            enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Project Manager (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_name:
+            enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Project Manager (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path:
+            enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_name:
+            enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Bundle (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_name: enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Bundle (MacOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_name: enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz
+          asset_content_type: application/x-tar
+      - name: Publish the Bundle (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_name: enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Publish the Manifest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/manifest/manifest.yaml
+          asset_name: manifest.yaml
+          asset_content_type: application/yaml
+      - name: Publish the Launcher Manifest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/launcher-manifest/launcher-manifest.yaml
+          asset_name: launcher-manifest.yaml
+          asset_content_type: application/yaml

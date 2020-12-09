@@ -84,7 +84,7 @@ final class ContextEventsListener(
       val payload =
         ContextRegistryProtocol.VisualisationEvaluationFailed(contextId, msg)
 
-      sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
+      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
     case _: Api.ExpressionValuesComputed      =>
     case _: Api.VisualisationUpdate           =>

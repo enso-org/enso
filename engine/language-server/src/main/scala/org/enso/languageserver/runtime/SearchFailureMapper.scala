@@ -6,7 +6,8 @@ import org.enso.languageserver.runtime.SearchProtocol.{
   FileSystemError,
   ModuleNameNotResolvedError,
   ProjectNotFoundError,
-  SearchFailure
+  SearchFailure,
+  SuggestionNotFoundError
 }
 
 object SearchFailureMapper {
@@ -22,6 +23,7 @@ object SearchFailureMapper {
       case FileSystemError(e)            => FileSystemFailureMapper.mapFailure(e)
       case ProjectNotFoundError          => SearchApi.ProjectNotFoundError
       case ModuleNameNotResolvedError(_) => SearchApi.ModuleNameNotResolvedError
+      case SuggestionNotFoundError       => SearchApi.SuggestionNotFoundError
     }
 
 }

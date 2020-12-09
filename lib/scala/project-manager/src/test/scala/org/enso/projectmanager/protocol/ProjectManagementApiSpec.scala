@@ -5,6 +5,8 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import io.circe.literal._
+import nl.gn0s1s.bump.SemVer
+import org.apache.commons.io.FileUtils
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.FlakySpec
@@ -16,6 +18,13 @@ class ProjectManagementApiSpec
     with FlakySpec
     with ProjectManagementOps {
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    gen.reset()
+  }
+
+  override val engineToInstall = Some(SemVer(0, 0, 1))
+
   "project/create" must {
 
     "check if project name is not empty" taggedAs Flaky in {
@@ -25,7 +34,8 @@ class ProjectManagementApiSpec
             "method": "project/create",
             "id": 1,
             "params": {
-              "name": ""
+              "name": "",
+              "missingComponentAction": "Install"
             }
           }
           """)
@@ -110,9 +120,34 @@ class ProjectManagementApiSpec
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
       val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
+      val meta        = Paths.get(projectDir.toString, ".enso", "project.json").toFile
 
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
+      meta shouldBe Symbol("file")
+    }
+
+    "create project with specific version" in {
+      implicit val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 1,
+              "params": {
+                "name": "foo",
+                "version": "0.0.1"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "projectId" : $getGeneratedUUID
+            }
+          }
+          """)
     }
 
     "create a project dir with a suffix if a directory is taken" in {
@@ -313,6 +348,58 @@ class ProjectManagementApiSpec
       deleteProject(projectId)(client1)
     }
 
+    "start the Language Server after moving the directory" taggedAs Flaky in {
+      //given
+      val projectName     = "foo"
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject(projectName)
+
+      val newName       = "bar"
+      val newProjectDir = new File(userProjectDir, newName)
+      FileUtils.moveDirectory(
+        new File(userProjectDir, projectName),
+        newProjectDir
+      )
+      val packageFile = new File(newProjectDir, "package.yaml")
+      val mainEnso =
+        Paths.get(newProjectDir.toString, "src", "Main.enso").toFile
+      val meta =
+        Paths.get(newProjectDir.toString, ".enso", "project.json").toFile
+
+      packageFile shouldBe Symbol("file")
+      mainEnso shouldBe Symbol("file")
+      meta shouldBe Symbol("file")
+
+      //when
+      val socket = openProject(projectId)
+      val languageServerClient =
+        new WsTestClient(s"ws://${socket.host}:${socket.port}")
+      languageServerClient.send(json"""
+          {
+            "jsonrpc": "2.0",
+            "method": "file/read",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": ${UUID.randomUUID()},
+                "segments": ["src", "Main.enso"]
+              }
+            }
+          }
+            """)
+      //then
+      // 'not initialized' response indicates that language server is running
+      languageServerClient.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+             "id":1,
+             "error":{"code":6001,"message":"Session not initialised"}}
+            """)
+      //teardown
+      closeProject(projectId)
+      deleteProject(projectId)
+    }
+
   }
 
   "project/close" must {
@@ -396,9 +483,9 @@ class ProjectManagementApiSpec
             "id":0,
             "result": {
               "projects": [
-                {"name": "baz", "id": $bazId, "lastOpened": null},
-                {"name": "bar", "id": $barId, "lastOpened": null},
-                {"name": "foo", "id": $fooId, "lastOpened": null}
+                {"name": "Baz", "id": $bazId, "lastOpened": null},
+                {"name": "Bar", "id": $barId, "lastOpened": null},
+                {"name": "Foo", "id": $fooId, "lastOpened": null}
               ]
             }
           }
@@ -438,9 +525,9 @@ class ProjectManagementApiSpec
             "id":0,
             "result": {
               "projects": [
-                {"name": "bar", "id": $barId, "lastOpened": $barOpenTime},
-                {"name": "foo", "id": $fooId, "lastOpened": $fooOpenTime},
-                {"name": "baz", "id": $bazId, "lastOpened": null}
+                {"name": "Bar", "id": $barId, "lastOpened": $barOpenTime},
+                {"name": "Foo", "id": $fooId, "lastOpened": $fooOpenTime},
+                {"name": "Baz", "id": $bazId, "lastOpened": null}
               ]
             }
           }
@@ -682,5 +769,4 @@ class ProjectManagementApiSpec
     }
 
   }
-
 }
