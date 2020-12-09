@@ -14,6 +14,12 @@ object LoggingServiceManager {
   private var currentService: Option[Service] = None
   private var currentLevel: LogLevel          = LogLevel.Trace
 
+  /** Returns the log level that is currently set up for the application.
+    *
+    * Its result can change depending on initialization state.
+    */
+  def currentLogLevelForThisApplication(): LogLevel = currentLevel
+
   /** Creates an instance for the [[messageQueue]].
     *
     * Runs special workaround logic if test mode is detected.

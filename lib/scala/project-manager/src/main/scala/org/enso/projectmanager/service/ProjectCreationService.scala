@@ -41,7 +41,7 @@ class ProjectCreationService[
         new Runner(
           versionManager,
           distributionConfiguration.environment,
-          Future.successful(None)
+          distributionConfiguration.loggingServiceEndpoint
         )
 
       val settings =

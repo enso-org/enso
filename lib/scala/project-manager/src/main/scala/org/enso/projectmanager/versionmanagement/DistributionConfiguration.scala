@@ -1,5 +1,6 @@
 package org.enso.projectmanager.versionmanagement
 
+import akka.http.scaladsl.model.Uri
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
@@ -13,6 +14,8 @@ import org.enso.runtimeversionmanager.locking.ResourceManager
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRelease
 import org.enso.runtimeversionmanager.runner.JVMSettings
+
+import scala.concurrent.Future
 
 /** Specifies the configuration of project manager's distribution.
   *
@@ -57,4 +60,10 @@ trait DistributionConfiguration {
     * This option is used to easily turn off logging in tests.
     */
   def shouldDiscardChildOutput: Boolean
+
+  /** A future that is completed once the logging service has been initialized
+    * and specifies if launched component should connect to it or handle logging
+    * on their own.
+    */
+  def loggingServiceEndpoint: Future[Option[Uri]]
 }
