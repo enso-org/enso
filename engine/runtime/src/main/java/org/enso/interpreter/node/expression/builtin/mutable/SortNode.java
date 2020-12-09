@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
@@ -56,7 +57,7 @@ public abstract class SortNode extends Node {
                 ctxRef.get().getBuiltins().error().makeTypeError(integer, result.getValue()), this);
           }
         };
-    Arrays.sort(_this.getItems(), compare);
+    doSort(_this.getItems(), compare);
     return ctxRef.get().getBuiltins().nothing().newInstance();
   }
 
@@ -74,6 +75,11 @@ public abstract class SortNode extends Node {
       throw new PanicException(
           ctxRef.get().getBuiltins().error().makeTypeError(array, _this), this);
     }
+  }
+
+  @TruffleBoundary
+  void doSort(Object[] items, Comparator<Object> compare) {
+    Arrays.sort(items, compare);
   }
 
   InvokeCallableNode buildInvokeNode() {
