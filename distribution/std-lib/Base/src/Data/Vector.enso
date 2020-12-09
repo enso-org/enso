@@ -1,6 +1,8 @@
 from Builtins import Array
 from Base import all
 
+import Base.Data.Vector.Sort
+
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
 
@@ -200,6 +202,14 @@ type Vector
         0.up_to arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
         Vector new_arr
 
+    ## Applies a function to each element of the vector, returning the vector
+       of results.
+
+       The function is called with both the element index as well as the
+       element itself.
+    map_with_index : (Int -> Any -> Any) -> Vector
+    map_with_index function = here.new this.length i-> function i (this.at i)
+
     ## Applies a function to each element of the vector.
 
        Unlike `map`, this method does not return the individual results,
@@ -396,6 +406,35 @@ type Vector
              [].tail == Nothing
     rest : Vector | Nothing
     rest = this.tail
+
+    ## PRIVATE
+       Doesn't work yet.
+
+       Sort the Vector.
+
+       Arguments:
+       - `on`: A projection from the element type to the value of that element
+         being sorted on.
+       - `by`: A function that compares the result of applying `on` to two
+         elements, returning an Ordering to compare them.
+       - `order`: The order in which the vector elements are sorted.
+
+       By default, elements are sorted in ascending order, using the comparator
+       `>`. A custom comparator may be passed to the sort function.
+
+       This implements a stable sort, meaning that items that compare the same
+       will not have their order changed.
+
+       > Example
+         Sorting a vector of numbers.
+             [5, 2, 3, 45, 15].sort == [2, 3, 5, 15, 45]
+
+       > Example
+         Sorting a vector of `Pair`s on the first element, descending.
+             [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
+    sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
+        Sort.run this on by order
 
 ## A builder type for Enso vectors.
 

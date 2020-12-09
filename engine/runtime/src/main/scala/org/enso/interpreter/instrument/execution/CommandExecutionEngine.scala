@@ -30,8 +30,10 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
 
   private val locking = new ReentrantLocking
 
+  private val executionState = new ExecutionState()
+
   private val jobExecutionEngine =
-    new JobExecutionEngine(interpreterContext, locking)
+    new JobExecutionEngine(interpreterContext, executionState, locking)
 
   private val commandExecutor =
     if (isSequential) {
@@ -63,6 +65,7 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
       jobProcessor     = jobExecutionEngine,
       jobControlPlane  = jobExecutionEngine,
       locking          = locking,
+      state            = executionState,
       versioning       = Sha3_224VersionCalculator
     )
 

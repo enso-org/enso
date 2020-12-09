@@ -39,6 +39,13 @@ lazy val verifyLicensePackages =
     "has no warnings and is up-to-date with dependencies."
   )
 verifyLicensePackages := GatherLicenses.verifyReports.value
+lazy val verifyGeneratedPackage =
+  inputKey[Unit](
+    "Verifies if the license package in a generated distribution is " +
+    "up-to-date with the one from the report."
+  )
+verifyGeneratedPackage := GatherLicenses.verifyGeneratedPackage.evaluated
+
 GatherLicenses.distributions := Seq(
   Distribution(
     "launcher",
@@ -51,9 +58,13 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(
       runtime,
       `engine-runner`,
-      `project-manager`,
       `language-server`
     )
+  ),
+  Distribution(
+    "project-manager",
+    file("distribution/project-manager/THIRD-PARTY"),
+    Distribution.sbtProjects(`project-manager`)
   ),
   Distribution(
     "std-lib-Base",
@@ -146,8 +157,9 @@ scalacOptions in (Compile, console) ~= (_ filterNot (_ == "-Xfatal-warnings"))
 lazy val Benchmark = config("bench") extend sbt.Test
 
 // Native Image Generation
+lazy val rebuildNativeImage = taskKey[Unit]("Force to rebuild native image")
 lazy val buildNativeImage =
-  taskKey[Unit]("Build native image for the Enso executable")
+  taskKey[Unit]("Ensure that the Native Image is built.")
 
 // Bootstrap task
 lazy val bootstrap =
@@ -609,6 +621,26 @@ lazy val `logging-service` = project
   )
   .dependsOn(`akka-native`)
 
+ThisBuild / testOptions += Tests.Setup(_ =>
+  // Note [Logging Service in Tests]
+  sys.props("org.enso.loggingservice.test-log-level") = "2"
+)
+
+/* Note [Logging Service in Tests]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As migrating the runner to our new logging service has forced us to migrate
+ * other components that are related to it too, some tests that used to be
+ * configured by logback are not properly configured anymore and log a lot of
+ * debug information. This is a temporary fix to make sure that there are not
+ * too much logs in the CI - it sets the log level for all tests to be at most
+ * info by default. It can be overridden by particular tests if they set up a
+ * logging service.
+ *
+ * This is a temporary solution and it will be obsoleted once all of our
+ * components do a complete migration to the new logging service, which is
+ * planned in tasks #1144 and #1151.
+ */
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .configs(Test)
@@ -647,15 +679,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
-    javaOptions ++= {
-      // Note [Classpath Separation]
-      val runtimeClasspath =
-        (runtime / Compile / fullClasspath).value
-          .map(_.data)
-          .mkString(File.pathSeparator)
-      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
-    },
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"              % typesafeConfigVersion,
@@ -665,6 +689,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
       "commons-cli"                 % "commons-cli"         % commonsCliVersion,
       "commons-io"                  % "commons-io"          % commonsIoVersion,
+      "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
       "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
       "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
@@ -697,13 +722,28 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           )
         )
       ),
-    assembly := assembly
-      .dependsOn(runtime / assembly)
+    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "project-manager",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "--enable-all-security-services" // Note [HTTPS in the Native Images]
+        )
+      )
+      .dependsOn(assembly)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "project-manager"
+      )
       .value
   )
+  .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
-  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
@@ -867,8 +907,7 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
-    libraryDependencies ++= akka ++ akkaTest ++ circe ++ Seq(
-      "ch.qos.logback"              % "logback-classic"      % logbackClassicVersion,
+    libraryDependencies ++= akka ++ circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
@@ -902,6 +941,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service`)
 
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(
@@ -1109,15 +1149,6 @@ lazy val `engine-runner` = project
     connectInput in run := true
   )
   .settings(
-    buildNativeImage := NativeImage
-      .buildNativeImage(
-        "enso",
-        staticOnLinux = false,
-        Seq("-H:IncludeResources=.*Main.enso$")
-      )
-      .value
-  )
-  .settings(
     assembly := assembly
       .dependsOn(runtime / assembly)
       .value
@@ -1144,21 +1175,26 @@ lazy val launcher = project
     )
   )
   .settings(
-    buildNativeImage := NativeImage
+    rebuildNativeImage := NativeImage
       .buildNativeImage(
         "enso",
         staticOnLinux = true,
-        Seq(
-          "-J-Xmx4G",
-          "--enable-all-security-services", // Note [HTTPS in the Launcher]
+        additionalOptions = Seq(
+          "--enable-all-security-services", // Note [HTTPS in the Native Images]
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$",
-          "--initialize-at-run-time=" +
-          "akka.protobuf.DescriptorProtos," +
-          "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder," +
-          "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder," +
-          "org.enso.loggingservice.WSLoggerManager$" // Note [WSLoggerManager Shutdown Hook]
+          "-H:IncludeResources=.*Main.enso$"
+        ),
+        initializeAtRuntime = Seq(
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$"
         )
+      )
+      .dependsOn(assembly)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "enso"
       )
       .value,
     test in assembly := {},
@@ -1166,15 +1202,8 @@ lazy val launcher = project
   )
   .settings(
     (Test / test) := (Test / test)
-      .dependsOn(
-        NativeImage.incrementalNativeImageBuild(
-          buildNativeImage,
-          "enso"
-        )
-      )
-      .dependsOn(
-        LauncherShimsForTest.prepare(rustcVersion = rustVersion)
-      )
+      .dependsOn(buildNativeImage)
+      .dependsOn(LauncherShimsForTest.prepare(rustcVersion = rustVersion))
       .value,
     parallelExecution in Test := false
   )
@@ -1280,13 +1309,13 @@ lazy val `table` = project
     }.value
   )
 
-/* Note [HTTPS in the Launcher]
+/* Note [HTTPS in the Native Images]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * The launcher uses Apache HttpClient for making web requests. It does not use
- * Java's stdlib implementation, because there is a bug (not fixed in JDK 11)
- * (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS handling that
- * causes long running requests to freeze forever. However, Apache HttpClient
- * still needs the stdlib's SSL implementation and it is not included in the
+ * The launcher and project-manager use Akka Http for making web requests. They
+ * do not use Java's stdlib implementation, because there is a bug (not fixed in
+ * JDK 11) (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS
+ * handling that causes long running requests to freeze forever. However, Akka
+ * Http still needs the stdlib's SSL implementation which is not included in the
  * Native Images by default (because of its size). The
  * `--enable-all-security-services` flag is used to ensure it is available in
  * the built executable.
@@ -1320,3 +1349,52 @@ lazy val `table` = project
  * initialization was done at build time, the shutdown hook would actually also
  * run at build time and have no effect at runtime.
  */
+
+lazy val engineDistributionRoot =
+  settingKey[File]("Root of built engine distribution")
+lazy val launcherDistributionRoot =
+  settingKey[File]("Root of built launcher distribution")
+lazy val projectManagerDistributionRoot =
+  settingKey[File]("Root of built project manager distribution")
+
+engineDistributionRoot := file("built-distribution/engine")
+launcherDistributionRoot := file("built-distribution/launcher")
+projectManagerDistributionRoot := file("built-distribution/project-manager")
+
+lazy val buildEngineDistribution =
+  taskKey[Unit]("Builds the engine distribution")
+buildEngineDistribution := {
+  val _            = (`engine-runner` / assembly).value
+  val root         = engineDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot = root,
+    cacheFactory     = cacheFactory,
+    graalVersion     = graalVersion,
+    javaVersion      = javaVersion
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val buildLauncherDistribution =
+  taskKey[Unit]("Builds the launcher distribution")
+buildLauncherDistribution := {
+  val _            = (launcher / buildNativeImage).value
+  val root         = launcherDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createLauncherPackage(root, cacheFactory)
+  log.info(s"Launcher package created at $root")
+}
+
+lazy val buildProjectManagerDistribution =
+  taskKey[Unit]("Builds the project manager distribution")
+buildProjectManagerDistribution := {
+  val _            = (`project-manager` / buildNativeImage).value
+  val root         = projectManagerDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createProjectManagerPackage(root, cacheFactory)
+  log.info(s"Project Manager package created at $root")
+}

@@ -122,6 +122,41 @@ public class Number {
         "ceil",
         org.enso.interpreter.node.expression.builtin.number.smallInteger.CeilMethodGen.makeFunction(
             language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_and",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitAndMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_or",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitOrMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_xor",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitXorMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_not",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitNotMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_shift",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_shift_l",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        smallInteger,
+        "bit_shift_r",
+        org.enso.interpreter.node.expression.builtin.number.smallInteger.BitShiftRightMethodGen
+            .makeFunction(language));
   }
 
   private void registerBigIntegerMethods(Language language, ModuleScope scope) {
@@ -211,6 +246,41 @@ public class Number {
         "ceil",
         org.enso.interpreter.node.expression.builtin.number.bigInteger.CeilMethodGen.makeFunction(
             language));
+    scope.registerMethod(
+        bigInteger,
+        "bit_and",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.BitAndMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        "bit_or",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.BitOrMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        "bit_xor",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.BitXorMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        "bit_not",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.BitNotMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        bigInteger,
+        "bit_shift",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.BitShiftMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        bigInteger,
+        "bit_shift_l",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.BitShiftMethodGen
+            .makeFunction(language));
+    scope.registerMethod(
+        bigInteger,
+        "bit_shift_r",
+        org.enso.interpreter.node.expression.builtin.number.bigInteger.BitShiftRightMethodGen
+            .makeFunction(language));
   }
 
   private void registerDecimalMethods(Language language, ModuleScope scope) {

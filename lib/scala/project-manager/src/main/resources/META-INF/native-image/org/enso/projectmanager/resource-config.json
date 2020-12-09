@@ -1,0 +1,74 @@
+{
+  "resources": [
+    { "pattern": "\\QMETA-INF/MANIFEST.MF\\E" },
+    { "pattern": "\\Qakka-http-version.conf\\E" },
+    { "pattern": "\\Qapplication.conf\\E" },
+    { "pattern": "\\Qorg/enso/projectmanager/boot/ProjectManager$.class\\E" },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/control/core/CovariantFlatMapOps.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/control/core/ZioApplicative.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/control/core/ZioCovariantFlatMap.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/control/effect/ZioAsync.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/control/effect/ZioEnvExec.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/control/effect/ZioErrorChannel.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/infrastructure/file/BlockingFileSystem.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/infrastructure/file/JsonFileStorage.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/infrastructure/languageserver/LanguageServerGatewayImpl.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/infrastructure/log/Slf4jLogging.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/infrastructure/repository/ProjectFileRepository.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/infrastructure/time/RealClock.class\\E"
+    },
+    { "pattern": "\\Qorg/enso/projectmanager/service/ProjectService.class\\E" },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/service/config/GlobalConfigService$AccessErrorRecovery.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/service/config/GlobalConfigService.class\\E"
+    },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/service/versionmanagement/RuntimeVersionManagerMixin$ErrorRecovery.class\\E"
+    },
+    { "pattern": "\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E" },
+    { "pattern": "\\Qreference.conf\\E" },
+    { "pattern": "\\Qversion.conf\\E" },
+    { "pattern": "\\Qzio/App$$anon$1.class\\E" },
+    { "pattern": "\\Qzio/App.class\\E" },
+    { "pattern": "\\Qzio/Fiber.class\\E" },
+    { "pattern": "\\Qzio/ZIO$.class\\E" },
+    { "pattern": "\\Qzio/ZIO$TimeoutTo.class\\E" },
+    { "pattern": "\\Qzio/ZIO$ZipLeftFn.class\\E" },
+    { "pattern": "\\Qzio/ZIO.class\\E" },
+    { "pattern": "\\Qzio/ZScope$.class\\E" },
+    { "pattern": "\\Qzio/blocking/package$.class\\E" },
+    { "pattern": "\\Qzio/clock/PlatformSpecific$$anon$1.class\\E" },
+    { "pattern": "\\Qzio/clock/package$.class\\E" },
+    { "pattern": "\\Qzio/clock/package$Clock$Service$$anon$1.class\\E" },
+    { "pattern": "\\Qzio/console/package$.class\\E" },
+    { "pattern": "\\Qzio/console/package$Console$Service$$anon$1.class\\E" },
+    { "pattern": "\\Qzio/internal/FiberContext$InterruptExit$.class\\E" },
+    { "pattern": "\\Qzio/internal/FiberContext.class\\E" }
+  ],
+  "bundles": []
+}

@@ -116,6 +116,12 @@ The review can be performed manually by modifying the settings inside of the
 
 #### Review Process
 
+> The updates performed using the web script are remembered locally, so they
+> **will not show up after the refresh**. If you ever need to open the edit mode
+> after closing its window, you should re-generate the report using
+> `enso/gatherLicenses` or just open it using `enso/openLegalReviewReport` which
+> will refresh it automatically.
+
 1. Open the review in edit mode using the helper script.
    - You can type `enso / openLegalReviewReport` if you have `npm` in your PATH
      as visible from SBT.
@@ -191,12 +197,6 @@ The review can be performed manually by modifying the settings inside of the
    packages.
    - Ensure that there are no more warnings, and if there are any go back to fix
      the issues.
-
-The updates performed using the web script are remembered locally, so they will
-not show up after the refresh. If you ever need to open the edit mode after
-closing its window, you should re-generate the report using
-`enso/gatherLicenses` or just open it using `enso/openLegalReviewReport` which
-will refresh it automatically.
 
 #### Additional Manual Considerations
 

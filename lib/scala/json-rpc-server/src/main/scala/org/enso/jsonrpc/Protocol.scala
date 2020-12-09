@@ -109,6 +109,7 @@ object Errors {
   case object ServiceError   extends Error(1, "Service error")
   case object NotImplementedError
       extends Error(10, "The requested method is not implemented")
+  case object RequestTimeout extends Error(11, "Request timeout")
   case class UnknownError(
     override val code: Int,
     override val message: String,

@@ -81,7 +81,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .newProject(
             path                = actualPath,
             name                = name,
-            version             = version,
+            engineVersion       = version,
             authorName          = globalConfig.authorName,
             authorEmail         = globalConfig.authorEmail,
             additionalArguments = additionalArguments
@@ -366,14 +366,23 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     doNotRemoveOldLauncher: Boolean,
     bundleAction: Option[BundleAction]
   ): Int = {
-    DistributionInstaller
-      .default(
-        globalCLIOptions   = cliOptions,
-        removeOldLauncher  = !doNotRemoveOldLauncher,
-        bundleActionOption = bundleAction
+    if (!distributionManager.isRunningPortable) {
+      Logger[Launcher].error(
+        "install distribution can only be used from within a portable " +
+        "distribution. It appears that you are not running a portable " +
+        "distribution."
       )
-      .install()
-    0
+      1
+    } else {
+      DistributionInstaller
+        .default(
+          globalCLIOptions   = cliOptions,
+          removeOldLauncher  = !doNotRemoveOldLauncher,
+          bundleActionOption = bundleAction
+        )
+        .install()
+      0
+    }
   }
 
   /** Uninstalls the Enso distribution.
@@ -414,7 +423,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val (runtimeVersionRunSettings, whichEngine) = runner.version(useJSON).get
 
     val isEngineInstalled =
-      componentsManager.findEngine(runtimeVersionRunSettings.version).isDefined
+      componentsManager
+        .findEngine(runtimeVersionRunSettings.engineVersion)
+        .isDefined
     val runtimeVersionString = if (isEngineInstalled) {
       val output = runner.withCommand(
         runtimeVersionRunSettings,

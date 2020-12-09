@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import io.circe.literal._
+import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
@@ -22,6 +23,8 @@ class ProjectManagementApiSpec
     gen.reset()
   }
 
+  override val engineToInstall = Some(SemVer(0, 0, 1))
+
   "project/create" must {
 
     "check if project name is not empty" taggedAs Flaky in {
@@ -31,7 +34,8 @@ class ProjectManagementApiSpec
             "method": "project/create",
             "id": 1,
             "params": {
-              "name": ""
+              "name": "",
+              "missingComponentAction": "Install"
             }
           }
           """)
@@ -124,26 +128,23 @@ class ProjectManagementApiSpec
     }
 
     "create project with specific version" in {
-      // TODO [RW] this is just a stub test for parsing, it should be replaced
-      //  with actual tests once this functionality is implemented
       implicit val client = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/create",
-              "id": 0,
+              "id": 1,
               "params": {
                 "name": "foo",
-                "version": "1.2.3"
+                "version": "0.0.1"
               }
             }
           """)
       client.expectJson(json"""
           {
-            "jsonrpc":"2.0",
-            "id":0,
-            "error":{
-              "code":10,
-              "message":"The requested method is not implemented"
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "projectId" : $getGeneratedUUID
             }
           }
           """)

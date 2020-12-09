@@ -4,7 +4,7 @@ import buildinfo.Info
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 
-/** Helper object that allows to get the current launcher version.
+/** Helper object that allows to get the current application version.
   *
   * In development-mode it allows to override the returned version for testing
   * purposes.

@@ -78,6 +78,20 @@ type Duration
     to_vector : Vector.Vector
     to_vector = [this.years, this.months, this.days, this.hours, this.minutes, this.seconds, this.nanoseconds]
 
+    ## A Duration to Json conversion.
+    to_json : Json.Object
+    to_json =
+        b = Vector.new_builder
+        b.append ["type", "Duration"]
+        if not this.years==0 then b.append ["years", this.years]
+        if not this.months==0 then b.append ["months", this.months]
+        if not this.days==0 then b.append ["days", this.days]
+        if not this.hours==0 then b.append ["hours", this.hours]
+        if not this.minutes==0 then b.append ["minutes", this.minutes]
+        if not this.seconds==0 then b.append ["seconds", this.seconds]
+        if not this.nanoseconds==0 then b.append ["nanoseconds", this.nanoseconds]
+        Json.from_pairs b.to_vector
+
     ## Check if this duration is date-based.
     is_date : Boolean
     is_date = (not this.years==0) || (not this.months==0) || (not this.days==0)

@@ -67,3 +67,8 @@ spec =
             18.months.should_equal (1.year + 6.months)
             1.year.should_equal (11.months + 1.month)
             10.years.should_equal 10.years
+        it "should convert to Json" <|
+            interval = 120.nanoseconds + 30.seconds + 14.hours + 12.days + 1.month + 9.years
+            interval.to_json.should_equal <|
+                duration_pairs = [["nanoseconds", interval.nanoseconds], ["seconds", interval.seconds], ["hours", interval.hours], ["days", interval.days], ["months", interval.months], ["years", interval.years]]
+                Json.from_pairs ([["type", "Duration"]] + duration_pairs)

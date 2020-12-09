@@ -66,10 +66,25 @@ type Json
     to_text : Text
     to_text = Internal.render_helper this
 
+    ## Recursively unwraps the JSON value into primitive values.
+    unwrap : Any
+    unwrap = case this of
+        Json.Array its -> its.map unwrap
+        Json.Boolean b -> b
+        Json.Number n -> n
+        Json.String t -> t
+        Json.Null -> Nothing
+        Json.Object f -> f.map unwrap
+
 ## A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
 type Parse_Error message
+
+## Gets the value associated with the given key in this object. Returns
+   `Nothing` if the associated key is not defined.
+Object.get : Text -> Json | Nothing
+Object.get field = this.fields.get field
 
 ## Parses an RFC-8259 compliant JSON text into a `Json` structure.
 parse : Text -> Json ! Parse_Error

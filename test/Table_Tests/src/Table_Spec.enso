@@ -65,7 +65,18 @@ spec =
 
             t.to_json.should_equal expected
 
-    describe "Mapping operations" <|
+    describe "JSON construction" <|
+        it "should allow converting a JSON array into a table" <|
+            r_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+            r_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
+            r_3 = Json.from_pairs [['baz', False], ['foo', 13]]
+            t = [r_1, r_2, r_3].to_json.to_table ['foo', 'bar', 'baz']
+            t.columns.map name . should_equal ['foo', 'bar', 'baz']
+            t.at 'foo' . to_vector . should_equal [20, Nothing, 13]
+            t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
+            t.at 'baz' . to_vector . should_equal [False, True, False]
+
+    describe "Mapping Operations" <|
         it "should allow mapping a function over a column" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             c_str.map (+ "x") . to_vector . should_equal ['ax', 'bx', Nothing, 'bx']
@@ -90,7 +101,7 @@ spec =
             c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
             (c_any == My 7 0).to_vector.should_equal [True, False, True, True, False]
 
-    describe "Masking tables" <|
+    describe "Masking Tables" <|
         it "should allow selecting table rows based on a boolean column" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
             r = df.where (Column.from_vector 'x' [True, False, False, True])
@@ -103,3 +114,47 @@ spec =
             r.at "a" . to_vector . should_equal [4]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
+
+    describe "Joining Tables" <|
+        a_0 = ['x', [0, 1, 7, 3, 6]]
+        a_1 = ['y', ["foo", "bar", "baz", "spam", "eggs"]]
+        a = Table.new [a_0, a_1]
+        b_0 = ['w', [6, 3, 5, 5, 3, 3]]
+        b_1 = ['z', ["foo", "foo", "bar", "spam", "bar", "eggs"]]
+        b = Table.new [b_0, b_1]
+
+        it "should allow joining tables index-on-index" <|
+            r_1 = a.set_index 'x' . join (b.set_index 'w')
+            r_1.at 'y' . to_vector . should_equal ['foo', 'bar', 'baz', 'spam', 'spam', 'spam', 'eggs']
+            r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, Nothing, 'foo', 'bar', 'eggs', 'foo']
+            r_2 = a.set_index 'y' . join (b.set_index 'z') drop_unmatched=True
+            r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
+            r_2.at 'w' . to_vector . should_equal [6, 3, 5, 3, 5, 3]
+
+        it "should allow joining tables column-on-index" <|
+            r_1 = a.join (b.set_index 'w') on='x'
+            r_1.at 'y' . to_vector . should_equal ['foo', 'bar', 'baz', 'spam', 'spam', 'spam', 'eggs']
+            r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, Nothing, 'foo', 'bar', 'eggs', 'foo']
+            r_2 = a.join (b.set_index 'z') drop_unmatched=True on='y'
+            r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
+            r_2.at 'w' . to_vector . should_equal [6, 3, 5, 3, 5, 3]
+
+        it "should allow joining tables on the default index" <|
+            x = Table.new [['x', [1, 2, 4, 6]]]
+            y = Table.new [['y', [8, 9]]]
+            r_1 = x.join y
+            r_1.at 'x' . to_vector . should_equal [1, 2, 4, 6]
+            r_1.at 'y' . to_vector . should_equal [8, 9, Nothing, Nothing]
+
+            r_2 = x.join y drop_unmatched=True
+            r_2.at 'x' . to_vector . should_equal [1, 2]
+            r_2.at 'y' . to_vector . should_equal [8, 9]
+
+        it "should append suffixes to disambiguate column names" <|
+            x = Table.new [['x', [1, 2, 4, 6]]]
+            y = Table.new [['x', [8, 9]]]
+            r_1 = x.join y
+            r_1.columns.map name . should_equal ['x_left', 'x_right']
+
+            r_2 = x.join y left_suffix='_old' right_suffix='_new'
+            r_2.columns.map name . should_equal ['x_old', 'x_new']

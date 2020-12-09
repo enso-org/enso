@@ -1,11 +1,7 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.{
-  EnsureCompiledJob,
-  EnsureCompiledStackJob,
-  ExecuteJob
-}
+import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -85,13 +81,10 @@ class PushContextCmd(
         sendMethodCallUpdates = false
       )
       for {
-        status <-
-          ctx.jobProcessor.run(new EnsureCompiledStackJob(executable.stack))
-        _ <-
-          if (status == EnsureCompiledJob.CompilationStatus.Success)
-            ctx.jobProcessor.run(new ExecuteJob(executable))
-          else
-            Future.successful(())
+        _ <- Future {
+          ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
+        }
+        _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
       } yield ()
     } else {
       Future.successful(())

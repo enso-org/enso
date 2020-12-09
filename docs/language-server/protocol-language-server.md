@@ -34,6 +34,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+  - [`Export`](#export)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
   - [`FileAttributes`](#fileattributes)
@@ -64,6 +65,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/canModify`](#executioncontextcanmodify)
   - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
   - [`search/receivesSuggestionsDatabaseUpdates`](#searchreceivessuggestionsdatabaseupdates)
+  - [Enables](#enables-4)
+  - [Disables](#disables-4)
 - [File Management Operations](#file-management-operations)
   - [`file/write`](#filewrite)
   - [`file/read`](#fileread)
@@ -93,6 +96,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
   - [`heartbeat/ping`](#heartbeatping)
+  - [`heartbeat/init`](#heartbeatinit)
+- [Refactoring](#refactoring)
+  - [`refactoring/renameProject`](#refactoringrenameproject)
 - [Execution Management Operations](#execution-management-operations)
   - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
@@ -112,27 +118,28 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
 - [Search Operations](#search-operations)
-  - [Suggestions Database Example](#suggestionsdatabaseexample)
+  - [Suggestions Database Example](#suggestions-database-example)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
-  - [`search/invalidateSuggestionsDatabase`](#invalidatesuggestionsdatabase)
+  - [`search/invalidateSuggestionsDatabase`](#searchinvalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
+  - [`search/import`](#searchimport)
 - [Input/Output Operations](#input-output-operations)
   - [`io/redirectStandardOutput`](#ioredirectstdardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstdardoutput)
   - [`io/standardOutputAppended`](#iostandardoutputappended)
-  - [`io/redirectStandardError`](#ioredirectstdarderror)
-  - [`io/suppressStandardError`](#iosuppressstdarderror)
+  - [`io/redirectStandardError`](#ioredirectstandarderror)
+  - [`io/suppressStandardError`](#iosuppressstandarderror)
   - [`io/standardErrorAppended`](#iostandarderrorappended)
   - [`io/feedStandardInput`](#iofeedstandardinput)
   - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
-- [Errors](#errors)
+- [Errors](#errors-57)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
   - [`ContentRootNotFoundError`](#contentrootnotfounderror)
   - [`FileNotFound`](#filenotfound)
-  - [`FileExists`](#fileexists-1)
+  - [`FileExists`](#fileexists)
   - [`OperationTimeoutError`](#operationtimeouterror)
   - [`NotDirectory`](#notdirectory)
   - [`StackItemNotFoundError`](#stackitemnotfounderror)
@@ -143,7 +150,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`VisualisationNotFoundError`](#visualisationnotfounderror)
   - [`VisualisationExpressionError`](#visualisationexpressionerror)
   - [`VisualisationEvaluationError`](#visualisationevaluationerror)
-  - [`ExecutionFailedError`](#executionfailederror)
   - [`FileNotOpenedError`](#filenotopenederror)
   - [`TextEditValidationError`](#texteditvalidationerror)
   - [`InvalidVersionError`](#invalidversionerror)
@@ -152,6 +158,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`SessionNotInitialisedError`](#sessionnotinitialisederror)
   - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror)
   - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror)
+  - [`ProjectNotFoundError`](#projectnotfounderror)
+  - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror)
 
 <!-- /MarkdownTOC -->
 
@@ -534,6 +542,37 @@ interface Modify {
    * The scope to update.
    */
   scope?: FieldUpdate<SuggestionEntryScope>;
+}
+```
+
+### `Export`
+
+The info about module re-export.
+
+#### Format
+
+```typescript
+type Export = Qualified | Unqualified;
+
+interface Qualified {
+  /**
+   * The module that re-exports the given module.
+   */
+  module: String;
+
+  /**
+   * The new name of the given module if it was renamed in the export clause.
+   *
+   * I.e. `X` in `export A.B as X`.
+   */
+  alias?: String;
+}
+
+interface Unqualified {
+  /**
+   * The module name that re-exports the given module.
+   */
+  module: String;
 }
 ```
 
@@ -2052,6 +2091,33 @@ null;
 
 None
 
+### `heartbeat/init`
+
+This request is sent from the bootloader to check if the started language server
+instance has finished initialization. A reply should only be sent when the main
+module has been fully initialized.
+
+- **Type:** Request
+- **Direction:** Supervisor -> Server
+- **Connection:** Protocol
+- **Visibility:** Private
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+None
+
 ## Refactoring
 
 The language server also provides refactoring operations to restructure an
@@ -3038,6 +3104,56 @@ Sent from client to the server to receive the autocomplete suggestion.
 - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
   cannot be extracted from the provided file path parameter
 
+### `search/import`
+
+Sent from client to the server to receive the information required for module
+import.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * The id of suggestion to import.
+   */
+  id: SuggestionId;
+}
+```
+
+#### Result
+
+```typescript
+{
+  /**
+   * The definition module of the suggestion.
+   */
+  module: String;
+
+  /**
+   * The name of the resolved suggestion.
+   */
+  symbol: String;
+
+  /**
+   * The list of modules that re-export the suggestion. Modules are ordered
+   * from the least to most nested.
+   */
+  exports: Export[];
+}
+```
+
+#### Errors
+
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`SuggestionNotFoundError`](#suggestionnotfounderror) the requested suggestion
+  was not found in the suggestions database
+
 ## Input/Output Operations
 
 The input/output portion of the language server API deals with redirecting
@@ -3511,5 +3627,16 @@ Signals that the module name can not be resolved for the given file.
 "error" : {
   "code" : 7003,
   "message" : "Module name can't be resolved for the given file"
+}
+```
+
+### `SuggestionNotFoundError`
+
+Signals that the requested suggestion was not found.
+
+```typescript
+"error" : {
+  "code" : 7004,
+  "message" : "Requested suggestion was not found"
 }
 ```

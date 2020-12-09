@@ -20,18 +20,7 @@ class ResourceManager(lockManager: LockManager) {
     resource: Resource,
     lockType: LockType
   )(action: => R): R = {
-    var waited = false
-    Using {
-      lockManager.acquireLockWithWaitingAction(
-        resource.name,
-        lockType = lockType,
-        () => {
-          waited = true
-          waitingInterface.startWaitingForResource(resource)
-        }
-      )
-    } { _ =>
-      if (waited) waitingInterface.finishWaitingForResource(resource)
+    Using(acquireResource(waitingInterface, resource, lockType)) { _ =>
       action
     }.get
   }
@@ -51,6 +40,27 @@ class ResourceManager(lockManager: LockManager) {
       case Seq() =>
         action
     }
+
+  /** Acquires a resource, handling possible waiting, and returns its [[Lock]]
+    * instance that can be used to unlock it.
+    */
+  private def acquireResource(
+    waitingInterface: LockUserInterface,
+    resource: Resource,
+    lockType: LockType
+  ): Lock = {
+    var waited = false
+    val lock = lockManager.acquireLockWithWaitingAction(
+      resource.name,
+      lockType = lockType,
+      () => {
+        waited = true
+        waitingInterface.startWaitingForResource(resource)
+      }
+    )
+    if (waited) waitingInterface.finishWaitingForResource(resource)
+    lock
+  }
 
   var mainLock: Option[Lock] = None
 

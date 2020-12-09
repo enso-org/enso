@@ -1,12 +1,7 @@
 package org.enso.loggingservice
 
 import org.enso.loggingservice.internal.service.{Client, Local, Server, Service}
-import org.enso.loggingservice.internal.{
-  BlockingConsumerMessageQueue,
-  InternalLogMessage,
-  InternalLogger,
-  LoggerConnection
-}
+import org.enso.loggingservice.internal._
 import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -14,8 +9,37 @@ import scala.concurrent.{ExecutionContext, Future}
 /** Manages the logging service.
   */
 object LoggingServiceManager {
-  private val messageQueue           = new BlockingConsumerMessageQueue()
-  private var currentLevel: LogLevel = LogLevel.Trace
+  private val testLoggingPropertyKey = "org.enso.loggingservice.test-log-level"
+
+  private var currentService: Option[Service] = None
+  private var currentLevel: LogLevel          = LogLevel.Trace
+
+  /** Creates an instance for the [[messageQueue]].
+    *
+    * Runs special workaround logic if test mode is detected.
+    */
+  private def initializeMessageQueue(): BlockingConsumerMessageQueue = {
+    sys.props.get(testLoggingPropertyKey) match {
+      case Some(value) =>
+        val logLevel =
+          value.toIntOption.flatMap(LogLevel.fromInteger).getOrElse {
+            System.err.println(
+              s"Invalid log level for $testLoggingPropertyKey, " +
+              s"falling back to info."
+            )
+            LogLevel.Info
+          }
+
+        val shouldOverride = () => currentService.isEmpty
+
+        new TestMessageQueue(logLevel, shouldOverride)
+      case None => productionMessageQueue()
+    }
+  }
+
+  private def productionMessageQueue() = new BlockingConsumerMessageQueue()
+
+  private val messageQueue = initializeMessageQueue()
 
   /** The default [[LoggerConnection]] that should be used by all backends which
     * want to use the logging service.
@@ -31,8 +55,6 @@ object LoggingServiceManager {
       */
     override def logLevel: LogLevel = currentLevel
   }
-
-  private var currentService: Option[Service] = None
 
   /** Sets up the logging service, but in a separate thread to avoid stalling
     * the application.

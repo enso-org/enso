@@ -5,6 +5,7 @@ import com.univocity.parsers.csv.CsvParserSettings;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.builder.string.StorageBuilder;
 import org.enso.table.data.column.builder.string.PrimInferredStorageBuilder;
+import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 
@@ -68,7 +69,7 @@ public class Parser {
     for (int i = 0; i < builders.length; i++) {
       String name = header != null ? header[i] : unnamedColumnPrefix + i;
       Storage col = builders[i].seal();
-      columns[i] = new Column(name, col);
+      columns[i] = new Column(name, new DefaultIndex(col.size()), col);
     }
     return new Table(columns);
   }

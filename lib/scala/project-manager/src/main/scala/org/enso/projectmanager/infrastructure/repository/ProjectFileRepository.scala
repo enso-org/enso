@@ -1,6 +1,7 @@
 package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
+import java.nio.file.Path
 import java.util.UUID
 
 import org.enso.pkg.{Package, PackageManager}
@@ -73,16 +74,9 @@ class ProjectFileRepository[
     getAll().map(_.find(_.id == projectId))
 
   /** @inheritdoc */
-  override def create(
+  override def findPathForNewProject(
     project: Project
-  ): F[ProjectRepositoryFailure, Unit] =
-    for {
-      projectPath <- findTargetPath(project)
-      _           <- createProjectStructure(project, projectPath)
-      _ <- metadataStorage(projectPath)
-        .persist(ProjectMetadata(project))
-        .mapError(th => StorageFailure(th.toString))
-    } yield ()
+  ): F[ProjectRepositoryFailure, Path] = findTargetPath(project).map(_.toPath)
 
   private def tryLoadProject(
     directory: File
@@ -97,12 +91,13 @@ class ProjectFileRepository[
       meta <- metaOpt
     } yield {
       Project(
-        id         = meta.id,
-        name       = pkg.name,
-        kind       = meta.kind,
-        created    = meta.created,
-        lastOpened = meta.lastOpened,
-        path       = Some(directory.toString)
+        id            = meta.id,
+        name          = pkg.name,
+        kind          = meta.kind,
+        created       = meta.created,
+        engineVersion = pkg.config.ensoVersion,
+        lastOpened    = meta.lastOpened,
+        path          = Some(directory.toString)
       )
     }
   }
@@ -114,14 +109,6 @@ class ProjectFileRepository[
       .load()
       .map(Some(_))
       .mapError(_.fold(convertFileStorageFailure))
-
-  private def createProjectStructure(
-    project: Project,
-    projectPath: File
-  ): F[StorageFailure, Package[File]] =
-    Sync[F]
-      .blockingOp { PackageManager.Default.create(projectPath, project.name) }
-      .mapError(th => StorageFailure(th.toString))
 
   /** @inheritdoc */
   override def rename(

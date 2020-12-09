@@ -164,12 +164,6 @@ labels:
   - name: "Type: Enhancement"
     color: "#ede2fe"
     description: An enhancement to Enso
-  - name: "Type: Discussion"
-    color: "#ede2fe"
-    description: A discussion about Enso
-  - name: "Type: Question"
-    color: "#ede2fe"
-    description: A question about Enso
   - name: "Type: RFC"
     color: "#ede2fe"
     description: An RFC proposing a change to Enso

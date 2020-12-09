@@ -22,3 +22,9 @@ spec =
         it "should get utc zone id" <|
             id = Zone.utc
             id . zone_id . should_equal "UTC"
+        it "should convert to Json" <|
+            zone = Zone.new 1 2 3
+            zone.to_json.should_equal <|
+                Json.from_pairs [["type", "Zone"], ["id", "+01:02:03"]]
+            Zone.utc.to_json.should_equal <|
+                Json.from_pairs [["type", "Zone"], ["id", "UTC"]]

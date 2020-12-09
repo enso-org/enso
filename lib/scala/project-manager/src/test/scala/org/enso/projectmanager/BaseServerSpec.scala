@@ -1,19 +1,26 @@
 package org.enso.projectmanager
 
 import java.io.File
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
+import akka.testkit.TestActors.blackholeProps
 import akka.testkit._
+import io.circe.Json
+import io.circe.parser.parse
+import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.loggingservice.printers.StderrPrinterWithColors
+import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
+  ExecutorWithUnlimitedPool,
   LanguageServerGatewayImpl,
   LanguageServerRegistry,
   ShutdownHookActivator
@@ -26,18 +33,27 @@ import org.enso.projectmanager.protocol.{
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
-import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
+import org.enso.projectmanager.service.{
+  MonadicProjectValidator,
+  ProjectCreationService,
+  ProjectService
+}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import org.enso.runtimeversionmanager.OS
 import org.enso.runtimeversionmanager.test.{DropLogs, FakeReleases}
+import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
-class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
+class BaseServerSpec
+    extends JsonRpcServerTestKit
+    with DropLogs
+    with BeforeAndAfterAll {
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -97,10 +113,25 @@ class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
 
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
 
+  lazy val distributionConfiguration =
+    TestDistributionConfiguration(
+      distributionRoot       = testDistributionRoot.toPath,
+      engineReleaseProvider  = FakeReleases.engineReleaseProvider,
+      runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider,
+      discardChildOutput     = !debugChildLogs
+    )
+
   lazy val languageServerRegistry =
     system.actorOf(
       LanguageServerRegistry
-        .props(netConfig, bootloaderConfig, supervisionConfig, timeoutConfig)
+        .props(
+          netConfig,
+          bootloaderConfig,
+          supervisionConfig,
+          timeoutConfig,
+          distributionConfiguration,
+          ExecutorWithUnlimitedPool
+        )
     )
 
   lazy val shutdownHookActivator =
@@ -114,26 +145,25 @@ class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
       timeoutConfig
     )
 
-  lazy val projectService =
-    new ProjectService[ZIO[ZEnv, +*, +*]](
-      projectValidator,
-      projectRepository,
-      new Slf4jLogging[ZIO[ZEnv, +*, +*]],
-      testClock,
-      gen,
-      languageServerGateway
-    )
-
-  lazy val distributionConfiguration =
-    TestDistributionConfiguration(
-      distributionRoot       = testDistributionRoot.toPath,
-      engineReleaseProvider  = FakeReleases.engineReleaseProvider,
-      runtimeReleaseProvider = FakeReleases.runtimeReleaseProvider
-    )
+  lazy val projectCreationService =
+    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration)
 
   lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
     distributionConfiguration
   )
+
+  lazy val projectService =
+    new ProjectService[ZIO[ZEnv, +*, +*]](
+      projectValidator,
+      projectRepository,
+      projectCreationService,
+      globalConfigService,
+      new Slf4jLogging[ZIO[ZEnv, +*, +*]],
+      testClock,
+      gen,
+      languageServerGateway,
+      distributionConfiguration
+    )
 
   lazy val runtimeVersionManagementService =
     new RuntimeVersionManagementService[ZIO[ZEnv, +*, +*]](
@@ -150,9 +180,141 @@ class BaseServerSpec extends JsonRpcServerTestKit with DropLogs {
     )
   }
 
+  /** Can be used to avoid deleting the project's root. */
+  val deleteProjectsRootAfterEachTest = true
+
   override def afterEach(): Unit = {
     super.afterEach()
+
+    if (deleteProjectsRootAfterEachTest)
+      FileUtils.deleteQuietly(testProjectsRoot)
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+
     FileUtils.deleteQuietly(testProjectsRoot)
   }
 
+  /** Tests can override this value to request a specific engine version to be
+    * preinstalled when running the suite.
+    */
+  val engineToInstall: Option[SemVer] = None
+
+  /** Tests can override this to set up a logging service that will print debug
+    * logs.
+    */
+  val debugLogs: Boolean = false
+
+  /** Tests can override this to allow child process output to be displayed. */
+  val debugChildLogs: Boolean = false
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+
+    if (debugLogs) {
+      LoggingServiceManager.setup(
+        LoggerMode.Local(
+          Seq(StderrPrinterWithColors.colorPrinterIfAvailable(true))
+        ),
+        LogLevel.Trace
+      )
+    }
+
+    engineToInstall.foreach(preInstallEngine)
+  }
+
+  /** This is a temporary solution to ensure that a valid engine distribution is
+    * preinstalled.
+    *
+    * In the future the fake release mechanism can be properly updated to allow
+    * for this kind of configuration without special logic.
+    */
+  def preInstallEngine(version: SemVer): Unit = {
+    val os   = OS.operatingSystem.configName
+    val ext  = if (OS.isWindows) "zip" else "tar.gz"
+    val arch = OS.architecture
+    val path = FakeReleases.releaseRoot
+      .resolve("enso")
+      .resolve(s"enso-$version")
+      .resolve(s"enso-engine-$version-$os-$arch.$ext")
+      .resolve(s"enso-$version")
+      .resolve("component")
+    val root = Path.of("../../../").toAbsolutePath.normalize
+    FileUtils.copyFile(
+      root.resolve("runner.jar").toFile,
+      path.resolve("runner.jar").toFile
+    )
+    FileUtils.copyFile(
+      root.resolve("runtime.jar").toFile,
+      path.resolve("runtime.jar").toFile
+    )
+
+    val blackhole = system.actorOf(blackholeProps)
+    val installAction = runtimeVersionManagementService.installEngine(
+      blackhole,
+      version,
+      forceInstallBroken = false
+    )
+    Runtime.default.unsafeRun(installAction)
+  }
+
+  def uninstallEngine(version: SemVer): Unit = {
+    val blackhole = system.actorOf(blackholeProps)
+    val action = runtimeVersionManagementService.uninstallEngine(
+      blackhole,
+      version
+    )
+    Runtime.default.unsafeRun(action)
+  }
+
+  implicit class ClientSyntax(client: WsTestClient) {
+    def expectTaskStarted(
+      timeout: FiniteDuration = 20.seconds.dilated
+    ): Unit = {
+      inside(parse(client.expectMessage(timeout))) { case Right(json) =>
+        getMethod(json) shouldEqual Some("task/started")
+      }
+    }
+
+    private def getMethod(json: Json): Option[String] = for {
+      obj    <- json.asObject
+      method <- obj("method").flatMap(_.asString)
+    } yield method
+
+    def expectJsonIgnoring(
+      shouldIgnore: Json => Boolean,
+      timeout: FiniteDuration = 20.seconds.dilated
+    ): Json = {
+      inside(parse(client.expectMessage(timeout))) { case Right(json) =>
+        if (shouldIgnore(json)) expectJsonIgnoring(shouldIgnore, timeout)
+        else json
+      }
+    }
+
+    def expectError(
+      expectedCode: Int,
+      timeout: FiniteDuration = 10.seconds.dilated
+    ): Unit = {
+      withClue("Response should be an error: ") {
+        inside(parse(client.expectMessage(timeout))) { case Right(json) =>
+          val code = for {
+            obj   <- json.asObject
+            error <- obj("error").flatMap(_.asObject)
+            code  <- error("code").flatMap(_.asNumber).flatMap(_.toInt)
+          } yield code
+          code shouldEqual Some(expectedCode)
+        }
+      }
+    }
+
+    def expectJsonAfterSomeProgress(
+      json: Json,
+      timeout: FiniteDuration = 10.seconds.dilated
+    ): Unit =
+      expectJsonIgnoring(
+        json => getMethod(json).exists(_.startsWith("task/")),
+        timeout
+      ) shouldEqual json
+  }
 }

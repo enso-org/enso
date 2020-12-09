@@ -1,5 +1,6 @@
 package org.enso.projectmanager.versionmanagement
 
+import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
@@ -11,6 +12,7 @@ import org.enso.runtimeversionmanager.distribution.{
 import org.enso.runtimeversionmanager.locking.ResourceManager
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRelease
+import org.enso.runtimeversionmanager.runner.JVMSettings
 
 /** Specifies the configuration of project manager's distribution.
   *
@@ -19,6 +21,9 @@ import org.enso.runtimeversionmanager.releases.engine.EngineRelease
   * also be overridden in tests.
   */
 trait DistributionConfiguration {
+
+  /** An [[Environment]] instance. */
+  def environment: Environment
 
   /** A [[DistributionManager]] instance. */
   def distributionManager: DistributionManager
@@ -39,4 +44,19 @@ trait DistributionConfiguration {
   def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager
+
+  /** Default set of JVM settings to use when launching the runner.
+    *
+    * This is exposed mostly for ease of overriding the settings in tests.
+    */
+  def defaultJVMSettings: JVMSettings
+
+  /** Specifies if output of the child Language Server process should be ignored
+    * or piped to parent's streams.
+    *
+    * This option is used to easily turn off logging in tests.
+    *
+    * TODO [RW] It will likely become obsolete once #1151 (or #1144) is done.
+    */
+  def shouldDiscardChildOutput: Boolean
 }

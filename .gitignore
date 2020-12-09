@@ -83,11 +83,13 @@ bench-report.xml
 ##############
 
 /enso
+/project-manager
 *.exe
 /enso.exp
 /enso.lib
 *.pdb
 *.jar
+/built-distribution/
 
 
 #########

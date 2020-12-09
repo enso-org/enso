@@ -10,6 +10,7 @@ import org.enso.projectmanager.service.ProjectServiceFailure.{
   ComponentRepositoryAccessFailure,
   ComponentUninstallationFailure
 }
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.ComponentMissingError
 
@@ -19,9 +20,10 @@ import org.enso.runtimeversionmanager.components.ComponentMissingError
   * @param distributionConfiguration a distribution configuration
   */
 class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
-  override val distributionConfiguration: DistributionConfiguration
-) extends RuntimeVersionManagementServiceApi[F]
-    with RuntimeVersionManagerMixin {
+  distributionConfiguration: DistributionConfiguration
+) extends RuntimeVersionManagementServiceApi[F] {
+
+  val factory = RuntimeVersionManagerFactory(distributionConfiguration)
 
   /** @inheritdoc */
   override def installEngine(
@@ -31,11 +33,13 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   ): F[ProjectServiceFailure, Unit] = {
     Sync[F]
       .blockingOp {
-        makeRuntimeVersionManager(
-          progressTracker,
-          allowMissingComponents = true,
-          allowBrokenComponents  = forceInstallBroken
-        ).findOrInstallEngine(version)
+        factory
+          .makeRuntimeVersionManager(
+            progressTracker,
+            allowMissingComponents = true,
+            allowBrokenComponents  = forceInstallBroken
+          )
+          .findOrInstallEngine(version)
         ()
       }
       .mapRuntimeManagerErrors(throwable =>
@@ -50,11 +54,13 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   ): F[ProjectServiceFailure, Unit] = Sync[F]
     .blockingOp {
       try {
-        makeRuntimeVersionManager(
-          progressTracker,
-          allowMissingComponents = false,
-          allowBrokenComponents  = false
-        ).uninstallEngine(version)
+        factory
+          .makeRuntimeVersionManager(
+            progressTracker,
+            allowMissingComponents = false,
+            allowBrokenComponents  = false
+          )
+          .uninstallEngine(version)
       } catch {
         case _: ComponentMissingError =>
       }
@@ -67,7 +73,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   override def listInstalledEngines()
     : F[ProjectServiceFailure, Seq[EngineVersion]] = Sync[F]
     .blockingOp {
-      makeReadOnlyVersionManager().listInstalledEngines().map {
+      factory.makeReadOnlyVersionManager().listInstalledEngines().map {
         installedEngine =>
           EngineVersion(installedEngine.version, installedEngine.isMarkedBroken)
       }

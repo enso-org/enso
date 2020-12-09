@@ -9,6 +9,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
@@ -184,7 +185,8 @@ case object ApplicationSaturation extends IRPass {
   }
 
   /** A function for constructing the optimised node for a function. */
-  type CodegenHelper = List[CallArgument] => RuntimeExpression
+  type CodegenHelper =
+    ModuleScope => LocalScope => List[CallArgument] => RuntimeExpression
 
   /** The configuration for this pass.
     *

@@ -2,7 +2,8 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
-import org.enso.pkg.EnsoVersion
+import akka.actor.ActorRef
+import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{
   LanguageServerSockets,
   MissingComponentAction,
@@ -17,14 +18,16 @@ trait ProjectServiceApi[F[+_, +_]] {
 
   /** Creates a user project.
     *
+    * @param progressTracker the actor to send progress updates to
     * @param name the name of th project
-    * @param version Enso version to use for the new project
+    * @param engineVersion Enso version to use for the new project
     * @param missingComponentAction specifies how to handle missing components
     * @return projectId
     */
   def createUserProject(
+    progressTracker: ActorRef,
     name: String,
-    version: EnsoVersion,
+    engineVersion: SemVer,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, UUID]
 
@@ -48,11 +51,14 @@ trait ProjectServiceApi[F[+_, +_]] {
 
   /** Opens a project. It starts up a Language Server if needed.
     *
+    * @param progressTracker the actor to send progress updates to
     * @param clientId the requester id
     * @param projectId the project id
+    * @param missingComponentAction specifies how to handle missing components
     * @return either failure or a socket of the Language Server
     */
   def openProject(
+    progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentAction

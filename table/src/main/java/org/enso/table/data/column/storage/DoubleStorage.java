@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.index.Index;
+
 import java.util.BitSet;
 import java.util.function.Function;
 
@@ -24,7 +26,7 @@ public class DoubleStorage extends Storage {
 
   /** @inheritDoc */
   @Override
-  public long size() {
+  public int size() {
     return size;
   }
 
@@ -55,13 +57,15 @@ public class DoubleStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return op.equals("==");
+    return Ops.EQ.equals(op) || Ops.IS_MISSING.equals(op);
   }
 
   @Override
   public Storage runVectorizedOp(String name, Object operand) {
-    if (name.equals("==")) {
+    if (name.equals(Ops.EQ)) {
       return runVectorizedEq(operand);
+    } else if (name.equals(Ops.IS_MISSING)) {
+      return new BoolStorage(isMissing, new BitSet(), size, false);
     }
     throw new UnsupportedOperationException();
   }
@@ -97,5 +101,37 @@ public class DoubleStorage extends Storage {
       }
     }
     return new DoubleStorage(newData, cardinality, newMissing);
+  }
+
+  @Override
+  public Storage orderMask(int[] positions) {
+    long[] newData = new long[positions.length];
+    BitSet newMissing = new BitSet();
+    for (int i = 0; i < positions.length; i++) {
+      if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
+        newMissing.set(i);
+      } else {
+        newData[i] = data[positions[i]];
+      }
+    }
+    return new DoubleStorage(newData, positions.length, newMissing);
+  }
+
+  @Override
+  public Storage countMask(int[] counts, int total) {
+    long[] newData = new long[total];
+    BitSet newMissing = new BitSet();
+    int pos = 0;
+    for (int i = 0; i < counts.length; i++) {
+      if (isMissing.get(i)) {
+        newMissing.set(pos, pos + counts[i]);
+        pos += counts[i];
+      } else {
+        for (int j = 0; j < counts[i]; j++) {
+          newData[pos++] = data[i];
+        }
+      }
+    }
+    return new DoubleStorage(newData, total, newMissing);
   }
 }

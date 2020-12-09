@@ -26,6 +26,12 @@ trait WebSocketConnection {
     */
   def attachListener(listener: ActorRef): Unit
 
+  /** Removes the listener of incoming messages.
+    *
+    * Can be useful when disconnecting has timed out and we do not want to
+    * receive the disconnected message after the owning actor is long dead.
+    */
+  def detachListener(listener: ActorRef): Unit
 }
 
 object WebSocketConnection {

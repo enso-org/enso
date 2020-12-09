@@ -4,6 +4,8 @@ target/
 .github/ISSUE_TEMPLATE
 distribution/launcher/THIRD-PARTY
 distribution/engine/THIRD-PARTY
+distribution/project-manager/THIRD-PARTY
 tools/legal-review
-distribution/std-lib/Base/third-party-licenses
 distribution/std-lib/Base/THIRD-PARTY
+distribution/std-lib/Table/THIRD-PARTY
+built-distribution/

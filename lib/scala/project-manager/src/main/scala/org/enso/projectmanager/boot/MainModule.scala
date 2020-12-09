@@ -9,6 +9,7 @@ import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
+  ExecutorWithUnlimitedPool,
   LanguageServerGatewayImpl,
   LanguageServerRegistry,
   ShutdownHookActivator
@@ -25,6 +26,7 @@ import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
 import org.enso.projectmanager.service.{
   MonadicProjectValidator,
+  ProjectCreationService,
   ProjectService,
   ProjectServiceFailure,
   ValidationFailure
@@ -76,7 +78,9 @@ class MainModule[
           config.network,
           config.bootloader,
           config.supervision,
-          config.timeout
+          config.timeout,
+          DefaultDistributionConfiguration,
+          ExecutorWithUnlimitedPool
         ),
       "language-server-registry"
     )
@@ -94,18 +98,24 @@ class MainModule[
     config.timeout
   )
 
+  lazy val projectCreationService =
+    new ProjectCreationService[F](DefaultDistributionConfiguration)
+
+  lazy val globalConfigService =
+    new GlobalConfigService[F](DefaultDistributionConfiguration)
+
   lazy val projectService =
     new ProjectService[F](
       projectValidator,
       projectRepository,
+      projectCreationService,
+      globalConfigService,
       logging,
       clock,
       gen,
-      languageServerGateway
+      languageServerGateway,
+      DefaultDistributionConfiguration
     )
-
-  lazy val globalConfigService =
-    new GlobalConfigService[F](DefaultDistributionConfiguration)
 
   lazy val runtimeVersionManagementService =
     new RuntimeVersionManagementService[F](DefaultDistributionConfiguration)

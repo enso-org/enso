@@ -180,6 +180,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexResponse],
         name  = "invalidateModulesIndexResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ImportSuggestionRequest],
+        name  = "importSuggestionRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ImportSuggestionResponse],
+        name  = "importSuggestionResponse"
       )
     )
   )
@@ -561,6 +569,39 @@ object Runtime {
 
     }
 
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[Export.Qualified],
+          name  = "exportQualified"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[Export.Unqualified],
+          name  = "exportUnqualified"
+        )
+      )
+    )
+    sealed trait Export {
+      def module: String
+    }
+    object Export {
+
+      /** Qualified module re-export.
+        *
+        * @param module the module name that exports the given module
+        * @param alias new module name if the module was renamed in the export
+        * clause
+        */
+      case class Qualified(module: String, alias: Option[String]) extends Export
+
+      /** Unqualified module export.
+        *
+        * @param module the module name that exports the given module
+        */
+      case class Unqualified(module: String) extends Export
+    }
+
     /** The notification about the execution status.
       *
       * @param contextId the context's id
@@ -899,6 +940,25 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     case class InvalidateModulesIndexResponse() extends ApiResponse
+
+    /** A request to return info needed to import the suggestion.
+      *
+      * @param suggestion the suggestion to import
+      */
+    case class ImportSuggestionRequest(suggestion: Suggestion)
+        extends ApiRequest
+
+    /** The result of the import request.
+      *
+      * @param module the definition module of the symbol
+      * @param symbol the resolved symbol
+      * @param exports the list of exports of the symbol
+      */
+    case class ImportSuggestionResponse(
+      module: String,
+      symbol: String,
+      exports: Seq[Export]
+    ) extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

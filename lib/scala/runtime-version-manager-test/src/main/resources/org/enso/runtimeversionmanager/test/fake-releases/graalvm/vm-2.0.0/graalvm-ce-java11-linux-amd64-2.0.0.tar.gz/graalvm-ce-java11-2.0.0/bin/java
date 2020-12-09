@@ -1,2 +1,2 @@
 #!/bin/sh
-echo "Hello"
+echo "Fake JVM executable has been executed"

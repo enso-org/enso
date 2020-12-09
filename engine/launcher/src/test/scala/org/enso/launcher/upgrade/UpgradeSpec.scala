@@ -72,7 +72,7 @@ class UpgradeSpec
     *
     * If `launcherVersion` is not provided, the default one is used.
     *
-    * It waits a 100ms delay after creating the launcher copy to ensure that the
+    * It waits a 250ms delay after creating the launcher copy to ensure that the
     * copy can be called right away after calling this function. It is not
     * absolutely certain that this is helpful, but from time to time, the tests
     * fail because the filesystem does not allow to access the executable as
@@ -94,7 +94,7 @@ class UpgradeSpec
       val root = launcherPath.getParent.getParent
       FileSystem.writeTextFile(root / ".enso.portable", "mark")
     }
-    Thread.sleep(100)
+    Thread.sleep(250)
   }
 
   /** Path to the launcher executable in the temporary distribution.
@@ -156,7 +156,7 @@ class UpgradeSpec
   }
 
   "upgrade" should {
-    "upgrade to latest version (excluding broken)" in {
+    "upgrade to latest version (excluding broken)" taggedAs Retry in {
       prepareDistribution(
         portable        = true,
         launcherVersion = Some(SemVer(0, 0, 2))
@@ -166,7 +166,7 @@ class UpgradeSpec
       checkVersion() shouldEqual SemVer(0, 0, 4)
     }
 
-    "not downgrade without being explicitly asked to do so" in {
+    "not downgrade without being explicitly asked to do so" taggedAs Retry in {
       // precondition for the test to make sense
       SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
 
@@ -177,7 +177,7 @@ class UpgradeSpec
     }
 
     "upgrade/downgrade to a specific version " +
-    "(and update necessary files)" in {
+    "(and update necessary files)" taggedAs Retry in {
       // precondition for the test to make sense
       SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
 
@@ -194,7 +194,7 @@ class UpgradeSpec
         .trim shouldEqual "Test license"
     }
 
-    "upgrade also in installed mode" in {
+    "upgrade also in installed mode" taggedAs Retry in {
       prepareDistribution(
         portable        = false,
         launcherVersion = Some(SemVer(0, 0, 0))
@@ -228,37 +228,46 @@ class UpgradeSpec
       )
 
       checkVersion() shouldEqual SemVer(0, 0, 0)
-      run(Seq("upgrade", "0.0.3")) should returnSuccess
+      val process = startLauncher(Seq("upgrade", "0.0.3"))
+      try {
+        process.join(timeoutSeconds = 30) should returnSuccess
 
-      checkVersion() shouldEqual SemVer(0, 0, 3)
+        checkVersion() shouldEqual SemVer(0, 0, 3)
 
-      val launchedVersions = Seq(
-        "0.0.0",
-        "0.0.0",
-        "0.0.1",
-        "0.0.2",
-        "0.0.3"
-      )
+        val launchedVersions = Seq(
+          "0.0.0",
+          "0.0.0",
+          "0.0.1",
+          "0.0.2",
+          "0.0.3"
+        )
 
-      val reportedLaunchLog = TestHelpers
-        .readFileContent(launcherPath.getParent / ".launcher_version_log")
-        .trim
-        .linesIterator
-        .toSeq
+        val reportedLaunchLog = TestHelpers
+          .readFileContent(launcherPath.getParent / ".launcher_version_log")
+          .trim
+          .linesIterator
+          .toSeq
 
-      reportedLaunchLog shouldEqual launchedVersions
+        reportedLaunchLog shouldEqual launchedVersions
 
-      withClue(
-        "After the update we run the version check, running the launcher " +
-        "after the update should ensure no leftover temporary executables " +
-        "are left in the bin directory."
-      ) {
-        val binDirectory = launcherPath.getParent
-        val leftOverExecutables = FileSystem
-          .listDirectory(binDirectory)
-          .map(_.getFileName.toString)
-          .filter(_.startsWith("enso"))
-        leftOverExecutables shouldEqual Seq(OS.executableName("enso"))
+        withClue(
+          "After the update we run the version check, running the launcher " +
+          "after the update should ensure no leftover temporary executables " +
+          "are left in the bin directory."
+        ) {
+          val binDirectory = launcherPath.getParent
+          val leftOverExecutables = FileSystem
+            .listDirectory(binDirectory)
+            .map(_.getFileName.toString)
+            .filter(_.startsWith("enso"))
+          leftOverExecutables shouldEqual Seq(OS.executableName("enso"))
+        }
+      } finally {
+        if (process.isAlive) {
+          // ensure that the child process frees resources if retrying the test
+          process.kill()
+          Thread.sleep(500)
+        }
       }
     }
 
@@ -271,8 +280,8 @@ class UpgradeSpec
       val enginesPath = getTestDirectory / "enso" / "dist"
       Files.createDirectories(enginesPath)
 
-      // TODO [RW] re-enable this test when #1046 is done and the engine
-      //  distribution can be used in the test
+      // TODO [RW] re-enable this test when #1046 or #1273 is done and the
+      //  engine distribution can be used in the test
 //      FileSystem.copyDirectory(
 //        Path.of("target/distribution/"),
 //        enginesPath / "0.1.0"

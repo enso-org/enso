@@ -2,7 +2,6 @@ package org.enso.languageserver.boot
 
 import java.io.File
 import java.net.URI
-import java.util.logging.ConsoleHandler
 
 import akka.actor.ActorSystem
 import org.enso.jsonrpc.JsonRpcServer
@@ -29,8 +28,8 @@ import org.enso.languageserver.runtime._
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.languageserver.util.Logging
 import org.enso.languageserver.util.binary.BinaryEncoder
+import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
@@ -45,8 +44,9 @@ import scala.util.{Failure, Success}
 /** A main module containing all components of the server.
   *
   * @param serverConfig configuration for the language server
+  * @param logLevel log level for the Language Server
   */
-class MainModule(serverConfig: LanguageServerConfig) {
+class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   val log = LoggerFactory.getLogger(this.getClass)
   log.trace("Initializing...")
@@ -150,21 +150,16 @@ class MainModule(serverConfig: LanguageServerConfig) {
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
   log.trace("Initializing Runtime context...")
-  val logHandler = Logging.getLogHandler(LanguageInfo.ID) match {
-    case Left(t) =>
-      log.warn("Failed to create the Runtime logger", t)
-      new ConsoleHandler()
-    case Right(handler) =>
-      log.trace(s"Setting Runtime logger")
-      handler
-  }
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
-    .option(RuntimeOptions.LOG_LEVEL, logHandler.getLevel.toString)
+    .option(
+      RuntimeOptions.LOG_LEVEL,
+      JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
+    )
     .option(
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString
@@ -172,7 +167,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(logHandler)
+    .logHandler(
+      JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
+    )
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -187,8 +184,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   context.initialize(LanguageInfo.ID)
   log.trace("Runtime context initialized")
 
-  val logLevel = Logging.LogLevel.fromJava(logHandler.getLevel)
-  system.eventStream.setLogLevel(Logging.LogLevel.toAkka(logLevel))
+  system.eventStream.setLogLevel(LogLevel.toAkka(logLevel))
   log.trace(s"Set akka log level to $logLevel")
 
   val runtimeKiller =
@@ -267,9 +263,18 @@ class MainModule(serverConfig: LanguageServerConfig) {
         log.error("Failed to initialize SQL versions repo", ex)
     }(system.dispatcher)
 
-    Future
+    val initialization = Future
       .sequence(Seq(suggestionsRepoInit, versionsRepoInit))
       .map(_ => ())
+
+    initialization.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.InitializationFinished)
+      case _ =>
+        system.eventStream.publish(InitializedEvent.InitializationFailed)
+    }
+
+    initialization
   }
 
   /** Close the main module releasing all resources. */

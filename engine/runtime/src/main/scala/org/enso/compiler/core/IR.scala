@@ -1534,12 +1534,14 @@ object IR {
 
     /** A numeric Enso literal.
       *
+      * @param base the optional base for the number, expressed in decimal
       * @param value the textual representation of the numeric literal
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Number(
+      base: Option[String],
       value: String,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -1549,6 +1551,7 @@ object IR {
 
       /** Creates a copy of `this`.
         *
+        * @param base the optional base for the number, expressed in decimal
         * @param value the textual representation of the numeric literal
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
@@ -1557,13 +1560,14 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
+        base: Option[String]                 = base,
         value: String                        = value,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Number = {
-        val res = Number(value, location, passData, diagnostics)
+        val res = Number(base, value, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -1589,6 +1593,7 @@ object IR {
 
       override def toString: String =
         s"""IR.Literal.Number(
+        |base = $base,
         |value = $value,
         |location = $location,
         |passData = ${this.showPassData},
@@ -1599,7 +1604,9 @@ object IR {
 
       override def children: List[IR] = List()
 
-      override def showCode(indent: Int): String = value
+      override def showCode(indent: Int): String = if (this.base.isDefined) {
+        s"${base.get}_$value"
+      } else value
 
       /** Checks whether the literal represents a fractional value.
         *
@@ -5685,6 +5692,16 @@ object IR {
       case object InvalidBaseInDecimalLiteral extends Reason {
         override def explanation: String =
           "Cannot change base of the fractional part of a number literal."
+      }
+
+      case class InvalidBase(base: String) extends Reason {
+        override def explanation: String =
+          s"$base is not a valid numeric base."
+      }
+
+      case class InvalidNumberForBase(base: String, number: String) extends Reason {
+        override def explanation: String =
+          s"$number is not valid in $base."
       }
 
       case class UnsupportedSyntax(syntaxName: String) extends Reason {

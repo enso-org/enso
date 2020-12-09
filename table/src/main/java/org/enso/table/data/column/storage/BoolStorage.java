@@ -1,10 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.index.Index;
+
 import java.util.BitSet;
 
-/**
- * A boolean column storage.
- */
+/** A boolean column storage. */
 public class BoolStorage extends Storage {
   private final BitSet values;
   private final BitSet isMissing;
@@ -19,7 +19,7 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public long size() {
+  public int size() {
     return size;
   }
 
@@ -44,7 +44,7 @@ public class BoolStorage extends Storage {
 
   @Override
   public boolean isOpVectorized(String op) {
-    return op.equals(Ops.EQ) || op.equals(Ops.NOT);
+    return op.equals(Ops.EQ) || op.equals(Ops.NOT) || op.equals(Ops.IS_MISSING);
   }
 
   @Override
@@ -53,6 +53,8 @@ public class BoolStorage extends Storage {
       return runVectorizedEq(operand);
     } else if (Ops.NOT.equals(name)) {
       return new BoolStorage(values, isMissing, size, !negated);
+    } else if (Ops.IS_MISSING.equals(name)) {
+      return new BoolStorage(isMissing, new BitSet(), size, false);
     }
     throw new UnsupportedOperationException();
   }
@@ -96,6 +98,36 @@ public class BoolStorage extends Storage {
       }
     }
     return new BoolStorage(newValues, newMissing, cardinality, negated);
+  }
+
+  @Override
+  public Storage orderMask(int[] positions) {
+    BitSet newNa = new BitSet();
+    BitSet newVals = new BitSet();
+    for (int i = 0; i < positions.length; i++) {
+      if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
+        newNa.set(i);
+      } else if (values.get(positions[i])) {
+        values.set(i);
+      }
+    }
+    return new BoolStorage(newVals, newNa, positions.length, negated);
+  }
+
+  @Override
+  public Storage countMask(int[] counts, int total) {
+    BitSet newNa = new BitSet();
+    BitSet newVals = new BitSet();
+    int pos = 0;
+    for (int i = 0; i < counts.length; i++) {
+      if (isMissing.get(i)) {
+        newNa.set(pos, pos + counts[i]);
+      } else if (values.get(i)) {
+        newVals.set(pos, pos + counts[i]);
+      }
+      pos += counts[i];
+    }
+    return new BoolStorage(newVals, newNa, total, negated);
   }
 
   public boolean isNegated() {

@@ -52,7 +52,7 @@ object StdBits {
             )
             IO.copyFile(changed, destination / changed.getName)
           }
-          for (file <- report.checked) {
+          for (file <- report.unmodified) {
             val dest = destination / file.getName
             if (!dest.exists()) {
               log.info(s"Adding missing std-bits dependency ${file.getName}.")

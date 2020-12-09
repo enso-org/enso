@@ -15,6 +15,7 @@ sealed abstract class LogLevel(final val level: Int) {
   def shouldLog(other: LogLevel): Boolean =
     other.level <= level
 }
+
 object LogLevel {
 
   /** This log level should not be used by messages, instead it can be set as
@@ -93,19 +94,38 @@ object LogLevel {
       level.level.asJson
   }
 
+  /** Creates a [[LogLevel]] from its integer representation.
+    *
+    * Returns None if the number does not represent a valid log level.
+    */
+  def fromInteger(level: Int): Option[LogLevel] = level match {
+    case Error.level   => Some(Error)
+    case Warning.level => Some(Warning)
+    case Info.level    => Some(Info)
+    case Debug.level   => Some(Debug)
+    case Trace.level   => Some(Trace)
+    case _             => None
+  }
+
   /** [[Decoder]] instance for [[LogLevel]].
     */
   implicit val decoder: Decoder[LogLevel] = { json =>
-    json.as[Int].flatMap {
-      case Error.level   => Right(Error)
-      case Warning.level => Right(Warning)
-      case Info.level    => Right(Info)
-      case Debug.level   => Right(Debug)
-      case Trace.level   => Right(Trace)
-      case other =>
-        Left(
-          DecodingFailure(s"`$other` is not a valid log level.", json.history)
-        )
+    json.as[Int].flatMap { level =>
+      fromInteger(level).toRight(
+        DecodingFailure(s"`$level` is not a valid log level.", json.history)
+      )
     }
+  }
+
+  /** Converts our internal [[LogLevel]] to the corresponding instance of
+    * Akka-specific log level.
+    */
+  def toAkka(logLevel: LogLevel): akka.event.Logging.LogLevel = logLevel match {
+    case Off     => akka.event.Logging.LogLevel(Int.MinValue)
+    case Error   => akka.event.Logging.ErrorLevel
+    case Warning => akka.event.Logging.WarningLevel
+    case Info    => akka.event.Logging.InfoLevel
+    case Debug   => akka.event.Logging.DebugLevel
+    case Trace   => akka.event.Logging.DebugLevel
   }
 }

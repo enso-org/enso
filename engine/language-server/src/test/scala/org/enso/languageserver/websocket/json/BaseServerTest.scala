@@ -154,6 +154,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
     Await.ready(suggestionsRepoInit, timeout)
     Await.ready(versionsRepoInit, timeout)
+    system.eventStream.publish(InitializedEvent.InitializationFinished)
 
     new JsonConnectionControllerFactory(
       bufferRegistry,
