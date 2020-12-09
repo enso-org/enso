@@ -463,9 +463,59 @@ type Vector
         # comp_descending l r = by (on r) (on l)
         # compare = if order == Sort_Order.Ascending then by l r else by r l
 
-        new_vec_arr.sort by
+        # new_vec_arr.sort by
+
+        here.do_sort new_vec_arr by
 
         Vector new_vec_arr
+
+do_sort : Array -> (Any -> Any -> Ordering) -> Nothing
+do_sort arr by = if arr.length == 0 then Nothing else
+    here.quicksort arr by 0 (arr.length - 1)
+
+quicksort : Array -> (Any -> Any -> Ordering) -> Integer -> Integer -> Nothing
+quicksort arr by low high =
+    IO.println low
+    IO.println high
+    if low < high then
+        partition_ix = here.partition arr by low high
+        here.quicksort arr by low partition_ix
+        here.quicksort arr by partition_ix+1 high
+
+partition : Array -> (Any -> Any -> Ordering) -> Integer -> Integer -> Integer
+partition arr by low high =
+    loop_cond = Ref.new True
+    pivot = arr.at ((high + low) / 2).floor
+    i = Ref.new (low - 1);
+    j = Ref.new (high + 1);
+
+    # here.while (Ref.get loop_cond) <|
+        # here.do_while (by (arr.at (Ref.get i)) pivot)==Ordering.Less <|
+            # Ref.put i ((Ref.get i) + 1)
+#
+        # here.do_while (by (arr.at (Ref.get j)) pivot)==Ordering.Greater <|
+            # Ref.put j ((Ref.get j) + 1)
+#
+        # if (Ref.get i) >= (Ref.get j) then
+            # Ref.put loop_cond False
+#
+        # temp = arr.at (Ref.get i)
+        # arr.set_at (Ref.get i) (arr.at (Ref.get j))
+        # arr.set_at (Ref.get j) temp
+
+    res = Ref.get j
+    IO.println res
+
+while : Boolean -> Any -> Nothing
+while ~cond ~action = if cond then
+    action
+    @Tail_Call here.while cond action
+
+do_while : Boolean -> Any -> Nothing
+do_while ~cond ~action =
+    action
+    if cond then
+        @Tail_Call here.do_while cond action
 
 ## A builder type for Enso vectors.
 

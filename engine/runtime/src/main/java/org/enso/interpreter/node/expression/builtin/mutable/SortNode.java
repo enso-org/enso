@@ -35,6 +35,8 @@ public abstract class SortNode extends Node {
   private final ConditionProfile equalsProfile = ConditionProfile.createCountingProfile();
   private final ConditionProfile greaterProfile = ConditionProfile.createCountingProfile();
 
+  private volatile int ctr = 0;
+
   abstract Object execute(VirtualFrame frame, Object _this, Object comparator);
 
   SortNode() {
@@ -57,9 +59,16 @@ public abstract class SortNode extends Node {
       @Cached("ctxRef.get().getBuiltins().ordering().newGreater()") Atom greater) {
     Object[] items = _this.getItems();
 
-    if (items.length >= 1) {
-      sort(items, frame, comparator, less, equal, greater);
+    Comparator<Object> comp = (Object l, Object r) -> { return ((Long) l).compareTo((Long) r);};
+
+    for (int i = 0; i < items.length - 1; ++i) {
+      ctr += comp.compare(items[i], items[i+1]);
+//      ctr += compare(frame, comparator, items[i], items[i+1], less, equal, greater);
     }
+
+//    if (items.length >= 1) {
+//      sort(items, frame, comparator, less, equal, greater);
+//    }
 
     //    Comparator<Object> compare =
     //        (l, r) -> {
