@@ -537,17 +537,19 @@ object DocParserHTMLGenerator {
     val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
     val fileTitle = scalatags.Text.tags2.title(title)
     val showHideScript =
-      s"""function showHide(codeBlockElem,uniqueIDBtn){
+      s"""function showHide(uniqueIDCode,uniqueIDBtn){
+         |var code = document.getElementById(uniqueIDCode);
          |var btn  = document.getElementById(uniqueIDBtn).firstChild;
          |btn.data = btn.data == 'Show' ? 'Hide' : 'Show';
-         |codeBlockElem.style.display = codeBlockElem.style.display == 
+         |code.style.display = code.style.display == 
          |'inline-block' ? 'none' : 'inline-block';
          |}""".stripMargin.replaceAll("\n", "")
     val showHideScriptHTML = HTML.script(showHideScript)
     val copyScript =
-      s"""function copyCode(codeBlockElem){
+      s"""function copyCode(uniqueIDCode){
+         |var code  = document.getElementById(uniqueIDCode);
          |var range = document.createRange();
-         |range.selectNode(codeBlockElem);
+         |range.selectNode(code);
          |window.getSelection().removeAllRanges();
          |window.getSelection().addRange(range);
          |document.execCommand('copy');
