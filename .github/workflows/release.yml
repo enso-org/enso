@@ -378,8 +378,7 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          cd ${{ env.ENGINE_DIST_DIR }}
-          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./tools/ci/docker/Dockerfile .
+          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./tools/ci/docker/Dockerfile ${{ env.ENGINE_DIST_DIR }}
           docker publish ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
 
       # Publish the launcher packages to the backup/fallback S3 bucket
