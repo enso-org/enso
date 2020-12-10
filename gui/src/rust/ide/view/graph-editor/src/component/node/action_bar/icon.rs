@@ -29,7 +29,7 @@ pub mod visibility {
             let eye_outer    = outer_circle + right_edge + left_edge;
             let eye          = (eye_outer - inner_circle) + pupil;
             let eye_colored  = eye.fill(fill_color);
-            let hover_area   = Rect((width,height)).fill(constants::HOVER_COLOR);
+            let hover_area   = Rect((width,height)).fill(HOVER_COLOR);
 
             (eye_colored+hover_area).into()
         }
@@ -62,7 +62,7 @@ pub mod visibility2 {
             let gap2         = &gap.rotate(right_angle);
             let gap3         = &gap.rotate(right_angle * 2.5);
             let icon         = ring - &gap -gap2 - gap3;
-            let hover_area   = Rect((width,height)).fill(constants::HOVER_COLOR);
+            let hover_area   = Rect((width,height)).fill(HOVER_COLOR);
             let icon         = icon.fill(fill_color);
 
             (icon+hover_area).into()
@@ -107,7 +107,7 @@ pub mod freeze {
             let right_bar        = vertical_bar.translate_x(-&lock_top_radius+&lock_top_width/2.0);
             let icon             = lock_body + lock_top + left_bar + right_bar;
             let icon             = icon.translate_y(unit);
-            let hover_area       = Rect((width,height)).fill(constants::HOVER_COLOR);
+            let hover_area       = Rect((width,height)).fill(HOVER_COLOR);
             let icon             = icon.fill(fill_color);
 
             (icon+hover_area).pixel_snap().into()
@@ -144,7 +144,7 @@ pub mod skip {
             let skip         = line_top + line_bottom;
             let skip         = skip.translate_x(&unit * 0.5);
             let icon         = circle - skip;
-            let hover_area   = Rect((width,height)).fill(constants::HOVER_COLOR);
+            let hover_area   = Rect((width,height)).fill(HOVER_COLOR);
             let icon         = icon.fill(fill_color);
 
             (icon+hover_area).into()

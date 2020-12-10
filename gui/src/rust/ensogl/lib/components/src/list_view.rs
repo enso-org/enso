@@ -15,7 +15,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_core::gui::component;
-use ensogl_core::gui::component::DEPRECATED_Animation;
+use ensogl_core::DEPRECATED_Animation;
 use ensogl_theme as theme;
 
 

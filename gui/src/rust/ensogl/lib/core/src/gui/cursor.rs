@@ -2,14 +2,14 @@
 
 use crate::prelude::*;
 
-use crate::frp;
+use crate::Animation;
+use crate::DEPRECATED_Animation;
+use crate::DEPRECATED_Tween;
 use crate::data::color;
 use crate::display::scene::Scene;
 use crate::display::shape::*;
 use crate::display;
-use crate::gui::component::DEPRECATED_Animation;
-use crate::gui::component::Animation;
-use crate::gui::component::Tween;
+use crate::frp;
 use crate::gui::component;
 
 
@@ -340,7 +340,7 @@ impl Cursor {
         let inactive_fade        = DEPRECATED_Animation :: <f32>     :: new(&network);
         let host_position        = DEPRECATED_Animation :: <Vector3> :: new(&network);
         let host_follow_weight   = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let host_attached_weight = Tween                             :: new(&network);
+        let host_attached_weight = DEPRECATED_Tween                  :: new(&network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());

@@ -6,7 +6,7 @@ use crate::list_view::entry::ModelProvider;
 
 use enso_frp as frp;
 use enso_frp;
-use ensogl_core::gui::component::DEPRECATED_Animation;
+use ensogl_core::DEPRECATED_Animation;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::*;

@@ -38,7 +38,7 @@ mod hover_rect {
             let height : Var<Pixels> = "input_size.y".into();
             let rect                 = Rect((&width,&height));
             let rect_rounded         = rect.corners_radius(corner_radius);
-            let rect_filled          = rect_rounded.fill(constants::HOVER_COLOR);
+            let rect_filled          = rect_rounded.fill(HOVER_COLOR);
             rect_filled.into()
         }
     }

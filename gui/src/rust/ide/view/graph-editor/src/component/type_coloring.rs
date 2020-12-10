@@ -50,6 +50,18 @@ pub fn compute(tp:&Type, styles:&StyleWatch) -> color::Lcha {
     color::Lch::new(luminance,chroma,hue).into()
 }
 
+/// Get the code color for the provided type or default code color in case the type is None.
+pub fn compute_for_code(tp:Option<&Type>, styles:&StyleWatch) -> color::Lcha {
+    let opt_color = tp.as_ref().map(|tp| compute(tp,styles));
+    opt_color.unwrap_or_else(|| styles.get_color(theme::graph_editor::node::text))
+}
+
+/// Get the code color for the provided type or default code color in case the type is None.
+pub fn compute_for_selection(tp:Option<&Type>, styles:&StyleWatch) -> color::Lcha {
+    let opt_color = tp.as_ref().map(|tp| compute(tp,styles));
+    opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection))
+}
+
 /// Computes LCH hue value based on incoming type information.
 fn auto_hue(tp:&Type) -> f32 {
     // Defines how many different hue values we can have based on our incoming type name.

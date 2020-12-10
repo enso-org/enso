@@ -5,6 +5,8 @@
 use crate::prelude::*;
 
 use crate::animation;
+use crate::data::function::Fn0;
+use crate::data::function::Fn1;
 
 
 
@@ -133,7 +135,7 @@ macro_rules! define_self_opr_mods {
 
 macro_rules! define_property {
     ($name:ident = $default:expr) => {
-        /// Simulation property.
+        /// SimulationDataCell property.
         #[derive(Debug,Clone,Copy,Into,From)]
         pub struct $name {
             /// Internal value of the $name.
@@ -356,20 +358,19 @@ impl<T:Value> SimulationData<T> {
 
 
 
-// ==================
-// === Simulation ===
-// ==================
+// ==========================
+// === SimulationDataCell ===
+// ==========================
 
 /// The main simulation engine. It allows running the simulation by explicitly calling the `step`
 /// function. Refer to `Simulator` for a more automated solution.
-#[derive(Derivative,CloneRef,Default)]
-#[derivative(Clone(bound=""))]
+#[derive(Derivative,Default)]
 #[derivative(Debug(bound="T:Copy+Debug"))]
-pub struct Simulation<T> {
-    data : Rc<Cell<SimulationData<T>>>
+pub struct SimulationDataCell<T> {
+    data : Cell<SimulationData<T>>
 }
 
-impl<T:Value> Simulation<T> {
+impl<T:Value> SimulationDataCell<T> {
     /// Constructor.
     pub fn new() -> Self {
         default()
@@ -387,7 +388,7 @@ impl<T:Value> Simulation<T> {
 // === Getters ===
 
 #[allow(missing_docs)]
-impl<T:Value> Simulation<T> {
+impl<T:Value> SimulationDataCell<T> {
     pub fn active(&self) -> bool {
         self.data.get().active()
     }
@@ -417,7 +418,7 @@ impl<T:Value> Simulation<T> {
 // === Setters ===
 
 #[allow(missing_docs)]
-impl<T:Value> Simulation<T> {
+impl<T:Value> SimulationDataCell<T> {
     pub fn set_drag(&self, drag:Drag) {
         self.data.update(|mut sim| {sim.set_drag(drag); sim});
     }
@@ -470,47 +471,99 @@ impl<T:Value> Simulation<T> {
 
 
 // =================
-// === Simulator ===
+// === Callbacks ===
 // =================
 
 /// Simulator callback.
-pub trait Callback<T> = Fn(T)+'static;
+pub trait Callback0    = 'static + Fn0;
+pub trait Callback1<T> = 'static + Fn1<T>;
 
-/// Handy alias for `Simulator` with a boxed closure callback.
-pub type DynSimulator<T> = Simulator<T,Box<dyn Fn(T)>>;
 
-/// The `Simulation` with an associated animation loop. The simulation is updated every frame in an
-/// efficient way – when the simulation finishes, it automatically unregisters in the animation loop
-/// and registers back only when needed.
-#[derive(CloneRef,Derivative)]
-#[derivative(Clone(bound=""))]
-pub struct Simulator<T,Cb> {
-    simulation     : Simulation<T>,
-    animation_loop : Rc<CloneCell<Option<FixedFrameRateAnimationStep<T,Cb>>>>,
-    frame_rate     : Rc<Cell<f32>>,
-    callback       : Rc<Cb>,
+
+// =====================
+// === SimulatorData ===
+// =====================
+
+/// Internal data of `Simulator`.
+#[derive(Derivative,Default)]
+#[derivative(Debug(bound="T:Copy+Debug"))]
+pub struct SimulatorData<T,OnStep,OnStart,OnEnd> {
+    simulation : SimulationDataCell<T>,
+    frame_rate : Cell<f32>,
+    #[derivative(Debug="ignore")]
+    on_step    : OnStep,
+    #[derivative(Debug="ignore")]
+    on_start   : OnStart,
+    #[derivative(Debug="ignore")]
+    on_end     : OnEnd,
 }
 
-impl<T,Cb> Deref for Simulator<T,Cb> {
-    type Target = Simulation<T>;
+impl<T,OnStep,OnStart,OnEnd> Deref for SimulatorData<T,OnStep,OnStart,OnEnd> {
+    type Target = SimulationDataCell<T>;
     fn deref(&self) -> &Self::Target {
         &self.simulation
     }
 }
 
-impl<T:Value,Cb> Simulator<T,Cb>
-where Cb : Callback<T> {
+impl<T,OnStep,OnStart,OnEnd> SimulatorData<T,OnStep,OnStart,OnEnd>
+where T:Value, OnStep:Callback1<T>, OnStart:Callback0, OnEnd:Callback1<EndStatus> {
     /// Constructor.
-    pub fn new(callback:Cb) -> Self {
-        let frame_rate     = Rc::new(Cell::new(60.0));
-        let callback       = Rc::new(callback);
-        let simulation     = Simulation::new();
-        let animation_loop = default();
-        Self {simulation,animation_loop,frame_rate,callback} . init()
+    pub fn new(on_step:OnStep, on_start:OnStart, on_end:OnEnd) -> Self {
+        let simulation = SimulationDataCell::new();
+        let frame_rate = Cell::new(60.0);
+        Self {simulation,frame_rate,on_step,on_start,on_end}
+    }
+
+    /// Proceed with the next simulation step for the given time delta.
+    pub fn step(&self, delta_seconds:f32) -> bool {
+        let is_active = self.simulation.active();
+        if is_active {
+            self.simulation.step(delta_seconds);
+            self.on_step.call(self.simulation.value());
+        } else {
+            self.on_end.call(EndStatus::Normal);
+        }
+        is_active
     }
 }
 
-impl<T,Cb> Debug for Simulator<T,Cb> {
+
+
+// =================
+// === Simulator ===
+// =================
+
+/// Handy alias for `Simulator` with a boxed closure callback.
+pub type DynSimulator<T> = Simulator<T,Box<dyn Fn(T)>,(),()>;
+
+/// The `SimulationDataCell` with an associated animation loop. The simulation is updated every
+/// frame in an efficient way – when the simulation finishes, it automatically unregisters the
+/// animation loop and registers back only when needed.
+#[derive(CloneRef,Derivative)]
+#[derivative(Clone(bound=""))]
+pub struct Simulator<T,OnStep,OnStart,OnEnd> {
+    data           : Rc<SimulatorData<T,OnStep,OnStart,OnEnd>>,
+    animation_loop : AnimationLoop<T,OnStep,OnStart,OnEnd> ,
+}
+
+impl<T,OnStep,OnStart,OnEnd> Deref for Simulator<T,OnStep,OnStart,OnEnd> {
+    type Target = Rc<SimulatorData<T,OnStep,OnStart,OnEnd>>;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl<T,OnStep,OnStart,OnEnd> Simulator<T,OnStep,OnStart,OnEnd>
+where T:Value, OnStep:Callback1<T>, OnStart:Callback0, OnEnd:Callback1<EndStatus> {
+    /// Constructor.
+    pub fn new(callback:OnStep, on_start:OnStart, on_end:OnEnd) -> Self {
+        let data           = Rc::new(SimulatorData::new(callback,on_start,on_end));
+        let animation_loop = default();
+        Self {data,animation_loop} . init()
+    }
+}
+
+impl<T,OnStep,OnStart,OnEnd> Debug for Simulator<T,OnStep,OnStart,OnEnd> {
     fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"Simulator")
     }
@@ -520,15 +573,8 @@ impl<T,Cb> Debug for Simulator<T,Cb> {
 // === Setters ===
 
 #[allow(missing_docs)]
-impl<T:Value,Cb> Simulator<T,Cb>
-where Cb : Callback<T> {
-    pub fn set_callback(&mut self, callback:Cb) {
-        let callback = Rc::new(callback);
-        self.callback = callback;
-        self.stop();
-        self.start();
-    }
-
+impl<T,OnStep,OnStart,OnEnd> Simulator<T,OnStep,OnStart,OnEnd>
+where T:Value, OnStep:Callback1<T>, OnStart:Callback0, OnEnd:Callback1<EndStatus> {
     pub fn set_value(&self, value:T) {
         self.simulation.set_value(value);
         self.start();
@@ -544,19 +590,13 @@ where Cb : Callback<T> {
     pub fn update_target_value<F:FnOnce(T)->T>(&self, f:F) {
         self.set_target_value(f(self.target_value()))
     }
-
-    pub fn skip(&self) {
-        self.simulation.skip();
-        self.stop();
-        (self.callback)(self.simulation.value());
-    }
 }
 
 
 // === Private API ===
 
-impl<T:Value,Cb> Simulator<T,Cb>
-where Cb : Callback<T> {
+impl<T,OnStep,OnStart,OnEnd> Simulator<T,OnStep,OnStart,OnEnd>
+where T:Value, OnStep:Callback1<T>, OnStart:Callback0, OnEnd:Callback1<EndStatus> {
     fn init(self) -> Self {
         self.start();
         self
@@ -569,28 +609,115 @@ where Cb : Callback<T> {
             let step           = step(&self);
             let animation_loop = animation::Loop::new_with_fixed_frame_rate(frame_rate,step);
             self.animation_loop.set(Some(animation_loop));
+            self.on_start.call();
         }
+    }
+
+    /// Skip the simulation and set the target value as its result.
+    pub fn skip(&self) {
+        self.simulation.skip();
+        self.on_step.call(self.simulation.value());
+        self.stop();
     }
 
     /// Stops the simulation and detaches it from animation loop.
     fn stop(&self) {
         self.animation_loop.set(None);
+        self.on_end.call(EndStatus::Forced);
     }
 }
 
+
+
+// =====================
+// === AnimationLoop ===
+// =====================
+
+/// A wrapper over animation loop implementation. This type is defined mainly to make Rust type
+/// inferencer happy (not infer infinite, recursive types).
+#[derive(CloneRef,Derivative)]
+#[derivative(Clone(bound=""))]
+#[derivative(Default(bound=""))]
+#[allow(clippy::type_complexity)]
+#[allow(missing_debug_implementations)]
+pub struct AnimationLoop<T,OnStep,OnStart,OnEnd> {
+    animation_loop : Rc<CloneCell<Option<FixedFrameRateAnimationStep<T,OnStep,OnStart,OnEnd>>>>,
+}
+
+#[allow(clippy::type_complexity)]
+impl<T,OnStep,OnStart,OnEnd> Deref for AnimationLoop<T,OnStep,OnStart,OnEnd> {
+    type Target = Rc<CloneCell<Option<FixedFrameRateAnimationStep<T,OnStep,OnStart,OnEnd>>>>;
+    fn deref(&self) -> &Self::Target {
+        &self.animation_loop
+    }
+}
+
+impl<T,OnStep,OnStart,OnEnd> AnimationLoop<T,OnStep,OnStart,OnEnd> {
+    /// Downgrade to a week reference.
+    pub fn downgrade(&self) -> WeakAnimationLoop<T,OnStep,OnStart,OnEnd> {
+        let animation_loop = Rc::downgrade(&self.animation_loop);
+        WeakAnimationLoop {animation_loop}
+    }
+}
+
+/// A weak wrapper over animation loop implementation. This type is defined mainly to make Rust type
+/// inferencer happy (not infer infinite, recursive types).
+#[allow(clippy::type_complexity)]
+#[allow(missing_debug_implementations)]
+pub struct WeakAnimationLoop<T,OnStep,OnStart,OnEnd> {
+    animation_loop : Weak<CloneCell<Option<FixedFrameRateAnimationStep<T,OnStep,OnStart,OnEnd>>>>,
+}
+
+impl<T,OnStep,OnStart,OnEnd> WeakAnimationLoop<T,OnStep,OnStart,OnEnd> {
+    /// Upgrade the weak reference.
+    pub fn upgrade(&self) -> Option<AnimationLoop<T,OnStep,OnStart,OnEnd>> {
+        self.animation_loop.upgrade().map(|animation_loop| AnimationLoop{animation_loop})
+    }
+}
+
+
+// === Animation Step ===
+
 /// Alias for `FixedFrameRateLoop` with specified step callback.
-pub type FixedFrameRateAnimationStep<T,Cb> = animation::FixedFrameRateLoop<Step<T,Cb>>;
-pub type Step<T,Cb> = impl Fn(animation::TimeInfo);
-fn step<T:Value,Cb>(simulator:&Simulator<T,Cb>) -> Step<T,Cb>
-where Cb : Callback<T> {
-    let this = simulator.clone_ref();
+pub type FixedFrameRateAnimationStep<T,OnStep,OnStart,OnEnd> =
+    animation::FixedFrameRateLoop<Step<T,OnStep,OnStart,OnEnd>>;
+pub type Step<T,OnStep,OnStart,OnEnd> = impl Fn(animation::TimeInfo);
+
+fn step<T,OnStep,OnStart,OnEnd>(simulator:&Simulator<T,OnStep,OnStart,OnEnd>)
+-> Step<T,OnStep,OnStart,OnEnd>
+where T:Value, OnStep:Callback1<T>, OnStart:Callback0, OnEnd:Callback1<EndStatus> {
+    let data           = simulator.data.clone_ref();
+    let animation_loop = simulator.animation_loop.downgrade();
     move |time:animation::TimeInfo| {
         let delta_seconds = time.frame / 1000.0;
-        if this.simulation.active() {
-            this.simulation.step(delta_seconds);
-            (this.callback)(this.simulation.value());
-        } else {
-            this.stop();
+        if !data.step(delta_seconds) {
+            if let Some(animation_loop) = animation_loop.upgrade() {
+                animation_loop.set(None)
+            }
         }
+    }
+}
+
+
+
+// =================
+// === EndStatus ===
+// =================
+
+/// Status of the simulation end. It is either normal, which happens when the animation finishes, or
+/// forced, which means that it was forced by the user (for example by using the `stop` function).
+#[derive(Clone,Copy,Debug,Eq,PartialEq,Hash)]
+#[allow(missing_docs)]
+pub enum EndStatus { Normal, Forced }
+
+#[allow(missing_docs)]
+impl EndStatus {
+    pub fn is_normal(self) -> bool { self == Self::Normal }
+    pub fn is_forced(self) -> bool { self == Self::Forced }
+}
+
+impl Default for EndStatus {
+    fn default() -> Self {
+        Self::Normal
     }
 }

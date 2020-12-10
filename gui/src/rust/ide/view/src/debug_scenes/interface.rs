@@ -159,32 +159,10 @@ fn init(app:&Application) {
     let _tgt_type = dummy_type_generator.get_dummy_type();
     let mut was_rendered = false;
     let mut loader_hidden = false;
-    let mut i = 100;
-    let mut _j = 3;
     world.on_frame(move |_| {
         let _keep_alive = &navigator;
         let _keep_alive = &project_view;
         let _graph_editor = project_view.graph();
-
-        if i > 0 { i -= 1 } else {
-            println!(">> CHANGE");
-            i = 100;
-            //graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
-            // expression_1.input_span_tree.root_ref().leaf_iter().for_each(|node|{
-            //     if let Some(expr_id) = node.ast_id {
-            //         let dummy_type = Some(tgt_type.clone());
-            //         if j != 0 {
-            //             j -= 1;
-            //             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
-            //         } else {
-            //             // println!(">> null change");
-            //             j = 3;
-            //             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,None));
-            //             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
-            //         };
-            //     }
-            // });
-        }
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.
@@ -217,6 +195,7 @@ use span_tree::traits::*;
 
 
 pub fn expression_mock() -> Expression {
+    let pattern    = Some("var1".to_string());
     let code       = "[1,2,3]".to_string();
     let parser     = Parser::new_or_panic();
     let this_param = span_tree::ArgumentInfo {
@@ -229,10 +208,11 @@ pub fn expression_mock() -> Expression {
     let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
-    Expression {code,input_span_tree,output_span_tree}
+    Expression {pattern,code,input_span_tree,output_span_tree}
 }
 
 pub fn expression_mock2() -> Expression {
+    let pattern          = Some("var1".to_string());
     let pattern_cr       = vec![Seq { right: false }, Or, Or, Build];
     let val              = ast::crumbs::SegmentMatchCrumb::Body {val:pattern_cr};
     let parens_cr        = ast::crumbs::MatchCrumb::Segs {val,index:0};
@@ -266,12 +246,13 @@ pub fn expression_mock2() -> Expression {
             .done()
         .add_empty_child(36,span_tree::node::InsertionPointType::Append)
         .build();
-    Expression {code,input_span_tree,output_span_tree}
+    Expression {pattern,code,input_span_tree,output_span_tree}
 }
 
 pub fn expression_mock3() -> Expression {
+    let pattern    = Some("Vector x y z".to_string());
     // let code       = "image.blur ((foo   bar) baz)".to_string();
-    let code       = "image.blur name (((foo   bar)) baz)".to_string();
+    let code       = "Vector x y z".to_string();
     let parser     = Parser::new_or_panic();
     let this_param = span_tree::ArgumentInfo {
         name : Some("this".to_owned()),
@@ -297,9 +278,9 @@ pub fn expression_mock3() -> Expression {
     let ast              = parser.parse_line(&code).unwrap();
     let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
     let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
-    let output_span_tree = span_tree::SpanTree::default();
+    let output_span_tree = span_tree::SpanTree::new(&ast,&ctx).unwrap();//span_tree::SpanTree::default();
     let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
-    Expression {code,input_span_tree,output_span_tree}
+    Expression {pattern,code,input_span_tree,output_span_tree}
 }
 
 

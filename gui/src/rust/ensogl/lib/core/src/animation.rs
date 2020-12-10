@@ -1,10 +1,13 @@
 //! This module provides different kind of animation utilities, such as physics based animation and
 //! animation with easing functions.
 
-pub mod physics;
-mod loops;
 pub mod easing;
+pub mod physics;
 
+mod frp;
+mod loops;
+
+pub use frp::*;
 pub use loops::*;
 
 

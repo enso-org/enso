@@ -1,8 +1,8 @@
 #![allow(missing_docs)]
 
 use crate::prelude::*;
-use crate::data::function::callback::Function0;
-use crate::data::function::callback::Function1;
+use crate::data::function::traits::FnMut0;
+use crate::data::function::traits::FnMut1;
 
 
 
@@ -41,7 +41,7 @@ Index<Ix> for Observable<T,OnMut,OnResize> {
     }
 }
 
-impl<T:IndexMut<Ix>, OnMut: Function1<Ix> ,OnResize, Ix:Copy>
+impl<T:IndexMut<Ix>, OnMut: FnMut1<Ix> ,OnResize, Ix:Copy>
 IndexMut<Ix> for Observable<T,OnMut,OnResize> {
     #[inline]
     fn index_mut(&mut self, index:Ix) -> &mut Self::Output {
@@ -50,7 +50,7 @@ IndexMut<Ix> for Observable<T,OnMut,OnResize> {
     }
 }
 
-impl <T:Extend<S>,S,OnMut,OnResize:Function0>
+impl <T:Extend<S>,S,OnMut,OnResize:FnMut0>
 Extend<S> for Observable<T,OnMut,OnResize> {
     #[inline]
     fn extend<I:IntoIterator<Item=S>>(&mut self, iter:I) {
