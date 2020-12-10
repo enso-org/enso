@@ -11,7 +11,6 @@ import org.enso.languageserver.filemanager.{
 }
 
 import scala.concurrent.duration._
-import scala.util.Try
 
 /** Configuration of the path watcher.
   *
@@ -88,7 +87,9 @@ case class DirectoriesConfig(root: File) {
   val suggestionsDatabaseFile: File =
     new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
 
-  Try(Files.createDirectories(dataDirectory.toPath))
+  /** Create data directories if not exist. */
+  def createDirectories(): Unit =
+    Files.createDirectories(dataDirectory.toPath)
 }
 
 object DirectoriesConfig {
