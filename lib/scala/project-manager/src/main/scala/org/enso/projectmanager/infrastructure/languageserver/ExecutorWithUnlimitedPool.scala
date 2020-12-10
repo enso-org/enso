@@ -7,11 +7,10 @@ import java.util.concurrent.Executors
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
-import org.enso.loggingservice.{LogLevel, LoggingServiceManager}
+import org.enso.loggingservice.LoggingServiceManager
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
-import scala.concurrent.Future
 import scala.util.Using
 
 object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
@@ -84,7 +83,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val runner = new Runner(
       versionManager,
       distributionConfiguration.environment,
-      distributionConfiguration.loggingServiceEndpoint
+      descriptor.deferredLoggingServiceEndpoint
     )
     val runSettings = runner
       .startLanguageServer(

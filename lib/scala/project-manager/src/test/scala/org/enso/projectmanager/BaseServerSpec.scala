@@ -121,6 +121,8 @@ class BaseServerSpec
       discardChildOutput     = !debugChildLogs
     )
 
+  val loggingService = new TestLoggingService
+
   lazy val languageServerRegistry =
     system.actorOf(
       LanguageServerRegistry
@@ -130,6 +132,7 @@ class BaseServerSpec
           supervisionConfig,
           timeoutConfig,
           distributionConfiguration,
+          loggingService,
           ExecutorWithUnlimitedPool
         )
     )
@@ -146,7 +149,10 @@ class BaseServerSpec
     )
 
   lazy val projectCreationService =
-    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration)
+    new ProjectCreationService[ZIO[ZEnv, +*, +*]](
+      distributionConfiguration,
+      loggingService
+    )
 
   lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
     distributionConfiguration
@@ -176,6 +182,7 @@ class BaseServerSpec
       projectService                  = projectService,
       globalConfigService             = globalConfigService,
       runtimeVersionManagementService = runtimeVersionManagementService,
+      loggingServiceDescriptor        = loggingService,
       timeoutConfig                   = timeoutConfig
     )
   }

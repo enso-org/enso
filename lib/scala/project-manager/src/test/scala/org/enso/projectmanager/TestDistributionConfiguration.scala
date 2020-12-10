@@ -2,7 +2,6 @@ package org.enso.projectmanager
 
 import java.nio.file.Path
 
-import akka.http.scaladsl.model.Uri
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
@@ -33,7 +32,6 @@ import org.enso.runtimeversionmanager.test.{
   TestLocalLockManager
 }
 
-import scala.concurrent.Future
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -96,9 +94,6 @@ class TestDistributionConfiguration(
   }
 
   override def shouldDiscardChildOutput: Boolean = discardChildOutput
-
-  override def loggingServiceEndpoint: Future[Option[Uri]] =
-    Future.successful(None)
 }
 
 object TestDistributionConfiguration {

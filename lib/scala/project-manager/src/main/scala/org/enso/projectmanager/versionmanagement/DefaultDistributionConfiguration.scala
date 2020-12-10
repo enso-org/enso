@@ -1,7 +1,5 @@
 package org.enso.projectmanager.versionmanagement
 
-import akka.http.scaladsl.model.Uri
-import org.enso.projectmanager.boot.Logging
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
@@ -19,8 +17,6 @@ import org.enso.runtimeversionmanager.releases.engine.{
 }
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.runner.JVMSettings
-
-import scala.concurrent.Future
 
 /** Default distribution configuration to use for the Project Manager in
   * production.
@@ -74,8 +70,4 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
 
   /** @inheritdoc */
   override def shouldDiscardChildOutput: Boolean = false
-
-  /** @inheritdoc */
-  override def loggingServiceEndpoint: Future[Option[Uri]] =
-    Logging.loggingServiceEndpoint()
 }
