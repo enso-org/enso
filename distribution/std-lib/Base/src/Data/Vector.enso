@@ -475,8 +475,6 @@ do_sort arr by = if arr.length == 0 then Nothing else
 
 quicksort : Array -> (Any -> Any -> Ordering) -> Integer -> Integer -> Nothing
 quicksort arr by low high =
-    IO.println low
-    IO.println high
     if low < high then
         partition_ix = here.partition arr by low high
         here.quicksort arr by low partition_ix
@@ -486,25 +484,56 @@ partition : Array -> (Any -> Any -> Ordering) -> Integer -> Integer -> Integer
 partition arr by low high =
     loop_cond = Ref.new True
     pivot = arr.at ((high + low) / 2).floor
-    i = Ref.new (low - 1);
-    j = Ref.new (high + 1);
+    i = Ref.new (low - 1)
+    j = Ref.new (high + 1)
+
+    increment i =
+        new_i = i + 1
+        item_i = arr.at new_i
+        comp = by item_i pivot
+        if comp == Ordering.Less then @Tail_Call increment new_i else new_i
+
+    decrement j =
+        new_j = j - 1
+        item_j = arr.at new_j
+        comp = by item_j pivot
+        if comp == Ordering.Greater then @Tail_Call decrement new_j else new_j
+
+    while cond = if cond then
+        Ref.put i (increment (Ref.get i))
+        Ref.put j (decrement (Ref.get j))
+        i_idx = Ref.get i
+        j_idx = Ref.get j
+        if i_idx >= j_idx then Nothing else
+            temp_i = arr.at i_idx
+            temp_j = arr.at j_idx
+            arr.set_at j_idx temp_i
+            arr.set_at i_idx temp_j
+
+            @Tail_Call while cond
+
+    while True
 
     # here.while (Ref.get loop_cond) <|
-        # here.do_while (by (arr.at (Ref.get i)) pivot)==Ordering.Less <|
-            # Ref.put i ((Ref.get i) + 1)
+        # Ref.put i (increment (Ref.get i))
+        # # here.do_while (by (arr.at (Ref.get i)) pivot)==Ordering.Less <|
+            # # Ref.put i ((Ref.get i) + 1)
 #
-        # here.do_while (by (arr.at (Ref.get j)) pivot)==Ordering.Greater <|
-            # Ref.put j ((Ref.get j) + 1)
+        # Ref.put j (decrement (Ref.get j))
+        # # here.do_while (by (arr.at (Ref.get j)) pivot)==Ordering.Greater <|
+            # # Ref.put j ((Ref.get j) - 1)
 #
         # if (Ref.get i) >= (Ref.get j) then
             # Ref.put loop_cond False
 #
-        # temp = arr.at (Ref.get i)
-        # arr.set_at (Ref.get i) (arr.at (Ref.get j))
-        # arr.set_at (Ref.get j) temp
+        # i_idx = Ref.get i
+        # j_idx = Ref.get j
+        # temp_i = arr.at i_idx
+        # temp_j = arr.at j_idx
+        # arr.set_at j_idx temp_i
+        # arr.set_at i_idx temp_j
 
-    res = Ref.get j
-    IO.println res
+    Ref.get j
 
 while : Boolean -> Any -> Nothing
 while ~cond ~action = if cond then
