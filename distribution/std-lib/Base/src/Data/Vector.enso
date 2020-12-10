@@ -459,13 +459,13 @@ type Vector
 
            As Java does not use Enso's notion of ordering, we instead need to
            map Enso's notion of ordering to Java's notion of ordering.
-        # comp_ascending l r  = by (on l) (on r)
-        # comp_descending l r = by (on r) (on l)
-        # compare = if order == Sort_Order.Ascending then by l r else by r l
+        comp_ascending l r  = by (on l) (on r)
+        comp_descending l r = by (on r) (on l)
+        compare = if order == Sort_Order.Ascending then comp_ascending else comp_descending
 
         # new_vec_arr.sort by
 
-        here.do_sort new_vec_arr by
+        here.do_sort new_vec_arr compare
 
         Vector new_vec_arr
 
@@ -499,39 +499,16 @@ partition arr by low high =
         comp = by item_j pivot
         if comp == Ordering.Greater then @Tail_Call decrement new_j else new_j
 
-    while cond = if cond then
+    here.while (Ref.get loop_cond) <|
         Ref.put i (increment (Ref.get i))
         Ref.put j (decrement (Ref.get j))
         i_idx = Ref.get i
         j_idx = Ref.get j
-        if i_idx >= j_idx then Nothing else
+        if i_idx >= j_idx then Ref.put loop_cond False else
             temp_i = arr.at i_idx
             temp_j = arr.at j_idx
             arr.set_at j_idx temp_i
             arr.set_at i_idx temp_j
-
-            @Tail_Call while cond
-
-    while True
-
-    # here.while (Ref.get loop_cond) <|
-        # Ref.put i (increment (Ref.get i))
-        # # here.do_while (by (arr.at (Ref.get i)) pivot)==Ordering.Less <|
-            # # Ref.put i ((Ref.get i) + 1)
-#
-        # Ref.put j (decrement (Ref.get j))
-        # # here.do_while (by (arr.at (Ref.get j)) pivot)==Ordering.Greater <|
-            # # Ref.put j ((Ref.get j) - 1)
-#
-        # if (Ref.get i) >= (Ref.get j) then
-            # Ref.put loop_cond False
-#
-        # i_idx = Ref.get i
-        # j_idx = Ref.get j
-        # temp_i = arr.at i_idx
-        # temp_j = arr.at j_idx
-        # arr.set_at j_idx temp_i
-        # arr.set_at i_idx temp_j
 
     Ref.get j
 
