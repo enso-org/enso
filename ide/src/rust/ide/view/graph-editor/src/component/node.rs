@@ -20,7 +20,7 @@ use ensogl::data::color;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
-use ensogl::gui::component::Animation;
+use ensogl::Animation;
 use ensogl::gui::component;
 use ensogl_text::Text;
 use ensogl_theme;
@@ -42,7 +42,6 @@ pub const HEIGHT            : f32 = 28.0;
 pub const PADDING           : f32 = 40.0;
 pub const RADIUS            : f32 = 14.0;
 pub const SHADOW_SIZE       : f32 = 10.0;
-pub const TEXT_OFF          : f32 = 10.0;
 
 
 
@@ -175,6 +174,21 @@ ensogl::define_endpoints! {
 
 /// The visual node representation.
 ///
+/// ## Origin
+/// Please note that the origin of the node is on its left side, centered vertically. This decision
+/// was made to both optimise performance and make the origin point more meaningful. When editing
+/// the node, its width changes, while its left border remains still. When expanding the node, its
+/// height changes, while its top remains at the same place. Thus, while editing or expanding the
+/// node, there is no need to update its position. Moreover, the chosen origin point is more natural
+/// than origin placed in other possible places, including the upper-left corner of its bounding
+/// box. The `x` symbolises the origin on the following drawing:
+///
+/// ```ignore
+///   ╭─────────────────╮
+///  x│                 │
+///   ╰─────────────────╯
+/// ```
+///
 /// ## FRP Event Architecture.
 /// Nodes FRP architecture is designed for efficiency. Event with millions nodes on the stage, only
 /// small amount of events will be passed around on user action. This is not always simple, and it
@@ -271,7 +285,6 @@ impl NodeModel {
         shape_system.shape_system.set_pointer_events(false);
 
         let input = input::Area::new(&logger,app);
-        let scene = scene.clone_ref();
         let visualization = visualization::Container::new(&logger,&app,registry);
         visualization.mod_position(|t| {
             t.x = 60.0;
@@ -279,22 +292,17 @@ impl NodeModel {
         });
 
         display_object.add_child(&visualization);
-
-        input.mod_position(|p| {
-            p.x = TEXT_OFF;
-            p.y = HEIGHT/2.0;
-        });
         display_object.add_child(&input);
 
         let action_bar = action_bar::ActionBar::new(&logger,&app);
         display_object.add_child(&action_bar);
 
-        let output = output::Area::new(&scene);
+        let output = output::Area::new(&logger,app);
         display_object.add_child(&output);
 
         let app = app.clone_ref();
-        Self {app,display_object,logger,main_area,drag_area,output,input
-             ,visualization,action_bar} . init()
+        Self {app,display_object,logger,main_area,drag_area,output,input,visualization,action_bar}
+            .init()
     }
 
     fn init(self) -> Self {
@@ -303,7 +311,7 @@ impl NodeModel {
     }
 
     pub fn width(&self) -> f32 {
-        self.input.width.value() + TEXT_OFF * 2.0
+        self.input.width.value()
     }
 
     pub fn height(&self) -> f32 {
@@ -312,28 +320,22 @@ impl NodeModel {
 
     fn set_expression(&self, expr:impl Into<Expression>) {
         let expr = expr.into();
-        self.output.set_pattern_span_tree(&expr.output_span_tree);
-        self.input.set_expression(expr);
+        self.output.set_expression(&expr);
+        self.input.set_expression(&expr);
     }
 
     fn set_width(&self, width:f32) -> Vector2 {
-        let height = self.height();
-        let width  = width + TEXT_OFF * 2.0;
-        let size   = Vector2::new(width+PADDING*2.0, height+PADDING*2.0);
-        self.main_area.shape.sprite.size.set(size);
-        self.drag_area.shape.sprite.size.set(size);
+        let height      = self.height();
+        let size        = Vector2(width,height);
+        let padded_size = size + Vector2(PADDING,PADDING) * 2.0;
+        self.main_area.shape.sprite.size.set(padded_size);
+        self.drag_area.shape.sprite.size.set(padded_size);
         self.main_area.mod_position(|t| t.x = width/2.0);
-        self.main_area.mod_position(|t| t.y = height/2.0);
         self.drag_area.mod_position(|t| t.x = width/2.0);
-        self.drag_area.mod_position(|t| t.y = height/2.0);
-
-        self.output.mod_position(|t| t.x = width/2.0);
-        self.output.mod_position(|t| t.y = height/2.0);
 
         let action_bar_width = 200.0;
         self.action_bar.mod_position(|t| {
             t.x = width + CORNER_RADIUS + action_bar_width / 2.0;
-            t.y = ACTION_BAR_HEIGHT;
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width,ACTION_BAR_HEIGHT));
         size
@@ -385,8 +387,9 @@ impl Node {
 
             // === Expression ===
 
-            model.input.set_connected             <+ frp.set_input_connected;
-            model.input.set_expression_usage_type <+ frp.set_expression_usage_type;
+            model.input.set_connected              <+ frp.set_input_connected;
+            model.input.set_expression_usage_type  <+ frp.set_expression_usage_type;
+            model.output.set_expression_usage_type <+ frp.set_expression_usage_type;
             eval frp.set_expression ((expr) model.set_expression(expr));
             out.source.expression <+ model.input.frp.expression.map(|t|t.clone_ref());
 

@@ -62,6 +62,11 @@ pub mod system;
 pub use enso_frp   as frp;
 pub use enso_types as types;
 
+pub use animation::Animation;
+pub use animation::Easing;
+pub use animation::DEPRECATED_Animation;
+pub use animation::DEPRECATED_Tween;
+
 /// Prelude - commonly used utilities.
 pub mod prelude {
     pub use enso_prelude::*;

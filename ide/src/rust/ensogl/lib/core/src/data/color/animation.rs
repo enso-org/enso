@@ -9,7 +9,6 @@ use super::*;
 use enso_frp as frp;
 
 use crate::display::shape::*;
-use crate::gui::component;
 
 
 
@@ -35,8 +34,8 @@ crate::define_endpoints! {
 #[allow(missing_docs)]
 pub struct Animation {
     frp        : FrpEndpoints,
-    color_anim : component::Animation<Lch>,
-    alpha_anim : component::Animation<f32>,
+    color_anim : crate::Animation<Lch>,
+    alpha_anim : crate::Animation<f32>,
 }
 
 impl Deref for Animation {
@@ -50,8 +49,8 @@ impl Animation {
     /// Constructor.
     pub fn new(network:&frp::Network) -> Self {
         let frp        = Frp::extend(network);
-        let color_anim = component::Animation::new_non_init(network);
-        let alpha_anim = component::Animation::new_non_init(network);
+        let color_anim = crate::Animation::new_non_init(network);
+        let alpha_anim = crate::Animation::new_non_init(network);
         Self{frp,color_anim,alpha_anim}.init(network)
     }
 

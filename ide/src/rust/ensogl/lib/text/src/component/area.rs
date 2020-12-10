@@ -15,6 +15,7 @@ use crate::typeface;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
+use ensogl_core::DEPRECATED_Animation;
 use ensogl_core::application::Application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application;
@@ -22,7 +23,6 @@ use ensogl_core::data::color;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::shape::*;
 use ensogl_core::display;
-use ensogl_core::gui::component::DEPRECATED_Animation;
 use ensogl_core::gui::component;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
@@ -515,14 +515,18 @@ impl Area {
 
             _eval <- m.buffer.frp.selection_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                        m.redraw(); // FIXME: added for undo redo. Should not be needed.
+                        // FIXME: added for undo redo. Should not be needed.
+                        //        See https://github.com/enso-org/ide/issues/1031
+                        m.redraw(true);
                         m.on_modified_selection(selections,*time,true)
                     }
             ));
 
             _eval <- m.buffer.frp.selection_non_edit_mode.map2
                 (&scene.frp.frame_time,f!([m](selections,time) {
-                    m.redraw(); // FIXME: added for undo redo. Should not be needed.
+                    // FIXME: added for undo redo. Should not be needed.
+                    //        See https://github.com/enso-org/ide/issues/1031
+                    m.redraw(true);
                     m.on_modified_selection(selections,*time,false)
                 }
             ));
@@ -569,7 +573,7 @@ impl Area {
             eval input.paste_string ((s) m.buffer.frp.paste(m.decode_paste(s)));
 
 
-            eval_ m.buffer.frp.text_change (m.redraw());
+            eval_ m.buffer.frp.text_change (m.redraw(true));
 
             eval_ input.remove_all_cursors (m.buffer.frp.remove_all_cursors());
 
@@ -635,9 +639,11 @@ impl Area {
                 let all_bytes = buffer::Range::from(Bytes::from(0)..Bytes(i32::max_value()));
                 input.set_color_bytes.emit((all_bytes,*color));
             });
+            // FIXME: The color-setting operation is very slow now. For every new color, the whole
+            //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
             eval input.set_color_bytes ((t) {
                 m.buffer.frp.set_color_bytes.emit(*t);
-                m.redraw(); // FIXME: Should not be needed.
+                m.redraw(false);
             });
 
             // === Changes ===
@@ -775,7 +781,8 @@ impl AreaModel {
                         frp::extend! { selection_network
                             // FIXME[WD]: This is ultra-slow. Redrawing all glyphs on each
                             //            animation frame. Multiple times, once per cursor.
-                            eval_ selection.position.value (model.redraw());
+                            //            https://github.com/enso-org/ide/issues/1031
+                            eval_ selection.position.value (model.redraw(true));
                         }
                         selection
                     }
@@ -788,7 +795,7 @@ impl AreaModel {
             }
             *selection_map = new_selection_map;
         }
-        self.redraw()
+        self.redraw(true)
     }
 
     /// Transforms screen position to the object (display object) coordinate system.
@@ -818,12 +825,12 @@ impl AreaModel {
     }
 
     fn init(self) -> Self {
-        self.redraw();
+        self.redraw(true);
         self
     }
 
     /// Redraw the text.
-    fn redraw(&self) {
+    fn redraw(&self, width_may_change:bool) {
         let lines      = self.buffer.view_lines();
         let line_count = lines.len();
         self.lines.resize_with(line_count,|ix| self.new_line(ix));
@@ -831,7 +838,9 @@ impl AreaModel {
             self.redraw_line(view_line_index,content)
         }).collect_vec();
         let length = lengths.into_iter().max_by(|x,y|x.partial_cmp(y).unwrap()).unwrap_or_default();
-        self.frp_endpoints.source.width.emit(length);
+        if width_may_change {
+            self.frp_endpoints.source.width.emit(length);
+        }
     }
 
     fn redraw_line(&self, view_line_index:usize, content:String) -> f32 {

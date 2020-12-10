@@ -46,8 +46,8 @@ impl NavigatorModel {
 
     fn create_simulator(camera:&Camera2d) -> physics::inertia::DynSimulator<Vector3> {
         let camera_ref = camera.clone_ref();
-        let update     = Box::new(move |p:Vector3| camera_ref.set_position(p));
-        let simulator  = physics::inertia::DynSimulator::new(update);
+        let on_step    = Box::new(move |p:Vector3| camera_ref.set_position(p));
+        let simulator  = physics::inertia::DynSimulator::new(on_step,(),());
         simulator.set_value(camera.position());
         simulator.set_target_value(camera.position());
         simulator

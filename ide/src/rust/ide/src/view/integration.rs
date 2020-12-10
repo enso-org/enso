@@ -556,7 +556,9 @@ impl Model {
     /// Update the expression of the node and all related properties e.g., types, ports).
     fn refresh_node_expression(&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
         let expression     = node.info.expression().repr();
+        let pattern        = node.info.pattern().map(|t|t.repr());
         let code_and_trees = graph_editor::component::node::Expression {
+            pattern,
             code             : expression,
             input_span_tree  : trees.inputs,
             output_span_tree : trees.outputs.unwrap_or_else(default)

@@ -138,6 +138,21 @@ impl Rgb {
 }
 
 impl Rgba {
+    /// Constructor.
+    pub fn red() -> Self {
+        Self::new(1.0,0.0,0.0,1.0)
+    }
+
+    /// Constructor.
+    pub fn green() -> Self {
+        Self::new(0.0,1.0,0.0,1.0)
+    }
+
+    /// Constructor.
+    pub fn blue() -> Self {
+        Self::new(0.0,0.0,1.0,1.0)
+    }
+
     /// Fully transparent color constructor.
     pub fn transparent() -> Self {
         Self::new(0.0,0.0,0.0,0.0)

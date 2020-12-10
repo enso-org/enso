@@ -8,7 +8,8 @@
 
 use crate::prelude::*;
 
-use crate::data::function::callback::*;
+use crate::data::function::traits::*;
+
 use rustc_hash::FxHashSet;
 use std::hash::Hash;
 use std::mem;
@@ -70,15 +71,16 @@ pub use traits::*;
 #[derivative(Debug(bound="T:Debug"))]
 pub struct DirtyFlag<T,OnMut> {
     pub data : T,
-    on_set   : Function<OnMut>,
     logger   : Logger,
+    #[derivative(Debug="ignore")]
+    on_set   : OnMut,
 }
 
 
 // === Basics ===
 
 impl<OnMut,T:Default> DirtyFlag<T,OnMut> {
-    pub fn new(logger: Logger, on_set: Function<OnMut>) -> Self {
+    pub fn new(logger:Logger, on_set:OnMut) -> Self {
         let data = default();
         Self {data,on_set,logger}
     }
@@ -129,20 +131,20 @@ HasCheck1 for DirtyFlag<T,OnMut> {
 
 // === Set ===
 
-impl<T:DirtyFlagOps0,OnMut:Function0>
-HasSet0 for  DirtyFlag<T,OnMut> {
+impl<T:DirtyFlagOps0,OnMut:FnMut0>
+HasSet0 for DirtyFlag<T,OnMut> {
     fn set(&mut self) {
         let is_set = self.data.check_all();
         if !is_set {
             self.data.set();
             debug!(self.logger, "Setting.", || {
-                self.on_set.call()
+                self.on_set.call();
             })
         }
     }
 }
 
-impl<T:DirtyFlagOps1,OnMut:Function0>
+impl<T:DirtyFlagOps1,OnMut:FnMut0>
 HasSet1 for DirtyFlag<T,OnMut> {
     fn set(&mut self, arg: Self::Arg) {
         let first_set = !self.check_all();
@@ -150,7 +152,7 @@ HasSet1 for DirtyFlag<T,OnMut> {
         if !is_set {
             self.data.set(arg);
             debug!(self.logger, "Setting to {self.data:?}.", || {
-                if first_set { self.on_set.call() }
+                if first_set { self.on_set.call(); }
             })
         }
     }
@@ -199,9 +201,7 @@ pub struct SharedDirtyFlag<T,OnMut> {
 impl<T:Default,OnMut>
 SharedDirtyFlag<T,OnMut> {
     pub fn new(logger:Logger, on_set:OnMut) -> Self {
-        let callback = Function(on_set);
-        let rc       = Rc::new(RefCell::new(DirtyFlag::new(logger,callback)));
-        Self { rc }
+        Self { rc : Rc::new(RefCell::new(DirtyFlag::new(logger,on_set))) }
     }
 
     pub fn take(&self) -> T {
@@ -219,7 +219,7 @@ SharedDirtyFlag<T,OnMut> {
 impl<T,OnMut>
 SharedDirtyFlag<T,OnMut> {
     pub fn set_callback(&self, on_set:OnMut) {
-        self.rc.borrow_mut().on_set = Function(on_set);
+        self.rc.borrow_mut().on_set = on_set;
     }
 }
 
@@ -268,12 +268,12 @@ HasCheck1 for SharedDirtyFlag<T,OnMut> {
 
 // === Set ===
 
-impl<T:DirtyFlagOps0,OnMut:Function0>
+impl<T:DirtyFlagOps0,OnMut:FnMut0>
 SharedHasSet0 for SharedDirtyFlag<T,OnMut> {
     fn set (&self) { self.rc.borrow_mut().set() }
 }
 
-impl<T:DirtyFlagOps1,OnMut:Function0>
+impl<T:DirtyFlagOps1,OnMut:FnMut0>
 SharedHasSet1 for SharedDirtyFlag<T,OnMut> {
     fn set (&self, arg: Arg<T>) { self.rc.borrow_mut().set(arg) }
 }
@@ -309,7 +309,7 @@ SharedHasUnset1 for SharedDirtyFlag<T,OnMut> where Arg<T>:Display {
 
 pub type  Bool       <OnMut=()> = DirtyFlag       <BoolData,OnMut>;
 pub type  SharedBool <OnMut=()> = SharedDirtyFlag <BoolData,OnMut>;
-pub trait BoolCtx    <OnMut>    = where OnMut:Function0;
+pub trait BoolCtx    <OnMut>    = where OnMut:FnMut0;
 
 #[derive(Clone,Copy,Debug,Display,Default)]
 pub struct BoolData { is_dirty: bool }
@@ -330,7 +330,7 @@ impl HasUnset0   for BoolData { fn unset     (&mut self)         { self.is_dirty
 
 pub type  Range       <Ix,OnMut> = DirtyFlag       <RangeData<Ix>,OnMut>;
 pub type  SharedRange <Ix,OnMut> = SharedDirtyFlag <RangeData<Ix>,OnMut>;
-pub trait RangeCtx       <OnMut> = where OnMut:Function0;
+pub trait RangeCtx       <OnMut> = where OnMut:FnMut0;
 pub trait RangeIx                = PartialOrd + Copy + Debug;
 
 #[derive(Debug,Default)]
@@ -384,7 +384,7 @@ impl<Ix:RangeIx> Display for RangeData<Ix> {
 
 pub type  Set       <Ix,OnMut=()> = DirtyFlag       <SetData<Ix>,OnMut>;
 pub type  SharedSet <Ix,OnMut=()> = SharedDirtyFlag <SetData<Ix>,OnMut>;
-pub trait SetCtx       <OnMut>    = where OnMut:Function0;
+pub trait SetCtx       <OnMut>    = where OnMut:FnMut0;
 pub trait SetItem                 = Eq + Hash + Debug;
 
 #[derive(Derivative,Shrinkwrap)]
@@ -493,7 +493,7 @@ use bit_field::BitField as BF;
 
 pub type  Enum       <Prim,T,OnMut> = DirtyFlag       <EnumData<Prim,T>,OnMut>;
 pub type  SharedEnum <Prim,T,OnMut> = SharedDirtyFlag <EnumData<Prim,T>,OnMut>;
-pub trait EnumCtx           <OnMut> = where OnMut:Function0;
+pub trait EnumCtx           <OnMut> = where OnMut:FnMut0;
 pub trait EnumBase                  = Default + PartialEq + Copy + BF;
 pub trait EnumElem                  = Copy+Into<usize>;
 

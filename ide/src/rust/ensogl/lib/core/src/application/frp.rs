@@ -194,6 +194,8 @@
 macro_rules! define_endpoints {
     (
         $([$($global_opts:tt)*])?
+        $(<$($param:ident),*>)?
+
         $(Input { $([$($input_opts:tt)*])?
             $($(#[doc=$($in_doc:tt)*])*
             $in_field : ident ($($in_field_type : tt)*)),* $(,)?
@@ -207,8 +209,9 @@ macro_rules! define_endpoints {
         $crate::define_endpoints! {
             NORMALIZED
             $([$($global_opts)*])?
+            $(<$($param),*>)?
 
-            Input  { $($([$($input_opts)*])?)?
+            Input { $($([$($input_opts)*])?)?
                 /// Focus the element. Focused elements are meant to receive shortcut events.
                 focus(),
                 /// Defocus the element. Non-focused elements are meant to be inactive and don't
@@ -232,6 +235,7 @@ macro_rules! define_endpoints {
     (
         NORMALIZED
         $([$($global_opts:tt)*])?
+        $(<$($param:ident),*>)?
 
         Input { $([$($input_opts:tt)*])?
             $($(#[doc=$($in_doc :tt)*])*
@@ -248,12 +252,12 @@ macro_rules! define_endpoints {
         /// Frp network and endpoints.
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
-        pub struct Frp {
+        pub struct Frp $(<$($param),*>)? {
             pub network : $crate::frp::Network,
-            pub output  : FrpEndpoints,
+            pub output  : FrpEndpoints $(<$($param),*>)?,
         }
 
-        impl Frp {
+        impl $(<$($param),*>)? Frp $(<$($param),*>)? {
             /// Create Frp endpoints within and the associated network.
             pub fn new() -> Self {
                 let network = $crate::frp::Network::new(file!());
@@ -268,14 +272,14 @@ macro_rules! define_endpoints {
             }
         }
 
-        impl Default for Frp {
+        impl $(<$($param),*>)? Default for Frp $(<$($param),*>)? {
             fn default() -> Self {
                 Self::new()
             }
         }
 
-        impl Deref for Frp {
-            type Target = FrpEndpoints;
+        impl $(<$($param),*>)? Deref for Frp $(<$($param),*>)? {
+            type Target = FrpEndpoints $(<$($param),*>)?;
             fn deref(&self) -> &Self::Target {
                 &self.output
             }
@@ -285,12 +289,12 @@ macro_rules! define_endpoints {
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
         #[allow(unused_parens)]
-        pub struct FrpInputs {
+        pub struct FrpInputs $(<$($param),*>)? {
             $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>),*
         }
 
         #[allow(unused_parens)]
-        impl FrpInputs {
+        impl FrpInputs $(<$($param),*>)? {
             /// Constructor.
             pub fn new(network:&$crate::frp::Network) -> Self {
                 $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
@@ -306,11 +310,11 @@ macro_rules! define_endpoints {
         #[derive(Debug,Clone,CloneRef)]
         #[allow(unused_parens)]
         #[allow(missing_docs)]
-        pub struct FrpEndpoints {
-            pub input         : FrpInputs,
+        pub struct FrpEndpoints $(<$($param),*>)? {
+            pub input         : FrpInputs $(<$($param),*>)?,
             // TODO[WD]: Consider making it private and exposing only on-demand with special macro
             //           usage syntax.
-            pub(crate) source : FrpOutputsSource,
+            pub(crate) source : FrpOutputsSource $(<$($param),*>)?,
             pub status_map    : Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
             pub command_map   : Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
             $($(#[doc=$($out_doc)*])*
@@ -318,14 +322,14 @@ macro_rules! define_endpoints {
             ),*
         }
 
-        impl Deref for FrpEndpoints {
-            type Target = FrpInputs;
+        impl $(<$($param),*>)? Deref for FrpEndpoints $(<$($param),*>)? {
+            type Target = FrpInputs $(<$($param),*>)?;
             fn deref(&self) -> &Self::Target {
                 &self.input
             }
         }
 
-        impl FrpEndpoints {
+        impl $(<$($param),*>)? FrpEndpoints $(<$($param),*>)? {
             /// Constructor.
             pub fn new(network:&$crate::frp::Network, input:FrpInputs) -> Self {
                 use $crate::application::command::*;
@@ -351,11 +355,11 @@ macro_rules! define_endpoints {
         /// Frp output setters.
         #[derive(Debug,Clone,CloneRef)]
         #[allow(unused_parens)]
-        pub(crate) struct FrpOutputsSource {
+        pub(crate) struct FrpOutputsSource $(<$($param),*>)? {
             $(pub(crate) $out_field : $crate::frp::Any<($($out_field_type)*)>),*
         }
 
-        impl FrpOutputsSource {
+        impl $(<$($param),*>)? FrpOutputsSource $(<$($param),*>)? {
             /// Constructor.
             pub fn new(network:&$crate::frp::Network) -> Self {
                 $crate::frp::extend! { network

@@ -182,7 +182,7 @@ impl Sampler {
         let easing_function  = Box::new(f.clone()) as Box<dyn Fn(f32)->f32>;
         let easing_function2 = Box::new(f)         as Box<dyn Fn(f32)->f32>;
         let animation_cb     = Box::new(move |t| prop.set(t)) as Box<dyn Fn(SpriteData)>;
-        let easing_animator  = Animator::new(start,end,easing_function2,animation_cb);
+        let easing_animator  = Animator::new(start,end,easing_function2,animation_cb,());
         let time             = 0.0;
         easing_animator.set_duration(2000.0);
         Self {color,time,left_canvas,right_canvas,easing_animator,properties,easing_function}

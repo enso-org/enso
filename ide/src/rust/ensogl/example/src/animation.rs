@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use ensogl_core::system::web;
 use ensogl_core::application::Application;
-use ensogl_core::gui::component::DEPRECATED_Animation;
+use ensogl_core::DEPRECATED_Animation;
 use ensogl_text_msdf_sys::run_once_initialized;
 use logger::TraceLogger as Logger;
 use wasm_bindgen::prelude::*;
