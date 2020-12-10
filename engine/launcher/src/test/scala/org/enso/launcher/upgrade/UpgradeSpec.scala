@@ -190,7 +190,7 @@ class UpgradeSpec
       checkVersion() shouldEqual SemVer(0, 0, 1)
       TestHelpers.readFileContent(root / "README.md").trim shouldEqual "Content"
       TestHelpers
-        .readFileContent(root / "components-licences" / "test-license.txt")
+        .readFileContent(root / "THIRD-PARTY" / "test-license.txt")
         .trim shouldEqual "Test license"
     }
 
@@ -214,7 +214,7 @@ class UpgradeSpec
         .readFileContent(dataRoot / "README.md")
         .trim shouldEqual "Content"
       TestHelpers
-        .readFileContent(dataRoot / "components-licences" / "test-license.txt")
+        .readFileContent(dataRoot / "THIRD-PARTY" / "test-license.txt")
         .trim shouldEqual "Test license"
     }
 

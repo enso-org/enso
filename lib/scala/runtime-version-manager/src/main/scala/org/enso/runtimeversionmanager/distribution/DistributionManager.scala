@@ -157,7 +157,8 @@ class DistributionManager(val env: Environment) {
         TMP_DIRECTORY,
         LOG_DIRECTORY,
         LOCK_DIRECTORY,
-        "components-licences"
+        "THIRD-PARTY",
+        ".DS_Store"
       )
 
     /** Config directory for an installed distribution.
