@@ -463,9 +463,9 @@ type Vector
         comp_descending l r = by (on r) (on l)
         compare = if order == Sort_Order.Ascending then comp_ascending else comp_descending
 
-        # new_vec_arr.sort by
+        new_vec_arr.sort compare
 
-        here.do_sort new_vec_arr compare
+        # here.do_sort new_vec_arr compare
 
         Vector new_vec_arr
 

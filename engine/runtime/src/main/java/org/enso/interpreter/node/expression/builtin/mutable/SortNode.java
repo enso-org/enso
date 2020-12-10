@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
@@ -59,39 +60,39 @@ public abstract class SortNode extends Node {
       @Cached("ctxRef.get().getBuiltins().ordering().newGreater()") Atom greater) {
     Object[] items = _this.getItems();
 
-    Comparator<Object> comp = (Object l, Object r) -> { return ((Long) l).compareTo((Long) r);};
-
-    for (int i = 0; i < items.length - 1; ++i) {
-      ctr += comp.compare(items[i], items[i+1]);
-//      ctr += compare(frame, comparator, items[i], items[i+1], less, equal, greater);
-    }
-
-//    if (items.length >= 1) {
-//      sort(items, frame, comparator, less, equal, greater);
-//    }
-
-    //    Comparator<Object> compare =
-    //        (l, r) -> {
-    //          Stateful result =
-    //              invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
-    //          if (TypesGen.isAtom(result.getValue())) {
-    //            Atom atom = TypesGen.asAtom(result.getValue());
-    //            if (lessProfile.profile(atom == less)) {
-    //              return -1;
-    //            } else if (equalsProfile.profile(atom == equal)) {
-    //              return 0;
-    //            } else if (greaterProfile.profile(atom == greater)) {
-    //              return 1;
-    //            }
-    //          }
+    //    Comparator<Object> comp = (Object l, Object r) -> { return ((Long) l).compareTo((Long)
+    // r);};
     //
-    //          CompilerDirectives.transferToInterpreter();
-    //          var ordering = ctxRef.get().getBuiltins().ordering().ordering();
-    //          throw new PanicException(
-    //              ctxRef.get().getBuiltins().error().makeTypeError(ordering, result.getValue()),
-    // this);
-    //        };
-    //    doSort(_this.getItems(), compare);
+    //    for (int i = 0; i < items.length - 1; ++i) {
+    ////      ctr += comp.compare(items[i], items[i+1]);
+    //      ctr += compare(frame, comparator, items[i], items[i+1], less, equal, greater);
+    //    }
+
+    //    if (items.length >= 1) {
+    //      sort(items, frame, comparator, less, equal, greater);
+    //    }
+
+    Comparator<Object> compare =
+        (l, r) -> {
+          Stateful result =
+              invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
+          if (TypesGen.isAtom(result.getValue())) {
+            Atom atom = TypesGen.asAtom(result.getValue());
+            if ((atom == less)) {
+              return -1;
+            } else if ((atom == equal)) {
+              return 0;
+            } else if ((atom == greater)) {
+              return 1;
+            }
+          }
+
+          CompilerDirectives.transferToInterpreter();
+          var ordering = ctxRef.get().getBuiltins().ordering().ordering();
+          throw new PanicException(
+              ctxRef.get().getBuiltins().error().makeTypeError(ordering, result.getValue()), this);
+        };
+    doSort(_this.getItems(), compare);
     return ctxRef.get().getBuiltins().nothing().newInstance();
   }
 
@@ -111,15 +112,19 @@ public abstract class SortNode extends Node {
     }
   }
 
+  @TruffleBoundary
   void doSort(Object[] items, Comparator<Object> compare) {
     Arrays.sort(items, compare);
   }
 
   void sort(
       Object[] items, VirtualFrame frame, Object comparator, Atom less, Atom equal, Atom greater) {
-    Comparator<Object> comp = (l, r) -> { return ((Long) l).compareTo((Long) r);};
+    Comparator<Object> comp =
+        (l, r) -> {
+          return ((Long) l).compareTo((Long) r);
+        };
     Arrays.sort(items, comp);
-//    quicksort(items, frame, comparator, 0, items.length - 1, less, equal, greater);
+    //    quicksort(items, frame, comparator, 0, items.length - 1, less, equal, greater);
   }
 
   void quicksort(
