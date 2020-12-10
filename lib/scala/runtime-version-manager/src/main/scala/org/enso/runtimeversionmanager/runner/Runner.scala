@@ -99,7 +99,7 @@ class Runner(
         "--data-port",
         options.dataPort.toString,
         "--log-level",
-        logLevel.toString
+        logLevel.name
       )
       RunSettings(
         version,

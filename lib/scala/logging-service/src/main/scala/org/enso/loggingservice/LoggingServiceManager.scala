@@ -9,8 +9,6 @@ import scala.concurrent.{ExecutionContext, Future}
 /** Manages the logging service.
   */
 object LoggingServiceManager {
-  private val testLoggingPropertyKey = "org.enso.loggingservice.test-log-level"
-
   private var currentService: Option[Service] = None
   private var currentLevel: LogLevel          = LogLevel.Trace
 
@@ -25,21 +23,13 @@ object LoggingServiceManager {
     * Runs special workaround logic if test mode is detected.
     */
   private def initializeMessageQueue(): BlockingConsumerMessageQueue = {
-    sys.props.get(testLoggingPropertyKey) match {
-      case Some(value) =>
-        val logLevel =
-          value.toIntOption.flatMap(LogLevel.fromInteger).getOrElse {
-            System.err.println(
-              s"Invalid log level for $testLoggingPropertyKey, " +
-              s"falling back to info."
-            )
-            LogLevel.Info
-          }
-
+    LoggingSettings.testLogLevel match {
+      case Some(logLevel) =>
         val shouldOverride = () => currentService.isEmpty
-
+        System.err.println(s"Using test-mode logger at level $logLevel")
         new TestMessageQueue(logLevel, shouldOverride)
-      case None => productionMessageQueue()
+      case None =>
+        productionMessageQueue()
     }
   }
 

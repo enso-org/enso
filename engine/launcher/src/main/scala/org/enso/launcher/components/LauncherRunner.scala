@@ -68,7 +68,7 @@ class LauncherRunner(
       }
       RunSettings(
         version,
-        arguments ++ Seq("--log-level", logLevel.toString)
+        arguments ++ setLogLevelArgs(logLevel)
         ++ additionalArguments,
         connectLoggerIfAvailable = true
       )
@@ -128,11 +128,14 @@ class LauncherRunner(
           }
       RunSettings(
         version,
-        arguments ++ Seq("--log-level", logLevel.toString)
+        arguments ++ setLogLevelArgs(logLevel)
         ++ additionalArguments,
         connectLoggerIfAvailable = true
       )
     }
+
+  private def setLogLevelArgs(level: LogLevel): Seq[String] =
+    Seq("--log-level", level.name)
 
   /** Creates [[RunSettings]] for launching the Language Server.
     *

@@ -46,7 +46,7 @@ object GlobalCLIOptions {
       */
     def toOptions: Seq[String] = {
       val level = launcherLogLevel
-        .map(level => Seq(s"--$LOG_LEVEL", level.toString))
+        .map(level => Seq(s"--$LOG_LEVEL", level.name))
         .getOrElse(Seq())
       val uri = loggerConnectUri
         .map(uri => Seq(s"--$CONNECT_LOGGER", uri.toString))

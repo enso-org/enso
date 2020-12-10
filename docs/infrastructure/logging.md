@@ -251,3 +251,7 @@ In a rare situation where the service would not be initialized at all, a
 shutdown hook is added that will print the pending log messages before exiting.
 Some of the messages may be dropped, however, if more messages are buffered than
 the buffer can hold.
+
+### Logging in Tests
+
+TODO [RW]
