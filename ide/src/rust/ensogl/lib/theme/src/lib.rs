@@ -1,4 +1,5 @@
-//! Application theme setup.
+//! Builtin themes definition and compile-time generated theme paths (allowing catching improper
+//! theme usage during IDE compilation time).
 
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -17,52 +18,49 @@ use ensogl_core::prelude::ImString;
 // === Macros ===
 // ==============
 
-/// `define_theme` helper.
-#[macro_export]
+/// `_define_theme_wrapper_and_literals` helper.
 macro_rules! _define_theme_literals {
     ($id:tt $theme:ident [$($path:ident)*]) => {};
     ($id:tt $theme:ident [$($path:ident)*]
         $qual:ident . $($var:ident).+ = $($e:expr),* $(;$($rest:tt)*)?) => {
-            $crate::_define_theme_literals!{
+            _define_theme_literals!{
                 $id $theme [$($path)*] $qual { $($var).+ = $($e),* } $($($rest)*)?
             }
     };
     ($id:tt $theme:ident [$($path:ident)*] $var:ident = $($e:expr),* $(;$($rest:tt)*)?) => {
-        $theme.insert(stringify!($($path.)*$var), $crate::_select_theme_expr!{$id $($e),*});
-        $crate::_define_theme_literals!{$id $theme [$($path)*] $($($rest)*)?}
+        $theme.insert(stringify!($($path.)*$var), _select_theme_expr!{$id $($e),*});
+        _define_theme_literals!{$id $theme [$($path)*] $($($rest)*)?}
     };
     ($id:tt $theme:ident [$($path:ident)*] $path_segment:ident {$($t:tt)*} $($rest:tt)*) => {
-        $crate::_define_theme_literals!{$id $theme [$($path)* $path_segment] $($t)*}
-        $crate::_define_theme_literals!{$id $theme [$($path)*] $($rest)*}
+        _define_theme_literals!{$id $theme [$($path)* $path_segment] $($t)*}
+        _define_theme_literals!{$id $theme [$($path)*] $($rest)*}
     };
 }
 
-/// `define_theme` helper.
-#[macro_export]
+/// `_define_theme_wrapper_and_literals` helper.
 macro_rules! _define_theme_modules {
     ([$($path:ident)*]) => {};
     ([$($path:ident)*]
         $qual:ident . $($var:ident).+ = $($e:expr),* $(;$($rest:tt)*)?) => {
-            $crate::_define_theme_modules!{
+            _define_theme_modules!{
                 [$($path)*] $qual {$($var).+ = $($e),*} $($($rest)*)?
             }
     };
     ([$($path:ident)*] $var:ident = $($e:expr),* $(;$($rest:tt)*)?) => {
         pub const $var : StaticPath = StaticPath::new(stringify!($($path.)*$var));
-        $crate::_define_theme_modules!{[$($path)*] $($($rest)*)?}
+        _define_theme_modules!{[$($path)*] $($($rest)*)?}
     };
     ([$($path:ident)*] $path_segment:ident {$($t:tt)*} $($rest:tt)*) => {
         pub mod $path_segment {
             use ensogl_core::display::style::StaticPath;
             pub const HERE : StaticPath = StaticPath::new(stringify!($($path.)*$path_segment));
-            $crate::_define_theme_modules!{[$($path)* $path_segment] $($t)*}
+            _define_theme_modules!{[$($path)* $path_segment] $($t)*}
         }
-        $crate::_define_theme_modules!{[$($path)*] $($rest)*}
+        _define_theme_modules!{[$($path)*] $($rest)*}
     };
 }
 
 /// Select the theme expression by its number.
-#[macro_export]
 macro_rules! _select_theme_expr {
     (0 $e0:expr                                         $(,$rest:tt)*) => { $e0 };
     (1 $e0:expr, $e1:expr                               $(,$rest:tt)*) => { $e1 };
@@ -71,42 +69,20 @@ macro_rules! _select_theme_expr {
     (4 $e0:expr, $e1:expr, $e2:expr, $e3:expr, $e4:expr $(,$rest:tt)*) => { $e4 };
 }
 
-/// Used to define default theme. This one aside from generating code for `StyleManager` also creates
-/// nested public modules that makes accessing values much better than with bare string literals.
-/// It adds the `var` module with string constants, so now, instead of having to get data by string
-/// literal - like `style.get("foo.bar.baz",fallback)`, you can do
-/// `style.get(theme::foo::bar::baz,fallback)`.
-#[macro_export]
-macro_rules! define_default_theme {
-    ($ids:tt $($t:tt)*) => {
-        define_themes!{$ids { $($t)* }}
-
-        #[allow(non_upper_case_globals)]
-        #[allow(missing_docs)]
-        #[allow(non_snake_case)]
-        pub mod vars {
-            $crate::_define_theme_modules!{[] $($t)*}
-        }
-        pub use vars::*;
-    };
-}
-
 /// Helper for defining multiple themes as the same time.
-#[macro_export]
-macro_rules! define_themes {
+macro_rules! _define_themes_wrappers_and_literals {
     ([$($name:ident : $id:tt),*] $body:tt) => {
         /// Builtin themes.
         pub mod builtin {
             use super::*;
-            $(define_theme! {$name $id $body})*
+            $(_define_theme_wrapper_and_literals! {$name $id $body})*
         }
     }
 }
 
 /// Generates code for `StyleManager` from given cascade style definition. It generates module equal
 /// to the theme name and there will be function `setup` which creates a theme definition in `app`.
-#[macro_export]
-macro_rules! define_theme {
+macro_rules! _define_theme_wrapper_and_literals {
     ($name:ident $id:tt {$($t:tt)*}) => {
         #[allow(missing_docs)]
         #[allow(non_snake_case)]
@@ -117,12 +93,11 @@ macro_rules! define_theme {
             use ensogl_core::data::color::Lcha;
             use ensogl_core::display::style::theme;
 
-            /// Setup the `$name` theme in application.
-            pub fn setup(app:&Application) {
+            /// Registers the theme in the application.
+            pub fn register(app:&Application) {
                 let mut $name = theme::Theme::new();
-                $crate::_define_theme_literals!{$id $name [] $($t)*}
+                _define_theme_literals!{$id $name [] $($t)*}
                 app.themes.register(stringify!($name),$name);
-                app.themes.set_enabled(&[stringify!($name)]);
             }
 
             /// Enables current theme.
@@ -132,6 +107,31 @@ macro_rules! define_theme {
         }
     };
 }
+
+/// Used to define default theme. This one aside from generating code for `StyleManager` also creates
+/// nested public modules that makes accessing values much better than with bare string literals.
+/// It adds the `var` module with string constants, so now, instead of having to get data by string
+/// literal - like `style.get("foo.bar.baz",fallback)`, you can do
+/// `style.get(theme::foo::bar::baz,fallback)`.
+macro_rules! define_themes {
+    ($ids:tt $($t:tt)*) => {
+        _define_themes_wrappers_and_literals!{$ids { $($t)* }}
+
+        #[allow(non_upper_case_globals)]
+        #[allow(missing_docs)]
+        #[allow(non_snake_case)]
+        pub mod vars {
+            _define_theme_modules!{[] $($t)*}
+        }
+        pub use vars::*;
+    };
+}
+
+
+
+// =============
+// === Theme ===
+// =============
 
 /// Enum holding available themes for ease of access.
 #[allow(missing_docs)]
@@ -148,11 +148,11 @@ impl Default for Theme {
 
 
 
-// =============================
-// === Light Theme & Modules ===
-// =============================
+// ===========================
+// === Light & Dark Themes ===
+// ===========================
 
-define_default_theme! { [light:0, dark:1]
+define_themes! { [light:0, dark:1]
     application {
         background = Lcha(0.96,0.014,0.18,1.0) , Lcha(0.13,0.014,0.18,1.0);
     }
