@@ -804,10 +804,9 @@ impl Sheet {
     /// Creates a new style sheet `Var`.
     pub fn var<P>(&self, path:P) -> Var
     where P:Into<Path> {
-        let query_index          = self.rc.borrow_mut().unmanaged_query(path);
-        let callback_registry = callback::SharedRegistryMut1::<Option<Data>>::default();
-        self.callbacks.borrow_mut().insert(query_index,callback_registry.clone_ref());
-        Var::new(self,query_index,callback_registry)
+        let query_index  = self.rc.borrow_mut().unmanaged_query(path);
+        let callback_reg = self.callbacks.borrow_mut().entry(query_index).or_default().clone_ref();
+        Var::new(self,query_index,callback_reg)
     }
 
     /// Sets the value by the given path.

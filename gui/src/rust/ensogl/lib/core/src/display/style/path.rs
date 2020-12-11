@@ -94,6 +94,12 @@ where for<'t> &'t T : ToString {
     }
 }
 
+impl Display for Path {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}",self.rev_segments.iter().rev().join("."))
+    }
+}
+
 macro_rules! gen_var_path_conversions {
     ($($($num:tt)?),* $(,)?) => {$(
         impl<T> From<&[T$(;$num)?]> for Path
