@@ -151,7 +151,8 @@ class ConcurrencyTest
       temporaryDirectoryManager,
       resourceManager,
       engineProvider,
-      runtimeProvider
+      runtimeProvider,
+      Manifest.LauncherComponent
     )
 
     (distributionManager, componentsManager, temporaryDirectoryManager)

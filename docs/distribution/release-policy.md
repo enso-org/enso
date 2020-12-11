@@ -107,6 +107,9 @@ root of an Enso version package. It has at least the following fields:
 
 - `minimum-launcher-version` - specifies the minimum version of the launcher
   that should be used with this release of Enso,
+- `minimum-project-manager-version` - specifies the minimum version of the
+  project manager that should be used with this release of Enso; currently it is
+  tied to the launcher version but this may change in the future,
 - `graal-vm-version` - specifies the exact version of GraalVM that should be
   used with this release of Enso,
 - `graal-java-version` - as GraalVM versions may have different variants for
