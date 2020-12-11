@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
@@ -52,7 +51,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val log = LoggerFactory.getLogger(this.getClass)
   log.trace("Initializing...")
 
-  val directoriesConfig = DirectoriesConfig(serverConfig.contentRootPath)
+  val directoriesConfig =
+    DirectoriesConfig.initialize(serverConfig.contentRootPath)
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
@@ -61,13 +61,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     directoriesConfig
   )
   log.trace("Created Language Server config")
-
-  try {
-    directoriesConfig.createDirectories()
-  } catch {
-    case NonFatal(ex) =>
-      log.error("Error creating config directories", ex)
-  }
 
   val zioExec = ZioExec(zio.Runtime.default)
   log.trace("Created ZioExec")
