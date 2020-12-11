@@ -156,18 +156,3 @@ spec = describe "Vectors" <|
         small_vec = [Test 1 8, Test 1 3, Test -20 0, Test -1 1, Test -1 10, Test 4 0]
         small_expected = [Test 4 0, Test 1 3, Test 1 8, Test -1 10, Test -1 1, Test -20 0]
         small_vec.sort order=Sort_Order.Descending . should_equal small_expected
-    # it "should foo" <|
-        # test = Ref.new 0
-
-        # while : Boolean -> Any -> Nothing
-        # while ~cond ~action = if cond.not then Nothing else
-            # action
-            # @Tail_Call while cond action
-
-        # while ((Ref.get test) < 10) <|
-            # val = Ref.get test
-            # IO.println val
-            # new_val = val + 1
-            # IO.println new_val
-            # Ref.put test new_val
-            # IO.println "after"

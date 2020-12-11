@@ -94,7 +94,6 @@ public abstract class BitShiftNode extends Node {
 
   @Specialization
   Object doAtomThis(Atom _this, Object that) {
-    // TODO [AA] Fix these.
     throw new TypeError("Unexpected type provided for `this` in Integer.bit_shift", this);
   }
 
