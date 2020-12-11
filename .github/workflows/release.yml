@@ -353,6 +353,13 @@ jobs:
           username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
           password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
 
+      - name: Prepare Distribution Environment
+        working-directory: repo
+        shell: bash
+        run: >
+          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}') bash
+          tools/ci/prepare-distribution-env.sh
+
       - name: Publish Runtime Docker Image
         working-directory: repo
         shell: bash
