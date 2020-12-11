@@ -38,7 +38,6 @@ class ConcurrencyTest
     with WithTemporaryDirectory
     with FakeEnvironment
     with BeforeAndAfterEach
-    with DropLogs
     with TimeLimitedTests
     with RetrySpec {
 

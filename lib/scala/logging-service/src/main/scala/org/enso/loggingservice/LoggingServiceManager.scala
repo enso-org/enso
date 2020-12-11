@@ -92,7 +92,7 @@ object LoggingServiceManager {
     * times.
     */
   def tearDown(): Unit = {
-    val service = currentService.synchronized {
+    val service = this.synchronized {
       val service = currentService
       currentService = None
       service
@@ -104,6 +104,11 @@ object LoggingServiceManager {
     }
 
     handlePendingMessages()
+  }
+
+  /** Checks if the logging service has been set up. */
+  def isSetUp(): Boolean = this.synchronized {
+    currentService.isDefined
   }
 
   Runtime.getRuntime.addShutdownHook(new Thread(() => tearDown()))
@@ -119,7 +124,7 @@ object LoggingServiceManager {
   ): Unit = {
     val fallback =
       Local.setup(currentLevel, messageQueue, printers)
-    val previousService = currentService.synchronized {
+    val previousService = this.synchronized {
       val previous = currentService
       currentService = Some(fallback)
       previous
@@ -161,7 +166,7 @@ object LoggingServiceManager {
     mode: LoggerMode[InitializationResult],
     logLevel: LogLevel
   ): InitializationResult = {
-    currentService.synchronized {
+    this.synchronized {
       if (currentService.isDefined) {
         throw new IllegalStateException(
           "The logging service has already been set up."

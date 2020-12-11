@@ -37,7 +37,6 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     val module = new MainModule(config, logLevel)
-    akka.event.slf4j.Logger
     val initMainModule =
       for {
         _ <- module.init

@@ -40,7 +40,7 @@ import org.enso.projectmanager.service.{
 }
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.OS
-import org.enso.runtimeversionmanager.test.{DropLogs, FakeReleases}
+import org.enso.runtimeversionmanager.test.FakeReleases
 import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
@@ -50,10 +50,7 @@ import zio.{Runtime, Semaphore, ZEnv, ZIO}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class BaseServerSpec
-    extends JsonRpcServerTestKit
-    with DropLogs
-    with BeforeAndAfterAll {
+class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   override def protocol: Protocol = JsonRpc.protocol
 

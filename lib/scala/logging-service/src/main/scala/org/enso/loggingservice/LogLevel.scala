@@ -90,6 +90,7 @@ object LogLevel {
     * Returns None if the number does not represent a valid log level.
     */
   def fromInteger(level: Int): Option[LogLevel] = level match {
+    case Off.level     => Some(Off)
     case Error.level   => Some(Error)
     case Warning.level => Some(Warning)
     case Info.level    => Some(Info)
@@ -103,6 +104,7 @@ object LogLevel {
     * Returns None if the value does not represent a valid log level.
     */
   def fromString(level: String): Option[LogLevel] = level match {
+    case Off.name     => Some(Off)
     case Error.name   => Some(Error)
     case Warning.name => Some(Warning)
     case Info.name    => Some(Info)
