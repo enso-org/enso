@@ -186,36 +186,16 @@ jobs:
           test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
 
       # Verify License Packages in Distributions
-      - name: Verify Engine Licenses Package
+      - name: Verify Distributed Licenses Package
         working-directory: repo
+        if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
         shell: bash
         run: |
           sleep 1
           sbt "enso/verifyGeneratedPackage engine ${{ env.ENGINE_DIST_DIR }}/THIRD-PARTY"
-      - name: Verify Launcher Licenses Package
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
           sbt "enso/verifyGeneratedPackage launcher ${{ env.LAUNCHER_DIST_DIR }}/THIRD-PARTY"
-      - name: Verify Project Manager Licenses Package
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
           sbt "enso/verifyGeneratedPackage project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/THIRD-PARTY"
-
-      - name: Verify std-lib-Base Licenses Package
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
           sbt "enso/verifyGeneratedPackage std-lib-Base ${{ env.ENGINE_DIST_DIR }}/std-lib/Base/THIRD-PARTY"
-      - name: Verify std-lib-Table Licenses Package
-        working-directory: repo
-        shell: bash
-        run: |
-          sleep 1
           sbt "enso/verifyGeneratedPackage std-lib-Table ${{ env.ENGINE_DIST_DIR }}/std-lib/Table/THIRD-PARTY"
 
       # Publish
