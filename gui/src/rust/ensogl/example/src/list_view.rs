@@ -95,8 +95,9 @@ impl list_view::entry::ModelProvider for MockEntries {
 // ========================
 
 fn init(app:&Application) {
-    theme::builtin::dark::setup(&app);
-    theme::builtin::light::setup(&app);
+    theme::builtin::dark::register(&app);
+    theme::builtin::light::register(&app);
+    theme::builtin::light::enable(&app);
 
     let select   = app.new_view::<list_view::ListView>();
     let provider = list_view::entry::AnyModelProvider::from(MockEntries::new(app,1000));

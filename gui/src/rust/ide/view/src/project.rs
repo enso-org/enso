@@ -182,8 +182,10 @@ impl View {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
 
-        ensogl_theme::builtin::dark::setup(app);
-        ensogl_theme::builtin::light::setup(app);
+        ensogl_theme::builtin::dark::register(app);
+        ensogl_theme::builtin::light::register(app);
+        // Should not be needed after proper theme management will be introduced:
+        ensogl_theme::builtin::light::enable(app);
 
         let model                      = Model::new(app);
         let frp                        = Frp::new();
