@@ -66,7 +66,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     directoriesConfig.createDirectories()
   } catch {
     case NonFatal(ex) =>
-      log.error("Error creating directories", ex)
+      log.error("Error creating config directories", ex)
   }
 
   val zioExec = ZioExec(zio.Runtime.default)
