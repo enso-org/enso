@@ -1150,7 +1150,6 @@ lazy val launcher = project
       "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
-      akkaHttp,
       akkaSLF4J
     )
   )
@@ -1205,8 +1204,7 @@ lazy val `runtime-version-manager` = project
       "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
-      akkaHttp,
-      akkaSLF4J
+      akkaHttp
     )
   )
   .dependsOn(pkg)

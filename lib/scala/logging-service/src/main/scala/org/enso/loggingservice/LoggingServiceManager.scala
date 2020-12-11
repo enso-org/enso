@@ -26,7 +26,9 @@ object LoggingServiceManager {
     LoggingSettings.testLogLevel match {
       case Some(logLevel) =>
         val shouldOverride = () => currentService.isEmpty
-        System.err.println(s"Using test-mode logger at level $logLevel")
+        System.err.println(
+          s"[Logging Service] Using test-mode logger at level $logLevel."
+        )
         new TestMessageQueue(logLevel, shouldOverride)
       case None =>
         productionMessageQueue()
