@@ -8,9 +8,21 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
+import java.util.Random;
 
 /** Utils for standard library operations on Time. */
 public class Time_Utils {
+
+  public static Object[] randomArray = makeRandom(10);
+
+  public static Object[] makeRandom(int size) {
+    var generator = new Random(size);
+    var array = new Object[size];
+    for (int i = 0; i < size; ++i) {
+      array[i] = generator.nextLong();
+    }
+    return array;
+  }
 
   /**
    * The ISO-like date-time formatter that formats or parses a date-time with optional offset and

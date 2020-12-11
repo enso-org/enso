@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import org.enso.interpreter.runtime.data.Array;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -17,7 +16,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -27,17 +25,17 @@ import org.openjdk.jmh.infra.Blackhole;
 public class JavaSortBenchmarks {
   public static int size = 1000000;
 
-  public static Long[] makeSortedAscending(int size) {
-    var array = new Long[size];
+  public static Object[] makeSortedAscending(int size) {
+    var array = new Object[size];
     for (int i = 0; i < size; ++i) {
       array[i] = (long) i;
     }
     return array;
   }
 
-  public static Long[] makePartiallySorted(int size) {
+  public static Object[] makePartiallySorted(int size) {
     var generator = new Random(size);
-    var array = new Long[size];
+    var array = new Object[size];
     var lastNumber = 0L;
     var runLength = 0L;
     var sortDirection = 1; // 1 for ascending, -1 for descending
@@ -72,8 +70,8 @@ public class JavaSortBenchmarks {
 
   @State(Scope.Thread)
   public static class BenchState {
-    public Long[] sorted;
-    public Long[] partiallySorted;
+    public Object[] sorted;
+    public Object[] partiallySorted;
     public Object[] random;
 
     @Setup(Level.Iteration)
@@ -91,53 +89,57 @@ public class JavaSortBenchmarks {
     }
   }
 
-//  @Benchmark
-//  public void alreadySorted(BenchState state) {
-//    Arrays.sort(state.sorted);
-//  }
-//
-//  @Benchmark
-//  public void sortedOppositeOrder(BenchState state) {
-//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
-//    Arrays.sort(state.sorted, comp);
-//  }
-//
-//  @Benchmark
-//  public void sortedRunsAscending(BenchState state) {
-//    Arrays.sort(state.partiallySorted);
-//  }
-//
-//  @Benchmark
-//  public void sortedRunsDescending(BenchState state) {
-//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
-//    Arrays.sort(state.partiallySorted, comp);
-//  }
+  @Benchmark
+  public void alreadySorted(BenchState state) {
+    Arrays.sort(state.sorted);
+  }
+
+  @Benchmark
+  public void sortedOppositeOrder(BenchState state) {
+    Comparator<Object> comp = (Object l, Object r) -> ((Long) r).compareTo((Long) l);
+    Arrays.sort(state.sorted, comp);
+  }
+
+  @Benchmark
+  public void sortedRunsAscending(BenchState state) {
+    Arrays.sort(state.partiallySorted);
+  }
+
+  @Benchmark
+  public void sortedRunsDescending(BenchState state) {
+    Comparator<Object> comp = (Object l, Object r) -> ((Long) r).compareTo((Long) l);
+    Arrays.sort(state.partiallySorted, comp);
+  }
 
   @Benchmark
   public void randomElementsAscending(BenchState state) {
-    Comparator<Object> comp = (Object l, Object r) -> { return ((Long) l).compareTo((Long) r);};
+    Comparator<Object> comp = (Object l, Object r) -> ((Long) l).compareTo((Long) r);
     Arrays.sort(state.random, comp);
   }
 
-//  @Benchmark
-//  public void randomElementsDescending(BenchState state) {
-//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
-//    Arrays.sort(state.random, comp);
-//  }
-//
-//  @Benchmark
-//  public void customProjection(BenchState state) {
-//    Comparator<Long> comp = (Long l, Long r) -> {
-//      Long new_l = l % 10;
-//      Long new_r = r % 10;
-//      return new_l.compareTo(new_r);
-//    };
-//    Arrays.sort(state.random, comp);
-//  }
-//
-//  @Benchmark
-//  public void customComparison(BenchState state) {
-//    Comparator<Long> comp = (Long l, Long r) -> { return r.compareTo(l);};
-//    Arrays.sort(state.random, comp);
-//  }
+  @Benchmark
+  public void randomElementsDescending(BenchState state) {
+    Comparator<Object> comp = (Object l, Object r) -> ((Long) r).compareTo((Long) l);
+    Arrays.sort(state.random, comp);
+  }
+
+  @Benchmark
+  public void customProjection(BenchState state) {
+    Comparator<Object> comp =
+        (Object l, Object r) -> {
+          Long new_l = (Long) l % 10;
+          Long new_r = (Long) r % 10;
+          return new_l.compareTo(new_r);
+        };
+    Arrays.sort(state.random, comp);
+  }
+
+  @Benchmark
+  public void customComparison(BenchState state) {
+    Comparator<Object> comp =
+        (Object l, Object r) -> {
+          return ((Long) r).compareTo((Long) l);
+        };
+    Arrays.sort(state.random, comp);
+  }
 }
