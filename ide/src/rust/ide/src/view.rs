@@ -11,7 +11,6 @@ use crate::view::integration::Integration;
 use ensogl::application::Application;
 use ensogl::system::web;
 use enso_protocol::language_server::MethodPointer;
-use ensogl_theme as theme;
 use parser::Parser;
 
 
@@ -90,8 +89,6 @@ impl View {
 
         let application   = Application::new(&web::get_html_element_by_id("root").unwrap());
 
-        theme::builtin::dark::setup(&application);
-        theme::builtin::light::setup(&application);
         let view = application.new_view::<ide_view::project::View>();
         application.display.add_child(&view);
 
