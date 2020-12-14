@@ -94,7 +94,7 @@ class UpgradeSpec
       val root = launcherPath.getParent.getParent
       FileSystem.writeTextFile(root / ".enso.portable", "mark")
     }
-    Thread.sleep(250)
+    Thread.sleep(1000)
   }
 
   /** Path to the launcher executable in the temporary distribution.
