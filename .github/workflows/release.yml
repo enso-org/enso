@@ -354,7 +354,6 @@ jobs:
           password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
 
       - name: Publish Runtime Docker Image
-        working-directory: repo
         shell: bash
         run: |
           sleep 1
