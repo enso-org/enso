@@ -19,9 +19,9 @@ type Ordering
     ## An ordering where a compared value is greater than another.
     Greater
 
-    ## Converts the ordering to the Java notion of ordering based on integers.
-    to_java : Integer
-    to_java = case this of
+    ## Converts the ordering to the signed notion of ordering based on integers.
+    to_sign : Integer
+    to_sign = case this of
         Less -> -1
         Equal -> 0
         Greater -> 1

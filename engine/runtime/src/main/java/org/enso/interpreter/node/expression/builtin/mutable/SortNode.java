@@ -6,6 +6,7 @@ import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -24,14 +25,10 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(type = "Array", name = "sort", description = "Sorts a mutable array in place.")
 public abstract class SortNode extends Node {
   private final ConditionProfile consProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile lessProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile equalsProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile greaterProfile = ConditionProfile.createCountingProfile();
 
   abstract Object execute(VirtualFrame frame, Object _this, Object comparator);
 
@@ -50,25 +47,7 @@ public abstract class SortNode extends Node {
       @Cached("ctxRef.get().getBuiltins().ordering().newEqual()") Atom equal,
       @Cached("ctxRef.get().getBuiltins().ordering().newGreater()") Atom greater) {
     Comparator<Object> compare =
-        (l, r) -> {
-          Stateful result =
-              invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
-          if (TypesGen.isAtom(result.getValue())) {
-            Atom atom = TypesGen.asAtom(result.getValue());
-            if (lessProfile.profile(atom == less)) {
-              return -1;
-            } else if (equalsProfile.profile(atom == equal)) {
-              return 0;
-            } else if (greaterProfile.profile(atom == greater)) {
-              return 1;
-            }
-          }
-
-          CompilerDirectives.transferToInterpreter();
-          var ordering = ctxRef.get().getBuiltins().ordering().ordering();
-          throw new PanicException(
-              ctxRef.get().getBuiltins().error().makeTypeError(ordering, result.getValue()), this);
-        };
+        buildComparator(invokeNode, frame.materialize(), comparator, less, equal, greater, ctxRef);
     doSort(_this.getItems(), compare);
     return ctxRef.get().getBuiltins().nothing().newInstance();
   }
@@ -94,9 +73,36 @@ public abstract class SortNode extends Node {
     Arrays.sort(items, compare);
   }
 
+  Comparator<Object> buildComparator(
+      InvokeCallableNode invokeNode,
+      MaterializedFrame frame,
+      Object comparator,
+      Atom less,
+      Atom equal,
+      Atom greater,
+      ContextReference<Context> ctxRef) {
+    return (l, r) -> {
+      Stateful result =
+          invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
+      Object atom = result.getValue();
+      if (atom == less) {
+        return -1;
+      } else if (atom == equal) {
+        return 0;
+      } else if (atom == greater) {
+        return 1;
+      } else {
+        CompilerDirectives.transferToInterpreter();
+        var ordering = ctxRef.get().getBuiltins().ordering().ordering();
+        throw new PanicException(
+            ctxRef.get().getBuiltins().error().makeTypeError(ordering, result.getValue()), this);
+      }
+    };
+  }
+
   InvokeCallableNode buildInvokeNode() {
     CallArgumentInfo[] callArguments = {new CallArgumentInfo(), new CallArgumentInfo()};
     return InvokeCallableNode.build(
-        callArguments, DefaultsExecutionMode.IGNORE, ArgumentsExecutionMode.EXECUTE);
+        callArguments, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.PRE_EXECUTED);
   }
 }

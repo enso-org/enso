@@ -13,17 +13,6 @@ import java.util.Random;
 /** Utils for standard library operations on Time. */
 public class Time_Utils {
 
-  public static Object[] randomArray = makeRandom(10);
-
-  public static Object[] makeRandom(int size) {
-    var generator = new Random(size);
-    var array = new Object[size];
-    for (int i = 0; i < size; ++i) {
-      array[i] = generator.nextLong();
-    }
-    return array;
-  }
-
   /**
    * The ISO-like date-time formatter that formats or parses a date-time with optional offset and
    * zone, such as '2011-12-03T10:15:30+01:00[Europe/Paris]'.
