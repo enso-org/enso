@@ -8,7 +8,6 @@ import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.SemVerJson._
 import org.enso.runtimeversionmanager.components.Manifest.{
-  ComponentSelector,
   JVMOption,
   MinimumComponentVersions
 }
@@ -55,8 +54,9 @@ case class Manifest(
     componentSelector: ComponentSelector
   ): SemVer =
     componentSelector match {
-      case Manifest.LauncherComponent => minimumComponentVersion.launcher
-      case Manifest.ProjectManagerComponent =>
+      case ComponentSelector.Launcher =>
+        minimumComponentVersion.launcher
+      case ComponentSelector.ProjectManager =>
         minimumComponentVersion.projectManager
     }
 }
@@ -64,10 +64,6 @@ case class Manifest(
 object Manifest {
 
   case class MinimumComponentVersions(launcher: SemVer, projectManager: SemVer)
-
-  sealed trait ComponentSelector
-  case object LauncherComponent       extends ComponentSelector
-  case object ProjectManagerComponent extends ComponentSelector
 
   /** Defines the name under which the manifest is included in the releases.
     */

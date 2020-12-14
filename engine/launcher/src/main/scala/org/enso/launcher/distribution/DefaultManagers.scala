@@ -5,7 +5,7 @@ import org.enso.launcher.cli.{
   GlobalCLIOptions
 }
 import org.enso.runtimeversionmanager.components.{
-  Manifest,
+  ComponentSelector,
   RuntimeVersionManager
 }
 import org.enso.runtimeversionmanager.distribution.{
@@ -58,6 +58,6 @@ object DefaultManagers {
       defaultResourceManager,
       EngineRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider,
-      Manifest.LauncherComponent
+      ComponentSelector.Launcher
     )
 }

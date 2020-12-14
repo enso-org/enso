@@ -6,7 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
-  Manifest,
+  ComponentSelector,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
@@ -39,7 +39,8 @@ class RuntimeVersionManagerTest
   def makeManagers(
     environmentOverrides: Map[String, String] = Map.empty,
     userInterface: RuntimeVersionManagementUserInterface =
-      TestRuntimeVersionManagementUserInterface.default
+      TestRuntimeVersionManagementUserInterface.default,
+    componentSelector: ComponentSelector = ComponentSelector.Launcher
   ): (DistributionManager, RuntimeVersionManager, Environment) = {
     val env                 = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager = new PortableDistributionManager(env)
@@ -55,7 +56,7 @@ class RuntimeVersionManagerTest
       resourceManager,
       FakeReleases.engineReleaseProvider,
       FakeReleases.runtimeReleaseProvider,
-      Manifest.LauncherComponent
+      componentSelector
     )
 
     (distributionManager, runtimeVersionManager, env)

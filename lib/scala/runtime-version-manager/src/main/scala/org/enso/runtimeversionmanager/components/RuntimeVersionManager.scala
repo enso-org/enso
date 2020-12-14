@@ -43,7 +43,7 @@ class RuntimeVersionManager(
   resourceManager: ResourceManager,
   engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
-  implicit val componentSelector: Manifest.ComponentSelector
+  implicit val componentSelector: ComponentSelector
 ) {
   private val logger = Logger[RuntimeVersionManager]
 
