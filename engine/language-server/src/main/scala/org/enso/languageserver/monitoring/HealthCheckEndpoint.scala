@@ -26,6 +26,9 @@ class HealthCheckEndpoint(
 
   implicit private val timeout: Timeout = Timeout(10.seconds)
 
+  private val initialPingHandler =
+    actorFactory.actorOf(initialPingProps, "readiness-probe")
+
   override def route: Route =
     readinessProbe ~ livenessProbe ~ classicalHealthCheck
 
@@ -59,11 +62,8 @@ class HealthCheckEndpoint(
       }
     }
 
-  private def checkReadiness(): Route = {
-    val initialPingHandler =
-      actorFactory.actorOf(initialPingProps, UUID.randomUUID().toString)
+  private def checkReadiness(): Route =
     askHandler(initialPingHandler, InitialPing)
-  }
 
   private def checkLiveness(): Route = {
     val pingHandler =

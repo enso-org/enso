@@ -17,7 +17,6 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
 import org.enso.languageserver.monitoring.HealthCheckEndpoint
-import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
