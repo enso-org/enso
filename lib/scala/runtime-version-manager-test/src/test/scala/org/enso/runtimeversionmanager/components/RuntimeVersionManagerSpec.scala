@@ -14,7 +14,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
     "find the latest engine version in semver ordering " +
     "(skipping broken releases)" in {
       val componentsManager = makeRuntimeVersionManager()
-      componentsManager.fetchLatestEngineVersion() shouldEqual SemVer(0, 0, 1)
+      componentsManager.fetchLatestEngineVersion() shouldEqual SemVer(0, 1, 0)
     }
 
     "install the engine and a matching runtime for it" in {

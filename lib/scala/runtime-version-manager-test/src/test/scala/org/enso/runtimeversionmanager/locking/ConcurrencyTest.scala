@@ -7,6 +7,7 @@ import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
+  ComponentSelector,
   GraalVMVersion,
   Manifest,
   RuntimeVersionManager
@@ -152,7 +153,7 @@ class ConcurrencyTest
       resourceManager,
       engineProvider,
       runtimeProvider,
-      Manifest.LauncherComponent
+      ComponentSelector.Launcher
     )
 
     (distributionManager, componentsManager, temporaryDirectoryManager)
