@@ -51,6 +51,7 @@ impl ContentSummary {
 struct ParsedContentSummary {
     #[shrinkwrap(main_field)]
     summary  : ContentSummary,
+    source   : String,
     code     : Range<TextLocation>,
     id_map   : Range<TextLocation>,
     metadata : Range<TextLocation>,
@@ -60,11 +61,27 @@ impl ParsedContentSummary {
     /// Get summary from `SourceFile`.
     fn from_source(source:&SourceFile) -> Self {
         ParsedContentSummary {
-            summary     : ContentSummary::new(&source.content),
-            code        : TextLocation::convert_byte_range(&source.content,&source.code),
-            id_map      : TextLocation::convert_byte_range(&source.content,&source.id_map),
-            metadata    : TextLocation::convert_byte_range(&source.content,&source.metadata),
+            summary  : ContentSummary::new(&source.content),
+            source   : source.content.clone(),
+            code     : TextLocation::convert_byte_range(&source.content,&source.code),
+            id_map   : TextLocation::convert_byte_range(&source.content,&source.id_map),
+            metadata : TextLocation::convert_byte_range(&source.content,&source.metadata),
         }
+    }
+
+    // Get fragment of string with code.
+    pub fn code_slice(&self) -> &str { &self.slice(&self.code) }
+
+    /// Get fragment of string with id map.
+    pub fn id_map_slice  (&self) -> &str { &self.slice(&self.id_map) }
+
+    /// Get fragment of string with metadata.
+    pub fn metadata_slice(&self) -> &str { &self.slice(&self.metadata) }
+
+    fn slice(&self, range:&Range<TextLocation>) -> &str {
+        let start_ix = range.start.to_index(&self.source);
+        let end_ix = range.end.to_index(&self.source);
+        &self.source[start_ix.value..end_ix.value]
     }
 }
 
@@ -263,7 +280,7 @@ impl Module {
                 self.full_invalidation(summary,new_file).await,
             LanguageServerContent::Synchronized(summary) => match kind {
                 NotificationKind::Invalidate =>
-                    self.full_invalidation(&summary.summary,new_file).await,
+                    self.partial_invalidation(&summary,new_file).await,
                 NotificationKind::CodeChanged{change,replaced_location} => {
                     let code_change = TextEdit {
                         range: replaced_location.into(),
@@ -300,6 +317,45 @@ impl Module {
             text  : new_file.content.clone(),
         }];
         self.notify_language_server(ls_content,&new_file,edits)
+    }
+
+    fn edit_for_snipped(start:&TextLocation, source:&str,target:&str) -> Option<TextEdit> {
+        // This is an implicit assumption that always seems to be true. Otherwise finding the correct
+        // location for the final edit would be more complex.
+        debug_assert_eq!(start.column, 0);
+
+        let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
+        let edit = edit.move_by_lines(start.line);
+        (!edit.text.is_empty()).as_some( edit)
+    }
+
+    fn edit_for_code(ls_content:&ParsedContentSummary, new_file:&SourceFile) -> Option<TextEdit> {
+        Self::edit_for_snipped(&ls_content.code.start,ls_content.code_slice(),new_file.code_slice() )
+    }
+
+    fn edit_for_metadata(ls_content:&ParsedContentSummary, new_file:&SourceFile) -> Option<TextEdit>  {
+        Self::edit_for_snipped(&ls_content.metadata.start,ls_content.metadata_slice(),new_file.metadata_slice() )
+    }
+
+    fn edit_for_idmap(ls_content:&ParsedContentSummary, new_file:&SourceFile) -> Option<TextEdit>  {
+        Self::edit_for_snipped(&ls_content.id_map.start,ls_content.id_map_slice(),new_file.id_map_slice() )
+    }
+
+    /// Send update to Language Server with the changed file content. Returns the new content
+    /// summary of Language Server state.
+    ///
+    /// Note that a heuristic is used to determine the changed file content. The indicated change
+    /// might not be the minimal diff, but will contain all changes.
+    fn partial_invalidation
+    (&self, ls_content:&ParsedContentSummary, new_file:SourceFile)
+     -> impl Future<Output=FallibleResult<ParsedContentSummary>> + 'static {
+        debug!(self.logger,"Handling partial invalidation: {ls_content:?}.");
+        let edits = vec![
+            Self::edit_for_code(ls_content,&new_file),
+            Self::edit_for_metadata(ls_content,&new_file),
+            Self::edit_for_idmap(ls_content,&new_file),
+        ].into_iter().filter_map(|edit| edit).collect_vec();
+        self.notify_language_server(&ls_content.summary,&new_file,edits)
     }
 
     /// This is a helper function with all common logic regarding sending the update to
@@ -520,7 +576,10 @@ pub mod test {
                 // Opening module and metadata generation.
                 edit_handler.expect_full_invalidation(client);
                 // Explicit AST update.
-                edit_handler.expect_full_invalidation(client);
+                edit_handler.expect_some_edit(client, |edit|{
+                    assert!(edit.edits[0].text.contains("Test"));
+                    Ok(())
+                });
                 // Replacing `Test` with `Test 2`
                 edit_handler.expect_some_edit(client, |edits| {
                     let edit_code = &edits.edits[1];
