@@ -353,19 +353,12 @@ jobs:
           username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
           password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
 
-      - name: Prepare Distribution Environment
-        working-directory: repo
-        shell: bash
-        run: >
-          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}') bash
-          tools/ci/prepare-distribution-env.sh
-
       - name: Publish Runtime Docker Image
         working-directory: repo
         shell: bash
         run: |
           sleep 1
-          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./tools/ci/docker/Dockerfile ${{ env.ENGINE_DIST_DIR }}
+          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./tools/ci/docker/Dockerfile artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/component
           docker publish ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
 
       # Publish the launcher packages to the backup/fallback S3 bucket
