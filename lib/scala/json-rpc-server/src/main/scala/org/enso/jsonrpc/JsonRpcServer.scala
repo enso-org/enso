@@ -6,13 +6,13 @@ import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
-import akka.http.scaladsl.server.Directives.{get, handleWebSocketMessages, path}
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.{Materializer, OverflowStrategy}
 import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.{Materializer, OverflowStrategy}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 /** Exposes a multi-client JSON RPC Server instance over WebSocket connections.
   *
@@ -25,7 +25,8 @@ import scala.concurrent.duration._
 class JsonRpcServer(
   protocol: Protocol,
   clientControllerFactory: ClientControllerFactory,
-  config: JsonRpcServer.Config = JsonRpcServer.Config.default
+  config: JsonRpcServer.Config      = JsonRpcServer.Config.default,
+  optionalEndpoints: List[Endpoint] = List.empty
 )(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
@@ -80,8 +81,15 @@ class JsonRpcServer(
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }
 
-  private val route: Route = path(config.path) {
-    get { handleWebSocketMessages(newUser()) }
+  private val route: Route = {
+    val webSocketEndpoint =
+      path(config.path) {
+        get { handleWebSocketMessages(newUser()) }
+      }
+
+    optionalEndpoints.foldLeft(webSocketEndpoint) { (chain, next) =>
+      chain ~ next.route
+    }
   }
 
   /** Binds this server instance to a given port and interface, allowing

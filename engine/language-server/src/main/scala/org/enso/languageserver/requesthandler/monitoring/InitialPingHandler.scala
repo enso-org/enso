@@ -42,7 +42,7 @@ class InitialPingHandler extends Actor with ActorLogging {
 
   private def failed: Receive = {
     case Request(MonitoringApi.InitialPing, id, Unused) =>
-      ResponseError(Some(id), ServiceError)
+      sender() ! ResponseError(Some(id), ServiceError)
   }
 }
 
