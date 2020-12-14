@@ -357,6 +357,8 @@ jobs:
         shell: bash
         run: |
           sleep 1
+          pwd
+          ls
           docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./tools/ci/docker/Dockerfile ./artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/component
           docker publish ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
 
