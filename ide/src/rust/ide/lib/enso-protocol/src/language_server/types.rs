@@ -340,6 +340,79 @@ pub struct TextEdit {
     pub text: String
 }
 
+impl TextEdit {
+    /// Compute an edit that represents the difference between the two given strings based on their
+    /// common pre- and postfix. This is an approximation of the diff between the two strings that
+    /// assumes that anythign between the common prefix and the common post-fix has changed.
+    ///
+    /// Example:
+    /// ```
+    /// # use enso_protocol::language_server::{TextEdit, Position, TextRange};
+    /// # use enso_data::text::TextLocation;
+    /// let source = "\n333<->🌊12345\n";
+    /// let target = "\n333x🔥12345\n";
+    ///
+    /// let diff = TextEdit::from_prefix_postfix_differences(source,target);
+    ///
+    /// let edit_start:TextLocation = Position{line:1,character:3}.into();
+    /// let edit_end:TextLocation   = Position{line:1,character:7}.into();
+    /// let edit_range:TextRange    = (edit_start..edit_end).into();
+    /// assert_eq!(diff, TextEdit{range:edit_range, text:"x🔥".to_string()});
+    /// ```
+    pub fn from_prefix_postfix_differences(source:&str, target:&str) -> TextEdit {
+        use enso_data::text::Index;
+        use enso_data::text::TextLocation;
+
+        let source_length = source.chars().count();
+        let target_length = target.chars().count();
+
+        let prefix_length  = utils::string::common_prefix_length(source, target);
+        let postfix_length = utils::string::common_postfix_length(source, target);
+
+        let source_start_index = Index::new(prefix_length);
+        let source_end_index   = Index::new(source_length - postfix_length);
+
+        let source_start_position = TextLocation::from_index(source,source_start_index);
+        let source_end_position   = TextLocation::from_index(source,source_end_index);
+        let source_text_range     = source_start_position..source_end_position;
+
+        let target_range = prefix_length..(target_length - postfix_length);
+        let target_text  = target.chars().skip(target_range.start).take(target_range.len());
+
+        TextEdit {
+            range : source_text_range.into(),
+            text  : target_text.collect()
+        }
+    }
+
+    /// Return the edit moved by the given number of lines.
+    ///
+    /// Example:
+    /// ```
+    /// # use enso_protocol::language_server::{Position, TextRange, TextEdit};
+    /// let start = Position{line:0, character:4};
+    /// let end   = Position{line:23, character:7};
+    /// let range = TextRange{start,end};
+    /// let edit  = TextEdit{range,text:"Answer".to_string()};
+    ///
+    /// let moved = edit.clone().move_by_lines(42);
+    ///
+    /// assert_eq!(moved.range.start.line, 42);
+    /// assert_eq!(moved.range.end.line, 42+23);
+    /// assert_eq!(moved.range.start.character, edit.range.start.character);
+    /// assert_eq!(moved.range.end.character, edit.range.end.character);
+    /// ```
+    pub fn move_by_lines(self, lines:usize) -> TextEdit {
+        let TextEdit{range,text} = self;
+        let TextRange{start,end} = range;
+        let start = Position{line:start.line+lines, character:start.character};
+        let end   = Position{line:end.line+lines, character:end.character};
+        let range = TextRange{start,end};
+        TextEdit{range,text}
+    }
+}
+
+
 
 // ================
 // === FileEdit ===
