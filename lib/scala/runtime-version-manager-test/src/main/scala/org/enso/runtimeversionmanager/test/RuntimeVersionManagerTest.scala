@@ -6,6 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
+  Manifest,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
@@ -53,7 +54,8 @@ class RuntimeVersionManagerTest
       temporaryDirectoryManager,
       resourceManager,
       FakeReleases.engineReleaseProvider,
-      FakeReleases.runtimeReleaseProvider
+      FakeReleases.runtimeReleaseProvider,
+      Manifest.LauncherComponent
     )
 
     (distributionManager, runtimeVersionManager, env)

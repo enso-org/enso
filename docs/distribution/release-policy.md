@@ -134,8 +134,7 @@ For example:
 
 ```yaml
 minimum-launcher-version: 0.0.1
-graal-vm-version: 20.2.0
-graal-java-version: 11
+minimum-project-manager-version: 0.0.1
 jvm-options:
   - value: "-Dpolyglot.engine.IterativePartialEscape=true"
   - value: "-Dtruffle.class.path.append=$enginePackagePath\\component\\runtime.jar"
@@ -144,6 +143,8 @@ jvm-options:
     os: "linux"
   - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
     os: "macos"
+graal-vm-version: 20.2.0
+graal-java-version: 11
 ```
 
 The `minimum-launcher-version` should be updated whenever a new version of Enso
