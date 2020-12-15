@@ -13,9 +13,12 @@ import org.enso.projectmanager.event.ClientEvent.{
 }
 import org.enso.projectmanager.protocol.ProjectManagementApi._
 import org.enso.projectmanager.requesthandler._
-import org.enso.projectmanager.service.ProjectServiceApi
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
+import org.enso.projectmanager.service.{
+  LoggingServiceDescriptor,
+  ProjectServiceApi
+}
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.annotation.unused
@@ -28,6 +31,7 @@ import scala.concurrent.duration._
   * @param projectService a project service
   * @param globalConfigService global configuration service
   * @param runtimeVersionManagementService version management service
+  * @param loggingServiceDescriptor a logging service configuration descriptor
   * @param timeoutConfig a request timeout config
   */
 class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
@@ -35,6 +39,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
   projectService: ProjectServiceApi[F],
   globalConfigService: GlobalConfigServiceApi[F],
   runtimeVersionManagementService: RuntimeVersionManagementServiceApi[F],
+  loggingServiceDescriptor: LoggingServiceDescriptor,
   timeoutConfig: TimeoutConfig
 ) extends Actor
     with ActorLogging
@@ -87,7 +92,10 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
         .props(globalConfigService, timeoutConfig.requestTimeout),
       ConfigDelete -> ConfigDeleteHandler
         .props(globalConfigService, timeoutConfig.requestTimeout),
-      LoggingServiceGetEndpoint -> NotImplementedHandler.props
+      LoggingServiceGetEndpoint -> LoggingServiceEndpointRequestHandler.props(
+        loggingServiceDescriptor,
+        timeoutConfig.requestTimeout
+      )
     )
 
   override def receive: Receive = {
@@ -124,6 +132,7 @@ object ClientController {
     * @param globalConfigService global configuration service
     * @param runtimeVersionManagementService version management service
     * @param timeoutConfig a request timeout config
+    * @param loggingServiceDescriptor a logging service configuration descriptor
     * @return a configuration object
     */
   def props[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
@@ -131,6 +140,7 @@ object ClientController {
     projectService: ProjectServiceApi[F],
     globalConfigService: GlobalConfigServiceApi[F],
     runtimeVersionManagementService: RuntimeVersionManagementServiceApi[F],
+    loggingServiceDescriptor: LoggingServiceDescriptor,
     timeoutConfig: TimeoutConfig
   ): Props =
     Props(
@@ -139,6 +149,7 @@ object ClientController {
         projectService                  = projectService,
         globalConfigService             = globalConfigService,
         runtimeVersionManagementService = runtimeVersionManagementService,
+        loggingServiceDescriptor        = loggingServiceDescriptor,
         timeoutConfig                   = timeoutConfig
       )
     )

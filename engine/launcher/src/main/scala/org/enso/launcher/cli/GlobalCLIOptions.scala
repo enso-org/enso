@@ -3,7 +3,8 @@ package org.enso.launcher.cli
 import akka.http.scaladsl.model.Uri
 import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.launcher.cli.GlobalCLIOptions.InternalOptions
-import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.ColorMode.{Always, Auto, Never}
+import org.enso.loggingservice.{ColorMode, LogLevel}
 
 /** Gathers settings set by the global CLI options.
   *
@@ -45,7 +46,7 @@ object GlobalCLIOptions {
       */
     def toOptions: Seq[String] = {
       val level = launcherLogLevel
-        .map(level => Seq(s"--$LOG_LEVEL", level.toString))
+        .map(level => Seq(s"--$LOG_LEVEL", level.name))
         .getOrElse(Seq())
       val uri = loggerConnectUri
         .map(uri => Seq(s"--$CONNECT_LOGGER", uri.toString))
@@ -66,30 +67,13 @@ object GlobalCLIOptions {
       if (config.hideProgress) Seq(s"--$HIDE_PROGRESS") else Seq()
     val useJSON = if (config.useJSON) Seq(s"--$USE_JSON") else Seq()
     autoConfirm ++ hideProgress ++ useJSON ++
-    ColorMode.toOptions(config.colorMode) ++ config.internalOptions.toOptions
+    LauncherColorMode.toOptions(
+      config.colorMode
+    ) ++ config.internalOptions.toOptions
   }
 }
 
-/** Describes possible modes of color display in console output.
-  */
-sealed trait ColorMode
-object ColorMode {
-
-  /** Never use color escape sequences in the output.
-    */
-  case object Never extends ColorMode
-
-  /** Enable color output if it seems to be supported.
-    */
-  case object Auto extends ColorMode
-
-  /** Always use escape sequences in the output, even if the program thinks they
-    * are unsupported.
-    *
-    * May be useful if output is piped to other programs that know how to handle
-    * the escape sequences.
-    */
-  case object Always extends ColorMode
+object LauncherColorMode {
 
   /** [[Argument]] instance used to parse [[ColorMode]] from CLI.
     */

@@ -14,15 +14,14 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFa
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.Runner
 
-import scala.concurrent.Future
-
 /** A service for creating new project structures using the runner of the
   * specific engine version selected for the project.
   */
 class ProjectCreationService[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
 ](
-  distributionConfiguration: DistributionConfiguration
+  distributionConfiguration: DistributionConfiguration,
+  loggingServiceDescriptor: LoggingServiceDescriptor
 ) extends ProjectCreationServiceApi[F] {
 
   /** @inheritdoc */
@@ -41,7 +40,7 @@ class ProjectCreationService[
         new Runner(
           versionManager,
           distributionConfiguration.environment,
-          Future.successful(None)
+          loggingServiceDescriptor.getEndpoint
         )
 
       val settings =

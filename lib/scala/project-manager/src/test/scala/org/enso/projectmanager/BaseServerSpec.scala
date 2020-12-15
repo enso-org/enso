@@ -40,7 +40,7 @@ import org.enso.projectmanager.service.{
 }
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.OS
-import org.enso.runtimeversionmanager.test.{DropLogs, FakeReleases}
+import org.enso.runtimeversionmanager.test.FakeReleases
 import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
@@ -50,10 +50,7 @@ import zio.{Runtime, Semaphore, ZEnv, ZIO}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class BaseServerSpec
-    extends JsonRpcServerTestKit
-    with DropLogs
-    with BeforeAndAfterAll {
+class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -121,6 +118,8 @@ class BaseServerSpec
       discardChildOutput     = !debugChildLogs
     )
 
+  val loggingService = new TestLoggingService
+
   lazy val languageServerRegistry =
     system.actorOf(
       LanguageServerRegistry
@@ -130,6 +129,7 @@ class BaseServerSpec
           supervisionConfig,
           timeoutConfig,
           distributionConfiguration,
+          loggingService,
           ExecutorWithUnlimitedPool
         )
     )
@@ -146,7 +146,10 @@ class BaseServerSpec
     )
 
   lazy val projectCreationService =
-    new ProjectCreationService[ZIO[ZEnv, +*, +*]](distributionConfiguration)
+    new ProjectCreationService[ZIO[ZEnv, +*, +*]](
+      distributionConfiguration,
+      loggingService
+    )
 
   lazy val globalConfigService = new GlobalConfigService[ZIO[ZEnv, +*, +*]](
     distributionConfiguration
@@ -176,6 +179,7 @@ class BaseServerSpec
       projectService                  = projectService,
       globalConfigService             = globalConfigService,
       runtimeVersionManagementService = runtimeVersionManagementService,
+      loggingServiceDescriptor        = loggingService,
       timeoutConfig                   = timeoutConfig
     )
   }
