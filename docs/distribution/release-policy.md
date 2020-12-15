@@ -115,6 +115,10 @@ root of an Enso version package. It has at least the following fields:
 - `graal-java-version` - as GraalVM versions may have different variants for
   different Java versions, this specifies which variant to use.
 
+The minimum launcher and project manager versions are kept as separate fields,
+because at some point the same runtime version management logic may be
+associated with different versions of these components.
+
 It can also contain the following additional fields:
 
 - `jvm-options` - specifies a list of options that should be passed to the JVM

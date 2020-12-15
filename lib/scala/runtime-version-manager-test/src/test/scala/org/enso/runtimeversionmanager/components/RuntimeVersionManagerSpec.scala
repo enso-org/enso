@@ -159,8 +159,8 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
 
       val usualVersion = SemVer(0, 0, 1)
       val bigVersion   = SemVer(999, 0, 0)
-      manifest.minimumComponentVersion.launcher shouldEqual usualVersion
-      manifest.minimumComponentVersion.projectManager shouldEqual bigVersion
+      manifest.requiredInstallerVersions.launcher shouldEqual usualVersion
+      manifest.requiredInstallerVersions.projectManager shouldEqual bigVersion
 
       manifest.minimumRequiredVersion(installerKind =
         InstallerKind.Launcher
