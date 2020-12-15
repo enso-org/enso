@@ -59,6 +59,8 @@ public abstract class Storage {
     public static final String SUB = "-";
     public static final String DIV = "/";
     public static final String NOT = "not";
+    public static final String AND = "&&";
+    public static final String OR = "||";
     public static final String IS_MISSING = "is_missing";
   }
 

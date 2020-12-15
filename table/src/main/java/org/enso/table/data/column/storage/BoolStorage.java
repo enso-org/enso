@@ -4,6 +4,7 @@ import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
+import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
@@ -124,7 +125,7 @@ public class BoolStorage extends Storage {
   private static MapOpStorage<BoolStorage> buildOps() {
     MapOpStorage<BoolStorage> ops = new MapOpStorage<>();
     ops.add(
-            new UnaryMapOperation<>("not") {
+            new UnaryMapOperation<>(Ops.NOT) {
               @Override
               protected Storage run(BoolStorage storage) {
                 return new BoolStorage(
@@ -132,7 +133,7 @@ public class BoolStorage extends Storage {
               }
             })
         .add(
-            new MapOperation<>("==") {
+            new MapOperation<>(Ops.EQ) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean) {
@@ -164,7 +165,7 @@ public class BoolStorage extends Storage {
               }
             })
         .add(
-            new MapOperation<>("&&") {
+            new MapOperation<>(Ops.AND) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean) {
@@ -203,12 +204,12 @@ public class BoolStorage extends Storage {
                   }
                   return new BoolStorage(out, missing, storage.size, negated);
                 } else {
-                  throw new UnexpectedTypeException("a Boolean column");
+                  throw new UnexpectedColumnTypeException("Boolean");
                 }
               }
             })
         .add(
-            new MapOperation<>("||") {
+            new MapOperation<>(Ops.OR) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean) {
@@ -248,7 +249,7 @@ public class BoolStorage extends Storage {
                   }
                   return new BoolStorage(out, missing, storage.size, negated);
                 } else {
-                  throw new UnexpectedTypeException("a Boolean column");
+                  throw new UnexpectedColumnTypeException("Boolean");
                 }
               }
             });

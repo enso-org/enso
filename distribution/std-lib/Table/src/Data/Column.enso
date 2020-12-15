@@ -38,51 +38,91 @@ type Column
 
     ## Element-wise equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    == : Any -> Column
+       If `other` is a column, the comparison is performed with consecutive
+       elements of `other`.
+    == : Column | Any -> Column
     == other =
         here.run_vectorized_binary_op this "==" (==) other
 
     ## Element-wise non-equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    != : Any -> Column
+       If `other` is a column, the comparison is performed with consecutive
+       elements of `other`.
+    != : Column | Any -> Column
     != other = (this == other).not
 
-    ## Element-wise non-equality comparison. Returns a column with results of
+    ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    >= : Any -> Column
+       If `other` is a column, the comparison is performed with consecutive
+       elements of `other`.
+    >= : Column | Any -> Column
     >= other =
         here.run_vectorized_binary_op this ">=" (>=) other
 
-    ## Element-wise non-equality comparison. Returns a column with results of
+    ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    <= : Any -> Column
+       If `other` is a column, the comparison is performed with consecutive
+       elements of `other`.
+    <= : Column | Any -> Column
     <= other =
         here.run_vectorized_binary_op this "<=" (<=) other
 
-    ## Element-wise non-equality comparison. Returns a column with results of
+    ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    > : Any -> Column
+       If `other` is a column, the comparison is performed with consecutive
+       elements of `other`.
+    > : Column | Any -> Column
     > other =
         here.run_vectorized_binary_op this ">" (>) other
 
-    ## Element-wise non-equality comparison. Returns a column with results of
+    ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    < : Any -> Column
+       If `other` is a column, the comparison is performed with consecutive
+       elements of `other`.
+    < : Column | Any -> Column
     < other = here.run_vectorized_binary_op this "<" (<) other
 
+    ## Element-wise addition. Returns a column containing the result
+       of adding `other` to each element of `this`.
+       If `other` is a column, the operation is performed against consecutive
+       elements of `other`.
+    + : Column | Any -> Column
     + other = here.run_vectorized_binary_op this '+' (+) other
 
+    ## Element-wise subtraction. Returns a column containing the result
+       of subtracting `other` from each element of `this`.
+       If `other` is a column, the operation is performed against consecutive
+       elements of `other`.
+    - : Column | Any -> Column
     - other = here.run_vectorized_binary_op this '-' (-) other
 
+    ## Element-wise multiplication. Returns a column containing the result
+       of multiplying `other` by each element of `this`.
+       If `other` is a column, the operation is performed against consecutive
+       elements of `other`.
+    * : Column | Any -> Column
     * other = here.run_vectorized_binary_op this '*' (*) other
 
+    ## Element-wise division. Returns a column containing the result
+       of dividing each element of `this` by `other`.
+       If `other` is a column, the operation is performed against consecutive
+       elements of `other`.
+    / : Column | Any -> Column
     / other = here.run_vectorized_binary_op this '/' (/) other
 
-    && : Any -> Column
+    ## Element-wise boolean conjunction. Returns a column containing the result
+       of performing the boolean `and` on `other` and each element of `this`.
+       If `other` is a column, the operation is performed against consecutive
+       elements of `other`.
+    && : Column | Any -> Column
     && other =
         here.run_vectorized_binary_op this "&&" (&&) other
 
-    || : Any -> Column
+    ## Element-wise boolean disjunction. Returns a column containing the result
+       of performing the boolean `or` on `other` and each element of `this`.
+       If `other` is a column, the operation is performed against consecutive
+       elements of `other`.
+    || : Column | Any -> Column
     || other =
         here.run_vectorized_binary_op this "||" (||) other
 
@@ -104,6 +144,16 @@ type Column
         new_st = storage.map [Nothing, function]
         col = Java_Column.new ["Result", index, new_st].to_array
         Column col
+
+    ## Applies `function` to consecutive pairs of elements of `this` and `that`
+       and returns a column of results.
+    zip : Column -> (Any -> Any -> Any) -> Column
+    zip that function =
+        s1 = this.java_column.getStorage []
+        ix = this.java_column.getIndex []
+        s2 = that.java_column.getStorage []
+        rs = s1.zip [Nothing, function, s2]
+        Column (Java_Column.new ["Result", ix, rs].to_array)
 
     ## Returns a new column, containing the same elements as `this`, but with
        the given name.

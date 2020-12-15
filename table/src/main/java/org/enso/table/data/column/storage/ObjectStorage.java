@@ -3,6 +3,9 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
 
 import java.util.BitSet;
@@ -12,6 +15,7 @@ import java.util.function.Function;
 public class ObjectStorage extends Storage {
   private final Object[] data;
   private final int size;
+  protected static final MapOpStorage<ObjectStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -55,17 +59,17 @@ public class ObjectStorage extends Storage {
 
   @Override
   protected boolean isOpVectorized(String name) {
-    return false;
+    return ops.isSupported(name);
   }
 
   @Override
   protected Storage runVectorizedMap(String name, Object argument) {
-    return null;
+    return ops.runMap(name, this, argument);
   }
 
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
-    return null;
+    return ops.runZip(name, this, argument);
   }
 
   @Override
@@ -107,5 +111,23 @@ public class ObjectStorage extends Storage {
 
   public Object[] getData() {
     return data;
+  }
+
+  private static MapOpStorage<ObjectStorage> buildOps() {
+    MapOpStorage<ObjectStorage> ops = new MapOpStorage<>();
+    ops.add(
+        new UnaryMapOperation<>(Ops.IS_MISSING) {
+          @Override
+          protected Storage run(ObjectStorage storage) {
+            BitSet r = new BitSet();
+            for (int i = 0; i < storage.size; i++) {
+              if (storage.data[i] == null) {
+                r.set(i);
+              }
+            }
+            return new BoolStorage(r, new BitSet(), storage.size, false);
+          }
+        });
+    return ops;
   }
 }
