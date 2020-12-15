@@ -31,10 +31,17 @@ class HealthCheckEndpointSpec
     val liveSubsystem = system.actorOf(Props(new LiveSubsystem))
     override def livenessProbeProps: Props =
       PingHandler.props(List(liveSubsystem), 10.seconds)
+
+    /*
+     * The objectUnderTest must be a lazy val. In order to initialize
+     * actors created by this class before publishing events I had to
+     * artificially call route method.
+     */
+    objectUnderTest.route
     //when
-    Thread.sleep(2000)
+    Thread.sleep(1000)
     system.eventStream.publish(InitializedEvent.InitializationFinished)
-    Thread.sleep(2000)
+    Thread.sleep(1000)
     Get("/_health/readiness") ~> objectUnderTest.route ~> check {
       //then
       status mustEqual StatusCodes.OK
@@ -47,7 +54,7 @@ class HealthCheckEndpointSpec
     override def livenessProbeProps: Props =
       PingHandler.props(List(liveSubsystem), 10.seconds)
     //when
-    Thread.sleep(2000)
+    Thread.sleep(1000)
     Get("/_health/readiness") ~> objectUnderTest.route ~> check {
       //then
       status mustEqual StatusCodes.InternalServerError

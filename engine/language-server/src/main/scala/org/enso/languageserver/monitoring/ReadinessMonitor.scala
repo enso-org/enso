@@ -25,11 +25,10 @@ class ReadinessMonitor() extends Actor with ActorLogging {
 
   private def stateTransition(): Receive = {
     case InitializationFinished =>
-      println("Initialized")
       context.become(ready())
 
     case InitializationFailed =>
-      log.error("Initialization failed. Terminating JVM")
+      log.error("Initialization failed. Terminating JVM...")
       System.exit(1)
   }
 
