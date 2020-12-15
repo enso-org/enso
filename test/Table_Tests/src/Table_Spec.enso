@@ -176,5 +176,3 @@ spec =
 
             r_2 = x.join y left_suffix='_old' right_suffix='_new'
             r_2.columns.map name . should_equal ['x_old', 'x_new']
-
-

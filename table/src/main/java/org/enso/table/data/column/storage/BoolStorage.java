@@ -50,17 +50,17 @@ public class BoolStorage extends Storage {
 
   @Override
   protected boolean isOpVectorized(String name) {
-    return false;
+    return ops.isSupported(name);
   }
 
   @Override
   protected Storage runVectorizedMap(String name, Object argument) {
-    return null;
+    return ops.runMap(name, this, argument);
   }
 
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
-    return null;
+    return ops.runZip(name, this, argument);
   }
 
   public BitSet getValues() {
