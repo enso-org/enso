@@ -51,12 +51,12 @@ case class Manifest(
     * required for using this particular engine release.
     */
   def minimumRequiredVersion(implicit
-    componentSelector: ComponentSelector
+    installerKind: InstallerKind
   ): SemVer =
-    componentSelector match {
-      case ComponentSelector.Launcher =>
+    installerKind match {
+      case InstallerKind.Launcher =>
         minimumComponentVersion.launcher
-      case ComponentSelector.ProjectManager =>
+      case InstallerKind.ProjectManager =>
         minimumComponentVersion.projectManager
     }
 }

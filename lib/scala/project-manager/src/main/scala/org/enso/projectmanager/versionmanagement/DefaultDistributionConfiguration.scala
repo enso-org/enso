@@ -2,7 +2,7 @@ package org.enso.projectmanager.versionmanagement
 
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
-  ComponentSelector,
+  InstallerKind,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
@@ -64,7 +64,7 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
       resourceManager           = resourceManager,
       engineReleaseProvider     = engineReleaseProvider,
       runtimeReleaseProvider    = runtimeReleaseProvider,
-      componentSelector         = ComponentSelector.ProjectManager
+      installerKind             = InstallerKind.ProjectManager
     )
 
   /** @inheritdoc */
