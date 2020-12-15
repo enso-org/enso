@@ -24,13 +24,7 @@ import org.enso.projectmanager.protocol.{
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
-import org.enso.projectmanager.service.{
-  MonadicProjectValidator,
-  ProjectCreationService,
-  ProjectService,
-  ProjectServiceFailure,
-  ValidationFailure
-}
+import org.enso.projectmanager.service._
 import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 
 import scala.concurrent.ExecutionContext
@@ -71,6 +65,9 @@ class MainModule[
       gen
     )
 
+  val distributionConfiguration = DefaultDistributionConfiguration
+  val loggingService            = Logging.GlobalLoggingService
+
   lazy val languageServerRegistry =
     system.actorOf(
       LanguageServerRegistry
@@ -79,7 +76,8 @@ class MainModule[
           config.bootloader,
           config.supervision,
           config.timeout,
-          DefaultDistributionConfiguration,
+          distributionConfiguration,
+          loggingService,
           ExecutorWithUnlimitedPool
         ),
       "language-server-registry"
@@ -99,10 +97,13 @@ class MainModule[
   )
 
   lazy val projectCreationService =
-    new ProjectCreationService[F](DefaultDistributionConfiguration)
+    new ProjectCreationService[F](
+      distributionConfiguration,
+      loggingService
+    )
 
   lazy val globalConfigService =
-    new GlobalConfigService[F](DefaultDistributionConfiguration)
+    new GlobalConfigService[F](distributionConfiguration)
 
   lazy val projectService =
     new ProjectService[F](
@@ -114,11 +115,11 @@ class MainModule[
       clock,
       gen,
       languageServerGateway,
-      DefaultDistributionConfiguration
+      distributionConfiguration
     )
 
   lazy val runtimeVersionManagementService =
-    new RuntimeVersionManagementService[F](DefaultDistributionConfiguration)
+    new RuntimeVersionManagementService[F](distributionConfiguration)
 
   lazy val clientControllerFactory =
     new ManagerClientControllerFactory[F](
@@ -126,6 +127,7 @@ class MainModule[
       projectService                  = projectService,
       globalConfigService             = globalConfigService,
       runtimeVersionManagementService = runtimeVersionManagementService,
+      loggingServiceDescriptor        = loggingService,
       timeoutConfig                   = config.timeout
     )
 

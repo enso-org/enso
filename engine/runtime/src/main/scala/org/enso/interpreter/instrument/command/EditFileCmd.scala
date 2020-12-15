@@ -28,13 +28,10 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
       ctx.executionService.getLogger
         .log(Level.FINE, s"EditFileCmd ${request.path}")
       ctx.state.pendingEdits.enqueue(request.path, request.edits)
-      for {
-        _ <- Future { ctx.jobControlPlane.abortAllJobs() }
-        _ <- Future {
-          ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-        }
-        _ <- Future.traverse(executeJobs)(ctx.jobProcessor.run)
-      } yield ()
+      ctx.jobControlPlane.abortAllJobs()
+      ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
+      executeJobs.foreach(ctx.jobProcessor.run)
+      Future.successful(())
     } finally {
       ctx.locking.releasePendingEditsLock()
       ctx.locking.releaseFileLock(request.path)

@@ -73,8 +73,7 @@ trait ThreadProcessingService extends Service {
     }
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   abstract override def terminate(): Unit = {
     super.terminate()
     queueThread match {

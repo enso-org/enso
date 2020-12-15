@@ -251,3 +251,23 @@ In a rare situation where the service would not be initialized at all, a
 shutdown hook is added that will print the pending log messages before exiting.
 Some of the messages may be dropped, however, if more messages are buffered than
 the buffer can hold.
+
+### Logging in Tests
+
+The Logging Service provides several utilities for managing logs inside of
+tests.
+
+The primary method for setting log-level for all tests in a project is by
+creating a `logging.properties` file in `resources` of the `test` target.
+Currently only one property is supported - `test-log-level` which should be set
+to a log level name (possible values are: `off`, `error`, `warning`, `info`,
+`debug`, `trace`). If this property is set to any value, the default logging
+queue is replaced with a special test queue which handles the log messages
+depending on status of the service. If a service has been set up, it just
+forwards them (so tests can easily override the log handling). However if it has
+not been set up, the enabled log messages are printed to STDERR and the rest is
+dropped.
+
+Another useful tool is `TestLogger.gatherLogs` - a function that wraps an action
+and will return a sequence of logs reported when performing that action. It can
+be used to verify logs of an action inside of a test.

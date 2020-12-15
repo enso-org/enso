@@ -47,6 +47,10 @@ trait ServiceWithActorSystem extends Service {
         ConfigValueFactory.fromAnyRef("akka.event.DefaultLoggingFilter")
       )
       .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
+      .withValue(
+        "akka.coordinated-shutdown.run-by-actor-system-terminate",
+        ConfigValueFactory.fromAnyRef("off")
+      )
     ActorSystem(
       name,
       config,
