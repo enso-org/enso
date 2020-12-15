@@ -11,7 +11,6 @@ import org.enso.languageserver.filemanager.{
 }
 
 import scala.concurrent.duration._
-import scala.util.Try
 
 /** Configuration of the path watcher.
   *
@@ -88,7 +87,9 @@ case class DirectoriesConfig(root: File) {
   val suggestionsDatabaseFile: File =
     new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
 
-  Try(Files.createDirectories(dataDirectory.toPath))
+  /** Create data directories if not exist. */
+  private def createDirectories(): Unit =
+    Files.createDirectories(dataDirectory.toPath)
 }
 
 object DirectoriesConfig {
@@ -96,13 +97,24 @@ object DirectoriesConfig {
   val DataDirectory: String           = ".enso"
   val SuggestionsDatabaseFile: String = "suggestions.db"
 
-  /** Create default data directory config
+  /** Create default data directory config, creating directories if not exist.
     *
     * @param root the root directory path
-    * @return default data directory config
+    * @return data directory config
     */
-  def apply(root: String): DirectoriesConfig =
-    new DirectoriesConfig(new File(root))
+  def initialize(root: String): DirectoriesConfig =
+    initialize(new File(root))
+
+  /** Create default data directory config, creating directories if not exist.
+    *
+    * @param root the root directory path
+    * @return data directory config
+    */
+  def initialize(root: File): DirectoriesConfig = {
+    val config = new DirectoriesConfig(root)
+    config.createDirectories()
+    config
+  }
 }
 
 /** The config of the running Language Server instance.

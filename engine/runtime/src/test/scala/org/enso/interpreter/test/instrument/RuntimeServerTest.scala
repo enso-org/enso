@@ -3252,7 +3252,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "return compiler warning unused wariable" in {
+  it should "return compiler warning unused variable" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
@@ -3476,7 +3476,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3489,9 +3489,10 @@ class RuntimeServerTest
             )
           )
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List()
+    context.consumeOut shouldEqual List("(Syntax_Error 'Unrecognized token.')")
   }
 
   it should "return compiler error syntax error" in {

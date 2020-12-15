@@ -32,6 +32,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerContr
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
@@ -47,6 +48,7 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
   * @param distributionConfiguration configuration of the distribution
+  * @param loggingServiceDescriptor a logging service configuration descriptor
   * @param executor an executor service used to start the language server
   *                 process
   */
@@ -59,6 +61,7 @@ class LanguageServerController(
   supervisionConfig: SupervisionConfig,
   timeoutConfig: TimeoutConfig,
   distributionConfiguration: DistributionConfiguration,
+  loggingServiceDescriptor: LoggingServiceDescriptor,
   executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
@@ -69,14 +72,15 @@ class LanguageServerController(
 
   private val descriptor =
     LanguageServerDescriptor(
-      name                      = s"language-server-${project.id}",
-      rootId                    = UUID.randomUUID(),
-      rootPath                  = project.path.get,
-      networkConfig             = networkConfig,
-      distributionConfiguration = distributionConfiguration,
-      engineVersion             = engineVersion,
-      jvmSettings               = distributionConfiguration.defaultJVMSettings,
-      discardOutput             = distributionConfiguration.shouldDiscardChildOutput
+      name                           = s"language-server-${project.id}",
+      rootId                         = UUID.randomUUID(),
+      rootPath                       = project.path.get,
+      networkConfig                  = networkConfig,
+      distributionConfiguration      = distributionConfiguration,
+      engineVersion                  = engineVersion,
+      jvmSettings                    = distributionConfiguration.defaultJVMSettings,
+      discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
+      deferredLoggingServiceEndpoint = loggingServiceDescriptor.getEndpoint
     )
 
   override def supervisorStrategy: SupervisorStrategy =
@@ -313,6 +317,7 @@ object LanguageServerController {
     * @param distributionConfiguration configuration of the distribution
     * @param executor an executor service used to start the language server
     *                 process
+    * @param loggingServiceDescriptor a logging service configuration descriptor
     * @return a configuration object
     */
   def props(
@@ -324,6 +329,7 @@ object LanguageServerController {
     supervisionConfig: SupervisionConfig,
     timeoutConfig: TimeoutConfig,
     distributionConfiguration: DistributionConfiguration,
+    loggingServiceDescriptor: LoggingServiceDescriptor,
     executor: LanguageServerExecutor
   ): Props =
     Props(
@@ -336,6 +342,7 @@ object LanguageServerController {
         supervisionConfig,
         timeoutConfig,
         distributionConfiguration,
+        loggingServiceDescriptor,
         executor
       )
     )

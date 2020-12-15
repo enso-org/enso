@@ -254,7 +254,7 @@ class ContextEventsListenerSpec
         listener ! Api.VisualisationEvaluationFailed(contextId, message)
 
         router.expectMsg(
-          DeliverToBinaryController(
+          DeliverToJsonController(
             clientId,
             VisualisationEvaluationFailed(contextId, message)
           )
@@ -268,7 +268,7 @@ class ContextEventsListenerSpec
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig(root)
+      DirectoriesConfig.initialize(root)
     )
   }
 

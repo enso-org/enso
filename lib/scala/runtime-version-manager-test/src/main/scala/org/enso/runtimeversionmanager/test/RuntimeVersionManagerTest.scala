@@ -24,8 +24,7 @@ class RuntimeVersionManagerTest
     with Matchers
     with OptionValues
     with WithTemporaryDirectory
-    with FakeEnvironment
-    with DropLogs {
+    with FakeEnvironment {
 
   /** Creates the [[DistributionManager]], [[RuntimeVersionManager]] and an
     * [[Environment]] for use in the tests.

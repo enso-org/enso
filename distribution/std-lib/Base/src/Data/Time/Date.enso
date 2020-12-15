@@ -60,6 +60,10 @@ type Date
     to_text : Text
     to_text = Time_Utils.default_date_formatter [] . format [this.internal_local_date]
 
+    ## A Date to Json conversion.
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Date"], ["day", this.day], ["month", this.month], ["year", this.year]]
+
     ## Format this date using formatter text.
 
        Patterns are based on a simple sequence of letters and symbols. For

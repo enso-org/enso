@@ -27,6 +27,11 @@ spec =
         it "should format local time using default pattern" <|
             text = Time_Of_Day.new 12 20 44 . to_text
             text . should_equal "12:20:44"
+        it "should convert to Json" <|
+            time = Time_Of_Day.new 1 2 3
+            time.to_json.should_equal <|
+                time_pairs = [["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
+                Json.from_pairs ([["type", "Time_Of_Day"]] + time_pairs)
         it "should parse default time format" <|
             text = Time_Of_Day.new 12 20 44 . to_text
             time = Time_Of_Day.parse text

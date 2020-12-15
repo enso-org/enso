@@ -1,8 +1,7 @@
 package org.enso.languageserver.requesthandler.text
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
-import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
+import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.JsonSession
@@ -49,7 +48,7 @@ class OpenFileHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(s"Opening file for ${rpcSession.clientId} timed out")
-      replyTo ! ResponseError(Some(id), ServiceError)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case OpenFileResponse(Right(OpenFileResult(buffer, capability))) =>

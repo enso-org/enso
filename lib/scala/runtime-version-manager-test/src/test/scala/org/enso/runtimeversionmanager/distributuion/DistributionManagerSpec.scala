@@ -9,7 +9,6 @@ import org.enso.runtimeversionmanager.distribution.{
   PortableDistributionManager
 }
 import org.enso.runtimeversionmanager.test.{
-  DropLogs,
   FakeEnvironment,
   WithTemporaryDirectory
 }
@@ -20,8 +19,7 @@ class DistributionManagerSpec
     extends AnyWordSpec
     with Matchers
     with WithTemporaryDirectory
-    with FakeEnvironment
-    with DropLogs {
+    with FakeEnvironment {
 
   "DistributionManager" should {
     "detect portable distribution" in {

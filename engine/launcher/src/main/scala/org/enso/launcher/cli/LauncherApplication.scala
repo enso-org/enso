@@ -10,6 +10,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
+import org.enso.launcher.cli.LauncherColorMode.argument
 import org.enso.runtimeversionmanager.cli.Arguments._
 import org.enso.runtimeversionmanager.config.DefaultVersion
 import org.enso.runtimeversionmanager.runner.LanguageServerOptions
@@ -18,7 +19,7 @@ import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{cli, Launcher}
-import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.{ColorMode, LogLevel}
 
 /** Defines the CLI commands and options for the program.
   *
@@ -558,7 +559,11 @@ object LauncherApplication {
 
         internalOptsCallback(globalCLIOptions)
         LauncherUpgrader.setCLIOptions(globalCLIOptions)
-        LauncherLogging.setup(logLevel, connectLogger, globalCLIOptions)
+        LauncherLogging.setup(
+          logLevel,
+          connectLogger,
+          globalCLIOptions.colorMode
+        )
         initializeApp()
 
         if (version) {

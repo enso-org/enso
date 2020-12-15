@@ -31,7 +31,7 @@ jobs:
   verify-review:
     name: Verify Notice Package
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     strategy:
       fail-fast: false
     steps:

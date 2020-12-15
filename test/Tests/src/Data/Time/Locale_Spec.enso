@@ -55,3 +55,6 @@ spec = describe "Locale" <|
         Locale.south_korea.to_text . should_equal "ko-KR"
         Locale.uk.to_text . should_equal "en-GB"
         Locale.us.to_text . should_equal "en-US"
+    it "should convert to Json" <|
+        en_gb.to_json.should_equal <|
+            Json.from_pairs [["type", "Locale"], ["language", "en"], ["country", "GB"]]

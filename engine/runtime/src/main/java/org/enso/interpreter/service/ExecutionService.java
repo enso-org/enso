@@ -120,8 +120,11 @@ public class ExecutionService {
             onComputedCallback,
             onCachedCallback,
             onExceptionalCallback);
-    interopLibrary.execute(call);
-    listener.dispose();
+    try {
+      interopLibrary.execute(call);
+    } finally {
+      listener.dispose();
+    }
   }
 
   /**
@@ -256,12 +259,16 @@ public class ExecutionService {
             module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
-    Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
-    editedSource.ifPresentOrElse(
-        module::setLiteralSource,
-        () -> {
-          throw new FailedToApplyEditsException(path);
-        });
+    JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
+        .fold(
+            failure -> {
+              throw new FailedToApplyEditsException(
+                  path, edits, failure, module.getLiteralSource());
+            },
+            rope -> {
+              module.setLiteralSource(rope);
+              return new Object();
+            });
     return changesetBuilder;
   }
 }

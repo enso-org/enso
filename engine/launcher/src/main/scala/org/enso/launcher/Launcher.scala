@@ -366,14 +366,23 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     doNotRemoveOldLauncher: Boolean,
     bundleAction: Option[BundleAction]
   ): Int = {
-    DistributionInstaller
-      .default(
-        globalCLIOptions   = cliOptions,
-        removeOldLauncher  = !doNotRemoveOldLauncher,
-        bundleActionOption = bundleAction
+    if (!distributionManager.isRunningPortable) {
+      Logger[Launcher].error(
+        "install distribution can only be used from within a portable " +
+        "distribution. It appears that you are not running a portable " +
+        "distribution."
       )
-      .install()
-    0
+      1
+    } else {
+      DistributionInstaller
+        .default(
+          globalCLIOptions   = cliOptions,
+          removeOldLauncher  = !doNotRemoveOldLauncher,
+          bundleActionOption = bundleAction
+        )
+        .install()
+      0
+    }
   }
 
   /** Uninstalls the Enso distribution.

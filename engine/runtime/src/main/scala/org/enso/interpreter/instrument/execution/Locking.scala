@@ -35,6 +35,14 @@ trait Locking {
     */
   def releaseReadCompilationLock(): Unit
 
+  /** Acquires a pending edits lock.
+    */
+  def acquirePendingEditsLock(): Unit
+
+  /** Releases a pending edits lock.
+    */
+  def releasePendingEditsLock(): Unit
+
   /** Acquires a context lock.
     *
     * @param contextId a context to lock

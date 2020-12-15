@@ -79,8 +79,7 @@ extraction-location
 │   └── lts-2.0.8.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
 ├── .enso.portable          # A file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
-├── NOTICE                  # A copyright notice regarding components that are included in the distribution of the universal launcher.
-└── components-licences     # Contains licences of distributed components, as described in the NOTICE.
+└── THIRD-PARTY             # Contains licences of distributed components, including the NOTICE file.
 ```
 
 ### Installed Enso Distribution Layout
@@ -124,11 +123,13 @@ they do not have to be set, as they use system-specific defaults.
 If not set, each of these three environment variables defaults to the following
 value, depending on the system:
 
-|                         | Linux                                                              | macOS                                         | Windows                      |
-| ----------------------- | ------------------------------------------------------------------ | --------------------------------------------- | ---------------------------- |
-| `ENSO_DATA_DIRECTORY`   | `$XDG_DATA_HOME/enso/` which defaults to `$HOME/.local/share/enso` | `$HOME/Library/Application Support/org.enso/` | `%LocalAppData%/enso`        |
-| `ENSO_CONFIG_DIRECTORY` | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`    | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
-| `ENSO_BIN_DIRECTORY`    | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`               | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
+|                          | Linux                                                               | macOS                                         | Windows                      |
+| ------------------------ | ------------------------------------------------------------------- | --------------------------------------------- | ---------------------------- |
+| `ENSO_DATA_DIRECTORY`    | `$XDG_DATA_HOME/enso/` which defaults to `$HOME/.local/share/enso`  | `$HOME/Library/Application Support/org.enso/` | `%LocalAppData%/enso`        |
+| `ENSO_CONFIG_DIRECTORY`  | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`     | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
+| `ENSO_BIN_DIRECTORY`     | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`                | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
+| `ENSO_RUNTIME_DIRECTORY` | `$XDG_RUNTIME_DIR/enso/` or if its missing, `ENSO_DATA_DIRECTORY`   | `ENSO_DATA_DIRECTORY`                         | `%LocalAppData%/enso`        |
+| `ENSO_LOG_DIRECTORY`     | `$XDG_CACHE_HOME/enso` or if its missing, `ENSO_DATA_DIRECTORY/log` | `$HOME/Library/Logs/org.enso/`                | `%LocalAppData%/enso/log`    |
 
 ### Installing from a Portable Distribution
 

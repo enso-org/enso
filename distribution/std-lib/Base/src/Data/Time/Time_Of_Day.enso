@@ -65,6 +65,10 @@ type Time_Of_Day
     to_text : Text
     to_text = Time_Utils.default_time_of_day_formatter [] . format [this.internal_local_time]
 
+    ## A Time_Of_Day to Json conversion.
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Time_Of_Day"], ["hour", this.hour], ["minute", this.minute], ["second", this.second], ["nanosecond", this.nanosecond]]
+
     ## Format this time of day using formatter text.
 
        Patterns are based on a simple sequence of letters and symbols. For

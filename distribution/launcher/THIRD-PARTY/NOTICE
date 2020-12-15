@@ -10,7 +10,8 @@ The version of this launcher built for the Linux platform uses `zlib` created by
 Jean-loup Gailly and Mark Adler, see: `COPYRIGHT-ZLIB`.
 
 The version of this launcher built for the Linux platform uses the `musl` libc
-licensed under the MIT license. Its copyright notice is included in file `COPYRIGHT-MUSL`.
+licensed under the MIT license. Its copyright notice is included in file
+`COPYRIGHT-MUSL`.
 
 ------------------------------
 
