@@ -5,12 +5,12 @@ import org.enso.languageserver.event.InitializedEvent.{
   InitializationFailed,
   InitializationFinished
 }
-import org.enso.languageserver.monitoring.MonitoringProtocol.{IsHealthy, KO, OK}
+import org.enso.languageserver.monitoring.MonitoringProtocol.{IsReady, KO, OK}
 
+/** An actor that monitors if the system is ready to accept requests. */
 class ReadinessMonitor() extends Actor with ActorLogging {
 
   override def preStart(): Unit = {
-    println("readiness monitor created")
     context.system.eventStream
       .subscribe(self, InitializationFinished.getClass)
     context.system.eventStream
@@ -19,9 +19,9 @@ class ReadinessMonitor() extends Actor with ActorLogging {
 
   override def receive: Receive = notReady() orElse stateTransition()
 
-  private def notReady(): Receive = { case IsHealthy => sender() ! KO }
+  private def notReady(): Receive = { case IsReady => sender() ! KO }
 
-  private def ready(): Receive = { case IsHealthy => sender() ! OK }
+  private def ready(): Receive = { case IsReady => sender() ! OK }
 
   private def stateTransition(): Receive = {
     case InitializationFinished =>
@@ -37,6 +37,11 @@ class ReadinessMonitor() extends Actor with ActorLogging {
 
 object ReadinessMonitor {
 
+  /** Creates a configuration object used to create a
+    * [[ReadinessMonitor]]
+    *
+    * @return a configuration object
+    */
   def props(): Props = Props(new ReadinessMonitor())
 
 }

@@ -14,6 +14,12 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
+/** HTTP endpoint that provides health checking capabilities.
+  *
+  * @param pingHandlerProps a configuration object used to create ping handler actors
+  * @param actorFactory a factory used to create actors
+  * @param ec an execution context
+  */
 class HealthCheckEndpoint(
   pingHandlerProps: Props,
   actorFactory: ActorRefFactory
@@ -28,6 +34,7 @@ class HealthCheckEndpoint(
       s"readiness-probe-${UUID.randomUUID()}"
     )
 
+  /** @inheritdoc */
   override def route: Route =
     readinessProbe ~ livenessProbe ~ classicalHealthCheck
 
@@ -63,7 +70,7 @@ class HealthCheckEndpoint(
 
   private def checkReadiness(): Route = {
     val future =
-      (readinessMonitor ? MonitoringProtocol.IsHealthy)
+      (readinessMonitor ? MonitoringProtocol.IsReady)
         .flatMap {
           case MonitoringProtocol.OK =>
             Future.successful(())

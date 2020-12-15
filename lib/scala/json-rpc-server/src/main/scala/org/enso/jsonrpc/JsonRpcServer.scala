@@ -19,6 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param protocol a protocol supported be the server
   * @param clientControllerFactory a factory used to create a client controller
   * @param config a server config
+  * @param optionalEndpoints a list of optional endpoints
   * @param system an actor system
   * @param materializer a materializer
   */
