@@ -10,4 +10,12 @@ object MonitoringProtocol {
     */
   case object Pong
 
+  case object IsHealthy
+
+  sealed trait HealthinessResponse
+
+  case object KO extends HealthinessResponse
+
+  case object OK extends HealthinessResponse
+
 }

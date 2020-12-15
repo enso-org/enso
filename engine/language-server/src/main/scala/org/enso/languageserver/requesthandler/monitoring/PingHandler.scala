@@ -1,7 +1,14 @@
 package org.enso.languageserver.requesthandler.monitoring
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
-import org.enso.jsonrpc.{Id, Request, ResponseResult, Unused}
+import org.enso.jsonrpc.{
+  Errors,
+  Id,
+  Request,
+  ResponseError,
+  ResponseResult,
+  Unused
+}
 import org.enso.languageserver.monitoring.MonitoringApi
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -15,7 +22,8 @@ import scala.concurrent.duration.FiniteDuration
   */
 class PingHandler(
   subsystems: List[ActorRef],
-  timeout: FiniteDuration
+  timeout: FiniteDuration,
+  shouldReplyWhenTimedOut: Boolean
 ) extends Actor
     with ActorLogging {
 
@@ -43,6 +51,9 @@ class PingHandler(
       log.error(
         s"Health check timed out. Only $count/${subsystems.size} subsystems replied on time."
       )
+      if (shouldReplyWhenTimedOut) {
+        replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      }
       context.stop(self)
 
     case Pong =>
@@ -68,7 +79,11 @@ object PingHandler {
     * @param timeout a request timeout
     * @return a configuration object
     */
-  def props(subsystems: List[ActorRef], timeout: FiniteDuration): Props =
-    Props(new PingHandler(subsystems, timeout))
+  def props(
+    subsystems: List[ActorRef],
+    timeout: FiniteDuration,
+    shouldReplyWhenTimedOut: Boolean = false
+  ): Props =
+    Props(new PingHandler(subsystems, timeout, shouldReplyWhenTimedOut))
 
 }

@@ -25,10 +25,7 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
-import org.enso.languageserver.requesthandler.monitoring.{
-  InitialPingHandler,
-  PingHandler
-}
+import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
@@ -241,11 +238,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         fileManager,
         contextRegistry
       ),
-      10.seconds
+      10.seconds,
+      true
     )
 
   val healthCheckEndpoint =
-    new HealthCheckEndpoint(InitialPingHandler.props, pingHandlerProps, system)(
+    new HealthCheckEndpoint(pingHandlerProps, system)(
       serverConfig.computeExecutionContext
     )
 
