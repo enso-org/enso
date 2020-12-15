@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.state.data.EmptyMap;
 @BuiltinMethod(type = "Array", name = "sort", description = "Sorts a mutable array in place.")
 public abstract class SortNode extends Node {
   private @Child ComparatorNode comparatorNode = ComparatorNode.build();
+  private final BranchProfile resultProfile = BranchProfile.create();
 
   abstract Object execute(VirtualFrame frame, Object _this, Object comparator);
 
@@ -74,7 +75,7 @@ public abstract class SortNode extends Node {
   }
 
   private SortComparator getComparator(Function comp, ContextReference<Context> ctxRef) {
-    return new SortComparator(comp, ctxRef);
+    return new SortComparator(comp, ctxRef, this);
   }
 
   private class SortComparator implements Comparator<Object> {
@@ -83,14 +84,15 @@ public abstract class SortNode extends Node {
     private final Atom less;
     private final Atom equal;
     private final Atom greater;
-    private final BranchProfile resultProfile = BranchProfile.create();
+    private final SortNode outerThis;
 
-    SortComparator(Function compFn, ContextReference<Context> ctxRef) {
+    SortComparator(Function compFn, ContextReference<Context> ctxRef, SortNode outerThis) {
       this.compFn = compFn;
       this.ctxRef = ctxRef;
       this.less = ctxRef.get().getBuiltins().ordering().newLess();
       this.equal = ctxRef.get().getBuiltins().ordering().newEqual();
       this.greater = ctxRef.get().getBuiltins().ordering().newGreater();
+      this.outerThis = outerThis;
     }
 
     @Override
@@ -114,7 +116,7 @@ public abstract class SortNode extends Node {
         resultProfile.enter();
         var ordering = ctxRef.get().getBuiltins().ordering().ordering();
         throw new PanicException(
-            ctxRef.get().getBuiltins().error().makeTypeError(ordering, res), null);
+            ctxRef.get().getBuiltins().error().makeTypeError(ordering, res), outerThis);
       }
     }
   }

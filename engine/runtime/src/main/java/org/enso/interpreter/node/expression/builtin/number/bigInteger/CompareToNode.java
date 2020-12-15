@@ -33,7 +33,7 @@ public abstract class CompareToNode extends Node {
       long that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef,
       @Cached("getOrdering(ctxRef)") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compare_to(_this.getValue(), that));
+    return ordering.fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
   }
 
   @Specialization
@@ -42,7 +42,7 @@ public abstract class CompareToNode extends Node {
       EnsoBigInteger that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef,
       @Cached("getOrdering(ctxRef)") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compare_to(_this.getValue(), that.getValue()));
+    return ordering.fromJava(BigIntegerOps.compareTo(_this.getValue(), that.getValue()));
   }
 
   @Specialization
@@ -51,7 +51,7 @@ public abstract class CompareToNode extends Node {
       double that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef,
       @Cached("getOrdering(ctxRef)") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compare_to(_this.getValue(), that));
+    return ordering.fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
   }
 
   @Specialization

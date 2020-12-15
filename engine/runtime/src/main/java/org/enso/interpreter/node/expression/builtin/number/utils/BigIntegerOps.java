@@ -206,27 +206,27 @@ public class BigIntegerOps {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public static int compare_to(long a, BigInteger b) {
+  public static int compareTo(long a, BigInteger b) {
     return -b.signum();
   }
 
   @CompilerDirectives.TruffleBoundary
-  public static int compare_to(BigInteger a, long b) {
+  public static int compareTo(BigInteger a, long b) {
     return a.signum();
   }
 
   @CompilerDirectives.TruffleBoundary
-  public static int compare_to(BigInteger a, BigInteger b) {
+  public static int compareTo(BigInteger a, BigInteger b) {
     return a.compareTo(b);
   }
 
   @CompilerDirectives.TruffleBoundary
-  public static int compare_to(BigInteger a, double b) {
+  public static int compareTo(BigInteger a, double b) {
     return (new BigDecimal(a)).compareTo(BigDecimal.valueOf(b));
   }
 
   @CompilerDirectives.TruffleBoundary
-  public static int compare_to(double a, BigInteger b) {
+  public static int compareTo(double a, BigInteger b) {
     return BigDecimal.valueOf(a).compareTo(new BigDecimal(b));
   }
 

@@ -45,7 +45,7 @@ public abstract class CompareToNode extends Node {
       EnsoBigInteger that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef,
       @Cached("getOrdering(ctxRef)") Ordering ordering) {
-    return ordering.fromJava(BigIntegerOps.compare_to(_this, that.getValue()));
+    return ordering.fromJava(BigIntegerOps.compareTo(_this, that.getValue()));
   }
 
   @Specialization
