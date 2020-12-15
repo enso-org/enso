@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.number.utils;
 import com.fasterxml.jackson.databind.node.BigIntegerNode;
 import com.oracle.truffle.api.CompilerDirectives;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /** Re-exposes big-integer operations behind a truffle boundary. */
@@ -202,6 +203,31 @@ public class BigIntegerOps {
   @CompilerDirectives.TruffleBoundary
   public static boolean isZero(BigInteger a) {
     return BigIntegerOps.compare(a,BigInteger.ZERO) == 0;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static int compareTo(long a, BigInteger b) {
+    return -b.signum();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static int compareTo(BigInteger a, long b) {
+    return a.signum();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static int compareTo(BigInteger a, BigInteger b) {
+    return a.compareTo(b);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static int compareTo(BigInteger a, double b) {
+    return (new BigDecimal(a)).compareTo(BigDecimal.valueOf(b));
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public static int compareTo(double a, BigInteger b) {
+    return BigDecimal.valueOf(a).compareTo(new BigDecimal(b));
   }
 
   @CompilerDirectives.TruffleBoundary

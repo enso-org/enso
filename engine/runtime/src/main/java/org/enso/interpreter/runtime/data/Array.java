@@ -59,10 +59,15 @@ public class Array implements TruffleObject {
     return items[(int) index];
   }
 
+  /** @return the size of this array */
+  public int length() {
+    return this.items.length;
+  }
+
   /**
    * Exposes the size of this collection through the polyglot API.
    *
-   * @return
+   * @return the size of this array
    */
   @ExportMessage
   long getArraySize() {

@@ -38,22 +38,24 @@ public class Builtins {
     }
   }
 
-  private final Module module;
-  private final ModuleScope scope;
-  private final AtomConstructor nothing;
   private final AtomConstructor any;
-  private final Number number;
-  private final AtomConstructor function;
   private final AtomConstructor debug;
   private final AtomConstructor ensoProject;
-  private final Text text;
-  private final Error error;
+  private final AtomConstructor function;
+  private final AtomConstructor nothing;
+
   private final Bool bool;
-  private final System system;
+  private final Error error;
+  private final Meta meta;
+  private final Module module;
+  private final ModuleScope scope;
   private final Mutable mutable;
+  private final Number number;
+  private final Ordering ordering;
   private final Polyglot polyglot;
   private final Resource resource;
-  private final Meta meta;
+  private final System system;
+  private final Text text;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -62,27 +64,28 @@ public class Builtins {
    */
   public Builtins(Context context) {
     Language language = context.getLanguage();
-
     module = Module.empty(QualifiedName.fromString(MODULE_NAME).get());
     scope = module.compileScope(context);
-    nothing = new AtomConstructor("Nothing", scope).initializeFields();
+
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
-    error = new Error(language, scope);
-    mutable = new Mutable(language, scope);
-    function = new AtomConstructor("Function", scope).initializeFields();
-    text = new Text(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
     ensoProject =
         new AtomConstructor("Enso_Project", scope)
             .initializeFields(
                 new ArgumentDefinition(
                     0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE));
-    system = new System(language, scope);
+    error = new Error(language, scope);
+    function = new AtomConstructor("Function", scope).initializeFields();
+    meta = new Meta(language, scope);
+    mutable = new Mutable(language, scope);
+    nothing = new AtomConstructor("Nothing", scope).initializeFields();
     number = new Number(language, scope);
+    ordering = new Ordering(language, scope);
     polyglot = new Polyglot(language, scope);
     resource = new Resource(language, scope);
-    meta = new Meta(language, scope);
+    system = new System(language, scope);
+    text = new Text(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -241,6 +244,11 @@ public class Builtins {
   /** @return the container for polyglot-related builtins. */
   public Polyglot polyglot() {
     return polyglot;
+  }
+
+  /** @return the container for ordering-related builtins */
+  public Ordering ordering() {
+    return ordering;
   }
 
   /**
