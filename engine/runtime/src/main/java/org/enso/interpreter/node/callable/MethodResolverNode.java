@@ -423,7 +423,7 @@ public abstract class MethodResolverNode extends Node {
   @CompilerDirectives.TruffleBoundary
   Function resolveMethodOnArray(Context context, UnresolvedSymbol symbol) {
     return symbol.resolveFor(
-        context.getBuiltins().mutable().constructor(), context.getBuiltins().any());
+        context.getBuiltins().mutable().array(), context.getBuiltins().any());
   }
 
   @CompilerDirectives.TruffleBoundary

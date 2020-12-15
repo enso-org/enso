@@ -40,5 +40,5 @@ from Base.Data.Text.Extensions export Text
 from Base.Error.Extensions export all
 from Base.Meta.Enso_Project export all
 from Base.Polyglot.Java export all
-from Builtins export all hiding Meta
+from Builtins export all hiding Meta, Less, Equal, Greater, Ordering
 

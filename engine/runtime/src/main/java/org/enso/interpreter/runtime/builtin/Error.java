@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** Container for builtin Error types */
 public class Error {
   private final AtomConstructor syntaxError;
+  private final AtomConstructor typeError;
   private final AtomConstructor compileError;
   private final AtomConstructor inexhaustivePatternMatchError;
   private final AtomConstructor uninitializedState;
@@ -34,6 +35,11 @@ public class Error {
         new AtomConstructor("Syntax_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
+    typeError =
+        new AtomConstructor("Type_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "expected", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(0, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
     compileError =
         new AtomConstructor("Compile_Error", scope)
             .initializeFields(
@@ -78,6 +84,9 @@ public class Error {
     return syntaxError;
   }
 
+  /** @return the builtin {@code Type_Error} atom constructor. */
+  public AtomConstructor typeError() { return typeError; }
+
   /** @return the builtin {@code Compile_Error} atom constructor. */
   public AtomConstructor compileError() {
     return compileError;
@@ -107,6 +116,17 @@ public class Error {
    */
   public Atom makeNoSuchMethodError(Object target, UnresolvedSymbol symbol) {
     return noSuchMethodError.newInstance(target, symbol);
+  }
+
+  /**
+   * Creates an instance of the runtime representation of a {@code Type_Error}.
+   *
+   * @param expected the expected type
+   * @param actual the actual type
+   * @return a runtime representation of the error.
+   */
+  public Atom makeTypeError(Object expected, Object actual) {
+    return typeError.newInstance(expected, actual);
   }
 
   /**

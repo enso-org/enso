@@ -2,6 +2,9 @@ package org.enso.loggingservice
 
 import org.enso.loggingservice.printers.TestPrinter
 
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
+
 /** A helper object for handling logs in tests.
   */
 object TestLogger {
@@ -20,12 +23,18 @@ object TestLogger {
     */
   def gatherLogs(action: => Unit): Seq[TestLogMessage] = {
     LoggingServiceManager.dropPendingLogs()
-    LoggingServiceManager.tearDown()
+    if (LoggingServiceManager.isSetUp()) {
+      throw new IllegalStateException(
+        "gatherLogs called but another logging service has been already set " +
+        "up, this would lead to conflicts"
+      )
+    }
     val printer = new TestPrinter
-    LoggingServiceManager.setup(
+    val future = LoggingServiceManager.setup(
       LoggerMode.Local(Seq(printer)),
       LogLevel.Debug
     )
+    Await.ready(future, 1.second)
     action
     LoggingServiceManager.tearDown()
     printer.getLoggedMessages

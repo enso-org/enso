@@ -621,26 +621,6 @@ lazy val `logging-service` = project
   )
   .dependsOn(`akka-native`)
 
-ThisBuild / testOptions += Tests.Setup(_ =>
-  // Note [Logging Service in Tests]
-  sys.props("org.enso.loggingservice.test-log-level") = "2"
-)
-
-/* Note [Logging Service in Tests]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * As migrating the runner to our new logging service has forced us to migrate
- * other components that are related to it too, some tests that used to be
- * configured by logback are not properly configured anymore and log a lot of
- * debug information. This is a temporary fix to make sure that there are not
- * too much logs in the CI - it sets the log level for all tests to be at most
- * info by default. It can be overridden by particular tests if they set up a
- * logging service.
- *
- * This is a temporary solution and it will be obsoleted once all of our
- * components do a complete migration to the new logging service, which is
- * planned in tasks #1144 and #1151.
- */
-
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .configs(Test)
@@ -1170,7 +1150,6 @@ lazy val launcher = project
       "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
-      akkaHttp,
       akkaSLF4J
     )
   )
@@ -1225,8 +1204,7 @@ lazy val `runtime-version-manager` = project
       "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
-      akkaHttp,
-      akkaSLF4J
+      akkaHttp
     )
   )
   .dependsOn(pkg)

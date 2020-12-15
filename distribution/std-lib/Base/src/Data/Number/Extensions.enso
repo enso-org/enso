@@ -102,8 +102,3 @@ Decimal.parse : Text -> Decimal | Nothing
 Decimal.parse text =
     Panic.recover (Double.parseDouble [text]) . catch (_ -> Nothing)
 
-## Compare two numbers.
-Number.compare_to : Number -> Ordering
-Number.compare_to that = if this == that then Ordering.Equal else
-    if this > that then Ordering.Greater else Ordering.Less
-

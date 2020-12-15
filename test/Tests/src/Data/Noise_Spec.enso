@@ -14,6 +14,6 @@ spec = describe "Noise" <|
         result-result . should_equal 0
     it "should allow the user to specify the interval" <|
         interval = Interval.inclusive -250 250
-        values = 1.up_to 10000 . to_vector . map (_.noise interval)
+        values = 1.up_to 10001 . to_vector . map (_.noise interval)
         values.all (v -> (v >= -250) && (v <= 250)) . should_be_true
 

@@ -271,6 +271,7 @@ class RuntimeVersionManager(
   def listInstalledGraalRuntimes(): Seq[GraalRuntime] =
     FileSystem
       .listDirectory(distributionManager.paths.runtimes)
+      .filter(isNotIgnoredDirectory)
       .map(path => (path, loadGraalRuntime(path)))
       .flatMap(handleErrorsAsWarnings[GraalRuntime]("A runtime"))
 
@@ -278,8 +279,16 @@ class RuntimeVersionManager(
   def listInstalledEngines(): Seq[Engine] = {
     FileSystem
       .listDirectory(distributionManager.paths.engines)
+      .filter(isNotIgnoredDirectory)
       .map(path => (path, loadEngine(path)))
       .flatMap(handleErrorsAsWarnings[Engine]("An engine"))
+  }
+
+  private def isNotIgnoredDirectory(path: Path): Boolean = {
+    val ignoreList = Seq(".DS_Store")
+    val fileName   = path.getFileName.toString
+    val isIgnored  = ignoreList.contains(fileName)
+    !isIgnored
   }
 
   /** A helper function that is used when listing components.

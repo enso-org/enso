@@ -51,12 +51,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val log = LoggerFactory.getLogger(this.getClass)
   log.trace("Initializing...")
 
+  val directoriesConfig =
+    DirectoriesConfig.initialize(serverConfig.contentRootPath)
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
-    DirectoriesConfig(serverConfig.contentRootPath)
+    directoriesConfig
   )
   log.trace("Created Language Server config")
 
