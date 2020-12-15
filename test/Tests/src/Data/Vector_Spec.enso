@@ -2,6 +2,12 @@ from Base import all
 
 import Test
 
+type Test a b
+
+Test.== that = this.a == that.a
+Test.compare_to that = if this == that then Ordering.Equal else
+    if this.a > that.a then Ordering.Greater else Ordering.Less
+
 spec = describe "Vectors" <|
     it "should allow vector creation with a programmatic constructor" <|
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
@@ -115,9 +121,38 @@ spec = describe "Vectors" <|
         non_empty_vec.rest . should_equal [2, 3, 4, 5]
         singleton_vec.rest . should_equal []
         empty_vec.rest . should_equal Nothing
-    # it "should be able to be sorted" <|
-    # it "should have a stable sort" <|
-    # it "should be able to use a custom element projection" <|
-    # it "should be able to use a custom comparator" <|
-    # it "should be able to sort in ascending and descending order" <|
-
+    it "should be able to be sorted" <|
+        empty_vec = []
+        short_vec = [2, 4, 38, -1, -1000, 3671, -32]
+        short_expected = [-1000, -32, -1, 2, 4, 38, 3671]
+        empty_vec.sort . should_equal []
+        short_vec.sort . should_equal short_expected
+    it "should leave the original vector unchanged" <|
+        non_empty_vec = [2, 4, 2, 3, 2, 3]
+        sorted = non_empty_vec.sort
+        non_empty_vec . should_equal [2, 4, 2, 3, 2, 3]
+        sorted . should_equal [2, 2, 2, 3, 3, 4]
+    it "should have a stable sort" <|
+        small_vec = [Test 1 8, Test 1 3, Test -20 0, Test -1 1, Test -1 10, Test 4 0]
+        small_expected = [Test -20 0, Test -1 1, Test -1 10, Test 1 8, Test 1 3, Test 4 0]
+        small_vec.sort . should_equal small_expected
+    it "should be able to use a custom element projection" <|
+        small_vec = [Test 1 8, Test 1 3, Test -20 0, Test -1 1, Test -1 10, Test 4 0]
+        small_expected = [Test -20 0, Test 4 0, Test -1 1, Test 1 3, Test 1 8, Test -1 10]
+        small_vec.sort (on = _.b) . should_equal small_expected
+    it "should be able to use a custom comparator" <|
+        small_vec = [2, 7, -3, 383, -392, 28, -90]
+        small_expected = [383, 28, 7, 2, -3, -90, -392]
+        small_vec.sort (by = l -> r -> r.compare_to l) . should_equal small_expected
+    it "should be able to use a custom comparator and projection" <|
+        small_vec = [Test 1 8, Test 1 3, Test -20 0, Test -1 1, Test -1 10, Test 4 0]
+        small_expected = [Test -1 10, Test 1 8, Test 1 3, Test -1 1, Test -20 0, Test 4 0]
+        small_vec.sort (on = _.b) (by = l -> r -> r.compare_to l) . should_equal small_expected
+    it "should be able to sort in descending order" <|
+        small_vec = [2, 7, -3, 383, -392, 28, -90]
+        small_expected = [383, 28, 7, 2, -3, -90, -392]
+        small_vec.sort order=Sort_Order.Descending . should_equal small_expected
+    it "should be stable in descending order" <|
+        small_vec = [Test 1 8, Test 1 3, Test -20 0, Test -1 1, Test -1 10, Test 4 0]
+        small_expected = [Test 4 0, Test 1 3, Test 1 8, Test -1 10, Test -1 1, Test -20 0]
+        small_vec.sort order=Sort_Order.Descending . should_equal small_expected
