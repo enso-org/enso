@@ -9,6 +9,7 @@ import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
 
+/** An operation expecting a numeric argument and returning a boolean. */
 public abstract class LongBooleanOp extends MapOperation<LongStorage> {
   public LongBooleanOp(String name) {
     super(name);

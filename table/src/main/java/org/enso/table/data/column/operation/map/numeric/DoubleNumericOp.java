@@ -8,6 +8,7 @@ import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
 
+/** An operation expecting a numeric argument and returning a number. */
 public abstract class DoubleNumericOp extends MapOperation<DoubleStorage> {
 
   public DoubleNumericOp(String name) {

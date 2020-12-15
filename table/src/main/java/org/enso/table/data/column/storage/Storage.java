@@ -73,7 +73,10 @@ public abstract class Storage {
   /**
    * Runs a function on each non-missing element in this storage and gathers the results.
    *
+   * @param name a name of potential vectorized variant of the function that should be used if
+   *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
+   * @param argument the argument to pass to each run of the function
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage bimap(
@@ -93,7 +96,15 @@ public abstract class Storage {
     return builder.seal();
   }
 
-  public final Storage map(String name, Function<Object, Object> fun) {
+  /**
+   * Runs a function on each non-missing element in this storage and gathers the results.
+   *
+   * @param name a name of potential vectorized variant of the function that should be used if
+   *     supported. If this argument is null, the vectorized operation will never be used.
+   * @param function the function to run.
+   * @return the result of running the function on all non-missing elements.
+   */
+  public final Storage map(String name, Function<Object, Object> function) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedMap(name, null);
     }
@@ -103,13 +114,21 @@ public abstract class Storage {
       if (it == null) {
         builder.append(null);
       } else {
-        builder.append(fun.apply(it));
+        builder.append(function.apply(it));
       }
     }
     return builder.seal();
   }
 
-  public final Storage zip(String name, BiFunction<Object, Object, Object> fun, Storage arg) {
+  /**
+   * Runs a function on each pair of non-missing elements in this and arg.
+   *
+   * @param name a name of potential vectorized variant of the function that should be used if
+   *     supported. If this argument is null, the vectorized operation will never be used. *
+   * @param function the function to run.
+   * @return the result of running the function on all non-missing elements.
+   */
+  public final Storage zip(String name, BiFunction<Object, Object, Object> function, Storage arg) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedZip(name, arg);
     }
@@ -120,7 +139,7 @@ public abstract class Storage {
       if (it1 == null || it2 == null) {
         builder.append(null);
       } else {
-        builder.append(fun.apply(it1, it2));
+        builder.append(function.apply(it1, it2));
       }
     }
     return builder.seal();

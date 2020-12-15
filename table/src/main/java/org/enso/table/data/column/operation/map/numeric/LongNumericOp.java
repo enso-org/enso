@@ -8,6 +8,7 @@ import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
 
+/** An operation expecting a numeric argument and returning a boolean. */
 public abstract class LongNumericOp extends MapOperation<LongStorage> {
   private final boolean alwaysCast;
 
