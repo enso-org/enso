@@ -20,14 +20,16 @@ class HealthCheckEndpoint(
   initialPingProps: Props,
   pingHandlerProps: Props,
   actorFactory: ActorRefFactory
-)(implicit
-  ec: ExecutionContext
-) extends Endpoint {
+)(implicit ec: ExecutionContext)
+    extends Endpoint {
 
   implicit private val timeout: Timeout = Timeout(10.seconds)
 
   private val initialPingHandler =
-    actorFactory.actorOf(initialPingProps, "readiness-probe")
+    actorFactory.actorOf(
+      initialPingProps,
+      s"readiness-probe-${UUID.randomUUID()}"
+    )
 
   override def route: Route =
     readinessProbe ~ livenessProbe ~ classicalHealthCheck
