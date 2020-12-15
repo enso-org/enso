@@ -166,6 +166,18 @@ public class LongStorage extends Storage {
               }
             })
         .add(
+            new LongNumericOp(Ops.MOD) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return in % arg;
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                return in % arg;
+              }
+            })
+        .add(
             new LongNumericOp(Ops.DIV, true) {
               @Override
               public double doDouble(long in, double arg) {

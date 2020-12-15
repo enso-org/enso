@@ -158,6 +158,13 @@ public class DoubleStorage extends Storage {
               }
             })
         .add(
+            new DoubleNumericOp(Ops.MOD) {
+              @Override
+              protected double doDouble(double a, double b) {
+                return a % b;
+              }
+            })
+        .add(
             new DoubleBooleanOp(Ops.LT) {
               @Override
               protected boolean doDouble(double a, double b) {
