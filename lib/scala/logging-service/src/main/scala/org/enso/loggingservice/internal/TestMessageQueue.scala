@@ -7,10 +7,12 @@ import org.enso.loggingservice.printers.StderrPrinter
   *
   * It has a smaller buffer and ignores messages from a certain log level.
   *
-  * @param logLevel
-  * @param shouldOverride
+  * @param logLevel specifies which messages will be printed to stderr if no
+  *                 service is set-up
+  * @param isLoggingServiceSetUp a function used to check if a logging service
+  *                              is set up
   */
-class TestMessageQueue(logLevel: LogLevel, shouldOverride: () => Boolean)
+class TestMessageQueue(logLevel: LogLevel, isLoggingServiceSetUp: () => Boolean)
     extends BlockingConsumerMessageQueue(bufferSize = 100) {
 
   private def shouldKeepMessage(
@@ -24,10 +26,10 @@ class TestMessageQueue(logLevel: LogLevel, shouldOverride: () => Boolean)
 
   /** @inheritdoc */
   override def send(message: Either[InternalLogMessage, WSLogMessage]): Unit =
-    if (shouldKeepMessage(message)) {
-      if (shouldOverride())
+    if (isLoggingServiceSetUp()) {
+      if (shouldKeepMessage(message))
         overridePrinter.print(message.fold(_.toLogMessage, identity))
-      else
-        super.send(message)
+    } else {
+      super.send(message)
     }
 }

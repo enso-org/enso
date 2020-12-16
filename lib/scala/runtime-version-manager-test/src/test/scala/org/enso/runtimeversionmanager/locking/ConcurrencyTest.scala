@@ -22,7 +22,7 @@ import org.enso.runtimeversionmanager.releases.engine.{
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.{FlakySpec, RetrySpec}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers
@@ -38,9 +38,9 @@ class ConcurrencyTest
     with WithTemporaryDirectory
     with FakeEnvironment
     with BeforeAndAfterEach
-    with DropLogs
     with TimeLimitedTests
-    with RetrySpec {
+    with RetrySpec
+    with FlakySpec {
 
   /** This is an upper bound to avoid stalling the tests forever, but particular
     * operations have smaller timeouts usually.
@@ -170,7 +170,8 @@ class ConcurrencyTest
     )._2
 
   "locks" should {
-    "synchronize parallel installations with the same runtime" taggedAs Retry in {
+    "synchronize parallel installations " +
+    "with the same runtime".taggedAs(Flaky, Retry) in {
 
       /** Two threads start installing different engines in parallel, but these
         * engines use the same runtime. The second thread is stalled on
@@ -246,7 +247,7 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize installation and usage" taggedAs Retry in {
+    "synchronize installation and usage".taggedAs(Flaky, Retry) in {
 
       /** The first thread starts installing the engine, but is suspended when
         * downloading the package. The second thread then tries to use it, but
@@ -304,7 +305,7 @@ class ConcurrencyTest
       )
     }
 
-    "synchronize uninstallation and usage" taggedAs Retry in {
+    "synchronize uninstallation and usage".taggedAs(Flaky, Retry) in {
 
       /** The first thread starts using the engine, while in the meantime
         * another thread starts uninstalling it. The second thread has to wait

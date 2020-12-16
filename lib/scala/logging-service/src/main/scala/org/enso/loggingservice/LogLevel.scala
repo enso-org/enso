@@ -5,7 +5,7 @@ import io.circe.{Decoder, DecodingFailure, Encoder}
 
 /** Defines a log level for log messages.
   */
-sealed abstract class LogLevel(final val level: Int) {
+sealed abstract class LogLevel(final val name: String, final val level: Int) {
 
   /** Determines if a component running on `this` log level should log the
     * `other`.
@@ -14,6 +14,9 @@ sealed abstract class LogLevel(final val level: Int) {
     */
   def shouldLog(other: LogLevel): Boolean =
     other.level <= level
+
+  /** @inheritdoc */
+  override def toString: String = name
 }
 
 object LogLevel {
@@ -21,46 +24,34 @@ object LogLevel {
   /** This log level should not be used by messages, instead it can be set as
     * component's log level to completely disable logging for it.
     */
-  case object Off extends LogLevel(-1) {
-    override def toString: String = "off"
-  }
+  case object Off extends LogLevel("off", -1)
 
   /** Log level corresponding to severe errors, should be understandable to the
     * end-user.
     */
-  case object Error extends LogLevel(0) {
-    override def toString: String = "error"
-  }
+  case object Error extends LogLevel("error", 0)
 
   /** Log level corresponding to important notices or issues that are not
     * severe.
     */
-  case object Warning extends LogLevel(1) {
-    override def toString: String = "warning"
-  }
+  case object Warning extends LogLevel("warning", 1)
 
   /** Log level corresponding to usual information of what the application is
     * doing.
     */
-  case object Info extends LogLevel(2) {
-    override def toString: String = "info"
-  }
+  case object Info extends LogLevel("info", 2)
 
   /** Log level used for debugging the application.
     *
     * The messages can be more complex and targeted at developers diagnosing the
     * application.
     */
-  case object Debug extends LogLevel(3) {
-    override def toString: String = "debug"
-  }
+  case object Debug extends LogLevel("debug", 3)
 
   /** Log level used for advanced debugging, may be used for more throughout
     * diagnostics.
     */
-  case object Trace extends LogLevel(4) {
-    override def toString: String = "trace"
-  }
+  case object Trace extends LogLevel("trace", 4)
 
   /** Lists all available log levels.
     *
@@ -99,12 +90,27 @@ object LogLevel {
     * Returns None if the number does not represent a valid log level.
     */
   def fromInteger(level: Int): Option[LogLevel] = level match {
+    case Off.level     => Some(Off)
     case Error.level   => Some(Error)
     case Warning.level => Some(Warning)
     case Info.level    => Some(Info)
     case Debug.level   => Some(Debug)
     case Trace.level   => Some(Trace)
     case _             => None
+  }
+
+  /** Creates a [[LogLevel]] from its string representation.
+    *
+    * Returns None if the value does not represent a valid log level.
+    */
+  def fromString(level: String): Option[LogLevel] = level match {
+    case Off.name     => Some(Off)
+    case Error.name   => Some(Error)
+    case Warning.name => Some(Warning)
+    case Info.name    => Some(Info)
+    case Debug.name   => Some(Debug)
+    case Trace.name   => Some(Trace)
+    case _            => None
   }
 
   /** [[Decoder]] instance for [[LogLevel]].

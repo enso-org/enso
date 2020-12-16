@@ -1,5 +1,9 @@
 from Base import all
 
+from Builtins import Less, Equal, Greater
+
+from Builtins export Less, Equal, Greater
+
 ## Types representing the ordering of values.
 
    These are intended to be returned from the `compare_to` function, that has a
@@ -9,8 +13,15 @@ from Base import all
    `that`. So, if `this` is greater than `that`, you should return `Greater.`
 type Ordering
     ## An ordering where a compared value is less than another.
-    type Less
+    Less
     ## An ordering where a compared value is equal to another.
-    type Equal
+    Equal
     ## An ordering where a compared value is greater than another.
-    type Greater
+    Greater
+
+    ## Converts the ordering to the signed notion of ordering based on integers.
+    to_sign : Integer
+    to_sign = case this of
+        Less -> -1
+        Equal -> 0
+        Greater -> 1

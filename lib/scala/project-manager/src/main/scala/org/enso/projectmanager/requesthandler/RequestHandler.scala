@@ -2,6 +2,7 @@ package org.enso.projectmanager.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Stash, Status}
 import akka.pattern.pipe
+import com.typesafe.scalalogging.Logger
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{
   HasParams,
@@ -100,7 +101,7 @@ abstract class RequestHandler[
       context.stop(self)
 
     case Left(failure: FailureType) =>
-      log.error(s"Request $id failed due to $failure")
+      log.error(s"Request $method with $id failed due to $failure")
       val error = implicitly[FailureMapper[FailureType]].mapFailure(failure)
       replyTo ! ResponseError(Some(id), error)
       timeoutCancellable.foreach(_.cancel())
@@ -130,7 +131,13 @@ abstract class RequestHandler[
     replyTo: ActorRef,
     timeoutCancellable: Option[Cancellable]
   ): Unit = {
-    timeoutCancellable.foreach(_.cancel())
+    timeoutCancellable.foreach { cancellable =>
+      cancellable.cancel()
+      Logger[this.type].trace(
+        s"The operation $method ($id) reported starting a long-running task, " +
+        s"its request-timeout has been cancelled."
+      )
+    }
     context.become(responseStage(id, replyTo, None))
   }
 }
