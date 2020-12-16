@@ -21,7 +21,7 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `io.estatico.newtype_2.13-0.4.4`.
 
 
-'paranamer', licensed under the BSD, is distributed with the engine.
+'paranamer', licensed under the none specified, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.thoughtworks.paranamer.paranamer-2.8`.
 
@@ -129,6 +129,10 @@ Copyright notices related to this dependency can be found in the directory `org.
 'slick_2.13', licensed under the Two-clause BSD-style license, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.slick.slick_2.13-3.3.2`.
+
+
+'jsr305', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
 
 
 'shapeless_2.13', licensed under the Apache 2, is distributed with the engine.
@@ -246,8 +250,7 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.scala-logging.scala-logging_2.13-3.9.2`.
 
 
-'slf4j-api', licensed under the MIT License, is distributed with the engine.
-The license file can be found at `licenses/MIT`.
+'slf4j-api', licensed under the none specified, is distributed with the engine.
 Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-1.7.25`.
 
 
