@@ -19,7 +19,7 @@ USER enso:enso
 
 WORKDIR /opt/enso
 
-ENTRYPOINT ["java", "-jar",  "-Dtruffle.class.path.append=runtime.jar", "runner.jar" ]
+ENTRYPOINT ["java", "-jar",  "-Dtruffle.class.path.append=runtime.jar", "-Dpolyglot.engine.IterativePartialEscape=true", "runner.jar" ]
 
 EXPOSE 30001
 EXPOSE 30002
