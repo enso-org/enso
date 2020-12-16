@@ -1144,8 +1144,7 @@ lazy val `engine-runner` = project
       "commons-cli"         % "commons-cli"  % commonsCliVersion,
       "com.monovore"       %% "decline"      % declineVersion,
       "org.jline"           % "jline"        % jlineVersion,
-      "org.typelevel"      %% "cats-core"    % catsVersion,
-      "com.google.guava"    % "guava"        % guavaVersion
+      "org.typelevel"      %% "cats-core"    % catsVersion
     ),
     connectInput in run := true
   )
