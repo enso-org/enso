@@ -59,7 +59,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
               }
             }
           """)
-    val Right(openReply) = parse(client.expectMessage(10.seconds.dilated))
+    val Right(openReply) = parse(client.expectMessage(20.seconds.dilated))
     val socket = for {
       result <- openReply.hcursor.downExpectedField("result")
       addr   <- result.downExpectedField("languageServerJsonAddress")

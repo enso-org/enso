@@ -4,7 +4,10 @@ import org.enso.launcher.cli.{
   CLIRuntimeVersionManagementUserInterface,
   GlobalCLIOptions
 }
-import org.enso.runtimeversionmanager.components.RuntimeVersionManager
+import org.enso.runtimeversionmanager.components.{
+  InstallerKind,
+  RuntimeVersionManager
+}
 import org.enso.runtimeversionmanager.distribution.{
   PortableDistributionManager,
   TemporaryDirectoryManager
@@ -54,6 +57,7 @@ object DefaultManagers {
       temporaryDirectoryManager,
       defaultResourceManager,
       EngineRepository.defaultEngineReleaseProvider,
-      GraalCEReleaseProvider
+      GraalCEReleaseProvider,
+      InstallerKind.Launcher
     )
 }

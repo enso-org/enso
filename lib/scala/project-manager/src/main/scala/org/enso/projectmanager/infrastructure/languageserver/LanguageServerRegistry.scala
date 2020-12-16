@@ -19,6 +19,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
   StopServer
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
+import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
@@ -31,6 +32,7 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
   * @param distributionConfiguration configuration of the distribution
+  * @param loggingServiceDescriptor a logging service configuration descriptor
   * @param executor an executor service used to start the language server
   *                 process
   */
@@ -40,6 +42,7 @@ class LanguageServerRegistry(
   supervisionConfig: SupervisionConfig,
   timeoutConfig: TimeoutConfig,
   distributionConfiguration: DistributionConfiguration,
+  loggingServiceDescriptor: LoggingServiceDescriptor,
   executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
@@ -65,6 +68,7 @@ class LanguageServerRegistry(
               supervisionConfig,
               timeoutConfig,
               distributionConfiguration,
+              loggingServiceDescriptor,
               executor
             ),
           s"language-server-controller-${project.id}"
@@ -129,6 +133,7 @@ object LanguageServerRegistry {
     * @param distributionConfiguration configuration of the distribution
     * @param executor an executor service used to start the language server
     *                 process
+    * @param loggingServiceDescriptor a logging service configuration descriptor
     * @return a configuration object
     */
   def props(
@@ -137,6 +142,7 @@ object LanguageServerRegistry {
     supervisionConfig: SupervisionConfig,
     timeoutConfig: TimeoutConfig,
     distributionConfiguration: DistributionConfiguration,
+    loggingServiceDescriptor: LoggingServiceDescriptor,
     executor: LanguageServerExecutor
   ): Props =
     Props(
@@ -146,6 +152,7 @@ object LanguageServerRegistry {
         supervisionConfig,
         timeoutConfig,
         distributionConfiguration,
+        loggingServiceDescriptor,
         executor
       )
     )

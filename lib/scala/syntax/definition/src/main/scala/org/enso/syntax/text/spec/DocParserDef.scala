@@ -197,8 +197,7 @@ case class DocParserDef() extends Parser[Doc] {
             if (code.elems.head == dummyLine) {
               result.current = Some(Elem.CodeBlock(newElem))
             } else {
-              result.current =
-                Some(Elem.CodeBlock(code.elems.append(newElem), isInGui = true))
+              result.current = Some(Elem.CodeBlock(code.elems.append(newElem)))
             }
           case Some(_) | None => result.push()
         }

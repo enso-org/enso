@@ -2,4 +2,4 @@ minimum-version-for-upgrade: 0.0.0
 files-to-copy:
   - README.md
 directories-to-copy:
-  - components-licences
+  - THIRD-PARTY

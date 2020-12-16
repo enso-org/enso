@@ -12,31 +12,32 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
   * this file.
   *
   * @param logDirectory the directory to create the logfile in
+  * @param suffix a suffix to be added to the filename
   * @param printExceptions whether to print exceptions attached to the log
   *                        messages
   */
-class FileOutputPrinter(logDirectory: Path, printExceptions: Boolean)
-    extends Printer {
+class FileOutputPrinter(
+  logDirectory: Path,
+  suffix: String,
+  printExceptions: Boolean
+) extends Printer {
 
   private val renderer = new DefaultLogMessageRenderer(printExceptions)
   private val writer   = initializeWriter()
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def print(message: WSLogMessage): Unit = {
     val lines = renderer.render(message)
     writer.println(lines)
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def shutdown(): Unit = {
     writer.flush()
     writer.close()
   }
 
-  /** Opens the log file for writing.
-    */
+  /** Opens the log file for writing. */
   private def initializeWriter(): PrintWriter = {
     val logPath = logDirectory.resolve(makeLogFilename())
     Files.createDirectories(logDirectory)
@@ -49,24 +50,23 @@ class FileOutputPrinter(logDirectory: Path, printExceptions: Boolean)
     )
   }
 
-  /** Creates a log filename that is created based on the current timestamp.
-    */
+  /** Creates a log filename that is created based on the current timestamp. */
   private def makeLogFilename(): String = {
     val timestampZone = ZoneId.of("UTC")
     val timestamp = LocalDateTime
       .ofInstant(Instant.now(), timestampZone)
       .format(DateTimeFormatter.ofPattern("YYYYMMdd-HHmmss-SSS"))
-    s"$timestamp-enso.log"
+    s"$timestamp-$suffix.log"
   }
 }
 
 object FileOutputPrinter {
 
-  /** Creates a new [[FileOutputPrinter]].
-    */
+  /** Creates a new [[FileOutputPrinter]]. */
   def create(
     logDirectory: Path,
+    suffix: String,
     printExceptions: Boolean = true
   ): FileOutputPrinter =
-    new FileOutputPrinter(logDirectory, printExceptions)
+    new FileOutputPrinter(logDirectory, suffix, printExceptions)
 }

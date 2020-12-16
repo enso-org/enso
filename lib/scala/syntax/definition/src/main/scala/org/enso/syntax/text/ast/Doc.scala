@@ -169,8 +169,7 @@ object Doc {
       *
       * @param elems - lines of code
       */
-    final case class CodeBlock(elems: List1[CodeBlock.Line], isInGui: Boolean)
-        extends Elem {
+    final case class CodeBlock(elems: List1[CodeBlock.Line]) extends Elem {
       val newLn: Elem        = Elem.Newline
       val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
       val html: HTML = {
@@ -180,49 +179,23 @@ object Doc {
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
         val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
-        val btnAction = onclick :=
-          s"""var code = document.getElementById("$uniqueIDCode");
-             |var btn  = document.getElementById("$uniqueIDBtn").firstChild;
-             |btn.data = btn.data == "Show" ? "Hide" : "Show";
-             |code.style.display = code.style.display == 
-             |"inline-block" ? "none" : "inline-block";""".stripMargin
-            .replaceAll("\n", "")
-        val copyAction = onclick :=
-          s"""var code  = document.getElementById("$uniqueIDCode");
-             |var range = document.createRange();
-             |range.selectNode(code);
-             |window.getSelection().removeAllRanges();
-             |window.getSelection().addRange(range);
-             |document.execCommand("copy");
-             |window.getSelection().removeAllRanges();""".stripMargin
-        val btnStyle = HTML.`style` := "display: flex"
-        val btn      = HTML.button(btnAction)(htmlIdBtn)("Show")
-        val copyBtn  = HTML.button(copyAction)(btnStyle)("Copy")
-        if (isInGui) {
-          val htmlStyle = HTML.`style` := "display: block"
-          Seq(
-            HTML.div(
-              HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
-              copyBtn
-            )
+        val btnStyle     = HTML.`style` := "display: flex"
+        val copyClass    = HTML.`class` := "copyCodeBtn"
+        val copyBtn      = HTML.button(htmlIdBtn)(copyClass)(btnStyle)("Copy")
+        val htmlStyle    = HTML.`style` := "display: block"
+        Seq(
+          HTML.div(
+            HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
+            copyBtn
           )
-        } else {
-          val htmlStyle = HTML.`style` := "display: none"
-          Seq(
-            HTML.div(
-              btn,
-              HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
-              copyBtn
-            )
-          )
-        }
+        )
       }
     }
     object CodeBlock {
-      def apply(elem: CodeBlock.Line): CodeBlock =
-        CodeBlock(List1(elem), isInGui = true)
-      def apply(elems: CodeBlock.Line*): CodeBlock =
-        CodeBlock(List1(elems.head, elems.tail.toList), isInGui = true)
+      def apply(elem: CodeBlock.Line): CodeBlock = CodeBlock(List1(elem))
+      def apply(elems: CodeBlock.Line*): CodeBlock = CodeBlock(
+        List1(elems.head, elems.tail.toList)
+      )
 
       /** Inline - line of code which is in line with other elements
         * Line - elem which is a part of Code Block

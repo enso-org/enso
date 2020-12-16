@@ -14,7 +14,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
     "find the latest engine version in semver ordering " +
     "(skipping broken releases)" in {
       val componentsManager = makeRuntimeVersionManager()
-      componentsManager.fetchLatestEngineVersion() shouldEqual SemVer(0, 0, 1)
+      componentsManager.fetchLatestEngineVersion() shouldEqual SemVer(0, 1, 0)
     }
 
     "install the engine and a matching runtime for it" in {
@@ -142,6 +142,39 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
       componentsManager.uninstallEngine(SemVer(0, 0, 0))
       componentsManager.listInstalledEngines() should have length 0
       componentsManager.listInstalledGraalRuntimes() should have length 0
+    }
+
+    "correctly handle version depending on installer type" in {
+      val projectManager =
+        makeManagers(installerKind = InstallerKind.ProjectManager)._2
+      val launcher =
+        makeManagers(installerKind = InstallerKind.Launcher)._2
+
+      val engineWithDifferentVersionRequirements = SemVer(0, 1, 0)
+
+      val manifest =
+        launcher
+          .findOrInstallEngine(engineWithDifferentVersionRequirements)
+          .manifest
+
+      val usualVersion = SemVer(0, 0, 1)
+      val bigVersion   = SemVer(999, 0, 0)
+      manifest.requiredInstallerVersions.launcher shouldEqual usualVersion
+      manifest.requiredInstallerVersions.projectManager shouldEqual bigVersion
+
+      manifest.minimumRequiredVersion(installerKind =
+        InstallerKind.Launcher
+      ) shouldEqual usualVersion
+      manifest.minimumRequiredVersion(installerKind =
+        InstallerKind.ProjectManager
+      ) shouldEqual bigVersion
+
+      val upgradeException = intercept[UpgradeRequiredError] {
+        projectManager.findOrInstallEngine(
+          engineWithDifferentVersionRequirements
+        )
+      }
+      upgradeException.expectedVersion shouldEqual bigVersion
     }
   }
 }

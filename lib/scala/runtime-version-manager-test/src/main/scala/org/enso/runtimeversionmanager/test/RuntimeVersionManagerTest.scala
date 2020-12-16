@@ -6,6 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
+  InstallerKind,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
@@ -24,8 +25,7 @@ class RuntimeVersionManagerTest
     with Matchers
     with OptionValues
     with WithTemporaryDirectory
-    with FakeEnvironment
-    with DropLogs {
+    with FakeEnvironment {
 
   /** Creates the [[DistributionManager]], [[RuntimeVersionManager]] and an
     * [[Environment]] for use in the tests.
@@ -39,7 +39,8 @@ class RuntimeVersionManagerTest
   def makeManagers(
     environmentOverrides: Map[String, String] = Map.empty,
     userInterface: RuntimeVersionManagementUserInterface =
-      TestRuntimeVersionManagementUserInterface.default
+      TestRuntimeVersionManagementUserInterface.default,
+    installerKind: InstallerKind = InstallerKind.Launcher
   ): (DistributionManager, RuntimeVersionManager, Environment) = {
     val env                 = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager = new PortableDistributionManager(env)
@@ -54,7 +55,8 @@ class RuntimeVersionManagerTest
       temporaryDirectoryManager,
       resourceManager,
       FakeReleases.engineReleaseProvider,
-      FakeReleases.runtimeReleaseProvider
+      FakeReleases.runtimeReleaseProvider,
+      installerKind
     )
 
     (distributionManager, runtimeVersionManager, env)

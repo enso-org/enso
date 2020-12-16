@@ -8,6 +8,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** Container for builtin array-related types and functions. */
 public class Mutable {
   private final AtomConstructor array;
+  private final AtomConstructor ref;
 
   /**
    * Creates a new instance of this class, registering all relevant bindings in the provided scope.
@@ -28,8 +29,10 @@ public class Mutable {
     scope.registerMethod(array, "to_array", ToArrayMethodGen.makeFunction(language));
     scope.registerMethod(array, "at", GetAtMethodGen.makeFunction(language));
     scope.registerMethod(array, "set_at", SetAtMethodGen.makeFunction(language));
+    scope.registerMethod(array, "copy", CopyMethodGen.makeFunction(language));
+    scope.registerMethod(array, "sort", SortMethodGen.makeFunction(language));
 
-    AtomConstructor ref = new AtomConstructor("Ref", scope).initializeFields();
+    ref = new AtomConstructor("Ref", scope).initializeFields();
     scope.registerConstructor(ref);
     scope.registerMethod(ref, "new", NewRefMethodGen.makeFunction(language));
     scope.registerMethod(ref, "get", GetRefMethodGen.makeFunction(language));
@@ -37,7 +40,12 @@ public class Mutable {
   }
 
   /** @return the Array constructor. */
-  public AtomConstructor constructor() {
+  public AtomConstructor array() {
     return array;
+  }
+
+  /** @return the Ref constructor. */
+  public AtomConstructor ref() {
+    return ref;
   }
 }

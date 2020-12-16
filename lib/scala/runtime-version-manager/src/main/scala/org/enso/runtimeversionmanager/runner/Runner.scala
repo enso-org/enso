@@ -99,14 +99,12 @@ class Runner(
         "--data-port",
         options.dataPort.toString,
         "--log-level",
-        logLevel.toString
+        logLevel.name
       )
       RunSettings(
         version,
         arguments ++ additionalArguments,
-        // TODO [RW] set to true when language server gets logging support
-        //  (#1144)
-        connectLoggerIfAvailable = false
+        connectLoggerIfAvailable = true
       )
     }
 
