@@ -702,7 +702,7 @@ class IrToTruffle(
 
           runtimeConsOpt.map { atomCons =>
             val any      = context.getBuiltins.any
-            val array    = context.getBuiltins.mutable.constructor
+            val array    = context.getBuiltins.mutable.array
             val bool     = context.getBuiltins.bool
             val number   = context.getBuiltins.number
             val polyglot = context.getBuiltins.polyglot.getPolyglot
