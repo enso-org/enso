@@ -1,13 +1,10 @@
 package org.enso.runner
 
 import java.io.File
-import java.lang.Thread.UncaughtExceptionHandler
 import java.util.UUID
-import java.util.concurrent.Executors
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
@@ -17,7 +14,6 @@ import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.{PolyglotException, Value}
 
-import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
@@ -32,6 +28,7 @@ object Main {
   private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
   private val REPL_OPTION                 = "repl"
   private val LANGUAGE_SERVER_OPTION      = "server"
+  private val DAEMONIZE_OPTION            = "daemon"
   private val INTERFACE_OPTION            = "interface"
   private val RPC_PORT_OPTION             = "rpc-port"
   private val DATA_PORT_OPTION            = "data-port"
@@ -103,6 +100,10 @@ object Main {
     val lsOption = CliOption.builder
       .longOpt(LANGUAGE_SERVER_OPTION)
       .desc("Runs Language Server")
+      .build()
+    val deamonizeOption = CliOption.builder
+      .longOpt(DAEMONIZE_OPTION)
+      .desc("Deamonize Language Server")
       .build()
     val interfaceOption = CliOption.builder
       .longOpt(INTERFACE_OPTION)
@@ -185,6 +186,7 @@ object Main {
       .addOption(newProjectAuthorNameOpt)
       .addOption(newProjectAuthorEmailOpt)
       .addOption(lsOption)
+      .addOption(deamonizeOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
       .addOption(dataPortOption)
@@ -437,7 +439,12 @@ object Main {
         exitFail()
 
       case Right(config) =>
-        LanguageServerApp.run(config, logLevel)
+        LanguageServerApp.run(
+          config,
+          logLevel,
+          line.hasOption(DAEMONIZE_OPTION)
+        )
+        exitSuccess()
     }
   }
 
@@ -465,25 +472,8 @@ object Main {
       dataPort   <- Either
                       .catchNonFatal(dataPortStr.toInt)
                       .leftMap(_ => "Port must be integer")
-    } yield boot.LanguageServerConfig(interface, rpcPort, dataPort, rootId, rootPath, "language-server", createExecutor())
+    } yield boot.LanguageServerConfig(interface, rpcPort, dataPort, rootId, rootPath)
     // format: on
-
-  private def createExecutor(): ExecutionContext = {
-    val threadFactory =
-      new ThreadFactoryBuilder()
-        .setNameFormat("compute-pool-%d")
-        .setDaemon(false)
-        .setUncaughtExceptionHandler(new UncaughtExceptionHandler {
-          override def uncaughtException(t: Thread, e: Throwable): Unit = {
-            e.printStackTrace(System.err)
-          }
-        })
-        .setPriority(Thread.MAX_PRIORITY)
-        .build()
-    val poolSize = Runtime.getRuntime.availableProcessors
-    val executor = Executors.newFixedThreadPool(poolSize, threadFactory)
-    ExecutionContext.fromExecutor(executor)
-  }
 
   /** Prints the version of the Enso executable.
     *
