@@ -1,6 +1,6 @@
 name: Cycle_Test
-version: 0.0.1
-enso-version: 0.1.1-rc5
-license: ""
-author: ""
-maintainer: ""
+license: APLv2
+enso-version: default
+version: "0.0.1"
+author: "Enso Team <contact@enso.org>"
+maintainer: "Enso Team <contact@enso.org>"
