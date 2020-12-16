@@ -21,7 +21,7 @@ class DefaultVersionSpec extends RuntimeVersionManagerTest {
   def makeConfigurationManager(): GlobalConfigurationManager =
     makeConfigAndComponentsManagers()._2
 
-  private val latestAvailable = SemVer(0, 0, 1)
+  private val latestAvailable = SemVer(0, 1, 0)
 
   "enso default" should {
     "fallback to latest available version if none is installed" in {

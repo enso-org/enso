@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.FileSystem
+import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.distribution.{
@@ -42,7 +42,8 @@ class RuntimeVersionManager(
   temporaryDirectoryManager: TemporaryDirectoryManager,
   resourceManager: ResourceManager,
   engineReleaseProvider: ReleaseProvider[EngineRelease],
-  runtimeReleaseProvider: GraalVMRuntimeReleaseProvider
+  runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
+  implicit private val installerKind: InstallerKind
 ) {
   private val logger = Logger[RuntimeVersionManager]
 
@@ -333,6 +334,14 @@ class RuntimeVersionManager(
       cleanupGraalRuntimes()
     }
 
+  /** Checks if the component version specified in the release's manifest is
+    * compatible with the current installer version.
+    */
+  private def isEngineVersionCompatibleWithThisInstaller(
+    manifest: Manifest
+  ): Boolean =
+    CurrentVersion.version >= manifest.minimumRequiredVersion
+
   /** Installs the engine with the provided version.
     *
     * Used internally by [[findOrInstallEngine]]. Does not check if the engine
@@ -349,8 +358,11 @@ class RuntimeVersionManager(
     */
   private def installEngine(version: SemVer): Engine = {
     val engineRelease = engineReleaseProvider.fetchRelease(version).get
-    if (!engineRelease.manifest.isUsableWithCurrentVersion) {
-      throw UpgradeRequiredError(engineRelease.manifest.minimumLauncherVersion)
+    val isCompatible = isEngineVersionCompatibleWithThisInstaller(
+      engineRelease.manifest
+    )
+    if (!isCompatible) {
+      throw UpgradeRequiredError(engineRelease.manifest.minimumRequiredVersion)
     }
     if (engineRelease.isBroken) {
       val continue = userInterface.shouldInstallBrokenEngine(version)
@@ -588,8 +600,8 @@ class RuntimeVersionManager(
     path: Path
   ): Try[Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
-      if (!manifest.isUsableWithCurrentVersion) {
-        Failure(UpgradeRequiredError(manifest.minimumLauncherVersion))
+      if (!isEngineVersionCompatibleWithThisInstaller(manifest)) {
+        Failure(UpgradeRequiredError(manifest.minimumRequiredVersion))
       } else Success(manifest)
     }
   }
