@@ -1,11 +1,17 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
+import org.enso.table.error.UnexpectedColumnTypeException;
+import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
 
 /** A boolean column storage. */
 public class BoolStorage extends Storage {
+  private static final MapOpStorage<BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isMissing;
   private final int size;
@@ -43,36 +49,18 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return op.equals(Ops.EQ) || op.equals(Ops.NOT) || op.equals(Ops.IS_MISSING);
+  protected boolean isOpVectorized(String name) {
+    return ops.isSupported(name);
   }
 
   @Override
-  public Storage runVectorizedOp(String name, Object operand) {
-    if (Ops.EQ.equals(name)) {
-      return runVectorizedEq(operand);
-    } else if (Ops.NOT.equals(name)) {
-      return new BoolStorage(values, isMissing, size, !negated);
-    } else if (Ops.IS_MISSING.equals(name)) {
-      return new BoolStorage(isMissing, new BitSet(), size, false);
-    }
-    throw new UnsupportedOperationException();
+  protected Storage runVectorizedMap(String name, Object argument) {
+    return ops.runMap(name, this, argument);
   }
 
-  private BoolStorage runVectorizedEq(Object operand) {
-    if (operand instanceof Boolean) {
-      if ((Boolean) operand) {
-        return this;
-      } else {
-        BitSet newVals = new BitSet();
-        newVals.or(values);
-        newVals.flip(0, size);
-        newVals.andNot(isMissing);
-        return new BoolStorage(newVals, new BitSet(), size, false);
-      }
-    } else {
-      return new BoolStorage(new BitSet(), new BitSet(), size, false);
-    }
+  @Override
+  protected Storage runVectorizedZip(String name, Storage argument) {
+    return ops.runZip(name, this, argument);
   }
 
   public BitSet getValues() {
@@ -132,5 +120,139 @@ public class BoolStorage extends Storage {
 
   public boolean isNegated() {
     return negated;
+  }
+
+  private static MapOpStorage<BoolStorage> buildOps() {
+    MapOpStorage<BoolStorage> ops = new MapOpStorage<>();
+    ops.add(
+            new UnaryMapOperation<>(Ops.NOT) {
+              @Override
+              protected Storage run(BoolStorage storage) {
+                return new BoolStorage(
+                    storage.values, storage.isMissing, storage.size, !storage.negated);
+              }
+            })
+        .add(
+            new MapOperation<>(Ops.EQ) {
+              @Override
+              public Storage runMap(BoolStorage storage, Object arg) {
+                if (arg instanceof Boolean) {
+                  if ((Boolean) arg) {
+                    return storage;
+                  } else {
+                    return new BoolStorage(
+                        storage.values, storage.isMissing, storage.size, !storage.negated);
+                  }
+                } else {
+                  return new BoolStorage(new BitSet(), storage.isMissing, storage.size, false);
+                }
+              }
+
+              @Override
+              public Storage runZip(BoolStorage storage, Storage arg) {
+                BitSet out = new BitSet();
+                BitSet missing = new BitSet();
+                for (int i = 0; i < storage.size; i++) {
+                  if (!storage.isNa(i) && i < arg.size() && !arg.isNa(i)) {
+                    if (((Boolean) storage.getItem(i)).equals(arg.getItemBoxed(i))) {
+                      out.set(i);
+                    }
+                  } else {
+                    missing.set(i);
+                  }
+                }
+                return new BoolStorage(out, missing, storage.size, false);
+              }
+            })
+        .add(
+            new MapOperation<>(Ops.AND) {
+              @Override
+              public Storage runMap(BoolStorage storage, Object arg) {
+                if (arg instanceof Boolean) {
+                  boolean v = (Boolean) arg;
+                  if (v) {
+                    return storage;
+                  } else {
+                    return new BoolStorage(new BitSet(), storage.isMissing, storage.size, false);
+                  }
+                } else {
+                  throw new UnexpectedTypeException("a Boolean");
+                }
+              }
+
+              @Override
+              public Storage runZip(BoolStorage storage, Storage arg) {
+                if (arg instanceof BoolStorage) {
+                  BoolStorage v = (BoolStorage) arg;
+                  BitSet missing = v.isMissing.get(0, storage.size);
+                  missing.or(storage.isMissing);
+                  BitSet out = v.values.get(0, storage.size);
+                  boolean negated;
+                  if (storage.negated && v.negated) {
+                    out.or(storage.values);
+                    negated = true;
+                  } else if (storage.negated) {
+                    out.andNot(storage.values);
+                    negated = false;
+                  } else if (v.negated) {
+                    out.flip(0, storage.size);
+                    out.and(storage.values);
+                    negated = false;
+                  } else {
+                    out.and(storage.values);
+                    negated = false;
+                  }
+                  return new BoolStorage(out, missing, storage.size, negated);
+                } else {
+                  throw new UnexpectedColumnTypeException("Boolean");
+                }
+              }
+            })
+        .add(
+            new MapOperation<>(Ops.OR) {
+              @Override
+              public Storage runMap(BoolStorage storage, Object arg) {
+                if (arg instanceof Boolean) {
+                  boolean v = (Boolean) arg;
+                  if (v) {
+                    return new BoolStorage(new BitSet(), storage.isMissing, storage.size, true);
+                  } else {
+                    return storage;
+                  }
+                } else {
+                  throw new UnexpectedTypeException("a Boolean");
+                }
+              }
+
+              @Override
+              public Storage runZip(BoolStorage storage, Storage arg) {
+                if (arg instanceof BoolStorage) {
+                  BoolStorage v = (BoolStorage) arg;
+                  BitSet missing = v.isMissing.get(0, storage.size);
+                  missing.or(storage.isMissing);
+                  BitSet out = v.values.get(0, storage.size);
+                  boolean negated;
+                  if (storage.negated && v.negated) {
+                    out.and(storage.values);
+                    negated = true;
+                  } else if (storage.negated) {
+                    out.flip(0, storage.size);
+                    out.and(storage.values);
+                    negated = true;
+                  } else if (v.negated) {
+                    out.flip(0, storage.size);
+                    out.or(storage.values);
+                    negated = false;
+                  } else {
+                    out.or(storage.values);
+                    negated = false;
+                  }
+                  return new BoolStorage(out, missing, storage.size, negated);
+                } else {
+                  throw new UnexpectedColumnTypeException("Boolean");
+                }
+              }
+            });
+    return ops;
   }
 }

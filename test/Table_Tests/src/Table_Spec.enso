@@ -89,17 +89,35 @@ spec =
             c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
             c_any.map (_.frobnicate) . to_vector . should_equal [My 6 1, My 3 6, My 5 2, My 4 3, My 300 200]
 
+        it "should allow zipping columns with a custom function" <|
+            b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
+            a = Column.from_vector 'z' ['foo', 'bar', 'baz', 'spam', 'eggs']
+            c = a.zip b x-> y-> x + y.to_text
+            c.to_vector.should_equal ['foo6.3', 'bar3.1', 'baz5.2', 'spam4.6', 'eggs8.0']
+
         it "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
-            (c_str == 'b').to_vector.should_equal [False, True, False, True]
+            (c_str == 'b').to_vector.should_equal [False, True, Nothing, True]
             c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
             (c_int == 1).to_vector.should_equal [True, False, True, False, True]
             c_dec = Column.from_vector 'x' [1.9, 2.0, 1.2, 5.6, 1.9]
             (c_dec == 1.9).to_vector.should_equal [True, False, False, False, True]
             c_bool = Column.from_vector 'x' [True, False, Nothing, True, False]
-            (c_bool == False).to_vector.should_equal [False, True, False, False, True]
+            (c_bool == False).to_vector.should_equal [False, True, Nothing, False, True]
             c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
             (c_any == My 7 0).to_vector.should_equal [True, False, True, True, False]
+
+        it "should switch between maps and zips based on argument type" <|
+            a = Column.from_vector 'x' [0, 1, 7, 3, 6]
+            b = Column.from_vector 'w' [6.3, 3.1, 5.2, Nothing, 8]
+            (a + 3.2).to_vector.should_equal [3.2, 4.2, 10.2, 6.2, 9.2]
+            (a + b).to_vector.should_equal [6.3, 4.1, 12.2, Nothing, 14]
+            gt_const = a > 5
+            gt_const.to_vector.should_equal [False, False, True, False, True]
+            gt_b = a > b
+            gt_b.to_vector.should_equal [False, False, True, Nothing, False]
+            both = gt_const && gt_b
+            both.to_vector.should_equal [False, False, True, Nothing, False]
 
     describe "Masking Tables" <|
         it "should allow selecting table rows based on a boolean column" <|
