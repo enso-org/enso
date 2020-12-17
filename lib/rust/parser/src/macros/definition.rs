@@ -66,7 +66,7 @@ impl Definition {
 pub struct Section {
     /// The literal that begins the section.
     symbol : Literal,
-    // TODO [AA] Pattern (later)
+    // TODO Pattern (later)
 }
 
 impl Section {
@@ -84,4 +84,4 @@ impl Section {
 
 // === Macros ===
 
-// TODO [AA] Macro for section definition.
+// TODO Macro for section definition.

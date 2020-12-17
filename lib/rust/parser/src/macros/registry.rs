@@ -33,7 +33,7 @@ impl Registry {
     }
 
     /// Query the registry for a tree.
-    pub fn query_tree(&self, path:&[Literal]) -> Option<&Tree> {
+    pub fn tree(&self, path:&[Literal]) -> Option<&Tree> {
         self.tree.get(path)
     }
 
@@ -41,12 +41,12 @@ impl Registry {
     ///
     /// # Panics
     /// If no tree exists at `path`.
-    pub fn unsafe_query_tree(&self, path:&[Literal]) -> &Tree {
-        self.query_tree(path).expect("A tree exists at the input path.")
+    pub fn unsafe_tree(&self, path:&[Literal]) -> &Tree {
+        self.tree(path).expect("A tree exists at the input path.")
     }
 
     /// Query the registry for a definition.
-    pub fn query_definition(&self, path:&[Literal]) -> Option<&Definition> {
+    pub fn definition(&self, path:&[Literal]) -> Option<&Definition> {
         self.tree.get_value(path)
     }
 
@@ -54,8 +54,8 @@ impl Registry {
     ///
     /// # Panics
     /// If no definition exists at `path`.
-    pub fn unsafe_query_definition(&self, path:&[Literal]) -> &Definition {
-        self.query_definition(path).expect("A definition exists at the input path.")
+    pub fn unsafe_definition(&self, path:&[Literal]) -> &Definition {
+        self.definition(path).expect("A definition exists at the input path.")
     }
 }
 
@@ -92,8 +92,8 @@ mod tests {
         let path_1 = &[Literal::variable("if"),Literal::variable("then"),Literal::variable("else")];
         let path_2 = &[Literal::variable("if"),Literal::variable("then")];
         registry.insert(definition.clone());
-        let result_1 = registry.query_definition(path_1);
-        let result_2 = registry.query_definition(path_2);
+        let result_1 = registry.definition(path_1);
+        let result_2 = registry.definition(path_2);
         assert!(result_1.is_some());
         assert_eq!(result_1.unwrap(),&definition);
         assert_eq!(result_2,None);
@@ -121,10 +121,10 @@ mod tests {
         let path_2   = &[Literal::variable("if"),Literal::variable("then")];
         let path_3   = &[Literal::variable("if"),Literal::variable("let")];
         let path_4   = &[Literal::variable("if")];
-        let result_1 = registry.query_definition(path_1);
-        let result_2 = registry.query_definition(path_2);
-        let result_3 = registry.query_definition(path_3);
-        let result_4 = registry.query_definition(path_4);
+        let result_1 = registry.definition(path_1);
+        let result_2 = registry.definition(path_2);
+        let result_3 = registry.definition(path_3);
+        let result_4 = registry.definition(path_4);
         assert!(result_1.is_some());
         assert!(result_2.is_some());
         assert!(result_3.is_some());

@@ -2,7 +2,7 @@
 
 pub mod data;
 pub mod macros;
-pub mod operators;
+pub mod operator;
 pub mod parser;
 
 pub use crate::parser::*;
