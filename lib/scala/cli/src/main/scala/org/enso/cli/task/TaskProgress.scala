@@ -74,6 +74,30 @@ object TaskProgress {
       }
     }
 
+  /** Performs action immediately and returns its result or an exception if one
+    * was thrown when performing it.
+    *
+    * Should be used only for actions that complete quickly and are too simple
+    * to report progress.
+    */
+  def runImmediately[A](action: => A): TaskProgress[A] =
+    fromTry(Try(action))
+
+  /** Lifts an already computed [[Try]] instance to [[TaskProgress]].
+    *
+    * Should be used only for actions that complete quickly and are too simple
+    * to report progress.
+    */
+  def fromTry[A](action: Try[A]): TaskProgress[A] = {
+    new TaskProgress[A] {
+      override def addProgressListener(
+        listener: ProgressListener[A]
+      ): Unit = {
+        listener.done(action)
+      }
+    }
+  }
+
   /** Blocks and waits for the task to complete.
     */
   def waitForTask[A](task: TaskProgress[A]): Try[A] = {
