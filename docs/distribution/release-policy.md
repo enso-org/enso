@@ -107,10 +107,17 @@ root of an Enso version package. It has at least the following fields:
 
 - `minimum-launcher-version` - specifies the minimum version of the launcher
   that should be used with this release of Enso,
+- `minimum-project-manager-version` - specifies the minimum version of the
+  project manager that should be used with this release of Enso; currently it is
+  the same as the launcher version but this may change in the future,
 - `graal-vm-version` - specifies the exact version of GraalVM that should be
   used with this release of Enso,
 - `graal-java-version` - as GraalVM versions may have different variants for
   different Java versions, this specifies which variant to use.
+
+The minimum launcher and project manager versions are kept as separate fields,
+because at some point the same runtime version management logic may be
+associated with different versions of these components.
 
 It can also contain the following additional fields:
 
@@ -131,8 +138,7 @@ For example:
 
 ```yaml
 minimum-launcher-version: 0.0.1
-graal-vm-version: 20.2.0
-graal-java-version: 11
+minimum-project-manager-version: 0.0.1
 jvm-options:
   - value: "-Dpolyglot.engine.IterativePartialEscape=true"
   - value: "-Dtruffle.class.path.append=$enginePackagePath\\component\\runtime.jar"
@@ -141,6 +147,8 @@ jvm-options:
     os: "linux"
   - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
     os: "macos"
+graal-vm-version: 20.2.0
+graal-java-version: 11
 ```
 
 The `minimum-launcher-version` should be updated whenever a new version of Enso

@@ -15,7 +15,7 @@ val scalacVersion = "2.13.3"
 val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val graalVersion  = "20.2.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
+val ensoVersion   = "0.1.0-SNAPSHOT" // Note [Engine And Launcher Version]
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -897,6 +897,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
       "commons-io"                  % "commons-io"           % commonsIoVersion,
       akkaTestkit                   % Test,
+      "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"

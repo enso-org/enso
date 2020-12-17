@@ -16,6 +16,7 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
+import org.enso.languageserver.monitoring.HealthCheckEndpoint
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -24,6 +25,7 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
+import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
@@ -228,12 +230,30 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
   log.trace("Created JsonConnectionControllerFactory")
 
+  val pingHandlerProps =
+    PingHandler.props(
+      List(
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        contextRegistry
+      ),
+      10.seconds,
+      true
+    )
+
+  val healthCheckEndpoint =
+    new HealthCheckEndpoint(pingHandlerProps, system)(
+      serverConfig.computeExecutionContext
+    )
+
   val jsonRpcServer =
     new JsonRpcServer(
       JsonRpc.protocol,
       jsonRpcControllerFactory,
       JsonRpcServer
-        .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds)
+        .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
+      List(healthCheckEndpoint)
     )
   log.trace("Created JsonRpcServer")
 
