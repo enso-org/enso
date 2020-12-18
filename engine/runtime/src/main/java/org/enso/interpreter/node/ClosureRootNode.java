@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -63,6 +64,9 @@ public class ClosureRootNode extends EnsoRootNode {
    */
   @Override
   public Object execute(VirtualFrame frame) {
+    if (CompilerDirectives.inCompilationRoot() || CompilerDirectives.inInterpreter()) {
+      lookupContextReference(Language.class).get().getThreadManager().poll();
+    }
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     frame.setObject(this.getStateFrameSlot(), state);
     Object result = body.executeGeneric(frame);
