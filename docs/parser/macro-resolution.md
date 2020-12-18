@@ -40,6 +40,9 @@ used in the Enso parser itself.
 - [Macro Resolution Errors](#macro-resolution-errors)
   - [Macro Errors as Parser Errors](#macro-errors-as-parser-errors)
 - [User-Defined Macros](#user-defined-macros)
+- [Benchmarking](#benchmarking)
+  - [Running a Subset of the Benchmarks](#running-a-subset-of-the-benchmarks)
+  - [Changing the Macro Resolver](#changing-the-macro-resolver)
 
 <!-- /MarkdownTOC -->
 
@@ -255,3 +258,55 @@ define syntactic macros for their programs, similar to how Rust exposes the
 > - Determine what this should look like in surface Enso.
 > - Determine exactly how the round-trip mechanic between the runtime and parser
 >   should function.
+
+## Benchmarking
+
+All components of the macro resolver are accompanied by comprehensive benchmarks
+in order to protect the performance-crucial code against regressions. These
+benchmarks are written using
+[criterion.rs](https://github.com/bheisler/criterion.rs), and cover all of the
+performance critical functionality of the macro resolver.
+
+**Baseline Commit:** TBC (use the latest for now)
+
+The benchmarking process for the macro resolver is as follows:
+
+1. Check out the current _baseline commit_, listed above.
+2. In each of the benchmark files, change the configuration line reading
+   `.retain_baseline` to `.save_baseline`. This will save the current baseline
+   (taken on your machine).
+3. In `lexer_bench_sources.rs` change the line that reads `.retain_baseline` to
+   instead read `.save_baseline`. This will save the current baseline (taken on
+   your machine).
+4. Run the benchmarks using `cargo bench`.
+5. Once the baseline run has completed, change the above-mentioned lines back to
+   `.retain_baseline`. This will disable overwriting the saved baseline, and
+   will perform its regression reporting against it.
+6. Make your changes.
+7. Run the benchmark suite again. It will report any performance regressions in
+   the benchmark report, measured against your saved baseline.
+
+Unfortunately, the use of time-based benchmarks means that we can't commit the
+baseline to the repository. There is far too much variance between machines for
+this to be useful.
+
+### Running a Subset of the Benchmarks
+
+The benchmarks are very comprehensive, testing all performance-critical paths of
+the macro resolver. However, it can often be useful to run a subset of these.
+
+There are two main tuning points for this:
+
+1. The _sizes_ of inputs being executed on, where relevant.
+2. The benchmarks being executed.
+
+While it is _possible_ to tune the benchmarking config to decrease benchmarking
+time, this is not recommended. The current settings are tuned to provide
+reliable results.
+
+### Changing the Macro Resolver
+
+When changing the macro resolver the _full_ benchmark suite must be run against
+the current baseline before the changes can be merged. This suite run must use
+the provided settings for the benchmarking library, and should be performed
+using the process described above.

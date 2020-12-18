@@ -14,6 +14,7 @@ import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RepeatingNode;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -208,6 +209,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      */
     @Override
     public boolean executeRepeating(VirtualFrame frame) {
+      lookupContextReference(Language.class).get().getThreadManager().poll();
       try {
         Object function = getNextFunction(frame);
         Object state = getNextState(frame);

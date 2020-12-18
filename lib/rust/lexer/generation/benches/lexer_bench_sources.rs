@@ -2,9 +2,7 @@
 //! benchmarking the Enso lexer.
 
 use criterion::{black_box, Criterion, Throughput};
-use enso_flexer::prelude::Reader;
-use enso_flexer::prelude::reader::decoder::DecoderUTF8;
-use lexer::generated::engine::EnsoLexer;
+use lexer;
 use std::time::Duration;
 
 
@@ -51,9 +49,7 @@ pub fn run_bench_sizes(name:&str, input:&str, add_newline:bool, c:&mut Criterion
         group.bench_function(
             *size_name,
             |b| b.iter(|| {
-                let mut lexer = EnsoLexer::new();
-                let reader    = Reader::new(input.as_str().as_bytes(),DecoderUTF8());
-                lexer.run(black_box(reader));
+                lexer::run(black_box(input.as_str()));
             })
         );
     })

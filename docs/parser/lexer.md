@@ -113,7 +113,7 @@ change made to the lexer. The lexer benchmarks are written using
 [criterion.rs](https://github.com/bheisler/criterion.rs), and include both
 examples of whole program definitions and more specific benchmark examples.
 
-**Baseline Commit:** TBC (use head of this branch for now).
+**Baseline Commit:** `e5695e6f5d44cba4094380545036a3a5cbbf6973`
 
 The benchmarking process for the lexer is as follows:
 
