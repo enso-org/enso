@@ -56,9 +56,7 @@ public abstract class ExecuteCallNode extends Node {
       Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
-      @Cached("create(cachedTarget)") DirectCallNode callNode,
-      @CachedContext(Language.class) Context ctx) {
-    ctx.getThreadManager().poll();
+      @Cached("create(cachedTarget)") DirectCallNode callNode) {
     return (Stateful)
         callNode.call(
             Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
@@ -83,9 +81,7 @@ public abstract class ExecuteCallNode extends Node {
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
-      @Cached IndirectCallNode callNode,
-      @CachedContext(Language.class) Context ctx) {
-    ctx.getThreadManager().poll();
+      @Cached IndirectCallNode callNode) {
     return (Stateful)
         callNode.call(
             function.getCallTarget(),
