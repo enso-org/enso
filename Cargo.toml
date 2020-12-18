@@ -14,7 +14,7 @@ members = [
 # https://github.com/enso-org/rust-lib/blob/main/docs/CONTRIBUTING.md#developing-in-conjunction-with-enso--ide
 [patch.crates-io]
 #enso-automata       = { path = '../rust-lib/src/automata'       }
-enso-data           = { path = '../rust-lib/src/data'           }
+#enso-data           = { path = '../rust-lib/src/data'           }
 #enso-flexer         = { path = '../rust-lib/src/flexer'         }
 #enso-generics       = { path = '../rust-lib/src/generics'       }
 #enso-lazy-reader    = { path = '../rust-lib/src/lazy-reader'    }
