@@ -1,47 +1,30 @@
-#![feature(test)]
-#![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
+//! This library contains the implementation of the Enso parser.
 
-//! This module exports the implementation of parser for the Enso language.
+pub mod macros;
+pub mod operator;
+pub mod parser;
 
-mod jni;
+pub use crate::parser::*;
 
-pub use crate::jni::*;
+/// The prelude for the parser.
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use enso_logger::AnyLogger;
 
-use ast::AnyAst;
-use ast::Ast;
+    /// The Enso logging library.
+    pub mod logger {
+        pub use enso_logger::*;
+        pub use enso_logger::disabled::Logger as Disabled;
+        pub use enso_logger::enabled::Logger as Enabled;
+    }
 
+    /// The lexer types.
+    pub mod lexer {
+        pub use ::lexer::*;
 
-
-// =======================
-// === Parser Rust API ===
-// =======================
-
-/// Parse a content of a single source file.
-pub fn parse_str(input:String) -> AnyAst {
-    Ast::new(ast::txt::Text{text:input})
-}
-
-/// Parse a single source file.
-pub fn parse_file(filename:String) -> AnyAst {
-    parse_str(filename)
-}
-
-
-// === Tokens ===
-
-/// Parse a content of single source file.
-pub fn lexe_str(input:String) -> AnyAst {
-    parse_str(input)
-}
-
-/// Parse a single source file.
-pub fn lexe_file(filename:String) -> AnyAst {
-    parse_str(filename)
+        /// The lexer tokens.
+        pub mod token {
+            pub use lexer::library::token::*;
+        }
+    }
 }

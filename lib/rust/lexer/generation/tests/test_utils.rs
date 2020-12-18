@@ -5,9 +5,7 @@
 use enso_flexer::*;
 use lexer_definition::library::*;
 
-use enso_flexer::prelude::reader::decoder::DecoderUTF8;
-use enso_flexer::prelude::Reader;
-use lexer::generated::engine::EnsoLexer;
+use lexer;
 use lexer_definition::library::token::Token;
 
 
@@ -36,9 +34,7 @@ pub fn assert_lexes(input:impl AsRef<str>, expected:token::Stream) {
 
 /// Lex the provided string.
 pub fn lex(input:impl AsRef<str>) -> LexingResult<token::Stream> {
-    let mut lexer = EnsoLexer::new();
-    let reader    = Reader::new(input.as_ref().as_bytes(),DecoderUTF8());
-    lexer.run(reader)
+    lexer::run(input)
 }
 
 /// Asserts that the input is a block and has a length equal to `length`.
