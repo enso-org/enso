@@ -131,77 +131,41 @@ render_helper_1 json = case json of
     Boolean value -> if value then "true" else "false"
     Null -> "null"
 
-type Render_Consumer
-
-    type Render_Consumer builder
-
-    on_start_object =
-        this.builder.append ["{"]
-
-    on_key key =
-        this.builder.append [Printer.json_escape [key]]
-        this.builder.append [":"]
-
-    on_end_object =
-        this.builder.append ["}"]
-
-    on_start_array =
-        this.builder.append ["["]
-
-    on_next_element =
-        this.builder.append [","]
-
-    on_end_array =
-        this.builder.append ["]"]
-
-    on_string value =
-        this.builder.append [Printer.json_escape [value]]
-
-    on_number value =
-        this.builder.append [value]
-
-    on_boolean value =
-        this.builder.append [value]
-
-    on_null =
-        this.builder.append ["null"]
-
-    to_text =
-        this.builder.toString []
-
-## Helper method for printing JSON values to Text.
-render_json consumer json = case json of
+## Helper method for rendering JSON values using a Java StringBuilder.
+render_json builder json = case json of
     Object fields ->
-        render_key_value index key value =
-            if not (index==0) then consumer.on_next_element
-            consumer.on_key key
-            here.render_json consumer value
-            index + 1
-        consumer.on_start_object
-        fields.fold_with_key 0 render_key_value
-        consumer.on_end_object
+        render_key_value separator key value =
+            #builder.append [separator]
+            #builder.append [Printer.json_escape [key]]
+            #builder.append [":"]
+            builder.append [separator + (Printer.json_escape [key]) + ":"]
+            here.render_json builder value
+            ","
+        builder.append ["{"]
+        fields.fold_with_key "" render_key_value
+        builder.append ["}"]
     Array items ->
-        render_array_element index element =
-            if not (index==0) then consumer.on_next_element
-            here.render_json consumer element
-            index + 1
-        consumer.on_start_array
-        items.fold 0 render_array_element
-        consumer.on_end_array
+        render_array_element separator element =
+            builder.append [separator]
+            here.render_json builder element
+            ","
+        builder.append ["["]
+        items.fold "" render_array_element
+        builder.append ["]"]
     String value ->
-        consumer.on_string value
+        builder.append [Printer.json_escape [value]]
     Number value ->
-        consumer.on_number value
+        builder.append [value]
     Boolean value ->
-        consumer.on_boolean value
+        builder.append [value]
     Null ->
-        consumer.on_null
+        builder.append ["null"]
 
 ## Helper method for printing JSON values to Text.
 render_helper json =
-    consumer = Render_Consumer (StringBuilder.new [].to_array)
-    here.render_json consumer json
-    consumer.to_text
+    builder = StringBuilder.new [].to_array
+    here.render_json builder json
+    builder.toString []
 
 ## Helper method for converting JSON objects into arbitrary types.
 

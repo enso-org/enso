@@ -163,8 +163,8 @@ type Map
     each_with_key function =
         go map = case map of
             Bin _ k v l r ->
-                function k v
                 go l
+                function k v
                 go r
                 Nothing
             Tip -> Nothing
