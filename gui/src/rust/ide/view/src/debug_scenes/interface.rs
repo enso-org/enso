@@ -152,13 +152,36 @@ fn init(app:&Application) {
     });
 
 
-    let _tgt_type = dummy_type_generator.get_dummy_type();
+    // let tgt_type = dummy_type_generator.get_dummy_type();
     let mut was_rendered = false;
     let mut loader_hidden = false;
+    let mut i = 100;
+    // let mut j = 3;
     world.on_frame(move |_| {
         let _keep_alive = &navigator;
         let _keep_alive = &project_view;
-        let _graph_editor = project_view.graph();
+        let graph_editor = project_view.graph();
+
+        if i > 0 { i -= 1 } else {
+            println!("CHANGING TYPES OF EXPRESSIONS");
+            i = 10000;
+            graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
+            // expression_1.input_span_tree.root_ref().leaf_iter().for_each(|node|{
+            //     if let Some(expr_id) = node.ast_id {
+            //         let dummy_type = Some(tgt_type.clone());
+            //         // if j != 0 {
+            //         //     j -= 1;
+            //         println!("----\n");
+            //             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
+            //         // } else {
+            //         //     println!(">> null change");
+            //             // j = 3;
+            //             // graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,None));
+            //             // graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
+            //         // };
+            //     }
+            // });
+        }
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.

@@ -168,7 +168,7 @@ define_themes! { [light:0, dark:1]
             chroma        = 0.6 , 0.4;
             any           = code::syntax::base , Lcha(0.5,1.0,0.0,1.0);
             any.selection = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.5,1.0,0.0,1.0);
-            selected      = code::syntax::base , graph_editor::node::background;
+            selected      = graph_editor::node::background , graph_editor::node::background;
             overriden {
                 Text.hue   = 0.22 , 0.217;
                 Number.hue = 0.68 , 0.68;
@@ -193,9 +193,10 @@ define_themes! { [light:0, dark:1]
                 selection      = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
             actions {
-                icon = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
-                icon {
-                    variant.dimmed = Lcha(0.7,0.0,0.0,0.7) , Lcha(0.4,0.0,0.0,1.0);
+                button {
+                    non_toggled = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
+                    toggled     = Lcha(0.0,0.0,0.0,0.7)  , Lcha(1.0,0.0,0.0,0.7);
+                    hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
                 }
             }
         }

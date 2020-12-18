@@ -1,13 +1,11 @@
-//! Toggle Button
+//! Toggle Button implementation.
 
 use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::display::shape::StyleWatch;
 use ensogl_core::display::shape::primitive::system;
-use ensogl_core::display::shape::style_watch;
 use ensogl_core::display;
 use ensogl_core::gui::component::ShapeView;
 
@@ -32,9 +30,9 @@ pub trait ColorableShape : system::Shape {
 
 ensogl_core::define_endpoints! {
     Input {
-        set_visibility (bool),
-        set_base_color (style_watch::ColorSource),
-        set_size       (Vector2),
+        set_visibility   (bool),
+        set_color_scheme (ColorScheme),
+        set_size         (Vector2),
     }
     Output {
         state      (bool),
@@ -59,6 +57,105 @@ impl<Shape:ColorableShape+'static> Model<Shape> {
         let logger = Logger::new("ToggleButton");
         let icon   = ShapeView::new(&logger, app.display.scene());
         Self{icon}
+    }
+}
+
+
+
+// ===================
+// === ButtonState ===
+// ===================
+
+/// A state a button can be in.
+#[derive(Clone,Copy,Debug)]
+#[allow(missing_docs)]
+pub struct ButtonState {
+    pub visible : bool,
+    pub toggled : bool,
+    pub hovered : bool,
+    pub pressed : bool,
+}
+
+impl ButtonState {
+    /// Constructor.
+    pub fn new(visible:bool, toggled:bool, hovered:bool, pressed:bool) -> Self {
+        Self {visible,toggled,hovered,pressed}
+    }
+}
+
+impl Default for ButtonState {
+    fn default() -> Self {
+        let visible = true;
+        let toggled = false;
+        let hovered = false;
+        let pressed = false;
+        Self {visible,toggled,hovered,pressed}
+    }
+}
+
+
+
+// ===================
+// === ColorScheme ===
+// ===================
+
+/// Button color scheme.
+#[derive(Clone,Debug,Default)]
+#[allow(missing_copy_implementations)]
+#[allow(missing_docs)]
+pub struct ColorScheme {
+    pub non_toggled     : Option<color::Lcha>,
+    pub hovered         : Option<color::Lcha>,
+    pub pressed         : Option<color::Lcha>,
+    pub toggled         : Option<color::Lcha>,
+    pub toggled_hovered : Option<color::Lcha>,
+    pub toggled_pressed : Option<color::Lcha>,
+}
+
+impl ColorScheme {
+    /// Query the scheme based on the button state.
+    pub fn query(&self, state:ButtonState) -> color::Lcha {
+        match (state.visible, state.toggled, state.hovered, state.pressed) {
+            ( false , _    , _    , _     ) => color::Lcha::transparent(),
+            ( true  , false, false, false ) => self.non_toggled(),
+            ( true  , false, false, true  ) => self.pressed(),
+            ( true  , false, true , false ) => self.hovered(),
+            ( true  , false, true , true  ) => self.pressed(),
+            ( true  , true , false, false ) => self.toggled(),
+            ( true  , true , false, true  ) => self.toggled_pressed(),
+            ( true  , true , true , false ) => self.toggled_hovered(),
+            ( true  , true , true , true  ) => self.toggled_pressed(),
+        }
+    }
+}
+
+
+// === Getters ===
+
+#[allow(missing_docs)]
+impl ColorScheme {
+    pub fn non_toggled (&self) -> color::Lcha {
+        self.non_toggled.unwrap_or_else(color::Lcha::black)
+    }
+
+    pub fn hovered (&self) -> color::Lcha {
+        self.hovered.unwrap_or_else(||self.pressed())
+    }
+
+    pub fn pressed (&self) -> color::Lcha {
+        self.hovered.unwrap_or_else(||self.toggled())
+    }
+
+    pub fn toggled (&self) -> color::Lcha {
+        self.toggled.unwrap_or_else(color::Lcha::black)
+    }
+
+    pub fn toggled_hovered (&self) -> color::Lcha {
+        self.toggled_hovered.unwrap_or_else(||self.toggled())
+    }
+
+    pub fn toggled_pressed (&self) -> color::Lcha {
+        self.toggled_pressed.unwrap_or_else(||self.pressed())
     }
 }
 
@@ -89,14 +186,13 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
     pub fn new(app:&Application) -> Self {
         let frp   = Frp::new();
         let model = Rc::new(Model::<Shape>::new(app));
-        Self {frp,model}.init_frp(app)
+        Self {frp,model}.init_frp()
     }
 
-    fn init_frp(self, app:&Application) -> Self {
+    fn init_frp(self) -> Self {
         let network = &self.frp.network;
         let frp     = &self.frp;
         let model   = &self.model;
-        let style   = StyleWatch::new(&app.display.scene().style_sheet);
         let color   = color::Animation::new(network);
         let icon    = &model.icon.events;
 
@@ -123,19 +219,15 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
 
             visible    <- frp.set_visibility.gate(&frp.set_visibility);
             is_hovered <- bool(&icon.mouse_out,&icon.mouse_over);
+            is_pressed <- bool(&icon.mouse_up,&icon.mouse_down);
 
-            button_state <- all3(&visible,&is_hovered,&frp.state);
-            state_change <- all(&frp.set_base_color, &button_state);
-            eval state_change ([color,style]((source,(visible,hovered,state))) {
-                let source = source.clone();
-                match(*visible,*hovered,*state) {
-                    (false,_,_)        => color.target_alpha.emit(0.0),
-                    (true,true,_)      => color.target.emit(style.get_color(source)),
-                    (true,false,true)  => color.target.emit(style.get_color(source)),
-                    (true,false,false) => color.target.emit(style.get_color_dim(source)),
-                }
-            });
+            button_state <- all_with4(&visible,&frp.state,&is_hovered,&is_pressed,
+                |a,b,c,d| ButtonState::new(*a,*b,*c,*d));
 
+            color_target <- all_with(&frp.set_color_scheme,&button_state,
+                |colors,state| colors.query(*state));
+
+            color.target <+ color_target;
             eval color.value ((color) model.icon.shape.set_color(color.into()));
         }
 
