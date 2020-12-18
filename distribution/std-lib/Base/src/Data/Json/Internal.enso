@@ -1,6 +1,7 @@
 from Base import all hiding Number, Boolean, Array
 from Base.Data.Json import all
 
+polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
 
@@ -113,22 +114,94 @@ mk_consumer =
     Consumer child val
 
 ## Helper method for printing JSON values to Text.
-render_helper json = case json of
+render_helper_1 json = case json of
     Object fields ->
         fs = fields.to_vector.map item->
             key = item.at 0
             value = item.at 1
-            value_json = here.render_helper value
+            value_json = here.render_helper_1 value
             key_json = Printer.json_escape [key]
             key_json + ":" + value_json
         "{" + (fs.join ",") + "}"
     Array items ->
-        its = items.map here.render_helper
+        its = items.map here.render_helper_1
         "[" + (its.join ",") + "]"
     String value -> Printer.json_escape [value]
     Number value -> value.to_text
     Boolean value -> if value then "true" else "false"
     Null -> "null"
+
+type Render_Consumer
+
+    type Render_Consumer builder
+
+    on_start_object =
+        this.builder.append ["{"]
+
+    on_key key =
+        this.builder.append [Printer.json_escape [key]]
+        this.builder.append [":"]
+
+    on_end_object =
+        this.builder.append ["}"]
+
+    on_start_array =
+        this.builder.append ["["]
+
+    on_next_element =
+        this.builder.append [","]
+
+    on_end_array =
+        this.builder.append ["]"]
+
+    on_string value =
+        this.builder.append [Printer.json_escape [value]]
+
+    on_number value =
+        this.builder.append [value]
+
+    on_boolean value =
+        this.builder.append [value]
+
+    on_null =
+        this.builder.append ["null"]
+
+    to_text =
+        this.builder.toString []
+
+## Helper method for printing JSON values to Text.
+render_json consumer json = case json of
+    Object fields ->
+        render_key_value index key value =
+            if not (index==0) then consumer.on_next_element
+            consumer.on_key key
+            here.render_json consumer value
+            index + 1
+        consumer.on_start_object
+        fields.fold_with_key 0 render_key_value
+        consumer.on_end_object
+    Array items ->
+        render_array_element index element =
+            if not (index==0) then consumer.on_next_element
+            here.render_json consumer element
+            index + 1
+        consumer.on_start_array
+        items.fold 0 render_array_element
+        consumer.on_end_array
+    String value ->
+        consumer.on_string value
+    Number value ->
+        consumer.on_number value
+    Boolean value ->
+        consumer.on_boolean value
+    Null ->
+        consumer.on_null
+
+## Helper method for printing JSON values to Text.
+render_helper json =
+    consumer = Render_Consumer (StringBuilder.new [].to_array)
+    here.render_json consumer json
+    consumer.to_text
 
 ## Helper method for converting JSON objects into arbitrary types.
 
