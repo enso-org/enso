@@ -21,6 +21,12 @@ use crate::known;
 
 use utils::vec::VecExt;
 
+
+
+// =================
+// === Constants ===
+// =================
+
 /// Symbols that can appear in operator name, as per
 /// https://dev.enso.org/docs/enso/syntax/naming.html#operator-naming
 pub const SYMBOLS:[char;25] = ['!','$','%','&','*','+','-','/','<','>','?','^','~','|',':','\\',',',
@@ -35,6 +41,12 @@ pub mod predefined {
     /// Used to create lambda expressions, e.g. `a -> b -> a + b`.
     pub const ARROW : &str = "->";
 }
+
+
+
+// ====================
+// === AST handling ===
+// ====================
 
 /// Checks if the given AST has Opr shape with the name matching given string.
 pub fn is_opr_named(ast:&Ast, name:impl Str) -> bool {

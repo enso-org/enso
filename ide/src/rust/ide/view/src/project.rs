@@ -104,7 +104,7 @@ impl Model {
             searcher_left_top_position.set_target_value(new_position);
         } else {
             self.searcher.hide();
-            self.searcher.clear_suggestions();
+            self.searcher.clear_actions();
         }
     }
 
@@ -151,7 +151,7 @@ ensogl::define_endpoints! {
         editing_node                  (bool),
         old_expression_of_edited_node (Expression),
         editing_aborted               (NodeId),
-        editing_committed             (NodeId),
+        editing_committed             (NodeId, Option<searcher::entry::Id>),
         code_editor_shown             (bool),
         style                         (Theme),
     }
@@ -224,14 +224,20 @@ impl View {
             // The order of instructions below is important to properly distinguish between
             // committing and aborting node editing.
 
+            frp.source.editing_committed <+ searcher.editing_committed
+                .map2(&graph.output.node_being_edited, |entry,id| (*id,*entry))
+                .filter_map(|(id,entry)| Some(((*id)?, *entry)));
+
             // This node is true when received "abort_node_editing" signal, and should get false
             // once processing of "node_being_edited" event from graph is performed.
-            editing_aborted <- any(...);
-            editing_aborted <+ frp.abort_node_editing.constant(true);
+            editing_aborted              <- any(...);
+            editing_aborted              <+ frp.abort_node_editing.constant(true);
+            editing_commited_in_searcher <- searcher.editing_committed.constant(());
             should_finish_editing_if_any <-
-                any(frp.abort_node_editing,searcher.editing_committed,frp.add_new_node);
+                any(frp.abort_node_editing,editing_commited_in_searcher,frp.add_new_node);
             should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
             eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
+
             _eval <- graph.output.node_being_edited.map2(&searcher.is_visible,
                 f!([model,searcher_left_top_position](node_id,is_visible) {
                     model.update_searcher_view(*node_id,&searcher_left_top_position);
@@ -250,7 +256,8 @@ impl View {
                 })
             );
             let editing_finished         =  graph.output.node_editing_finished.clone_ref();
-            frp.source.editing_committed <+ editing_finished.gate_not(&editing_aborted);
+            editing_finished_no_entry    <- editing_finished.gate_not(&editing_aborted);
+            frp.source.editing_committed <+ editing_finished_no_entry.map(|id| (*id,None));
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
             editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
@@ -263,7 +270,7 @@ impl View {
             frp.source.adding_new_node <+ frp.add_new_node.constant(true);
             eval frp.add_new_node ((()) model.add_node_and_edit());
 
-            adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node);
+            adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
             frp.source.adding_new_node <+ any(&adding_committed,&adding_aborted).constant(false);
 

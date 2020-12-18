@@ -889,7 +889,7 @@ pub mod tests {
         pub graph_id     : Id,
         pub project_name : String,
         pub code         : String,
-        pub suggestions  : HashMap<suggestion_database::EntryId,suggestion_database::Entry>,
+        pub suggestions  : HashMap<suggestion_database::entry::Id,suggestion_database::Entry>,
     }
 
     impl MockData {

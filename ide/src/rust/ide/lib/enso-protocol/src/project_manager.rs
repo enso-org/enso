@@ -1,4 +1,7 @@
 //! Client library for the JSON-RPC-based Project Manager service.
+//!
+//! The all methods and types are derived from Engine RPC API described
+//! here https://dev.enso.org/docs/enso/language-server/protocol-project-manager.html
 
 //FIXME: We need to review the structures' names in Enso Protocol specification
 // https://github.com/enso-org/enso/issues/708
@@ -37,6 +40,9 @@ make_rpc_methods! {
 trait API {
     /// Request the project manager to open a specified project. This operation also
     /// includes spawning an instance of the language server open on the specified project.
+    ///
+    /// If the opened project uses Enso version not installed yet, this method outcome is defined
+    /// by `missing_component_action` argument.
     #[MethodInput=OpenProjectInput,rpc_name="project/open"]
     fn open_project
     (&self, project_id:Uuid, missing_component_action:MissingComponentAction)
@@ -110,8 +116,8 @@ pub struct ProjectMetadata {
     pub last_opened : Option<UTCDateTime>
 }
 
-/// This type specifies what action should be taken if a component required to complete an operation
-/// is missing.
+/// This type specifies what action should be taken if an Engine's component required to complete
+/// the Project Manager operation (like project/open) is missing.
 #[derive(Debug,Clone,Copy,Serialize,Deserialize,Eq,PartialEq)]
 pub enum MissingComponentAction {
     /// Will make the operation fail if any components are missing.

@@ -1,33 +1,41 @@
 //! All structures related to the suggestion list provided by SearcherController.
-
 use crate::prelude::*;
 
 
 
-// ===================
-// === Suggestion ===
-// ===================
+// ==============
+// === Action ===
+// ==============
 
-/// Suggestion for input completion: possible functions, arguments, etc.
-pub type Completion = Rc<model::suggestion_database::Entry>;
+/// Suggestion for code completion: possible functions, arguments, etc.
+pub type Suggestion = Rc<model::suggestion_database::Entry>;
 
-/// A single suggestion on the Searcher suggestion list.
+/// Action of adding example code.
+pub type Example = Rc<model::suggestion_database::Example>;
+
+/// A single action on the Searcher list. See also `controller::searcher::Searcher` docs.
 #[derive(Clone,CloneRef,Debug,Eq,PartialEq)]
-pub enum Suggestion {
-    /// Suggestion for input completion: possible functions, arguments, etc.
-    Completion(Completion)
-    // In future, other suggestion types will be added (like suggestions of actions, etc.).
+pub enum Action {
+    /// Add to the searcher input a suggested code and commit editing (new node is inserted or
+    /// existing is modified). This action can be also used to complete searcher input without
+    /// committing (see `Searcher::use_as_suggestion` method).
+    Suggestion(Suggestion),
+    /// Add to the current module a new function with example code, and a new node in
+    /// current scene calling that function.
+    Example(Example),
+    // In future, other action types will be added (like project/module management, etc.).
 }
 
-impl Suggestion {
-    /// The suggestion caption (suggested function name, or action name, etc.).
+impl Action {
+    /// The caption to display in searcher list.
     pub fn caption(&self) -> String {
         match self {
-            Self::Completion(completion) => if let Some(self_type) = completion.self_type.as_ref() {
+            Self::Suggestion(completion) => if let Some(self_type) = completion.self_type.as_ref() {
                 format!("{}.{}",self_type,completion.name)
             } else {
                 completion.name.clone()
             }
+            Self::Example(example) => format!("Example: {}", example.name)
         }
     }
 }
@@ -38,7 +46,7 @@ impl Suggestion {
 // === List Entry ===
 // ==================
 
-/// Information how the Suggestion list entry matches the filtering pattern.
+/// Information how the list entry matches the filtering pattern.
 #[allow(missing_docs)]
 #[derive(Clone,Debug,PartialEq)]
 pub enum MatchInfo {
@@ -46,21 +54,21 @@ pub enum MatchInfo {
     Matches {subsequence:fuzzly::Subsequence}
 }
 
-/// The single suggestion list entry.
+/// The single list entry.
 #[allow(missing_docs)]
 #[derive(Clone,Debug)]
 pub struct ListEntry {
     pub match_info : MatchInfo,
-    pub suggestion : Suggestion,
+    pub action     : Action,
 }
 
 impl ListEntry {
     /// Update the current match info according to the new filtering pattern.
     pub fn update_matching_info(&mut self, pattern:impl Str) {
-        let matches     = fuzzly::matches(self.suggestion.caption(),pattern.as_ref());
+        let matches     = fuzzly::matches(self.action.caption(), pattern.as_ref());
         let subsequence = matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(self.suggestion.caption(),pattern,metric)
+            fuzzly::find_best_subsequence(self.action.caption(), pattern, metric)
         });
         self.match_info = match subsequence {
             Some(subsequence) => MatchInfo::Matches {subsequence},
@@ -83,11 +91,11 @@ impl ListEntry {
     }
 }
 
-impl From<Suggestion> for ListEntry {
-    fn from(suggestion:Suggestion) -> Self {
+impl From<Action> for ListEntry {
+    fn from(action:Action) -> Self {
         let subsequence = default();
         let match_info  = MatchInfo::Matches {subsequence};
-        ListEntry {match_info,suggestion}
+        ListEntry {match_info,action}
     }
 }
 
@@ -97,7 +105,7 @@ impl From<Suggestion> for ListEntry {
 // === List ===
 // ============
 
-/// Suggestion list.
+/// Action list.
 ///
 /// This structure should be notified about filtering changes. using `update_filtering` function.
 #[derive(Clone,Debug)]
@@ -121,11 +129,11 @@ impl List {
         default()
     }
 
-    /// Create list from suggestions.
+    /// Create list from actions.
     ///
     /// The list will assume that the filtering pattern is an empty string.
-    pub fn from_suggestions(suggestions:impl IntoIterator<Item=Suggestion>) -> Self {
-        let entries = suggestions.into_iter().map(ListEntry::from).collect_vec();
+    pub fn from_actions(actions:impl IntoIterator<Item=Action>) -> Self {
+        let entries = actions.into_iter().map(ListEntry::from).collect_vec();
         let len     = entries.len();
         Self {
             entries  : RefCell::new(entries),
@@ -149,13 +157,13 @@ impl List {
         self.matching.set(0..matches_end);
     }
 
-    /// Length of the suggestion list.
+    /// Length of the actions list.
     pub fn len(&self) -> usize { self.entries.borrow().len() }
 
     /// Number of currently matching entries.
     pub fn matching_count(&self) -> usize { self.matching.get().end }
 
-    /// Get the suggestion list entry
+    /// Get the action list entry
     pub fn get_cloned(&self, index:usize) -> Option<ListEntry> {
         self.entries.borrow().get(index).cloned()
     }
@@ -163,32 +171,32 @@ impl List {
     /// Check if list is empty.
     pub fn is_empty(&self) -> bool { self.entries.borrow().is_empty() }
 
-    /// Iterate over suggestion entries.
+    /// Iterate over action entries.
     pub fn iter<'a>(&'a self) -> impl Iterator<Item=ListEntry> + 'a {
         let existing_ids = (0..self.len()).take_while(move |id| *id < self.len());
         existing_ids.filter_map(move |id| self.entries.borrow().get(id).cloned())
     }
 
-    /// Extend the list with new suggestions.
+    /// Extend the list with new actions.
     ///
-    /// The new suggestions will be put at end, regardless the current filtering. This function
+    /// The new actions will be put at end, regardless the current filtering. This function
     /// is meant to be a part of list's initialization.
-    pub fn extend<T:IntoIterator<Item=Suggestion>>(&self, iter: T) {
+    pub fn extend<T:IntoIterator<Item=Action>>(&self, iter: T) {
         self.entries.borrow_mut().extend(iter.into_iter().map(ListEntry::from));
         self.matching.set(0..self.len())
     }
 
-    /// Convert to the suggestion vector.
+    /// Convert to the action vector.
     ///
     /// Used for testing.
-    pub fn to_suggestion_vec(&self) -> Vec<Suggestion> {
-        self.entries.borrow().iter().map(|entry| entry.suggestion.clone_ref()).collect()
+    pub fn to_action_vec(&self) -> Vec<Action> {
+        self.entries.borrow().iter().map(|entry| entry.action.clone_ref()).collect()
     }
 }
 
 impl<IntoIter> From<IntoIter> for List
-where IntoIter : IntoIterator<Item=Suggestion> {
-    fn from(suggestions:IntoIter) -> Self {
-        Self::from_suggestions(suggestions)
+where IntoIter : IntoIterator<Item=Action> {
+    fn from(actions:IntoIter) -> Self {
+        Self::from_actions(actions)
     }
 }

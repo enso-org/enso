@@ -56,8 +56,8 @@ pub mod mock {
             crate::double_representation::graph::Id::new_plain_name(DEFINITION_NAME)
         }
 
-        pub fn foo_method_parameter() -> suggestion_database::Argument {
-            suggestion_database::Argument {
+        pub fn foo_method_parameter() -> suggestion_database::entry::Argument {
+            suggestion_database::entry::Argument {
                 name          : "this".to_owned(),
                 repr_type     : "Base".to_owned(),
                 is_suspended  : false,
@@ -66,8 +66,8 @@ pub mod mock {
             }
         }
 
-        pub fn foo_method_parameter2() -> suggestion_database::Argument {
-            suggestion_database::Argument {
+        pub fn foo_method_parameter2() -> suggestion_database::entry::Argument {
+            suggestion_database::entry::Argument {
                 name          : "param1".to_owned(),
                 repr_type     : "Number".to_owned(),
                 is_suspended  : false,
@@ -76,8 +76,8 @@ pub mod mock {
             }
         }
 
-        pub fn bar_method_parameter() -> suggestion_database::Argument {
-            suggestion_database::Argument {
+        pub fn bar_method_parameter() -> suggestion_database::entry::Argument {
+            suggestion_database::entry::Argument {
                 name          : "this".to_owned(),
                 repr_type     : "Other".to_owned(),
                 is_suspended  : false,
@@ -93,8 +93,8 @@ pub mod mock {
                 self_type : Some("Base".to_owned()),
                 arguments : vec![foo_method_parameter(),foo_method_parameter2()],
                 return_type   : "Any".to_owned(),
-                kind          : suggestion_database::EntryKind::Method,
-                scope         : suggestion_database::Scope::Everywhere,
+                kind          : suggestion_database::entry::Kind::Method,
+                scope         : suggestion_database::entry::Scope::Everywhere,
                 documentation : None
             }
         }
@@ -106,8 +106,8 @@ pub mod mock {
                 self_type : Some("Other".to_owned()),
                 arguments : vec![bar_method_parameter()],
                 return_type   : "Any".to_owned(),
-                kind          : suggestion_database::EntryKind::Method,
-                scope         : suggestion_database::Scope::Everywhere,
+                kind          : suggestion_database::entry::Kind::Method,
+                scope         : suggestion_database::entry::Scope::Everywhere,
                 documentation : None
             }
         }
@@ -121,7 +121,7 @@ pub mod mock {
         pub logger        : Logger,
         pub project_name  : String,
         pub module_path   : model::module::Path,
-        pub suggestions   : HashMap<suggestion_database::EntryId,suggestion_database::Entry>,
+        pub suggestions   : HashMap<suggestion_database::entry::Id,suggestion_database::Entry>,
         pub context_id    : model::execution_context::Id,
         pub parser        : parser::Parser,
         code              : String,
@@ -367,7 +367,7 @@ pub fn assert_call_info
 ) {
     assert_eq!(info.parameters.len(),entry.arguments.len());
     for (encountered,expected) in info.parameters.iter().zip(entry.arguments.iter()) {
-        let expected_info = model::suggestion_database::to_span_tree_param(expected);
+        let expected_info = model::suggestion_database::entry::to_span_tree_param(expected);
         assert_eq!(encountered,&expected_info);
     }
 }

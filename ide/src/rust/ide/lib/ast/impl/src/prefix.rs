@@ -3,11 +3,13 @@
 use crate::prelude::*;
 
 use crate::Ast;
-use crate::Id;
 use crate::crumbs::Located;
 use crate::crumbs::PrefixCrumb;
 use crate::HasTokens;
+use crate::Id;
+use crate::Infix;
 use crate::known;
+use crate::opr;
 use crate::Prefix;
 use crate::Shifted;
 use crate::Token;
@@ -70,6 +72,23 @@ impl Chain {
         }).collect_vec();
 
         Self {func,args}
+    }
+
+    /// Construct a prefix application chain where function is an AST representing this argument
+    /// applied on a `func` function.
+    ///
+    /// For example, calling this with `func` being "foo" and `this` being "bar", the prefix chain
+    /// will be represented by `bar.foo <arguments...>`
+    pub fn new_with_this(func:Ast, this:Ast, other_args:impl IntoIterator<Item=Ast>) -> Self {
+        let infix = Infix {
+            larg : this,
+            loff : 0,
+            opr  : Ast::opr(opr::predefined::ACCESS),
+            roff : 0,
+            rarg : func
+        };
+        let new_func = Ast::new(infix,None);
+        Self::new(new_func,other_args)
     }
 
     /// Translates calls like `a b c` that generate nested prefix chain like

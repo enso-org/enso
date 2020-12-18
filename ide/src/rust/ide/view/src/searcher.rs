@@ -2,7 +2,6 @@
 //!
 //! This component wraps the plain ListView in some searcher-specific logic, like committing
 //! editing, or picking suggestion with Tab.
-
 use crate::prelude::*;
 
 use crate::documentation;
@@ -31,11 +30,11 @@ pub const SEARCHER_WIDTH:f32 = 480.0;
 /// of entry height.
 pub const SEARCHER_HEIGHT:f32 = 179.5;
 
-const SUGGESTION_LIST_WIDTH : f32 = 180.0;
-const LIST_DOC_GAP          : f32 = 15.0;
-const DOCUMENTATION_WIDTH   : f32 = SEARCHER_WIDTH - SUGGESTION_LIST_WIDTH - LIST_DOC_GAP;
-const SUGGESTION_LIST_X     : f32 = (SUGGESTION_LIST_WIDTH - SEARCHER_WIDTH) / 2.0;
-const DOCUMENTATION_X       : f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0;
+const ACTION_LIST_GAP     : f32 = 180.0;
+const LIST_DOC_GAP        : f32 = 15.0;
+const DOCUMENTATION_WIDTH : f32 = SEARCHER_WIDTH - ACTION_LIST_GAP - LIST_DOC_GAP;
+const ACTION_LIST_X       : f32 = (ACTION_LIST_GAP - SEARCHER_WIDTH) / 2.0;
+const DOCUMENTATION_X     : f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0;
 
 
 
@@ -45,9 +44,9 @@ const DOCUMENTATION_X       : f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0
 
 /// The Entry Model Provider.
 ///
-/// This provider is used by searcher to print documentation of currently selected suggestion.
+/// This provider is used by searcher to print documentation of currently selected entry.
 pub trait DocumentationProvider : Debug {
-    /// Get documentation string to be displayed when no suggestion is selected.
+    /// Get documentation string to be displayed when no entry is selected.
     fn get(&self) -> Option<String> { None }
 
     /// Get documentation string for given entry, or `None` if entry or documentation does not
@@ -104,7 +103,7 @@ impl Model {
         let doc_provider   = default();
         display_object.add_child(&documentation);
         display_object.add_child(&list);
-        list.set_position_x(SUGGESTION_LIST_X);
+        list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
         Self{app,logger,display_object,list,documentation,doc_provider}
     }
@@ -118,7 +117,7 @@ impl Model {
     }
 
     fn set_height(&self, h:f32) {
-        self.list.resize(Vector2(SUGGESTION_LIST_WIDTH,h));
+        self.list.resize(Vector2(ACTION_LIST_GAP, h));
         self.documentation.visualization_frp.inputs.set_size.emit(Vector2(DOCUMENTATION_WIDTH,h));
     }
 }
@@ -131,21 +130,21 @@ impl Model {
 
 ensogl::define_endpoints! {
     Input {
-        /// Pick the selected suggestion and add it to the current input.
-        pick_suggestion   (),
-        set_suggestions   (entry::AnyModelProvider,AnyDocumentationProvider),
-        select_suggestion (entry::Id),
+        /// Use the selected action as a suggestion and add it to the current input.
+        use_as_suggestion (),
+        set_actions       (entry::AnyModelProvider,AnyDocumentationProvider),
+        select_action     (entry::Id),
         show              (),
         hide              (),
     }
 
     Output {
-        selected_entry    (Option<entry::Id>),
-        picked_entry      (Option<entry::Id>),
-        editing_committed (),
-        size              (Vector2<f32>),
-        is_visible        (bool),
-        is_selected       (bool),
+        selected_entry     (Option<entry::Id>),
+        used_as_suggestion (Option<entry::Id>),
+        editing_committed  (Option<entry::Id>),
+        size               (Vector2<f32>),
+        is_visible         (bool),
+        is_selected        (bool),
     }
 }
 
@@ -157,7 +156,7 @@ ensogl::define_endpoints! {
 
 /// The Searcher Component.
 ///
-/// This component covers only the list of suggestions. The Searcher input is displayed as an
+/// This component covers only the list of actions. The Searcher input is displayed as an
 /// additional graph node in edit mode, so we could easily display e.g. connections between selected
 /// node and searcher input.
 #[allow(missing_docs)]
@@ -191,11 +190,11 @@ impl View {
         let height = DEPRECATED_Animation::<f32>::new(&network);
 
         frp::extend! { network
-            eval frp.set_suggestions ([model] ((entries,docs)) {
+            eval frp.set_actions ([model] ((entries,docs)) {
                 model.doc_provider.set(docs.clone_ref());
                 model.list.set_entries(entries);
             });
-            eval frp.select_suggestion((id) model.list.select_entry(id));
+            eval frp.select_action ((id) model.list.select_entry(id));
             source.selected_entry <+ model.list.selected_entry;
             source.size           <+ height.value.map(|h| Vector2(SEARCHER_WIDTH,*h));
             source.is_visible     <+ model.list.size.map(|size| size.x*size.y > std::f32::EPSILON);
@@ -205,14 +204,11 @@ impl View {
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));
             eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
 
-            is_selected         <- model.list.selected_entry.map(|e| e.is_some());
-            displayed_doc       <- model.list.selected_entry.map(f!((id) model.docs_for(*id)));
-            opt_picked_entry    <- model.list.selected_entry.sample(&frp.pick_suggestion);
-            source.picked_entry <+ opt_picked_entry.gate(&is_selected);
-            // Order of the two below is important: we want pick the entry first, and then commit
-            // editing.
-            source.picked_entry      <+ model.list.chosen_entry.gate(&is_selected);
-            source.editing_committed <+ model.list.chosen_entry.gate(&is_selected).constant(());
+            is_selected               <- model.list.selected_entry.map(|e| e.is_some());
+            displayed_doc             <- model.list.selected_entry.map(f!((id) model.docs_for(*id)));
+            opt_picked_entry          <- model.list.selected_entry.sample(&frp.use_as_suggestion);
+            source.used_as_suggestion <+ opt_picked_entry.gate(&is_selected);
+            source.editing_committed  <+ model.list.chosen_entry.gate(&is_selected);
 
             eval displayed_doc ((data) model.documentation.frp.display_docstring(data));
         };
@@ -220,23 +216,23 @@ impl View {
         self
     }
 
-    /// Set the suggestions displayed in searcher.
+    /// Set the action list displayed in searcher.
     ///
-    /// The suggestion list is represented list-entry-model and documentation provider.
-    /// It's a helper for FRP `set_suggestion` input (FRP nodes cannot be generic).
-    pub fn set_suggestions
+    /// The list is represented list-entry-model and documentation provider. It's a helper for FRP
+    /// `set_suggestion` input (FRP nodes cannot be generic).
+    pub fn set_actions
     (&self, provider:Rc<impl list_view::entry::ModelProvider + DocumentationProvider + 'static>) {
         let entries       : list_view::entry::AnyModelProvider = provider.clone_ref().into();
         let documentation : AnyDocumentationProvider           = provider.into();
-        self.frp.set_suggestions(entries,documentation);
+        self.frp.set_actions(entries,documentation);
     }
 
-    /// Clear the suggestion list.
+    /// Clear the action list.
     ///
-    /// It just set empty provider using FRP `set_suggestion` input.
-    pub fn clear_suggestions(&self) {
+    /// It just set empty provider using FRP `set_actions` input.
+    pub fn clear_actions(&self) {
         let provider = Rc::new(list_view::entry::EmptyProvider);
-        self.set_suggestions(provider);
+        self.set_actions(provider);
     }
 }
 
@@ -256,7 +252,7 @@ impl application::View for View {
     fn app(&self)             -> &Application { &self.model.app }
     fn default_shortcuts()    -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press , "tab" , "pick_suggestion"),
+        (&[ (Press , "tab" , "use_as_suggestion"),
         ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
     }
 }

@@ -92,7 +92,7 @@ fn span_tree_args() {
     });
     let Fixture{graph,executed_graph,searcher,suggestion_db,..} = &fixture;
     let entry = suggestion_db.lookup(1).unwrap();
-    searcher.pick_completion(entry.clone_ref()).unwrap();
+    searcher.use_suggestion(entry.clone_ref()).unwrap();
     let id = searcher.commit_node().unwrap();
 
     let get_node   = || graph.node(id).unwrap();
@@ -100,8 +100,8 @@ fn span_tree_args() {
     let get_param  = |n| get_inputs().root_ref().leaf_iter().nth(n).and_then(|node| {
         node.argument_info()
     });
-    let expected_this_param = model::suggestion_database::to_span_tree_param(&entry.arguments[0]);
-    let expected_arg1_param = model::suggestion_database::to_span_tree_param(&entry.arguments[1]);
+    let expected_this_param = model::suggestion_database::entry::to_span_tree_param(&entry.arguments[0]);
+    let expected_arg1_param = model::suggestion_database::entry::to_span_tree_param(&entry.arguments[1]);
 
 
     // === Method notation, without prefix application ===
