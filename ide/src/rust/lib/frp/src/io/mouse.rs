@@ -139,37 +139,49 @@ impl From<&ButtonMask> for ButtonMask { fn from(t:&ButtonMask) -> Self {*t} }
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Mouse {
-    pub network          : frp::Network,
-    pub up               : frp::Source<Button>,
-    pub down             : frp::Source<Button>,
-    pub wheel            : frp::Source,
-    pub up_0             : frp::Stream,
-    pub up_1             : frp::Stream,
-    pub up_2             : frp::Stream,
-    pub up_3             : frp::Stream,
-    pub up_4             : frp::Stream,
-    pub down_0           : frp::Stream,
-    pub down_1           : frp::Stream,
-    pub down_2           : frp::Stream,
-    pub down_3           : frp::Stream,
-    pub down_4           : frp::Stream,
-    pub is_up_0          : frp::Stream<bool>,
-    pub is_up_1          : frp::Stream<bool>,
-    pub is_up_2          : frp::Stream<bool>,
-    pub is_up_3          : frp::Stream<bool>,
-    pub is_up_4          : frp::Stream<bool>,
-    pub is_down_0        : frp::Stream<bool>,
-    pub is_down_1        : frp::Stream<bool>,
-    pub is_down_2        : frp::Stream<bool>,
-    pub is_down_3        : frp::Stream<bool>,
-    pub is_down_4        : frp::Stream<bool>,
-    pub position         : frp::Source<Vector2<f32>>,
-    pub prev_position    : frp::Stream<Vector2<f32>>,
-    pub translation      : frp::Stream<Vector2<f32>>,
-    pub distance         : frp::Stream<f32>,
-    pub ever_moved       : frp::Stream<bool>,
-    pub button_mask      : frp::Stream<ButtonMask>,
-    pub prev_button_mask : frp::Stream<ButtonMask>,
+    pub network           : frp::Network,
+    pub up                : frp::Source<Button>,
+    pub down              : frp::Source<Button>,
+    pub wheel             : frp::Source,
+    pub up_0              : frp::Stream,
+    pub up_1              : frp::Stream,
+    pub up_2              : frp::Stream,
+    pub up_3              : frp::Stream,
+    pub up_4              : frp::Stream,
+    pub up_primary        : frp::Stream,
+    pub up_middle         : frp::Stream,
+    pub up_secondary      : frp::Stream,
+    pub down_0            : frp::Stream,
+    pub down_1            : frp::Stream,
+    pub down_2            : frp::Stream,
+    pub down_3            : frp::Stream,
+    pub down_4            : frp::Stream,
+    pub down_primary      : frp::Stream,
+    pub down_middle       : frp::Stream,
+    pub down_secondary    : frp::Stream,
+    pub is_up_0           : frp::Stream<bool>,
+    pub is_up_1           : frp::Stream<bool>,
+    pub is_up_2           : frp::Stream<bool>,
+    pub is_up_3           : frp::Stream<bool>,
+    pub is_up_4           : frp::Stream<bool>,
+    pub is_up_primary     : frp::Stream<bool>,
+    pub is_up_middle      : frp::Stream<bool>,
+    pub is_up_secondary   : frp::Stream<bool>,
+    pub is_down_0         : frp::Stream<bool>,
+    pub is_down_1         : frp::Stream<bool>,
+    pub is_down_2         : frp::Stream<bool>,
+    pub is_down_3         : frp::Stream<bool>,
+    pub is_down_4         : frp::Stream<bool>,
+    pub is_down_primary   : frp::Stream<bool>,
+    pub is_down_middle    : frp::Stream<bool>,
+    pub is_down_secondary : frp::Stream<bool>,
+    pub position          : frp::Source<Vector2<f32>>,
+    pub prev_position     : frp::Stream<Vector2<f32>>,
+    pub translation       : frp::Stream<Vector2<f32>>,
+    pub distance          : frp::Stream<f32>,
+    pub ever_moved        : frp::Stream<bool>,
+    pub button_mask       : frp::Stream<ButtonMask>,
+    pub prev_button_mask  : frp::Stream<ButtonMask>,
 }
 
 impl Mouse {
@@ -247,24 +259,36 @@ impl Default for Mouse {
             up_2          <- up.gate(&up_2_check).constant(());
             up_3          <- up.gate(&up_3_check).constant(());
             up_4          <- up.gate(&up_4_check).constant(());
+            let up_primary   = up_0.clone_ref();
+            let up_middle    = up_1.clone_ref();
+            let up_secondary = up_2.clone_ref();
 
             down_0        <- down.gate(&down_0_check).constant(());
             down_1        <- down.gate(&down_1_check).constant(());
             down_2        <- down.gate(&down_2_check).constant(());
             down_3        <- down.gate(&down_3_check).constant(());
             down_4        <- down.gate(&down_4_check).constant(());
+            let down_primary   = down_0.clone_ref();
+            let down_middle    = down_1.clone_ref();
+            let down_secondary = down_2.clone_ref();
 
             is_down_0     <- bool(&up_0,&down_0);
             is_down_1     <- bool(&up_1,&down_1);
             is_down_2     <- bool(&up_2,&down_2);
             is_down_3     <- bool(&up_3,&down_3);
             is_down_4     <- bool(&up_4,&down_4);
+            let is_down_primary   = is_down_0.clone_ref();
+            let is_down_middle    = is_down_1.clone_ref();
+            let is_down_secondary = is_down_2.clone_ref();
 
             is_up_0       <- is_down_0.map(|t|!t);
             is_up_1       <- is_down_1.map(|t|!t);
             is_up_2       <- is_down_2.map(|t|!t);
             is_up_3       <- is_down_3.map(|t|!t);
             is_up_4       <- is_down_4.map(|t|!t);
+            let is_up_primary   = is_up_0.clone_ref();
+            let is_up_middle    = is_up_1.clone_ref();
+            let is_up_secondary = is_up_2.clone_ref();
 
             button_mask   <- any_mut::<ButtonMask>();
             button_mask   <+ down . map2(&button_mask,|button,mask| mask.with_set(*button,true));
@@ -273,9 +297,11 @@ impl Default for Mouse {
             prev_button_mask <- button_mask.previous();
         };
         let button_mask = button_mask.into();
-        Self { network,up,down,wheel,up_0,up_1,up_2,up_3,up_4,down_0,down_1,down_2,down_3,down_4
-             , is_down_0,is_down_1,is_down_2,is_down_3,is_down_4,is_up_0,is_up_1,is_up_2,is_up_3
-             , is_up_4,position,prev_position,translation,distance,ever_moved,button_mask
+        Self { network,up,down,wheel,up_0,up_1,up_2,up_3,up_4,up_primary,up_middle,up_secondary
+             , down_0,down_1,down_2,down_3,down_4,down_primary,down_middle,down_secondary,is_down_0
+             , is_down_1,is_down_2,is_down_3,is_down_4,is_down_primary,is_down_middle
+             , is_down_secondary,is_up_0,is_up_1,is_up_2,is_up_3,is_up_4,is_up_primary,is_up_middle
+             , is_up_secondary,position,prev_position,translation,distance,ever_moved,button_mask
              , prev_button_mask }
     }
 }

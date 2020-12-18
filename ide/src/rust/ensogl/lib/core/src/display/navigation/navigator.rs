@@ -84,29 +84,29 @@ impl NavigatorModel {
         );
 
         let zoom_callback = enclose!((scene,camera,simulator) move |zoom:ZoomEvent| {
-                let point       = zoom.focus;
-                let normalized  = normalize_point2(point,scene.shape().value().into());
-                let normalized  = normalized_to_range2(normalized, -1.0, 1.0);
-                let half_height = 1.0;
+            let point       = zoom.focus;
+            let normalized  = normalize_point2(point,scene.shape().value().into());
+            let normalized  = normalized_to_range2(normalized, -1.0, 1.0);
+            let half_height = 1.0;
 
-                // Scale X and Y to compensate aspect and fov.
-                let x              = -normalized.x * camera.screen().aspect();
-                let y              = -normalized.y;
-                let z              = half_height / camera.half_fovy_slope();
-                let direction      = Vector3(x,y,z).normalize();
-                let mut position   = simulator.target_value();
-                let min_zoom       = camera.clipping().near + min_zoom;
-                let zoom_amount    = zoom.amount * position.z;
-                let direction      = direction   * zoom_amount;
-                let max_zoom_limit = max_zoom - position.z;
-                let min_zoom_limit = min_zoom - position.z;
-                let too_far        = direction.z > max_zoom_limit;
-                let too_close      = direction.z < min_zoom_limit;
-                let zoom_factor    = if too_far   { max_zoom_limit / direction.z }
-                                else if too_close { min_zoom_limit / direction.z }
-                                else              { 1.0 };
-                position          += direction * zoom_factor;
-                simulator.set_target_value(position);
+            // Scale X and Y to compensate aspect and fov.
+            let x              = -normalized.x * camera.screen().aspect();
+            let y              = -normalized.y;
+            let z              = half_height / camera.half_fovy_slope();
+            let direction      = Vector3(x,y,z).normalize();
+            let mut position   = simulator.target_value();
+            let min_zoom       = camera.clipping().near + min_zoom;
+            let zoom_amount    = zoom.amount * position.z;
+            let direction      = direction   * zoom_amount;
+            let max_zoom_limit = max_zoom - position.z;
+            let min_zoom_limit = min_zoom - position.z;
+            let too_far        = direction.z > max_zoom_limit;
+            let too_close      = direction.z < min_zoom_limit;
+            let zoom_factor    = if too_far   { max_zoom_limit / direction.z }
+                            else if too_close { min_zoom_limit / direction.z }
+                            else              { 1.0 };
+            position          += direction * zoom_factor;
+            simulator.set_target_value(position);
         });
         (simulator,resize_callback, NavigatorEvents::new(&scene.mouse.mouse_manager,
                                                          panning_callback,zoom_callback,

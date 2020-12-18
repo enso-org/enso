@@ -29,7 +29,7 @@ use ensogl::gui::component;
 
 const PORT_SIZE                : f32 = 4.0;
 const PORT_OPACITY_HOVERED     : f32 = 1.0;
-const PORT_OPACITY_NOT_HOVERED : f32 = 0.5;
+const PORT_OPACITY_NOT_HOVERED : f32 = 0.25;
 const SEGMENT_GAP_WIDTH        : f32 = 2.0;
 const HOVER_AREA_PADDING       : f32 = 20.0;
 const INFINITE                 : f32 = 99999.0;

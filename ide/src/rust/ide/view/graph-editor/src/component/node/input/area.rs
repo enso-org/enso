@@ -128,7 +128,7 @@ impl From<node::Expression> for Expression {
         let mut span_tree = t.input_span_tree.map(|_|port::Model::default());
         let mut viz_code  = String::new();
         let code          = t.code;
-        span_tree.root_ref_mut().dfs(ExprConversion::default(),|node,info| {
+        span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(),|node,info| {
             let is_expected_arg       = node.is_expected_argument();
             let span                  = node.span();
             let mut size              = span.size.value;
@@ -189,7 +189,7 @@ ensogl::define_endpoints! {
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
-        set_expression_usage_type (ast::Id,Option<Type>),
+        set_expression_usage_type (Crumbs,Option<Type>),
 
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
@@ -198,16 +198,16 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        pointer_style     (cursor::Style),
-        press             (Crumbs),
-        width             (f32),
-        expression        (Text),
-        editing           (bool),
-        ports_visible     (bool),
-        port_hover        (Switch<Crumbs>),
-        body_hover        (bool),
-        background_press  (),
-        on_port_tp_change (Crumbs,Option<Type>),
+        pointer_style       (cursor::Style),
+        width               (f32),
+        expression          (Text),
+        editing             (bool),
+        ports_visible       (bool),
+        body_hover          (bool),
+        on_port_press       (Crumbs),
+        on_port_hover       (Switch<Crumbs>),
+        on_port_type_change (Crumbs,Option<Type>),
+        on_background_press (),
     }
 }
 
@@ -266,9 +266,8 @@ impl Model {
         self
     }
 
-    /// Traverse all expressions and set their colors matching the un-hovered style.
-    fn init_port_coloring(&self) {
-        self.set_port_hover(&default())
+    fn scene(&self) -> &Scene {
+        self.app.display.scene()
     }
 
     /// Run the provided function on the target port if exists.
@@ -283,11 +282,9 @@ impl Model {
     }
 
     /// Update expression type for the particular `ast::Id`.
-    fn set_expression_usage_type(&self, id:ast::Id, tp:&Option<Type>) {
-        if let Some(crumbs) = self.id_crumbs_map.borrow().get(&id) {
-            if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
-                port.set_usage_type(tp)
-            }
+    fn set_expression_usage_type(&self, crumbs:&Crumbs, tp:&Option<Type>) {
+        if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
+            port.set_usage_type(tp)
         }
     }
 }
@@ -374,7 +371,7 @@ impl Area {
 
             // === Port Hover ===
 
-            eval frp.port_hover ((t) model.set_port_hover(t));
+            eval frp.on_port_hover ((t) model.set_port_hover(t));
 
             eval frp.set_connected ([model]((crumbs,edge_tp,is_connected)) {
                 model.with_port_mut(crumbs,|n|n.set_connected(is_connected,edge_tp));
@@ -391,14 +388,10 @@ impl Area {
 
             // === Expression Type ===
 
-            eval frp.set_expression_usage_type (((id,tp)) model.set_expression_usage_type(*id,tp));
+            eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
         }
 
         Self {model,frp}
-    }
-
-    fn scene(&self) -> &Scene {
-        self.model.app.display.scene()
     }
 
     pub fn port_offset(&self, crumbs:&[Crumb]) -> Option<Vector2<f32>> {
@@ -414,6 +407,10 @@ impl Area {
     pub fn port_type(&self, crumbs:&Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
         expression.span_tree.root_ref().get_descendant(crumbs).ok().and_then(|t|t.tp.value())
+    }
+
+    pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
+        self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
 }
 
@@ -480,9 +477,10 @@ impl Area {
     }
 
     fn build_port_shapes_on_new_expression(&self, expression:&mut Expression) {
-        let mut is_header = true;
-        let builder       = PortLayerBuilder::empty(&self.model.ports);
-        expression.root_ref_mut().dfs(builder,|mut node,builder| {
+        let mut is_header     = true;
+        let mut id_crumbs_map = HashMap::new();
+        let builder           = PortLayerBuilder::empty(&self.model.ports);
+        expression.root_ref_mut().dfs_with_layer_data(builder,|mut node,builder| {
             let is_parensed = node.is_parensed();
             let skip_opr    = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
@@ -503,7 +501,7 @@ impl Area {
                 if DEBUG {
                     println!("New id mapping: {} -> {:?}",id,node.crumbs);
                 }
-                self.model.id_crumbs_map.borrow_mut().insert(id,node.crumbs.clone_ref());
+                id_crumbs_map.insert(id,node.crumbs.clone_ref());
             }
 
             if DEBUG {
@@ -526,7 +524,7 @@ impl Area {
                 let padded_size  = Vector2(width_padded,height);
                 let size         = Vector2(width,height);
                 let logger       = &self.model.logger;
-                let scene        = self.scene();
+                let scene        = self.model.scene();
                 let port_shape   = port.payload_mut().init_shape(logger,scene,size,node::HEIGHT);
 
                 port_shape.mod_position(|t| t.x = unit * index as f32);
@@ -577,19 +575,19 @@ impl Area {
                     bg_down    <- mouse_down_raw.gate_not(&frp.ports_visible);
                     mouse_down <- mouse_down_raw.gate(&frp.ports_visible);
                     mouse_over <- mouse_over_raw.gate(&frp.ports_visible);
-                    self.frp.output.source.background_press <+ bg_down;
+                    self.frp.output.source.on_background_press <+ bg_down;
 
 
                     // === Press ===
 
-                    eval_ mouse_down ([crumbs,frp] frp.source.press.emit(&crumbs));
+                    eval_ mouse_down ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
 
 
                     // === Hover ===
 
                     hovered <- bool(&mouse_out,&mouse_over);
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
-                    frp.source.port_hover <+ hover;
+                    frp.source.on_port_hover <+ hover;
 
 
                     // === Pointer Style ===
@@ -623,6 +621,7 @@ impl Area {
             let new_shift = if !not_a_port { 0 } else { builder.shift + node.payload.local_index };
             builder.nested(new_parent,new_parent_frp,is_parensed,new_shift)
         });
+        *self.model.id_crumbs_map.borrow_mut() = id_crumbs_map;
     }
 
     /// Initializes FRP network for every port. Please note that the networks are connected
@@ -635,7 +634,7 @@ impl Area {
         let expected_color = model.styles.get_color(theme::code::syntax::expected);
 
         let parent_tp : Option<frp::Stream<Option<Type>>> = None;
-        expression.root_ref_mut().dfs(parent_tp,|node,parent_tp| {
+        expression.root_ref_mut().dfs_with_layer_data(parent_tp,|node,parent_tp| {
             let frp          = &node.frp;
             let port_network = &frp.network;
             let is_token     = node.is_token();
@@ -644,9 +643,6 @@ impl Area {
 
             // === Type Computation ===
 
-            frp::extend! { port_network
-                def_tp <- source::<Option<Type>>();
-            }
             let parent_tp = parent_tp.clone().unwrap_or_else(||{
                 frp::extend! { port_network
                     empty_parent_tp <- source::<Option<Type>>();
@@ -654,7 +650,7 @@ impl Area {
                 empty_parent_tp.into()
             });
             frp::extend! { port_network
-                final_tp <- all_with3(&parent_tp,&def_tp,&frp.set_usage_type,
+                final_tp <- all_with3(&parent_tp,&frp.set_definition_type,&frp.set_usage_type,
                     move |parent_tp,def_tp,usage_tp| {
                         usage_tp.clone().or_else(||
                             if is_token {parent_tp.clone()} else {def_tp.clone()}
@@ -663,7 +659,7 @@ impl Area {
                 );
                 frp.source.tp <+ final_tp;
 
-                self.frp.source.on_port_tp_change <+ frp.tp.map(move |t|(crumbs.clone(),t.clone()));
+                self.frp.source.on_port_type_change <+ frp.tp.map(move |t|(crumbs.clone(),t.clone()));
             }
 
 
@@ -675,8 +671,8 @@ impl Area {
             }
 
             if node.children.is_empty() {
-                let is_expected_arg   = node.is_expected_argument();
-                let text_color        = color::Animation::new(port_network);
+                let is_expected_arg = node.is_expected_argument();
+                let label_color     = color::Animation::new(port_network);
                 frp::extend! { port_network
                     is_selected    <- frp.set_hover || frp.set_parent_connected;
                     text_color_tgt <- all_with3(&base_color,&is_selected,&self.frp.set_disabled,
@@ -686,16 +682,13 @@ impl Area {
                             else if is_expected_arg { expected_color }
                             else                    { *base_color }
                         });
-                    text_color.target            <+ text_color_tgt;
-                    frp.output.source.text_color <+ text_color.value;
+                    label_color.target <+ text_color_tgt;
                 }
 
-                let index       = node.payload.index;
-                let length      = node.payload.length;
-                let label       = model.label.clone_ref();
-                let label_color = color::Animation::new(port_network);
+                let index  = node.payload.index;
+                let length = node.payload.length;
+                let label  = model.label.clone_ref();
                 frp::extend! { port_network
-                    label_color.target <+ frp.output.text_color;
                     eval label_color.value ([label](color) {
                         let start_bytes = (index as i32).bytes();
                         let end_bytes   = ((index + length) as i32).bytes();
@@ -725,25 +718,33 @@ impl Area {
                     );
                 }
             }
-
-            // Initialization.
-            def_tp.emit(node.tp().cloned().map(|t|t.into()));
             Some(frp.tp.clone_ref().into())
         });
     }
 
-    pub(crate) fn set_expression(&self, new_expression:impl Into<node::Expression>) {
-        let new_expression     = new_expression.into();
-        let mut new_expression = Expression::from(new_expression);
-        if DEBUG { println!("\n\n=====================\nSET EXPR: {}", new_expression.code) }
+    /// This function first assigns the new expression to the model and then emits the definition
+    /// type signals to all port FRP networks.
+    ///
+    /// As a design note, it is important to first assign the expression to the model, as the FRP
+    /// signals can cause other parts of the network to fire, which may query the expression types.
+    /// For example, firing the `port::set_definition_type` will fire `on_port_type_change`, which
+    /// may require some edges to re-color, which consequently will require to checking the current
+    /// expression types.
+    fn init_new_expression(&self, expression:Expression) {
+        *self.model.expression.borrow_mut() = expression;
+        let expression = self.model.expression.borrow();
+        expression.root_ref().dfs_with_layer_data((),|node,_| {
+            node.frp.set_definition_type(node.tp().cloned().map(|t|t.into()));
+        });
+    }
 
+    pub(crate) fn set_expression(&self, new_expression:impl Into<node::Expression>) {
+        let mut new_expression = Expression::from(new_expression.into());
+        if DEBUG { println!("\n\n=====================\nSET EXPR: {}", new_expression.code) }
         self.set_label_on_new_expression(&new_expression);
         self.build_port_shapes_on_new_expression(&mut new_expression);
         self.init_port_frp_on_new_expression(&mut new_expression);
-
-        *self.model.expression.borrow_mut() = new_expression;
-        self.model.init_port_coloring();
-
+        self.init_new_expression(new_expression);
         if self.frp.editing.value() {
             self.model.label.set_cursor_at_end();
         }

@@ -178,18 +178,18 @@ impl NavigatorEventsData {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NavigatorEvents {
-    data                 : Rc<NavigatorEventsData>,
-    mouse_manager        : MouseManager,
+    data          : Rc<NavigatorEventsData>,
+    mouse_manager : MouseManager,
     #[derivative(Debug="ignore")]
-    mouse_down           : Option<callback::Handle>,
+    mouse_down    : Option<callback::Handle>,
     #[derivative(Debug="ignore")]
-    mouse_up             : Option<callback::Handle>,
+    mouse_up      : Option<callback::Handle>,
     #[derivative(Debug="ignore")]
-    mouse_move           : Option<callback::Handle>,
+    mouse_move    : Option<callback::Handle>,
     #[derivative(Debug="ignore")]
-    mouse_leave          : Option<callback::Handle>,
+    mouse_leave   : Option<callback::Handle>,
     #[derivative(Debug="ignore")]
-    wheel_zoom           : Option<callback::Handle>
+    wheel_zoom    : Option<callback::Handle>
 }
 
 impl NavigatorEvents {
@@ -272,6 +272,9 @@ impl NavigatorEvents {
                     },
                     mouse::SecondaryButton => {
                         let focus = Vector2::new(event.offset_x() as f32, event.offset_y() as f32);
+                        // FIXME: This gives bad results sometimes on zoom with MMB.
+                        //        See: https://github.com/enso-org/ide/issues/926
+                        // println!("FOCUS: {:?}",focus);
                         data.set_movement_type(Some(MovementType::Zoom{focus}))
                     },
                     _ => ()

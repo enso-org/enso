@@ -36,6 +36,7 @@ use super::edge;
 // === Constants ===
 // =================
 
+pub const ACTION_BAR_WIDTH  : f32 = 180.0;
 pub const ACTION_BAR_HEIGHT : f32 = 15.0;
 pub const CORNER_RADIUS     : f32 = 14.0;
 pub const HEIGHT            : f32 = 28.0;
@@ -45,9 +46,9 @@ pub const SHADOW_SIZE       : f32 = 10.0;
 
 
 
-// ============
-// === Node ===
-// ============
+// =============
+// === Shape ===
+// =============
 
 /// Canvas node shape definition.
 pub mod shape {
@@ -138,9 +139,38 @@ pub mod drag_area {
 
 
 
-// ===========
-// === Frp ===
-// ===========
+#[derive(Clone,Copy,Debug)]
+pub enum Endpoint { Input, Output }
+
+#[derive(Clone,Debug)]
+pub struct Crumbs {
+    pub endpoint : Endpoint,
+    pub crumbs   : span_tree::Crumbs,
+}
+
+impl Crumbs {
+    pub fn input(crumbs: span_tree::Crumbs) -> Self {
+        let endpoint = Endpoint::Input;
+        Self {endpoint,crumbs}
+    }
+
+    pub fn output(crumbs: span_tree::Crumbs) -> Self {
+        let endpoint = Endpoint::Output;
+        Self {endpoint,crumbs}
+    }
+}
+
+impl Default for Crumbs {
+    fn default() -> Self {
+        Self::output(default())
+    }
+}
+
+
+
+// ============
+// === Node ===
+// ============
 
 ensogl::define_endpoints! {
     Input {
@@ -153,24 +183,19 @@ ensogl::define_endpoints! {
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
-        set_expression_usage_type ((ast::Id,Option<Type>)),
+        set_expression_usage_type (Crumbs,Option<Type>),
+        set_output_expression_visibility (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press (),
-        expression (Text),
-        skip       (bool),
-        freeze     (bool),
-        hover      (bool),
+        expression       (Text),
+        skip             (bool),
+        freeze           (bool),
+        hover            (bool),
     }
 }
-
-
-
-// ============
-// === Node ===
-// ============
 
 /// The visual node representation.
 ///
@@ -259,7 +284,6 @@ pub struct NodeModel {
     pub action_bar     : action_bar::ActionBar,
 }
 
-
 impl NodeModel {
     /// Constructor.
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
@@ -305,6 +329,11 @@ impl NodeModel {
             .init()
     }
 
+    pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
+        let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
+        input_crumbs.or_else(||self.output.get_crumbs_by_id(id).map(Crumbs::output))
+    }
+
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
         self
@@ -324,6 +353,13 @@ impl NodeModel {
         self.input.set_expression(&expr);
     }
 
+    fn set_expression_usage_type(&self, crumbs:&Crumbs, tp:&Option<Type>) {
+        match crumbs.endpoint {
+            Endpoint::Input  => self.input.set_expression_usage_type(&crumbs.crumbs,tp),
+            Endpoint::Output => self.output.set_expression_usage_type(&crumbs.crumbs,tp),
+        }
+    }
+
     fn set_width(&self, width:f32) -> Vector2 {
         let height      = self.height();
         let size        = Vector2(width,height);
@@ -333,7 +369,7 @@ impl NodeModel {
         self.main_area.mod_position(|t| t.x = width/2.0);
         self.drag_area.mod_position(|t| t.x = width/2.0);
 
-        let action_bar_width = 200.0;
+        let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
             t.x = width + CORNER_RADIUS + action_bar_width / 2.0;
         });
@@ -365,16 +401,17 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area          = &model.drag_area.events;
-            drag_area_hover       <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
-            model.input.set_hover <+ drag_area_hover;
-            out.source.hover      <+ model.input.body_hover;
+            let drag_area           = &model.drag_area.events;
+            drag_area_hover        <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
+            model.input.set_hover  <+ drag_area_hover;
+            model.output.set_hover <+ model.input.body_hover;
+            out.source.hover       <+ model.output.body_hover;
 
 
             // === Background Press ===
 
             out.source.background_press <+ model.drag_area.events.mouse_down;
-            out.source.background_press <+ model.input.background_press;
+            out.source.background_press <+ model.input.on_background_press;
 
 
             // === Selection ===
@@ -387,11 +424,11 @@ impl Node {
 
             // === Expression ===
 
+            eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+            eval frp.set_expression            ((a)     model.set_expression(a));
+            out.source.expression                  <+ model.input.frp.expression;
             model.input.set_connected              <+ frp.set_input_connected;
-            model.input.set_expression_usage_type  <+ frp.set_expression_usage_type;
-            model.output.set_expression_usage_type <+ frp.set_expression_usage_type;
-            eval frp.set_expression ((expr) model.set_expression(expr));
-            out.source.expression <+ model.input.frp.expression.map(|t|t.clone_ref());
+            model.output.set_expression_visibility <+ frp.set_output_expression_visibility;
 
 
             // === Visualization ===
@@ -410,7 +447,7 @@ impl Node {
             eval action_bar.action_visbility ((t) model.visualization.frp.set_visibility.emit(t));
             out.source.skip   <+ action_bar.action_skip;
             out.source.freeze <+ action_bar.action_freeze;
-            eval out.hover ((t) action_bar.set_visibility(t) );
+            eval out.hover ((t) action_bar.set_visibility(t));
 
 
             // === Color Handling ===
