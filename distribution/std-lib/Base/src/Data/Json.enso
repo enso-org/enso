@@ -66,8 +66,6 @@ type Json
     to_text : Text
     to_text = Internal.render_helper this
 
-    to_text_1 = Internal.render_helper_1 this
-
     ## Recursively unwraps the JSON value into primitive values.
     unwrap : Any
     unwrap = case this of
