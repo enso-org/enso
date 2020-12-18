@@ -57,7 +57,7 @@ object DefaultManagers {
       temporaryDirectoryManager,
       defaultResourceManager,
       EngineRepository.defaultEngineReleaseProvider,
-      GraalCEReleaseProvider,
+      GraalCEReleaseProvider.default,
       InstallerKind.Launcher
     )
 }

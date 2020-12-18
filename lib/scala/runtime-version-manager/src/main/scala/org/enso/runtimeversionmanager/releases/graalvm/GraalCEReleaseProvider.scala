@@ -6,6 +6,7 @@ import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.OS
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.releases.github.GithubReleaseProvider
+import org.enso.runtimeversionmanager.releases.local.LocalReleaseProvider
 import org.enso.runtimeversionmanager.releases.{
   ReleaseProviderException,
   SimpleReleaseProvider
@@ -61,10 +62,23 @@ class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
   }
 }
 
-/** Default [[GraalVMRuntimeReleaseProvider]] that provides Graal CE releases
-  * using the GitHub Release API.
-  */
-object GraalCEReleaseProvider
-    extends GraalCEReleaseProvider(
-      new GithubReleaseProvider("graalvm", "graalvm-ce-builds")
-    )
+object GraalCEReleaseProvider {
+  private val githubRepository =
+    new GithubReleaseProvider("graalvm", "graalvm-ce-builds")
+
+  /** Default [[GraalVMRuntimeReleaseProvider]] that provides Graal CE releases
+    * using the GitHub Release API.
+    */
+  val default = new GraalCEReleaseProvider(githubRepository)
+
+  /** Creates a GraalVM provider that uses a local repository first, falling
+    * back to the default one.
+    */
+  def fromLocalRepository(
+    releaseDirectory: Path
+  ): GraalVMRuntimeReleaseProvider = {
+    val mergedRepository =
+      new LocalReleaseProvider(releaseDirectory, githubRepository)
+    new GraalCEReleaseProvider(mergedRepository)
+  }
+}

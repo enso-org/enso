@@ -2,6 +2,7 @@ package org.enso.projectmanager.versionmanagement
 
 import java.nio.file.Path
 
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
   InstallerKind,
@@ -18,7 +19,10 @@ import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
   EngineRepository
 }
-import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
+import org.enso.runtimeversionmanager.releases.graalvm.{
+  GraalCEReleaseProvider,
+  GraalVMRuntimeReleaseProvider
+}
 import org.enso.runtimeversionmanager.runner.JVMSettings
 
 /** Default distribution configuration to use for the Project Manager in
@@ -28,7 +32,9 @@ import org.enso.runtimeversionmanager.runner.JVMSettings
   * that they are initialized at runtime and not at build time if we try
   * building a Native Image.
   */
-object DefaultDistributionConfiguration extends DistributionConfiguration {
+object DefaultDistributionConfiguration
+    extends DistributionConfiguration
+    with LazyLogging {
 
   /** The default [[Environment]] implementation, with no overrides. */
   val environment: Environment = new Environment {}
@@ -46,11 +52,15 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, resourceManager)
 
-  /** @inheritdoc */
-  lazy val engineReleaseProvider: ReleaseProvider[EngineRelease] =
+  private var currentEngineReleaseProvider: ReleaseProvider[EngineRelease] =
     EngineRepository.defaultEngineReleaseProvider
 
-  private def runtimeReleaseProvider = GraalCEReleaseProvider
+  /** @inheritdoc */
+  def engineReleaseProvider: ReleaseProvider[EngineRelease] =
+    currentEngineReleaseProvider
+
+  private var runtimeReleaseProvider: GraalVMRuntimeReleaseProvider =
+    GraalCEReleaseProvider.default
 
   /** @inheritdoc */
   def makeRuntimeVersionManager(
@@ -72,16 +82,34 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
   /** @inheritdoc */
   override def shouldDiscardChildOutput: Boolean = false
 
-  /** TODO [RW]
-    * @param engine
-    * @param graal
+  /** Sets up local repositories if they were requested.
+    * @param engineRepositoryPath the path to a local engine repository if one
+    *                             should be used
+    * @param graalRepositoryPath the path to a local GraalVM repository if one
+    *                            should be used
     */
   def setupLocalRepositories(
-    engine: Option[Path],
-    graal: Option[Path]
+    engineRepositoryPath: Option[Path],
+    graalRepositoryPath: Option[Path]
   ): Unit = {
-    // TODO [RW] implement
-    println(engine)
-    println(graal)
+    val engineProviderOverride =
+      engineRepositoryPath.map(path =>
+        (path, EngineRepository.fromLocalRepository(path))
+      )
+
+    val graalProviderOverride =
+      graalRepositoryPath.map(path =>
+        (path, GraalCEReleaseProvider.fromLocalRepository(path))
+      )
+
+    engineProviderOverride.foreach { case (path, newProvider) =>
+      logger.debug(s"Using a local engine repository from $path.")
+      currentEngineReleaseProvider = newProvider
+    }
+
+    graalProviderOverride.foreach { case (path, newProvider) =>
+      logger.debug(s"Using a local GraalVM repository from $path.")
+      runtimeReleaseProvider = newProvider
+    }
   }
 }

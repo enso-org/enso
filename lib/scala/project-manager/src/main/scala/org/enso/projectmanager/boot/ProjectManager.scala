@@ -132,10 +132,13 @@ object ProjectManager extends App with LazyLogging {
         graalPath <- parseOptionalPath(
           Option(options.getOptionValue(Cli.LOCAL_GRAAL_REPOSITORY))
         )
-      } yield DefaultDistributionConfiguration.setupLocalRepositories(
-        enginePath,
-        graalPath
-      )
+        _ <- ZIO.effect(
+          DefaultDistributionConfiguration.setupLocalRepositories(
+            enginePath,
+            graalPath
+          )
+        )
+      } yield ()
 
       val initializeRepositoryOrLogError = initializeLocalRepositories
         .catchSome { case error: InvalidPathException =>
