@@ -184,6 +184,8 @@ impl View {
 
         ensogl_theme::builtin::dark::register(app);
         ensogl_theme::builtin::light::register(app);
+        // Should not be needed after proper theme management will be introduced:
+        ensogl_theme::builtin::light::enable(app);
 
         let model                      = Model::new(app);
         let frp                        = Frp::new();
