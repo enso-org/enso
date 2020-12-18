@@ -64,6 +64,10 @@ class JobExecutionEngine(
     logger.log(Level.FINE, s"Submitting job: $job...")
     val future = jobExecutor.submit(() => {
       logger.log(Level.FINE, s"Executing job: $job...")
+      runningJobsRef.updateAndGet(_.collect {
+        case job if job.id == jobId => job.copy(isStarted = true)
+        case job                    => job
+      })
       try {
         val result = job.run(runtimeContext)
         logger.log(Level.FINE, s"Job $job finished.")
@@ -76,7 +80,7 @@ class JobExecutionEngine(
         runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
       }
     })
-    val runningJob = RunningJob(jobId, job, future)
+    val runningJob = RunningJob(jobId, job, future, isStarted = false)
 
     runningJobsRef.updateAndGet(_ :+ runningJob)
 
@@ -85,13 +89,18 @@ class JobExecutionEngine(
 
   /** @inheritdoc */
   override def abortAllJobs(): Unit = {
-    val allJobs         = runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
-    val cancellableJobs = allJobs.filter(_.job.isCancellable)
-    cancellableJobs.foreach { runningJob =>
-      runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+    val allJobs = runningJobsRef.updateAndGet(_.filter { job =>
+      job.isStarted || !job.future.isCancelled
+    })
+    val cancelledJobs = allJobs.collect {
+      case runningJob if runningJob.job.isCancellable =>
+        runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+        runningJob.isStarted
     }
-    runtimeContext.executionService.getContext.getThreadManager
-      .checkInterrupts()
+    if (cancelledJobs.contains(true)) {
+      runtimeContext.executionService.getContext.getThreadManager
+        .checkInterrupts()
+    }
   }
 
   /** @inheritdoc */

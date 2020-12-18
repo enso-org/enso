@@ -10,5 +10,11 @@ import org.enso.interpreter.instrument.job.Job
   * @param id a job id
   * @param job a job
   * @param future represents the result of an asynchronous computation
+  * @param isStarted if the job has started execution or not
   */
-case class RunningJob(id: UUID, job: Job[_], future: Future[_])
+case class RunningJob(
+  id: UUID,
+  job: Job[_],
+  future: Future[_],
+  isStarted: Boolean
+)
