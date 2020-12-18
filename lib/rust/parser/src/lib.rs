@@ -1,6 +1,5 @@
 //! This library contains the implementation of the Enso parser.
 
-pub mod data;
 pub mod macros;
 pub mod operator;
 pub mod parser;

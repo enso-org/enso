@@ -11,24 +11,25 @@ use crate::macros::definition::Definition;
 use crate::macros::registry::Registry;
 
 
+
 // ================
 // === Resolver ===
 // ================
 
 /// The Enso macro resolver.
 #[derive(Clone,Debug,PartialEq)]
+#[allow(missing_docs)]
 pub struct Resolver<Logger> {
-    /// The macro registry.
     registry : Registry,
-    /// The logger for the macro resolver.
-    logger : Logger
+    logger   : Logger
 }
 
-impl<Logger:AnyLogger<Owned=Logger>> Resolver<Logger> {
+impl<Logger> Resolver<Logger>
+where Logger : AnyLogger<Owned=Logger> {
     /// Constructor.
     pub fn new(macros:Vec<Definition>, parent_logger:&Logger) -> Self {
-        let registry      = Registry::from(macros);
-        let logger        = <Logger>::sub(parent_logger,"Resolver");
+        let logger   = <Logger>::sub(parent_logger,"Resolver");
+        let registry = Registry::from(macros);
         Self{registry,logger}
     }
 

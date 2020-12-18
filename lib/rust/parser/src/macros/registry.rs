@@ -1,9 +1,11 @@
 //! The macro registry that can be queried during the process of macro resolution.
 
 use crate::prelude::*;
+use enso_data::hash_map_tree::*;
 
 use crate::macros::definition::Definition;
 use crate::macros::literal::Literal;
+
 
 
 // ================
@@ -11,7 +13,7 @@ use crate::macros::literal::Literal;
 // ================
 
 /// The type of the tree that underlies the registry.
-pub type Tree = crate::data::tree::Tree<Literal,Definition>;
+pub type Tree = HashMapTree<Literal,Option<Definition>>;
 
 /// The registry is responsible for the registration of macro definitions, and the querying of said
 /// definitions.
@@ -24,7 +26,7 @@ pub struct Registry {
 impl Registry {
     /// Insert `definition` into the macro registry.
     pub fn insert(&mut self, definition:Definition) {
-        self.tree.insert(definition.path().as_slice(),definition);
+        self.tree.set(definition.path(),Some(definition));
     }
 
     /// Get a reference to the root of the registry.
@@ -33,28 +35,35 @@ impl Registry {
     }
 
     /// Query the registry for a tree.
-    pub fn tree(&self, path:&[Literal]) -> Option<&Tree> {
-        self.tree.get(path)
+    pub fn subtree<P>(&self, path:P) -> Option<&Tree>
+    where P:IntoIterator, P::Item:Into<Literal> {
+        self.tree.get_node(path)
     }
 
     /// Query the registry for a tree, assuming such a tree is present.
     ///
     /// # Panics
     /// If no tree exists at `path`.
-    pub fn unsafe_tree(&self, path:&[Literal]) -> &Tree {
-        self.tree(path).expect("A tree exists at the input path.")
+    pub fn unsafe_subtree<P>(&self, path:P) -> &Tree
+    where P:IntoIterator, P::Item:Into<Literal> {
+        self.subtree(path).expect("A tree exists at the input path.")
     }
 
     /// Query the registry for a definition.
-    pub fn definition(&self, path:&[Literal]) -> Option<&Definition> {
-        self.tree.get_value(path)
+    pub fn definition<P>(&self, path:P) -> Option<&Definition>
+    where P:IntoIterator, P::Item:Into<Literal> {
+        match self.tree.get(path) {
+            Some(Some(def)) => Some(def),
+            _ => None
+        }
     }
 
     /// Query the registry for a definition, assuming such a definition is present.
     ///
     /// # Panics
     /// If no definition exists at `path`.
-    pub fn unsafe_definition(&self, path:&[Literal]) -> &Definition {
+    pub fn unsafe_definition<P>(&self, path:P) -> &Definition
+    where P:IntoIterator, P::Item:Into<Literal> {
         self.definition(path).expect("A definition exists at the input path.")
     }
 }

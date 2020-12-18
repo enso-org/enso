@@ -10,6 +10,9 @@ use crate::prelude::lexer::token;
 // ===============
 
 /// The kinds of literal that can be the head of a macro section.
+///
+/// For more detailed descriptions of the various literal types, please see the documentation of the
+/// tokens in the Lexer.
 #[derive(Clone,Debug,Eq,Hash,Ord,PartialEq,PartialOrd)]
 pub enum Literal {
     Referent(String),
@@ -55,6 +58,12 @@ impl Literal {
 
 
 // === Trait Impls ===
+
+impl From<&Literal> for Literal {
+    fn from(lit:&Literal) -> Self {
+        lit.clone()
+    }
+}
 
 impl From<Literal> for token::Shape {
     fn from(lit:Literal) -> Self {
