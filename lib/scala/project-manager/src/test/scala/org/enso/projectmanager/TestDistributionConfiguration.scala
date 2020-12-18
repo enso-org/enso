@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.{
+  InstallerKind,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
@@ -74,7 +75,8 @@ class TestDistributionConfiguration(
     temporaryDirectoryManager = temporaryDirectoryManager,
     resourceManager           = resourceManager,
     engineReleaseProvider     = engineReleaseProvider,
-    runtimeReleaseProvider    = runtimeReleaseProvider
+    runtimeReleaseProvider    = runtimeReleaseProvider,
+    installerKind             = InstallerKind.ProjectManager
   )
 
   /** JVM settings that will force to use the same JVM that we are running.

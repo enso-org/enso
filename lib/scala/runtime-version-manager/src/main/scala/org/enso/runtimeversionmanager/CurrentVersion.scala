@@ -15,8 +15,7 @@ object CurrentVersion {
     throw new IllegalStateException("Cannot parse the built-in version.")
   }
 
-  /** Version of the launcher.
-    */
+  /** Version of the component. */
   def version: SemVer = currentVersion
 
   /** Override launcher version with the provided one.

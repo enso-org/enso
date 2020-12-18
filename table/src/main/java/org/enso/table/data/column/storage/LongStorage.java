@@ -1,5 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
+import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 
 import java.util.BitSet;
@@ -9,6 +14,7 @@ public class LongStorage extends Storage {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
+  private static final MapOpStorage<LongStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -32,8 +38,8 @@ public class LongStorage extends Storage {
    * @param idx an index
    * @return the data item contained at the given index.
    */
-  public long getItem(long idx) {
-    return data[(int) idx];
+  public long getItem(int idx) {
+    return data[idx];
   }
 
   @Override
@@ -54,32 +60,18 @@ public class LongStorage extends Storage {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return Ops.EQ.equals(op) || Ops.IS_MISSING.equals(op);
+  protected boolean isOpVectorized(String name) {
+    return ops.isSupported(name);
   }
 
   @Override
-  public Storage runVectorizedOp(String name, Object operand) {
-    if (Ops.EQ.equals(name)) {
-      return runVectorizedEq(operand);
-    } else if (Ops.IS_MISSING.equals(name)) {
-      return new BoolStorage(isMissing, new BitSet(), size, false);
-    }
-    throw new UnsupportedOperationException();
+  protected Storage runVectorizedMap(String name, Object argument) {
+    return ops.runMap(name, this, argument);
   }
 
-  BoolStorage runVectorizedEq(Object operand) {
-    BitSet isNa = new BitSet();
-    BitSet values = new BitSet();
-    if (operand instanceof Long) {
-      long seek = (Long) operand;
-      for (int i = 0; i < size; i++) {
-        if (data[i] == seek && !isMissing.get(i)) {
-          values.set(i);
-        }
-      }
-    }
-    return new BoolStorage(values, isNa, size, false);
+  @Override
+  protected Storage runVectorizedZip(String name, Storage argument) {
+    return ops.runZip(name, this, argument);
   }
 
   @Override
@@ -129,5 +121,146 @@ public class LongStorage extends Storage {
       }
     }
     return new LongStorage(newData, total, newMissing);
+  }
+
+  public BitSet getIsMissing() {
+    return isMissing;
+  }
+
+  private static MapOpStorage<LongStorage> buildOps() {
+    MapOpStorage<LongStorage> ops = new MapOpStorage<>();
+    ops.add(
+            new LongNumericOp(Ops.ADD) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return in + arg;
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                return in + arg;
+              }
+            })
+        .add(
+            new LongNumericOp(Ops.SUB) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return in - arg;
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                return in - arg;
+              }
+            })
+        .add(
+            new LongNumericOp(Ops.MUL) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return in * arg;
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                return in * arg;
+              }
+            })
+        .add(
+            new LongNumericOp(Ops.MOD) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return in % arg;
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                return in % arg;
+              }
+            })
+        .add(
+            new LongNumericOp(Ops.DIV, true) {
+              @Override
+              public double doDouble(long in, double arg) {
+                return in / arg;
+              }
+
+              @Override
+              public long doLong(long in, long arg) {
+                return in / arg;
+              }
+            })
+        .add(
+            new LongBooleanOp(Ops.GT) {
+              @Override
+              protected boolean doLong(long a, long b) {
+                return a > b;
+              }
+
+              @Override
+              protected boolean doDouble(long a, double b) {
+                return a > b;
+              }
+            })
+        .add(
+            new LongBooleanOp(Ops.GTE) {
+              @Override
+              protected boolean doLong(long a, long b) {
+                return a >= b;
+              }
+
+              @Override
+              protected boolean doDouble(long a, double b) {
+                return a >= b;
+              }
+            })
+        .add(
+            new LongBooleanOp(Ops.LT) {
+              @Override
+              protected boolean doLong(long a, long b) {
+                return a < b;
+              }
+
+              @Override
+              protected boolean doDouble(long a, double b) {
+                return a > b;
+              }
+            })
+        .add(
+            new LongBooleanOp(Ops.LTE) {
+              @Override
+              protected boolean doLong(long a, long b) {
+                return a <= b;
+              }
+
+              @Override
+              protected boolean doDouble(long a, double b) {
+                return a <= b;
+              }
+            })
+        .add(
+            new LongBooleanOp(Ops.EQ) {
+              @Override
+              protected boolean doLong(long a, long b) {
+                return a == b;
+              }
+
+              @Override
+              protected boolean doDouble(long a, double b) {
+                return a == b;
+              }
+
+              @Override
+              protected boolean doObject(long x, Object o) {
+                return false;
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Ops.IS_MISSING) {
+              @Override
+              public Storage run(LongStorage storage) {
+                return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
+              }
+            });
+    return ops;
   }
 }

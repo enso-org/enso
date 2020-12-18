@@ -79,8 +79,7 @@ extraction-location
 │   └── lts-2.0.8.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
 ├── .enso.portable          # A file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
-├── NOTICE                  # A copyright notice regarding components that are included in the distribution of the universal launcher.
-└── components-licences     # Contains licences of distributed components, as described in the NOTICE.
+└── THIRD-PARTY             # Contains licences of distributed components, including the NOTICE file.
 ```
 
 ### Installed Enso Distribution Layout

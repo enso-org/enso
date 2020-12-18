@@ -4,7 +4,6 @@ import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.runtimeversionmanager.distribution.DistributionManager
 import org.enso.runtimeversionmanager.test.{
-  DropLogs,
   FakeEnvironment,
   WithTemporaryDirectory
 }
@@ -17,8 +16,7 @@ class GlobalConfigurationManagerSpec
     with Matchers
     with WithTemporaryDirectory
     with FakeEnvironment
-    with OptionValues
-    with DropLogs {
+    with OptionValues {
   def makeConfigManager(): GlobalConfigurationManager = {
     val env                 = fakeInstalledEnvironment()
     val distributionManager = new DistributionManager(env)

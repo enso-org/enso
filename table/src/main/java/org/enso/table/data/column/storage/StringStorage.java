@@ -1,11 +1,15 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.index.Index;
 
 import java.util.BitSet;
 
 /** A column storing strings. */
 public class StringStorage extends ObjectStorage {
+
+  private static final MapOpStorage<StringStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -30,29 +34,18 @@ public class StringStorage extends ObjectStorage {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return op.equals("==") || super.isOpVectorized(op);
+  protected boolean isOpVectorized(String name) {
+    return ops.isSupported(name);
   }
 
   @Override
-  public Storage runVectorizedOp(String name, Object operand) {
-    if (Ops.EQ.equals(name)) {
-      return runVectorizedEq(operand);
-    }
-    return super.runVectorizedOp(name, operand);
+  protected Storage runVectorizedMap(String name, Object argument) {
+    return ops.runMap(name, this, argument);
   }
 
-  public BoolStorage runVectorizedEq(Object that) {
-    Object[] data = getData();
-    int size = (int) size();
-    BitSet values = new BitSet();
-    BitSet missing = new BitSet();
-    for (int i = 0; i < size; i++) {
-      if (!(data[i] == null) && data[i].equals(that)) {
-        values.set(i);
-      }
-    }
-    return new BoolStorage(values, missing, size, false);
+  @Override
+  protected Storage runVectorizedZip(String name, Storage argument) {
+    return ops.runZip(name, this, argument);
   }
 
   @Override
@@ -71,5 +64,40 @@ public class StringStorage extends ObjectStorage {
   public StringStorage countMask(int[] counts, int total) {
     ObjectStorage storage = super.countMask(counts, total);
     return new StringStorage(storage.getData(), total);
+  }
+
+  private static MapOpStorage<StringStorage> buildOps() {
+    MapOpStorage<StringStorage> t = ObjectStorage.ops.makeChild();
+    t.add(
+        new MapOperation<>(Ops.EQ) {
+          @Override
+          public Storage runMap(StringStorage storage, Object arg) {
+            BitSet r = new BitSet();
+            BitSet missing = new BitSet();
+            for (int i = 0; i < storage.size(); i++) {
+              if (storage.getItem(i) == null) {
+                missing.set(i);
+              } else if (storage.getItem(i).equals(arg)) {
+                r.set(i);
+              }
+            }
+            return new BoolStorage(r, missing, storage.size(), false);
+          }
+
+          @Override
+          public Storage runZip(StringStorage storage, Storage arg) {
+            BitSet r = new BitSet();
+            BitSet missing = new BitSet();
+            for (int i = 0; i < storage.size(); i++) {
+              if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
+                missing.set(i);
+              } else if (storage.getItem(i).equals(arg.getItemBoxed(i))) {
+                r.set(i);
+              }
+            }
+            return new BoolStorage(r, missing, storage.size(), false);
+          }
+        });
+    return t;
   }
 }

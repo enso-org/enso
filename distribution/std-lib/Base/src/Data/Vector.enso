@@ -1,8 +1,6 @@
 from Builtins import Array
 from Base import all
 
-import Base.Data.Vector.Sort
-
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.
 
@@ -30,7 +28,7 @@ new length constructor =
      created by:
          Vector.fill length=50 item=42
 fill : Number -> Any -> Vector
-fill length item =
+fill length ~item =
     arr = Array.new length
     0.up_to length . each ix-> arr.set_at ix item
     Vector arr
@@ -407,10 +405,7 @@ type Vector
     rest : Vector | Nothing
     rest = this.tail
 
-    ## PRIVATE
-       Doesn't work yet.
-
-       Sort the Vector.
+    ## Sort the Vector.
 
        Arguments:
        - `on`: A projection from the element type to the value of that element
@@ -420,10 +415,26 @@ type Vector
        - `order`: The order in which the vector elements are sorted.
 
        By default, elements are sorted in ascending order, using the comparator
-       `>`. A custom comparator may be passed to the sort function.
+       `compare_to`. A custom comparator may be passed to the sort function.
 
-       This implements a stable sort, meaning that items that compare the same
-       will not have their order changed.
+       This is a stable sort, meaning that items that compare the same will not
+       have their order changed by the sorting process.
+
+       The complexities for this sort are:
+       - *Worst-Case Time:* `O(n * log n)`
+       - *Best-Case Time:* `O(n)`
+       - *Average Time:* `O(n * log n)`
+       - *Worst-Case Space:* `O(n)` additional
+
+       ? Implementation Note
+         The sort implementation is based upon an adaptive, iterative mergesort
+         that requires far fewer than `n * log(n)` comparisons when the vector
+         is partially sorted. When the vector is randomly ordered, the
+         performance is equivalent to a standard mergesort.
+
+         It takes equal advantage of ascending and descending runs in the array,
+         making it much simpler to merge two or more sorted arrays: simply
+         concatenate them and sort.
 
        > Example
          Sorting a vector of numbers.
@@ -434,7 +445,22 @@ type Vector
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
     sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
     sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
-        Sort.run this on by order
+        ## Prepare the destination array that will underlie the vector. We do
+           not want to sort in place on the original vector, as `sort` is not
+           intended to be mutable.
+        new_vec_arr = Array.new this.length
+        this.to_array.copy 0 new_vec_arr 0 this.length
+
+        ## As we want to account for both custom projections and custom
+           comparisons we need to construct a comparator for internal use that
+           does both.
+        comp_ascending l r  = by (on l) (on r)
+        comp_descending l r = by (on r) (on l)
+        compare = if order == Sort_Order.Ascending then comp_ascending else comp_descending
+
+        new_vec_arr.sort compare
+
+        Vector new_vec_arr
 
 ## A builder type for Enso vectors.
 

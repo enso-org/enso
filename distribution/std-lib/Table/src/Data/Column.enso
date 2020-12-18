@@ -38,33 +38,122 @@ type Column
 
     ## Element-wise equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    == : Any -> Column
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    == : Column | Any -> Column
     == other =
-        here.run_vectorized_op this "==" (== other) other
+        here.run_vectorized_binary_op this "==" (==) other
 
     ## Element-wise non-equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
-    != : Any -> Column
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    != : Column | Any -> Column
     != other = (this == other).not
+
+    ## Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    >= : Column | Any -> Column
+    >= other =
+        here.run_vectorized_binary_op this ">=" (>=) other
+
+    ## Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    <= : Column | Any -> Column
+    <= other =
+        here.run_vectorized_binary_op this "<=" (<=) other
+
+    ## Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    > : Column | Any -> Column
+    > other =
+        here.run_vectorized_binary_op this ">" (>) other
+
+    ## Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    < : Column | Any -> Column
+    < other = here.run_vectorized_binary_op this "<" (<) other
+
+    ## Element-wise addition. Returns a column containing the result
+       of adding `other` to each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    + : Column | Any -> Column
+    + other = here.run_vectorized_binary_op this '+' (+) other
+
+    ## Element-wise subtraction. Returns a column containing the result
+       of subtracting `other` from each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    - : Column | Any -> Column
+    - other = here.run_vectorized_binary_op this '-' (-) other
+
+    ## Element-wise multiplication. Returns a column containing the result
+       of multiplying `other` by each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    * : Column | Any -> Column
+    * other = here.run_vectorized_binary_op this '*' (*) other
+
+    ## Element-wise division. Returns a column containing the result
+       of dividing each element of `this` by `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    / : Column | Any -> Column
+    / other = here.run_vectorized_binary_op this '/' (/) other
+
+    ## Element-wise boolean conjunction. Returns a column containing the result
+       of performing the boolean `and` on `other` and each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    && : Column | Any -> Column
+    && other =
+        here.run_vectorized_binary_op this "&&" (&&) other
+
+    ## Element-wise boolean disjunction. Returns a column containing the result
+       of performing the boolean `or` on `other` and each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    || : Column | Any -> Column
+    || other =
+        here.run_vectorized_binary_op this "||" (||) other
 
     ## Boolean negation of each element in this column.
     not : Column
     not =
-        here.run_vectorized_op this "not" not Nothing
+        here.run_vectorized_unary_op this "not" not
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing = here.run_vectorized_op this "is_missing" (== Nothing) Nothing
+    is_missing = here.run_vectorized_unary_op this "is_missing" (== Nothing)
 
     ## Applies `function` to each item in this column and returns the column
        of results.
     map function =
         storage = this.java_column.getStorage []
         index = this.java_column.getIndex []
-        new_st = storage.map [function]
+        new_st = storage.map [Nothing, function]
         col = Java_Column.new ["Result", index, new_st].to_array
         Column col
+
+    ## Applies `function` to consecutive pairs of elements of `this` and `that`
+       and returns a column of results.
+    zip : Column -> (Any -> Any -> Any) -> Column
+    zip that function =
+        s1 = this.java_column.getStorage []
+        ix = this.java_column.getIndex []
+        s2 = that.java_column.getStorage []
+        rs = s1.zip [Nothing, function, s2]
+        Column (Java_Column.new ["Result", ix, rs].to_array)
 
     ## Returns a new column, containing the same elements as `this`, but with
        the given name.
@@ -113,11 +202,24 @@ type Column
 from_vector name items = Column (Java_Column.fromItems [name, items.to_array])
 
 ## PRIVATE
-run_vectorized_op column java_op_name fallback_method operand =
-    storage = column.java_column.getStorage []
+run_vectorized_binary_op column name fallback_fn operand = case operand of
+    Column col2 ->
+        s1 = column.java_column.getStorage []
+        ix = column.java_column.getIndex []
+        s2 = col2.getStorage []
+        rs = s1.zip [name, fallback_fn, s2]
+        Column (Java_Column.new ["Result", ix, rs].to_array)
+    _ ->
+        s1 = column.java_column.getStorage []
+        ix = column.java_column.getIndex []
+        rs = s1.bimap [name, fallback_fn, operand]
+        Column (Java_Column.new ["Result", ix, rs].to_array)
+
+## PRIVATE
+run_vectorized_unary_op column name fallback_fn =
+    s = column.java_column.getStorage []
     ix = column.java_column.getIndex []
-    rs = if storage.isOpVectorized [java_op_name] then storage.runVectorizedOp [java_op_name, operand] else
-        storage.map [fallback_method]
+    rs = s.map [name, fallback_fn]
     Column (Java_Column.new ["Result", ix, rs].to_array)
 
 

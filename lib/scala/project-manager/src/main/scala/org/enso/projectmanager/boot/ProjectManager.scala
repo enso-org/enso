@@ -6,7 +6,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
-import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -132,8 +132,15 @@ object ProjectManager extends App with LazyLogging {
       case 1 => LogLevel.Debug
       case _ => LogLevel.Trace
     }
+
+    // TODO [RW] at some point we may want to allow customization of color
+    //  output in CLI flags
+    val colorMode = ColorMode.Auto
+
     ZIO
-      .fromFuture(executionContext => Logging.setup(level, executionContext))
+      .effect {
+        Logging.setup(Some(level), None, colorMode)
+      }
       .catchAll { exception =>
         putStrLnErr(s"Failed to setup the logger: $exception")
       }
@@ -144,7 +151,8 @@ object ProjectManager extends App with LazyLogging {
   ): ZIO[Console, Nothing, ExitCode] = {
     val versionDescription = VersionDescription.make(
       "Enso Project Manager",
-      includeRuntimeJVMInfo = true
+      includeRuntimeJVMInfo         = false,
+      enableNativeImageOSWorkaround = true
     )
     putStrLn(versionDescription.asString(useJson)) *>
     ZIO.succeed(SuccessExitCode)
@@ -153,7 +161,8 @@ object ProjectManager extends App with LazyLogging {
   private def logServerStartup(): UIO[Unit] =
     effectTotal {
       logger.info(
-        s"Started server at ${config.server.host}:${config.server.port}, press enter to kill server"
+        s"Started server at ${config.server.host}:${config.server.port}, " +
+        s"press enter to kill server"
       )
     }
 

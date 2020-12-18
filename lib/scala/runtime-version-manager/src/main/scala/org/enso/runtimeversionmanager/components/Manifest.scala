@@ -6,20 +6,28 @@ import java.nio.file.Path
 import cats.Show
 import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.components.Manifest.JVMOption
-import org.enso.runtimeversionmanager.{components, CurrentVersion, OS}
 import org.enso.pkg.SemVerJson._
+import org.enso.runtimeversionmanager.components.Manifest.{
+  JVMOption,
+  RequiredInstallerVersions
+}
+import org.enso.runtimeversionmanager.{components, OS}
 
 import scala.util.{Failure, Try, Using}
 
 /** Contains release metadata read from the manifest file that is attached to
   * each release.
   *
-  * @param minimumLauncherVersion The minimum required version of the launcher
-  *                               that can be used to run this engine release.
-  *                               Earlier launcher versions should not be able
-  *                               to download this release, but print a message
-  *                               that the launcher needs an upgrade.
+  * @param requiredInstallerVersions The minimum required version of the
+  *                                  installer that ensures its runtime version
+  *                                  management logic is compatible with this
+  *                                  particular engine release. Earlier
+  *                                  installer versions should not be able to
+  *                                  download this release (as the logic for
+  *                                  installing it has probably changed).
+  *                                  Instead they should print a message that
+  *                                  the installer should be upgraded to use
+  *                                  that version.
   * @param graalVMVersion the version of the GraalVM runtime that has to be
   *                       used with this engine
   * @param graalJavaVersion the java version of that GraalVM runtime
@@ -27,7 +35,7 @@ import scala.util.{Failure, Try, Using}
   *                   this engine
   */
 case class Manifest(
-  minimumLauncherVersion: SemVer,
+  requiredInstallerVersions: RequiredInstallerVersions,
   graalVMVersion: SemVer,
   graalJavaVersion: String,
   jvmOptions: Seq[JVMOption],
@@ -40,11 +48,24 @@ case class Manifest(
   def runtimeVersion: GraalVMVersion =
     components.GraalVMVersion(graalVMVersion, graalJavaVersion)
 
-  def isUsableWithCurrentVersion: Boolean =
-    CurrentVersion.version >= minimumLauncherVersion
+  /** Returns the minimum required version of the installer that is required for
+    * using this particular engine release.
+    */
+  def minimumRequiredVersion(implicit installerKind: InstallerKind): SemVer =
+    installerKind match {
+      case InstallerKind.Launcher =>
+        requiredInstallerVersions.launcher
+      case InstallerKind.ProjectManager =>
+        requiredInstallerVersions.projectManager
+    }
 }
 
 object Manifest {
+
+  /** Stores minimum required versions of each installer kind described in the
+    * [[Manifest]].
+    */
+  case class RequiredInstallerVersions(launcher: SemVer, projectManager: SemVer)
 
   /** Defines the name under which the manifest is included in the releases.
     */
@@ -165,17 +186,21 @@ object Manifest {
   }
 
   object Fields {
-    val minimumLauncherVersion = "minimum-launcher-version"
-    val jvmOptions             = "jvm-options"
-    val graalVMVersion         = "graal-vm-version"
-    val graalJavaVersion       = "graal-java-version"
-    val brokenMark             = "broken"
+    val minimumLauncherVersion       = "minimum-launcher-version"
+    val minimumProjectManagerVersion = "minimum-project-manager-version"
+    val jvmOptions                   = "jvm-options"
+    val graalVMVersion               = "graal-vm-version"
+    val graalJavaVersion             = "graal-java-version"
+    val brokenMark                   = "broken"
   }
 
   implicit private val decoder: Decoder[Manifest] = { json =>
     for {
       minimumLauncherVersion <- json.get[SemVer](Fields.minimumLauncherVersion)
-      graalVMVersion         <- json.get[SemVer](Fields.graalVMVersion)
+      minimumProjectManagerVersion <- json.get[SemVer](
+        Fields.minimumProjectManagerVersion
+      )
+      graalVMVersion <- json.get[SemVer](Fields.graalVMVersion)
       graalJavaVersion <-
         json
           .get[String](Fields.graalJavaVersion)
@@ -183,11 +208,14 @@ object Manifest {
       jvmOptions <- json.getOrElse[Seq[JVMOption]](Fields.jvmOptions)(Seq())
       broken     <- json.getOrElse[Boolean](Fields.brokenMark)(false)
     } yield Manifest(
-      minimumLauncherVersion = minimumLauncherVersion,
-      graalVMVersion         = graalVMVersion,
-      graalJavaVersion       = graalJavaVersion,
-      jvmOptions             = jvmOptions,
-      brokenMark             = broken
+      requiredInstallerVersions = RequiredInstallerVersions(
+        launcher       = minimumLauncherVersion,
+        projectManager = minimumProjectManagerVersion
+      ),
+      graalVMVersion   = graalVMVersion,
+      graalJavaVersion = graalJavaVersion,
+      jvmOptions       = jvmOptions,
+      brokenMark       = broken
     )
   }
 }

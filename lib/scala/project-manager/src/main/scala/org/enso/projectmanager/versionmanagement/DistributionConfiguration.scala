@@ -55,8 +55,6 @@ trait DistributionConfiguration {
     * or piped to parent's streams.
     *
     * This option is used to easily turn off logging in tests.
-    *
-    * TODO [RW] It will likely become obsolete once #1151 (or #1144) is done.
     */
   def shouldDiscardChildOutput: Boolean
 }

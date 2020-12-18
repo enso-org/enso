@@ -50,8 +50,8 @@ class DistributionInstaller(
     *
     * These files are assumed to be located at the data root.
     */
-  private val nonEssentialFiles       = Seq("README.md", "NOTICE")
-  private val nonEssentialDirectories = Seq("components-licences")
+  private val nonEssentialFiles       = Seq("README.md")
+  private val nonEssentialDirectories = Seq("THIRD-PARTY")
 
   private val enginesDirectory =
     installed.dataDirectory / manager.ENGINES_DIRECTORY
