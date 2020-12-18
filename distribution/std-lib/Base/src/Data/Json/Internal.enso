@@ -1,7 +1,6 @@
 from Base import all hiding Number, Boolean, Array
 from Base.Data.Json import all
 
-polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
 
@@ -113,38 +112,35 @@ mk_consumer =
     val = Ref.new Nothing
     Consumer child val
 
-## Helper method for rendering JSON values using a Java StringBuilder.
-render_json builder json = case json of
-    Object fields ->
-        render_key_value separator key value =
-            builder.append [separator + (Printer.json_escape [key]) + ":"]
-            here.render_json builder value
-            ","
-        builder.append ["{"]
-        fields.fold_with_key "" render_key_value
-        builder.append ["}"]
-    Array items ->
-        render_array_element separator element =
-            builder.append [separator]
-            here.render_json builder element
-            ","
-        builder.append ["["]
-        items.fold "" render_array_element
-        builder.append ["]"]
-    String value ->
-        builder.append [Printer.json_escape [value]]
-    Number value ->
-        builder.append [value]
-    Boolean value ->
-        builder.append [value]
-    Null ->
-        builder.append ["null"]
-
 ## Helper method for printing JSON values to Text.
-render_helper json =
-    builder = StringBuilder.new [].to_array
-    here.render_json builder json
-    builder.toString []
+render_helper builder json = case json of
+    Object fields ->
+        r = Ref.new ""
+        render_key_value acc key value =
+            separator = Ref.get r
+            Ref.put r ","
+            val = here.render_helper "" value
+            acc + separator + (Printer.json_escape [key]) + ":" + val
+        arr = fields.fold_with_key "" render_key_value
+        builder + "{" + arr + "}"
+    Array items ->
+        r = Ref.new ""
+        render_array_element acc element =
+            separator = Ref.get r
+            Ref.put r ","
+            val = here.render_helper "" element
+            acc + separator + val
+        arr = items.fold "" render_array_element
+        builder + "[" + arr + "]"
+    String value ->
+        builder + (Printer.json_escape [value])
+    Number value ->
+        builder + value.to_text
+    Boolean value ->
+        val = if value then "true" else "false"
+        builder + val
+    Null ->
+        builder + "null"
 
 ## Helper method for converting JSON objects into arbitrary types.
 
