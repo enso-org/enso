@@ -15,7 +15,7 @@ use crate::lexeme;
 // =============
 
 /// A lexer token.
-#[derive(Clone,Debug,Eq,PartialEq)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq)]
 pub struct Token {
     /// The shape of the token.
     pub shape : Shape,
@@ -294,7 +294,7 @@ impl Token {
 // =================
 
 /// The type for an Enso Block token.
-#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+#[derive(Copy,Clone,Debug,Eq,Hash,PartialEq)]
 pub enum BlockType {
     /// A block made up of arguments to a function.
     Continuous,
@@ -309,7 +309,7 @@ pub enum BlockType {
 // ==================
 
 /// The type of newline associated with the line.
-#[derive(Copy,Clone,Debug,Display,PartialEq,Eq)]
+#[derive(Copy,Clone,Debug,Display,Eq,Hash,PartialEq)]
 pub enum LineEnding {
     /// There is no newline.
     None,
@@ -348,7 +348,7 @@ impl Default for LineEnding {
 // =================
 
 /// The style of the text literal.
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+#[derive(Copy,Clone,Debug,Eq,Hash,PartialEq)]
 pub enum TextStyle {
     // === Line ===
 
@@ -424,7 +424,7 @@ impl TextStyle {
 // ===================
 
 /// A description of the style of escape sequence seen.
-#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
 pub enum EscapeStyle {
     /// A \xNN-style byte escape.
     Byte,
@@ -474,7 +474,7 @@ impl EscapeStyle {
 /// This is a very small set of shapes, because the [`Token`] type only deals with the tokens that
 /// the lexer works with, not the full complexity of Enso's syntax.
 #[allow(missing_docs)]
-#[derive(Clone,Debug,PartialEq,Eq)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq)]
 pub enum Shape {
     // === Identifiers ===
 
@@ -760,6 +760,11 @@ impl Stream {
     /// Get the length of the elements in the token stream.
     pub fn tokens_len(&self) -> usize {
         self.tokens.iter().map(|token|token.length + token.offset).sum()
+    }
+
+    /// Get a consuming iterator over the token stream.
+    pub fn into_iter(self) -> std::vec::IntoIter<Token> {
+        self.tokens.into_iter()
     }
 }
 
