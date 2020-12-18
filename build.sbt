@@ -897,6 +897,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
       "commons-io"                  % "commons-io"           % commonsIoVersion,
       akkaTestkit                   % Test,
+      "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
