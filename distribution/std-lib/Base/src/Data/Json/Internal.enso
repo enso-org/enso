@@ -117,9 +117,6 @@ mk_consumer =
 render_json builder json = case json of
     Object fields ->
         render_key_value separator key value =
-            #builder.append [separator]
-            #builder.append [Printer.json_escape [key]]
-            #builder.append [":"]
             builder.append [separator + (Printer.json_escape [key]) + ":"]
             here.render_json builder value
             ","
