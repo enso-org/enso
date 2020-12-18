@@ -2,6 +2,7 @@ package org.enso.runtimeversionmanager.releases.local
 
 import java.nio.file.Path
 
+import cats.syntax.traverse._
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.FileSystem
@@ -10,7 +11,6 @@ import org.enso.runtimeversionmanager.releases.{
   Release,
   SimpleReleaseProvider
 }
-import cats.syntax.traverse._
 
 import scala.io.Source
 import scala.util.{Try, Using}
@@ -23,21 +23,29 @@ import scala.util.{Try, Using}
   * can point to this local repository, so that any required bundled versions
   * are installed from the bundle and any other versions are handled using the
   * default repository.
+  *
+  * It is given a `releaseDirectory` that should contain separate directories
+  * for each local release. The name of each subdirectory corresponds to its
+  * release tag and every file in that subdirectory is considered as an asset of
+  * that release.
+  *
+  * It loads the list of releases at construction and thus may throw an error if
+  * it cannot access the provided directory.
   */
 class LocalReleaseProvider(
   releaseDirectory: Path,
   fallback: SimpleReleaseProvider
 ) extends SimpleReleaseProvider {
   private val logger = Logger[LocalReleaseProvider]
+  private val localDirectories: Seq[Path] =
+    FileSystem.listDirectory(releaseDirectory)
 
   /** @inheritdoc */
   override def releaseForTag(tag: String): Try[Release] = {
-    localDirectories.flatMap { directories =>
-      val localPath = directories.find(_.getFileName.toString == tag)
-      localPath
-        .map(wrapLocalDirectory)
-        .getOrElse { fallback.releaseForTag(tag) }
-    }
+    val localPath = localDirectories.find(_.getFileName.toString == tag)
+    localPath
+      .map(wrapLocalDirectory)
+      .getOrElse { fallback.releaseForTag(tag) }
   }
 
   /** @inheritdoc */
@@ -60,10 +68,6 @@ class LocalReleaseProvider(
       }
       local ++ remoteDeduplicated
     }
-  }
-
-  private def localDirectories: Try[Seq[Path]] = Try {
-    FileSystem.listDirectory(releaseDirectory)
   }
 
   private case class LocalAsset(assetPath: Path) extends Asset {
@@ -98,7 +102,5 @@ class LocalReleaseProvider(
   }
 
   private def findLocalReleases(): Try[Seq[Release]] =
-    localDirectories.flatMap { directories =>
-      directories.map(wrapLocalDirectory).toList.sequence
-    }
+    localDirectories.map(wrapLocalDirectory).toList.sequence[Try, Release]
 }

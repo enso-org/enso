@@ -1,5 +1,7 @@
 package org.enso.projectmanager.versionmanagement
 
+import java.nio.file.Path
+
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
   InstallerKind,
@@ -31,9 +33,6 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
   /** The default [[Environment]] implementation, with no overrides. */
   val environment: Environment = new Environment {}
 
-  // TODO [RW, AO] should the PM support portable distributions?
-  //  If so, where will be the project-manager binary located with respect to
-  //  the distribution root?
   /** @inheritdoc */
   lazy val distributionManager = new DistributionManager(environment)
 
@@ -72,4 +71,17 @@ object DefaultDistributionConfiguration extends DistributionConfiguration {
 
   /** @inheritdoc */
   override def shouldDiscardChildOutput: Boolean = false
+
+  /** TODO [RW]
+    * @param engine
+    * @param graal
+    */
+  def setupLocalRepositories(
+    engine: Option[Path],
+    graal: Option[Path]
+  ): Unit = {
+    // TODO [RW] implement
+    println(engine)
+    println(graal)
+  }
 }
