@@ -13,16 +13,22 @@ object FakeReleases {
     */
   def releaseRoot: Path = Path.of(getClass.getResource("fake-releases").toURI)
 
+  /** Location of fake engine releases. */
+  def engineRoot: Path = releaseRoot.resolve("enso")
+
+  /** Location of fake runtime releases. */
+  def runtimeRoot: Path = releaseRoot.resolve("graalvm")
+
   /** Provider of engine releases using the test fixtures. */
   lazy val engineReleaseProvider = new EngineReleaseProvider(
     FakeReleaseProvider(
-      releaseRoot.resolve("enso"),
+      engineRoot,
       copyIntoArchiveRoot = Seq("manifest.yaml")
     )
   )
 
   /** Provider of Graal runtime releases using the test fixtures. */
   lazy val runtimeReleaseProvider = new GraalCEReleaseProvider(
-    FakeReleaseProvider(releaseRoot.resolve("graalvm"))
+    FakeReleaseProvider(runtimeRoot)
   )
 }
