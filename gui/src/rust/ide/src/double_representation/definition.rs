@@ -499,6 +499,22 @@ pub struct ToAdd {
 }
 
 impl ToAdd {
+    /// Create ToAdd description from an arbitrary AST.
+    pub fn new_with_body
+    (name:DefinitionName, explicit_parameter_names:Vec<String>, body:Ast) -> Self {
+        let (body_head,body_tail) = match body.shape() {
+            ast::Shape::Block(ast::Block{ first_line,lines,..}) => (
+                first_line.elem.clone_ref(),
+                lines.iter().map(|line| line.elem.as_ref().cloned()).collect_vec(),
+            ),
+            _ => (
+                body.clone_ref(),
+                default(),
+            ),
+        };
+        ToAdd {name,explicit_parameter_names,body_head,body_tail}
+    }
+
     /// The definition's head, i.e. the left-hand side of the primary assignment.
     pub fn head(&self, parser:&Parser) -> FallibleResult<Ast> {
         let name = self.name.ast(parser)?;

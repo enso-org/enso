@@ -366,8 +366,6 @@ ensogl::define_endpoints! {
 
         // === Visualization ===
 
-        /// Toggle the visibility of the selected visualizations.
-        toggle_visualization_visibility(),
         /// Simulates a visualization open press event. In case the event will be shortly followed by `release_visualization_visibility`, the visualization will be shown permanently. In other case, it will be disabled as soon as the `release_visualization_visibility` is emitted.
         press_visualization_visibility(),
         /// Simulates a visualization open double press event. This event toggles the visualization fullscreen mode.
@@ -376,8 +374,6 @@ ensogl::define_endpoints! {
         release_visualization_visibility(),
         /// Cycle the visualization for the selected nodes.
         cycle_visualization_for_selected_node(),
-        /// Switches the selected visualisation to/from fullscreen mode.
-        toggle_fullscreen_for_selected_visualization(),
 
 
         // === Scene Navigation ===
@@ -424,6 +420,7 @@ ensogl::define_endpoints! {
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
         set_visualization_data       ((NodeId,visualization::Data)),
+        enable_visualization         (NodeId),
     }
 
     Output {
@@ -2709,7 +2706,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }));
 
     viz_tgt_nodes_all_on <- viz_tgt_nodes_off.map(|t| t.is_empty());
-    viz_enable           <= viz_tgt_nodes.gate_not(&viz_tgt_nodes_all_on);
+    viz_enable_by_press  <= viz_tgt_nodes.gate_not(&viz_tgt_nodes_all_on);
+    viz_enable           <- any(viz_enable_by_press,inputs.enable_visualization);
     viz_disable          <= viz_tgt_nodes.gate(&viz_tgt_nodes_all_on);
     viz_preview_disable  <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
     viz_fullscreen_on    <= viz_d_press_ev.map(f_!(model.last_selected_node()));

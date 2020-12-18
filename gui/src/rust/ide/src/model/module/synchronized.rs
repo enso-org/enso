@@ -290,7 +290,7 @@ impl Module {
                         range: summary.id_map.clone().into(),
                         text: new_file.id_map_slice().to_string(),
                     };
-                    //id_map goes first, because code change may alter it's position.
+                    //id_map goes first, because code change may alter its position.
                     let edits = vec![id_map_change, code_change];
                     self.notify_language_server(&summary.summary,&new_file,edits).await
                 }
@@ -324,9 +324,10 @@ impl Module {
         // location for the final edit would be more complex.
         debug_assert_eq!(start.column, 0);
 
-        let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
-        let edit = edit.move_by_lines(start.line);
-        (!edit.text.is_empty()).as_some( edit)
+        (source != target).as_some_from(|| {
+            let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
+            edit.move_by_lines(start.line)
+        })
     }
 
     fn edit_for_code(ls_content:&ParsedContentSummary, new_file:&SourceFile) -> Option<TextEdit> {
@@ -351,9 +352,10 @@ impl Module {
      -> impl Future<Output=FallibleResult<ParsedContentSummary>> + 'static {
         debug!(self.logger,"Handling partial invalidation: {ls_content:?}.");
         let edits = vec![
-            Self::edit_for_code(ls_content,&new_file),
-            Self::edit_for_metadata(ls_content,&new_file),
+            //id_map and metadata go first, because code change may alter their position.
             Self::edit_for_idmap(ls_content,&new_file),
+            Self::edit_for_metadata(ls_content,&new_file),
+            Self::edit_for_code(ls_content,&new_file),
         ].into_iter().filter_map(|edit| edit).collect_vec();
         self.notify_language_server(&ls_content.summary,&new_file,edits)
     }
@@ -577,7 +579,7 @@ pub mod test {
                 edit_handler.expect_full_invalidation(client);
                 // Explicit AST update.
                 edit_handler.expect_some_edit(client, |edit|{
-                    assert!(edit.edits[0].text.contains("Test"));
+                    assert!(edit.edits.last().map_or(false, |edit| edit.text.contains("Test")));
                     Ok(())
                 });
                 // Replacing `Test` with `Test 2`

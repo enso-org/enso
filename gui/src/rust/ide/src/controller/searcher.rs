@@ -1,11 +1,14 @@
 //! This module contains all structures related to Searcher Controller.
-pub mod suggestion;
+pub mod action;
 
 use crate::prelude::*;
 
+use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
-use crate::double_representation::module::ImportInfo;
+use crate::double_representation::graph::GraphInfo;
+use crate::double_representation::graph::LocationHint;
 use crate::double_representation::module::QualifiedName;
+use crate::double_representation::node::NodeInfo;
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
@@ -16,7 +19,8 @@ use enso_protocol::language_server;
 use flo_stream::Subscriber;
 use parser::Parser;
 
-pub use suggestion::Suggestion;
+pub use action::Action;
+
 
 
 
@@ -26,11 +30,23 @@ pub use suggestion::Suggestion;
 
 
 #[allow(missing_docs)]
-#[fail(display = "No such suggestion with index {}.", index)]
+#[fail(display="No action entry with the index {}.", index)]
 #[derive(Copy,Clone,Debug,Fail)]
-pub struct NoSuchSuggestion{
+pub struct NoSuchAction {
     index : usize,
 }
+
+#[allow(missing_docs)]
+#[fail(display="Action entry with index {} is not a suggestion.", index)]
+#[derive(Copy,Clone,Debug,Fail)]
+pub struct NotASuggestion {
+    index : usize,
+}
+
+#[allow(missing_docs)]
+#[fail(display="An action cannot be executed when searcher is in \"edit node\" mode.")]
+#[derive(Copy,Clone,Debug,Fail)]
+pub struct CannotExecuteWhenEditingNode;
 
 
 // =====================
@@ -41,7 +57,7 @@ pub struct NoSuchSuggestion{
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum Notification {
     /// A new Suggestion list is available.
-    NewSuggestionList
+    NewActionList
 }
 
 
@@ -50,22 +66,22 @@ pub enum Notification {
 // === Suggestions ===
 // ===================
 
-/// List of suggestions available in Searcher.
+/// List of actions available in Searcher.
 #[derive(Clone,CloneRef,Debug)]
-pub enum Suggestions {
-    /// The suggestion list is still loading from the Language Server.
+pub enum Actions {
+    /// The action list is still gathering suggestions from the Language Server.
     Loading,
-    /// The suggestion list is loaded.
+    /// The action list is ready.
     #[allow(missing_docs)]
     Loaded {
-        list : Rc<suggestion::List>
+        list : Rc<action::List>
     },
-    /// Loading suggestion list resulted in error.
+    /// Loading suggestions from the Language Server resulted in error.
     Error(Rc<failure::Error>)
 }
 
-impl Suggestions {
-    /// Check if suggestion list is still loading.
+impl Actions {
+    /// Check if list is still loading.
     pub fn is_loading(&self) -> bool {
         matches!(self,Self::Loading)
     }
@@ -75,8 +91,8 @@ impl Suggestions {
         matches!(self,Self::Error(_))
     }
 
-    /// Get the list of suggestions. Returns None if still loading or error was returned.
-    pub fn list(&self) -> Option<&suggestion::List> {
+    /// Get the list of actions. Returns None if still loading or error was returned.
+    pub fn list(&self) -> Option<&action::List> {
         match self {
             Self::Loaded {list} => Some(list),
             _                   => None,
@@ -84,7 +100,7 @@ impl Suggestions {
     }
 }
 
-impl Default for Suggestions {
+impl Default for Actions {
     fn default() -> Self {
         Self::Loading
     }
@@ -135,7 +151,7 @@ pub struct ParsedInput {
     /// An offset between expression and pattern.
     pub pattern_offset : usize,
     /// The part of input being a function/argument which is still typed by user. It is used
-    /// for filtering suggestions.
+    /// for filtering actions.
     pub pattern : String,
 }
 
@@ -259,7 +275,7 @@ impl Display for ParsedInput {
 ///
 /// When searcher is brought up with a node selected, the node will be used as "this". This affects
 /// suggestions for the first completion (to include methods of the node's returned value) and the
-/// code inserted when it is selected.
+/// code inserted when the input is committed.
 #[derive(Clone,Debug)]
 pub struct ThisNode {
     /// Identifier of the node that will be connected if the initial suggestion is picked.
@@ -321,7 +337,7 @@ pub enum Mode {
     EditNode {node_id:ast::Id},
 }
 
-/// A fragment filled by single picked completion suggestion.
+/// A fragment filled by single picked suggestion.
 ///
 /// We store such information in Searcher to better suggest the potential arguments, and to know
 /// what imports should be added when inserting node.
@@ -329,7 +345,7 @@ pub enum Mode {
 #[allow(missing_docs)]
 pub struct FragmentAddedByPickingSuggestion {
     pub id                : CompletedFragmentId,
-    pub picked_suggestion : suggestion::Completion,
+    pub picked_suggestion : action::Suggestion,
 }
 
 impl FragmentAddedByPickingSuggestion {
@@ -345,12 +361,12 @@ impl FragmentAddedByPickingSuggestion {
 #[derive(Clone,Debug,Default)]
 pub struct Data {
     /// The current searcher's input.
-    pub input : ParsedInput,
-    /// The suggestion list which should be displayed.
-    pub suggestions : Suggestions,
+    pub input:ParsedInput,
+    /// The action list which should be displayed.
+    pub actions:Actions,
     /// All fragments of input which were added by picking suggestions. If the fragment will be
     /// changed by user, it will be removed from this list.
-    pub fragments_added_by_picking : Vec<FragmentAddedByPickingSuggestion>,
+    pub fragments_added_by_picking:Vec<FragmentAddedByPickingSuggestion>,
 }
 
 impl Data {
@@ -384,7 +400,7 @@ impl Data {
         });
         let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
         initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
-        Ok(Data {input,suggestions,fragments_added_by_picking})
+        Ok(Data {input, actions: suggestions,fragments_added_by_picking})
     }
 
     fn find_picked_fragment(&self, id:CompletedFragmentId)
@@ -396,8 +412,16 @@ impl Data {
 /// Searcher Controller.
 ///
 /// This is an object providing all required functionalities for Searcher View: mainly it is the
-/// suggestion list to display depending on the searcher input, and actions of picking one or
-/// accepting the Searcher input (pressing "Enter").
+/// action list to display depending on the searcher input, and actions of picking suggestion and
+/// executing entry.
+///
+/// For description of different actions, see `Action` type.
+///
+/// Each action can be _executed_, and some (like suggestions of code) may be _used as a
+/// suggestion_. The exact outcome depends on action type.
+///
+/// Additionally user can accept the current searcher input as a new node (or new expression of
+/// existing node).
 #[derive(Clone,CloneRef,Debug)]
 pub struct Searcher {
     logger           : Logger,
@@ -466,15 +490,15 @@ impl Searcher {
         self.notifier.subscribe()
     }
 
-    /// Get the current suggestion list.
-    pub fn suggestions(&self) -> Suggestions {
-        self.data.borrow().suggestions.clone_ref()
+    /// Get the current action list.
+    pub fn actions(&self) -> Actions {
+        self.data.borrow().actions.clone_ref()
     }
 
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
-    /// in a new suggestion list (the appropriate notification will be emitted).
+    /// in a new action list (the appropriate notification will be emitted).
     pub fn set_input(&self, new_input:String) -> FallibleResult {
         debug!(self.logger, "Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input,&self.parser)?;
@@ -486,10 +510,10 @@ impl Searcher {
         if old_expr != new_expr {
             debug!(self.logger, "Reloading list.");
             self.reload_list();
-        } else if let Suggestions::Loaded {list} = self.data.borrow().suggestions.clone_ref() {
+        } else if let Actions::Loaded {list} = self.data.borrow().actions.clone_ref() {
             debug!(self.logger, "Update filtering.");
             list.update_filtering(&self.data.borrow().input.pattern);
-            executor::global::spawn(self.notifier.publish(Notification::NewSuggestionList));
+            executor::global::spawn(self.notifier.publish(Notification::NewActionList));
         }
         Ok(())
     }
@@ -503,7 +527,7 @@ impl Searcher {
     /// Code depends on the location, as the first fragment can introduce `this` variable access,
     /// and then we don't want to put any module name.
     fn code_to_insert
-    (&self, suggestion:&suggestion::Completion, loc:CompletedFragmentId) -> String {
+    (&self, suggestion:&action::Suggestion, loc:CompletedFragmentId) -> String {
         let current_module = self.module_qualified_name();
         if loc == CompletedFragmentId::Function && self.this_arg.is_some() {
             suggestion.code_to_insert_skip_module()
@@ -514,11 +538,11 @@ impl Searcher {
 
     /// Pick a completion suggestion.
     ///
-    /// This function should be called when user chooses some completion suggestion. The picked
-    /// suggestion will be remembered, and the searcher's input will be updated and returned by this
-    /// function.
-    pub fn pick_completion
-    (&self, picked_suggestion:suggestion::Completion) -> FallibleResult<String> {
+    /// This function should be called when user do the _use as suggestion_ action as a code
+    /// suggestion (see struct documentation). The picked suggestion will be remembered, and the
+    /// searcher's input will be updated and returned by this function.
+    pub fn use_suggestion
+    (&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
         info!(self.logger, "Picking suggestion: {picked_suggestion:?}");
         let id                = self.data.borrow().input.next_completion_id();
         let code_to_insert    = self.code_to_insert(&picked_suggestion,id);
@@ -551,17 +575,46 @@ impl Searcher {
         Ok(new_input)
     }
 
-    /// Pick a completion suggestion by index.
-    pub fn pick_completion_by_index(&self, index:usize) -> FallibleResult<String> {
-        let error      = || NoSuchSuggestion{index};
+    /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
+    pub fn use_as_suggestion(&self, index:usize) -> FallibleResult<String> {
+        let error      = || NoSuchAction {index};
         let suggestion = {
             let data = self.data.borrow();
-            let list = data.suggestions.list().ok_or_else(error)?;
-            list.get_cloned(index).ok_or_else(error)?.suggestion
+            let list = data.actions.list().ok_or_else(error)?;
+            list.get_cloned(index).ok_or_else(error)?.action
         };
         match suggestion {
-            Suggestion::Completion(completion) => self.pick_completion(completion)
+            Action::Suggestion(suggestion) => self.use_suggestion(suggestion),
+            _ => Err(NotASuggestion {index}.into())
         }
+    }
+
+    /// Execute given action.
+    ///
+    /// If the action results in adding new node to the graph, or changing an exiting node, its id
+    /// will be returned by this function.
+    pub fn execute_action(&self, action:Action) -> FallibleResult<Option<ast::Id>> {
+        match action {
+            Action::Suggestion(suggestion) => {
+                self.use_suggestion(suggestion)?;
+                self.commit_node().map(Some)
+            }
+            Action::Example(example) => match *self.mode {
+                Mode::NewNode {position} => self.add_example(&example,position).map(Some),
+                _                        => Err(CannotExecuteWhenEditingNode.into())
+            }
+        }
+    }
+
+    /// See `execute_action` documentation.
+    pub fn execute_action_by_index(&self, index:usize) -> FallibleResult<Option<ast::Id>> {
+        let error      = || NoSuchAction {index};
+        let action = {
+            let data = self.data.borrow();
+            let list = data.actions.list().ok_or_else(error)?;
+            list.get_cloned(index).ok_or_else(error)?.action
+        };
+        self.execute_action(action.clone_ref())
     }
 
     /// Check if the first fragment in the input (i.e. the one representing the called function)
@@ -616,6 +669,46 @@ impl Searcher {
         Ok(id)
     }
 
+    /// Adds an example to the graph.
+    ///
+    /// The example piece of code will be inserted as a new function definition, and in current
+    /// graph the node calling this function will appear.
+    pub fn add_example
+    (&self, example:&action::Example, position:Option<Position>) -> FallibleResult<ast::Id> {
+        // === Add new function definition ===
+        let graph                 = self.graph.graph();
+        let mut module            = double_representation::module::Info{ast:graph.module.ast()};
+        let graph_definition_name = graph.graph_info()?.source.name.item;
+        let new_definition        = example.definition_to_add(&module, &self.parser)?;
+        let new_definition_name   = Ast::var(new_definition.name.name.item.clone());
+        let new_definition_place  = double_representation::module::Placement::Before(graph_definition_name);
+        module.add_method(new_definition,new_definition_place,&self.parser)?;
+
+
+        // === Add new node ===
+        let here             = Ast::var(constants::keywords::HERE);
+        let args             = std::iter::empty();
+        let node_expression  = ast::prefix::Chain::new_with_this(new_definition_name,here,args);
+        let node_expression  = node_expression.into_ast();
+        let node             = NodeInfo::new_expression(node_expression).ok_or(FailedToCreateNode)?;
+        let graph_definition = double_representation::module::locate(&module.ast,&self.graph.graph().id)?;
+        let mut graph_info   = GraphInfo::from_definition(graph_definition.item);
+        graph_info.add_node(node.ast().clone_ref(), LocationHint::End)?;
+        module.ast          = module.ast.set_traversing(&graph_definition.crumbs, graph_info.ast())?;
+        let intended_method = None;
+
+
+        // === Add imports ===
+        let here = self.module_qualified_name();
+        for import in example.imports.iter().map(QualifiedName::from_text).filter_map(Result::ok) {
+            module.add_module_import(&here, &self.parser, &import);
+        }
+        graph.module.update_ast(module.ast)?;
+        graph.module.set_node_metadata(node.id(),NodeMetadata {position,intended_method})?;
+
+        Ok(node.id())
+    }
+
     fn invalidate_fragments_added_by_picking(&self) {
         let mut data       = self.data.borrow_mut();
         let data           = data.deref_mut();
@@ -633,17 +726,12 @@ impl Searcher {
         let mut module    = self.module();
         let here          = self.module_qualified_name();
         for import in imports {
-            let is_here          = *import == here;
-            let import           = ImportInfo::from_qualified_name(&import);
-            let already_imported = module.iter_imports().any(|imp| imp == import);
-            if !is_here && !already_imported {
-                module.add_import(&self.parser,import);
-            }
+            module.add_module_import(&here, &self.parser, &import);
         }
         self.graph.graph().module.update_ast(module.ast)
     }
 
-    /// Reload Suggestion List.
+    /// Reload Action List.
     ///
     /// The current list will be set as "Loading" and Language Server will be requested for a new
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
@@ -654,9 +742,9 @@ impl Searcher {
             CompletedFragmentId::Argument {index} =>
                 self.return_types_for_argument_completion(index),
         };
-        self.get_suggestion_list_from_engine(this_type,return_types,None);
-        self.data.borrow_mut().suggestions = Suggestions::Loading;
-        executor::global::spawn(self.notifier.publish(Notification::NewSuggestionList));
+        self.gather_actions_from_engine(this_type,return_types,None);
+        self.data.borrow_mut().actions = Actions::Loading;
+        executor::global::spawn(self.notifier.publish(Notification::NewActionList));
     }
 
     /// Get the typename of "this" value for current completion context. Returns `Future`, as the
@@ -693,7 +781,7 @@ impl Searcher {
         }).collect()
     }
 
-    fn get_suggestion_list_from_engine
+    fn gather_actions_from_engine
     ( &self
     , this_type    : impl Future<Output=Option<String>> + 'static
     , return_types : impl IntoIterator<Item=String>
@@ -702,8 +790,8 @@ impl Searcher {
         let ls               = self.language_server.clone_ref();
         let graph            = self.graph.graph();
         let position         = self.position_in_code.deref().into();
-        let mut return_types = return_types.into_iter().map(Some).collect_vec();
         let this             = self.clone_ref();
+        let mut return_types = return_types.into_iter().map(Some).collect_vec();
         if return_types.is_empty() {
             return_types.push(None)
         }
@@ -717,37 +805,40 @@ impl Searcher {
             });
             let responses = futures::future::join_all(requests).await;
             info!(this.logger,"Received suggestions from Language Server.");
-            let new_suggestions = match this.suggestions_from_responses(responses) {
-                Ok(list)   => Suggestions::Loaded {list:Rc::new(list)},
-                Err(error) => Suggestions::Error(Rc::new(error))
+            let new_list = match this.make_action_list(responses) {
+                Ok(list)   => Actions::Loaded {list:Rc::new(list)},
+                Err(error) => Actions::Error(Rc::new(error))
             };
-            this.data.borrow_mut().suggestions = new_suggestions;
-            this.notifier.publish(Notification::NewSuggestionList).await;
+            this.data.borrow_mut().actions = new_list;
+            this.notifier.publish(Notification::NewActionList).await;
         });
     }
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
-    fn suggestions_from_responses
-    (&self, responses:Vec<json_rpc::Result<language_server::response::Completion>>)
-    -> FallibleResult<suggestion::List> {
-        let suggestions = suggestion::List::new();
-        for response in responses {
+    fn make_action_list
+    (&self, completion_responses:Vec<json_rpc::Result<language_server::response::Completion>>)
+     -> FallibleResult<action::List> {
+        let actions = action::List::new();
+        if matches!(self.mode.deref(), Mode::NewNode{..}) && self.this_arg.is_none() {
+            actions.extend(self.database.iterate_examples().map(Action::Example));
+        }
+        for response in completion_responses {
             let response = response?;
             let entries  = response.results.iter().filter_map(|id| {
                 self.database.lookup(*id)
-                    .map(Suggestion::Completion)
+                    .map(Action::Suggestion)
                     .handle_err(|e| {
                         error!(self.logger,"Response provided a suggestion ID that cannot be \
                         resolved: {e}.")
                     })
             });
-            suggestions.extend(entries);
+            actions.extend(entries);
         }
-        suggestions.update_filtering(&self.data.borrow().input.pattern);
-        Ok(suggestions)
+        actions.update_filtering(&self.data.borrow().input.pattern);
+        Ok(actions)
     }
 
-    fn possible_function_calls(&self) -> Vec<suggestion::Completion> {
+    fn possible_function_calls(&self) -> Vec<action::Suggestion> {
         let opt_result = || {
             let call_ast = self.data.borrow().input.expression.as_ref()?.func.clone_ref();
             let call     = SimpleFunctionCall::try_new(&call_ast)?;
@@ -788,7 +879,7 @@ impl Searcher {
     /// Get the suggestion that was selected by the user into the function.
     ///
     /// This suggestion shall be used to request better suggestions from the engine.
-    pub fn intended_function_suggestion(&self) -> Option<suggestion::Completion> {
+    pub fn intended_function_suggestion(&self) -> Option<action::Suggestion> {
         let id       = CompletedFragmentId::Function;
         let fragment = self.data.borrow().find_picked_fragment(id).cloned();
         fragment.map(|f| f.picked_suggestion.clone_ref())
@@ -892,8 +983,9 @@ pub mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::model::suggestion_database::Scope;
-    use crate::model::suggestion_database::Argument;
+    use crate::model::suggestion_database::entry::Argument;
+    use crate::model::suggestion_database::entry::Kind;
+    use crate::model::suggestion_database::entry::Scope;
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::PROJECT_NAME;
 
@@ -958,11 +1050,11 @@ pub mod test {
         data     : MockData,
         test     : TestWithLocalPoolExecutor,
         searcher : Searcher,
-        entry1   : suggestion::Completion,
-        entry2   : suggestion::Completion,
-        entry3   : suggestion::Completion,
-        entry4   : suggestion::Completion,
-        entry9   : suggestion::Completion,
+        entry1   : action::Suggestion,
+        entry2   : action::Suggestion,
+        entry3   : action::Suggestion,
+        entry4   : action::Suggestion,
+        entry9   : action::Suggestion,
     }
 
     impl Fixture {
@@ -994,7 +1086,7 @@ pub mod test {
             };
             let entry1 = model::suggestion_database::Entry {
                 name          : "testFunction1".to_string(),
-                kind          : model::suggestion_database::EntryKind::Function,
+                kind          : Kind::Function,
                 module        : crate::test::mock::data::module_qualified_name(),
                 arguments     : vec![],
                 return_type   : "Number".to_string(),
@@ -1004,12 +1096,12 @@ pub mod test {
             };
             let entry2 = model::suggestion_database::Entry {
                 name : "TestVar1".to_string(),
-                kind : model::suggestion_database::EntryKind::Local,
+                kind : Kind::Local,
                 ..entry1.clone()
             };
             let entry3 = model::suggestion_database::Entry {
                 name          : "testMethod1".to_string(),
-                kind          : model::suggestion_database::EntryKind::Method,
+                kind          : Kind::Method,
                 self_type     : Some(crate::test::mock::data::MODULE_NAME.to_string()),
                 scope         : Scope::Everywhere,
                 arguments     : vec![
@@ -1137,21 +1229,21 @@ pub mod test {
 
             // The suggestion list should stall only if we actually use "this" argument.
             if case.sets_this {
-                assert!(searcher.suggestions().is_loading());
+                assert!(searcher.actions().is_loading());
                 test.run_until_stalled();
                 // Nothing appeared, because we wait for type information for this node.
-                assert!(searcher.suggestions().is_loading());
+                assert!(searcher.actions().is_loading());
 
                 let this_node_id = searcher.this_arg.deref().as_ref().unwrap().id;
                 let update = value_update_with_type(this_node_id,mock_type);
                 searcher.graph.computed_value_info_registry().apply_updates(vec![update]);
-                assert!(searcher.suggestions().is_loading());
+                assert!(searcher.actions().is_loading());
             }
 
             test.run_until_stalled();
-            assert!(!searcher.suggestions().is_loading());
-            searcher.pick_completion(entry9.clone_ref()).unwrap();
-            searcher.pick_completion(entry1.clone_ref()).unwrap();
+            assert!(!searcher.actions().is_loading());
+            searcher.use_suggestion(entry9.clone_ref()).unwrap();
+            searcher.use_suggestion(entry1.clone_ref()).unwrap();
             let expected_input = format!("{} {} ",entry9.name,entry1.name);
             assert_eq!(searcher.data.borrow().input.repr(),expected_input);
         }
@@ -1163,10 +1255,10 @@ pub mod test {
             data.expect_completion(client,None,Some("Number"),&[20]);
         });
         let Fixture{test,searcher,entry3,..} = &mut fixture;
-        searcher.pick_completion(entry3.clone_ref()).unwrap();
-        assert!(searcher.suggestions().is_loading());
+        searcher.use_suggestion(entry3.clone_ref()).unwrap();
+        assert!(searcher.actions().is_loading());
         test.run_until_stalled();
-        assert!(!searcher.suggestions().is_loading());
+        assert!(!searcher.actions().is_loading());
     }
 
     #[wasm_bindgen_test]
@@ -1179,7 +1271,7 @@ pub mod test {
 
 
         let Fixture{searcher,entry9,..} = &mut fixture;
-        searcher.pick_completion(entry9.clone_ref()).unwrap();
+        searcher.use_suggestion(entry9.clone_ref()).unwrap();
         assert_eq!(searcher.data.borrow().input.repr(),"testFunction2 ");
         searcher.set_input("testFunction2 'foo' ".to_owned()).unwrap();
         searcher.set_input("testFunction2 'foo' 10 ".to_owned()).unwrap();
@@ -1259,12 +1351,12 @@ pub mod test {
 
         let mut subscriber = searcher.subscribe();
         searcher.reload_list();
-        assert!(searcher.suggestions().is_loading());
+        assert!(searcher.actions().is_loading());
         test.run_until_stalled();
-        let expected_list = vec![Suggestion::Completion(entry1),Suggestion::Completion(entry9)];
-        assert_eq!(searcher.suggestions().list().unwrap().to_suggestion_vec(), expected_list);
+        let expected_list = vec![Action::Suggestion(entry1), Action::Suggestion(entry9)];
+        assert_eq!(searcher.actions().list().unwrap().to_action_vec(), expected_list);
         let notification = subscriber.next().boxed_local().expect_ready();
-        assert_eq!(notification, Some(Notification::NewSuggestionList));
+        assert_eq!(notification, Some(Notification::NewActionList));
     }
 
     #[wasm_bindgen_test]
@@ -1350,7 +1442,7 @@ pub mod test {
         let frags_borrow = || Ref::map(searcher.data.borrow(),|d| &d.fragments_added_by_picking);
 
         // Picking first suggestion.
-        let new_input = searcher.pick_completion(entry1.clone_ref()).unwrap();
+        let new_input = searcher.use_suggestion(entry1.clone_ref()).unwrap();
         assert_eq!(new_input, "testFunction1 ");
         let (func,) = frags_borrow().iter().cloned().expect_tuple();
         assert_eq!(func.id, CompletedFragmentId::Function);
@@ -1363,9 +1455,9 @@ pub mod test {
         assert!(Rc::ptr_eq(&func.picked_suggestion,&entry1));
 
         // Picking argument's suggestion.
-        let new_input = searcher.pick_completion(entry2.clone_ref()).unwrap();
+        let new_input = searcher.use_suggestion(entry2.clone_ref()).unwrap();
         assert_eq!(new_input, "testFunction1 some_arg TestVar1 ");
-        let new_input = searcher.pick_completion(entry2.clone_ref()).unwrap();
+        let new_input = searcher.use_suggestion(entry2.clone_ref()).unwrap();
         assert_eq!(new_input, "testFunction1 some_arg TestVar1 TestVar1 ");
         let (function,arg1,arg2) = frags_borrow().iter().cloned().expect_tuple();
         assert_eq!(function.id, CompletedFragmentId::Function);
@@ -1447,7 +1539,7 @@ pub mod test {
         let cases = vec![
             // Completion was picked.
             Case::new("2 + 2",&["sum1 = 2 + 2","sum1.testFunction1"], |f| {
-                f.searcher.pick_completion(f.entry1.clone()).unwrap();
+                f.searcher.use_suggestion(f.entry1.clone()).unwrap();
             }),
             // The input was manually written (not picked).
             Case::new("2 + 2",&["sum1 = 2 + 2","sum1.testFunction1"], |f| {
@@ -1455,18 +1547,18 @@ pub mod test {
             }),
             // Completion was picked and edited.
             Case::new("2 + 2",&["sum1 = 2 + 2","sum1.var.testFunction1"], |f| {
-                f.searcher.pick_completion(f.entry1.clone()).unwrap();
+                f.searcher.use_suggestion(f.entry1.clone()).unwrap();
                 let new_parsed_input = ParsedInput::new("var.testFunction1",&f.searcher.parser);
                 f.searcher.data.borrow_mut().input = new_parsed_input.unwrap();
             }),
             // Variable name already present, need to use it. And not break it.
             Case::new("my_var = 2 + 2",&["my_var = 2 + 2","my_var.testFunction1"], |f| {
-                f.searcher.pick_completion(f.entry1.clone()).unwrap();
+                f.searcher.use_suggestion(f.entry1.clone()).unwrap();
             }),
             // Variable names unusable (subpatterns are not yet supported).
             // Don't use "this" argument adjustments at all.
             Case::new("[x,y] = 2 + 2",&["[x,y] = 2 + 2","testFunction1"], |f| {
-                f.searcher.pick_completion(f.entry1.clone()).unwrap();
+                f.searcher.use_suggestion(f.entry1.clone()).unwrap();
             }),
         ];
 
@@ -1535,7 +1627,7 @@ pub mod test {
         let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
-        assert!(searcher_data.suggestions.is_loading());
+        assert!(searcher_data.actions.is_loading());
 
         // Node had intended method, but it's outdated.
         let intended_method = MethodId {
@@ -1549,14 +1641,14 @@ pub mod test {
         let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
-        assert!(searcher_data.suggestions.is_loading());
+        assert!(searcher_data.actions.is_loading());
 
         // Node had up-to-date intended method.
         graph.set_expression(node_id,"Test.testMethod1 12").unwrap();
         // We set metadata in previous section.
         let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), "Test.testMethod1 12");
-        assert!(searcher_data.suggestions.is_loading());
+        assert!(searcher_data.actions.is_loading());
         let (initial_fragment,) = searcher_data.fragments_added_by_picking.expect_tuple();
         assert!(Rc::ptr_eq(&initial_fragment.picked_suggestion,&entry4))
     }
@@ -1588,5 +1680,40 @@ pub mod test {
 
         let ast = parser.parse_line("Main . (foo bar)").unwrap();
         assert!(SimpleFunctionCall::try_new(&ast).is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn adding_example() {
+        let Fixture{test:_test,searcher,..} = Fixture::new();
+        let module                          = searcher.graph.graph().module.clone_ref();
+        let example                         = model::suggestion_database::example::Example {
+            name          : "Test Example".to_owned(),
+            code          : "x = 2 + 2\nx + 4".to_owned(),
+            imports       : vec![],
+            documentation : "Lorem ipsum".to_owned()
+        };
+        let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
+            main = \n    2 + 2\n    here.test_example1";
+        searcher.add_example(&Rc::new(example),None).unwrap();
+        assert_eq!(module.ast().repr(), expected_code);
+    }
+
+    #[wasm_bindgen_test]
+    fn adding_example_twice() {
+        let Fixture{test:_test,searcher,..} = Fixture::new();
+        let module                          = searcher.graph.graph().module.clone_ref();
+        let example                         = model::suggestion_database::example::Example {
+            name          : "Test Example".to_owned(),
+            code          : "[1,2,3,4,5]".to_owned(),
+            imports       : vec!["Base.Network.Http".to_owned()],
+            documentation : "Lorem ipsum".to_owned()
+        };
+        let expected_code = "import Base.Network.Http\n\
+            test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
+            main = \n    2 + 2\n    here.test_example1\n    here.test_example2";
+        let example = Rc::new(example);
+        searcher.add_example(&example,None).unwrap();
+        searcher.add_example(&example,None).unwrap();
+        assert_eq!(module.ast().repr(), expected_code);
     }
 }
