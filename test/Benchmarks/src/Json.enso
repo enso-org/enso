@@ -9,6 +9,5 @@ prep_json size =
     str
 
 main =
-    json = Base.Json.parse (Base.File.read "/tmp/twitter.json")
-    Bench.measure (json.to_text_1) "old to_text" 10 10
-    Bench.measure (json.to_text) "new to_text" 10 10
+    large_json = here.prep_json 1000000
+    Bench.measure (Base.Json.parse large_json) "parse json" 10 10
