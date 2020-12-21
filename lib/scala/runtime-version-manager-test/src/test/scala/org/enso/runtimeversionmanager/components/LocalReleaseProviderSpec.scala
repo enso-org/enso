@@ -3,9 +3,14 @@ package org.enso.runtimeversionmanager.components
 import java.nio.file.Files
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.loggingservice.TestLogger
 import org.enso.runtimeversionmanager.FileSystem
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.releases.EnsoReleaseProvider
+import org.enso.runtimeversionmanager.releases.{
+  EnsoReleaseProvider,
+  Release,
+  SimpleReleaseProvider
+}
 import org.enso.runtimeversionmanager.releases.engine.EngineReleaseProvider
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.local.LocalReleaseProvider
@@ -14,6 +19,8 @@ import org.enso.runtimeversionmanager.test.{
   FakeReleases,
   RuntimeVersionManagerTest
 }
+
+import scala.util.{Failure, Try}
 
 class LocalReleaseProviderSpec extends RuntimeVersionManagerTest {
   private def localEngines  = getTestDirectory / "offline-engine"
@@ -129,6 +136,31 @@ class LocalReleaseProviderSpec extends RuntimeVersionManagerTest {
       val tags = releaseProvider.listReleases().get.map(_.tag)
       tags should contain(localVersion)
       tags should contain("enso-0.0.0")
+    }
+
+    "work in 'offline-mode' if fallback is unavailable" in {
+      val unavailableProvider = new SimpleReleaseProvider {
+        override def releaseForTag(tag: String): Try[Release] =
+          Failure(new RuntimeException("Repository unavailable."))
+
+        override def listReleases(): Try[Seq[Release]] =
+          Failure(new RuntimeException("Repository unavailable."))
+      }
+
+      val localVersion = "enso-1.2.3-local"
+      Files.createDirectories(localEngines / localVersion)
+      val releaseProvider =
+        new LocalReleaseProvider(localEngines, unavailableProvider)
+
+      val logs = TestLogger.gatherLogs {
+        releaseProvider.listReleases().get.map(_.tag) shouldEqual Seq(
+          localVersion
+        )
+      }
+      val expectedMessage =
+        "The remote release provider failed with java.lang.RuntimeException: " +
+        "Repository unavailable., but locally bundled releases are available."
+      logs.map(_.message) should contain(expectedMessage)
     }
   }
 }
