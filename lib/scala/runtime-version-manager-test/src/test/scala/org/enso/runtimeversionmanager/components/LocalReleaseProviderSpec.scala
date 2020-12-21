@@ -19,7 +19,10 @@ class LocalReleaseProviderSpec extends RuntimeVersionManagerTest {
   private def localEngines  = getTestDirectory / "offline-engine"
   private def localRuntimes = getTestDirectory / "offline-graal"
 
-  private def makeRuntimeManagerWithLocal(): RuntimeVersionManager = {
+  /** Creates a [[RuntimeVersionManager]] that is tied to the local/offline
+    * repository with fallback to default fake release repository.
+    */
+  private def makeRuntimeManagerWithLocalRepository(): RuntimeVersionManager = {
     val engineProvider =
       new LocalReleaseProvider(localEngines, FakeReleases.baseEngineProvider)
     val runtimeProvider =
@@ -30,6 +33,10 @@ class LocalReleaseProviderSpec extends RuntimeVersionManagerTest {
     )._2
   }
 
+  /** Creates a local repository with engine 1.2.3-local that uses GraalVM 20.20.20-local.
+    *
+    * It uses the prepared fake-releases and just re-configures them.
+    */
   private def prepareLocalRepository(): Unit = {
     Files.createDirectories(localEngines)
     Files.createDirectories(localRuntimes)
@@ -88,7 +95,7 @@ class LocalReleaseProviderSpec extends RuntimeVersionManagerTest {
   "LocalReleaseProvider" should {
     "install a release from a local repository" in {
       prepareLocalRepository()
-      val runtimeVersionManager = makeRuntimeManagerWithLocal()
+      val runtimeVersionManager = makeRuntimeManagerWithLocalRepository()
       val engineVersion         = SemVer(1, 2, 3, Some("local"))
       val runtimeVersion =
         GraalVMVersion(SemVer(20, 20, 20, Some("local")), "11")
@@ -102,7 +109,7 @@ class LocalReleaseProviderSpec extends RuntimeVersionManagerTest {
     }
 
     "install a release from the fallback repository" in {
-      val runtimeVersionManager = makeRuntimeManagerWithLocal()
+      val runtimeVersionManager = makeRuntimeManagerWithLocalRepository()
       val engineVersion         = SemVer(0, 0, 0)
       runtimeVersionManager.findOrInstallEngine(engineVersion)
       runtimeVersionManager

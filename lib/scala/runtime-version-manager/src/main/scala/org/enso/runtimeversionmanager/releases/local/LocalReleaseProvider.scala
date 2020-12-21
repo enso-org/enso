@@ -38,7 +38,11 @@ class LocalReleaseProvider(
 ) extends SimpleReleaseProvider {
   private val logger = Logger[LocalReleaseProvider]
   private val localDirectories: Seq[Path] =
-    FileSystem.listDirectory(releaseDirectory)
+    FileSystem.listDirectory(releaseDirectory).filter { dir =>
+      val isIgnoredFile =
+        FileSystem.ignoredFileNames.contains(dir.getFileName.toString)
+      !isIgnoredFile
+    }
 
   /** @inheritdoc */
   override def releaseForTag(tag: String): Try[Release] = {
@@ -70,6 +74,7 @@ class LocalReleaseProvider(
     }
   }
 
+  /** An asset that is on the local filesystem. */
   private case class LocalAsset(assetPath: Path) extends Asset {
 
     /** @inheritdoc */
@@ -95,6 +100,7 @@ class LocalReleaseProvider(
     override val assets: Seq[LocalAsset]
   ) extends Release
 
+  /** Creates a [[LocalRelease]] defined by a local directory. */
   private def wrapLocalDirectory(path: Path): Try[Release] = Try {
     val tag    = path.getFileName.toString
     val assets = FileSystem.listDirectory(path).map(LocalAsset)
