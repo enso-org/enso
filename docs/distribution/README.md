@@ -27,3 +27,5 @@ dependencies, and Enso projects for use by our users.
   Explanation of the fallback infrastructure that can be enabled to keep
   launcher updates functioning even if the primary release provider stops
   working.
+- [**Local Repository:**](local-repository.md) Explanation of local repository
+  structure that is used for bundling engine with project manager distributions.

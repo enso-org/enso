@@ -286,9 +286,8 @@ class RuntimeVersionManager(
   }
 
   private def isNotIgnoredDirectory(path: Path): Boolean = {
-    val ignoreList = Seq(".DS_Store")
-    val fileName   = path.getFileName.toString
-    val isIgnored  = ignoreList.contains(fileName)
+    val fileName  = path.getFileName.toString
+    val isIgnored = FileSystem.ignoredFileNames.contains(fileName)
     !isIgnored
   }
 

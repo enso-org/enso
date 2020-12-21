@@ -153,4 +153,10 @@ object FileSystem {
     def /(other: String): Path = path.resolve(other)
     def /(other: Path): Path   = path.resolve(other)
   }
+
+  /** Filenames that should be ignored when searching paths.
+    *
+    * These include operating system-specific files.
+    */
+  val ignoredFileNames = Seq(".DS_Store")
 }

@@ -32,7 +32,7 @@ object TestLogger {
     val printer = new TestPrinter
     val future = LoggingServiceManager.setup(
       LoggerMode.Local(Seq(printer)),
-      LogLevel.Debug
+      LogLevel.Trace
     )
     Await.ready(future, 1.second)
     action

@@ -7,10 +7,12 @@ import scala.util.Try
 
 object Cli {
 
-  val JSON_OPTION    = "json"
-  val HELP_OPTION    = "help"
-  val VERBOSE_OPTION = "verbose"
-  val VERSION_OPTION = "version"
+  val JSON_OPTION             = "json"
+  val HELP_OPTION             = "help"
+  val VERBOSE_OPTION          = "verbose"
+  val VERSION_OPTION          = "version"
+  val LOCAL_ENGINE_REPOSITORY = "local-engine-repository"
+  val LOCAL_GRAAL_REPOSITORY  = "local-graal-repository"
 
   object option {
 
@@ -35,6 +37,28 @@ object Cli {
       .longOpt(JSON_OPTION)
       .desc("Switches the --version option to JSON output.")
       .build()
+
+    val localEngineRepository: cli.Option = cli.Option.builder
+      .longOpt(LOCAL_ENGINE_REPOSITORY)
+      .hasArg
+      .numberOfArgs(1)
+      .argName("path")
+      .desc(
+        "Allows the Project Manager to install engine versions from an " +
+        "offline repository."
+      )
+      .build()
+
+    val localGraalRepository: cli.Option = cli.Option.builder
+      .longOpt(LOCAL_GRAAL_REPOSITORY)
+      .hasArg
+      .numberOfArgs(1)
+      .argName("path")
+      .desc(
+        "Allows the Project Manager to install GraalVM versions from an " +
+        "offline repository."
+      )
+      .build()
   }
 
   val options: cli.Options =
@@ -43,6 +67,8 @@ object Cli {
       .addOption(option.verbose)
       .addOption(option.version)
       .addOption(option.json)
+      .addOption(option.localEngineRepository)
+      .addOption(option.localGraalRepository)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

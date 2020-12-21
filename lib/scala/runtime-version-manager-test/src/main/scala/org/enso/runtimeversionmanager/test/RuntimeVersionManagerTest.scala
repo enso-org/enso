@@ -15,6 +15,8 @@ import org.enso.runtimeversionmanager.distribution.{
   PortableDistributionManager,
   TemporaryDirectoryManager
 }
+import org.enso.runtimeversionmanager.releases.engine.EngineReleaseProvider
+import org.enso.runtimeversionmanager.releases.graalvm.GraalVMRuntimeReleaseProvider
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -40,7 +42,10 @@ class RuntimeVersionManagerTest
     environmentOverrides: Map[String, String] = Map.empty,
     userInterface: RuntimeVersionManagementUserInterface =
       TestRuntimeVersionManagementUserInterface.default,
-    installerKind: InstallerKind = InstallerKind.Launcher
+    installerKind: InstallerKind          = InstallerKind.Launcher,
+    engineProvider: EngineReleaseProvider = FakeReleases.engineReleaseProvider,
+    runtimeProvider: GraalVMRuntimeReleaseProvider =
+      FakeReleases.runtimeReleaseProvider
   ): (DistributionManager, RuntimeVersionManager, Environment) = {
     val env                 = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager = new PortableDistributionManager(env)
@@ -54,8 +59,8 @@ class RuntimeVersionManagerTest
       distributionManager,
       temporaryDirectoryManager,
       resourceManager,
-      FakeReleases.engineReleaseProvider,
-      FakeReleases.runtimeReleaseProvider,
+      engineProvider,
+      runtimeProvider,
       installerKind
     )
 
