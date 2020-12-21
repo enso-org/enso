@@ -113,22 +113,34 @@ mk_consumer =
     Consumer child val
 
 ## Helper method for printing JSON values to Text.
-render_helper json = case json of
+render_helper builder json = case json of
     Object fields ->
-        fs = fields.to_vector.map item->
-            key = item.at 0
-            value = item.at 1
-            value_json = here.render_helper value
-            key_json = Printer.json_escape [key]
-            key_json + ":" + value_json
-        "{" + (fs.join ",") + "}"
+        r = Ref.new ""
+        render_key_value acc key value =
+            separator = Ref.get r
+            Ref.put r ","
+            val = here.render_helper "" value
+            acc + separator + (Printer.json_escape [key]) + ":" + val
+        arr = fields.fold_with_key "" render_key_value
+        builder + "{" + arr + "}"
     Array items ->
-        its = items.map here.render_helper
-        "[" + (its.join ",") + "]"
-    String value -> Printer.json_escape [value]
-    Number value -> value.to_text
-    Boolean value -> if value then "true" else "false"
-    Null -> "null"
+        r = Ref.new ""
+        render_array_element acc element =
+            separator = Ref.get r
+            Ref.put r ","
+            val = here.render_helper "" element
+            acc + separator + val
+        arr = items.fold "" render_array_element
+        builder + "[" + arr + "]"
+    String value ->
+        builder + (Printer.json_escape [value])
+    Number value ->
+        builder + value.to_text
+    Boolean value ->
+        val = if value then "true" else "false"
+        builder + val
+    Null ->
+        builder + "null"
 
 ## Helper method for converting JSON objects into arbitrary types.
 
