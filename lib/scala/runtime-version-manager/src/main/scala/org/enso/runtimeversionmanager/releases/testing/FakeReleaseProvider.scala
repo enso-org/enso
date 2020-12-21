@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.releases.testing
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import org.enso.cli.task.{ProgressListener, TaskProgress}
+import org.enso.runtimeversionmanager.FileSystem
 import org.enso.runtimeversionmanager.locking.{LockManager, LockType}
 import org.enso.runtimeversionmanager.releases.{
   Asset,
@@ -10,10 +11,8 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProviderException,
   SimpleReleaseProvider
 }
-import org.enso.runtimeversionmanager.{FileSystem, OS}
 
 import scala.io.Source
-import scala.sys.process._
 import scala.util.{Success, Try, Using}
 
 /** A release provider that creates fake releases from the specified files.
