@@ -29,10 +29,11 @@ work with `LocalReleaseProvider`.
 
 ### General Repository Structure
 
-In general the local repository should be a separate directory, not containing
-any other files. For each provided release it should contain a directory called
-after the release's tag. That inner directory should just contain assets
-associated with that release.
+In general a local repository should be a separate directory that contains only
+directories corresponding to releases of a single component. Repositories for
+separate components should be kept separately. For each provided release it
+should contain a directory called after the release's tag. That directory of
+each release should just contain assets associated with that release.
 
 ### Engine Repository Structure
 
@@ -87,5 +88,20 @@ engines and GraalVM runtimes in the provided local repositories (but if they are
 not found, online repository will be used as fallback, if it is available).
 
 ```bash
-./project-manager --local-engine-repository /a/b/c/engines --local-graal-repository /a/b/c/graalvm
+./project-manager --local-engine-repository /a/b/bundle/engines --local-graal-repository /a/b/bundle/graalvm
+```
+
+For the above command to work properly, the directory `/a/b/bundle/` may have
+the following structure:
+
+```
+bundle
+├── other files (project-manager binary etc.)
+├── engines
+│   └── enso-0.1.2-rc.9
+│       ├── enso-engine-0.1.2-rc.9-linux-amd64.tar.gz
+│       └── manifest.yaml
+└── graalvm
+    └── vm-20.2.0
+        └── graalvm-ce-java11-linux-amd64-20.2.0.tar.gz
 ```
