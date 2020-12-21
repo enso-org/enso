@@ -156,6 +156,8 @@ class LocalReleaseProviderSpec extends RuntimeVersionManagerTest {
         releaseProvider.listReleases().get.map(_.tag) shouldEqual Seq(
           localVersion
         )
+
+        Thread.sleep(500) // making sure the log is processed
       }
       val expectedMessage =
         "The remote release provider failed with java.lang.RuntimeException: " +
