@@ -1,18 +1,19 @@
 //! This module contains the IDE object implementation.
+pub mod initializer;
+pub mod integration;
 
 use crate::prelude::*;
 
-use crate::config;
-use crate::transport::web::ConnectingError;
-use crate::transport::web::WebSocket;
-use crate::view::View;
+use crate::controller::FilePath;
+use crate::model::module::Path as ModulePath;
+use crate::ide::integration::Integration;
 
-use enso_protocol::binary;
-use enso_protocol::language_server;
-use enso_protocol::project_manager;
-use enso_protocol::project_manager::ProjectMetadata;
-use enso_protocol::project_manager::ProjectName;
-use uuid::Uuid;
+use ensogl::application::Application;
+use ensogl::system::web;
+use enso_protocol::language_server::MethodPointer;
+use parser::Parser;
+
+pub use initializer::Initializer;
 
 
 
@@ -20,22 +21,37 @@ use uuid::Uuid;
 // === Constants ===
 // =================
 
-// TODO[ao] We need to set a big timeout on Project Manager to make sure it will have time to
-//          download required version of Engine. This should be handled properly when implementing
-//          https://github.com/enso-org/ide/issues/1034
-const PROJECT_MANAGER_TIMEOUT_SEC:u64 = 2 * 60 * 60;
+/// The name of the module initially opened in the project view.
+///
+/// Currently this name is hardcoded in the engine services and is populated for each project
+/// created using engine's Project Picker service.
+///
+/// TODO [mwu] Name of the module that will be initially opened in the text editor.
+///      Provisionally the Project View is hardcoded to open with a single text
+///      editor and it will be connected with a file with module of this name.
+///      To be replaced with better mechanism once we decide how to describe
+///      default initial layout for the project.
+pub const INITIAL_MODULE_NAME:&str = "Main";
 
+/// Name of the main definition.
+///
+/// This is the definition whose graph will be opened on IDE start.
+pub const MAIN_DEFINITION_NAME:&str = "main";
 
+/// The code with definition of the default `main` method.
+pub fn default_main_method_code() -> String {
+    format!(r#"{} = "Hello, World!""#, MAIN_DEFINITION_NAME)
+}
 
-// ==============
-// === Errors ===
-// ==============
+/// The default content of the newly created initial main module file.
+pub fn default_main_module_code() -> String {
+    default_main_method_code()
+}
 
-/// Error raised when project with given name was not found.
-#[derive(Clone,Debug,Fail)]
-#[fail(display="Project with nae {} was not found.", name)]
-pub struct ProjectNotFound {
-    name : String
+/// Method pointer that described the main method, i.e. the method that project view wants to open
+/// and which presence is currently required.
+pub fn main_method_ptr(project_name:impl Str, module_path:&model::module::Path) -> MethodPointer {
+    module_path.method_pointer(project_name,MAIN_DEFINITION_NAME)
 }
 
 
@@ -44,200 +60,114 @@ pub struct ProjectNotFound {
 // === Ide ===
 // ===========
 
-/// The IDE structure containing its configuration and its components instances.
+/// The main Ide structure.
+///
+/// This structure is a root of all objects in our application. It includes both layers:
+/// Controllers and Views, and an integration between them.
 #[derive(Debug)]
 pub struct Ide {
-    view : View
+    application : Application,
+    integration : Integration,
+}
+
+impl Ide {
+    /// Constructor.
+    pub async fn new(project:model::Project) -> FallibleResult<Self> {
+        let logger      = Logger::new("Ide");
+        let module_path = initial_module_path(&project)?;
+        let file_path   = module_path.file_path().clone();
+        // TODO [mwu] This solution to recreate missing main file should be considered provisional
+        //   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
+        recreate_if_missing(&project, &file_path, default_main_method_code()).await?;
+
+        let method = main_method_ptr(project.name(),&module_path);
+        let module = project.module(module_path).await?;
+        add_main_if_missing(&module,&method,&project.parser())?;
+
+        // Here, we should be relatively certain (except race conditions in case of multiple clients
+        // that we currently do not support) that main module exists and contains main method.
+        // Thus, we should be able to successfully create a graph controller for it.
+        let graph         = controller::ExecutedGraph::new(&logger,project.clone_ref(),method).await?;
+        let text          = controller::Text::new(&logger, &project, file_path).await?;
+        let visualization = project.visualization().clone();
+
+        let application   = Application::new(&web::get_html_element_by_id("root").unwrap());
+
+        let view = application.new_view::<ide_view::project::View>();
+        application.display.add_child(&view);
+
+        let integration = Integration::new(view,graph,text,visualization,project);
+        Ok(Ide {application,integration})
+    }
 }
 
 
-
-
-// ======================
-// === IdeInitializer ===
-// ======================
-
-/// The IDE initializer.
-#[derive(Debug)]
-pub struct IdeInitializer {
-    logger : Logger
+/// Returns the path to the initially opened module in the given project.
+pub fn initial_module_path(project:&model::Project) -> FallibleResult<ModulePath> {
+    model::module::Path::from_name_segments(project.content_root_id(),&[INITIAL_MODULE_NAME])
 }
 
-impl Default for IdeInitializer {
-    fn default() -> Self {
-        let logger = Logger::new("IdeInitializer");
-        Self {logger}
+/// Create a file with default content if it does not already exist.
+pub async fn recreate_if_missing(project:&model::Project, path:&FilePath, default_content:String)
+-> FallibleResult {
+    let rpc = project.json_rpc();
+    if !rpc.file_exists(path).await?.exists {
+        rpc.write_file(path,&default_content).await?;
     }
+    Ok(())
 }
 
-impl IdeInitializer {
-    /// Creates a new IDE instance.
-    pub fn new() -> Self {
-        default()
+/// Add main method definition to the given module, if the method is not already defined.
+///
+/// The lookup will be done using the given `main_ptr` value.
+pub fn add_main_if_missing
+(module:&model::Module, main_ptr:&MethodPointer, parser:&Parser) -> FallibleResult {
+    if module.lookup_method(main_ptr).is_err() {
+        let mut info  = module.info();
+        let main_code = default_main_method_code();
+        let main_ast  = parser.parse_line(main_code)?;
+        info.add_ast(main_ast,double_representation::module::Placement::End)?;
+        module.update_ast(info.ast)?;
     }
-
-    /// Establishes transport to the file manager server websocket endpoint.
-    pub async fn connect_to_project_manager(&self, config:&config::Startup) -> Result<WebSocket,ConnectingError> {
-        WebSocket::new_opened(self.logger.clone_ref(),&config.project_manager_endpoint).await
-    }
-
-    /// Wraps the transport to the project manager server into the client type and registers it
-    /// within the global executor.
-    pub fn setup_project_manager
-    (transport:impl json_rpc::Transport + 'static) -> project_manager::Client {
-        let mut project_manager = project_manager::Client::new(transport);
-        project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
-        executor::global::spawn(project_manager.runner());
-        project_manager
-    }
-
-    /// Connect to language server.
-    pub async fn open_project
-    ( logger           : &Logger
-    , project_manager  : Rc<dyn project_manager::API>
-    , project_metadata : ProjectMetadata
-    ) -> FallibleResult<model::Project> {
-        use project_manager::MissingComponentAction::*;
-        let endpoints       = project_manager.open_project(&project_metadata.id,&Install).await?;
-        let json_endpoint   = endpoints.language_server_json_address;
-        let binary_endpoint = endpoints.language_server_binary_address;
-        info!(logger, "Establishing Language Server connection.");
-        let client_id     = Uuid::new_v4();
-        let json_ws       = new_opened_ws(logger.clone_ref(), json_endpoint).await?;
-        let binary_ws     = new_opened_ws(logger.clone_ref(), binary_endpoint).await?;
-        let client_json   = language_server::Client::new(json_ws);
-        let client_binary = binary::Client::new(logger,binary_ws);
-        crate::executor::global::spawn(client_json.runner());
-        crate::executor::global::spawn(client_binary.runner());
-        let connection_json   = language_server::Connection::new(client_json,client_id).await?;
-        let connection_binary = binary::Connection::new(client_binary,client_id).await?;
-        let project_id        = project_metadata.id;
-        let ProjectName(name) = project_metadata.name;
-        let project           = model::project::Synchronized::from_connections(logger,
-            project_manager,connection_json,connection_binary,project_id,name).await?;
-        Ok(Rc::new(project))
-    }
-
-    /// Creates a new project and returns its metadata, so the newly connected project can be
-    /// opened.
-    pub async fn create_project
-    ( logger          : &Logger
-    , project_manager : &impl project_manager::API
-    , name            : &str
-    ) -> FallibleResult<ProjectMetadata> {
-        use project_manager::MissingComponentAction::Install;
-        info!(logger, "Creating a new project named '{name}'.");
-        let version     = None;
-        let response    = project_manager.create_project(&name.to_string(),&version,&Install);
-        let id          = response.await?.project_id;
-        let name        = name.to_string();
-        let name        = ProjectName::new(name);
-        let last_opened = default();
-        Ok(ProjectMetadata{id,name,last_opened})
-    }
-
-    async fn lookup_project
-    ( project_manager : &impl project_manager::API
-    , project_name    : &str) -> FallibleResult<ProjectMetadata> {
-        let name         = project_name.to_string();
-        let project_name = ProjectName::new(&name);
-        let response     = project_manager.list_projects(&None).await?;
-        let mut projects = response.projects.iter();
-        projects.find(|project_metadata| {
-            project_metadata.name == project_name
-        }).cloned().ok_or_else(|| ProjectNotFound{name}.into())
-    }
-
-    /// Returns project with `project_name` or returns a newly created one if it doesn't exist.
-    pub async fn get_project_or_create_new
-    ( logger          : &Logger
-    , project_manager : &impl project_manager::API
-    , project_name    : &str) -> FallibleResult<ProjectMetadata> {
-        let project = Self::lookup_project(project_manager,project_name).await;
-        let project_metadata = if let Ok(project) = project {
-            project
-        } else {
-            info!(logger, "Attempting to create {project_name}");
-            Self::create_project(logger,project_manager,project_name).await?
-        };
-        Ok(project_metadata)
-    }
-
-    /// Returns the most recent opened project or returns a newly created one if the user doesn't
-    /// have any project.
-    pub async fn get_most_recent_project_or_create_new
-    ( logger          : &Logger
-    , project_manager : &impl project_manager::API
-    , project_name    : &str) -> FallibleResult<ProjectMetadata> {
-        let projects_to_list = Some(1);
-        let mut response     = project_manager.list_projects(&projects_to_list).await?;
-        let project_metadata = if let Some(project) = response.projects.pop() {
-            project
-        } else {
-            Self::create_project(logger,project_manager,project_name).await?
-        };
-        Ok(project_metadata)
-    }
-
-    async fn initialize_project_manager
-    (&mut self, config:&config::Startup) -> FallibleResult<project_manager::Client> {
-        let transport        = self.connect_to_project_manager(config).await?;
-        Ok(Self::setup_project_manager(transport))
-    }
-
-    /// Initialize the project view, including the controller it uses.
-    pub async fn initialize_project_view
-    ( &self
-    , config          : &config::Startup
-    , project_manager : project_manager::Client
-    ) -> FallibleResult<View> {
-        let logger           = &self.logger;
-        let project_name     = config.project_name.to_string();
-        let project_metadata = Self::get_project_or_create_new
-            (logger,&project_manager,&project_name).await?;
-        let project_manager = Rc::new(project_manager);
-        let project         = Self::open_project(logger,project_manager,project_metadata).await?;
-        Ok(View::new(logger,project).await?)
-    }
-
-    /// This function initializes the project manager, creates the project view and forget IDE
-    /// to indefinitely keep it alive.
-    pub fn start_and_forget(mut self) {
-        let executor = setup_global_executor();
-        let config   = config::Startup::new_local();
-        info!(self.logger, "Starting IDE with the following config: {config:?}");
-        executor::global::spawn(async move {
-            // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
-            //      issues to user, such information should be properly passed
-            //      in case of setup failure.
-            let project_manager = self.initialize_project_manager(&config).await;
-            let project_manager = project_manager.expect("Failed to initialize Project Manager.");
-            let view            = self.initialize_project_view(&config,project_manager).await;
-            let view            = view.expect("Failed to setup initial project view.");
-            info!(self.logger,"Setup done.");
-            let ide = Ide{view};
-            std::mem::forget(ide);
-            std::mem::forget(executor);
-        });
-    }
+    Ok(())
 }
 
 
 
 // =============
-// === Utils ===
+// === Tests ===
 // =============
 
-/// Creates a new running executor with its own event loop. Registers them as a global executor.
-pub fn setup_global_executor() -> executor::web::EventLoopExecutor {
-    let executor = executor::web::EventLoopExecutor::new_running();
-    executor::global::set_spawner(executor.spawner.clone());
-    executor
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-/// Creates a new websocket transport and waits until the connection is properly opened.
-pub async fn new_opened_ws
-(logger:Logger, address:project_manager::IpWithSocket) -> Result<WebSocket,ConnectingError> {
-    let endpoint = format!("ws://{}:{}", address.host, address.port);
-    WebSocket::new_opened(logger,endpoint).await
+    #[wasm_bindgen_test]
+    fn adding_missing_main() {
+        let _ctx        = TestWithLocalPoolExecutor::set_up();
+        let parser      = parser::Parser::new_or_panic();
+        let mut data    = crate::test::mock::Unified::new();
+        let module_name = data.module_path.module_name();
+        let main_ptr    = main_method_ptr(&data.project_name,&data.module_path);
+
+        // Check that module without main gets it after the call.
+        let empty_module_code = "";
+        data.set_code(empty_module_code);
+        let module = data.module();
+        assert!(module.lookup_method(&main_ptr).is_err());
+        add_main_if_missing(&module,&main_ptr,&parser).unwrap();
+        assert!(module.lookup_method(&main_ptr).is_ok());
+
+        // Now check that modules that have main already defined won't get modified.
+        let mut expect_intact = move |code:&str| {
+            data.set_code(code);
+            let module = data.module();
+            add_main_if_missing(&module,&main_ptr,&parser).unwrap();
+            assert_eq!(code,module.ast().repr());
+        };
+        expect_intact("main = 5");
+        expect_intact("here.main = 5");
+        expect_intact(&format!("{}.main = 5",module_name));
+    }
 }

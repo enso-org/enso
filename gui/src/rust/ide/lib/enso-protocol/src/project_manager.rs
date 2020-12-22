@@ -93,6 +93,12 @@ pub struct IpWithSocket {
     pub port : u16
 }
 
+impl Display for IpWithSocket {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f,"ws://{}:{}",self.host,self.port)
+    }
+}
+
 /// Project name.
 #[derive(Debug,Display,Clone,Serialize,Deserialize,PartialEq,Shrinkwrap)]
 #[shrinkwrap(mutable)]

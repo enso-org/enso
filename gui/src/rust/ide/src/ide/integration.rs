@@ -973,7 +973,7 @@ impl Model {
         //   fixed defaults. In future this will be changed, then the editor will also get access
         //   to the customised values.
         let project_name:String  = self.project.name().into();
-        let module_name          = crate::view::INITIAL_MODULE_NAME;
+        let module_name          = crate::ide::INITIAL_MODULE_NAME;
         let visualisation_module = QualifiedName::from_segments(project_name,&[module_name])?;
         let id                   = VisualizationId::new_v4();
         let expression           = crate::constants::SERIALIZE_TO_JSON_EXPRESSION.into();

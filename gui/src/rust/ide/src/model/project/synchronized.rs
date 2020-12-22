@@ -88,6 +88,14 @@ impl ExecutionContextsRegistry {
 // === Model ===
 // =============
 
+// === Errors ===
+
+#[allow(missing_docs)]
+#[derive(Clone,Copy,Debug,Fail)]
+#[fail(display="Project Manager is unavailable.")]
+pub struct ProjectManagerUnavailable;
+
+
 
 // === Data ===
 
@@ -118,7 +126,7 @@ impl Data {
 pub struct Project {
     pub data                : Rc<Data>,
     #[derivative(Debug = "ignore")]
-    pub project_manager     : Rc<dyn project_manager::API>,
+    pub project_manager     : Option<Rc<dyn project_manager::API>>,
     pub language_server_rpc : Rc<language_server::Connection>,
     pub language_server_bin : Rc<binary::Connection>,
     pub module_registry     : Rc<model::registry::Registry<module::Path,module::Synchronized>>,
@@ -133,7 +141,7 @@ impl Project {
     /// Create a new project model.
     pub async fn new
     ( parent              : impl AnyLogger
-    , project_manager     : Rc<dyn project_manager::API>
+    , project_manager     : Option<Rc<dyn project_manager::API>>
     , language_server_rpc : Rc<language_server::Connection>
     , language_server_bin : Rc<binary::Connection>
     , id                  : Uuid
@@ -172,7 +180,7 @@ impl Project {
     /// Create a project model from owned LS connections.
     pub fn from_connections
     ( parent              : impl AnyLogger
-    , project_manager     : Rc<dyn project_manager::API>
+    , project_manager     : Option<Rc<dyn project_manager::API>>
     , language_server_rpc : language_server::Connection
     , language_server_bin : binary::Connection
     , id                  : Uuid
@@ -338,7 +346,8 @@ impl model::project::API for Project {
 
     fn rename_project(&self, name:String) -> BoxFuture<FallibleResult> {
         async move {
-            self.project_manager.rename_project(&self.data.id,&name).await?;
+            let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
+            project_manager.rename_project(&self.data.id,&name).await?;
             self.data.set_name(name);
             Ok(())
         }.boxed_local()
@@ -405,7 +414,7 @@ mod test {
             let project_manager   = Rc::new(project_manager);
             let logger            = Logger::new("Fixture");
             let id                = Uuid::new_v4();
-            let project_fut       = Project::from_connections(logger,project_manager,
+            let project_fut       = Project::from_connections(logger,Some(project_manager),
                 json_connection,binary_connection,id,DEFAULT_PROJECT_NAME).boxed_local();
             let project = test.expect_completion(project_fut).unwrap();
             Fixture {test,project,binary_events_sender,json_events_sender}
