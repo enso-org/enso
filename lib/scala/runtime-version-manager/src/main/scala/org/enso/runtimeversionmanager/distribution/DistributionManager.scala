@@ -157,9 +157,8 @@ class DistributionManager(val env: Environment) {
         TMP_DIRECTORY,
         LOG_DIRECTORY,
         LOCK_DIRECTORY,
-        "THIRD-PARTY",
-        ".DS_Store"
-      )
+        "THIRD-PARTY"
+      ) ++ FileSystem.ignoredFileNames
 
     /** Config directory for an installed distribution.
       */

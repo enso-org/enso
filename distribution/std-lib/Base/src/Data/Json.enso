@@ -64,7 +64,7 @@ type Json
 
     ## Renders this JSON into an RFC-8259 compliant text.
     to_text : Text
-    to_text = Internal.render_helper this
+    to_text = Internal.render_helper "" this
 
     ## Recursively unwraps the JSON value into primitive values.
     unwrap : Any

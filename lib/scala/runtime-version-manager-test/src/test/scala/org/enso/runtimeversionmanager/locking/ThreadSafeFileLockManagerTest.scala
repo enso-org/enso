@@ -172,7 +172,7 @@ class ThreadSafeFileLockManagerTest
       )
 
       try {
-        otherProcess.waitForMessageOnErrorStream("Lock acquired", 5)
+        otherProcess.waitForMessageOnErrorStream("Lock acquired", 15)
 
         sync.startThread("exclusive-waiting") {
           assert(

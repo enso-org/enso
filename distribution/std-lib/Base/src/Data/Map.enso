@@ -163,8 +163,8 @@ type Map
     each_with_key function =
         go map = case map of
             Bin _ k v l r ->
-                function k v
                 go l
+                function k v
                 go r
                 Nothing
             Tip -> Nothing
@@ -174,7 +174,7 @@ type Map
 
        > Example
          Summing all of the values in the map `m`.
-             m.fold (+)
+             m.fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold init function =
         go map init = case map of
@@ -189,7 +189,7 @@ type Map
 
        > Example
          Sum the keys and values in the map `m`.
-             m.fold_with_key (l -> k -> v -> l + k + v)
+             m.fold_with_key 0 (l -> k -> v -> l + k + v)
     fold_with_key : Any -> (Any -> Any -> Any -> Any) -> Any
     fold_with_key init function =
         go map init = case map of
@@ -235,4 +235,3 @@ type Map
             Tip -> Nothing
         to_vector_with_builder this
         builder.to_vector
-

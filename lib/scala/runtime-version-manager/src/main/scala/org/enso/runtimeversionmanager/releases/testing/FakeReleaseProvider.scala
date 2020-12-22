@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.releases.testing
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import org.enso.cli.task.{ProgressListener, TaskProgress}
+import org.enso.runtimeversionmanager.FileSystem
 import org.enso.runtimeversionmanager.locking.{LockManager, LockType}
 import org.enso.runtimeversionmanager.releases.{
   Asset,
@@ -10,10 +11,8 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProviderException,
   SimpleReleaseProvider
 }
-import org.enso.runtimeversionmanager.{FileSystem, OS}
 
 import scala.io.Source
-import scala.sys.process._
 import scala.util.{Success, Try, Using}
 
 /** A release provider that creates fake releases from the specified files.
@@ -137,7 +136,6 @@ case class FakeAsset(
       copyNormalFile(destination)
 
   private def copyArchive(destination: Path): Unit = {
-    val directoryName = source.getFileName.toString
     lazy val innerRoot = {
       val roots = FileSystem.listDirectory(source).filter(Files.isDirectory(_))
       if (roots.length > 1) {
@@ -156,16 +154,7 @@ case class FakeAsset(
         StandardCopyOption.REPLACE_EXISTING
       )
     }
-    if (directoryName.endsWith(".tar.gz") && OS.isUNIX)
-      packTarGz(source, destination)
-    else if (directoryName.endsWith(".zip") && OS.isWindows)
-      packZip(source, destination)
-    else {
-      throw new IllegalArgumentException(
-        s"Fake-archive format $directoryName is not supported on " +
-        s"${OS.operatingSystem}."
-      )
-    }
+    TestArchivePackager.packArchive(source, destination)
   }
 
   private def copyNormalFile(destination: Path): Unit =
@@ -186,41 +175,4 @@ case class FakeAsset(
         listener.done(txt)
       }
     }
-
-  private def packTarGz(source: Path, destination: Path): Unit = {
-    val files = FileSystem.listDirectory(source)
-    val exitCode = Process(
-      Seq(
-        "tar",
-        "-czf",
-        destination.toAbsolutePath.toString
-      ) ++ files.map(_.getFileName.toString),
-      source.toFile
-    ).!
-    if (exitCode != 0) {
-      throw new RuntimeException(
-        s"tar failed. Cannot create fake-archive for $source"
-      )
-    }
-  }
-
-  private def packZip(source: Path, destination: Path): Unit = {
-    val files = FileSystem.listDirectory(source)
-    val exitCode = Process(
-      Seq(
-        "powershell",
-        "Compress-Archive",
-        "-Path",
-        files.map(_.getFileName.toString).mkString(","),
-        "-DestinationPath",
-        destination.toAbsolutePath.toString
-      ),
-      source.toFile
-    ).!
-    if (exitCode != 0) {
-      throw new RuntimeException(
-        s"tar failed. Cannot create fake-archive for $source"
-      )
-    }
-  }
 }
