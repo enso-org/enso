@@ -1,7 +1,7 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
@@ -72,6 +72,43 @@ public class LongStorage extends Storage {
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
     return ops.runZip(name, this, argument);
+  }
+
+  private Storage fillMissingDouble(double arg) {
+    NumericBuilder builder = NumericBuilder.createDoubleBuilder(size());
+    long rawArg = Double.doubleToRawLongBits(arg);
+    for (int i = 0; i < size(); i++) {
+      if (isMissing.get(i)) {
+        builder.appendRaw(rawArg);
+      } else {
+        double coerced = data[i];
+        builder.appendRaw(Double.doubleToRawLongBits(coerced));
+      }
+    }
+    return builder.seal();
+  }
+
+  private Storage fillMissingLong(long arg) {
+    NumericBuilder builder = NumericBuilder.createLongBuilder(size());
+    for (int i = 0; i < size(); i++) {
+      if (isMissing.get(i)) {
+        builder.appendRaw(arg);
+      } else {
+        builder.appendRaw(data[i]);
+      }
+    }
+    return builder.seal();
+  }
+
+  @Override
+  public Storage fillMissing(Object arg) {
+    if (arg instanceof Double) {
+      return fillMissingDouble((Double) arg);
+    } else if (arg instanceof Long) {
+      return fillMissingLong((Long) arg);
+    } else {
+      return super.fillMissing(arg);
+    }
   }
 
   @Override

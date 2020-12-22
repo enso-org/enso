@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 
 import java.util.BitSet;
@@ -141,6 +142,25 @@ public abstract class Storage {
         builder.append(null);
       } else {
         builder.append(function.apply(it1, it2));
+      }
+    }
+    return builder.seal();
+  }
+
+  /**
+   * Return a new storage, where missing elements have been replaced by arg.
+   *
+   * @param arg the value to use for missing elements
+   * @return a new storage, with all missing elements replaced by arg
+   */
+  public Storage fillMissing(Object arg) {
+    Builder builder = new ObjectBuilder(size());
+    for (int i = 0; i < size(); i++) {
+      Object it = getItemBoxed(i);
+      if (it == null) {
+        builder.append(arg);
+      } else {
+        builder.append(it);
       }
     }
     return builder.seal();
