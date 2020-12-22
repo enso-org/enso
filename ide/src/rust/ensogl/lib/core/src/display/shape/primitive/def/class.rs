@@ -157,6 +157,11 @@ pub trait ShapeOps : Sized where for<'t> &'t Self : IntoOwned<Owned=Self> {
     fn shrink<T:Into<Var<Pixels>>>(&self, value:T) -> Shrink<Self> {
         Shrink(self, value.into())
     }
+
+    /// Repeats the shape with the given tile size.
+    fn repeat<T:Into<Var<Vector2<Pixels>>>>(&self, value:T) -> Repeat<Self> {
+        Repeat(self, value)
+    }
 }
 
 macro_rules! define_shape_operator {

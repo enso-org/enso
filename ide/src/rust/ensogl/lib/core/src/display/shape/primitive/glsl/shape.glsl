@@ -30,6 +30,10 @@ BoundingBox inverse (BoundingBox a) {
     return BoundingBox(0.0,0.0,0.0,0.0);
 }
 
+BoundingBox infinite () {
+    return BoundingBox(0.0,0.0,0.0,0.0);
+}
+
 BoundingBox unify (BoundingBox a, BoundingBox b) {
     float min_x = min(a.min_x,b.min_x);
     float max_x = max(a.max_x,b.max_x);
@@ -94,6 +98,8 @@ Sdf difference (Sdf a, Sdf b) {
 Sdf grow (Sdf a, float size) {
     return Sdf(a.distance - size);
 }
+
+
 
 // ================
 // === BoundSdf ===
@@ -290,6 +296,14 @@ Shape set_color(Shape shape, Srgba t) {
     return shape;
 }
 
+Shape withInfiniteBounds (Shape s) {
+    Id       id    = s.id;
+    Color    color = s.color;
+    BoundSdf sdf   = s.sdf;
+    sdf.bounds     = infinite();
+    return shape(id, sdf, color);
+}
+
 
 
 // ===========
@@ -321,4 +335,8 @@ vec2 scale (vec2 position, float value) {
 
 vec2 cartesian2polar (vec2 position) {
   return vec2(length(position), atan(position.y, position.x));
+}
+
+vec2 repeat (vec2 position, vec2 tile_size) {
+    return mod(position-tile_size/2.0, tile_size);
 }

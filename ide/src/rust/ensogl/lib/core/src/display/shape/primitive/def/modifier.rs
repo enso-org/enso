@@ -124,4 +124,5 @@ define_modifiers! {
     PixelSnap    pixel_snap    (child)         ()
     Grow         grow          (child)         (value:f32)
     Shrink       shrink        (child)         (value:f32)
+    Repeat       repeat        (child)         (tile_size:Vector2<Pixels>)
 }
