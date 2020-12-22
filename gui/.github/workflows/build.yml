@@ -37,8 +37,17 @@ jobs:
         with:
           node-version: '14.15.0'
 
-      - name: Build
-        run: node ./run dist --skip-version-validation
+      - name: Build (Ubuntu)
+        run: node ./run dist --skip-version-validation --target linux
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: Build (Windows)
+        run: node ./run dist --skip-version-validation --target win
+        if: matrix.os == 'windows-latest'
+
+      - name: Build (MacOs)
+        run: node ./run dist --skip-version-validation --target macos
+        if: matrix.os == 'macos-latest'
 
       - name: Upload Artifacts (Ubuntu, AppImage)
         uses: actions/upload-artifact@v1

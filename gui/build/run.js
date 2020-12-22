@@ -3,12 +3,14 @@ const fs       = require('fs').promises
 const fss      = require('fs')
 const glob     = require('glob')
 const ncp      = require('ncp').ncp
+const os       = require('os')
 const path     = require('path')
 const paths    = require('./paths')
 const prettier = require("prettier")
 const stream   = require('stream')
 const yargs    = require('yargs')
 const zlib     = require('zlib')
+const child_process = require('child_process')
 
 process.on('unhandledRejection', error => { throw(error) })
 process.chdir(paths.root)
@@ -70,7 +72,17 @@ function command(docs) {
     return {docs}
 }
 
-
+function run_project_manager() {
+    const bin_path = paths.get_project_manager_path(paths.dist.bin)
+    console.log(`Starting the language server from "${bin_path}".`)
+    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+        console.error(stderr)
+        if (error) {
+            throw error
+        }
+        console.log(stdout)
+    })
+}
 
 // ================
 // === Commands ===
@@ -121,7 +133,7 @@ commands.build.rust = async function(argv) {
     let crate     = argv.crate || DEFAULT_CRATE
     let crate_sfx = crate ? ` '${crate}'` : ``
     console.log(`Building WASM target${crate_sfx}.`)
-    let args = ['build','--target','web','--no-typescript','--out-dir',paths.dist.wasm.root,'--out-name','ide',crate]
+    let args = ['build','--target','web','--out-dir',paths.dist.wasm.root,'--out-name','ide',crate]
     if (argv.dev) { args.push('--dev') }
     await run_cargo('wasm-pack',args)
     await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
@@ -225,10 +237,18 @@ commands.watch.options  = Object.assign({},commands.build.options)
 commands.watch.parallel = true
 commands.watch.rust = async function(argv) {
     let build_args = []
-    if (argv.crate != undefined) { build_args.push(`--crate=${argv.crate}`) }
-    build_args  = build_args.join(' ')
-    let target  = '"' + `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` + cargoArgs.join(" ") + '"'
-    let args    = ['watch','-s',`${target}`]
+    if (argv.crate != undefined) {
+        build_args.push(`--crate=${argv.crate}`)
+    }
+
+    run_project_manager()
+    build_args = build_args.join(' ')
+    let target =
+        '"' +
+        `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
+        cargoArgs.join(' ') +
+        '"'
+    let args = ['watch', '-s', `${target}`]
     await cmd.with_cwd(paths.rust.root, async () => {
         await cmd.run('cargo',args)
     })
@@ -294,6 +314,13 @@ optParser.options('release', {
 optParser.options('dev', {
     describe : "Optimize for fast builds",
     type     : 'bool',
+})
+
+optParser.options('target', {
+    describe:
+        'Set the build target. Defaults to the current platform. ' +
+        'Valid values are: "linux" "macos" and "win"',
+    type: 'string',
 })
 
 let commandList = Object.keys(commands)
@@ -368,7 +395,8 @@ async function processPackageConfigs() {
 // === Main ===
 // ============
 
-async function updateBuildVersion () {
+async function updateBuildVersion (argv) {
+    const target =  get_target_platform(argv)
     let config        = {}
     let configPath    = paths.dist.buildInfo
     let exists        = fss.existsSync(configPath)
@@ -376,19 +404,27 @@ async function updateBuildVersion () {
         let configFile = await fs.readFile(configPath)
         config         = JSON.parse(configFile)
     }
-    let commitHashCmd = await cmd.run_read('git',['rev-parse','--short','HEAD'])
-    let commitHash    = commitHashCmd.trim()
-    if (config.buildVersion != commitHash) {
+
+    let commitHashCmd = await cmd.run_read('git', [
+        'rev-parse',
+        '--short',
+        'HEAD'
+    ])
+    let commitHash =  commitHashCmd.trim()
+
+    if (config.buildVersion !== commitHash || config.target !== target){
+        config.target = target
         config.buildVersion = commitHash
-        await fs.mkdir(paths.dist.root,{recursive:true})
-        await fs.writeFile(configPath,JSON.stringify(config,undefined,2))
+        await fs.mkdir(paths.dist.root, { recursive: true })
+        await fs.writeFile(configPath, JSON.stringify(config, undefined, 2))
     }
+
 }
 
 async function installJsDeps() {
     let initialized = fss.existsSync(paths.dist.init)
     if (!initialized) {
-        console.log('Installing application dependencies')
+        console.log('Installing application dependencies.')
         await cmd.with_cwd(paths.js.root, async () => {
             await cmd.run('npm',['run','install'])
         })
@@ -432,16 +468,33 @@ async function runCommand(command,argv) {
     runner()
 }
 
+function get_target_platform(argv) {
+    let target = argv.target
+    if (target === undefined) {
+        const local_platform = os.platform()
+        switch (local_platform) {
+            case 'darwin':
+                return 'macos'
+            case 'win32':
+                return 'win'
+            default:
+                return local_platform
+        }
+    }
+    return target
+}
+
 async function main () {
+    let argv = optParser.parse()
+    await updateBuildVersion(argv)
     await processPackageConfigs()
-    updateBuildVersion()
-    let argv    = optParser.parse()
     let command = argv._[0]
-    if(command == 'clean') {
+    if(command === 'clean') {
         try { await fs.unlink(paths.dist.init) } catch {}
     } else {
         await installJsDeps()
     }
+
     await runCommand(command,argv)
 }
 

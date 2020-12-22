@@ -1,4 +1,5 @@
 const path  = require('path')
+const os = require('os')
 
 
 
@@ -19,6 +20,7 @@ paths.dist                = {}
 paths.dist.root           = path.join(paths.root,'dist')
 paths.dist.client         = path.join(paths.dist.root,'client')
 paths.dist.content        = path.join(paths.dist.root,'content')
+paths.dist.bin            = path.join(paths.dist.root, 'bin')
 paths.dist.init           = path.join(paths.dist.root,'init')
 paths.dist.buildInfo      = path.join(paths.dist.root,'build.json')
 
@@ -35,5 +37,21 @@ paths.js.root             = path.join(paths.root,'src','js')
 
 paths.rust                = {}
 paths.rust.root           = path.join(paths.root,'src','rust')
+
+function get_project_manager_extension() {
+    const target_platform = os.platform()
+    switch (target_platform) {
+        case 'win32':
+            return '.exe'
+        default:
+            return ''
+    }
+}
+
+paths.get_project_manager_path = function (root) {
+    let base_path = path.join(root, 'enso', 'bin',)
+    const extension = get_project_manager_extension()
+    return path.join(base_path, 'project-manager') + extension
+}
 
 module.exports = paths
