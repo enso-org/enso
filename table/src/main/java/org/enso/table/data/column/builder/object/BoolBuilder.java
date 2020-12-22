@@ -1,13 +1,10 @@
 package org.enso.table.data.column.builder.object;
 
+import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 
-import java.util.BitSet;
-
-/**
- * A builder for boolean columns.
- */
+/** A builder for boolean columns. */
 public class BoolBuilder extends TypedBuilder {
   private final BitSet vals = new BitSet();
   private final BitSet isNa = new BitSet();

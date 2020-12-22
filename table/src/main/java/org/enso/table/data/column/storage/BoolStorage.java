@@ -1,13 +1,12 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
-
-import java.util.BitSet;
 
 /** A boolean column storage. */
 public class BoolStorage extends Storage {
@@ -36,7 +35,7 @@ public class BoolStorage extends Storage {
 
   @Override
   public Object getItemBoxed(int idx) {
-    return isMissing.get(idx) ? null : values.get(idx);
+    return isMissing.get(idx) ? null : getItem(idx);
   }
 
   public boolean getItem(long idx) {
@@ -69,6 +68,32 @@ public class BoolStorage extends Storage {
 
   public BitSet getIsMissing() {
     return isMissing;
+  }
+
+  /**
+   * Creates a new BoolStorage in which all missing values have been replaced by arg.
+   *
+   * <p>It works by setting the new isMissing to an empty bitset and changing the values bitset
+   * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
+   * values are `values && (~isMissing)`.
+   */
+  private BoolStorage fillMissingBoolean(boolean arg) {
+    final var newValues = (BitSet) values.clone();
+    if (arg) {
+      newValues.or(isMissing);
+    } else {
+      newValues.andNot(isMissing);
+    }
+    return new BoolStorage(newValues, new BitSet(), size, negated);
+  }
+
+  @Override
+  public Storage fillMissing(Object arg) {
+    if (arg instanceof Boolean) {
+      return fillMissingBoolean((Boolean) arg);
+    } else {
+      return super.fillMissing(arg);
+    }
   }
 
   @Override

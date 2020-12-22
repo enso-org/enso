@@ -1,5 +1,6 @@
 from Base import all
 from Table import all
+import Table.Data.Storage
 import Test
 
 type My x y
@@ -176,3 +177,52 @@ spec =
 
             r_2 = x.join y left_suffix='_old' right_suffix='_new'
             r_2.columns.map name . should_equal ['x_old', 'x_new']
+
+    describe "Filling Missing Values" <|
+        it "should coerce non-coercible types to Object" <|
+            strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
+            strs_filled = strs.fill_missing False
+            strs_filled.to_vector . should_equal ["a", False, "b", False]
+            strs_filled.storage_type . should_equal Storage.Any
+
+            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
+            ints_filled = ints.fill_missing "X"
+            ints_filled.to_vector . should_equal [1, "X", 2, "X"]
+            ints_filled.storage_type . should_equal Storage.Any
+
+            bools = Column.from_vector 'x' [True, False, Nothing]
+            bools_filled = bools.fill_missing "X"
+            bools_filled.to_vector . should_equal [True, False, "X"]
+            bools_filled.storage_type . should_equal Storage.Any
+
+        it "should coerce long and double types to double" <|
+            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
+            ints_filled = ints.fill_missing 0.5
+            ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
+            ints_filled.storage_type . should_equal Storage.Decimal
+
+            decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
+            decimals_filled = decimals.fill_missing 42
+            decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
+            decimals_filled.storage_type . should_equal Storage.Decimal
+
+        it "should keep String, Boolean, Long and Double type" <|
+            strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
+            strs_filled = strs.fill_missing "X"
+            strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
+            strs_filled.storage_type . should_equal Storage.Text
+
+            bools = Column.from_vector 'x' [True, False, Nothing]
+            bools_filled = bools.fill_missing False
+            bools_filled.to_vector . should_equal [True, False, False]
+            bools_filled.storage_type . should_equal Storage.Boolean
+
+            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
+            ints_filled = ints.fill_missing 42
+            ints_filled.to_vector . should_equal [1, 42, 2, 42]
+            ints_filled.storage_type . should_equal Storage.Integer
+
+            decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
+            decimals_filled = decimals.fill_missing 1.0
+            decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
+            decimals_filled.storage_type . should_equal Storage.Decimal

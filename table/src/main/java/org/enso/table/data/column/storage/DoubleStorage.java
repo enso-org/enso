@@ -1,13 +1,12 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
-
-import java.util.BitSet;
 
 /** A column containing floating point numbers. */
 public class DoubleStorage extends Storage {
@@ -72,6 +71,30 @@ public class DoubleStorage extends Storage {
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
     return ops.runMap(name, this, argument);
+  }
+
+  private Storage fillMissingDouble(double arg) {
+    final var builder = NumericBuilder.createDoubleBuilder(size());
+    long rawArg = Double.doubleToRawLongBits(arg);
+    for (int i = 0; i < size(); i++) {
+      if (isMissing.get(i)) {
+        builder.appendRaw(rawArg);
+      } else {
+        builder.appendRaw(data[i]);
+      }
+    }
+    return builder.seal();
+  }
+
+  @Override
+  public Storage fillMissing(Object arg) {
+    if (arg instanceof Double) {
+      return fillMissingDouble((Double) arg);
+    } else if (arg instanceof Long) {
+      return fillMissingDouble((Long) arg);
+    } else {
+      return super.fillMissing(arg);
+    }
   }
 
   @Override
