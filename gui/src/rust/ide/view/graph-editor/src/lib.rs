@@ -362,6 +362,8 @@ ensogl::define_endpoints! {
         stop_editing(),
         /// Remove all nodes from the graph.
         collapse_selected_nodes(),
+        /// Indicate whether this node had an error or not.
+        set_node_error_status(NodeId,Option<node::error::Error>),
 
 
         // === Visualization ===
@@ -2424,11 +2426,26 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
     out.source.node_expression_set <+ set_node_expression_string;
 
+    }
+
+
+    // === Set Node Error ===
+    frp::extend! { network
+
+    eval inputs.set_node_error_status([model]((node_id, error)) {
+        if let Some(node) = model.nodes.get_cloned_ref(node_id) {
+            node.set_error.emit(error)
+        }
+    });
+
+    }
+
 
 
     // ==================
     // === Move Nodes ===
     // ==================
+    frp::extend! { network
 
     mouse_pos <- mouse.position.map(|p| Vector2(p.x,p.y));
 

@@ -105,14 +105,22 @@ fn init(app:&Application) {
 
     let node1_id = graph_editor.add_node();
     let node2_id = graph_editor.add_node();
+    let node3_id = graph_editor.add_node();
 
     graph_editor.frp.set_node_position.emit((node1_id,Vector2(-150.0,50.0)));
     graph_editor.frp.set_node_position.emit((node2_id,Vector2(50.0,50.0)));
+    graph_editor.frp.set_node_position.emit((node3_id,Vector2(150.0,250.0)));
+
 
     let expression_1 = expression_mock();
     graph_editor.frp.set_node_expression.emit((node1_id,expression_1.clone()));
     let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
+
+    let expression_3 = expression_mock2();
+    graph_editor.frp.set_node_expression.emit((node3_id,expression_3));
+    let error = "Runtime Error".to_string().into();
+    graph_editor.frp.set_node_error_status.emit((node3_id,Some(error)));
 
 
     // === Connections ===

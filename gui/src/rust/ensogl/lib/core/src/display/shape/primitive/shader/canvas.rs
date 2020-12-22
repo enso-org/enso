@@ -298,6 +298,20 @@ impl Canvas {
         let value = value.into();
         self.grow(num, s, -value)
     }
+
+    /// Repeat the shape with the given tile size.
+    pub fn repeat<T:Into<Var<Vector2<Pixels>>>>
+    (&mut self, num:usize, s:Shape, tile_size:T) -> Shape {
+        self.if_not_defined(num, |this| {
+            let value:Glsl = tile_size.into().glsl();
+            let repeat     = iformat!("position = mod(position,{value});");
+            let expr       = iformat!("return withInfiniteBounds({s.getter()});");
+            this.add_current_function_code_line(repeat);
+            let mut shape  = this.new_shape_from_expr(num,&expr);
+            shape.add_ids(&s.ids);
+            shape
+        })
+    }
 }
 
 
