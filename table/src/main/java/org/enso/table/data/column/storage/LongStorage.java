@@ -1,13 +1,12 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
-
-import java.util.BitSet;
 
 /** A column storing 64-bit integers. */
 public class LongStorage extends Storage {

@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
