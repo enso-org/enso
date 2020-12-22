@@ -1,5 +1,6 @@
 from Base import all
 import Table.Data.Table
+import Table.Data.Storage
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
@@ -186,13 +187,14 @@ type Column
     to_vector = Vector.new this.length this.at
 
     ## Returns the underlying storage type of this column.
+    storage_type : Storage.Type
     storage_type =
         tp = this.java_column.getStorage [] . getType []
-        if tp == Storage_Type_String then Text else
-            if tp == Storage_Type_Long then Integer else
-                if tp == Storage_Type_Double then Decimal else
-                    if tp == Storage_Type_Bool then Boolean else
-                        Any
+        if tp == Storage_Type_String then Storage.Text else
+            if tp == Storage_Type_Long then Storage.Integer else
+                if tp == Storage_Type_Double then Storage.Decimal else
+                    if tp == Storage_Type_Bool then Storage.Boolean else
+                        Storage.Any
 
     ## Converts this column to JSON.
     to_json =

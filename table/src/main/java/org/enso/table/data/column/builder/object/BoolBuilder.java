@@ -25,6 +25,18 @@ public class BoolBuilder extends TypedBuilder {
     size++;
   }
 
+  /**
+   * Append a new item to this builder.
+   *
+   * @param x the item to append
+   */
+  public void appendRaw(boolean x) {
+    if (x) {
+      vals.set(size);
+    }
+    size++;
+  }
+
   @Override
   public Storage seal() {
     return new BoolStorage(vals, isNa, size, false);

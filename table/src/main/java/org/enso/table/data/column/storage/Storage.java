@@ -1,13 +1,11 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.builder.object.ObjectBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
-
 import java.util.BitSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.object.ObjectBuilder;
 
 /** An abstract representation of a data column. */
 public abstract class Storage {
@@ -154,7 +152,10 @@ public abstract class Storage {
    * @return a new storage, with all missing elements replaced by arg
    */
   public Storage fillMissing(Object arg) {
-    Builder builder = new ObjectBuilder(size());
+    return fillMissingHelper(arg, new ObjectBuilder(size()));
+  }
+
+  protected final Storage fillMissingHelper(Object arg, Builder builder) {
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {

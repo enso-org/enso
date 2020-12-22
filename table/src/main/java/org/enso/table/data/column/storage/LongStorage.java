@@ -75,7 +75,7 @@ public class LongStorage extends Storage {
   }
 
   private Storage fillMissingDouble(double arg) {
-    NumericBuilder builder = NumericBuilder.createDoubleBuilder(size());
+    final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -89,7 +89,7 @@ public class LongStorage extends Storage {
   }
 
   private Storage fillMissingLong(long arg) {
-    NumericBuilder builder = NumericBuilder.createLongBuilder(size());
+    final var builder = NumericBuilder.createLongBuilder(size());
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
         builder.appendRaw(arg);
