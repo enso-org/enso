@@ -6,7 +6,6 @@ mod tests {
 
     use enso_protocol::project_manager::API;
     use enso_protocol::project_manager::Client;
-    use ide::ide::*;
     use ide::transport::web::WebSocket;
 
     use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -22,7 +21,7 @@ mod tests {
         let ws        = WebSocket::new_opened(logger,"ws://localhost:30535").await;
         let ws        = ws.expect("Couldn't connect to WebSocket server.");
         let client    = Client::new(ws);
-        let _executor = setup_global_executor();
+        let _executor = ide::initializer::setup_global_executor();
 
         executor::global::spawn(client.runner());
 

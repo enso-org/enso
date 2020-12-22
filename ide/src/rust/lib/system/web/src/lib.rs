@@ -598,9 +598,15 @@ pub use async_std::task::sleep;
 /// Stores arguments extracted from `Location`'s search
 /// (https://developer.mozilla.org/en-US/docs/Web/API/Location/search).
 /// e.g. extracts arg0 = value0, and arg1 = value1 from http://localhost/?arg0=value0&arg1=value1.
-#[derive(Shrinkwrap,Debug)]
+#[derive(Debug)]
 pub struct Arguments {
     pub hash_map : HashMap<String,String>
+}
+
+impl Deref for Arguments {
+    type Target = HashMap<String,String>;
+
+    fn deref(&self) -> &Self::Target { &self.hash_map }
 }
 
 impl Arguments {

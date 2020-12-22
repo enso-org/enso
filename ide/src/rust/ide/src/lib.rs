@@ -36,9 +36,8 @@ pub mod model;
 pub mod notification;
 pub mod test;
 pub mod transport;
-pub mod view;
 
-pub use crate::ide::IdeInitializer;
+pub use crate::ide::*;
 
 use ensogl::system::web;
 // This import is required to have all EnsoGL examples entry points visible in IDE.
@@ -98,6 +97,7 @@ pub fn entry_point_ide() {
                 p.remove_child(&t).unwrap()
             })
         }).ok();
-        IdeInitializer::new().start_and_forget();
+        let config = crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
+        crate::ide::Initializer::new(config).start_and_forget();
     });
 }

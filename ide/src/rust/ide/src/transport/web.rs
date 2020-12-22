@@ -135,7 +135,8 @@ impl WebSocket {
 
     /// Establish connection with endpoint defined by the given URL and wrap it.
     /// Asynchronous, because it waits until connection is established.
-    pub async fn new_opened(parent:Logger, url:impl Str) -> Result<WebSocket,ConnectingError> {
+    pub async fn new_opened
+    (parent:impl AnyLogger, url:impl Str) -> Result<WebSocket,ConnectingError> {
         let ws = web_sys::WebSocket::new(url.as_ref()).map_err(|e| {
             ConnectingError::ConstructionError(js_to_string(e))
         })?;

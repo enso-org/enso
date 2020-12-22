@@ -2,10 +2,10 @@ use super::prelude::*;
 
 use crate::controller::graph::NodeTrees;
 use crate::transport::test_utils::TestWithMockedTransport;
-use crate::ide::IdeInitializer;
+use crate::ide;
 
 use enso_protocol::project_manager;
-use json_rpc::expect_call;
+use enso_protocol::project_manager::ProjectName;
 use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
 use span_tree::node::InsertionPointType;
@@ -15,71 +15,40 @@ use wasm_bindgen_test::wasm_bindgen_test;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
+
+
+// =============================================
+// === JSON Rpc Transport in IDE Initializer ===
+// =============================================
+
 #[wasm_bindgen_test(async)]
-async fn failure_to_open_most_recent_project_is_reported() {
+async fn failure_to_open_project_is_reported() {
     let transport   = MockTransport::new();
     let mut fixture = TestWithMockedTransport::set_up(&transport);
     fixture.run_test(async move {
-        let logger           = Logger::new("test");
-        let client           = IdeInitializer::setup_project_manager(transport);
-        let name             = crate::constants::DEFAULT_PROJECT_NAME;
-        let project_metadata = IdeInitializer::get_most_recent_project_or_create_new
-            (&logger,&client,name).await.expect("Couldn't get most recent or create new project.");
-        let client  = Rc::new(client);
-        let project = IdeInitializer::open_project(&logger,client,project_metadata);
-        let project = project.await;
-        project.expect_err("error should have been reported");
+        let logger          = Logger::new("test");
+        let project_manager = Rc::new(project_manager::Client::new(transport));
+        executor::global::spawn(project_manager.runner());
+        let name        = ProjectName(crate::constants::DEFAULT_PROJECT_NAME.to_owned());
+        let initializer = ide::initializer::WithProjectManager::new(logger,project_manager,name);
+        let result      = initializer.initialize_project_model().await;
+        result.expect_err("Error should have been reported.");
     });
     fixture.when_stalled_send_response(json!({
-            "projects": [{
-                "name"       : "Project",
-                "id"         : "4b871393-eef2-4970-8765-4f3c1ea83d09",
-                "lastOpened" : "2020-05-08T11:04:07.28738Z"
-            }]
-        }));
+        "projects": [{
+            "name"       : crate::constants::DEFAULT_PROJECT_NAME,
+            "id"         : "4b871393-eef2-4970-8765-4f3c1ea83d09",
+            "lastOpened" : "2020-05-08T11:04:07.28738Z"
+        }]
+    }));
     fixture.when_stalled_send_error(1,"Service error");
 }
 
-#[wasm_bindgen_test(async)]
-async fn get_project_or_create_new() {
-    let logger      = Logger::new("test");
-    let mock_client = project_manager::MockClient::default();
 
-    let name             = project_manager::ProjectName::new("TestProject");
-    let id               = uuid::Uuid::new_v4();
-    let last_opened      = default();
-    let expected_project = project_manager::ProjectMetadata{name,id,last_opened};
-    let projects         = vec![expected_project.clone()];
-    let project_lists    = project_manager::response::ProjectList{projects};
-    let count            = None;
-    expect_call!(mock_client.list_projects(count) => Ok(project_lists));
+// ====================================
+// === SpanTree in Graph Controller ===
+// ====================================
 
-    let project = IdeInitializer::get_project_or_create_new(&logger, &mock_client, "TestProject");
-    let project = project.await;
-    assert_eq!(expected_project, project.expect("Couldn't get project."))
-}
-
-#[wasm_bindgen_test(async)]
-async fn get_most_recent_project_or_create_new() {
-    let logger      = Logger::new("test");
-    let mock_client = project_manager::MockClient::default();
-
-    let name             = project_manager::ProjectName::new("TestProject");
-    let id               = uuid::Uuid::new_v4();
-    let last_opened      = default();
-    let expected_project = project_manager::ProjectMetadata{name,id,last_opened};
-    let projects         = vec![expected_project.clone()];
-    let project_lists    = project_manager::response::ProjectList{projects};
-    let count            = Some(1);
-    expect_call!(mock_client.list_projects(count) => Ok(project_lists));
-
-    let project = IdeInitializer::get_most_recent_project_or_create_new
-        (&logger,&mock_client,"TestProject");
-    let project = project.await;
-    assert_eq!(expected_project, project.expect("Couldn't get project."))
-}
-
-// x
 #[wasm_bindgen_test]
 fn span_tree_args() {
     use crate::test::mock::*;

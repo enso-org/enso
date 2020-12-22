@@ -64,7 +64,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
-    let _guard   = ide::ide::setup_global_executor();
+    let _guard   = ide::initializer::setup_global_executor();
     let project  = setup_project().await;
     let client   = project.json_rpc();
     let root_id  = project.content_root_id();
@@ -233,7 +233,7 @@ async fn file_events() {
     let ws         = ws.expect("Couldn't connect to WebSocket server.");
     let client     = Client::new(ws);
     let mut stream = client.events();
-    let _executor  = ide::ide::setup_global_executor();
+    let _executor  = ide::initializer::setup_global_executor();
 
     executor::global::spawn(client.runner());
 
@@ -282,23 +282,18 @@ async fn file_events() {
 async fn setup_project() -> Project {
     ensogl_system_web::set_stdout();
     let logger = Logger::new("Test");
+    let config = ide::config::Startup::default();
     info!(logger,"Setting up the project.");
-    let endpoint         = ide::constants::PROJECT_MANAGER_ENDPOINT;
-    let ws               = WebSocket::new_opened(logger.clone_ref(),endpoint).await.unwrap();
-    let pm               = ide::IdeInitializer::setup_project_manager(ws);
-    let name             = ide::constants::DEFAULT_PROJECT_NAME;
-    let project_metadata = ide::IdeInitializer::get_most_recent_project_or_create_new
-        (&logger,&pm,name).await.expect("Couldn't get most recent or create new project.");
-    let error_msg = "Couldn't open project";
-    let pm = Rc::new(pm);
-    ide::IdeInitializer::open_project(&logger,pm,project_metadata).await.expect(error_msg)
+    let initializer = ide::Initializer::new(config);
+    let error_msg   = "Couldn't open project.";
+    initializer.initialize_project_model().await.expect(error_msg)
 }
 
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
-    let _guard   = ide::ide::setup_global_executor();
+    let _guard   = ide::initializer::setup_global_executor();
     let project  = setup_project().await;
     println!("Got project: {:?}",project);
     // Edit file using the text protocol
@@ -331,10 +326,10 @@ async fn binary_visualization_updates_test_hlp() {
     let expression = "x -> x.json_serialize";
 
     use ensogl::system::web::sleep;
-    use ide::view::MAIN_DEFINITION_NAME;
+    use ide::MAIN_DEFINITION_NAME;
 
     let logger                = Logger::new("Test");
-    let module_path           = ide::view::initial_module_path(&project).unwrap();
+    let module_path           = ide::initial_module_path(&project).unwrap();
     let method                = module_path.method_pointer(project.name(),MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module(module_path).await.unwrap();
