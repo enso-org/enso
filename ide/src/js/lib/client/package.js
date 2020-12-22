@@ -1,3 +1,16 @@
+const fss = require('fs')
+
+function get_build_config() {
+    const buildInfoPath = paths.dist.buildInfo
+
+    let exists = fss.existsSync(buildInfoPath)
+    if (exists) {
+        let configFile = fss.readFileSync(buildInfoPath)
+        return JSON.parse(configFile.toString())
+    }
+}
+const build = get_build_config()
+
 let config = {
     name: "enso-studio-client",
     description: "The standalone client for the Enso IDE.",
@@ -21,49 +34,49 @@ let config = {
     },
 
     scripts: {
-        "start": `electron ${paths.dist.content} -- `,
-        "build": "webpack ",
-        "dist": "electron-builder --publish never",
-        "dist:crossplatform": "electron-builder --mac --win --linux --publish never"
-    }
+        start: `electron ${paths.dist.content} -- `,
+        build: 'webpack ',
+        dist: 'electron-builder --publish never' + ' --' + build.target,
+    },
 }
 
 config.build = {
-    appId: "org.enso.studio",
-    productName: "Enso Studio",
-    copyright: "Copyright © 2020 ${author}.",
+    appId: 'org.enso.studio',
+    productName: 'Enso Studio',
+    copyright: 'Copyright © 2020 ${author}.',
     mac: {
         icon: `${paths.dist.root}/icons/icon.icns`,
-        category: "public.app-category.developer-tools",
+        category: 'public.app-category.developer-tools',
         darkModeSupport: true,
-        type: "distribution"
+        type: 'distribution',
     },
     win: {
         icon: `${paths.dist.root}/icons/icon.ico`,
     },
     linux: {
         icon: `${paths.dist.root}/icons/png`,
-        category: "Development"
+        category: 'Development',
     },
     files: [
-        { from: paths.dist.content, to: "." }
+        { from: paths.dist.content, to: '.' },
+        { from: paths.dist.bin, to: '.' },
     ],
     fileAssociations: [
         {
-            ext: "enso",
-            name: "Enso Source File",
-            role: "Editor"
+            ext: 'enso',
+            name: 'Enso Source File',
+            role: 'Editor',
         },
         {
-            ext: "enso-studio",
-            name: "Enso Studio Project",
-            role: "Editor"
-        }
+            ext: 'enso-studio',
+            name: 'Enso Studio Project',
+            role: 'Editor',
+        },
     ],
     directories: {
-        "output": paths.dist.client
+        output: paths.dist.client,
     },
-    publish: []
+    publish: [],
 }
 
 module.exports = {config}

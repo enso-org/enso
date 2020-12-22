@@ -1,14 +1,18 @@
 'use strict'
 
-import * as buildCfg  from '../../../../../dist/build.json'
-import * as Electron  from 'electron'
-import * as isDev     from 'electron-is-dev'
-import * as minimist  from 'minimist'
-import * as path      from 'path'
-import * as pkg       from '../package.json'
-import * as rootCfg   from '../../../package.json'
-import * as Server    from 'enso-studio-common/src/server'
-import * as yargs     from 'yargs'
+const child_process = require('child_process')
+const fss = require('fs')
+
+import * as Electron from 'electron'
+import * as Server from 'enso-studio-common/src/server'
+import * as assert from 'assert'
+import * as buildCfg from '../../../../../dist/build.json'
+import * as isDev from 'electron-is-dev'
+import * as path from 'path'
+import * as pkg from '../package.json'
+import * as rootCfg from '../../../package.json'
+import * as yargs from 'yargs'
+import paths from '../../../../../build/paths'
 
 
 // FIXME default options parsed wrong
@@ -73,6 +77,11 @@ optParser.options('background-throttling', {
     describe : 'Throttle animations when run in background [false]',
 })
 
+optParser.options('project-manager', {
+    group: configOptionsGroup,
+    describe:
+        'Set the path of a local project manager to use for running projects.',
+})
 
 // === Debug Options ===
 
@@ -267,6 +276,27 @@ Electron.app.on('web-contents-created', (event,contents) => {
 
 
 
+// =======================
+// === Project Manager ===
+// =======================
+
+async function run_project_manager() {
+    let bin_path = args['project-manager']
+    if (!bin_path) {
+        bin_path = paths.get_project_manager_path(root)
+    }
+    let bin_exists = fss.existsSync(bin_path)
+    assert(bin_exists, 'Could not find the project manager binary at ' + bin_path)
+
+    child_process.execFile(bin_path, [], {stdio:'inherit', shell:true}, (error, stdout, stderr) => {
+        if (error) {
+            throw error
+        }
+    })
+}
+
+
+
 // ============
 // === Main ===
 // ============
@@ -278,6 +308,9 @@ let server     = null
 let mainWindow = null
 
 async function main() {
+    console.log("Starting the project manager.")
+    await run_project_manager()
+    console.log("Starting the IDE.")
     if(args.server !== false) {
         let serverCfg      = Object.assign({},args)
         serverCfg.dir      = root
