@@ -1,20 +1,17 @@
 package org.enso.table.data.column.builder.object;
 
+import java.util.BitSet;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 
-import java.util.BitSet;
-
-/**
- * A builder for numeric columns.
- */
+/** A builder for numeric columns. */
 public class NumericBuilder extends TypedBuilder {
-  private boolean isDouble;
-  private int currentSize;
   private final int size;
   private final BitSet isMissing = new BitSet();
   private final long[] data;
+  private boolean isDouble;
+  private int currentSize;
 
   private NumericBuilder(boolean isDouble, int size) {
     this.size = size;
@@ -77,6 +74,16 @@ public class NumericBuilder extends TypedBuilder {
     } else {
       throw new UnsupportedOperationException();
     }
+  }
+
+  /**
+   * Append a new item in raw form to this builder.
+   *
+   * @param rawData the raw encoding of the item, for long numbers just the number and for doubles,
+   *     its long bytes
+   */
+  public void appendRaw(long rawData) {
+    data[currentSize++] = rawData;
   }
 
   @Override

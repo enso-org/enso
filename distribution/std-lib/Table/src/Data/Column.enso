@@ -1,5 +1,6 @@
 from Base import all
 import Table.Data.Table
+import Table.Data.Storage
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
@@ -136,6 +137,17 @@ type Column
     is_missing : Column
     is_missing = here.run_vectorized_unary_op this "is_missing" (== Nothing)
 
+    ## Returns a new column where missing values have been replaced with the
+       provided default.
+    fill_missing : Any -> Column
+    fill_missing default =
+       storage = this.java_column.getStorage []
+       index = this.java_column.getIndex []
+       name = this.java_column.getName []
+       new_st = storage.fillMissing [default]
+       col = Java_Column.new [name, index, new_st].to_array
+       Column col
+
     ## Applies `function` to each item in this column and returns the column
        of results.
     map function =
@@ -175,13 +187,14 @@ type Column
     to_vector = Vector.new this.length this.at
 
     ## Returns the underlying storage type of this column.
+    storage_type : Storage.Type
     storage_type =
         tp = this.java_column.getStorage [] . getType []
-        if tp == Storage_Type_String then Text else
-            if tp == Storage_Type_Long then Integer else
-                if tp == Storage_Type_Double then Decimal else
-                    if tp == Storage_Type_Bool then Boolean else
-                        Any
+        if tp == Storage_Type_String then Storage.Text else
+            if tp == Storage_Type_Long then Storage.Integer else
+                if tp == Storage_Type_Double then Storage.Decimal else
+                    if tp == Storage_Type_Bool then Storage.Boolean else
+                        Storage.Any
 
     ## Converts this column to JSON.
     to_json =

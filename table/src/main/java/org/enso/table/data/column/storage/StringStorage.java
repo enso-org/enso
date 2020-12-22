@@ -1,10 +1,9 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
-import org.enso.table.data.index.Index;
-
-import java.util.BitSet;
 
 /** A column storing strings. */
 public class StringStorage extends ObjectStorage {
@@ -46,6 +45,15 @@ public class StringStorage extends ObjectStorage {
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
     return ops.runZip(name, this, argument);
+  }
+
+  @Override
+  public Storage fillMissing(Object arg) {
+    if (arg instanceof String) {
+      return fillMissingHelper(arg, new StringBuilder(size()));
+    } else {
+      return super.fillMissing(arg);
+    }
   }
 
   @Override
