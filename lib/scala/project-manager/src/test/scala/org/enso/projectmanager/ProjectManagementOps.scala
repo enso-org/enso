@@ -90,7 +90,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
             "result": null
           }
           """,
-      10.seconds.dilated
+      20.seconds.dilated
     )
   }
 

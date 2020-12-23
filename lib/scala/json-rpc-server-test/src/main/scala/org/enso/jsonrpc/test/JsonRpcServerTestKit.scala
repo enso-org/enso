@@ -104,7 +104,7 @@ abstract class JsonRpcServerTestKit
 
     def send(json: Json): Unit = send(json.noSpaces)
 
-    def expectMessage(timeout: FiniteDuration = 3.seconds.dilated): String = {
+    def expectMessage(timeout: FiniteDuration = 5.seconds.dilated): String = {
       val message = outActor.expectMsgClass[String](timeout, classOf[String])
       if (debugMessages) println(message)
       message
@@ -112,7 +112,7 @@ abstract class JsonRpcServerTestKit
 
     def expectJson(
       json: Json,
-      timeout: FiniteDuration = 3.seconds.dilated
+      timeout: FiniteDuration = 5.seconds.dilated
     ): Assertion = {
       val parsed = parse(expectMessage(timeout))
       parsed shouldEqual Right(json)

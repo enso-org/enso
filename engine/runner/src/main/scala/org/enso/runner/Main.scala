@@ -28,6 +28,7 @@ object Main {
   private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
   private val REPL_OPTION                 = "repl"
   private val LANGUAGE_SERVER_OPTION      = "server"
+  private val DAEMONIZE_OPTION            = "daemon"
   private val INTERFACE_OPTION            = "interface"
   private val RPC_PORT_OPTION             = "rpc-port"
   private val DATA_PORT_OPTION            = "data-port"
@@ -99,6 +100,10 @@ object Main {
     val lsOption = CliOption.builder
       .longOpt(LANGUAGE_SERVER_OPTION)
       .desc("Runs Language Server")
+      .build()
+    val deamonizeOption = CliOption.builder
+      .longOpt(DAEMONIZE_OPTION)
+      .desc("Deamonize Language Server")
       .build()
     val interfaceOption = CliOption.builder
       .longOpt(INTERFACE_OPTION)
@@ -181,6 +186,7 @@ object Main {
       .addOption(newProjectAuthorNameOpt)
       .addOption(newProjectAuthorEmailOpt)
       .addOption(lsOption)
+      .addOption(deamonizeOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
       .addOption(dataPortOption)
@@ -433,7 +439,11 @@ object Main {
         exitFail()
 
       case Right(config) =>
-        LanguageServerApp.run(config, logLevel)
+        LanguageServerApp.run(
+          config,
+          logLevel,
+          line.hasOption(DAEMONIZE_OPTION)
+        )
         exitSuccess()
     }
   }
@@ -554,7 +564,9 @@ object Main {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)
     }
-    printHelp(options)
-    exitFail()
+    if (line.getOptions.isEmpty) {
+      printHelp(options)
+      exitFail()
+    }
   }
 }

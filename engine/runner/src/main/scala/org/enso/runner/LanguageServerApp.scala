@@ -19,12 +19,24 @@ object LanguageServerApp {
     * @param config a config
     * @param logLevel log level
     */
-  def run(config: LanguageServerConfig, logLevel: LogLevel): Unit = {
-    println("Starting Language Server...")
+  def run(
+    config: LanguageServerConfig,
+    logLevel: LogLevel,
+    deamonize: Boolean
+  ): Unit = {
     val server = new LanguageServerComponent(config, logLevel)
-    Await.result(server.start(), 10.seconds)
-    StdIn.readLine()
-    Await.result(server.stop(), 10.seconds)
+    Runtime.getRuntime.addShutdownHook(new Thread(() => {
+      Await.result(server.stop(), 20.seconds)
+    }))
+    Await.result(server.start(), 20.seconds)
+    if (deamonize) {
+      val lock = new AnyRef
+      lock.synchronized {
+        lock.wait()
+      }
+    } else {
+      StdIn.readLine()
+    }
   }
 
 }
