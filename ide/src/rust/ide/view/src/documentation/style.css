@@ -10,11 +10,11 @@
     -webkit-font-smoothing: antialiased;
     font-style: normal;
     word-wrap: break-word;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.52947;
     font-weight: 400;
     letter-spacing: -0.021em;
-    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    font-family: "DejaVuSansMonoBook", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
     color: #333333;
     margin: 0;
     padding: 0;
@@ -62,7 +62,7 @@
     color: #0070c9;
     background-color: transparent;
     font-size: inherit;
-    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    font-family: "DejaVuSansMonoBook" , "Helvetica Neue", "Helvetica", "Arial", sans-serif;
     line-height: inherit;
     display: inline-block;
     white-space: pre-wrap;
@@ -81,7 +81,7 @@
     border: 1px solid #333333;
     color: #333333;
     border-radius: 5px;
-    font-size: 13px;
+    font-size: 12px;
     vertical-align: top;
     transition: all 0.3s ease;
 }
@@ -106,14 +106,14 @@
 }
 
 .docVis h1 {
-    font-size: 30px;
+    font-size: 24px;
     line-height: 1.08824;
     font-weight: 500;
     letter-spacing: 0.01em;
 }
 
 .docVis h2 {
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1.1073;
     font-weight: 500;
     letter-spacing: 0.012em;
@@ -145,7 +145,7 @@
 }
 
 .Header {
-    font-size: 17px;
+    font-size: 12px;
     font-weight: 500;
 }
 
@@ -157,7 +157,7 @@
     letter-spacing: -0.021em;
     line-height: 14px;
     font-synthesis: none;
-    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    font-family: "DejaVuSansMonoBook", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 }
 
 .Tags {
@@ -254,11 +254,11 @@
 
 .Body .Raw {
     margin-bottom: 0.6rem;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.52947;
     font-weight: 400;
     letter-spacing: -0.021em;
-    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    font-family: "DejaVuSansMonoBook", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
     color: #333333;
     font-style: normal;
 }
@@ -271,7 +271,7 @@
 .Info,
 .CodeBlock,
 .Example {
-    font-size: 14px;
+    font-size: 12px;
     padding: 15px 20px 10px 20px;
     border: 0;
     border-radius: 6px;
@@ -287,12 +287,13 @@
 }
 
 .Example {
-    background-color: #fafafa;
+    background-color: #F5F3F0;
 }
 
 .CodeBlock {
-    background-color: #fefefe;
-    margin: 10px 0px;
+    /*background-color: #FAF8F5;*/
+    margin: 10px 0;
+    border: 1px solid #3f3f3f;
 }
 
 .dark-theme .Important {
@@ -309,10 +310,11 @@
 
 .dark-theme .CodeBlock {
     background-color: #474747;
+    border: 0;
 }
 
 .CodeBlock code {
-    font-family: monospace;
+    font-family: "DejaVuSansMonoBook", monospace;
 }
 
 .Def {
@@ -333,7 +335,7 @@
     margin-top: 10px;
     padding: 0;
     margin-bottom: 15px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     color: #333333;
     font-style: normal;
@@ -362,7 +364,7 @@
 .Def .DefDoc .documentation .ASTHead .DefTitle,
 .Def .DefDoc .documentation .ASTHead .Infix {
     padding: 0;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     font-style: normal;
     text-decoration: inherit;
@@ -387,7 +389,7 @@
 
 .DefTitle {
     display: inline-flex;
-    font-size: large;
+    font-size: 20px;
     font-weight: 400;
     margin-bottom: 20px;
 }
@@ -410,7 +412,7 @@
 }
 
 .Synopsis {
-    font-size: 18px;
+    font-size: 12px;
 }
 
 .Documentation .ASTData,
@@ -431,11 +433,11 @@
 }
 
 .Documentation .ASTHead .DefTitle {
-    font-size: 34px;
+    font-size: 24px;
     margin: 0;
 }
 .Documentation .ASTData .ASTHead .DefTitle {
-    font-size: large;
+    font-size: 20px;
 }
 .Documentation .Documented {
     margin: 0;
