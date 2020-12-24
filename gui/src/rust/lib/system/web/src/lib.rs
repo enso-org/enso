@@ -40,7 +40,7 @@ pub use web_sys::WebGl2RenderingContext;
 pub use web_sys::Window;
 pub use std::time::Duration;
 pub use std::time::Instant;
-use std::collections::HashMap;
+
 
 
 // =============
@@ -61,6 +61,13 @@ pub fn Error<S:Into<String>>(message:S) -> Error {
 }
 
 pub type Result<T> = std::result::Result<T,Error>;
+
+impl From<JsValue> for Error {
+    fn from(t:JsValue) -> Self {
+        let message = format!("{:?}",t);
+        Self {message}
+    }
+}
 
 
 
@@ -595,49 +602,45 @@ pub async fn sleep(duration:Duration) {
 #[cfg(not(target_arch = "wasm32"))]
 pub use async_std::task::sleep;
 
-/// Stores arguments extracted from `Location`'s search
-/// (https://developer.mozilla.org/en-US/docs/Web/API/Location/search).
-/// e.g. extracts arg0 = value0, and arg1 = value1 from http://localhost/?arg0=value0&arg1=value1.
-#[derive(Debug)]
-pub struct Arguments {
-    pub hash_map : HashMap<String,String>
-}
-
-impl Deref for Arguments {
-    type Target = HashMap<String,String>;
-
-    fn deref(&self) -> &Self::Target { &self.hash_map }
-}
-
-impl Arguments {
-    fn args_from_search(search:&str) -> HashMap<String,String> {
-        if search.chars().nth(0) == Some('?') {
-            let search_without_question_mark = &search[1..];
-            search_without_question_mark.split('&').filter_map(|arg| {
-                match arg.split('=').collect_vec().as_slice() {
-                    [key,value] => Some(((*key).to_string(),(*value).to_string())),
-                    [key]       => Some(((*key).to_string(),"".to_string())),
-                    _           => None
-                }
-            }).collect()
-        } else {
-            default()
-        }
+/// Get the nested value of the provided object. This is similar to writing `foo.bar.baz` in
+/// JavaScript, but in a safe manner, while checking if the value exists on each level.
+pub fn reflect_get_nested(target:&JsValue, keys:&[&str]) -> Result<JsValue> {
+    let mut tgt = target.clone();
+    for key in keys {
+        let obj = tgt.dyn_into::<js_sys::Object>()?;
+        let key = (*key).into();
+        tgt = js_sys::Reflect::get(&obj,&key)?;
     }
-
-    /// Creates a new arguments map from location search.
-    pub fn new() -> Self {
-        default()
-    }
+    Ok(tgt)
 }
 
-impl Default for Arguments {
-    fn default() -> Self {
-        let search   = window().location().search().unwrap_or_default();
-        let hash_map = Self::args_from_search(&search);
-        Self{hash_map}
-    }
+/// Get the nested value of the provided object and cast it to [`Object`]. See docs of
+/// [`reflect_get_nested`] to learn more.
+pub fn reflect_get_nested_object(target:&JsValue, keys:&[&str]) -> Result<js_sys::Object> {
+    let tgt = reflect_get_nested(target,keys)?;
+    Ok(tgt.dyn_into()?)
 }
+
+/// Get the nested value of the provided object and cast it to [`String`]. See docs of
+/// [`reflect_get_nested`] to learn more.
+pub fn reflect_get_nested_string(target:&JsValue, keys:&[&str]) -> Result<String> {
+    let tgt = reflect_get_nested(target,keys)?;
+    let val = tgt.dyn_into::<js_sys::JsString>()?;
+    Ok(val.into())
+}
+
+/// Get all the keys of the provided [`Object`].
+pub fn object_keys(target:&JsValue) -> Vec<String> {
+    target.clone().dyn_into::<js_sys::Object>().ok().map(|obj| {
+        js_sys::Object::keys(&obj).iter().map(|key| {
+            // The unwrap is safe, the `Object::keys` API guarantees it.
+            let js_str = key.dyn_into::<js_sys::JsString>().unwrap();
+            js_str.into()
+        }).collect()
+    }).unwrap_or_default()
+}
+
+
 
 // ============
 // === Test ===
@@ -663,29 +666,6 @@ mod tests {
         pub fn elapsed(instant: Instant) -> f64 {
             super::performance().now() - instant
         }
-    }
-
-    #[test]
-    fn args() {
-        let search = String::from("?project=HelloWorld&arg0=value0");
-        let args   = Arguments::args_from_search(&search);
-        assert_eq!(args.len(), 2);
-        assert_eq!(args.get("project"), Some(&"HelloWorld".to_string()));
-        assert_eq!(args.get("arg0"), Some(&"value0".to_string()));
-
-        let search = String::from("project=HelloWorld&arg0=value0");
-        let args   = Arguments::args_from_search(&search);
-        assert_eq!(args.len(), 0);
-
-        let search = String::from("");
-        let args   = Arguments::args_from_search(&search);
-        assert_eq!(args.len(), 0);
-
-        let search = String::from("?project&arg0=value0");
-        let args   = Arguments::args_from_search(&search);
-        assert_eq!(args.len(), 2);
-        assert_eq!(args.get("project"), Some(&"".to_string()));
-        assert_eq!(args.get("arg0"), Some(&"value0".to_string()));
     }
 
     #[cfg(not(target_arch = "wasm32"))]
