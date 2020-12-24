@@ -72,17 +72,18 @@ function command(docs) {
     return {docs}
 }
 
-function run_project_manager() {
-    const bin_path = paths.get_project_manager_path(paths.dist.bin)
-    console.log(`Starting the language server from "${bin_path}".`)
-    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
-        console.error(stderr)
-        if (error) {
-            throw error
-        }
-        console.log(stdout)
-    })
-}
+// FIXME: this does not work if project manager was not downloaded yet.
+//function run_project_manager() {
+//    const bin_path = paths.get_project_manager_path(paths.dist.bin)
+//    console.log(`Starting the language server from "${bin_path}".`)
+//    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+//        console.error(stderr)
+//        if (error) {
+//            throw error
+//        }
+//        console.log(stdout)
+//    })
+//}
 
 // ================
 // === Commands ===
@@ -241,7 +242,8 @@ commands.watch.rust = async function(argv) {
         build_args.push(`--crate=${argv.crate}`)
     }
 
-    run_project_manager()
+    // FIXME: See fixme on fn definition.
+    // run_project_manager()
     build_args = build_args.join(' ')
     let target =
         '"' +

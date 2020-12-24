@@ -147,9 +147,9 @@ are presented below:
   utility which will build the project on every change. Open 
   `http://localhost:8080` (the port may vary and will be reported in the
   terminal if `8080` was already in use) to run the application, or
-  `http://localhost:8080/debug` to open example demo scenes. Please remember
-  to disable the cache in your browser during the development! By default,
-  the script disables heavyweight optimizations to provide interactive
+  `http://localhost:8080/?entry` to open example demo scenes list. Please 
+  remember to disable the cache in your browser during the development! By 
+  default, the script disables heavyweight optimizations to provide interactive
   development experience. The scripts are thin wrappers for
   [wasm-pack](https://github.com/rustwasm/wasm-pack) and accept the same
   [command line arguments](https://rustwasm.github.io/wasm-pack/book/commands/build.html).
@@ -158,8 +158,8 @@ are presented below:
   In order to compile in a production mode (enable all optimizations, strip
   WASM debug symbols, minimize the output binaries, etc.), run 
   `node ./run build`. To create platform-specific packages and installers use
-  `node ./run dist` instead. The final packages will be located at
-  `app/dist/native`.
+  `node ./run dist` instead. The final executables will be located at
+  `dist/client/$PLATFORM`. 
   
 - **Selective mode**
   In order to compile only part of the project, and thus drastically shorten 
@@ -173,6 +173,19 @@ are presented below:
   were defined or re-exported by that crate. In particular, the `ide` crate
   exposes the `entry_point_ide` function, so you have to compile it to test
   your code in the Enso IDE.
+  
+  
+### Using IDE as a library.
+In case you want to use the IDE as a library, for example to embed it into 
+another website, you need to first build it using `node ./run {built,dist}` and 
+find the necessary artifacts located at `dist/content`. Especially, the 
+`dist/content/index.js` defines a function `window.enso.main(cfg)` which you
+can use to run the IDE. Currently, the configuration argument can contain the
+following options:
+- `entry` - the entry point, one of predefined scenes. Set it to empty string to
+  see the list of possible entry points.
+- `project` - the project name to open after loading the IDE.
+
 
 ### Testing, Linting, and Validation
 After changing the code it's always a good idea to lint and test the code. We 

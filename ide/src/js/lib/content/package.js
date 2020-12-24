@@ -10,7 +10,8 @@ let config = {
     },
     devDependencies: {
         "compression-webpack-plugin": "^3.1.0",
-        "copy-webpack-plugin": "^5.1.1"
+        "copy-webpack-plugin": "^5.1.1",
+        "yaml-loader": "^0.6.0",
     }
 }
 
