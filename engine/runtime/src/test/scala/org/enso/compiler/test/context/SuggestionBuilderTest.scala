@@ -1158,10 +1158,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Vector(
                 Suggestion
                   .Argument("this", "Unnamed.Test.A", false, false, None),
-                Suggestion.Argument("x", "A", false, false, None)
+                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
               ),
               selfType      = "Unnamed.Test.A",
-              returnType    = "A",
+              returnType    = "Unnamed.Test.A",
               documentation = None
             ),
             Vector()
@@ -1173,10 +1173,10 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "quux",
               arguments = Vector(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("x", "A", false, false, None)
+                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "A",
+              returnType    = "Unnamed.Test.A",
               documentation = None
             ),
             Vector()

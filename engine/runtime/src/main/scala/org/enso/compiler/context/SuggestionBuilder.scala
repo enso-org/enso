@@ -2,6 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
   MethodDefinitions,
@@ -33,6 +34,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   def build(module: QualifiedName, ir: IR): Tree.Root[Suggestion] = {
     type TreeBuilder =
       mutable.Builder[Tree.Node[Suggestion], Vector[Tree.Node[Suggestion]]]
+    val bindings = ir.getMetadata(BindingAnalysis)
+
     def go(tree: TreeBuilder, scope: Scope): Vector[Tree.Node[Suggestion]] = {
       if (scope.queue.isEmpty) {
         tree.result()
@@ -41,7 +44,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
-            val suggestions = buildAtom(module, name.name, arguments, doc)
+            val suggestions =
+              buildAtom(bindings, module, name.name, arguments, doc)
             go(tree ++= suggestions.map(Tree.Node(_, Vector())), scope)
 
           case IR.Module.Scope.Definition.Method
@@ -53,8 +57,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                   _
                 ) =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            val selfTypeOpt =
-              typePtr.getMetadata(MethodDefinitions).flatMap(buildSelfType)
+            val selfTypeOpt = typePtr
+              .getMetadata(MethodDefinitions)
+              .flatMap(buildSelfType)
             val methodOpt = selfTypeOpt.map { selfType =>
               buildMethod(
                 body.getExternalId,
@@ -63,7 +68,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                 selfType,
                 args,
                 doc,
-                typeSignature
+                typeSignature,
+                bindings
               )
             }
             val subforest = go(
@@ -86,7 +92,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               name,
               args,
               scope.location.get,
-              typeSignature
+              typeSignature,
+              bindings
             )
             val subforest = go(
               Vector.newBuilder,
@@ -129,9 +136,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     selfType: QualifiedName,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
-    typeSignature: Option[TypeSignatures.Metadata]
+    typeSignature: Option[TypeSignatures.Metadata],
+    bindings: Option[BindingAnalysis.Metadata]
   ): Suggestion.Method = {
-    val typeSig = buildTypeSignatureFromMetadata(typeSignature)
+    val typeSig = buildTypeSignatureFromMetadata(typeSignature, bindings)
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
@@ -152,9 +160,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     name: IR.Name,
     args: Seq[IR.DefinitionArgument],
     location: Location,
-    typeSignature: Option[TypeSignatures.Metadata]
+    typeSignature: Option[TypeSignatures.Metadata],
+    bindings: Option[BindingAnalysis.Metadata]
   ): Suggestion.Function = {
-    val typeSig = buildTypeSignatureFromMetadata(typeSignature)
+    val typeSig = buildTypeSignatureFromMetadata(typeSignature, bindings)
     val (methodArgs, returnTypeDef) =
       buildFunctionArguments(args, typeSig)
     Suggestion.Function(
@@ -196,13 +205,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   /** Build suggestions for an atom definition. */
   private def buildAtom(
+    bindings: Option[BindingAnalysis.Metadata],
     module: QualifiedName,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
   ): Seq[Suggestion] =
     buildAtomConstructor(module, name, arguments, doc) +:
-    buildAtomGetters(module, name, arguments)
+    buildAtomGetters(bindings, module, name, arguments)
 
   /** Build an atom constructor. */
   private def buildAtomConstructor(
@@ -222,6 +232,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   /** Build getter methods from atom arguments. */
   private def buildAtomGetters(
+    bindings: Option[BindingAnalysis.Metadata],
     module: QualifiedName,
     name: String,
     arguments: Seq[IR.DefinitionArgument]
@@ -240,19 +251,30 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         selfType      = module.createChild(name),
         args          = Seq(thisArg),
         doc           = None,
-        typeSignature = None
+        typeSignature = None,
+        bindings      = bindings
       )
     }
 
   /** Build self type from the method definitions metadata.
     *
-    * @param definition the method definitions metadata
-    * @return the self type
+    * @param metadata the result of successful name resolution
+    * @return the qualified type name
     */
   private def buildSelfType(
-    definition: MethodDefinitions.Metadata
+    metadata: MethodDefinitions.Metadata
+  ): Option[QualifiedName] =
+    buildResolvedTypeName(metadata.target)
+
+  /** Build type name from the resolved name.
+    *
+    * @param resolvedName the result of successful name resolution
+    * @return the qualified type name
+    */
+  private def buildResolvedTypeName(
+    resolvedName: BindingsMap.ResolvedName
   ): Option[QualifiedName] = {
-    definition.target match {
+    resolvedName match {
       case BindingsMap.ResolvedModule(module) =>
         Some(module.getName)
       case BindingsMap.ResolvedConstructor(module, cons) =>
@@ -265,39 +287,66 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   /** Build type signature from the ir metadata.
     *
     * @param typeSignature the type signature metadata
+    * @param bindings the binding analysis metadata
     * @return the list of type arguments
     */
   private def buildTypeSignatureFromMetadata(
-    typeSignature: Option[TypeSignatures.Metadata]
+    typeSignature: Option[TypeSignatures.Metadata],
+    bindings: Option[BindingAnalysis.Metadata]
   ): Vector[TypeArg] =
     typeSignature match {
       case Some(TypeSignatures.Signature(typeExpr)) =>
-        buildTypeSignature(typeExpr)
+        buildTypeSignature(bindings, typeExpr)
       case _ =>
         Vector()
     }
 
   /** Build type signature from the type expression.
     *
+    * @param bindings the binding analysis metadata
     * @param typeExpr the type signature expression
     * @return the list of type arguments
     */
-  private def buildTypeSignature(typeExpr: IR.Expression): Vector[TypeArg] = {
+  private def buildTypeSignature(
+    bindings: Option[BindingAnalysis.Metadata],
+    typeExpr: IR.Expression
+  ): Vector[TypeArg] = {
     def go(typeExpr: IR.Expression, args: Vector[TypeArg]): Vector[TypeArg] =
       typeExpr match {
         case IR.Application.Operator.Binary(left, _, right, _, _, _) =>
           val arg = TypeArg.Function(go(left.value, Vector()))
           go(right.value, args :+ arg)
         case IR.Function.Lambda(List(targ), body, _, _, _, _) =>
-          val tdef = TypeArg.Value(targ.name.name)
+          val typeName = targ.name.name
+          val qualifiedTypeName = resolveTypeName(bindings, typeName)
+            .getOrElse(QualifiedName.simpleName(typeName))
+          val tdef = TypeArg.Value(qualifiedTypeName)
           go(body, args :+ tdef)
         case tname: IR.Name =>
-          args :+ TypeArg.Value(tname.name)
+          val typeName = tname.name
+          val qualifiedTypeName = resolveTypeName(bindings, typeName)
+            .getOrElse(QualifiedName.simpleName(typeName))
+          args :+ TypeArg.Value(qualifiedTypeName)
         case _ =>
           args
       }
 
     go(typeExpr, Vector())
+  }
+
+  /** Resolve unqualified type name.
+    *
+    * @param bindings the binding analysis metadata
+    * @param name the unqualified type name
+    * @return the resolved qualified type name
+    */
+  private def resolveTypeName(
+    bindings: Option[BindingAnalysis.Metadata],
+    name: String
+  ): Option[QualifiedName] = {
+    bindings
+      .flatMap(_.resolveUppercaseName(name).toOption)
+      .flatMap(buildResolvedTypeName)
   }
 
   /** Build arguments of a method.
@@ -410,7 +459,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def buildTypeArgumentName(targ: TypeArg): String = {
     def go(targ: TypeArg, level: Int): String =
       targ match {
-        case TypeArg.Value(name) => name
+        case TypeArg.Value(name) => name.toString
         case TypeArg.Function(types) =>
           val typeList = types.map(go(_, level + 1))
           if (level > 0) typeList.mkString("(", " -> ", ")")
@@ -505,7 +554,7 @@ object SuggestionBuilder {
       *
       * @param name the name of the type
       */
-    case class Value(name: String) extends TypeArg
+    case class Value(name: QualifiedName) extends TypeArg
 
     /** Function type, like `A -> A`.
       *
