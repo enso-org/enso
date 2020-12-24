@@ -15,6 +15,18 @@ const GEO_MAP = 'Geo_Map'
 const SCATTERPLOT_LAYER = 'Scatterplot_Layer'
 const DEFAULT_POINT_RADIUS = 150
 
+const LABEL_FONT = 'DejaVuSansMonoBook, sans-serif'
+const LABEL_FONT_SIZE = '12px'
+const LABEL_BORDER_RADIUS = '14px'
+const LABEL_BORDER_TOP_LEFT_RADIUS = '2px'
+const LABEL_MARGIN = '4px'
+const LABEL_DARK_BACKGROUND = `rgb(93, 91, 88)`
+const LABEL_LIGHT_BACKGROUND = `rgb(252, 250, 245)`
+const LABEL_DARK_OUTLINE = `rgb(52, 50, 48)`
+const LABEL_LIGHT_OUTLINE = `rgb(200, 210, 210)`
+const LABEL_DARK_COLOR = `rgba(255, 255, 255, 0.8)`
+const LABEL_LIGHT_COLOR = `rgba(0, 0, 0, 0.8)`
+
 const DEFAULT_MAP_ZOOM = 11
 const DARK_ACCENT_COLOR = [222, 162, 47]
 const LIGHT_ACCENT_COLOR = [1, 234, 146]
@@ -84,6 +96,7 @@ const makeId = makeGenerator()
  * "longitude": -122.45,
  * "zoom": 15,
  * "controller": true,
+ * "showingLabels": true, // Enables presenting labels when hovering over Geo_Point.
  * "layers": [{
  *     "type": "Scatterplot_Layer",
  *     "data": [{
@@ -91,7 +104,8 @@ const makeId = makeGenerator()
  *         "latitude": -122.45,
  *         "longitude": 37.8,
  *         "color": [255, 0, 0],
- *         "radius": 100
+ *         "radius": 100,
+ *         "label": "an example label"
  *     }]
  * }]
  * }
@@ -125,12 +139,22 @@ class GeoMapVisualization extends Visualization {
     initStyle() {
         let defaultMapStyle = 'mapbox://styles/mapbox/light-v9'
         let accentColor = LIGHT_ACCENT_COLOR
+        let labelBackgroundColor = LABEL_LIGHT_BACKGROUND
+        let labelColor = LABEL_LIGHT_COLOR
+        let labelOutline = LABEL_LIGHT_OUTLINE
         if (document.getElementById('root').classList.contains('dark-theme')) {
-            defaultMapStyle = 'mapbox://styles/mapbox/dark-v9'
+            defaultMapStyle =
+                'mapbox://styles/enso-org/ckiu0o0in2fpp19rpk0jfvg2s'
             accentColor = DARK_ACCENT_COLOR
+            labelBackgroundColor = LABEL_DARK_BACKGROUND
+            labelColor = LABEL_DARK_COLOR
+            labelOutline = LABEL_DARK_OUTLINE
         }
         this.defaultMapStyle = defaultMapStyle
         this.accentColor = accentColor
+        this.labelBackgroundColor = labelBackgroundColor
+        this.labelColor = labelColor
+        this.labelOutline = labelOutline
     }
 
     onDataReceived(data) {
@@ -161,6 +185,7 @@ class GeoMapVisualization extends Visualization {
         this.mapStyle = ok(data.mapStyle) ? data.mapStyle : this.defaultMapStyle
         this.pitch = ok(data.pitch) ? data.pitch : 0
         this.controller = ok(data.controller) ? data.controller : true
+        this.showingLabels = ok(data.showingLabels) ? data.showingLabels : false
     }
 
     viewState() {
@@ -185,6 +210,7 @@ class GeoMapVisualization extends Visualization {
             data: this.dataPoints,
             getFillColor: (d) => d.color,
             getRadius: (d) => d.radius,
+            pickable: this.showingLabels,
         })
     }
 
@@ -206,6 +232,20 @@ class GeoMapVisualization extends Visualization {
     updateLayers() {
         this.deckgl.setProps({
             layers: [this.makeScatterLayer()],
+            getTooltip: ({ object }) =>
+                object && {
+                    html: `<div>${object.label}</div>`,
+                    style: {
+                        backgroundColor: this.labelBackgroundColor,
+                        fontSize: LABEL_FONT_SIZE,
+                        borderRadius: LABEL_BORDER_RADIUS,
+                        borderTopLeftRadius: LABEL_BORDER_TOP_LEFT_RADIUS,
+                        fontFamily: LABEL_FONT,
+                        margin: LABEL_MARGIN,
+                        color: this.labelColor,
+                        border: '1px solid ' + this.labelOutline,
+                    },
+                },
         })
     }
 
@@ -314,7 +354,8 @@ class GeoMapVisualization extends Visualization {
             ? DEFAULT_POINT_RADIUS
             : geoPoint.radius
         let color = ok(geoPoint.color) ? geoPoint.color : accentColor
-        preparedDataPoints.push({ position, color, radius })
+        let label = ok(geoPoint.label) ? geoPoint.label : ''
+        preparedDataPoints.push({ position, color, radius, label })
     }
 
     /**
