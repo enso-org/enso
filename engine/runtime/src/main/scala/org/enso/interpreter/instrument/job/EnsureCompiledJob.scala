@@ -166,7 +166,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         .finest(s"Analyzing imported ${module.getName}")
       val moduleName = module.getName.toString
       val addedSuggestions = SuggestionBuilder(module.getLiteralSource)
-        .build(module.getName.toString, module.getIr)
+        .build(module.getName, module.getIr)
         .filter(isSuggestionGlobal)
       val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -199,7 +199,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     ) {
       ctx.executionService.getLogger
         .finest(s"Analyzing module in scope ${module.getName}")
-      val moduleName = module.getName.toString
+      val moduleName = module.getName
       val newSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
@@ -207,7 +207,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = new File(module.getPath),
         version = version,
-        actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+        actions =
+          Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
       sendModuleUpdate(notification)
@@ -219,11 +220,11 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     module: Module,
     changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Unit = {
-    val moduleName = module.getName.toString
+    val moduleName = module.getName
     val version    = ctx.versioning.evalVersion(module.getLiteralSource.toString)
     if (module.isIndexed) {
       ctx.executionService.getLogger
-        .finest(s"Analyzing indexed module ${module.getName}")
+        .finest(s"Analyzing indexed module $moduleName")
       val prevSuggestions = SuggestionBuilder(changeset.source)
         .build(moduleName, changeset.ir)
       val newSuggestions =
@@ -247,7 +248,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = new File(module.getPath),
         version = version,
-        actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+        actions =
+          Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
       sendModuleUpdate(notification)

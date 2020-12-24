@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.error.RedefinedMethodException;
 public class ModuleScope implements TruffleObject {
   private final AtomConstructor associatedType;
   private final Module module;
-  private Map<String, Object> polyglotSymbols = new HashMap<>();
+  private final Map<String, Object> polyglotSymbols = new HashMap<>();
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
