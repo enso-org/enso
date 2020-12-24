@@ -79,9 +79,7 @@ class SuggestionBuilderTest extends CompilerTest {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
-        """from Builtins import all
-          |
-          |## The foo
+        """## The foo
           |foo : Number
           |foo = 42""".stripMargin
       val module = code.preprocessModule
@@ -361,6 +359,48 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
+    "build method with resolved type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type A
+          |
+          |foo : A -> A
+          |foo a = a + 1""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("a", "Unnamed.Test.A", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build function simple" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
@@ -516,6 +556,67 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
+    "build function with resolved type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type A
+          |
+          |main =
+          |    foo : A -> A
+          |    foo a = a + 1
+          |    foo 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Any",
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Function(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  arguments = Seq(
+                    Suggestion
+                      .Argument("a", "Unnamed.Test.A", false, false, None)
+                  ),
+                  returnType = "Unnamed.Test.A",
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(2, 6),
+                    Suggestion.Position(5, 10)
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
     "build local simple" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
@@ -652,6 +753,63 @@ class SuggestionBuilderTest extends CompilerTest {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(3, 7)
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build local with resolved type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type A
+          |
+          |main =
+          |    foo : A
+          |    foo = A
+          |    foo""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Any",
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  returnType = "Unnamed.Test.A",
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(2, 6),
+                    Suggestion.Position(5, 7)
                   )
                 ),
                 Vector()

@@ -109,7 +109,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               module,
               name.name,
               scope.location.get,
-              typeSignature
+              typeSignature,
+              bindings
             )
             val subforest = go(
               Vector.newBuilder,
@@ -182,26 +183,19 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     module: QualifiedName,
     name: String,
     location: Location,
-    typeSignature: Option[TypeSignatures.Metadata]
-  ): Suggestion.Local =
-    typeSignature match {
-      case Some(TypeSignatures.Signature(tname: IR.Name)) =>
-        Suggestion.Local(
-          externalId,
-          module.toString,
-          name,
-          tname.name,
-          buildScope(location)
-        )
-      case _ =>
-        Suggestion.Local(
-          externalId,
-          module.toString,
-          name,
-          Any,
-          buildScope(location)
-        )
-    }
+    typeSignature: Option[TypeSignatures.Metadata],
+    bindings: Option[BindingAnalysis.Metadata]
+  ): Suggestion.Local = {
+    val typeSig            = buildTypeSignatureFromMetadata(typeSignature, bindings)
+    val (_, returnTypeDef) = buildFunctionArguments(Seq(), typeSig)
+    Suggestion.Local(
+      externalId,
+      module.toString,
+      name,
+      buildReturnType(returnTypeDef),
+      buildScope(location)
+    )
+  }
 
   /** Build suggestions for an atom definition. */
   private def buildAtom(

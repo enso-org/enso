@@ -72,7 +72,11 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
     val moduleCompilationStatus = modules.flatMap { module =>
-      ensureCompiledModule(module) +: ensureCompiledImports(module)
+      val importedModules =
+        new ImportResolver(ctx.executionService.getContext.getCompiler)
+          .mapImports(module)
+          .filter(_.getName != module.getName)
+      ensureCompiledModule(module) +: ensureCompiledImports(importedModules)
     }
     val scopeCompilationStatus = ensureCompiledScope()
     (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
@@ -106,17 +110,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
 
   /** Compile the imported modules and send the suggestion updates.
     *
-    * @param module the modules to analyze.
+    * @param importedModules the imported modules to analyze.
     * @param ctx the runtime context
     */
 
-  private def ensureCompiledImports(module: Module)(implicit
+  private def ensureCompiledImports(importedModules: Seq[Module])(implicit
     ctx: RuntimeContext
   ): Seq[CompilationStatus] = {
-    val importedModules =
-      new ImportResolver(ctx.executionService.getContext.getCompiler)
-        .mapImports(module)
-        .filter(_.getName != module.getName)
     importedModules.foreach(analyzeImport)
     importedModules.map(runCompilationDiagnostics)
   }

@@ -166,9 +166,10 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
@@ -220,9 +221,10 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
@@ -296,9 +298,10 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
@@ -392,9 +395,10 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
@@ -437,7 +441,7 @@ class SuggestionUpdatesTest
                         )
                       ),
                       Api.SuggestionAction.Modify(
-                        returnType = Some("Number"),
+                        returnType = Some("Builtins.Main.Number"),
                         scope = Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
@@ -498,9 +502,10 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
@@ -536,7 +541,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        "Number",
+                        "Builtins.Main.Number",
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -562,10 +567,11 @@ class SuggestionUpdatesTest
                     moduleName,
                     "foo",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
                       Suggestion.Argument("x", "Any", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
@@ -621,10 +627,11 @@ class SuggestionUpdatesTest
                     moduleName,
                     "foo",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
                       Suggestion.Argument("x", "Any", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
