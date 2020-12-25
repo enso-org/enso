@@ -140,7 +140,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idMainX,
-                  Some("Number"),
+                  Some("Builtins.Main.Number"),
                   None
                 )
               )
@@ -154,8 +154,14 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idMainY,
-                  Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+                  Some("Builtins.Main.Number"),
+                  Some(
+                    Api.MethodPointer(
+                      "Test.Main",
+                      "Builtins.Main.Number",
+                      "foo"
+                    )
+                  )
                 )
               )
             )
@@ -168,7 +174,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idMainZ,
-                  Some("Number"),
+                  Some("Builtins.Main.Number"),
                   None
                 )
               )
@@ -182,7 +188,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idFooY,
-                  Some("Number"),
+                  Some("Builtins.Main.Number"),
                   None
                 )
               )
@@ -196,7 +202,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idFooZ,
-                  Some("Number"),
+                  Some("Builtins.Main.Number"),
                   None
                 )
               )
@@ -240,8 +246,8 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   idMainY,
-                  Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Main", "foo"))
+                  Some("Builtins.Main.Number"),
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "foo"))
                 )
               )
             )
@@ -254,8 +260,8 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   idMainZ,
-                  Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Main", "bar"))
+                  Some("Builtins.Main.Number"),
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "bar"))
                 )
               )
             )
@@ -316,7 +322,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
       None,
       Vector()
     )
@@ -345,7 +351,7 @@ class RuntimeServerTest
 
     // push method pointer on top of the non-empty stack
     val invalidExplicitCall = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
       None,
       Vector()
     )
@@ -369,8 +375,10 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              Some("Number"),
-              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+              Some("Builtins.Main.Number"),
+              Some(
+                Api.MethodPointer("Test.Main", "Builtins.Main.Number", "foo")
+              )
             )
           )
         )
@@ -389,6 +397,182 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.EmptyStackError(contextId))
     )
+  }
+
+  it should "send method pointer updates" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata = new Metadata
+    val idMain   = metadata.addItem(94, 121)
+    val idMainX  = metadata.addItem(121, 8)
+    val idMainY  = metadata.addItem(138, 8)
+    val idMainM  = metadata.addItem(155, 5)
+    val idMainP  = metadata.addItem(169, 5)
+    val idMainQ  = metadata.addItem(183, 5)
+    val idMainF  = metadata.addItem(205, 9)
+
+    val code =
+      """from Builtins import all
+        |import Test.A
+        |
+        |type Quux
+        |    type Quux
+        |
+        |    foo = 42
+        |
+        |bar = 7
+        |
+        |main =
+        |    f a b = a + b
+        |    x = Quux.foo
+        |    y = here.bar
+        |    m = A.A x
+        |    p = m.foo
+        |    q = A.foo
+        |    IO.println (f x+y p+q)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    val aCode =
+      """from Builtins import all
+        |
+        |type A
+        |    type A un_a
+        |
+        |    foo = 11
+        |
+        |foo = 19
+        |""".stripMargin
+    val aFile = context.writeInSrcDir("A", aCode)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+    context.send(Api.Request(Api.OpenFileNotification(aFile, aCode, true)))
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(9) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainX,
+              Some("Builtins.Main.Number"),
+              Some(
+                Api.MethodPointer("Test.Main", "Test.Main.Quux", "foo")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainY,
+              Some("Builtins.Main.Number"),
+              Some(
+                Api.MethodPointer("Test.Main", "Test.Main.Main", "bar")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainM,
+              Some("Test.A.A"),
+              None
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainP,
+              Some("Builtins.Main.Number"),
+              Some(
+                Api.MethodPointer("Test.A", "Test.A.A", "foo")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainQ,
+              Some("Builtins.Main.Number"),
+              Some(
+                Api.MethodPointer("Test.A", "Test.A.A", "foo")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainF,
+              Some("Builtins.Main.Number"),
+              None
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Builtins.Main.Nothing"),
+              None
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("79")
   }
 
   it should "send updates from last line" in {
@@ -431,7 +615,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -446,8 +630,8 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainFoo,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "foo"))
+              Some("Builtins.Main.Number"),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "foo"))
             )
           )
         )
@@ -455,7 +639,10 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+          Vector(
+            Api
+              .ExpressionValueUpdate(idMain, Some("Builtins.Main.Number"), None)
+          )
         )
       ),
       Api.Response(
@@ -472,11 +659,12 @@ class RuntimeServerTest
                     moduleName,
                     "foo",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
                       Suggestion.Argument("a", "Any", false, false, None),
                       Suggestion.Argument("b", "Any", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
@@ -491,9 +679,10 @@ class RuntimeServerTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
+                    "Test.Main",
                     "Any",
                     None
                   ),
