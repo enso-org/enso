@@ -1495,7 +1495,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
   }
 
-  private val Module = QualifiedName(List("Unnamed"), "Test")
+  private val Module = QualifiedName.fromString("Unnamed.Test")
 
   private def build(source: String, ir: IR.Module): Tree.Root[Suggestion] =
     SuggestionBuilder(source).build(Module, ir)

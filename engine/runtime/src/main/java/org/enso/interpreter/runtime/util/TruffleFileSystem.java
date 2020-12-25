@@ -43,8 +43,8 @@ public class TruffleFileSystem implements FileSystem<TruffleFile> {
   }
 
   @Override
-  public List<String> getSegments(TruffleFile file) {
-    return Arrays.asList(file.toRelativeUri().getPath().split("/"));
+  public String[] getSegments(TruffleFile file) {
+    return file.toRelativeUri().getPath().split("/");
   }
 
   @Override

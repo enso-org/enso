@@ -1,12 +1,12 @@
 package org.enso.pkg
 
 import java.io.File
+import java.util
 
 import cats.Show
-
-import scala.jdk.CollectionConverters._
 import org.enso.filesystem.FileSystem
 
+import scala.jdk.CollectionConverters._
 import scala.io.Source
 import scala.util.{Failure, Try, Using}
 
@@ -129,10 +129,18 @@ case class Package[F](
     * @return a qualified name of the input source path.
     */
   def moduleNameForFile(file: F): QualifiedName = {
-    val segments                 = sourceDir.relativize(file).getSegments.asScala.toList
+    val segments                 = sourceDir.relativize(file).getSegments
     val dirSegments              = segments.take(segments.length - 1)
     val fileNameWithoutExtension = file.getName.takeWhile(_ != '.')
-    QualifiedName(name :: dirSegments, fileNameWithoutExtension)
+    val dirStream = util.stream.Stream.concat(
+      util.stream.Stream.of(name),
+      util.Arrays.stream(dirSegments)
+    )
+    val path =
+      util.stream.Stream
+        .concat(dirStream, util.stream.Stream.of(fileNameWithoutExtension))
+        .toArray(Array.ofDim[String])
+    QualifiedName(path)
   }
 
   /** Lists the source files in this package.

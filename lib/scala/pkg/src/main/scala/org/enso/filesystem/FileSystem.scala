@@ -1,6 +1,5 @@
 package org.enso.filesystem
 
-import scala.jdk.CollectionConverters._
 import java.io.{BufferedReader, BufferedWriter, File, IOException}
 import java.nio.file.Files
 import java.util.stream
@@ -54,12 +53,12 @@ trait FileSystem[F] {
     * @param file the path to get segments of.
     * @return the `file`'s segments.
     */
-  def getSegments(file: F): java.lang.Iterable[String]
+  def getSegments(file: F): Array[String]
 
   /** Gets the name of the given file.
     *
-    * @param file
-    * @return
+    * @param file the path to get the name from.
+    * @return the file name.
     */
   def getName(file: F): String
 
@@ -128,7 +127,7 @@ object FileSystem {
 
     def relativize(child: F): F = fs.relativize(file, child)
 
-    def getSegments: java.lang.Iterable[String] = fs.getSegments(file)
+    def getSegments: Array[String] = fs.getSegments(file)
 
     def getName: String = fs.getName(file)
 
@@ -160,8 +159,11 @@ object FileSystem {
     override def relativize(parent: File, child: File): File =
       parent.toPath.relativize(child.toPath).toFile
 
-    override def getSegments(file: File): java.lang.Iterable[String] =
-      file.toPath.iterator().asScala.map(_.toString).toList.asJava
+    override def getSegments(file: File): Array[String] =
+      java.util.stream.StreamSupport
+        .stream(file.toPath.spliterator(), false)
+        .map(_.toString)
+        .toArray(Array.ofDim[String])
 
     override def getName(file: File): String = file.getName
 
