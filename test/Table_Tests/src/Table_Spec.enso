@@ -120,6 +120,24 @@ spec =
             both = gt_const && gt_b
             both.to_vector.should_equal [False, False, True, Nothing, False]
 
+        it "should handle Text operations" <|
+            a = Column.from_vector 'x' ["abab", "abc", Nothing, "bca", "acca"]
+            nils = [Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            a.starts_with "ab" . to_vector . should_equal [True, True, Nothing, False, False]
+            b = ["ab", "c", "d", Nothing, "ac"]
+            a.starts_with b . to_vector . should_equal [True, False, Nothing, Nothing, True]
+            a.starts_with Nothing . to_vector . should_equal nils
+
+            a.ends_with "ca" . to_vector . should_equal [False, False, Nothing, True, True]
+            c = ["ab", "c", "d", Nothing, "cc"]
+            a.ends_with c . to_vector . should_equal [True, True, Nothing, Nothing, False]
+            a.ends_with Nothing . to_vector . should_equal nils
+
+            a.contains "c" . to_vector . should_equal [False, True, Nothing, True, True]
+            a.contains c . to_vector . should_equal [True, False, Nothing, Nothing, True]
+            a.contains Nothing . to_vector . should_equal nils
+
     describe "Masking Tables" <|
         it "should allow selecting table rows based on a boolean column" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
