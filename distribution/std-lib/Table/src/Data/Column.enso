@@ -148,6 +148,27 @@ type Column
        col = Java_Column.new [name, index, new_st].to_array
        Column col
 
+    ## Checks for each element of the column if it starts with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    starts_with : Column | Text -> Column
+    starts_with other =
+      here.run_vectorized_binary_op this "starts_with" (a -> b -> a.starts_with b) other
+
+    ## Checks for each element of the column if it ends with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    ends_with : Column | Text -> Column
+    ends_with other =
+      here.run_vectorized_binary_op this "ends_with" (a -> b -> a.ends_with b) other
+
+    ## Checks for each element of the column if it contains `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    contains : Column | Text -> Column
+    contains other =
+      here.run_vectorized_binary_op this "contains" (a -> b -> a.contains b) other
+
     ## Applies `function` to each item in this column and returns the column
        of results.
     map function =
@@ -202,10 +223,10 @@ type Column
         name = col.getName []
         storage = col.getStorage []
         json_factory = case this.storage_type of
-            Text -> Json.String
-            Integer -> Json.Number
-            Decimal -> Json.Number
-            Boolean -> Json.Boolean
+            Storage.Text -> Json.String
+            Storage.Integer -> Json.Number
+            Storage.Decimal -> Json.Number
+            Storage.Boolean -> Json.Boolean
             _ -> to_json
         storage_json = Json.Array (here.storage_to_json storage json_factory)
         fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
