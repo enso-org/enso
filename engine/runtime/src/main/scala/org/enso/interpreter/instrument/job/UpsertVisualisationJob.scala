@@ -35,7 +35,8 @@ class UpsertVisualisationJob(
       List(config.executionContextId),
       true,
       false
-    ) {
+    )
+    with ProgramExecutionSupport {
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
@@ -55,16 +56,30 @@ class UpsertVisualisationJob(
           None
 
         case Right(callable) =>
-          updateVisualisation(callable)
+          val visualisation = updateVisualisation(callable)
           ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
-          val exe = Executable(
-            config.executionContextId,
-            stack,
-            Seq(expressionId),
-            sendMethodCallUpdates = false
-          )
-          Some(exe)
+          val cachedValue = stack.headOption
+            .flatMap(frame => Option(frame.cache.get(expressionId)))
+          cachedValue match {
+            case Some(value) =>
+              emitVisualisationUpdate(
+                config.executionContextId,
+                visualisation,
+                expressionId,
+                value
+              )
+              None
+            case None =>
+              Some(
+                Executable(
+                  config.executionContextId,
+                  stack,
+                  Seq(expressionId),
+                  sendMethodCallUpdates = false
+                )
+              )
+          }
       }
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -75,7 +90,7 @@ class UpsertVisualisationJob(
 
   private def updateVisualisation(
     callable: AnyRef
-  )(implicit ctx: RuntimeContext): Unit = {
+  )(implicit ctx: RuntimeContext): Visualisation = {
     val visualisation = Visualisation(
       visualisationId,
       expressionId,
@@ -85,6 +100,7 @@ class UpsertVisualisationJob(
       config.executionContextId,
       visualisation
     )
+    visualisation
   }
 
   private def replyWithExpressionFailedError(
