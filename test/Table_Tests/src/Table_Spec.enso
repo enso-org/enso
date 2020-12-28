@@ -121,21 +121,21 @@ spec =
             both.to_vector.should_equal [False, False, True, Nothing, False]
 
         it "should handle Text operations" <|
-            a = Column.from_vector 'x' ["abab", "abc", Nothing, "bca", "acca"]
+            a = Column.from_vector 'a' ["abab", "abc", Nothing, "bca", "acca"]
             nils = [Nothing, Nothing, Nothing, Nothing, Nothing]
 
             a.starts_with "ab" . to_vector . should_equal [True, True, Nothing, False, False]
-            b = ["ab", "c", "d", Nothing, "ac"]
-            a.starts_with b . to_vector . should_equal [True, False, Nothing, Nothing, True]
+            b = Column.from_vector 'b' ["ba", "ab", "d", Nothing, "ac"]
+            a.starts_with b . to_vector . should_equal [False, True, Nothing, Nothing, True]
             a.starts_with Nothing . to_vector . should_equal nils
 
             a.ends_with "ca" . to_vector . should_equal [False, False, Nothing, True, True]
-            c = ["ab", "c", "d", Nothing, "cc"]
-            a.ends_with c . to_vector . should_equal [True, True, Nothing, Nothing, False]
+            c = Column.from_vector 'c' ["ab", "b", "d", Nothing, "cc"]
+            a.ends_with c . to_vector . should_equal [True, False, Nothing, Nothing, False]
             a.ends_with Nothing . to_vector . should_equal nils
 
             a.contains "c" . to_vector . should_equal [False, True, Nothing, True, True]
-            a.contains c . to_vector . should_equal [True, False, Nothing, Nothing, True]
+            a.contains c . to_vector . should_equal [True, True, Nothing, Nothing, True]
             a.contains Nothing . to_vector . should_equal nils
 
     describe "Masking Tables" <|
