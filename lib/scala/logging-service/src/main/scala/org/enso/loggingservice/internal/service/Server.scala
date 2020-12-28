@@ -86,10 +86,6 @@ class Server(
       .map { serverBinding =>
         bindingOption = Some(serverBinding)
       }
-      .map { id =>
-        Thread.sleep(5000)
-        id
-      }
   }
 
   /** Returns the binding that describes how to connect to the started server.
