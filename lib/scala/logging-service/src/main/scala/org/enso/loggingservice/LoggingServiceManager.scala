@@ -168,9 +168,7 @@ object LoggingServiceManager {
   ): InitializationResult = {
     this.synchronized {
       if (currentService.isDefined) {
-        throw new IllegalStateException(
-          "The logging service has already been set up."
-        )
+        throw new LoggingServiceAlreadyInitializedException()
       }
 
       val (service, result): (Service, InitializationResult) = mode match {
