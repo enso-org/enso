@@ -51,6 +51,7 @@ trait ServiceWithActorSystem extends Service {
         "akka.coordinated-shutdown.run-by-actor-system-terminate",
         ConfigValueFactory.fromAnyRef("off")
       )
+      .withValue("akka.daemonic", ConfigValueFactory.fromAnyRef("on"))
     ActorSystem(
       name,
       config,

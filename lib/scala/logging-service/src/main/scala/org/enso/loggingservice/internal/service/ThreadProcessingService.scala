@@ -1,11 +1,11 @@
 package org.enso.loggingservice.internal.service
 
 import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.internal.{
   BlockingConsumerMessageQueue,
   InternalLogger
 }
-import org.enso.loggingservice.internal.protocol.WSLogMessage
 
 import scala.util.control.NonFatal
 
@@ -47,6 +47,8 @@ trait ThreadProcessingService extends Service {
     }
 
     val thread = new Thread(() => runQueue())
+    thread.setName("logging-service-processing-thread")
+    thread.setDaemon(true)
     queueThread = Some(thread)
     thread.start()
   }
