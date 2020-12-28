@@ -11,8 +11,8 @@ import org.enso.loggingservice.printers.{
   StderrPrinterWithColors
 }
 
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 

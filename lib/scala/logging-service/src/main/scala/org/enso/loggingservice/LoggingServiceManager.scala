@@ -1,7 +1,7 @@
 package org.enso.loggingservice
 
-import org.enso.loggingservice.internal.service.{Client, Local, Server, Service}
 import org.enso.loggingservice.internal._
+import org.enso.loggingservice.internal.service.{Client, Local, Server, Service}
 import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
 import scala.concurrent.{ExecutionContext, Future}
