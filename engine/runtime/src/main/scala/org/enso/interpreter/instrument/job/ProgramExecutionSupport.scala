@@ -158,7 +158,7 @@ trait ProgramExecutionSupport {
     val logger = ctx.executionService.getLogger
     logger.log(
       Level.FINEST,
-      s"Run program $updatedVisualisations $sendMethodCallUpdates"
+      s"Run program updatedVisualisations=$updatedVisualisations sendMethodCallUpdates=$sendMethodCallUpdates"
     )
     @scala.annotation.tailrec
     def unwind(
