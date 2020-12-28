@@ -38,7 +38,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -66,7 +66,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = Some(" The foo")
             ),
             Vector()
@@ -124,11 +124,11 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "foo",
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("a", "Any", false, false, None),
-                Suggestion.Argument("b", "Any", false, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -148,7 +148,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   externalId = None,
                   "Unnamed.Test",
                   "y",
-                  "Any",
+                  SuggestionBuilder.Any,
                   Suggestion
                     .Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
                 ),
@@ -175,10 +175,10 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "foo",
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("a", "Any", false, true, Some("0"))
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, true, Some("0"))
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -218,11 +218,11 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion
                   .Argument("this", "Unnamed.Test.MyType", false, false, None),
-                Suggestion.Argument("a", "Any", false, false, None),
-                Suggestion.Argument("b", "Any", false, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -347,10 +347,10 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "foo",
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("a", "Any", true, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, true, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -421,7 +421,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -431,9 +431,9 @@ class SuggestionBuilderTest extends CompilerTest {
                   module     = "Unnamed.Test",
                   name       = "foo",
                   arguments = Seq(
-                    Suggestion.Argument("a", "Any", false, false, None)
+                    Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
                   ),
-                  returnType = "Any",
+                  returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 10)
@@ -469,7 +469,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -479,9 +479,9 @@ class SuggestionBuilderTest extends CompilerTest {
                   module     = "Unnamed.Test",
                   name       = "foo",
                   arguments = Seq(
-                    Suggestion.Argument("a", "Any", false, false, None)
+                    Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
                   ),
-                  returnType = "Any",
+                  returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(4, 10)
@@ -493,7 +493,7 @@ class SuggestionBuilderTest extends CompilerTest {
                       externalId = None,
                       module     = "Unnamed.Test",
                       name       = "b",
-                      returnType = "Any",
+                      returnType = SuggestionBuilder.Any,
                       scope = Suggestion.Scope(
                         Suggestion.Position(1, 11),
                         Suggestion.Position(3, 9)
@@ -530,7 +530,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -590,7 +590,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -637,7 +637,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -646,7 +646,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   externalId = None,
                   module     = "Unnamed.Test",
                   name       = "foo",
-                  returnType = "Any",
+                  returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 7)
@@ -682,7 +682,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -691,7 +691,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   externalId = None,
                   module     = "Unnamed.Test",
                   name       = "foo",
-                  returnType = "Any",
+                  returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(4, 7)
@@ -703,7 +703,7 @@ class SuggestionBuilderTest extends CompilerTest {
                       externalId = None,
                       module     = "Unnamed.Test",
                       name       = "b",
-                      returnType = "Any",
+                      returnType = SuggestionBuilder.Any,
                       scope = Suggestion.Scope(
                         Suggestion.Position(1, 9),
                         Suggestion.Position(3, 9)
@@ -740,7 +740,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -797,7 +797,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -834,8 +834,8 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "MyType",
               arguments = Seq(
-                Suggestion.Argument("a", "Any", false, false, None),
-                Suggestion.Argument("b", "Any", false, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
               returnType    = "Unnamed.Test.MyType",
               documentation = None
@@ -852,7 +852,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -867,7 +867,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -892,8 +892,8 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "MyType",
               arguments = Seq(
-                Suggestion.Argument("a", "Any", false, false, None),
-                Suggestion.Argument("b", "Any", false, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
               returnType    = "Unnamed.Test.MyType",
               documentation = Some(" My sweet type")
@@ -910,7 +910,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -925,7 +925,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -962,7 +962,7 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "Just",
               arguments =
-                Seq(Suggestion.Argument("a", "Any", false, false, None)),
+                Seq(Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)),
               returnType    = "Unnamed.Test.Just",
               documentation = None
             ),
@@ -978,7 +978,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.Just", false, false, None)
               ),
               selfType      = "Unnamed.Test.Just",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1018,7 +1018,7 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "Just",
               arguments = Seq(
-                Suggestion.Argument("a", "Any", false, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
               returnType    = "Unnamed.Test.Just",
               documentation = Some(" Something there")
@@ -1035,7 +1035,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.Just", false, false, None)
               ),
               selfType      = "Unnamed.Test.Just",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1148,7 +1148,7 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "Just",
               arguments = Seq(
-                Suggestion.Argument("a", "Any", false, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
               returnType    = "Unnamed.Test.Just",
               documentation = None
@@ -1165,7 +1165,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.Just", false, false, None)
               ),
               selfType      = "Unnamed.Test.Just",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1178,10 +1178,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion
                   .Argument("this", "Unnamed.Test.Nothing", false, false, None),
-                Suggestion.Argument("f", "Any", false, false, None)
+                Suggestion.Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
               selfType      = "Unnamed.Test.Nothing",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1194,10 +1194,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion
                   .Argument("this", "Unnamed.Test.Just", false, false, None),
-                Suggestion.Argument("f", "Any", false, false, None)
+                Suggestion.Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
               selfType      = "Unnamed.Test.Just",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1222,8 +1222,8 @@ class SuggestionBuilderTest extends CompilerTest {
               module     = "Unnamed.Test",
               name       = "MyType",
               arguments = Seq(
-                Suggestion.Argument("a", "Any", false, false, None),
-                Suggestion.Argument("b", "Any", false, false, None)
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
               returnType    = "Unnamed.Test.MyType",
               documentation = None
@@ -1240,7 +1240,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1255,7 +1255,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1269,7 +1269,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1348,7 +1348,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1381,7 +1381,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector()
@@ -1415,7 +1415,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -1427,9 +1427,9 @@ class SuggestionBuilderTest extends CompilerTest {
                   module = "Unnamed.Test",
                   name   = "id",
                   arguments = Seq(
-                    Suggestion.Argument("x", "Any", false, false, None)
+                    Suggestion.Argument("x", SuggestionBuilder.Any, false, false, None)
                   ),
-                  returnType = "Any",
+                  returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 28)
@@ -1468,7 +1468,7 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = SuggestionBuilder.Any,
               documentation = None
             ),
             Vector(
@@ -1479,7 +1479,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   ),
                   module     = "Unnamed.Test",
                   name       = "foo",
-                  returnType = "Any",
+                  returnType = SuggestionBuilder.Any,
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 18)

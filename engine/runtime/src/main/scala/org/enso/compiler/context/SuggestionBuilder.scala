@@ -557,6 +557,7 @@ object SuggestionBuilder {
     case class Function(signature: Vector[TypeArg]) extends TypeArg
 
   }
-  private val Any: String = "Any"
+
+  val Any: String = "Builtins.Main.Any"
 
 }
