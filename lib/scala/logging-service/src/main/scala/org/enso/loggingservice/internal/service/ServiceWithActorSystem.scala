@@ -40,7 +40,7 @@ trait ServiceWithActorSystem extends Service {
     val loggers: java.lang.Iterable[String] =
       Seq("akka.event.Logging$StandardOutLogger").asJava
     val config = ConfigFactory
-      .load()
+      .empty()
       .withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))
       .withValue(
         "akka.logging-filter",
