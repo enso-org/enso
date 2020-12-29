@@ -11,6 +11,7 @@ import * as isDev from 'electron-is-dev'
 import * as path from 'path'
 import * as pkg from '../package.json'
 import * as rootCfg from '../../../package.json'
+import * as util from 'util'
 import * as yargs from 'yargs'
 import paths from '../../../../../build/paths'
 
@@ -26,6 +27,18 @@ let windowCfg = {
     width  : 640,
     height : 640,
 }
+
+
+
+// =============
+// === Utils ===
+// =============
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1)
+}
+
+const execFile = util.promisify(child_process.execFile);
 
 
 
@@ -172,7 +185,7 @@ if (args.windowSize) {
 // ==================
 
 let versionInfo = {
-    core: rootCfg.version,
+    version: rootCfg.version,
     build: buildCfg.buildVersion,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
@@ -284,21 +297,28 @@ Electron.app.on('web-contents-created', (event,contents) => {
 // === Project Manager ===
 // =======================
 
-async function runBackend() {
+async function withBackend(opts) {
+    let binPath = args['backend-path']
+    if (!binPath) {
+        binPath = paths.get_project_manager_path(root)
+    }
+    let binExists = fss.existsSync(binPath)
+    assert(binExists, `Could not find the project manager binary at ${binPath}.`)
+
+    let out = await execFile(binPath,opts).catch(function(err) {throw err})
+    return out
+}
+
+function runBackend() {
     if(args.backend !== false) {
         console.log("Starting the backend process.")
-        let bin_path = args['backend-path']
-        if (!bin_path) {
-            bin_path = paths.get_project_manager_path(root)
-        }
-        let bin_exists = fss.existsSync(bin_path)
-        assert(bin_exists, `Could not find the project manager binary at ${bin_path}.`)
+        withBackend()
+    }
+}
 
-        child_process.execFile(bin_path, [], {stdio:'inherit', shell:true}, (error, stdout, stderr) => {
-            if (error) {
-                throw error
-            }
-        })
+async function backendVersion() {
+    if(args.backend !== false) {
+        return await withBackend(['--version']).then((t) => t.stdout)
     }
 }
 
@@ -315,7 +335,7 @@ let server     = null
 let mainWindow = null
 
 async function main() {
-    await runBackend()
+    runBackend()
     console.log("Starting the IDE.")
     if(args.server !== false) {
         let serverCfg      = Object.assign({},args)
@@ -436,11 +456,34 @@ Electron.app.on('activate', () => {
 
 Electron.app.on('ready', () => {
     if (args.version) {
-        console.log(`core     : ${versionInfo.core}`)
-        console.log(`build    : ${versionInfo.build}`)
-        console.log(`electron : ${versionInfo.electron}`)
-        console.log(`chrome   : ${versionInfo.chrome}`)
-        process.exit();
+        let indent     = ' '.repeat(4)
+        let maxNameLen = 0
+        for (let name in versionInfo) {
+            if (name.length > maxNameLen) {
+                maxNameLen = name.length
+            }
+        }
+
+        console.log("Frontend:")
+        for (let name in versionInfo) {
+            let label   = capitalizeFirstLetter(name)
+            let spacing = ' '.repeat(maxNameLen - name.length)
+            console.log(`${indent}${label}:${spacing} ${versionInfo[name]}`)
+        }
+
+        console.log("")
+        console.log("Backend:")
+        backendVersion().then((backend) => {
+            if (!backend) {
+                console.log(`${indent}No backend available.`)
+            } else {
+                let lines = backend.split(/\r?\n/)
+                for (let line of lines) {
+                    console.log(`${indent}${line}`)
+                }
+            }
+            process.exit()
+        })
     } else if (args.info) {
         printDebugInfo()
     } else {
