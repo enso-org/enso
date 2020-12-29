@@ -1810,14 +1810,16 @@ impl application::View for GraphEditor {
           , (Release     , "!node_editing" , "space" , "release_visualization_visibility")
 
           // === Selection ===
-          , (Press   , "" , "shift"          , "toggle_node_multi_select")
-          , (Release , "" , "shift"          , "toggle_node_multi_select")
-          , (Press   , "" , "shift ctrl"     , "toggle_node_merge_select")
-          , (Release , "" , "shift ctrl"     , "toggle_node_merge_select")
-          , (Press   , "" , "shift alt"      , "toggle_node_subtract_select")
-          , (Release , "" , "shift alt"      , "toggle_node_subtract_select")
-          , (Press   , "" , "shift ctrl alt" , "toggle_node_inverse_select")
-          , (Release , "" , "shift ctrl alt" , "toggle_node_inverse_select")
+          , (Press   , "" , "shift"                   , "enable_node_multi_select")
+          , (Press   , "" , "shift left-mouse-button" , "enable_node_multi_select")
+          , (Release , "" , "shift"                   , "disable_node_multi_select")
+          , (Release , "" , "shift left-mouse-button" , "disable_node_multi_select")
+          , (Press   , "" , "shift ctrl"              , "toggle_node_merge_select")
+          , (Release , "" , "shift ctrl"              , "toggle_node_merge_select")
+          , (Press   , "" , "shift alt"               , "toggle_node_subtract_select")
+          , (Release , "" , "shift alt"               , "toggle_node_subtract_select")
+          , (Press   , "" , "shift ctrl alt"          , "toggle_node_inverse_select")
+          , (Release , "" , "shift ctrl alt"          , "toggle_node_inverse_select")
 
           // === Navigation ===
           , (Press       , ""              , "ctrl space"        , "cycle_visualization_for_selected_node")
