@@ -150,7 +150,7 @@ async function download_project_manager(
 
 async function main() {
     let file_url = await get_project_manager_url()
-    await download_project_manager(file_url, true)
+    await download_project_manager(file_url, false)
 }
 
-main().then((r) => console.log(r))
+main()
