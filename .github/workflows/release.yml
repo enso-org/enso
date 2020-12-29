@@ -347,7 +347,7 @@ jobs:
           prerelease: true
 
       - name: Login to ACR
-        uses: docker/login-action@v1.6
+        uses: docker/login-action@v1
         with:
           registry: ensosharedwus2acr.azurecr.io
           username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
