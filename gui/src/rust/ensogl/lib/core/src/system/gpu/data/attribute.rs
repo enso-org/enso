@@ -3,17 +3,21 @@
 use crate::prelude::*;
 
 use crate::control::callback::CallbackFn;
-use crate::data::dirty;
 use crate::data::OptVec;
+use crate::data::dirty;
 use crate::debug::Stats;
 use crate::system::gpu::Context;
 
 use crate::data::dirty::traits::*;
 use crate::system::gpu::types::*;
 
+use std::collections::BTreeSet;
 
 
+
+// =============
 // === Types ===
+// =============
 
 newtype_copy! {
     /// Index of the attribute instance.
@@ -31,17 +35,51 @@ pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
 
 
 
-
-
-
 // ======================
 // === AttributeScope ===
 // ======================
 
 shared! { AttributeScope
-/// Scope defines a view for geometry structure. For example, there is point
-/// scope or instance scope. Scope contains buffer of data for each item it
-/// describes.
+/// Scope defines a view for geometry structure. For example, there is point scope or instance
+/// scope. Scope contains buffer of data for each item it describes.
+///
+/// # Memory management and ID re-use.
+/// TODO: The proper memory management should be implemented. Currently, after creating a lot of
+///       instances and dropping them, the memory is not freed. This section explains why and
+///       describes possible solutions.
+///
+/// Currently, the `free_ids` field keeps track of all instance indexes that are not used anymore.
+/// It is stored in a sorted container in order to preserve the display order when creating new
+/// instances (new instances appear on top of older instances if no dropping happened in the
+/// meantime). Alternative sorting solutions are described in the docs for the [`Symbol`].
+///
+/// In order to properly re-use memory, we need to free it sometimes. The following solutions are
+/// possible:
+///
+/// 1. Keeping track of all free indexes in a sorted container (like [`BTreeSet`] or the specialized
+///    [`enso_data::Diet`] and in case the biggest index is freed, iterating over the indexes and
+///    freeing as much as possible. This solution has the downside that the indexes are stored in
+///    order, so insertion and deletion is much slower than when using unordered [`Vec`]. Also, this
+///    does not work well if a instance with a big ID is kept alive, as it will prevent memory of
+///    all instances with smaller IDs from being cleaned. See benchmarks in the `enso_data::diet`
+///    module to learn more.
+///
+/// 2. Keeping track of all free indexes in an unordered container and in case the biggest index is
+///    freed, sorting the container and freeing the memory. As an optimization, the sorting might
+///    be performed after the frame (or several frames) was drawn. It's not obvious when this
+///    solution will be slower / faster than the solution (1), but time differences may be big.
+///    See benchmarks in the `enso_data::diet` module to learn more.
+///
+/// 3. Keeping track of all free indexes and in case a lot of them are free, re-ordering the
+///    instances and freeing the memory. This would require all instance-users (like [`Sprite`]s) to
+///    keep instance IDs in some kind of `Rc<Cell<ID>>`, which may slow attrib read/write down.
+///    However, this solution works well even if an instance with a big ID is kept alive. It's not
+///    obvious when this solution will be slower / faster than other ones, but time differences may
+///    be big. See benchmarks in the `enso_data::diet` module to learn more.
+///
+/// To learn more about these mechanisms and connected design decisions, read the docs of
+/// [`Symbol`], especially the "Changing attribute & GPU memory consumption" sections.
+
 #[derive(Debug)]
 pub struct AttributeScopeData {
     buffers         : OptVec<AnyBuffer>,
@@ -49,7 +87,7 @@ pub struct AttributeScopeData {
     shape_dirty     : ShapeDirty,
     buffer_name_map : HashMap<String,BufferIndex>,
     logger          : Logger,
-    free_ids        : Vec<AttributeInstanceIndex>,
+    free_ids        : BTreeSet<AttributeInstanceIndex>,
     size            : usize,
     context         : Context,
     stats           : Stats,
@@ -110,9 +148,12 @@ impl {
     pub fn add_instance(&mut self) -> AttributeInstanceIndex {
         let instance_count = 1;
         debug!(self.logger, "Adding {instance_count} instance(s).", || {
-            match self.free_ids.pop() {
-                Some(ix) => ix,
-                None     => {
+            match self.free_ids.iter().next().copied() {
+                Some(ix) => {
+                    self.free_ids.remove(&ix);
+                    ix
+                }
+                None => {
                     let ix = self.size;
                     self.size += instance_count;
                     self.buffers.iter_mut().for_each(|t| t.add_element());
@@ -129,7 +170,7 @@ impl {
             for buffer in &self.buffers {
                 buffer.set_to_default(id.into())
             }
-            self.free_ids.push(id);
+            self.free_ids.insert(id);
         })
     }
 

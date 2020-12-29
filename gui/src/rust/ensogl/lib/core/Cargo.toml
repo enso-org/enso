@@ -15,13 +15,13 @@ no_unboxed_callbacks = []
 [dependencies]
 code-builder = { path = "../../../lib/code-builder" }
 enso-callback = { path = "../../../lib/callback" }
-enso-data = { version = "0.1.1" }
+enso-data = { version = "0.1.4" }
 enso-frp = { path = "../../../lib/frp" }
 enso-generics = { version = "0.1.1" }
 enso-logger = { version = "0.2.1" }
 enso-optics = { version = "0.1.1" }
 enso-prelude = { version = "0.1.8" }
-enso-shapely = { version = "0.1.2" }
+enso-shapely = { version = "0.1.3" }
 enso-shortcuts = { path = "../../../lib/shortcuts" }
 enso-types = { path = "../../../lib/types" }
 ensogl-system-web = { path = "../../../lib/system/web" }
