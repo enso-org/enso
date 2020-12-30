@@ -12,6 +12,9 @@ public abstract class Storage {
   /** @return the number of elements in this column (including NAs) */
   public abstract int size();
 
+  /** @return the number of NA elements in this column */
+  public abstract int countMissing();
+
   /** @return the type tag of this column's storage. Must be one of {@link Type} */
   public abstract long getType();
 

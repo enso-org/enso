@@ -201,6 +201,14 @@ type Column
     length : Integer
     length = this.java_column . getSize []
 
+    ## Returns the number of missing items in this column.
+    count_missing : Integer
+    count_missing = this.java_column . countMissing []
+
+    ## Returns the number of non-null items in this column.
+    count : Integer
+    count = this.length - this.count_missing
+
     ## Returns the item contained in this column at the given index.
     at : Integer -> Any
     at index =

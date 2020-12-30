@@ -33,6 +33,12 @@ public class DoubleStorage extends Storage {
     return size;
   }
 
+  /** @inheritDoc */
+  @Override
+  public int countMissing() {
+    return isMissing.cardinality();
+  }
+
   /**
    * @param idx an index
    * @return the data item contained at the given index.
