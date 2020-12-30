@@ -169,7 +169,8 @@ object Doc {
       *
       * @param elems - lines of code
       */
-    final case class CodeBlock(elems: List1[CodeBlock.Line]) extends Elem {
+    final case class CodeBlock(elems: List1[CodeBlock.Line], isInGui: Boolean)
+        extends Elem {
       val newLn: Elem        = Elem.Newline
       val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
       val html: HTML = {
@@ -179,23 +180,36 @@ object Doc {
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
         val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
+        val btnClass     = HTML.`class` := "showCodeBtn"
         val btnStyle     = HTML.`style` := "display: flex"
+        val showBtn      = HTML.button(btnClass)("Show")
         val copyClass    = HTML.`class` := "copyCodeBtn"
         val copyBtn      = HTML.button(htmlIdBtn)(copyClass)(btnStyle)("Copy")
-        val htmlStyle    = HTML.`style` := "display: block"
-        Seq(
-          HTML.div(
-            HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
-            copyBtn
+        if (isInGui) {
+          val htmlStyle = HTML.`style` := "display: block"
+          Seq(
+            HTML.div(
+              HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
+              copyBtn
+            )
           )
-        )
+        } else {
+          val htmlStyle = HTML.`style` := "display: none"
+          Seq(
+            HTML.div(
+              showBtn,
+              HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
+              copyBtn
+            )
+          )
+        }
       }
     }
     object CodeBlock {
-      def apply(elem: CodeBlock.Line): CodeBlock = CodeBlock(List1(elem))
-      def apply(elems: CodeBlock.Line*): CodeBlock = CodeBlock(
-        List1(elems.head, elems.tail.toList)
-      )
+      def apply(elem: CodeBlock.Line): CodeBlock =
+        CodeBlock(List1(elem), isInGui = true)
+      def apply(elems: CodeBlock.Line*): CodeBlock =
+        CodeBlock(List1(elems.head, elems.tail.toList), isInGui = true)
 
       /** Inline - line of code which is in line with other elements
         * Line - elem which is a part of Code Block
@@ -276,12 +290,12 @@ object Doc {
     final case class List(indent: Int, typ: List.Type, elems: List1[Elem])
         extends Elem {
       val repr: Repr.Builder = R + indent + typ.marker + elems.head + elems.tail
-        .map {
-          case elem @ (_: Elem.Invalid) => R + Newline + elem
-          case elem @ (_: List)         => R + Newline + elem
-          case elem =>
-            R + Newline + indent + typ.marker + elem
-        }
+          .map {
+            case elem @ (_: Elem.Invalid) => R + Newline + elem
+            case elem @ (_: List)         => R + Newline + elem
+            case elem =>
+              R + Newline + indent + typ.marker + elem
+          }
 
       val html: HTML = {
         val elemsHTML = elems.toList.map {
@@ -476,8 +490,8 @@ object Doc {
   final case class Body(elems: List1[Section]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr: Repr.Builder = R + newLn + elems.head + elems.tail.map(
-      R + newLn + _
-    )
+        R + newLn + _
+      )
     val html: HTML = Seq(
       HTML.div(htmlCls())(elems.toList.map(_.html))
     )

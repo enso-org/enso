@@ -22,7 +22,8 @@ public class ThreadManager {
       };
   private final ReentrantLock lock = new ReentrantLock();
 
-  private volatile boolean safepoint = false;
+  private @CompilerDirectives.CompilationFinal Assumption safepointAssumption =
+      Truffle.getRuntime().createAssumption("Safepoint");
 
   /**
    * Registers the current thread as running guest code.
@@ -48,8 +49,9 @@ public class ThreadManager {
 
   /** Called from the interpreter to periodically perform a safepoint check. */
   public void poll() {
-    if (safepoint) {
-      CompilerDirectives.transferToInterpreter();
+    try {
+      safepointAssumption.check();
+    } catch (InvalidAssumptionException e) {
       safepointPhaser.arriveAndAwaitAdvance();
       if (Thread.interrupted()) {
         throw new ThreadInterruptedException();
@@ -72,9 +74,9 @@ public class ThreadManager {
     try {
       enter();
       try {
-        safepoint = true;
+        safepointAssumption.invalidate();
         safepointPhaser.arriveAndAwaitAdvance();
-        safepoint = false;
+        safepointAssumption = Truffle.getRuntime().createAssumption("Safepoint");
       } finally {
         leave();
       }

@@ -1,7 +1,0 @@
-## Represents different types of underlying storage for Columns.
-type Type
-    type Text
-    type Integer
-    type Decimal
-    type Boolean
-    type Any

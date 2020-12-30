@@ -21,11 +21,5 @@ dependencies, and Enso projects for use by our users.
   tool for launching various components and managing Enso versions.
 - [**Launcher CLI:**](./launcher-cli.md) Explanation of the command-line
   interface of the launcher.
-- [**Licenses:**](licenses.md) Information on gathering license information of
+- [**Licences:**](licences.md) Information on gathering license information of
   dependencies included in the distribution.
-- [**Fallback Launcher Release Infrastructure:**](fallback-launcher-release-infrastructure.md)
-  Explanation of the fallback infrastructure that can be enabled to keep
-  launcher updates functioning even if the primary release provider stops
-  working.
-- [**Local Repository:**](local-repository.md) Explanation of local repository
-  structure that is used for bundling engine with project manager distributions.
