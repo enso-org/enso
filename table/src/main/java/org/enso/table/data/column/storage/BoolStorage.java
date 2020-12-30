@@ -292,7 +292,7 @@ public class BoolStorage extends Storage {
     BitSet mask = new BitSet();
     mask.or(storage.getValues());
     if (storage.isNegated()) {
-      mask.flip(0, (int) storage.size());
+      mask.flip(0, storage.size());
     }
     mask.andNot(storage.getIsMissing());
     return mask;

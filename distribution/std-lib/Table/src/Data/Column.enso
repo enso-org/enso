@@ -141,33 +141,38 @@ type Column
        provided default.
     fill_missing : Any -> Column
     fill_missing default =
-       storage = this.java_column.getStorage []
-       index = this.java_column.getIndex []
-       name = this.java_column.getName []
-       new_st = storage.fillMissing [default]
-       col = Java_Column.new [name, index, new_st].to_array
-       Column col
+        storage = this.java_column.getStorage []
+        index = this.java_column.getIndex []
+        name = this.java_column.getName []
+        new_st = storage.fillMissing [default]
+        col = Java_Column.new [name, index, new_st].to_array
+        Column col
+
+    ## Returns a new column without rows that had missing values.
+    drop_missing : Any -> Column
+    drop_missing =
+        this.where this.is_missing.not
 
     ## Checks for each element of the column if it starts with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     starts_with : Column | Text -> Column
     starts_with other =
-      here.run_vectorized_binary_op this "starts_with" (a -> b -> a.starts_with b) other
+        here.run_vectorized_binary_op this "starts_with" (a -> b -> a.starts_with b) other
 
     ## Checks for each element of the column if it ends with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     ends_with : Column | Text -> Column
     ends_with other =
-      here.run_vectorized_binary_op this "ends_with" (a -> b -> a.ends_with b) other
+        here.run_vectorized_binary_op this "ends_with" (a -> b -> a.ends_with b) other
 
     ## Checks for each element of the column if it contains `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     contains : Column | Text -> Column
     contains other =
-      here.run_vectorized_binary_op this "contains" (a -> b -> a.contains b) other
+        here.run_vectorized_binary_op this "contains" (a -> b -> a.contains b) other
 
     ## Applies `function` to each item in this column and returns the column
        of results.
