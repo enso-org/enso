@@ -583,7 +583,7 @@ pub fn forward_panic_hook_to_console() {
 
 /// Enables throwing a descriptive JavaScript error on panics.
 pub fn forward_panic_hook_to_error() {
-    panic::set_hook(Box::new(error_throwing_panic_hook));
+    std::panic::set_hook(Box::new(error_throwing_panic_hook));
 }
 
 #[wasm_bindgen(module = "/js/rust_panic.js")]
@@ -592,7 +592,7 @@ extern "C" {
     fn new_panic_error(message:String) -> JsValue;
 }
 
-fn error_throwing_panic_hook(panic_info:&panic::PanicInfo) {
+fn error_throwing_panic_hook(panic_info:&std::panic::PanicInfo) {
     wasm_bindgen::throw_val(new_panic_error(panic_info.to_string()));
 }
 
