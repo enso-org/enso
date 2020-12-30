@@ -1,15 +1,18 @@
 package org.enso.table.data.table;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
+import org.enso.table.data.index.Index;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
-
-import java.util.*;
-import java.util.stream.Collectors;
+import org.enso.table.error.UnexpectedShapeException;
 
 /** A representation of a table structure. */
 public class Table {
@@ -39,7 +42,7 @@ public class Table {
     if (columns == null || columns.length == 0) {
       return 0;
     } else {
-      return columns[0].getStorage().size();
+      return columns[0].getSize();
     }
   }
 
@@ -74,13 +77,12 @@ public class Table {
     if (!(maskCol.getStorage() instanceof BoolStorage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
-    BoolStorage storage = (BoolStorage) maskCol.getStorage();
-    BitSet mask = new BitSet();
-    mask.or(storage.getValues());
-    if (storage.isNegated()) {
-      mask.flip(0, (int) storage.size());
+    if (maskCol.getSize() != nrows()) {
+      throw new UnexpectedShapeException(nrows() + " rows", maskCol.getSize() + " rows");
     }
-    mask.andNot(storage.getIsMissing());
+
+    BoolStorage storage = (BoolStorage) maskCol.getStorage();
+    var mask = BoolStorage.toMask(storage);
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
     Index newIx = index.mask(mask, cardinality);

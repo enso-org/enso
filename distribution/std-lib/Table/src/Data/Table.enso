@@ -60,15 +60,18 @@ type Table
          Select only the rows of `my_table` where the `"Status"` column has the
          value `"Valid"`
              my_table.where (my_table.at "Status" == "Valid")
+    where : Column -> Table
     where indexes =
         Table (this.java_table.mask [indexes.java_column])
 
     ## Sets the column value at the given name. If a column with the given name
        already exists, it will be replaced. Otherwise a new column is added.
+    set : Text -> Column -> Table
     set name column =
         Table (this.java_table.addOrReplaceColumn [column.rename name . java_column])
 
     ## Returns the vector of columns contained in this table.
+    columns : Vector
     columns =
         Vector.Vector (this.java_table.getColumns []) . map Column.Column
 
@@ -78,6 +81,7 @@ type Table
         Table (this.java_table.indexFromColumn [index])
 
     ## Selects a subset of columns from this table by name.
+    select : Vector -> Table
     select columns = Table (this.java_table.selectColumns [columns.to_array])
 
     ## Efficiently joins two tables based on either the index or a key column.
