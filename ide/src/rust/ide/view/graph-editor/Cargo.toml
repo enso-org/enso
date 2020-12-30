@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { version = "0.1.0", path = "../../lib/ast/impl" }
+enso-args = { version = "0.1.0", path = "../../lib/args" }
 enso-frp = { version = "0.1.0", path = "../../../lib/frp" }
 enso-logger = { version = "0.2.1" }
 enso-prelude = { version = "0.1.8" }

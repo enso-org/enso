@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: Enso IDE (Linux, AppImage)
-          path: dist/client/Enso Studio-2.0.0-alpha.0.AppImage
+          path: dist/client/Enso-2.0.0-alpha.0.AppImage
         if: matrix.os == 'ubuntu-latest'
 
       - name: Upload Artifacts (Ubuntu, not packed)
@@ -68,7 +68,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         with:
           name: Enso IDE (Windows, installer)
-          path: dist/client/Enso Studio Setup 2.0.0-alpha.0.exe
+          path: dist/client/Enso Setup 2.0.0-alpha.0.exe
 
       - name: Upload Artifacts (Windows, not packed)
         uses: actions/upload-artifact@v1
@@ -82,11 +82,11 @@ jobs:
         if: matrix.os == 'macos-latest'
         with:
           name: Enso IDE (macOS, dmg)
-          path: dist/client/Enso Studio-2.0.0-alpha.0.dmg
+          path: dist/client/Enso-2.0.0-alpha.0.dmg
 
       - name: Upload Artifacts (macOS, app)
         uses: actions/upload-artifact@v1
         if: matrix.os == 'macos-latest'
         with:
           name: Enso IDE (macOS, app)
-          path: dist/client/mac/Enso Studio.app
+          path: dist/client/mac/Enso.app

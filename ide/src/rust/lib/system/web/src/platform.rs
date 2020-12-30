@@ -1,63 +1,114 @@
 //! This module provides helpers for platform specific logic.
 
+use std::convert::TryFrom;
+
+
+
 // ================
 // === Platform ===
 // ================
 
 /// This enumeration lists all the supported platforms.
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug,Clone,Copy,PartialEq,Eq)]
 pub enum Platform {
     Android,
+    FreeBSD,
     IOS,
     Linux,
     MacOS,
+    OpenBSD,
     Windows,
-
-    Unknown
 }
 pub use Platform::*;
 
-/// Queries which platform we are on.
-#[cfg(target_arch = "wasm32")]
-pub fn current() -> Platform {
-    use super::window;
-    let window    = window();
-    let navigator = window.navigator();
-    let platform  = navigator.platform().unwrap_or_else(|_| "Unknown".into()).to_lowercase();
-    let agent     = navigator.user_agent().unwrap_or_else(|_| "Unknown".into()).to_lowercase();
+#[allow(missing_docs)]
+impl Platform {
+    pub fn is_android (self) -> bool { self == Android }
+    pub fn is_freebsd (self) -> bool { self == FreeBSD }
+    pub fn is_ios     (self) -> bool { self == IOS }
+    pub fn is_linux   (self) -> bool { self == Linux }
+    pub fn is_macos   (self) -> bool { self == MacOS }
+    pub fn is_openbsd (self) -> bool { self == OpenBSD }
+    pub fn is_windows (self) -> bool { self == Windows }
+}
 
-    if platform.find("mac").is_some() {
-        Platform::MacOS
-    } else if platform.find("win").is_some() {
-        Platform::Windows
-    } else if platform.find("ipad").is_some() || platform.find("iphone").is_some() {
-        Platform::IOS
-    } else if platform.find("android").is_some() || agent.find("android").is_some() {
-        Platform::Android
-    } else if platform.find("linux").is_some() {
-        Platform::Linux
-    } else {
-        Platform::Unknown
+#[derive(Clone,Copy,Debug)]
+pub struct UnknownPlatform;
+
+impl TryFrom<&str> for Platform {
+    type Error = UnknownPlatform;
+    #[allow(clippy::if_same_then_else)]
+    fn try_from(s:&str) -> Result<Self,Self::Error> {
+        let name = s.to_lowercase();
+        if      name.find("darwin").is_some()  { Ok(MacOS) }
+        else if name.find("mac").is_some()     { Ok(MacOS) }
+        else if name.find("linux").is_some()   { Ok(Linux) }
+        // CAREFUL: this matches also "darwin" (that's why its declared below):
+        else if name.find("win").is_some()     { Ok(Windows) }
+        else if name.find("ios").is_some()     { Ok(IOS) }
+        else if name.find("iphone").is_some()  { Ok(IOS) }
+        else if name.find("ipad").is_some()    { Ok(IOS) }
+        else if name.find("android").is_some() { Ok(Android) }
+        else if name.find("freebsd").is_some() { Ok(FreeBSD) }
+        else if name.find("openbsd").is_some() { Ok(OpenBSD) }
+        else if name.find("bsd").is_some()     { Ok(FreeBSD) }
+        else                                   { Err(UnknownPlatform) }
     }
+}
+
+impl TryFrom<String> for Platform {
+    type Error = UnknownPlatform;
+    fn try_from(s:String) -> Result<Self,Self::Error> {
+        Platform::try_from(s.as_str())
+    }
+}
+
+
+
+// ================================
+// === Compile Time Redirection ===
+// ================================
+
+/// Queries which platform we are on.
+#[cfg(target_arch="wasm32")]
+pub fn current() -> Option<Platform> {
+    current_wasm()
 }
 
 /// Queries which platform we are on.
 #[cfg(not(target_arch="wasm32"))]
-pub fn current() -> Platform {
-    target_os()
+pub fn current() -> Option<Platform> {
+    current_native()
 }
 
 
 
-// =================
-// === Target OS ===
-// =================
+// ====================
+// === Current WASM ===
+// ====================
 
-#[cfg(target_os="android")] fn target_os() -> Platform { Android }
-#[cfg(target_os="ios")]     fn target_os() -> Platform { IOS }
-#[cfg(target_os="linux")]   fn target_os() -> Platform { Linux }
-#[cfg(target_os="macos")]   fn target_os() -> Platform { MacOS }
-#[cfg(target_os="windows")] fn target_os() -> Platform { Windows }
+/// Queries which platform we are on.
+#[allow(clippy::if_same_then_else)]
+pub fn current_wasm() -> Option<Platform> {
+    use super::window;
+    let window    = window();
+    let navigator = window.navigator();
+    let platform  = navigator.platform().unwrap_or_default().to_lowercase();
+    let agent     = navigator.user_agent().unwrap_or_default().to_lowercase();
+    Platform::try_from(platform).or_else(|_|Platform::try_from(agent)).ok()
+}
+
+
+
+// ======================
+// === Current Native ===
+// ======================
+
+#[cfg(target_os="android")] fn current_native() -> Option<Platform> { Some(Android) }
+#[cfg(target_os="ios")]     fn current_native() -> Option<Platform> { Some(IOS) }
+#[cfg(target_os="linux")]   fn current_native() -> Option<Platform> { Some(Linux) }
+#[cfg(target_os="macos")]   fn current_native() -> Option<Platform> { Some(MacOS) }
+#[cfg(target_os="windows")] fn current_native() -> Option<Platform> { Some(Windows) }
 
 #[cfg(not(any(
     target_arch = "wasm32",
@@ -66,7 +117,7 @@ pub fn current() -> Platform {
     target_os   = "linux",
     target_os   = "macos",
     target_os   = "windows"
-)))] fn target_os() -> Platform { Unknown }
+)))] fn current_native() -> Option<Platform> { None }
 
 
 
@@ -85,6 +136,6 @@ mod test {
 
     #[wasm_bindgen_test]
     fn platform() {
-        assert_eq!(current(),target_os())
+        assert_eq!(current(),current_native())
     }
 }

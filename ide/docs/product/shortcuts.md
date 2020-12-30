@@ -34,6 +34,10 @@ further investigation.
 | <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>shift</kbd>+<kbd>t</kbd> | Toggle light/dark application style. Currently doesn't work properly, as the Theme Switcher is not created yet. (https://github.com/enso-org/ide/issues/795)|
 | <kbd>ctrl</kbd>+<kbd>`</kbd>                                | Show Code Editor |
 | <kbd>meta</kbd>+<kbd>s</kbd>                                | Save module |
+| <kbd>cmd</kbd>+<kbd>q</kbd>                                 | Close the application (MacOS) |
+| <kbd>ctrl</kbd>+<kbd>q</kbd>                                | Close the application (Linux) |
+| <kbd>alt</kbd>+<kbd>F4</kbd>                                | Close the application (MacOS, Windows, Linux) |
+| <kbd>ctrl</kbd>+<kbd>w</kbd>                                | Close the application (Windows, Linux) |
 
 
 #### Navigation
@@ -106,6 +110,10 @@ further investigation.
 #### Debug
 | Shortcut | Action |
 | -------- | ------ |
-| <kbd>ctrl</kbd> + <kbd>d</kbd>                           | Send test data to the selected node. |
-| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>enter</kbd>    | Push a hardcoded breadcrumb without navigating. |
-| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>arrow up</kbd> | Pop a breadcrumb without navigating. |
+| <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>i</kbd> | Open the developer console. |
+| <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>r</kbd> | Reload the visual interface. |
+| <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>0 - 10</kbd>               | Switch between debug rendering modes (0 is the normal mode). |
+| <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>`</kbd>                    | Toggle profiling monitor (performance, memory usage, etc). |
+| <kbd>ctrl</kbd> + <kbd>d</kbd>                                     | Send test data to the selected node. |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>enter</kbd>              | Push a hardcoded breadcrumb without navigating. |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>arrow up</kbd>           | Pop a breadcrumb without navigating. |

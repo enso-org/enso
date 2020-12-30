@@ -12,8 +12,8 @@ function get_build_config() {
 const build = get_build_config()
 
 let config = {
-    name: "enso-studio-client",
-    description: "The standalone client for the Enso IDE.",
+    name: "Enso",
+    description: "Enso Data Processing Environment.",
     main: "index.js",
 
     dependencies: {
@@ -29,8 +29,8 @@ let config = {
         "compression-webpack-plugin": "^3.1.0",
         "copy-webpack-plugin": "^5.1.1",
         "devtron": "^1.4.0",
-        "electron": "8.5.2",
-        "electron-builder": "^22.3.2"
+        "electron": "11.1.1",
+        "electron-builder": "^22.9.1"
     },
 
     scripts: {
@@ -41,8 +41,8 @@ let config = {
 }
 
 config.build = {
-    appId: 'org.enso.studio',
-    productName: 'Enso Studio',
+    appId: 'org.enso',
+    productName: 'Enso',
     copyright: 'Copyright © 2020 ${author}.',
     mac: {
         icon: `${paths.dist.root}/icons/icon.icns`,
@@ -66,12 +66,7 @@ config.build = {
             ext: 'enso',
             name: 'Enso Source File',
             role: 'Editor',
-        },
-        {
-            ext: 'enso-studio',
-            name: 'Enso Studio Project',
-            role: 'Editor',
-        },
+        }
     ],
     directories: {
         output: paths.dist.client,

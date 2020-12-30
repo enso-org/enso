@@ -20,7 +20,7 @@
             maximum-scale = 1.0,
             user-scalable = no"
         />
-        <title>Enso IDE</title>
+        <title>Enso</title>
         <style>
             html, body {
                 width  : 100vw;
@@ -43,6 +43,7 @@
                 margin   : 0;
                 position : absolute;
                 z-index  : 10;
+                cursor   : none;
                 -webkit-app-region  : drag;
                 -webkit-user-select : none;
             }
@@ -72,6 +73,7 @@
         <script type="module" src="/assets/run.js" defer></script>
     </head>
     <body>
+        <div class="titlebar"></div>
         <div id="root"></div>
         <noscript>
             This page requires JavaScript to run. Please enable it in your browser.

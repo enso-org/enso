@@ -185,7 +185,7 @@ impl WithProjectManager {
     /// Look for the project with the name specified when constructing this initializer,
     /// or, if it does not exist, create it. The id of found/created project is returned.
     pub async fn get_project_or_create_new(&self) -> FallibleResult<Uuid> {
-        let project          = self.lookup_project().await;
+        let project           = self.lookup_project().await;
         if let Ok(project_id) = project {
             Ok(project_id)
         } else {

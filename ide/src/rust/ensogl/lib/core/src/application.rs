@@ -1,5 +1,6 @@
 //! Application top-level structure definition. Handles views, keyboard shortcuts and more.
 
+pub mod args;
 pub mod command;
 pub mod shortcut;
 pub mod view;

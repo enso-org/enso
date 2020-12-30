@@ -10,6 +10,7 @@ members = [
   "ensogl/lib/text/msdf-sys",
   "ensogl/lib/text",
   "ide",
+  "ide/lib/args",
   "ide/lib/ast/impl",
   "ide/lib/ast/macros",
   "ide/lib/enso-protocol",

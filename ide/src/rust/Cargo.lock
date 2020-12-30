@@ -459,6 +459,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-args"
+version = "0.1.0"
+dependencies = [
+ "enso-logger 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ensogl 0.1.0",
+]
+
+[[package]]
 name = "enso-automata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1240,6 +1249,7 @@ dependencies = [
  "ast 0.1.0",
  "bimap 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-args 0.1.0",
  "enso-callback 0.1.0",
  "enso-data 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-frp 0.1.0",
@@ -1309,6 +1319,7 @@ name = "ide-view-graph-editor"
 version = "0.1.0"
 dependencies = [
  "ast 0.1.0",
+ "enso-args 0.1.0",
  "enso-frp 0.1.0",
  "enso-logger 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-prelude 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
