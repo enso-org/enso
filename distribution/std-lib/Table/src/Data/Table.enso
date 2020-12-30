@@ -108,6 +108,11 @@ type Table
     nrows : Integer
     nrows = this.java_table.nrows []
 
+    info : Table
+    info =
+      cols = this.columns
+      Table.new [["Column", cols.map name], ["Items Count", cols.map count], ["Storage Type", cols.map storage_type]]
+
 ## PRIVATE
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
 
