@@ -16,6 +16,8 @@ import * as globalConfig  from '../../../../config.yaml'
 let API = {}
 window[globalConfig.windowAppScopeName] = API
 
+import cfg from '../../../config'
+
 
 
 // ========================
@@ -43,10 +45,10 @@ function wasm_instantiate_streaming(resource,imports) {
 
 /// Downloads the WASM binary and its dependencies. Displays loading progress bar unless provided
 /// with `{no_loader:true}` option.
-async function download_content(cfg) {
+async function download_content(urlCfg) {
     let wasm_glue_fetch = await fetch('/assets/wasm_imports.js')
     let wasm_fetch      = await fetch('/assets/ide.wasm')
-    let loader          = new loader_module.Loader([wasm_glue_fetch,wasm_fetch],cfg)
+    let loader          = new loader_module.Loader([wasm_glue_fetch,wasm_fetch],urlCfg)
 
     loader.done.then(() => {
         console.groupEnd()
@@ -190,6 +192,123 @@ window.logsBuffer = logsBuffer
 
 
 
+// ======================
+// === Crash Handling ===
+// ======================
+
+function initCrashHandling() {
+    setupCrashDetection()
+    if (previousCrashMessageExists()) {
+        showCrashBanner(getPreviousCrashMessage())
+        clearPreviousCrashMessage()
+    }
+}
+
+const crashMessageStorageKey = "crash-message"
+
+function previousCrashMessageExists() {
+    return sessionStorage.getItem(crashMessageStorageKey) !== null
+}
+
+function getPreviousCrashMessage() {
+    return sessionStorage.getItem(crashMessageStorageKey)
+}
+
+function storeLastCrashMessage(message) {
+    sessionStorage.setItem(crashMessageStorageKey, message)
+}
+
+function clearPreviousCrashMessage() {
+    sessionStorage.removeItem(crashMessageStorageKey)
+}
+
+
+// === Crash detection ===
+
+function setupCrashDetection() {
+    // This will only have an effect if the GUI is running in V8.
+    // (https://v8.dev/docs/stack-trace-api#compatibility)
+    Error.stackTraceLimit = 100
+
+    window.addEventListener('error', function (event) {
+        // We prefer stack traces over plain error messages but not all browsers produce traces.
+        handleCrash(event.error.stack || event.message)
+    })
+    window.addEventListener('unhandledrejection', function (event) {
+        // As above, we prefer stack traces.
+        // But here, `event.reason` is not even guaranteed to be an `Error`.
+        handleCrash(event.reason.stack || event.reason.message || "Unhandled rejection")
+    })
+}
+
+function handleCrash(message) {
+    if (document.getElementById(crashBannerId) === null) {
+        storeLastCrashMessage(message)
+        location.reload()
+    } else {
+        for (let element of [... document.body.childNodes]) {
+            if (element.id !== crashBannerId) {
+                element.remove()
+            }
+        }
+        document.getElementById(crashBannerContentId).insertAdjacentHTML("beforeend",
+            `<hr>
+             <div>A second error occurred. This time, the IDE will not automatically restart.</div>`)
+    }
+}
+
+
+// === Crash recovery ===
+
+// Those IDs should be the same that are used in index.html.
+const crashBannerId = "crash-banner"
+const crashBannerContentId = "crash-banner-content"
+const crashReportButtonId = "crash-report-button"
+const crashBannerCloseButtonId = "crash-banner-close-button"
+
+function showCrashBanner(message) {
+    document.body.insertAdjacentHTML('afterbegin',
+        `<div id="${crashBannerId}">
+            <button id="${crashBannerCloseButtonId}" class="icon-button">✖</button>
+            <div id="${crashBannerContentId}">
+                <button id="${crashReportButtonId}">Report</button>
+                An internal error occurred and the Enso IDE has been restarted.
+            </div>
+        </div>`
+    )
+
+    const banner = document.getElementById(crashBannerId)
+    const content = document.getElementById(crashBannerContentId)
+    const report_button = document.getElementById(crashReportButtonId)
+    const close_button = document.getElementById(crashBannerCloseButtonId)
+
+    report_button.onclick = async _event => {
+        try {
+            await reportCrash(message)
+            content.textContent = "Thank you, the crash was reported."
+        } catch (e) {
+            content.textContent = "The crash could not be reported."
+        }
+    }
+    close_button.onclick = () => {
+        banner.remove()
+    }
+}
+
+async function reportCrash(message) {
+    const crashReportHost = getUrlParams().crashReportHost || cfg.defaultLogServerHost
+    await fetch(`http://${crashReportHost}/`, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain'
+        },
+        body: message
+      })
+}
+
+
+
 // ========================
 // === Main Entry Point ===
 // ========================
@@ -234,6 +353,7 @@ API.main = async function (inputConfig) {
     let config    = Object.assign({},inputConfig,urlConfig)
     API[globalConfig.windowAppScopeConfigName] = config
 
+    initCrashHandling()
     style_root()
     printScamWarning()
     hideLogs()

@@ -580,6 +580,29 @@ pub fn forward_panic_hook_to_console() {
     console_error_panic_hook::set_once();
 }
 
+
+/// Enables throwing a descriptive JavaScript error on panics.
+pub fn forward_panic_hook_to_error() {
+    panic::set_hook(Box::new(error_throwing_panic_hook));
+}
+
+#[wasm_bindgen(module = "/js/rust_panic.js")]
+extern "C" {
+    #[allow(unsafe_code)]
+    fn new_panic_error(message:String) -> JsValue;
+}
+
+fn error_throwing_panic_hook(panic_info:&panic::PanicInfo) {
+    wasm_bindgen::throw_val(new_panic_error(panic_info.to_string()));
+}
+
+#[wasm_bindgen]
+pub fn entry_point_panic() {
+    forward_panic_hook_to_error();
+    panic!();
+}
+
+
 /// Common traits.
 pub mod traits {
     pub use super::NodeInserter;

@@ -87,7 +87,7 @@ pub mod prelude {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_ide() {
-    web::forward_panic_hook_to_console();
+    web::forward_panic_hook_to_error();
     web::set_stdout();
 
     // FIXME: This code is temporary. It's used to remove the loader UI.
