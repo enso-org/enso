@@ -228,7 +228,7 @@ case object SuspendedArguments extends IRPass {
       case (arg, typ) =>
         arg match {
           case spec: IR.DefinitionArgument.Specified =>
-            if (representsSuspended(typ)) {
+            if (representsSuspended(typ) || spec.suspended) {
               spec.copy(suspended = true)
             } else spec.copy(suspended = false)
         }

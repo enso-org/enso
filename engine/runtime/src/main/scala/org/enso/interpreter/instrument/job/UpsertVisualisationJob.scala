@@ -17,8 +17,7 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import scala.util.control.NonFatal
 
-/**
-  * A job that upserts a visualisation.
+/** A job that upserts a visualisation.
   *
   * @param requestId maybe a request id
   * @param visualisationId an identifier of visualisation
@@ -36,9 +35,10 @@ class UpsertVisualisationJob(
       List(config.executionContextId),
       true,
       false
-    ) {
+    )
+    with ProgramExecutionSupport {
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
     ctx.locking.acquireContextLock(config.executionContextId)
     ctx.locking.acquireWriteCompilationLock()
@@ -56,12 +56,30 @@ class UpsertVisualisationJob(
           None
 
         case Right(callable) =>
-          updateVisualisation(callable)
+          val visualisation = updateVisualisation(callable)
           ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
-          val exe =
-            Executable(config.executionContextId, stack, Seq(expressionId))
-          Some(exe)
+          val cachedValue = stack.headOption
+            .flatMap(frame => Option(frame.cache.get(expressionId)))
+          cachedValue match {
+            case Some(value) =>
+              emitVisualisationUpdate(
+                config.executionContextId,
+                visualisation,
+                expressionId,
+                value
+              )
+              None
+            case None =>
+              Some(
+                Executable(
+                  config.executionContextId,
+                  stack,
+                  Seq(expressionId),
+                  sendMethodCallUpdates = false
+                )
+              )
+          }
       }
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -72,7 +90,7 @@ class UpsertVisualisationJob(
 
   private def updateVisualisation(
     callable: AnyRef
-  )(implicit ctx: RuntimeContext): Unit = {
+  )(implicit ctx: RuntimeContext): Visualisation = {
     val visualisation = Visualisation(
       visualisationId,
       expressionId,
@@ -82,6 +100,7 @@ class UpsertVisualisationJob(
       config.executionContextId,
       visualisation
     )
+    visualisation
   }
 
   private def replyWithExpressionFailedError(
@@ -95,8 +114,8 @@ class UpsertVisualisationJob(
     )
   }
 
-  private def replyWithModuleNotFoundError()(
-    implicit ctx: RuntimeContext
+  private def replyWithModuleNotFoundError()(implicit
+    ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(
       Api.Response(
@@ -130,18 +149,15 @@ class UpsertVisualisationJob(
 
 object UpsertVisualisationJob {
 
-  /**
-    * Base trait for evaluation failures.
+  /** Base trait for evaluation failures.
     */
   sealed trait EvalFailure
 
-  /**
-    * Signals that a module cannot be found.
+  /** Signals that a module cannot be found.
     */
   case object ModuleNotFound extends EvalFailure
 
-  /**
-    * Signals that an evaluation of an expression failed.
+  /** Signals that an evaluation of an expression failed.
     *
     * @param msg the textual reason of a failure
     */

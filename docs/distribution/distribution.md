@@ -47,15 +47,15 @@ directories, as explained below.
 
 ### Portable Enso Distribution Layout
 
-All files in the directory structure, except for configuration, can be safely
-removed and the launcher will re-download them if needed.
+All files in the directory structure, except for the configuration, can be
+safely removed, and the launcher will re-download them if needed.
 
 The directory structure is as follows:
 
 ```
 extraction-location
 ├── bin
-│   └── enso                # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+│   └── enso                # The universal launcher, responsible for choosing the appropriate compiler version.
 ├── config
 │   └── global-config.yaml  # Global user configuration.
 ├── dist                    # Per-compiler-version distribution directories.
@@ -78,9 +78,8 @@ extraction-location
 │   ├── lts-1.56.7.yaml
 │   └── lts-2.0.8.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
-├── .enso.portable          # An empty file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
-├── NOTICE                  # A copyright notice regarding components that are included in the distribution of the universal launcher.
-└── components-licences     # Contains licences of distributed components, as described in the NOTICE.
+├── .enso.portable          # A file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
+└── THIRD-PARTY             # Contains licences of distributed components, including the NOTICE file.
 ```
 
 ### Installed Enso Distribution Layout
@@ -113,7 +112,7 @@ ENSO_CONFIG_DIRECTORY
 └── global-config.yaml      # Global user configuration.
 
 ENSO_BIN_DIRECTORY
-└── enso                    # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+└── enso                    # The universal launcher, responsible for choosing the appropriate compiler version.
 ```
 
 Where `ENSO_DATA_DIRECTORY`, `ENSO_CONFIG_DIRECTORY` and `ENSO_BIN_DIRECTORY`
@@ -124,11 +123,13 @@ they do not have to be set, as they use system-specific defaults.
 If not set, each of these three environment variables defaults to the following
 value, depending on the system:
 
-|                         | Linux                                                              | macOS                                         | Windows                      |
-| ----------------------- | ------------------------------------------------------------------ | --------------------------------------------- | ---------------------------- |
-| `ENSO_DATA_DIRECTORY`   | `$XDG_DATA_HOME/enso/` which defaults to `$HOME/.local/share/enso` | `$HOME/Library/Application Support/org.enso/` | `%LocalAppData%/enso`        |
-| `ENSO_CONFIG_DIRECTORY` | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`    | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
-| `ENSO_BIN_DIRECTORY`    | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`               | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
+|                          | Linux                                                               | macOS                                         | Windows                      |
+| ------------------------ | ------------------------------------------------------------------- | --------------------------------------------- | ---------------------------- |
+| `ENSO_DATA_DIRECTORY`    | `$XDG_DATA_HOME/enso/` which defaults to `$HOME/.local/share/enso`  | `$HOME/Library/Application Support/org.enso/` | `%LocalAppData%/enso`        |
+| `ENSO_CONFIG_DIRECTORY`  | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`     | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
+| `ENSO_BIN_DIRECTORY`     | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`                | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
+| `ENSO_RUNTIME_DIRECTORY` | `$XDG_RUNTIME_DIR/enso/` or if its missing, `ENSO_DATA_DIRECTORY`   | `ENSO_DATA_DIRECTORY`                         | `%LocalAppData%/enso`        |
+| `ENSO_LOG_DIRECTORY`     | `$XDG_CACHE_HOME/enso` or if its missing, `ENSO_DATA_DIRECTORY/log` | `$HOME/Library/Logs/org.enso/`                | `%LocalAppData%/enso/log`    |
 
 ### Installing from a Portable Distribution
 
@@ -162,6 +163,9 @@ enso-1.0.0
 ├── component        # Contains all the executable tools and their dependencies.
 │   ├── runner.jar   # The main executable of the distribution. CLI entry point.
 │   └── runtime.jar  # The language runtime. It is loaded by other JVM components, like the runner.
+├── native-libraries # Contains all shared libraries that are used by JVM components.
+│   └── parser.so    # The language parser. It is loaded by the runtime component.
+│                    # Alternative extensions are .dll Windows and .dylib on Mac.
 └── std-lib          # Contains all the libraries that are pre-installed within that compiler version.
     ├── Http         # Every version sub-directory is just an Enso package containing the library.
     │     ├── package.yaml

@@ -1,0 +1,1 @@
+//! Associativity inference for Enso.

@@ -7,13 +7,14 @@ import java.util.UUID
 import io.circe.literal._
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, RetrySpec}
 
 import scala.io.Source
 
 class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
+    with RetrySpec
     with ProjectManagementOps {
 
   "project/create" must {
@@ -490,7 +491,7 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
-    "move project dir on project close" taggedAs Flaky in {
+    "move project dir on project close".taggedAs(Retry, Flaky) in {
       implicit val client = new WsTestClient(address)
       //given
       val projectId = createProject("foo")

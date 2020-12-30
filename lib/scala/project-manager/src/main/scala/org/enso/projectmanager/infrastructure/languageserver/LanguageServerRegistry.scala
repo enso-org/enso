@@ -19,23 +19,31 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
   StopServer
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
+import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
+import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
-/**
-  * An actor that routes request regarding lang. server lifecycle to the
+/** An actor that routes request regarding lang. server lifecycle to the
   * right controller that manages the server.
-  * It creates a controller actor, if a server doesn't exists.
+  * It creates a controller actor, if a server doesn't exist.
   *
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
+  * @param distributionConfiguration configuration of the distribution
+  * @param loggingServiceDescriptor a logging service configuration descriptor
+  * @param executor an executor service used to start the language server
+  *                 process
   */
 class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
   supervisionConfig: SupervisionConfig,
-  timeoutConfig: TimeoutConfig
+  timeoutConfig: TimeoutConfig,
+  distributionConfiguration: DistributionConfiguration,
+  loggingServiceDescriptor: LoggingServiceDescriptor,
+  executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -45,7 +53,7 @@ class LanguageServerRegistry(
   private def running(
     serverControllers: Map[UUID, ActorRef] = Map.empty
   ): Receive = {
-    case msg @ StartServer(_, project) =>
+    case msg @ StartServer(_, project, engineVersion, progressTracker) =>
       if (serverControllers.contains(project.id)) {
         serverControllers(project.id).forward(msg)
       } else {
@@ -53,10 +61,15 @@ class LanguageServerRegistry(
           LanguageServerController
             .props(
               project,
+              engineVersion,
+              progressTracker,
               networkConfig,
               bootloaderConfig,
               supervisionConfig,
-              timeoutConfig
+              timeoutConfig,
+              distributionConfiguration,
+              loggingServiceDescriptor,
+              executor
             ),
           s"language-server-controller-${project.id}"
         )
@@ -105,34 +118,42 @@ class LanguageServerRegistry(
 
 object LanguageServerRegistry {
 
-  /**
-    * A notification informing that a server has shut down.
+  /** A notification informing that a server has shut down.
     *
     * @param projectId a project id
     */
   case class ServerShutDown(projectId: UUID)
 
-  /**
-    *  Creates a configuration object used to create a [[LanguageServerRegistry]].
+  /**  Creates a configuration object used to create a [[LanguageServerRegistry]].
     *
     * @param networkConfig a net config
     * @param bootloaderConfig a bootloader config
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
-    * @return
+    * @param distributionConfiguration configuration of the distribution
+    * @param executor an executor service used to start the language server
+    *                 process
+    * @param loggingServiceDescriptor a logging service configuration descriptor
+    * @return a configuration object
     */
   def props(
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
     supervisionConfig: SupervisionConfig,
-    timeoutConfig: TimeoutConfig
+    timeoutConfig: TimeoutConfig,
+    distributionConfiguration: DistributionConfiguration,
+    loggingServiceDescriptor: LoggingServiceDescriptor,
+    executor: LanguageServerExecutor
   ): Props =
     Props(
       new LanguageServerRegistry(
         networkConfig,
         bootloaderConfig,
         supervisionConfig,
-        timeoutConfig
+        timeoutConfig,
+        distributionConfiguration,
+        loggingServiceDescriptor,
+        executor
       )
     )
 

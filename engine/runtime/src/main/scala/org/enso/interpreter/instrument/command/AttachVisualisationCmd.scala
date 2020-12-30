@@ -1,18 +1,13 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.{
-  EnsureCompiledStackJob,
-  ExecuteJob,
-  UpsertVisualisationJob
-}
+import org.enso.interpreter.instrument.job.{ExecuteJob, UpsertVisualisationJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * A command that attaches a visualisation to an expression.
+/** A command that attaches a visualisation to an expression.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
@@ -22,9 +17,9 @@ class AttachVisualisationCmd(
   request: Api.AttachVisualisation
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc **/
-  override def execute(
-    implicit ctx: RuntimeContext,
+  /** @inheritdoc */
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     if (doesContextExist) {
@@ -40,8 +35,8 @@ class AttachVisualisationCmd(
     )
   }
 
-  private def attachVisualisation()(
-    implicit ctx: RuntimeContext,
+  private def attachVisualisation()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     val maybeFutureExecutable =
@@ -55,22 +50,14 @@ class AttachVisualisationCmd(
         )
       )
 
-    maybeFutureExecutable flatMap {
-      case None =>
-        Future.successful(())
-
-      case Some(executable) =>
-        for {
-          _ <- ctx.jobProcessor.run(
-            new EnsureCompiledStackJob(executable.stack)
-          )
-          _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
-        } yield ()
+    maybeFutureExecutable.flatMap {
+      case None             => Future.successful(())
+      case Some(executable) => ctx.jobProcessor.run(new ExecuteJob(executable))
     }
   }
 
-  private def replyWithContextNotExistError()(
-    implicit ctx: RuntimeContext,
+  private def replyWithContextNotExistError()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     Future {

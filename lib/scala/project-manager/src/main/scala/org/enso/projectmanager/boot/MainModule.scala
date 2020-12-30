@@ -3,44 +3,37 @@ package org.enso.projectmanager.boot
 import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import cats.MonadError
-import io.circe.generic.auto._
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
-import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
-import org.enso.projectmanager.infrastructure.file.{
-  BlockingFileSystem,
-  SynchronizedFileStorage
-}
+import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
+  ExecutorWithUnlimitedPool,
   LanguageServerGatewayImpl,
   LanguageServerRegistry,
   ShutdownHookActivator
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
-import org.enso.projectmanager.infrastructure.repository.{
-  ProjectFileRepository,
-  ProjectIndex
-}
+import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
-import org.enso.projectmanager.service.{
-  MonadicProjectValidator,
-  ProjectService,
-  ProjectServiceFailure,
-  ValidationFailure
-}
+import org.enso.projectmanager.service.config.GlobalConfigService
+import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
+import org.enso.projectmanager.service._
+import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 
 import scala.concurrent.ExecutionContext
 
-/**
-  * A main module containing all components of the project manager.
+/** A main module containing all components of the project manager.
   */
-class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
+class MainModule[
+  F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Applicative: Async
+](
   config: ProjectManagerConfig,
   computeExecutionContext: ExecutionContext
 )(implicit
@@ -60,21 +53,20 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
   lazy val fileSystem =
     new BlockingFileSystem[F](config.timeout.ioTimeout)
 
-  lazy val indexStorage = new SynchronizedFileStorage[ProjectIndex, F](
-    config.storage.projectIndexPath,
-    fileSystem
-  )
+  lazy val gen = new SystemGenerator[F]
+
+  lazy val projectValidator = new MonadicProjectValidator[F]()
 
   lazy val projectRepository =
     new ProjectFileRepository[F](
       config.storage,
+      clock,
       fileSystem,
-      indexStorage
+      gen
     )
 
-  lazy val gen = new SystemGenerator[F]
-
-  lazy val projectValidator = new MonadicProjectValidator[F]()
+  val distributionConfiguration = DefaultDistributionConfiguration
+  val loggingService            = Logging.GlobalLoggingService
 
   lazy val languageServerRegistry =
     system.actorOf(
@@ -83,7 +75,10 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
           config.network,
           config.bootloader,
           config.supervision,
-          config.timeout
+          config.timeout,
+          distributionConfiguration,
+          loggingService,
+          ExecutorWithUnlimitedPool
         ),
       "language-server-registry"
     )
@@ -101,23 +96,40 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
     config.timeout
   )
 
+  lazy val projectCreationService =
+    new ProjectCreationService[F](
+      distributionConfiguration,
+      loggingService
+    )
+
+  lazy val globalConfigService =
+    new GlobalConfigService[F](distributionConfiguration)
+
   lazy val projectService =
     new ProjectService[F](
       projectValidator,
       projectRepository,
+      projectCreationService,
+      globalConfigService,
       logging,
       clock,
       gen,
-      languageServerGateway
+      languageServerGateway,
+      distributionConfiguration
     )
+
+  lazy val runtimeVersionManagementService =
+    new RuntimeVersionManagementService[F](distributionConfiguration)
 
   lazy val clientControllerFactory =
     new ManagerClientControllerFactory[F](
-      system,
-      projectService,
-      config.timeout
+      system                          = system,
+      projectService                  = projectService,
+      globalConfigService             = globalConfigService,
+      runtimeVersionManagementService = runtimeVersionManagementService,
+      loggingServiceDescriptor        = loggingService,
+      timeoutConfig                   = config.timeout
     )
 
   lazy val server = new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
-
 }

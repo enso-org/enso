@@ -6,19 +6,18 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.testkit._
 import io.circe.{ACursor, Decoder, DecodingFailure, HCursor, Json}
 import io.circe.parser.parse
 import org.enso.jsonrpc.{ClientControllerFactory, JsonRpcServer, Protocol}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach, Inside}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-/**
-  * Test kit for testing JSON RPC servers.
+/** Test kit for testing JSON RPC servers.
   */
 abstract class JsonRpcServerTestKit
     extends TestKit(ActorSystem("TestSystem"))
@@ -26,7 +25,8 @@ abstract class JsonRpcServerTestKit
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with Inside {
 
   implicit final class ACursorExpectedField(cursor: ACursor) {
 
@@ -62,7 +62,7 @@ abstract class JsonRpcServerTestKit
     val _ = binding.unbind()
   }
 
-  class WsTestClient(address: String) {
+  class WsTestClient(address: String, debugMessages: Boolean = false) {
     private var inActor: ActorRef   = _
     private val outActor: TestProbe = TestProbe()
     private val source: Source[Message, NotUsed] = Source
@@ -104,11 +104,17 @@ abstract class JsonRpcServerTestKit
 
     def send(json: Json): Unit = send(json.noSpaces)
 
-    def expectMessage(timeout: FiniteDuration = 3.seconds): String =
-      outActor.expectMsgClass[String](timeout, classOf[String])
+    def expectMessage(timeout: FiniteDuration = 5.seconds.dilated): String = {
+      val message = outActor.expectMsgClass[String](timeout, classOf[String])
+      if (debugMessages) println(message)
+      message
+    }
 
-    def expectJson(json: Json): Assertion = {
-      val parsed = parse(expectMessage())
+    def expectJson(
+      json: Json,
+      timeout: FiniteDuration = 5.seconds.dilated
+    ): Assertion = {
+      val parsed = parse(expectMessage(timeout))
       parsed shouldEqual Right(json)
     }
 
