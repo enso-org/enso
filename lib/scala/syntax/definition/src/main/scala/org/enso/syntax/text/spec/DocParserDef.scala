@@ -158,8 +158,8 @@ case class DocParserDef() extends Parser[Doc] {
               val possibleTagType = elem.split(" ").head
               if (possibleTagType.matches("\\b[A-Z]{2,}\\b")) {
                 pushTag(section.currentIndentRaw, Tags.Tag.Unrecognized, in)
+                containsTag = true
               }
-              containsTag = true
             }
           }
 
