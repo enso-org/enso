@@ -104,10 +104,10 @@ optParser.options('backend-path', {
 
 let debugOptionsGroup = 'Debug Options:'
 
-optParser.options('debug-scene', {
+optParser.options('entry-point', {
     group       : debugOptionsGroup,
-    describe    : 'Run the debug scene instead of the main app',
-    requiresArg : true
+    describe    : 'Run an alternative entry point (e.g. one of the debug scenes)',
+//    requiresArg : true
 })
 
 optParser.options('dev', {
@@ -128,7 +128,7 @@ let styleOptionsGroup = 'Style Options:'
 optParser.options('frame', {
     group       : styleOptionsGroup,
     describe    : 'Draw window frame',
-    default     : true,
+    default     : false,
     type        : `boolean`
 })
 
@@ -360,9 +360,7 @@ function urlParamsFromObject(obj) {
     let params = []
     for (let key in obj) {
         let val = obj[key]
-        if      (val === false) {}
-        else if (val === true)  { params.push(key) }
-        else                    { params.push(`${key}=${val}`) }
+        params.push(`${key}=${val}`)
     }
     return params.join("&")
 }
@@ -374,7 +372,7 @@ function createWindow() {
         webPreferences       : webPreferences,
         width                : windowCfg.width,
         height               : windowCfg.height,
-        frame                : true,
+        frame                : args.frame,
         devTools             : false,
         sandbox              : true,
         backgroundThrottling : false,
@@ -387,8 +385,7 @@ function createWindow() {
         windowPreferences.devTools = true
     }
 
-    if (args.frame === false) {
-        windowPreferences.frame         = false
+    if (args.frame === false && process.platform === 'darwin') {
         windowPreferences.titleBarStyle = 'hiddenInset'
     }
 
@@ -409,21 +406,17 @@ function createWindow() {
     }
 
     let urlCfg = {
-        desktop      : true,
-        dark         : Electron.nativeTheme.shouldUseDarkColors,
-        highContrast : Electron.nativeTheme.shouldUseHighContrastColors,
+        platform      : process.platform,
+        frame         : args.frame,
+        dark_theme    : Electron.nativeTheme.shouldUseDarkColors,
+        high_contrast : Electron.nativeTheme.shouldUseHighContrastColors,
     }
 
-    if (args.project) {
-        urlCfg.project = args.project;
-    }
+    if (args.project)    { urlCfg.project = args.project }
+    if (args.entryPoint) { urlCfg.entry   = args.entryPoint }
 
-    let params      = urlParamsFromObject(urlCfg)
-    let targetScene = ""
-    if (args.debugScene) {
-        targetScene = `debug/${args.debugScene}`
-    }
-    let address = `http://localhost:${port}/${targetScene}?${params}`
+    let params  = urlParamsFromObject(urlCfg)
+    let address = `http://localhost:${port}?${params}`
     console.log(`Loading the window address ${address}`)
     window.loadURL(address)
     return window
@@ -502,12 +495,36 @@ if (process.platform === 'darwin') {
 
 
 
+// =================
+// === Shortcuts ===
+// =================
+
+Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) => {
+    webContents.on('before-input-event', (beforeInputEvent, input) => {
+        const {code,alt,ctrl,shift,meta} = input
+        if (ctrl && alt && shift && !meta && code === 'KeyI') {
+            Electron.BrowserWindow.getFocusedWindow().webContents.toggleDevTools({mode:'detach'})
+        }
+        if (ctrl && alt && shift && !meta && code === 'KeyR') {
+            Electron.BrowserWindow.getFocusedWindow().reload()
+        }
+
+        let cmd_q       =  meta && !ctrl && !alt && !shift && code === 'KeyQ'
+        let alt_f4      = !meta && !ctrl &&  alt && !shift && code === 'F4'
+        let ctrl_w      = !meta &&  ctrl && !alt && !shift && code === 'KeyW'
+        let quit_on_mac = process.platform == 'darwin' && (cmd_q || alt_f4)
+        let quit_on_win = process.platform == 'win32'  && (alt_f4 || ctrl_w)
+        let quit_on_lin = process.platform == 'linux'  && (alt_f4 || ctrl_q || ctrl_w)
+        let quit        = quit_on_mac || quit_on_win || quit_on_lin
+        if (quit) { Electron.app.quit() }
+    })
+})
+
+
+
 // =============================
 // === Deprecations & Fixmes ===
 // =============================
-
-/// FIXME: Will not be needed in Electron 9 anymore.
-Electron.app.allowRendererProcessReuse = true
 
 // FIXME Enable Metal backend on MacOS https://github.com/electron/electron/issues/22465
 

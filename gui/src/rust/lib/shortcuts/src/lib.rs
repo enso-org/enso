@@ -601,8 +601,8 @@ impl<T> Default for HashSetRegistryModel<T> {
 fn key_aliases() -> HashMap<String,String> {
     let mut map = HashMap::<String,String>::new();
     let cmd_target = match web::platform::current() {
-        web::platform::MacOS => "meta",
-        _                    => "ctrl",
+        Some(web::platform::MacOS) => "meta",
+        _                          => "ctrl",
     };
     #[allow(clippy::useless_format)]
     let insert_side_key = |map:&mut HashMap::<String,String>, k:&str, v:&str| {

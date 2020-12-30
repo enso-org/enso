@@ -38,6 +38,7 @@ use crate::component::visualization;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::component::type_coloring;
 
+use enso_args::ARGS;
 use enso_frp as frp;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
@@ -73,8 +74,18 @@ pub mod prelude {
 // === Constants ===
 // =================
 
-const SNAP_DISTANCE_THRESHOLD         : f32 = 10.0;
-const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS : f32 = 300.0;
+const SNAP_DISTANCE_THRESHOLD          : f32 = 10.0;
+const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS  : f32 = 300.0;
+const MACOS_TRAFFIC_LIGHTS_CONTENT     : f32 = 52.0;
+const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET : f32 = 13.0;
+const MACOS_TRAFFIC_LIGHTS_WIDTH       : f32 =
+    MACOS_TRAFFIC_LIGHTS_CONTENT + 2.0 * MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
+
+
+
+// =================
+// === SharedVec ===
+// =================
 
 #[derive(Clone,CloneRef,Debug,Derivative)]
 #[derivative(Default(bound=""))]
@@ -1206,6 +1217,12 @@ impl GraphEditorModel {
 
     fn init(self) -> Self {
         self.add_child(&self.breadcrumbs);
+        let is_macos     = ARGS.platform.map(|p|p.is_macos()) == Some(true);
+        let is_frameless = ARGS.frame == Some(false);
+        let x_offset     = if is_macos && is_frameless { MACOS_TRAFFIC_LIGHTS_WIDTH }
+                           else                        { MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET };
+        self.breadcrumbs.set_position_x(x_offset);
+        self.breadcrumbs.set_position_y(-5.0);
         self
     }
 
@@ -1216,7 +1233,6 @@ impl GraphEditorModel {
     fn scene(&self) -> &Scene {
         self.app.display.scene()
     }
-
 }
 
 

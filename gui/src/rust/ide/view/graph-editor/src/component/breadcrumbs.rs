@@ -126,6 +126,7 @@ ensogl::define_endpoints! {
 }
 
 
+
 // ========================
 // === BreadcrumbsModel ===
 // ========================
@@ -138,6 +139,7 @@ pub struct BreadcrumbsModel {
     display_object        : display::object::Instance,
     background            : component::ShapeView<background::Shape>,
     project_name          : ProjectName,
+    root                   : display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
     /// breadcrumbs are moved when project name component is resized.
     breadcrumbs_container : display::object::Instance,
@@ -155,6 +157,7 @@ impl BreadcrumbsModel {
         let project_name          = app.new_view();
         let logger                = Logger::new("Breadcrumbs");
         let display_object        = display::object::Instance::new(&logger);
+        let root                  = display::object::Instance::new(&logger);
         let breadcrumbs_container = display::object::Instance::new(&logger);
         let scene                 = scene.clone_ref();
         let breadcrumbs           = default();
@@ -163,14 +166,14 @@ impl BreadcrumbsModel {
         let camera                = scene.camera().clone_ref();
         let background            = component::ShapeView::<background::Shape>::new(&logger,&scene);
 
-        Self{logger,display_object,app,breadcrumbs,project_name,breadcrumbs_container,
+        Self{logger,display_object,root,app,breadcrumbs,project_name,breadcrumbs_container,
             frp_inputs,current_index,camera,background}.init()
     }
 
     fn init(self) -> Self {
-        self.add_child(&self.project_name);
-        self.add_child(&self.breadcrumbs_container);
-        self.project_name.set_position_x(HORIZONTAL_MARGIN);
+        self.add_child(&self.root);
+        self.root.add_child(&self.project_name);
+        self.root.add_child(&self.breadcrumbs_container);
         self
     }
 
@@ -179,7 +182,7 @@ impl BreadcrumbsModel {
         let screen     = camera.screen();
         let x_position = -screen.width/2.0;
         let y_position = screen.height/2.0;
-        self.set_position(Vector3(x_position.round(),y_position.round(),0.0));
+        self.root.set_position(Vector3(x_position.round(),y_position.round(),0.0));
     }
 
     fn width(&self) -> f32 {
@@ -187,7 +190,7 @@ impl BreadcrumbsModel {
     }
 
     fn relayout_for_project_name_width(&self, width:f32) {
-        self.breadcrumbs_container.set_position_x((HORIZONTAL_MARGIN+width).round());
+        self.breadcrumbs_container.set_position_x(width.round());
     }
 
     fn get_breadcrumb(&self, index:usize) -> Option<Breadcrumb> {
@@ -350,8 +353,8 @@ impl display::Object for BreadcrumbsModel {
 #[derive(Debug,Clone,CloneRef)]
 #[allow(missing_docs)]
 pub struct Breadcrumbs {
-    model   : Rc<BreadcrumbsModel>,
-    frp : Frp
+    model : Rc<BreadcrumbsModel>,
+    frp   : Frp
 }
 
 impl Breadcrumbs {
