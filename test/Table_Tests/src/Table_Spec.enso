@@ -244,3 +244,41 @@ spec =
             decimals_filled = decimals.fill_missing 1.0
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
+
+    describe "Counting Values" <|
+        it "should count missing and non-missing values" <|
+            col = Column.from_vector 'x' [1, Nothing, 2]
+            col.length . should_equal 3
+            col.count . should_equal 2
+            col.count_missing . should_equal 1
+
+    describe "Dropping Missing Values" <|
+        it "should drop missing rows in a Column" <|
+            col = Column.from_vector 'x' [1, Nothing, 2, Nothing]
+            col.drop_missing.to_vector . should_equal [1, 2]
+
+        it "should drop rows that contain at least one missing column in a Table" <|
+            t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
+            d = t.drop_missing_rows
+            d.at "a" . to_vector . should_equal [1, 4]
+            d.at "b" . to_vector . should_equal [1, "x"]
+
+        it "should drop columns that contain at least one missing row in a Table" <|
+            a = ["a", [1, Nothing, 3, 4]]
+            b = ["b", [1, 2, Nothing, "x"]]
+            c = ["c", [10, 20, 30, 40]]
+            t = Table.new [a, b, c]
+            d = t.drop_missing_columns
+            d.columns.map name . should_equal ["c"]
+            d.at "c" . to_vector . should_equal [10, 20, 30, 40]
+
+    describe "Info" <|
+        it "should return Table information" <|
+            a = ["strs", ["a", "b", Nothing, "a"]]
+            b = ["ints", [1, 2, Nothing, Nothing]]
+            c = ["objs", [1, "a", "c", Any]]
+            r = Table.new [a, b, c]
+            i = r.info
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
+            i.at "Items Count" . to_vector . should_equal [3, 2, 4]
+            i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]

@@ -8,7 +8,6 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.error.UnexpectedColumnTypeException;
-import org.enso.table.error.UnexpectedShapeException;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
@@ -64,9 +63,6 @@ public class Column {
   public Column mask(Column maskCol) {
     if (!(maskCol.getStorage() instanceof BoolStorage)) {
       throw new UnexpectedColumnTypeException("Boolean");
-    }
-    if (maskCol.getSize() != getSize()) {
-      throw new UnexpectedShapeException(getSize() + " rows", maskCol.getSize() + " rows");
     }
 
     BoolStorage storage = (BoolStorage) maskCol.getStorage();

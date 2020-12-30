@@ -12,7 +12,6 @@ import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
-import org.enso.table.error.UnexpectedShapeException;
 
 /** A representation of a table structure. */
 public class Table {
@@ -32,7 +31,7 @@ public class Table {
             (columns == null || columns.length == 0) ? 0 : (int) columns[0].getSize()));
   }
 
-  private Table(Column[] columns, Index index) {
+  public Table(Column[] columns, Index index) {
     this.columns = columns;
     this.index = index;
   }
@@ -76,9 +75,6 @@ public class Table {
   public Table mask(Column maskCol) {
     if (!(maskCol.getStorage() instanceof BoolStorage)) {
       throw new UnexpectedColumnTypeException("Boolean");
-    }
-    if (maskCol.getSize() != nrows()) {
-      throw new UnexpectedShapeException(nrows() + " rows", maskCol.getSize() + " rows");
     }
 
     BoolStorage storage = (BoolStorage) maskCol.getStorage();

@@ -121,7 +121,7 @@ type Table
     drop_missing_columns =
         non_missing = this.columns . filter (col -> col.count_missing == 0)
         index = this.java_table.getIndex []
-        Table (Java_Table.new [non_missing.map java_column . to_array, index])
+        Table (Java_Table.new [non_missing.map java_column . to_array, index].to_array)
 
     ## Returns the amount of rows in this table.
     nrows : Integer
@@ -130,7 +130,7 @@ type Table
     info : Table
     info =
         cols = this.columns
-        Table.new [["Column", cols.map name], ["Items Count", cols.map count], ["Storage Type", cols.map storage_type]]
+        here.new [["Column", cols.map name], ["Items Count", cols.map count], ["Storage Type", cols.map storage_type]]
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)

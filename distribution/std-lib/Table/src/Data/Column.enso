@@ -208,7 +208,7 @@ type Column
 
     ## Returns the number of missing items in this column.
     count_missing : Integer
-    count_missing = this.java_column . countMissing []
+    count_missing = this.java_column.getStorage [] . countMissing []
 
     ## Returns the number of non-null items in this column.
     count : Integer
