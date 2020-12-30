@@ -1,19 +1,23 @@
 'use strict'
 
+import cfg from '../../../config'
+import * as assert    from 'assert'
+import * as buildCfg  from '../../../../../dist/build.json'
+import * as Electron  from 'electron'
+import * as isDev     from 'electron-is-dev'
+import * as minimist  from 'minimist'
+import * as path      from 'path'
+import * as pkg       from '../package.json'
+import * as rootCfg   from '../../../package.json'
+import * as Server    from 'enso-studio-common/src/server'
+import * as util      from 'util'
+import * as yargs     from 'yargs'
+
+import paths from '../../../../../build/paths'
+
 const child_process = require('child_process')
 const fss = require('fs')
 
-import * as Electron from 'electron'
-import * as Server from 'enso-studio-common/src/server'
-import * as assert from 'assert'
-import * as buildCfg from '../../../../../dist/build.json'
-import * as isDev from 'electron-is-dev'
-import * as path from 'path'
-import * as pkg from '../package.json'
-import * as rootCfg from '../../../package.json'
-import * as util from 'util'
-import * as yargs from 'yargs'
-import paths from '../../../../../build/paths'
 
 
 // FIXME default options parsed wrong
@@ -156,6 +160,13 @@ optParser.options('version', {
     describe    : `Print the version`,
 })
 
+optParser.options('crash-report-host', {
+    describe    : 'The address of the server that will receive crash reports. ' +
+                  'Consists of a hostname, optionally followed by a ":" and a port number',
+    requiresArg : true,
+    default: cfg.defaultLogServerHost
+})
+
 
 // === Parsing ===
 
@@ -271,8 +282,11 @@ Electron.app.on('web-contents-created', (event,contents) => {
 /// https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation
 Electron.app.on('web-contents-created', (event,contents) => {
     contents.on('will-navigate', (event,navigationUrl) => {
-        event.preventDefault()
-        console.error(`Prevented navigation to '${navigationUrl}'`)
+        const parsedUrl = new URL(navigationUrl)
+        if (parsedUrl.origin !== origin) {
+            event.preventDefault()
+            console.error(`Prevented navigation to '${navigationUrl}'.`)
+        }
     })
 })
 
@@ -355,6 +369,7 @@ async function main() {
 let port = Server.DEFAULT_PORT
 if      (server)    { port = server.port }
 else if (args.port) { port = args.port }
+let origin = `http://localhost:${port}`
 
 function urlParamsFromObject(obj) {
     let params = []
@@ -377,7 +392,6 @@ function createWindow() {
         sandbox              : true,
         backgroundThrottling : false,
         transparent          : false,
-        backgroundColor      : "#00000000",
         titleBarStyle        : 'default'
     }
 
@@ -406,17 +420,19 @@ function createWindow() {
     }
 
     let urlCfg = {
-        platform      : process.platform,
-        frame         : args.frame,
-        dark_theme    : Electron.nativeTheme.shouldUseDarkColors,
-        high_contrast : Electron.nativeTheme.shouldUseHighContrastColors,
+        platform        : process.platform,
+        frame           : args.frame,
+        dark_theme      : Electron.nativeTheme.shouldUseDarkColors,
+        high_contrast   : Electron.nativeTheme.shouldUseHighContrastColors,
+        crashReportHost : args.crashReportHost,
     }
 
     if (args.project)    { urlCfg.project = args.project }
     if (args.entryPoint) { urlCfg.entry   = args.entryPoint }
 
     let params  = urlParamsFromObject(urlCfg)
-    let address = `http://localhost:${port}?${params}`
+    let address = `${origin}?${params}`
+
     console.log(`Loading the window address ${address}`)
     window.loadURL(address)
     return window
