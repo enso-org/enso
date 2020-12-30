@@ -67,6 +67,9 @@ public class Column {
 
     BoolStorage storage = (BoolStorage) maskCol.getStorage();
     var mask = BoolStorage.toMask(storage);
+    var localStorageMask = new BitSet();
+    localStorageMask.set(0, getStorage().size());
+    mask.and(localStorageMask);
     int cardinality = mask.cardinality();
     Index newIx = index.mask(mask, cardinality);
     return mask(newIx, mask, cardinality);

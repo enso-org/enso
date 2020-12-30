@@ -1,6 +1,7 @@
 package org.enso.table.data.table;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -79,6 +80,9 @@ public class Table {
 
     BoolStorage storage = (BoolStorage) maskCol.getStorage();
     var mask = BoolStorage.toMask(storage);
+    var localStorageMask = new BitSet();
+    localStorageMask.set(0, (int) nrows());
+    mask.and(localStorageMask);
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
     Index newIx = index.mask(mask, cardinality);
