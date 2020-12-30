@@ -5,6 +5,8 @@ use crate::prelude::*;
 
 use crate::graph_editor::component::visualization;
 
+pub use visualization::container::overlay;
+
 use ast::prelude::FallibleResult;
 use enso_frp as frp;
 use ensogl::data::color;
@@ -13,9 +15,15 @@ use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::system::web;
+use ensogl::system::web::clipboard;
 use ensogl::system::web::StyleSetter;
 use ensogl::system::web::AttributeSetter;
 use ensogl::gui::component;
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
+use web_sys::HtmlElement;
+use web_sys::MouseEvent;
+
 
 
 // =================
@@ -28,9 +36,11 @@ pub const VIEW_WIDTH  : f32 = 300.0;
 pub const VIEW_HEIGHT : f32 = 300.0;
 
 /// Content in the documentation view when there is no data available.
-const PLACEHOLDER_STR : &str = "<h3>Documentation Viewer</h3><p>No documentation available</p>";
-const CORNER_RADIUS   : f32  = crate::graph_editor::component::node::CORNER_RADIUS;
-const PADDING         : f32  = 5.0;
+const PLACEHOLDER_STR   : &str = "<h3>Documentation Viewer</h3><p>No documentation available</p>";
+const CORNER_RADIUS     : f32  = crate::graph_editor::component::node::CORNER_RADIUS;
+const PADDING           : f32  = 5.0;
+const CODE_BLOCK_CLASS  : &str = "CodeBlock";
+const COPY_BUTTON_CLASS : &str = "copyCodeBtn";
 
 /// Get documentation view stylesheet from a CSS file.
 ///
@@ -44,9 +54,9 @@ fn documentation_style() -> String {
 
 
 
-// =================
-// === ViewModel ===
-// =================
+// =============
+// === Model ===
+// =============
 
 /// The input type for documentation parser. See documentation of `View` for details.
 #[derive(Clone,Copy,Debug)]
@@ -54,23 +64,24 @@ enum InputFormat {
     AST,Docstring
 }
 
-pub use visualization::container::overlay;
+type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
 
 /// Model of Native visualization that generates documentation for given Enso code and embeds
 /// it in a HTML container.
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
-pub struct ViewModel {
+pub struct Model {
     logger : Logger,
     dom    : DomSymbol,
     size   : Rc<Cell<Vector2>>,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay        : component::ShapeView<overlay::Shape>,
-    display_object : display::object::Instance,
+    overlay            : component::ShapeView<overlay::Shape>,
+    display_object     : display::object::Instance,
+    code_copy_closures : Rc<CloneCell<Vec<CodeCopyClosure>>>
 }
 
-impl ViewModel {
+impl Model {
     /// Constructor.
     fn new(scene:&Scene) -> Self {
         let logger         = Logger::new("DocumentationView");
@@ -108,7 +119,9 @@ impl ViewModel {
         display_object.add_child(&dom);
         display_object.add_child(&overlay);
         scene.dom.layers.front.manage(&dom);
-        ViewModel {logger,dom,size,overlay,display_object}.init()
+
+        let code_copy_closures = default();
+        Model {logger,dom,size,overlay,display_object,code_copy_closures}.init()
     }
 
     fn init(self) -> Self {
@@ -133,22 +146,54 @@ impl ViewModel {
             //              https://github.com/enso-org/enso/issues/1063
             let processed = string.replace("\\n", "\n").replace("\"", "");
             let output = match input_type {
-                InputFormat::AST  => parser.generate_html_docs(processed),
+                InputFormat::AST       => parser.generate_html_docs(processed),
                 InputFormat::Docstring => parser.generate_html_doc_pure(processed),
             };
             let output = output?;
-            if output.is_empty() {
-                Ok(PLACEHOLDER_STR.into())
-            } else {
-                Ok(output)
-            }
+            Ok( if output.is_empty() { PLACEHOLDER_STR.into() } else { output } )
         }
     }
 
     /// Create a container for generated content and embed it with stylesheet.
     fn push_to_dom(&self, content:String) {
         let data_str = format!(r#"<div class="docVis">{}{}</div>"#,documentation_style(),content);
-        self.dom.dom().set_inner_html(&data_str)
+        self.dom.dom().set_inner_html(&data_str);
+    }
+
+    /// Append listeners to copy buttons in doc to enable copying examples.
+    /// It is possible to do it with implemented method, because get_elements_by_class_name
+    /// returns top-to-bottom sorted list of elements, as found in:
+    /// https://stackoverflow.com/questions/35525811/order-of-elements-in-document-getelementsbyclassname-array
+    fn attach_listeners_to_copy_buttons(&self) {
+        let code_blocks  = self.dom.dom().get_elements_by_class_name(CODE_BLOCK_CLASS);
+        let copy_buttons = self.dom.dom().get_elements_by_class_name(COPY_BUTTON_CLASS);
+        let closures     = (0..copy_buttons.length()).map(|i| -> Result<CodeCopyClosure,u32> {
+            let create_closures = || -> Option<CodeCopyClosure> {
+                let copy_button = copy_buttons.get_with_index(i)?.dyn_into::<HtmlElement>().ok()?;
+                let code_block  = code_blocks.get_with_index(i)?.dyn_into::<HtmlElement>().ok()?;
+                let closure     = Box::new(move |_event: MouseEvent| {
+                    let inner_code = code_block.inner_text();
+                    clipboard::write_text(inner_code);
+                });
+                let closure: Closure<dyn FnMut(MouseEvent)> = Closure::wrap(closure);
+                let callback = closure.as_ref().unchecked_ref();
+                match copy_button.add_event_listener_with_callback("click",callback) {
+                    Ok(_)  => Some(closure),
+                    Err(e) => {
+                        error!(&self.logger,"Unable to add event listener to copy button: {e:?}");
+                        None
+                    },
+                }
+            };
+            create_closures().ok_or(i)
+        });
+        let (closures,errors) : (Vec<_>,Vec<_>) = closures.partition(Result::is_ok);
+        let ok_closures = closures.into_iter().filter_map(|t| t.ok()).collect_vec();
+        let err_indices = errors.into_iter().filter_map(|t| t.err()).collect_vec();
+        if !err_indices.is_empty() {
+            error!(&self.logger, "Failed to attach listeners to copy buttons with indices: {err_indices:?}.")
+        }
+        self.code_copy_closures.set(ok_closures)
     }
 
     /// Receive data, process and present it in the documentation view.
@@ -169,15 +214,16 @@ impl ViewModel {
     }
 
     fn display_doc(&self, content:&str, content_type: InputFormat) {
-        let html = match ViewModel::gen_html_from(content,content_type) {
-            Ok(html)               => html,
-            Err(err)               => {
+        let html = match Model::gen_html_from(content,content_type) {
+            Ok(html) => html,
+            Err(err) => {
                 error!(self.logger, "Documentation parsing error: {err:?}");
                 PLACEHOLDER_STR.into()
             }
         };
 
         self.push_to_dom(html);
+        self.attach_listeners_to_copy_buttons();
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
@@ -233,7 +279,7 @@ ensogl::define_endpoints! {
 #[allow(missing_docs)]
 pub struct View {
     #[shrinkwrap(main_field)]
-    pub model             : ViewModel,
+    pub model             : Model,
     pub visualization_frp : visualization::instance::Frp,
     pub frp               : Frp,
 }
@@ -252,7 +298,7 @@ impl View {
     pub fn new(scene:&Scene) -> Self {
         let frp               = Frp::new();
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
-        let model             = ViewModel::new(scene);
+        let model             = Model::new(scene);
         model.load_waiting_screen();
         Self {model,visualization_frp,frp} . init(scene)
     }

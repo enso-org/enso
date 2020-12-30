@@ -92,13 +92,14 @@
 }
 
 .dark-theme .docVis button {
-    border: 1px solid #e5e5e5;
-    color: #e5e5e5;
+    border: 0;
+    background-color: #474747;
+    color: #fafafa;
 }
 
 .dark-theme .docVis button:hover {
-    background-color: #e5e5e5;
-    color: #333333;
+    background-color: #414141;
+    color: #eaeaea;
 }
 
 .docVis b {
@@ -315,6 +316,8 @@
 
 .CodeBlock code {
     font-family: "DejaVuSansMonoBook", monospace;
+    width: 100%;
+    overflow-wrap: break-word;
 }
 
 .Def {
