@@ -17,6 +17,9 @@ spec = describe "Vectors" <|
         [1,2,3].length . should_equal 3
     it "should allow folding an operator over its elements" <|
         [1,2,3].fold 0 (+) . should_equal 6
+    it "should allow to reduce elements if it is non-empty" <|
+        [1,2,3].reduce (+) . should_equal 6
+        [].reduce (+) . should_equal Nothing
     it "should check exists" <|
         vec = [1, 2, 3, 4, 5]
         vec.exists (ix -> ix > 3) . should_be_true
