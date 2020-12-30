@@ -526,6 +526,7 @@ Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) =
         }
 
         let cmd_q       =  meta && !ctrl && !alt && !shift && code === 'KeyQ'
+        let ctrl_q      = !meta &&  ctrl && !alt && !shift && code === 'KeyQ'
         let alt_f4      = !meta && !ctrl &&  alt && !shift && code === 'F4'
         let ctrl_w      = !meta &&  ctrl && !alt && !shift && code === 'KeyW'
         let quit_on_mac = process.platform == 'darwin' && (cmd_q || alt_f4)
