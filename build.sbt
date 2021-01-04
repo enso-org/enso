@@ -1335,10 +1335,13 @@ lazy val launcherDistributionRoot =
   settingKey[File]("Root of built launcher distribution")
 lazy val projectManagerDistributionRoot =
   settingKey[File]("Root of built project manager distribution")
+lazy val bundleRoot =
+  settingKey[File]("Root of built bundle")
 
 engineDistributionRoot := file("built-distribution/engine")
 launcherDistributionRoot := file("built-distribution/launcher")
 projectManagerDistributionRoot := file("built-distribution/project-manager")
+bundleRoot := file("built-distribution/bundle")
 
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
@@ -1346,7 +1349,7 @@ buildEngineDistribution := {
   val _            = (`engine-runner` / assembly).value
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
+  val cacheFactory = streams.value.cacheStoreFactory / "engine"
   DistributionPackage.createEnginePackage(
     distributionRoot = root,
     cacheFactory     = cacheFactory,
@@ -1362,7 +1365,7 @@ buildLauncherDistribution := {
   val _            = (launcher / buildNativeImage).value
   val root         = launcherDistributionRoot.value
   val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
+  val cacheFactory = streams.value.cacheStoreFactory / "launcher"
   DistributionPackage.createLauncherPackage(root, cacheFactory)
   log.info(s"Launcher package created at $root")
 }
@@ -1373,7 +1376,29 @@ buildProjectManagerDistribution := {
   val _            = (`project-manager` / buildNativeImage).value
   val root         = projectManagerDistributionRoot.value
   val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
+  val cacheFactory = streams.value.cacheStoreFactory / "project-manager"
   DistributionPackage.createProjectManagerPackage(root, cacheFactory)
   log.info(s"Project Manager package created at $root")
+}
+
+lazy val buildBundle = taskKey[Unit]("Builds the launcher + engine bundle")
+buildBundle := {
+  val _                = (launcher / buildNativeImage).value
+  val forceEngineBuild = (`engine-runner` / assembly).value
+  val log              = streams.value.log
+  val cacheFactory     = streams.value.cacheStoreFactory / "bundle"
+  val root             = bundleRoot.value
+  DistributionPackage.createLauncherPackage(root, cacheFactory)
+  val engineRoot = root / "dist" / ensoVersion
+  IO.listFiles(root / "dist")
+    .filter(_.getName != ensoVersion)
+    .foreach(IO.delete)
+  DistributionPackage.createEnginePackage(
+    distributionRoot = engineRoot,
+    cacheFactory     = cacheFactory,
+    graalVersion     = graalVersion,
+    javaVersion      = javaVersion
+  )
+  // TODO copy GraalVM if needed
+  log.info(s"Created the bundle at $root")
 }
