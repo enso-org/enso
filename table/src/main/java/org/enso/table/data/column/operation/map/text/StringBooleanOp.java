@@ -20,8 +20,6 @@ public abstract class StringBooleanOp extends MapOperation<StringStorage> {
 
   @Override
   public Storage runMap(StringStorage storage, Object arg) {
-    // TODO [RW, MK] is it ok to handle null like this? Maybe other storages should do the same? It
-    // ensures consistency between the scalar and vector (column) variants.
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -70,8 +68,6 @@ public abstract class StringBooleanOp extends MapOperation<StringStorage> {
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     } else {
-      // TODO [RW, MK] do we want special cases for numeric arguments? May be useful for operations
-      // like 'at' or 'substring' but this may be handled by a separate class too.
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {

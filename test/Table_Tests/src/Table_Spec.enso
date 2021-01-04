@@ -165,8 +165,6 @@ spec =
             df.at "a" . where mask . to_vector . should_equal [1, 10]
             df.at "c" . where mask . to_vector . should_equal [Nothing, 12]
 
-        ## TODO [RW, MK] how this should be handled? the former implementation returned [1,0] because cardinality > size
-        ## I changed it to truncate the array, is this desirable or do we want to throw an error?
         it "should work correctly if a mask is bigger than the column itself" <|
             col = Column.from_vector "col" [1, 2]
             mask = Column.from_vector 'x' [True, False, False, True]
