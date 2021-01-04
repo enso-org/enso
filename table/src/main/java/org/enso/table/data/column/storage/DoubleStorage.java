@@ -76,7 +76,7 @@ public class DoubleStorage extends Storage {
 
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
-    return ops.runMap(name, this, argument);
+    return ops.runZip(name, this, argument);
   }
 
   private Storage fillMissingDouble(double arg) {
