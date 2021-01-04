@@ -208,6 +208,10 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_arra
 Text.starts_with : Text -> Boolean
 Text.starts_with prefix = Text_Utils.starts_with [this, prefix]
 
+## Checks whether `this` ends with `suffix`.
+Text.ends_with : Text -> Boolean
+Text.ends_with suffix = Text_Utils.ends_with [this, suffix]
+
 ## Checks whether `this` contains `sequence` as its substring.
 Text.contains : Text -> Boolean
 Text.contains sequence = Text_Utils.contains [this, sequence]

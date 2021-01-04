@@ -163,6 +163,17 @@ public class Text_Utils {
   }
 
   /**
+   * Checks whether {@code suffix} is a suffix of {@code str}.
+   *
+   * @param str the string to check
+   * @param prefix the potential suffix
+   * @return whether {@code suffix} is a suffix of {@code str}
+   */
+  public static boolean ends_with(String str, String suffix) {
+    return str.endsWith(suffix);
+  }
+
+  /**
    * Checks whether {@code a} is lexicographically before {@code b}.
    *
    * @param a the left operand

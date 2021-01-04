@@ -4,6 +4,7 @@ import java.util.BitSet;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 
 /** A column storing strings. */
 public class StringStorage extends ObjectStorage {
@@ -104,6 +105,27 @@ public class StringStorage extends ObjectStorage {
               }
             }
             return new BoolStorage(r, missing, storage.size(), false);
+          }
+        });
+    t.add(
+        new StringBooleanOp(Ops.STARTS_WITH) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return a.startsWith(b);
+          }
+        });
+    t.add(
+        new StringBooleanOp(Ops.ENDS_WITH) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return a.endsWith(b);
+          }
+        });
+    t.add(
+        new StringBooleanOp(Ops.CONTAINS) {
+          @Override
+          protected boolean doString(String a, String b) {
+            return a.contains(b);
           }
         });
     return t;

@@ -12,6 +12,9 @@ public abstract class Storage {
   /** @return the number of elements in this column (including NAs) */
   public abstract int size();
 
+  /** @return the number of NA elements in this column */
+  public abstract int countMissing();
+
   /** @return the type tag of this column's storage. Must be one of {@link Type} */
   public abstract long getType();
 
@@ -62,6 +65,9 @@ public abstract class Storage {
     public static final String AND = "&&";
     public static final String OR = "||";
     public static final String IS_MISSING = "is_missing";
+    public static final String STARTS_WITH = "starts_with";
+    public static final String ENDS_WITH = "ends_with";
+    public static final String CONTAINS = "contains";
   }
 
   protected abstract boolean isOpVectorized(String name);
