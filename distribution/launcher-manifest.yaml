@@ -1,6 +1,5 @@
 minimum-version-for-upgrade: 0.1.0
 files-to-copy:
-  - NOTICE
   - README.md
 directories-to-copy:
   - THIRD-PARTY
