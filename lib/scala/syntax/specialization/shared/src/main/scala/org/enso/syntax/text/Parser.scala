@@ -528,7 +528,7 @@ object Main extends scala.App {
       |   a value and take action, always accounting for the None case.
       |
       |type Option a
-      |    ## The `Some` type #indicates a presence of a value.
+      |    ## The `Some` type indicates a presence of a value.
       |    type Some a
       |
       |    ## The `None` type indicates a lack of a value.
