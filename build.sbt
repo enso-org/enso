@@ -15,13 +15,13 @@ val scalacVersion = "2.13.3"
 val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val graalVersion  = "20.2.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.1.0-SNAPSHOT" // Note [Engine And Launcher Version]
+val ensoVersion   = "0.2.0-SNAPSHOT" // Note [Engine And Launcher Version]
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Currently both Engine and Launcher versions are tied to each other - each new
  * releases contains the Engine and the Launcher and thus the version number is
- * shared. If the version numbers ever diverge, make sure tu update the build
+ * shared. If the version numbers ever diverge, make sure to update the build
  * scripts at .github/workflows accordingly.
  */
 

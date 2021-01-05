@@ -13,7 +13,7 @@ Enso packages can currently be obtained from the per-commit CI builds. See
 which should show a list of recent CI builds. The workflow of interest is
 `Engine CI`. You can navigate to the most recent build, which will display a
 list of attached artifacts. The artifact of interest is `enso-engine-<version>`
-(currently `enso-engine-0.1.0`).
+(currently `enso-engine-0.2.0-SNAPSHOT`).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

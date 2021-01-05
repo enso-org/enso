@@ -33,6 +33,12 @@ public class DoubleStorage extends Storage {
     return size;
   }
 
+  /** @inheritDoc */
+  @Override
+  public int countMissing() {
+    return isMissing.cardinality();
+  }
+
   /**
    * @param idx an index
    * @return the data item contained at the given index.
@@ -70,7 +76,7 @@ public class DoubleStorage extends Storage {
 
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
-    return ops.runMap(name, this, argument);
+    return ops.runZip(name, this, argument);
   }
 
   private Storage fillMissingDouble(double arg) {

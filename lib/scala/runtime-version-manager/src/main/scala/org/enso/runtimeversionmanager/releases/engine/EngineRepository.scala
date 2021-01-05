@@ -8,12 +8,7 @@ import org.enso.runtimeversionmanager.releases.local.LocalReleaseProvider
 
 /** Represents the default Enso repository providing releases of the engine. */
 object EngineRepository {
-  // TODO [RW] The release provider will be moved from staging to the main
-  //  repository, when the first official Enso release is released.
-  val githubRepository = new GithubReleaseProvider(
-    "enso-org",
-    "enso-staging"
-  )
+  val githubRepository = new GithubReleaseProvider("enso-org", "enso")
 
   /** Default provider of engine releases. */
   def defaultEngineReleaseProvider: ReleaseProvider[EngineRelease] =
