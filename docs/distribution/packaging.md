@@ -19,7 +19,6 @@ future directions and enhancements to it.
   - [The `src` Directory](#the-src-directory)
   - [The `polyglot` Directory](#the-polyglot-directory)
   - [The `package.yaml` File](#the-packageyaml-file)
-  - [The `visualization` Directory](#the-visualization-directory)
 - [Build Reproducibility](#build-reproducibility)
 
 <!-- /MarkdownTOC -->
@@ -36,14 +35,11 @@ My_Package
 │   │   └── jar.jar
 │   └── js
 │       └── library.js
-├── src
-│   ├── Main.enso
-│   └── Sub_Module
-│       ├── Helper.enso
-│       └── Util.enso
-├── visualization (optional)
-│   └── ...
-└── data (optional)
+└── src
+    ├── Main.enso
+    └── Sub_Module
+        ├── Helper.enso
+        └── Util.enso
 ```
 
 ### The `src` Directory
@@ -85,12 +81,6 @@ used by the supported polyglot languages. The contents of each subdirectory is
 specified on a per-language basis, in the
 [polyglot documentation](../polyglot/README.md).
 
-### The `data` Directory
-
-The `data` directory contains any data files and resources that the user needs
-quick access to. Allows referring to resource files in a location-independent
-way, by using the `Enso_Project.data` method.
-
 ### The `package.yaml` File
 
 `package.yaml` describes certain package metadata, such as its name, authors and
@@ -102,13 +92,8 @@ The following is an example of this manifest file.
 license: MIT
 name: My_Package
 version: 1.0.1
-enso-version: 0.2.0
-authors:
-  - name: John Doe
-    email: john.doe@example.com
-maintainers:
-  - name: Jane Doe
-    email: jane.doe@example.com
+author: "John Doe <john.doe@example.com>"
+maintainer: "Jane Doe <jane.doe@example.com>"
 resolver: lts-1.2.0
 extra-dependencies:
   - name: Base
@@ -129,13 +114,6 @@ fields cannot be published.
 package. Defaults to `None`, meaning the package is not safe for use by third
 parties.
 
-#### enso-version
-
-**Optional (required for publishing)** _String_: Specifies the Enso version that
-should be used for this project. If not set or set to `default`, the default
-locally installed Enso version will be used. The version should not be `default`
-if the package is to be published.
-
 #### version
 
 **Optional (required for publishing)** _String_: The
@@ -143,25 +121,16 @@ if the package is to be published.
 format. If not set, it defaults to `dev` (which can be used for development, but
 is not a valid version for publishing).
 
-#### authors
+#### author
 
-**Optional** _List of contacts_: The name(s) and contact info(s) of the
-author(s) of this library.
+**Optional** _String_ or _List of Strings_: The name(s) and contact info(s) of
+the author(s) of this library, in the `Name <contact>` or `Name` format.
 
-A contact is of the form:
+#### maintainer
 
-```yaml
-name: Contact Name
-email: email@example.com
-```
-
-Both `name` and `email` fields are optional, but at least one of them has to be
-present.
-
-#### maintainers
-
-**Optional** _List of contacts_: The name(s) and contact info(s) of the current
-maintainer(s) of this library, in the same format as `authors` above.
+**Optional** _String_ or _List of Strings_: The name(s) and contact info(s) of
+the current maintainer(s) of this library, in the `Name <contact>` or `Name`
+format.
 
 #### resolver
 
@@ -189,18 +158,6 @@ version: <semver string of the required library version>
 > The actionables for this section are:
 >
 > - Extend the library version field to handle version bounds.
-
-### The `visualization` Directory
-
-As Enso is a visual language, a package may contain a specification of how data
-can be displayed in various tools, for example
-[Enso IDE](https://github.com/enso-org/ide). The Enso package structure may
-optionally contain a `visualization` directory which may contain visualization
-definitions.
-
-For more information on how visualization definitions should work with the Enso
-IDE, see
-[this example](https://dev.enso.org/docs/ide/product/visualizations.html#custom-visualization-example).
 
 ## Build Reproducibility
 
