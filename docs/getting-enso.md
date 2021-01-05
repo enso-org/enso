@@ -8,12 +8,10 @@ order: 5
 
 # Getting Enso
 
-Enso packages can currently be obtained from the per-commit CI builds. See
-[the build workflow on GitHub Actions](https://github.com/enso-org/enso/actions?query=workflow%3A%22Engine+CI%22+branch%3Amain),
-which should show a list of recent CI builds. The workflow of interest is
-`Engine CI`. You can navigate to the most recent build, which will display a
-list of attached artifacts. The artifact of interest is `enso-engine-<version>`
-(currently `enso-engine-0.2.0-SNAPSHOT`).
+Enso packages are best obtained from the [releases](https://github.com/enso-org/enso/releases) page
+of the repository. Each release has an "Assets" section at the bottom. You can 
+click on this to view the list of artifacts from which you can download the most
+appropriate version.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
