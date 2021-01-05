@@ -102,7 +102,7 @@ The following is an example of this manifest file.
 license: MIT
 name: My_Package
 version: 1.0.1
-enso-version: 0.1.0
+enso-version: 0.2.0
 authors:
   - name: John Doe
     email: john.doe@example.com
