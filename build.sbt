@@ -1077,6 +1077,8 @@ lazy val runtime = (project in file("engine/runtime"))
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
+lazy val testEnso = inputKey[Unit]("Task for running Enso test suites.")
+
 lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
@@ -1133,6 +1135,28 @@ lazy val `engine-runner` = project
     assembly := assembly
       .dependsOn(runtime / assembly)
       .value
+  )
+  .settings(
+    engineDistributionRoot := defaultEngineDistributionRoot,
+    buildEngineDistribution := {
+      val _            = assembly.value
+      val root         = engineDistributionRoot.value
+      val log          = streams.value.log
+      val cacheFactory = streams.value.cacheStoreFactory / "engine"
+      DistributionPackage.createEnginePackage(
+        distributionRoot = root,
+        cacheFactory     = cacheFactory,
+        graalVersion     = graalVersion,
+        javaVersion      = javaVersion
+      )
+      log.info(s"Engine package created at $root")
+    },
+    testEnso := {
+      Testing
+        .testEnso(defaultEngineDistributionRoot)
+        .dependsOn(buildEngineDistribution)
+        .evaluated
+    }
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
@@ -1338,26 +1362,14 @@ lazy val projectManagerDistributionRoot =
 lazy val bundleRoot =
   settingKey[File]("Root of built bundle")
 
-engineDistributionRoot := file("built-distribution/engine")
+val defaultEngineDistributionRoot = file("built-distribution/engine")
 launcherDistributionRoot := file("built-distribution/launcher")
 projectManagerDistributionRoot := file("built-distribution/project-manager")
 bundleRoot := file("built-distribution/bundle")
 
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
-buildEngineDistribution := {
-  val _            = (`engine-runner` / assembly).value
-  val root         = engineDistributionRoot.value
-  val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory / "engine"
-  DistributionPackage.createEnginePackage(
-    distributionRoot = root,
-    cacheFactory     = cacheFactory,
-    graalVersion     = graalVersion,
-    javaVersion      = javaVersion
-  )
-  log.info(s"Engine package created at $root")
-}
+buildEngineDistribution := (`engine-runner` / buildEngineDistribution).value
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")
