@@ -67,7 +67,7 @@ Release branches obey the following rules:
 - A release branch must contain _tags_ corresponding to released versions of
   Enso. Once a release has been made, no further changes may be made to that
   release.
-- A tagged release must contain a `CHANGELOG` file that describes the changes
+- A tagged release must contain a `RELEASES.md` file that describes the changes
   contained in that release.
 
 It should be noted that general development still takes place on the `main`
@@ -79,9 +79,10 @@ Cutting a release for Enso proceeds as follows:
 
 1.  If no release branch exists for the current major version, one should be
     created.
-2.  Release notes should be made up to date.
-3.  A commit representing the release should be tagged, and the tag pushed to
-    GitHub.
+2.  Release notes should be made up to date in `RELEASES.md` and committed to
+    the release branch.
+3.  A commit representing the release should be tagged on the release branch,
+    and the tag pushed to GitHub.
 4.  CI will create a draft release for this tag, as well as build and upload the
     appropriate artefacts.
 5.  The release notes for the version being released should be copied into the
@@ -90,6 +91,8 @@ Cutting a release for Enso proceeds as follows:
     team.
 7.  Once approval has been gained from these members, the release may be made
     official.
+8.  Push a commit to `main` bumping the version number and ensuring that it
+    remains a `SNAPSHOT` version.
 
 ### Tag Naming
 
@@ -98,6 +101,9 @@ semver string (see [versioning](#versioning)) representing the version being
 released.
 
 ### Manifest Files
+
+Manifest files are used to describe metadata about various releases for use by
+the Enso tooling.
 
 #### Engine Manifest
 
@@ -260,7 +266,8 @@ that will persist the broken mark to S3 is not triggered for release drafts.
 ### Release Notes
 
 Release notes should contain a summary of the changes made between the last
-release and the current release. They should follow the template given below:
+release and the current release. They should follow the template given below,
+and are contained in the `RELEASES.md` file in the repository root.
 
 ```md
 # Enso x.y.z (YYYY-MM-DD)
@@ -269,17 +276,13 @@ release and the current release. They should follow the template given below:
 
 - A list of language-level changes.
 
-## Type System
-
-- A list of type-system changes.
-
-## Interpreter
+## Interpreter/Runtime
 
 - A list of changes to the Enso interpreter.
 
-## Runtime
+## Type System
 
-- A list of changes to the Enso runtime.
+- A list of type-system changes.
 
 ## Tooling
 
@@ -306,7 +309,7 @@ release and the current release. They should follow the template given below:
 If there are no changes for a section, the section should contain a bullet point
 that reads "Nothing".
 
-The changelog file is an ongoing record of changes, and may diverge between
+The releases file is an ongoing record of changes, and may diverge between
 `main` and the various release branches.
 
 ## Version Support

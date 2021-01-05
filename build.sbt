@@ -21,7 +21,7 @@ val ensoVersion   = "0.2.0-SNAPSHOT" // Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Currently both Engine and Launcher versions are tied to each other - each new
  * releases contains the Engine and the Launcher and thus the version number is
- * shared. If the version numbers ever diverge, make sure tu update the build
+ * shared. If the version numbers ever diverge, make sure to update the build
  * scripts at .github/workflows accordingly.
  */
 
