@@ -8,22 +8,37 @@ order: 5
 
 # Getting Enso
 
-Enso packages can currently be obtained from the per-commit CI builds. See
+Enso packages are best obtained from the
+[releases](https://github.com/enso-org/enso/releases) page of the repository.
+Each release has an "Assets" section at the bottom. You can click on this to
+view the list of artifacts from which you can download the most appropriate
+version.
+
+These assets contain bundles that include the Enso launcher, an engine version,
+and GraalVM, allowing you to get up and running immediately. Alternatively, you
+can download just the launcher, which will handle downloading and installing the
+required components for you.
+
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Nightly Builds](#nightly-builds)
+  - [Dependencies](#dependencies)
+  - [Running Enso](#running-enso)
+  - [Troubleshooting](#troubleshooting)
+
+<!-- /MarkdownTOC -->
+
+## Nightly Builds
+
+In addition to the official releases, we provide nightly snapshots built on our
+CI. These can be obtained from
 [the build workflow on GitHub Actions](https://github.com/enso-org/enso/actions?query=workflow%3A%22Engine+CI%22+branch%3Amain),
 which should show a list of recent CI builds. The workflow of interest is
 `Engine CI`. You can navigate to the most recent build, which will display a
 list of attached artifacts. The artifact of interest is `enso-engine-<version>`
-(currently `enso-engine-0.2.0-SNAPSHOT`).
+(currently `enso-engine-0.2.1-SNAPSHOT`).
 
-<!-- MarkdownTOC levels="2,3" autolink="true" -->
-
-- [Dependencies](#dependencies)
-- [Running Enso](#running-enso)
-- [Troubleshooting](#troubleshooting)
-
-<!-- /MarkdownTOC -->
-
-## Dependencies
+### Dependencies
 
 The Enso distribution requires to be run with the appropriate version of
 GraalVM. You can get the Community Edition pre-built distributions from
@@ -36,15 +51,15 @@ is `20.2.0`, and it must be the Java 11 build.
 Before running the Enso packages, make sure that the `JAVA_HOME` environment
 variable points to the correct home location of the Graal distribution.
 
-## Running Enso
+### Running Enso
 
-The distribution contains the Enso CLI. It allows to create and run Enso
+The nightly distribution contains the Enso CLI. It allows to create and run Enso
 projects from the command line. To launch the Enso CLI, run the `bin/enso`
 script (Linux and MacOS) or the `bin/enso.bat` script (Windows).
 
 Again, it is necessary for you to set the `JAVA_HOME` variable correctly.
 
-## Troubleshooting
+### Troubleshooting
 
 This section lists the most common failures and their probable causes.
 
