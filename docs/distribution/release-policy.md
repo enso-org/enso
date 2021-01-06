@@ -81,17 +81,20 @@ Cutting a release for Enso proceeds as follows:
     created.
 2.  Release notes should be made up to date in `RELEASES.md` and committed to
     the release branch.
-3.  A commit representing the release should be tagged on the release branch,
-    and the tag pushed to GitHub.
-4.  CI will create a draft release for this tag, as well as build and upload the
-    appropriate artefacts.
-5.  The release notes for the version being released should be copied into the
+3.  Ensure that the project version is set to the version that you want to
+    release.
+4.  A commit representing the release should be tagged on the release branch,
+    and the tag pushed to GitHub. The tag should have a description that
+    consists of the release notes for that tag, replacing hashes with `=`.
+5.  CI will create a draft release for this tag, as well as build and upload the
+    appropriate artefacts. **Do not** create a release for your tag manually.
+6.  The release notes for the version being released should be copied into the
     release body on GitHub.
-6.  The release must be verified by two members of the engine team, and the QA
+7.  The release must be verified by two members of the engine team, and the QA
     team.
-7.  Once approval has been gained from these members, the release may be made
+8.  Once approval has been gained from these members, the release may be made
     official.
-8.  Push a commit to `main` bumping the version number and ensuring that it
+9.  Push a commit to `main` bumping the version number and ensuring that it
     remains a `SNAPSHOT` version.
 
 ### Tag Naming
@@ -306,8 +309,7 @@ and are contained in the `RELEASES.md` file in the repository root.
   significant improvements to the internals of Enso and related tools.
 ```
 
-If there are no changes for a section, the section should contain a bullet point
-that reads "Nothing".
+If there are no changes for a section, the section may be removed.
 
 The releases file is an ongoing record of changes, and may diverge between
 `main` and the various release branches.
