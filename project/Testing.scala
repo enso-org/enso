@@ -45,6 +45,7 @@ object Testing {
               if (path.isEmpty) binPath else binPath + File.pathSeparator + path
             }
             pb.environment().put(PATH_KEY, path)
+            log.info(s"Will use the JVM at $binPath")
           case None =>
             log.warn(
               "Could not determine path of the currently running JVM, " +
