@@ -10,6 +10,9 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.util.Arrays;
+import org.enso.interpreter.instrument.profiling.ExecutionTime;
+import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodRootNode;
@@ -80,6 +83,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final String cachedType;
     private final FunctionCallInfo callInfo;
     private final FunctionCallInfo cachedCallInfo;
+    private final ProfilingInfo[] profilingInfo;
+    private final boolean wasCached;
 
     /**
      * Creates a new instance of this class.
@@ -89,6 +94,9 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param type the type of the returned value.
      * @param cachedType the cached type of the value.
      * @param callInfo the function call data.
+     * @param cachedCallInfo the cached call data.
+     * @param profilingInfo the profiling information associated with this node
+     * @param wasCached whether or not the value was obtained from the cache
      */
     public ExpressionValue(
         UUID expressionId,
@@ -96,17 +104,22 @@ public class IdExecutionInstrument extends TruffleInstrument {
         String type,
         String cachedType,
         FunctionCallInfo callInfo,
-        FunctionCallInfo cachedCallInfo) {
+        FunctionCallInfo cachedCallInfo,
+        ProfilingInfo[] profilingInfo,
+        boolean wasCached) {
       this.expressionId = expressionId;
       this.value = value;
       this.type = type;
       this.cachedType = cachedType;
       this.callInfo = callInfo;
       this.cachedCallInfo = cachedCallInfo;
+      this.profilingInfo = profilingInfo;
+      this.wasCached = wasCached;
     }
 
     @Override
     public String toString() {
+      String profilingInfo = Arrays.toString(this.profilingInfo);
       return "ExpressionValue{"
           + "expressionId="
           + expressionId
@@ -122,6 +135,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
           + callInfo
           + ", cachedCallInfo="
           + cachedCallInfo
+          + ", profilingInfo="
+          + profilingInfo
+          + ", wasCached="
+          + wasCached
           + '}';
     }
 
@@ -153,6 +170,16 @@ public class IdExecutionInstrument extends TruffleInstrument {
     /** @return the function call data previously associated with the expression. */
     public FunctionCallInfo getCachedCallInfo() {
       return cachedCallInfo;
+    }
+
+    /** @return the profiling information associated with this expression */
+    public ProfilingInfo[] getProfilingInfo() {
+      return profilingInfo;
+    }
+
+    /** @return whether or not the expression result was obtained from the cache */
+    public boolean wasCached() {
+      return wasCached;
     }
   }
 
@@ -237,6 +264,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final MethodCallsCache callsCache;
     private final UUID nextExecutionItem;
     private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+    private long nanoTimeElapsed = 0;
 
     /**
      * Creates a new listener.
@@ -254,7 +282,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         CallTarget entryCallTarget,
         RuntimeCache cache,
         MethodCallsCache methodCallsCache,
-        UUID nextExecutionItem,
+        UUID nextExecutionItem, // The expression ID
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> onComputedCallback,
         Consumer<ExpressionValue> onCachedCallback,
@@ -289,6 +317,9 @@ public class IdExecutionInstrument extends TruffleInstrument {
         nodeId = ((FunctionCallInstrumentationNode) node).getId();
       }
 
+      // Add a flag to say it was cached.
+      // An array of `ProfilingInfo` in the value update.
+
       Object result = cache.get(nodeId);
       // When executing the call stack we need to capture the FunctionCall of the next (top) stack
       // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
@@ -301,9 +332,13 @@ public class IdExecutionInstrument extends TruffleInstrument {
                 cache.getType(nodeId),
                 Types.getName(result),
                 calls.get(nodeId),
-                cache.getCall(nodeId)));
+                cache.getCall(nodeId),
+                new ProfilingInfo[] {ExecutionTime.empty()},
+                true));
         throw context.createUnwind(result);
       }
+
+      nanoTimeElapsed = System.nanoTime();
     }
 
     /**
@@ -316,6 +351,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
      */
     @Override
     public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+      nanoTimeElapsed = System.nanoTime() - nanoTimeElapsed;
       if (!isTopFrame(entryCallTarget)) {
         return;
       }
@@ -341,8 +377,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
         String cachedType = cache.putType(nodeId, resultType);
         FunctionCallInfo call = calls.get(nodeId);
         FunctionCallInfo cachedCall = cache.putCall(nodeId, call);
+        var profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
         onComputedCallback.accept(
-            new ExpressionValue(nodeId, result, resultType, cachedType, call, cachedCall));
+            new ExpressionValue(
+                nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false));
       }
     }
 
