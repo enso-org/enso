@@ -32,6 +32,8 @@ public abstract class Index {
    */
   public abstract List<Integer> loc(Object item);
 
+  public abstract Index unique();
+
   /** @return the name of this index */
   public abstract String getName();
 
@@ -55,4 +57,6 @@ public abstract class Index {
    * @return the index masked according to the specified rules
    */
   public abstract Index countMask(int[] counts, int total);
+
+  public abstract int size();
 }

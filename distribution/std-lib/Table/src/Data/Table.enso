@@ -136,6 +136,40 @@ type Table
         cols = this.columns
         here.new [["Column", cols.map name], ["Items Count", cols.map count], ["Storage Type", cols.map storage_type]]
 
+    group by=Nothing =
+        Aggregate_Table (this.java_table.group [by])
+
+type Aggregate_Table
+    type Aggregate_Table java_table
+
+    count = Column.Column (this.java_table.count [])
+
+    at name = case this.java_table.getColumnByName [name] of
+        Nothing -> Nothing
+        c -> Aggregate_Column c
+
+
+type Aggregate_Column
+    type Aggregate_Column java_column
+
+    reduce function skip_missing=True name="result" =
+        r = this.java_column.aggregate [Nothing, name, Nothing, function, skip_missing]
+        Column.Column r
+
+    sum =
+        r = this.java_column.aggregate ['sum', '_sum', Nothing, (+), True]
+        Column.Column r
+
+    count =
+        r = this.java_column.aggregate ['count', '_count', 0, (x-> _-> x + 1), True]
+        Column.Column r
+
+    #mean =
+        #r = this.sum / this.count
+        #r.rename (this.java_column . getColumn [] . getName [] + '_mean')
+
+
+
 ## PRIVATE
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
 

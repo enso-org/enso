@@ -1,6 +1,12 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.operation.aggregate.Aggregator;
+import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
+
 import java.util.BitSet;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.table.data.column.builder.object.Builder;
@@ -100,6 +106,20 @@ public abstract class Storage {
       }
     }
     return builder.seal();
+  }
+
+  protected abstract Aggregator getVectorizedAggregator(String name, int resultSize);
+
+  public final Aggregator getAggregator(
+      String name, Function<List<Object>, Object> fallback, boolean skipNa, int resultSize) {
+    Aggregator result = null;
+    if (name != null) {
+      result = getVectorizedAggregator(name, resultSize);
+    }
+    if (result == null) {
+      result = new FunctionAggregator(fallback, this, skipNa, resultSize);
+    }
+    return result;
   }
 
   /**

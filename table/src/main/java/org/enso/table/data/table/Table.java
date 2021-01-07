@@ -11,6 +11,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.table.aggregate.AggregateTable;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 
@@ -79,10 +80,19 @@ public class Table {
     }
 
     BoolStorage storage = (BoolStorage) maskCol.getStorage();
+<<<<<<< HEAD
     var mask = BoolStorage.toMask(storage);
     var localStorageMask = new BitSet();
     localStorageMask.set(0, (int) nrows());
     mask.and(localStorageMask);
+=======
+    BitSet mask = new BitSet();
+    mask.or(storage.getValues());
+    if (storage.isNegated()) {
+      mask.flip(0, storage.size());
+    }
+    mask.andNot(storage.getIsMissing());
+>>>>>>> stuff
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
     Index newIx = index.mask(mask, cardinality);
@@ -248,5 +258,10 @@ public class Table {
 
   private String suffixIfNecessary(Set<String> names, String name, String suffix) {
     return names.contains(name) ? name + suffix : name;
+  }
+
+  public AggregateTable group(String by) {
+    Table t = by == null ? this : indexFromColumn(by);
+    return new AggregateTable(t);
   }
 }

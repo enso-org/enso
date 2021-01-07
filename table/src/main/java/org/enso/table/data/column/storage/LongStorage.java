@@ -27,6 +27,10 @@ public class LongStorage extends Storage {
     this.size = size;
   }
 
+  public LongStorage(long[] data) {
+    this(data, data.length, new BitSet());
+  }
+
   /** @inheritDoc */
   @Override
   public int size() {

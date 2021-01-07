@@ -300,3 +300,15 @@ spec =
             i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
+
+    describe "Aggregation" <|
+        ix = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
+        c_1 = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
+        c_2 = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
+        t = Table.new [ix, c_1, c_2] . set_index 'name'
+        t.print
+        agg = t.group
+        agg.count.print
+
+        agg . at 'price' . sum . print
+        agg . at 'price' . count . print
