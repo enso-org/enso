@@ -1,0 +1,7 @@
+import Database.Data.Table
+
+type Connection
+    type Connection java_connection
+
+    access_table : String -> Table
+    access_table name = Panic.throw "TODO"

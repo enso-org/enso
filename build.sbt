@@ -74,7 +74,12 @@ GatherLicenses.distributions := Seq(
   Distribution(
     "std-lib-Table",
     file("distribution/std-lib/Table/THIRD-PARTY"),
-    Distribution.sbtProjects(`table`)
+    Distribution.sbtProjects(table)
+  ),
+  Distribution(
+    "std-lib-Database",
+    file("distribution/std-lib/Database/THIRD-PARTY"),
+    Distribution.sbtProjects(database)
   )
 )
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -1040,6 +1045,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-bits` / Compile / packageBin)
       .dependsOn(table / Compile / packageBin)
+      .dependsOn(database / Compile / packageBin)
       .value
   )
   .settings(
@@ -1257,9 +1263,10 @@ lazy val `locking-test-helper` = project
     assemblyOutputPath in assembly := file("locking-test-helper.jar")
   )
 
-val `std-lib-root`          = file("distribution/std-lib/")
-val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
-val `table-polyglot-root`   = `std-lib-root` / "Table" / "polyglot" / "java"
+val `std-lib-root`           = file("distribution/std-lib/")
+val `std-lib-polyglot-root`  = `std-lib-root` / "Base" / "polyglot" / "java"
+val `table-polyglot-root`    = `std-lib-root` / "Table" / "polyglot" / "java"
+val `database-polyglot-root` = `std-lib-root` / "Database" / "polyglot" / "java"
 
 lazy val `std-bits` = project
   .in(file("std-bits"))
@@ -1283,7 +1290,7 @@ lazy val `std-bits` = project
     }.value
   )
 
-lazy val `table` = project
+lazy val table = project
   .in(file("table"))
   .settings(
     autoScalaLibrary := false,
@@ -1298,6 +1305,26 @@ lazy val `table` = project
         .copyDependencies(
           `table-polyglot-root`,
           "table.jar",
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+lazy val database = project
+  .in(file("database"))
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `database-polyglot-root` / "database.jar",
+    libraryDependencies ++= Seq(),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `database-polyglot-root`,
+          "database.jar",
           ignoreScalaLibrary = true
         )
         .value

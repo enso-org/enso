@@ -1,0 +1,5 @@
+import Database.Connection.Connection
+
+connect : String -> Connection
+connect = Panic.throw "TODO"
+
