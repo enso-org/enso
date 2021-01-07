@@ -3,14 +3,10 @@ package org.enso.polyglot.runtime
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import com.fasterxml.jackson.module.scala.{
-  DefaultScalaModule,
-  ScalaObjectMapper
-}
+import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaObjectMapper}
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.text.ContentVersion
@@ -256,8 +252,32 @@ object Runtime {
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
-      methodCall: Option[MethodPointer]
+      methodCall: Option[MethodPointer],
+      profilingInfo: Vector[ProfilingInfo],
+      wasCached: Boolean
     )
+
+    /** An object representing profiling information about an executed
+      * expression.
+      */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ProfilingInfo.ExecutionTime],
+          name = "executionTime"
+        )
+      )
+    )
+    sealed trait ProfilingInfo
+    object ProfilingInfo {
+
+      /** A representation of the time elapsed during execution.
+        *
+        * @param nanoTime the time elapsed during execution in nanoseconds
+        */
+      case class ExecutionTime(nanoTime: Long) extends ProfilingInfo
+    }
 
     /** An object representing invalidated expressions selector.
       */
