@@ -153,20 +153,22 @@ type Aggregate_Column
     type Aggregate_Column java_column
 
     reduce function skip_missing=True name="result" =
-        r = this.java_column.aggregate [Nothing, name, Nothing, function, skip_missing]
+        r = this.java_column.aggregate [Nothing, name, function, skip_missing]
         Column.Column r
 
     sum =
-        r = this.java_column.aggregate ['sum', '_sum', Nothing, (+), True]
+        r = this.java_column.aggregate ['sum', '_sum', (x-> Vector.Vector x . fold 0 (+)), True]
         Column.Column r
 
     count =
-        r = this.java_column.aggregate ['count', '_count', 0, (x-> _-> x + 1), True]
+        r = this.java_column.aggregate ['count', '_count', (x-> x.length), True]
         Column.Column r
 
-    #mean =
-        #r = this.sum / this.count
-        #r.rename (this.java_column . getColumn [] . getName [] + '_mean')
+    mean =
+        vec_mean v = if v.length == 0 then Nothing else
+            (Vector.Vector v).fold 0 (+) / v.length
+        r = this.java_column.aggregate ['mean', '_mean', vec_mean, True]
+        Column.Column r
 
 
 

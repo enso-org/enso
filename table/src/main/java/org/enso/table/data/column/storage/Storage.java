@@ -108,7 +108,9 @@ public abstract class Storage {
     return builder.seal();
   }
 
-  protected abstract Aggregator getVectorizedAggregator(String name, int resultSize);
+  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
+    return null;
+  }
 
   public final Aggregator getAggregator(
       String name, Function<List<Object>, Object> fallback, boolean skipNa, int resultSize) {

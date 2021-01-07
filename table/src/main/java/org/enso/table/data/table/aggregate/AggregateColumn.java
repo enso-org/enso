@@ -23,25 +23,14 @@ public class AggregateColumn {
       String outSuffix,
       Function<List<Object>, Object> aggregatorFunction,
       boolean skipNa) {
-    Aggregator aggregator = column.getStorage().getAggregator(aggName, aggregatorFunction, )
-    InferredBuilder builder = new InferredBuilder(uniqueIndex.size());
+    Aggregator aggregator =
+        column.getStorage().getAggregator(aggName, aggregatorFunction, skipNa, uniqueIndex.size());
+
     for (int i = 0; i < uniqueIndex.size(); i++) {
-      Object r = init;
       List<Integer> ixes = column.getIndex().loc(uniqueIndex.iloc(i));
-      Storage st = column.getStorage();
-      if (ixes != null) {
-        for (int ix : ixes) {
-          Object arg = st.getItemBoxed(ix);
-          if (r == null && skipNa) {
-            r = arg;
-          } else if (arg != null || !skipNa) {
-            r = aggregator.apply(r, arg);
-          }
-        }
-        builder.append(r);
-      }
+      aggregator.nextGroup(ixes);
     }
-    return new Column(column.getName() + outSuffix, uniqueIndex, builder.seal());
+    return new Column(column.getName() + outSuffix, uniqueIndex, aggregator.seal());
   }
 
   public Column getColumn() {

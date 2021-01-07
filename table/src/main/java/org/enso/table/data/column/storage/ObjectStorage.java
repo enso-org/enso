@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+
+import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;

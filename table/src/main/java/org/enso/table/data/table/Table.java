@@ -80,19 +80,10 @@ public class Table {
     }
 
     BoolStorage storage = (BoolStorage) maskCol.getStorage();
-<<<<<<< HEAD
     var mask = BoolStorage.toMask(storage);
     var localStorageMask = new BitSet();
     localStorageMask.set(0, (int) nrows());
     mask.and(localStorageMask);
-=======
-    BitSet mask = new BitSet();
-    mask.or(storage.getValues());
-    if (storage.isNegated()) {
-      mask.flip(0, storage.size());
-    }
-    mask.andNot(storage.getIsMissing());
->>>>>>> stuff
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
     Index newIx = index.mask(mask, cardinality);
