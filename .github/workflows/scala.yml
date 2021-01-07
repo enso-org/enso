@@ -216,28 +216,17 @@ jobs:
           go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
           $(go env GOPATH)/bin/httpbin -host :8080 &
 
-      - name: Test Engine Distribution (Unix)
+      - name: Test Base Library
         shell: bash
-        if: runner.os != 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso --run test/Tests
+          sleep 1
+          sbt 'set engineDistributionRoot := file("${{ env.ENGINE_DIST_DIR }}"); engine-runner/testEnso base'
 
-      - name: Test Engine Distribution (Windows)
+      - name: Test Tables Library
         shell: bash
-        if: runner.os == 'Windows'
         run: |
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Tests
-
-      - name: Test Tables Library (Unix)
-        shell: bash
-        if: runner.os != 'Windows'
-        run: |
-          $ENGINE_DIST_DIR/bin/enso --run test/Table_Tests
-      - name: Test Tables Library (Windows)
-        shell: bash
-        if: runner.os == 'Windows'
-        run: |
-          $ENGINE_DIST_DIR/bin/enso.bat --run test/Table_Tests
+          sleep 1
+          sbt 'set engineDistributionRoot := file("${{ env.ENGINE_DIST_DIR }}"); engine-runner/testEnso table'
 
       # Publish
       - name: Publish the Engine Distribution Artifact
