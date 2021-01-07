@@ -1,6 +1,7 @@
 import sbt.Def.spaceDelimited
 import sbt.Keys._
 import sbt._
+import java.io.File
 
 object Testing {
   val registeredSuites: Map[String, String] = Map(
@@ -32,11 +33,31 @@ object Testing {
         val command = Seq(runnerPath, "--run", suitePath)
         log.info(s"Running ${command.mkString(" ")}")
         val pb       = new ProcessBuilder(command: _*)
+        val PATH_KEY = if (Platform.isWindows) "Path" else "PATH"
         val OPTS_KEY = "JAVA_OPTS"
+
+        val jvmPath = ProcessHandle.current().info().command().asScala
+        jvmPath match {
+          case Some(str) =>
+            val binPath = file(str).getParentFile.absolutePath
+            val path = {
+              val path = pb.environment().getOrDefault(PATH_KEY, "")
+              if (path.isEmpty) binPath else binPath + File.pathSeparator + path
+            }
+            pb.environment().put(PATH_KEY, path)
+          case None =>
+            log.warn(
+              "Could not determine path of the currently running JVM, " +
+              "the test suite will be run on the default configured JVM " +
+              "which may not work correctly if it is not the right JVM."
+            )
+        }
+
         val opts =
           pb.environment().getOrDefault(OPTS_KEY, "") + " " + jvmOpts
             .mkString(" ")
         pb.environment().put(OPTS_KEY, opts)
+
         pb.inheritIO()
         val process  = pb.start()
         val exitCode = process.waitFor()
