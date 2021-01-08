@@ -6,7 +6,10 @@ import java.util.UUID
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaObjectMapper}
+import com.fasterxml.jackson.module.scala.{
+  DefaultScalaModule,
+  ScalaObjectMapper
+}
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.text.ContentVersion
@@ -188,6 +191,7 @@ object Runtime {
     )
   )
   sealed trait Api
+  sealed trait ApiEnvelope     extends Api
   sealed trait ApiRequest      extends Api
   sealed trait ApiResponse     extends Api
   sealed trait ApiNotification extends ApiResponse
@@ -227,7 +231,6 @@ object Runtime {
       )
     )
     sealed trait StackItem
-
     object StackItem {
 
       /** A call performed at the top of the stack, to initialize the context.
@@ -265,7 +268,7 @@ object Runtime {
       Array(
         new JsonSubTypes.Type(
           value = classOf[ProfilingInfo.ExecutionTime],
-          name = "executionTime"
+          name  = "executionTime"
         )
       )
     )
@@ -295,7 +298,6 @@ object Runtime {
       )
     )
     sealed trait InvalidatedExpressions
-
     object InvalidatedExpressions {
 
       /** An object representing invalidation of all expressions.
@@ -488,7 +490,6 @@ object Runtime {
     )
     sealed trait DiagnosticType
     object DiagnosticType {
-
       case class Error()   extends DiagnosticType
       case class Warning() extends DiagnosticType
     }
@@ -658,6 +659,7 @@ object Runtime {
       * @param payload the request payload.
       */
     case class Request(requestId: Option[RequestId], payload: ApiRequest)
+        extends ApiEnvelope
 
     object Request {
 
@@ -685,6 +687,7 @@ object Runtime {
       * @param payload response
       */
     case class Response(correlationId: Option[RequestId], payload: ApiResponse)
+        extends ApiEnvelope
 
     object Response {
 

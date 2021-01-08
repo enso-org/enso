@@ -1,30 +1,41 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.ByteBuffer
-import java.nio.file.Files
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
+import org.enso.interpreter.instrument.execution.Timer
+import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
+import org.enso.polyglot.runtime.Runtime.Api.ProfilingInfo
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
+import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeServerTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
+
+  // === Test Timer ===========================================================
+
+  class TestTimer extends Timer {
+    override def getTime(): Long = 0
+  }
+
+  // === Test Utilities =======================================================
 
   var context: TestContext = _
 
@@ -69,6 +80,13 @@ class RuntimeServerTest
     )
     executionContext.context.initialize(LanguageInfo.ID)
 
+    val languageContext = executionContext.context
+      .getBindings(LanguageInfo.ID)
+      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+      .asHostObject[EnsoContext]
+    val info = languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
+    languageContext.getLanguage.getIdExecutionInstrument.overrideTimer(new TestTimer)
+
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
 
@@ -102,6 +120,8 @@ class RuntimeServerTest
 
     def executionComplete(contextId: UUID): Api.Response =
       Api.Response(Api.ExecutionComplete(contextId))
+
+    // === The Tests ==========================================================
 
     object Main {
 
@@ -142,7 +162,7 @@ class RuntimeServerTest
                   Main.idMainX,
                   Some("Number"),
                   None,
-                  Vector(),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -158,7 +178,7 @@ class RuntimeServerTest
                   Main.idMainY,
                   Some("Number"),
                   Some(Api.MethodPointer("Test.Main", "Number", "foo")),
-                  Vector(),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -174,7 +194,7 @@ class RuntimeServerTest
                   Main.idMainZ,
                   Some("Number"),
                   None,
-                  Vector(),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -190,7 +210,7 @@ class RuntimeServerTest
                   Main.idFooY,
                   Some("Number"),
                   None,
-                  Vector(),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -206,7 +226,7 @@ class RuntimeServerTest
                   Main.idFooZ,
                   Some("Number"),
                   None,
-                  Vector(),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -252,7 +272,7 @@ class RuntimeServerTest
                   idMainY,
                   Some("Number"),
                   Some(Api.MethodPointer("Test.Main", "Main", "foo")),
-                  Vector(),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -268,7 +288,7 @@ class RuntimeServerTest
                   idMainZ,
                   Some("Number"),
                   Some(Api.MethodPointer("Test.Main", "Main", "bar")),
-                  Vector(),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -385,8 +405,8 @@ class RuntimeServerTest
               context.Main.idMainY,
               Some("Number"),
               Some(Api.MethodPointer("Test.Main", "Number", "foo")),
-              Vector(),
-              false
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              true
             )
           )
         )
@@ -449,7 +469,7 @@ class RuntimeServerTest
           Api.StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Main", "main"),
             None,
-            Vector()
+            Vector(),
           )
         )
       )
@@ -464,7 +484,7 @@ class RuntimeServerTest
               idMainFoo,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "foo")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -473,7 +493,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None, Vector(), false))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Number"),
+              None,
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -584,7 +612,7 @@ class RuntimeServerTest
               idMainFoo,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "foo")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -598,7 +626,7 @@ class RuntimeServerTest
               idMain,
               Some("Nothing"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -645,7 +673,7 @@ class RuntimeServerTest
                   ),
                   Api.SuggestionAction.Add()
                 ),
-                Vector()
+                Vector(),
               )
             )
           )
@@ -712,7 +740,7 @@ class RuntimeServerTest
               idMainBar,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "bar")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -721,7 +749,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None, Vector(), false))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Nothing"),
+              None,
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -828,7 +864,7 @@ class RuntimeServerTest
               idMainBar,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "bar")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -842,7 +878,7 @@ class RuntimeServerTest
               idMain,
               Some("Nothing"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -952,7 +988,7 @@ class RuntimeServerTest
               idMainFoo,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "foo")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -966,7 +1002,7 @@ class RuntimeServerTest
               idMain,
               Some("Number"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1032,7 +1068,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None, Vector(), false))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Number"),
+              None,
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
         )
       )
     val contents = context.Main.code
@@ -1228,8 +1272,8 @@ class RuntimeServerTest
               context.Main.idMainY,
               Some("Number"),
               Some(Api.MethodPointer("Test.Main", "Number", "foo")),
-              Vector(),
-              false
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              true
             )
           )
         )
@@ -1300,7 +1344,7 @@ class RuntimeServerTest
               idResult,
               Some("Number"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1314,7 +1358,7 @@ class RuntimeServerTest
               idPrintln,
               Some("Nothing"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1328,7 +1372,7 @@ class RuntimeServerTest
               idMain,
               Some("Nothing"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1404,7 +1448,7 @@ class RuntimeServerTest
               idResult,
               Some("Text"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1480,7 +1524,7 @@ class RuntimeServerTest
               idMainA,
               Some("Number"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1494,7 +1538,7 @@ class RuntimeServerTest
               idMainP,
               Some("Nothing"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1508,7 +1552,7 @@ class RuntimeServerTest
               idMain,
               Some("Nothing"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1653,7 +1697,7 @@ class RuntimeServerTest
               idMainA,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "x")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1677,7 +1721,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionComplete(contextId))
+    context.receive shouldEqual Some(
+      context.executionComplete(contextId)
+    )
     context.consumeOut shouldEqual List("5")
 
     // Edit s/1000.x 5/Main.pie/
@@ -1703,7 +1749,7 @@ class RuntimeServerTest
               idMainA,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "pie")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1736,7 +1782,7 @@ class RuntimeServerTest
               idMainA,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "uwu")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1769,7 +1815,7 @@ class RuntimeServerTest
               idMainA,
               Some("Text"),
               Some(Api.MethodPointer(moduleName, "Main", "hie")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1802,7 +1848,7 @@ class RuntimeServerTest
               idMainA,
               Some("Text"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1875,7 +1921,7 @@ class RuntimeServerTest
               idMain,
               Some("Nothing"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1889,7 +1935,7 @@ class RuntimeServerTest
               id1,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1903,7 +1949,7 @@ class RuntimeServerTest
               id2,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -1917,7 +1963,7 @@ class RuntimeServerTest
               id3,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2032,7 +2078,7 @@ class RuntimeServerTest
               id1,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2046,7 +2092,7 @@ class RuntimeServerTest
               id2,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2060,8 +2106,8 @@ class RuntimeServerTest
               id3,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
-              false
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              true
             )
           )
         )
@@ -2096,7 +2142,7 @@ class RuntimeServerTest
               id1,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2110,7 +2156,7 @@ class RuntimeServerTest
               id2,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2124,7 +2170,7 @@ class RuntimeServerTest
               id3,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2160,7 +2206,7 @@ class RuntimeServerTest
               id1,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2174,7 +2220,7 @@ class RuntimeServerTest
               id2,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2188,7 +2234,7 @@ class RuntimeServerTest
               id3,
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2284,7 +2330,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionComplete(contextId))
+    context.receive shouldEqual Some(
+      context.executionComplete(contextId)
+    )
     context.consumeOut shouldEqual List("I'm a modified!")
 
     // Close the file
@@ -2346,7 +2394,7 @@ class RuntimeServerTest
               idMain,
               Some("Number"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2395,7 +2443,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionComplete(contextId))
+    context.receive shouldEqual Some(
+      context.executionComplete(contextId)
+    )
   }
 
   it should "send suggestion notifications when file is executed" in {
@@ -2412,7 +2462,7 @@ class RuntimeServerTest
               idMain,
               Some("Number"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -2612,8 +2662,8 @@ class RuntimeServerTest
               context.Main.idMainY,
               Some("Number"),
               Some(Api.MethodPointer("Test.Main", "Number", "foo")),
-              Vector(),
-              false
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              true
             )
           )
         )
@@ -3889,7 +3939,7 @@ class RuntimeServerTest
               idMain,
               Some("Number"),
               None,
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -4817,7 +4867,7 @@ class RuntimeServerTest
               context.Main.idMainY,
               Some("Number"),
               Some(Api.MethodPointer("Foo.Main", "Number", "foo")),
-              Vector(),
+              Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
