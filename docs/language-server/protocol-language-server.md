@@ -231,7 +231,7 @@ interface MethodPointer {
 
 ### `ExpressionValueUpdate`
 
-Metadata on an updated expression. 
+Metadata on an updated expression.
 
 ```typescript
 interface ExpressionValueUpdate {
@@ -257,8 +257,8 @@ Currently, the `profilingInfo` array is guaranteed to contain at least the
 
 ### `ProfilingInfo`
 
-Profiling information on an executed expression. It is implemented as a union
-as additional types of information will be added in the future.
+Profiling information on an executed expression. It is implemented as a union as
+additional types of information will be added in the future.
 
 ```typescript
 type ProfilingInfo = ExecutionTime;
@@ -269,7 +269,7 @@ Where:
 ```typescript
 interface ExecutionTime {
   /** The time elapsed during the expression's evaluation, in nanoseconds */
-  nanoTime: Number
+  nanoTime: Number;
 }
 ```
 
