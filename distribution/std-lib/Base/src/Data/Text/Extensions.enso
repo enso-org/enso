@@ -11,7 +11,8 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Computes the number of characters in the text.
 
-   A character is defined as an Extended Grapheme Cluster.
+   A character is defined as an Extended Grapheme Cluster, see
+   Unicode Standard Annex 29.
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -29,7 +30,8 @@ Text.length =
 
 ## Applies `function` to each character in `this`.
 
-   A character is defined as an Extended Grapheme Cluster.
+   A character is defined as an Extended Grapheme Cluster, see
+   Unicode Standard Annex 29.
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -50,7 +52,8 @@ Text.each function =
 
 ## Returns a vector containing all characters in the given text.
 
-   A character is defined as an Extended Grapheme Cluster.
+   A character is defined as an Extended Grapheme Cluster, see
+   Unicode Standard Annex 29.
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
