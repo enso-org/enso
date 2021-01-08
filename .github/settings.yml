@@ -224,7 +224,7 @@ branches:
           - "license/cla"
       enforce_admins: null
       restrictions: null
-  - name: "release/*.x"
+  - name: "release/*"
     protection:
       required_pull_request_reviews:
         required_approving_review_count: 1
