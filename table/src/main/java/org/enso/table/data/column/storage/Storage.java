@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
+import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 
 import java.util.BitSet;
@@ -56,7 +57,7 @@ public abstract class Storage {
   }
 
   /** A container for names of vectorizable operation. */
-  public static final class Ops {
+  public static final class Maps {
     public static final String EQ = "==";
     public static final String LT = "<";
     public static final String LTE = "<=";
@@ -74,6 +75,14 @@ public abstract class Storage {
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
     public static final String CONTAINS = "contains";
+  }
+
+  public static final class Aggregators {
+    public static final String SUM = "sum";
+    public static final String MEAN = "mean";
+    public static final String MAX = "max";
+    public static final String MIN = "min";
+    public static final String COUNT = "count";
   }
 
   protected abstract boolean isOpVectorized(String name);
@@ -109,6 +118,9 @@ public abstract class Storage {
   }
 
   protected Aggregator getVectorizedAggregator(String name, int resultSize) {
+    if (name.equals(Aggregators.COUNT)) {
+      return new CountAggregator(this, resultSize);
+    }
     return null;
   }
 

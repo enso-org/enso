@@ -5,6 +5,7 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class AggregateTable {
@@ -33,5 +34,11 @@ public class AggregateTable {
     } else {
       return new AggregateColumn(uniqueIndex, c);
     }
+  }
+
+  public AggregateColumn[] getColumns() {
+    return Arrays.stream(table.getColumns())
+        .map(c -> new AggregateColumn(uniqueIndex, c))
+        .toArray(AggregateColumn[]::new);
   }
 }

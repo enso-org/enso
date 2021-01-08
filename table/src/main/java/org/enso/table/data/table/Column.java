@@ -27,6 +27,10 @@ public class Column {
     this.index = index;
   }
 
+  public Table toTable() {
+    return new Table(new Column[] {this}, index);
+  }
+
   /** @return the column name */
   public String getName() {
     return name;

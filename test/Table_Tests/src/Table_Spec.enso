@@ -302,14 +302,23 @@ spec =
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
 
     describe "Aggregation" <|
-        ix = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
-        c_1 = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
-        c_2 = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
-        t = Table.new [ix, c_1, c_2] . set_index 'name'
-        t.print
-        agg = t.group
-        agg.count.print
+        name = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
+        price = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
+        quantity = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
+        t = Table.new [name, price, quantity]
+        agg = t.group by='name'
 
-        agg . at 'price' . sum . print
-        agg . at 'price' . count . print
-        agg . at 'price' . mean . print
+        it "should allow counting group sizes" <|
+            agg.count.to_vector.should_equal [3, 2, 1, 1]
+
+        it "should allow aggregating columns with basic arithmetic aggregators" <|
+            agg.at 'price' . mean . to_vector . should_equal [0.4, 50.25, 6.7, Nothing]
+            agg.at 'price' . min . to_vector . should_equal [0.4, 3.5, 6.7, Nothing]
+
+        it "should allow aggregating with user-defined aggregate functions" <|
+            median vec =
+                sorted = vec.sort
+                if sorted.is_empty then Nothing else sorted.at (sorted.length-1 / 2).floor
+            agg.at 'quantity' . reduce median . to_vector . should_equal [30, 20, 40, 70]
+
+
