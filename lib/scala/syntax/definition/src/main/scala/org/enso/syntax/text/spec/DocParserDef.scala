@@ -141,7 +141,7 @@ case class DocParserDef() extends Parser[Doc] {
 
     def checkIfTagExistInPushedText(in: String): Boolean =
       logger.trace {
-        val inArray     = in.split(" ")
+        var inArray     = in.split(" ")
         var containsTag = false
 
         def tryFindingTagInAvailableTags(elem: String): Unit =
@@ -159,11 +159,13 @@ case class DocParserDef() extends Parser[Doc] {
             }
           }
 
-        if (inArray.isEmpty || inArray.head.isEmpty) {
-          section.currentIndentRaw += 1
-        } else {
+        if (inArray.nonEmpty) {
+          while (inArray.nonEmpty && inArray.head.isEmpty) {
+            section.currentIndentRaw += 1
+            inArray = inArray.tail
+          }
           val elem = inArray.head
-          if (elem.matches("\\b[A-Z]{2,}\\b")) {
+          if (elem.matches("^\\b[A-Z]{2,}\\b")) {
             tryFindingTagInAvailableTags(elem)
           }
         }
