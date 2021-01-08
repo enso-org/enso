@@ -141,7 +141,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainX,
                   Some("Number"),
-                  None
+                  None,
+                  Vector(),
+                  false
                 )
               )
             )
@@ -155,7 +157,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainY,
                   Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+                  Some(Api.MethodPointer("Test.Main", "Number", "foo")),
+                  Vector(),
+                  false
                 )
               )
             )
@@ -169,7 +173,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainZ,
                   Some("Number"),
-                  None
+                  None,
+                  Vector(),
+                  false
                 )
               )
             )
@@ -183,7 +189,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idFooY,
                   Some("Number"),
-                  None
+                  None,
+                  Vector(),
+                  false
                 )
               )
             )
@@ -197,7 +205,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idFooZ,
                   Some("Number"),
-                  None
+                  None,
+                  Vector(),
+                  false
                 )
               )
             )
@@ -241,7 +251,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainY,
                   Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Main", "foo"))
+                  Some(Api.MethodPointer("Test.Main", "Main", "foo")),
+                  Vector(),
+                  false
                 )
               )
             )
@@ -255,7 +267,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainZ,
                   Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Main", "bar"))
+                  Some(Api.MethodPointer("Test.Main", "Main", "bar")),
+                  Vector(),
+                  false
                 )
               )
             )
@@ -370,7 +384,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
               Some("Number"),
-              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+              Some(Api.MethodPointer("Test.Main", "Number", "foo")),
+              Vector(),
+              false
             )
           )
         )
@@ -447,7 +463,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainFoo,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "foo"))
+              Some(Api.MethodPointer(moduleName, "Main", "foo")),
+              Vector(),
+              false
             )
           )
         )
@@ -455,7 +473,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None, Vector(), false))
         )
       ),
       Api.Response(
@@ -565,7 +583,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainFoo,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "foo"))
+              Some(Api.MethodPointer(moduleName, "Main", "foo")),
+              Vector(),
+              false
             )
           )
         )
@@ -573,7 +593,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Nothing"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -683,7 +711,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainBar,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "bar"))
+              Some(Api.MethodPointer(moduleName, "Main", "bar")),
+              Vector(),
+              false
             )
           )
         )
@@ -691,7 +721,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None, Vector(), false))
         )
       ),
       Api.Response(
@@ -797,7 +827,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainBar,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "bar"))
+              Some(Api.MethodPointer(moduleName, "Main", "bar")),
+              Vector(),
+              false
             )
           )
         )
@@ -805,7 +837,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Nothing"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -911,7 +951,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainFoo,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "foo"))
+              Some(Api.MethodPointer(moduleName, "Main", "foo")),
+              Vector(),
+              false
             )
           )
         )
@@ -919,7 +961,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Number"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -982,7 +1032,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None, Vector(), false))
         )
       )
     val contents = context.Main.code
@@ -1177,7 +1227,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
               Some("Number"),
-              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+              Some(Api.MethodPointer("Test.Main", "Number", "foo")),
+              Vector(),
+              false
             )
           )
         )
@@ -1243,19 +1295,43 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idResult, Some("Number"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idResult,
+              Some("Number"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idPrintln, Some("Nothing"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idPrintln,
+              Some("Nothing"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Nothing"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -1323,7 +1399,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idResult, Some("Text"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idResult,
+              Some("Text"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       context.executionComplete(contextId)
@@ -1391,19 +1475,43 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMainA, Some("Number"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainA,
+              Some("Number"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMainP, Some("Nothing"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainP,
+              Some("Nothing"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Nothing"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -1544,7 +1652,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "x"))
+              Some(Api.MethodPointer(moduleName, "Number", "x")),
+              Vector(),
+              false
             )
           )
         )
@@ -1592,7 +1702,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "pie"))
+              Some(Api.MethodPointer(moduleName, "Main", "pie")),
+              Vector(),
+              false
             )
           )
         )
@@ -1623,7 +1735,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "uwu"))
+              Some(Api.MethodPointer(moduleName, "Main", "uwu")),
+              Vector(),
+              false
             )
           )
         )
@@ -1654,7 +1768,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Text"),
-              Some(Api.MethodPointer(moduleName, "Main", "hie"))
+              Some(Api.MethodPointer(moduleName, "Main", "hie")),
+              Vector(),
+              false
             )
           )
         )
@@ -1681,7 +1797,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMainA, Some("Text"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainA,
+              Some("Text"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       context.executionComplete(contextId)
@@ -1746,7 +1870,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Nothing"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Nothing"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       ),
       Api.Response(
@@ -1756,7 +1888,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id1,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1768,7 +1902,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id2,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1780,7 +1916,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id3,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1893,7 +2031,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id1,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1905,7 +2045,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id2,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1917,7 +2059,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id3,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1951,7 +2095,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id1,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1963,7 +2109,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id2,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -1975,7 +2123,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id3,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -2009,7 +2159,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id1,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -2021,7 +2173,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id2,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -2033,7 +2187,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               id3,
               Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Vector(),
+              false
             )
           )
         )
@@ -2186,7 +2342,13 @@ class RuntimeServerTest
         Api.ExpressionValuesComputed(
           contextId,
           Vector(
-            Api.ExpressionValueUpdate(idMain, Some("Number"), None)
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Number"),
+              None,
+              Vector(),
+              false
+            )
           )
         )
       ),
@@ -2245,7 +2407,15 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Number"),
+              None,
+              Vector(),
+              false
+            )
+          )
         )
       )
     val version = contentsVersion(context.Main.code)
@@ -2441,7 +2611,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
               Some("Number"),
-              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+              Some(Api.MethodPointer("Test.Main", "Number", "foo")),
+              Vector(),
+              false
             )
           )
         )
@@ -3716,7 +3888,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMain,
               Some("Number"),
-              None
+              None,
+              Vector(),
+              false
             )
           )
         )
@@ -4642,7 +4816,9 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
               Some("Number"),
-              Some(Api.MethodPointer("Foo.Main", "Number", "foo"))
+              Some(Api.MethodPointer("Foo.Main", "Number", "foo")),
+              Vector(),
+              false
             )
           )
         )
