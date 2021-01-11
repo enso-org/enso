@@ -216,5 +216,6 @@ public class ModuleScope implements TruffleObject {
     exports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
+    polyglotSymbols = new HashMap<>();
   }
 }

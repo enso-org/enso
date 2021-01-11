@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
@@ -143,7 +144,7 @@ class SuggestionUpdatesTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -166,10 +167,11 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -220,10 +222,11 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -235,7 +238,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -296,10 +299,11 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -311,7 +315,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -334,7 +338,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -392,10 +396,11 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -407,7 +412,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -430,14 +435,14 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
                         )
                       ),
                       Api.SuggestionAction.Modify(
-                        returnType = Some("Number"),
+                        returnType = Some(Constants.NUMBER),
                         scope = Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
@@ -498,10 +503,11 @@ class SuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -513,7 +519,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -536,7 +542,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        "Number",
+                        Constants.NUMBER,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -562,11 +568,12 @@ class SuggestionUpdatesTest
                     moduleName,
                     "foo",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -621,11 +628,12 @@ class SuggestionUpdatesTest
                     moduleName,
                     "foo",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify(
@@ -636,7 +644,7 @@ class SuggestionUpdatesTest
                           .Modify(1, Some("a"), None, None, None, None),
                         Api.SuggestionArgumentAction.Add(
                           2,
-                          Suggestion.Argument("b", "Any", false, false, None)
+                          Suggestion.Argument("b", Constants.ANY, false, false, None)
                         )
                       )
                     ),

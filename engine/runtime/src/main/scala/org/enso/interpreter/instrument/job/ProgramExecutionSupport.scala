@@ -35,6 +35,7 @@ import org.enso.interpreter.service.error.{
   MethodNotFoundException,
   ServiceException
 }
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
@@ -80,8 +81,8 @@ trait ProgramExecutionSupport {
             cache
           ) =>
         ctx.executionService.execute(
-          module,
-          cons,
+          module.toString,
+          cons.item,
           function,
           cache,
           methodCallsCache,
@@ -469,10 +470,10 @@ trait ProgramExecutionSupport {
     for {
       call       <- Option(value.getCallInfo)
       moduleName <- Option(call.getModuleName)
-      typeName   <- Option(call.getTypeName).map(_.item)
+      typeName   <- Option(call.getTypeName)
     } yield Api.MethodPointer(
       moduleName.toString,
-      typeName,
+      typeName.toString,
       call.getFunctionName
     )
 
@@ -535,8 +536,11 @@ object ProgramExecutionSupport {
       * @param constructor the type on which the method is defined
       * @param function the method name
       */
-    case class Method(module: String, constructor: String, function: String)
-        extends ExecutionItem
+    case class Method(
+      module: QualifiedName,
+      constructor: QualifiedName,
+      function: String
+    ) extends ExecutionItem
 
     object Method {
 
@@ -547,8 +551,8 @@ object ProgramExecutionSupport {
         */
       def apply(call: Api.StackItem.ExplicitCall): Method =
         Method(
-          call.methodPointer.module,
-          call.methodPointer.definedOnType,
+          QualifiedName.fromString(call.methodPointer.module),
+          QualifiedName.fromString(call.methodPointer.definedOnType),
           call.methodPointer.name
         )
     }
