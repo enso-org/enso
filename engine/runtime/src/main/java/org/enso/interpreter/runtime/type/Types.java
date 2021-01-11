@@ -112,12 +112,12 @@ public class Types {
    * @return the string representation of object's type.
    */
   public static String getName(Object value) {
-    if (TypesGen.isLong(value) || TypesGen.isImplicitLong(value)) {
+    if (TypesGen.isLong(value)
+        || TypesGen.isImplicitLong(value)
+        || TypesGen.isEnsoBigInteger(value)) {
       return Constants.INTEGER;
     } else if (TypesGen.isDouble(value)) {
       return Constants.DECIMAL;
-    } else if (TypesGen.isEnsoBigInteger(value)) {
-      return Constants.NUMBER;
     } else if (TypesGen.isBoolean(value)) {
       return Constants.BOOLEAN;
     } else if (TypesGen.isText(value)) {
