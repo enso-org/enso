@@ -169,7 +169,7 @@ public class TopLevelScope implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       Types.Pair<String, String> args =
           Types.extractArguments(arguments, String.class, String.class);
-      QualifiedName qualName = QualifiedName.fromString(args.getFirst()).get();
+      QualifiedName qualName = QualifiedName.fromString(args.getFirst());
       File location = new File(args.getSecond());
       Module module = new Module(qualName, context.getTruffleFile(location));
       scope.modules.put(qualName.toString(), module);
