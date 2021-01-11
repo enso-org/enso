@@ -84,8 +84,10 @@ class RuntimeServerTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
-    val info = languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
-    languageContext.getLanguage.getIdExecutionInstrument.overrideTimer(new TestTimer)
+    val info =
+      languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
+    languageContext.getLanguage.getIdExecutionInstrument
+      .overrideTimer(new TestTimer)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -469,7 +471,7 @@ class RuntimeServerTest
           Api.StackItem.ExplicitCall(
             Api.MethodPointer(moduleName, "Main", "main"),
             None,
-            Vector(),
+            Vector()
           )
         )
       )
@@ -673,7 +675,7 @@ class RuntimeServerTest
                   ),
                   Api.SuggestionAction.Add()
                 ),
-                Vector(),
+                Vector()
               )
             )
           )
@@ -2143,7 +2145,7 @@ class RuntimeServerTest
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              false
+              true
             )
           )
         )
@@ -2207,7 +2209,7 @@ class RuntimeServerTest
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              false
+              true
             )
           )
         )
