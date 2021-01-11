@@ -9,7 +9,7 @@ import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
 
 /** A column containing floating point numbers. */
-public class DoubleStorage extends Storage {
+public class DoubleStorage extends NumericStorage {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -45,6 +45,11 @@ public class DoubleStorage extends Storage {
    */
   public double getItem(long idx) {
     return Double.longBitsToDouble(data[(int) idx]);
+  }
+
+  @Override
+  public double getItemDouble(int idx) {
+    return getItem(idx);
   }
 
   @Override
@@ -159,56 +164,56 @@ public class DoubleStorage extends Storage {
   private static MapOpStorage<DoubleStorage> buildOps() {
     MapOpStorage<DoubleStorage> ops = new MapOpStorage<>();
     ops.add(
-            new DoubleNumericOp(Ops.ADD) {
+            new DoubleNumericOp(Maps.ADD) {
               @Override
               protected double doDouble(double a, double b) {
                 return a + b;
               }
             })
         .add(
-            new DoubleNumericOp(Ops.SUB) {
+            new DoubleNumericOp(Maps.SUB) {
               @Override
               protected double doDouble(double a, double b) {
                 return a - b;
               }
             })
         .add(
-            new DoubleNumericOp(Ops.MUL) {
+            new DoubleNumericOp(Maps.MUL) {
               @Override
               protected double doDouble(double a, double b) {
                 return a * b;
               }
             })
         .add(
-            new DoubleNumericOp(Ops.DIV) {
+            new DoubleNumericOp(Maps.DIV) {
               @Override
               protected double doDouble(double a, double b) {
                 return a / b;
               }
             })
         .add(
-            new DoubleNumericOp(Ops.MOD) {
+            new DoubleNumericOp(Maps.MOD) {
               @Override
               protected double doDouble(double a, double b) {
                 return a % b;
               }
             })
         .add(
-            new DoubleBooleanOp(Ops.LT) {
+            new DoubleBooleanOp(Maps.LT) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a < b;
               }
             })
         .add(
-            new DoubleBooleanOp(Ops.LTE) {
+            new DoubleBooleanOp(Maps.LTE) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a <= b;
               }
             })
         .add(
-            new DoubleBooleanOp(Ops.EQ) {
+            new DoubleBooleanOp(Maps.EQ) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a == b;
@@ -220,21 +225,21 @@ public class DoubleStorage extends Storage {
               }
             })
         .add(
-            new DoubleBooleanOp(Ops.GT) {
+            new DoubleBooleanOp(Maps.GT) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a > b;
               }
             })
         .add(
-            new DoubleBooleanOp(Ops.GTE) {
+            new DoubleBooleanOp(Maps.GTE) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a >= b;
               }
             })
         .add(
-            new UnaryMapOperation<>(Ops.IS_MISSING) {
+            new UnaryMapOperation<>(Maps.IS_MISSING) {
               @Override
               public Storage run(DoubleStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);

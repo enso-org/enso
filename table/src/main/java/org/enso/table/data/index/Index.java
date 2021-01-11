@@ -32,6 +32,13 @@ public abstract class Index {
    */
   public abstract List<Integer> loc(Object item);
 
+  /**
+   * Builds an index containing the same values as this one, but with only one occurrence of each.
+   *
+   * @return a unique index obtained from this one.
+   */
+  public abstract Index unique();
+
   /** @return the name of this index */
   public abstract String getName();
 
@@ -55,4 +62,7 @@ public abstract class Index {
    * @return the index masked according to the specified rules
    */
   public abstract Index countMask(int[] counts, int total);
+
+  /** @return the number of elements in this index. */
+  public abstract int size();
 }

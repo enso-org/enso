@@ -19,6 +19,7 @@ public class Error {
   private final AtomConstructor polyglotError;
   private final AtomConstructor moduleNotInPackageError;
   private final AtomConstructor arithmeticError;
+  private final AtomConstructor invalidArrayIndexError;
 
   private final Atom arithmeticErrorShiftTooBig;
 
@@ -68,6 +69,11 @@ public class Error {
             .initializeFields(
                 new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
     arithmeticErrorShiftTooBig = arithmeticError.newInstance(shiftTooBigMessage);
+    invalidArrayIndexError =
+        new AtomConstructor("Invalid_Array_Index_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "array", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(1, "index", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(compileError);
@@ -77,6 +83,7 @@ public class Error {
     scope.registerConstructor(polyglotError);
     scope.registerConstructor(moduleNotInPackageError);
     scope.registerConstructor(arithmeticError);
+    scope.registerConstructor(invalidArrayIndexError);
   }
 
   /** @return the builtin {@code Syntax_Error} atom constructor. */
@@ -85,7 +92,9 @@ public class Error {
   }
 
   /** @return the builtin {@code Type_Error} atom constructor. */
-  public AtomConstructor typeError() { return typeError; }
+  public AtomConstructor typeError() {
+    return typeError;
+  }
 
   /** @return the builtin {@code Compile_Error} atom constructor. */
   public AtomConstructor compileError() {
@@ -152,5 +161,9 @@ public class Error {
   /** @return An arithmetic error representing a too-large shift for the bit shift. */
   public Atom getShiftAmountTooLargeError() {
     return arithmeticErrorShiftTooBig;
+  }
+
+  public Atom makeInvalidArrayIndexError(Object array, Object index) {
+    return invalidArrayIndexError.newInstance(array, index);
   }
 }

@@ -50,4 +50,14 @@ public class DefaultIndex extends Index {
   public Index countMask(int[] counts, int total) {
     return new DefaultIndex(total);
   }
+
+  @Override
+  public Index unique() {
+    return this;
+  }
+
+  @Override
+  public int size() {
+    return size;
+  }
 }
