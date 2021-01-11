@@ -6,7 +6,7 @@ import java.nio.file.Files
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
-import org.enso.interpreter.test.instrument.TypeConstants
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
@@ -25,8 +25,6 @@ class SuggestionUpdatesTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
-
-  import TypeConstants.Builtins
 
   var context: TestContext = _
 
@@ -173,7 +171,7 @@ class SuggestionUpdatesTest
                         .Argument("this", "Test.Main", false, false, None)
                     ),
                     "Test.Main",
-                    Builtins.Any,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -228,7 +226,7 @@ class SuggestionUpdatesTest
                         .Argument("this", "Test.Main", false, false, None)
                     ),
                     "Test.Main",
-                    Builtins.Any,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -240,7 +238,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Builtins.Any,
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -305,7 +303,7 @@ class SuggestionUpdatesTest
                         .Argument("this", "Test.Main", false, false, None)
                     ),
                     "Test.Main",
-                    Builtins.Any,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -317,7 +315,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Builtins.Any,
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -340,7 +338,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Builtins.Any,
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -402,7 +400,7 @@ class SuggestionUpdatesTest
                         .Argument("this", "Test.Main", false, false, None)
                     ),
                     "Test.Main",
-                    Builtins.Any,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -414,7 +412,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Builtins.Any,
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -437,14 +435,14 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Builtins.Any,
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
                         )
                       ),
                       Api.SuggestionAction.Modify(
-                        returnType = Some("Builtins.Main.Number"),
+                        returnType = Some(Constants.NUMBER),
                         scope = Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
@@ -509,7 +507,7 @@ class SuggestionUpdatesTest
                         .Argument("this", "Test.Main", false, false, None)
                     ),
                     "Test.Main",
-                    Builtins.Any,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -521,7 +519,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Builtins.Any,
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -544,7 +542,7 @@ class SuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        "Builtins.Main.Number",
+                        Constants.NUMBER,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -572,10 +570,10 @@ class SuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument("this", "Test.Main", false, false, None),
-                      Suggestion.Argument("x", Builtins.Any, false, false, None)
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Main",
-                    Builtins.Any,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -632,10 +630,10 @@ class SuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument("this", "Test.Main", false, false, None),
-                      Suggestion.Argument("x", Builtins.Any, false, false, None)
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Main",
-                    Builtins.Any,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Modify(
@@ -646,7 +644,7 @@ class SuggestionUpdatesTest
                           .Modify(1, Some("a"), None, None, None, None),
                         Api.SuggestionArgumentAction.Add(
                           2,
-                          Suggestion.Argument("b", Builtins.Any, false, false, None)
+                          Suggestion.Argument("b", Constants.ANY, false, false, None)
                         )
                       )
                     ),

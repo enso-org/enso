@@ -116,25 +116,25 @@ public class Types {
         || TypesGen.isDouble(value)
         || TypesGen.isEnsoBigInteger(value)
         || TypesGen.isImplicitLong(value)) {
-      return "Builtins.Main.Number";
+      return Constants.NUMBER;
     } else if (TypesGen.isBoolean(value)) {
-      return "Builtins.Main.Boolean";
+      return Constants.BOOLEAN;
     } else if (TypesGen.isText(value)) {
-      return "Builtins.Main.Text";
+      return Constants.TEXT;
     } else if (TypesGen.isFunction(value)) {
-      return "Builtins.Main.Function";
+      return Constants.FUNCTION;
     } else if (TypesGen.isAtom(value)) {
       return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
     } else if (TypesGen.isAtomConstructor(value)) {
       return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
     } else if (TypesGen.isThunk(value)) {
-      return "Builtins.Main.Thunk";
+      return Constants.THUNK;
     } else if (TypesGen.isRuntimeError(value)) {
-      return "Builtins.Main.Error";
+      return Constants.ERROR;
     } else if (TypesGen.isArray(value)) {
-      return "Builtins.Main.Array";
+      return Constants.ARRAY;
     } else if (TypesGen.isRef(value)) {
-      return "Builtins.Main.Ref";
+      return Constants.REF;
     } else {
       return null;
     }
