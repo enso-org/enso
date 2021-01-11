@@ -11,8 +11,8 @@ import org.enso.loggingservice.printers.{
   StderrPrinterWithColors
 }
 
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
@@ -145,6 +145,12 @@ abstract class LoggingServiceSetupHelper(implicit
     LoggingServiceManager
       .setup(LoggerMode.Server(createPrinters()), logLevel)
       .onComplete {
+        case Failure(LoggingServiceAlreadyInitializedException()) =>
+          logger.warn(
+            "Failed to initialize the logger because the logging service " +
+            "was already initialized."
+          )
+          loggingServiceEndpointPromise.trySuccess(None)
         case Failure(exception) =>
           logger.error(
             s"Failed to initialize the logging service server: $exception",
@@ -158,6 +164,12 @@ abstract class LoggingServiceSetupHelper(implicit
               logLevel
             )
             .onComplete {
+              case Failure(LoggingServiceAlreadyInitializedException()) =>
+                logger.warn(
+                  "Failed to initialize the fallback logger because the " +
+                  "logging service was already initialized."
+                )
+                loggingServiceEndpointPromise.trySuccess(None)
               case Failure(fallbackException) =>
                 System.err.println(
                   s"Failed to initialize the fallback logger: " +

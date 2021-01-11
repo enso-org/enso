@@ -1,7 +1,7 @@
 package org.enso.loggingservice
 
-import org.enso.loggingservice.internal.service.{Client, Local, Server, Service}
 import org.enso.loggingservice.internal._
+import org.enso.loggingservice.internal.service.{Client, Local, Server, Service}
 import org.enso.loggingservice.printers.{Printer, StderrPrinter}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -168,9 +168,7 @@ object LoggingServiceManager {
   ): InitializationResult = {
     this.synchronized {
       if (currentService.isDefined) {
-        throw new IllegalStateException(
-          "The logging service has already been set up."
-        )
+        throw new LoggingServiceAlreadyInitializedException()
       }
 
       val (service, result): (Service, InitializationResult) = mode match {

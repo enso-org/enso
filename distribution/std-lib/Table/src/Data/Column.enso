@@ -141,15 +141,42 @@ type Column
        provided default.
     fill_missing : Any -> Column
     fill_missing default =
-       storage = this.java_column.getStorage []
-       index = this.java_column.getIndex []
-       name = this.java_column.getName []
-       new_st = storage.fillMissing [default]
-       col = Java_Column.new [name, index, new_st].to_array
-       Column col
+        storage = this.java_column.getStorage []
+        index = this.java_column.getIndex []
+        name = this.java_column.getName []
+        new_st = storage.fillMissing [default]
+        col = Java_Column.new [name, index, new_st].to_array
+        Column col
+
+    ## Returns a new column without rows that had missing values.
+    drop_missing : Any -> Column
+    drop_missing =
+        this.where this.is_missing.not
+
+    ## Checks for each element of the column if it starts with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    starts_with : Column | Text -> Column
+    starts_with other =
+        here.run_vectorized_binary_op this "starts_with" (a -> b -> a.starts_with b) other
+
+    ## Checks for each element of the column if it ends with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    ends_with : Column | Text -> Column
+    ends_with other =
+        here.run_vectorized_binary_op this "ends_with" (a -> b -> a.ends_with b) other
+
+    ## Checks for each element of the column if it contains `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    contains : Column | Text -> Column
+    contains other =
+        here.run_vectorized_binary_op this "contains" (a -> b -> a.contains b) other
 
     ## Applies `function` to each item in this column and returns the column
        of results.
+    map : (Any -> Any) -> Column
     map function =
         storage = this.java_column.getStorage []
         index = this.java_column.getIndex []
@@ -172,18 +199,41 @@ type Column
     rename name = Column (this.java_column.rename [name])
 
     ## Returns the name of this column.
+    name : Text
     name = this.java_column.getName []
 
     ## Returns the length of this column.
+    length : Integer
     length = this.java_column . getSize []
 
+    ## Returns the number of missing items in this column.
+    count_missing : Integer
+    count_missing = this.java_column.getStorage [] . countMissing []
+
+    ## Returns the number of non-null items in this column.
+    count : Integer
+    count = this.length - this.count_missing
+
     ## Returns the item contained in this column at the given index.
+    at : Integer -> Any
     at index =
         storage = this.java_column.getStorage []
         if storage.isNa [index] then Nothing else
             storage.getItem [index]
 
+    ## Selects only the rows of this column that correspond to `True` values in
+       `indexes`.
+       This is useful for filtering the rows by given predicate.
+       > Example
+         Select only the rows of `my_column` where the `status_column` column
+         has the value `"Valid"`
+             my_column.where (status_column == "Valid")
+    where : Column -> Column
+    where indexes =
+        Column (this.java_column.mask [indexes.java_column])
+
     ## Returns a vector containing all the elements in this column.
+    to_vector : Vector
     to_vector = Vector.new this.length this.at
 
     ## Returns the underlying storage type of this column.
@@ -197,21 +247,23 @@ type Column
                         Storage.Any
 
     ## Converts this column to JSON.
+    to_json : Json
     to_json =
         col = this.java_column
         name = col.getName []
         storage = col.getStorage []
         json_factory = case this.storage_type of
-            Text -> Json.String
-            Integer -> Json.Number
-            Decimal -> Json.Number
-            Boolean -> Json.Boolean
+            Storage.Text -> Json.String
+            Storage.Integer -> Json.Number
+            Storage.Decimal -> Json.Number
+            Storage.Boolean -> Json.Boolean
             _ -> to_json
         storage_json = Json.Array (here.storage_to_json storage json_factory)
         fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
         Json.Object fields
 
 ## Creates a new column given a name and a vector of elements.
+from_vector : Text -> Vector -> Column
 from_vector name items = Column (Java_Column.fromItems [name, items.to_array])
 
 ## PRIVATE

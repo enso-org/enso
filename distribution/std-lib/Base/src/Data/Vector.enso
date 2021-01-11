@@ -113,6 +113,19 @@ type Vector
         f = acc -> ix -> function acc (arr.at ix)
         0.up_to this.length . fold initial f
 
+    ## Combines all the elements of a non-empty vector using a binary operation.
+       If the vector is empty, it returns Nothing.
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         vector:
+             [0, 1, 2] . reduce (+)
+    reduce : (Any -> Any -> Any) -> Any | Nothing
+    reduce function =
+        case this.not_empty of
+            True -> this.tail.fold this.head function
+            False -> Nothing
+
     ## Checks whether a predicate holds for at least one element of this vector.
 
        A predicate is a function that takes an element from the vector and
@@ -387,10 +400,10 @@ type Vector
 
        > Example
          The following code returns 1.
-             [1, 2, 3, 4].head
+             [1, 2, 3, 4].first
        > Example
          Empty vectors return `Nothing`.
-             [].head == Nothing
+             [].first == Nothing
     first : Vector | Nothing
     first = this.head
 
@@ -398,10 +411,10 @@ type Vector
 
        > Example
          The following code returns [2, 3, 4].
-             [1, 2, 3, 4].tail
+             [1, 2, 3, 4].rest
        > Example
          Empty vectors return `Nothing`.
-             [].tail == Nothing
+             [].rest == Nothing
     rest : Vector | Nothing
     rest = this.tail
 
