@@ -11,8 +11,8 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Computes the number of characters in the text.
 
-   A character is defined as an Extended Grapheme Cluster, see Unicode
-   [Standard Annex #29](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries).
+   A character is defined as an Extended Grapheme Cluster, see
+   Unicode Standard Annex 29.
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -30,8 +30,8 @@ Text.length =
 
 ## Applies `function` to each character in `this`.
 
-   A character is defined as an Extended Grapheme Cluster, see Unicode
-   [Standard Annex #29](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries).
+   A character is defined as an Extended Grapheme Cluster, see
+   Unicode Standard Annex 29.
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -52,8 +52,8 @@ Text.each function =
 
 ## Returns a vector containing all characters in the given text.
 
-   A character is defined as an Extended Grapheme Cluster, see Unicode
-   [Standard Annex #29](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries).
+   A character is defined as an Extended Grapheme Cluster, see
+   Unicode Standard Annex 29.
 
    This is the smallest unit that still has semantic meaning in most
    text-processing applications.
@@ -84,9 +84,8 @@ Text.split (separator = Split_Kind.Whitespace) =
 ## Returns a vector containing all words in the given text.
 
    A word is defined based on the definition of Word Boundaries in the Unicode
-   [Standard Annex #29](https://www.unicode.org/reports/tr29/#Word_Boundaries),
-   supplemented by language-specific dictionaries for Chinese, Japanese, Thai,
-   and Khmer.
+   Standard Annex 29, supplemented by language-specific dictionaries for
+   Chinese, Japanese, Thai, and Khmer.
 
    By default, the function doesn't include the whitespace between words, but
    this can be enabled.
