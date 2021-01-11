@@ -11,7 +11,6 @@ import java.util.Set;
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.ModuleAtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 
@@ -32,7 +31,7 @@ public class ModuleScope implements TruffleObject {
    */
   public ModuleScope(Module module) {
     this.module = module;
-    this.associatedType = new ModuleAtomConstructor(module.getName().item(), this).initializeFields();
+    this.associatedType = new AtomConstructor(module.getName().item(), this).initializeFields();
   }
 
   /**
