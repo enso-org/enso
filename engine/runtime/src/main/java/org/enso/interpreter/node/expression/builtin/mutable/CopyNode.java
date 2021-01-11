@@ -12,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
@@ -65,13 +66,9 @@ public abstract class CopyNode extends Node {
   @Fallback
   Object doOther(
       Object _this, Object src, long source_index, Array that, long dest_index, long count) {
+    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
     throw new PanicException(
-        lookupContextReference(Language.class)
-            .get()
-            .getBuiltins()
-            .error()
-            .typeError()
-            .newInstance("A polyglot array", src),
+        builtins.error().typeError().newInstance(builtins.mutable().array().newInstance(), src),
         this);
   }
 }
