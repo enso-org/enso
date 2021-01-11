@@ -4123,7 +4123,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Number"),
+              Some(Builtins.Number),
               None
             )
           )
@@ -4317,11 +4317,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "encode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Builtins.Any, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Builtins.Any,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4335,11 +4341,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "incAndEncode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Builtins.Any, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Builtins.Any,
                     None
                   ),
                   Api.SuggestionAction.Add()
