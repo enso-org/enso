@@ -262,11 +262,13 @@ type Column
         fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
         Json.Object fields
 
-    ## Efficiently joins two tables based on either the index or a key column.
+    ## Efficiently joins two tables based on either the index or the specified
+       key column.
 
        The resulting table contains rows of `this` extended with rows of
-       `other` with matching indexes. If the index in `other` is not unique,
-       the corresponding rows of `this` will be duplicated in the result.
+       `other` with matching indexes. If the index values in `other` are not
+       unique, the corresponding rows of `this` will be duplicated in the
+       result.
 
        Arguments:
          - other: the table being the right operand of this join operation.
@@ -300,7 +302,7 @@ type Aggregate_Column
 
        Arguments:
          - function: the function used for value aggregation. Values belonging
-                     to each grouped are passed to this function in a vector.
+                     to each group are passed to this function in a vector.
          - skip_missing: controls whether missing values should be included
                          in groups.
          - name_suffix: a suffix that will be appended to the original column

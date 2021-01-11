@@ -84,11 +84,13 @@ type Table
     select : Vector -> Table
     select columns = Table (this.java_table.selectColumns [columns.to_array])
 
-    ## Efficiently joins two tables based on either the index or a key column.
+    ## Efficiently joins two tables based on either the index or the specified
+       key column.
 
        The resulting table contains rows of `this` extended with rows of
-       `other` with matching indexes. If the index in `other` is not unique,
-       the corresponding rows of `this` will be duplicated in the result.
+       `other` with matching indexes. If the index values in `other` are not
+       unique, the corresponding rows of `this` will be duplicated in the
+       result.
 
        Arguments:
          - other: the table being the right operand of this join operation.
@@ -189,6 +191,7 @@ type Aggregate_Table
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
+    print : Integer -> Nothing
     print show_rows=10 = this.values.print show_rows
 
 ## PRIVATE
