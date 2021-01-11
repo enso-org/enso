@@ -9,12 +9,19 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/** Aggregates the storage using a provided {@link Function}. */
 public class FunctionAggregator extends Aggregator {
   private final Function<List<Object>, Object> aggregateFunction;
   private final boolean skipNa;
   private final Storage storage;
   private final InferredBuilder builder;
 
+  /**
+   * @param aggregateFunction the function used to obtain aggregation of a group
+   * @param storage the storage serving as data source
+   * @param skipNa whether missing values should be passed to the function
+   * @param resultSize the number of times {@link #nextGroup(List)} will be called
+   */
   public FunctionAggregator(
       Function<List<Object>, Object> aggregateFunction,
       Storage storage,

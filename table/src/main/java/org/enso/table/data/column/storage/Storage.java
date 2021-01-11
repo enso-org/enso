@@ -124,6 +124,17 @@ public abstract class Storage {
     return null;
   }
 
+  /**
+   * Returns an aggregator created based on the provided parameters.
+   *
+   * @param name name of a vectorized operation that can be used if possible. If null is passed,
+   *     this parameter is unused.
+   * @param fallback the function to use if a vectorized operation is not available.
+   * @param skipNa whether missing values should be passed to the {@code fallback} function.
+   * @param resultSize the number of times the {@link Aggregator#nextGroup(List)} method will be
+   *     called.
+   * @return an aggregator satisfying the above properties.
+   */
   public final Aggregator getAggregator(
       String name, Function<List<Object>, Object> fallback, boolean skipNa, int resultSize) {
     Aggregator result = null;

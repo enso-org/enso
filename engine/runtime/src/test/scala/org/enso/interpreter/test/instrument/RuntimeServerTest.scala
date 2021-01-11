@@ -68,7 +68,7 @@ class RuntimeServerTest
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
-    
+
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
 

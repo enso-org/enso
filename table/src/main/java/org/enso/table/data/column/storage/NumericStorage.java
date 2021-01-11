@@ -5,7 +5,15 @@ import org.enso.table.data.column.operation.aggregate.numeric.NumericAggregator;
 
 import java.util.stream.DoubleStream;
 
+/** A storage containing items representable as a {@code double}. */
 public abstract class NumericStorage extends Storage {
+  /**
+   * Returns the value stored at the given index. The return value if the given index is missing
+   * ({@link #isNa(long)}) is undefined.
+   *
+   * @param idx the index to look up
+   * @return the value associated with {@code idx}
+   */
   public abstract double getItemDouble(int idx);
 
   @Override
