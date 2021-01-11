@@ -23,7 +23,7 @@ import org.enso.pkg.QualifiedName;
 
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
-public class AtomConstructor implements TruffleObject {
+public final class AtomConstructor implements TruffleObject {
 
   private final String name;
   private final ModuleScope definitionScope;
@@ -200,7 +200,11 @@ public class AtomConstructor implements TruffleObject {
 
   /** @return the fully qualified name of this constructor. */
   public QualifiedName getQualifiedName() {
-    return definitionScope.getModule().getName().createChild(getName());
+    if (this == this.getDefinitionScope().getAssociatedType()) {
+      return definitionScope.getModule().getName();
+    } else {
+      return definitionScope.getModule().getName().createChild(getName());
+    }
   }
 
   /** @return the fields defined by this constructor. */
