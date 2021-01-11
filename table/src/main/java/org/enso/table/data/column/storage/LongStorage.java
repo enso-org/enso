@@ -1,7 +1,16 @@
 package org.enso.table.data.column.storage;
 
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.OptionalDouble;
+import java.util.OptionalLong;
+import java.util.stream.DoubleStream;
+import java.util.stream.LongStream;
+
 import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.data.column.operation.aggregate.Aggregator;
+import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
+import org.enso.table.data.column.operation.aggregate.numeric.NumericAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
@@ -9,7 +18,7 @@ import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
 
 /** A column storing 64-bit integers. */
-public class LongStorage extends Storage {
+public class LongStorage extends NumericStorage {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -25,6 +34,10 @@ public class LongStorage extends Storage {
     this.data = data;
     this.isMissing = isMissing;
     this.size = size;
+  }
+
+  public LongStorage(long[] data) {
+    this(data, data.length, new BitSet());
   }
 
   /** @inheritDoc */
@@ -45,6 +58,11 @@ public class LongStorage extends Storage {
    */
   public long getItem(int idx) {
     return data[idx];
+  }
+
+  @Override
+  public double getItemDouble(int idx) {
+    return getItem(idx);
   }
 
   @Override
@@ -77,6 +95,50 @@ public class LongStorage extends Storage {
   @Override
   protected Storage runVectorizedZip(String name, Storage argument) {
     return ops.runZip(name, this, argument);
+  }
+
+  @Override
+  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
+    switch (name) {
+      case Aggregators.SUM:
+        return new LongToLongAggregator(this, resultSize) {
+          @Override
+          protected void runGroup(LongStream items) {
+            long[] elements = items.toArray();
+            if (elements.length == 0) {
+              submitMissing();
+            } else {
+              submit(LongStream.of(elements).sum());
+            }
+          }
+        };
+      case Aggregators.MAX:
+        return new LongToLongAggregator(this, resultSize) {
+          @Override
+          protected void runGroup(LongStream items) {
+            OptionalLong r = items.max();
+            if (r.isPresent()) {
+              submit(r.getAsLong());
+            } else {
+              submitMissing();
+            }
+          }
+        };
+      case Aggregators.MIN:
+        return new LongToLongAggregator(this, resultSize) {
+          @Override
+          protected void runGroup(LongStream items) {
+            OptionalLong r = items.min();
+            if (r.isPresent()) {
+              submit(r.getAsLong());
+            } else {
+              submitMissing();
+            }
+          }
+        };
+      default:
+        return super.getVectorizedAggregator(name, resultSize);
+    }
   }
 
   private Storage fillMissingDouble(double arg) {
@@ -172,7 +234,7 @@ public class LongStorage extends Storage {
   private static MapOpStorage<LongStorage> buildOps() {
     MapOpStorage<LongStorage> ops = new MapOpStorage<>();
     ops.add(
-            new LongNumericOp(Ops.ADD) {
+            new LongNumericOp(Maps.ADD) {
               @Override
               public double doDouble(long in, double arg) {
                 return in + arg;
@@ -184,7 +246,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongNumericOp(Ops.SUB) {
+            new LongNumericOp(Maps.SUB) {
               @Override
               public double doDouble(long in, double arg) {
                 return in - arg;
@@ -196,7 +258,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongNumericOp(Ops.MUL) {
+            new LongNumericOp(Maps.MUL) {
               @Override
               public double doDouble(long in, double arg) {
                 return in * arg;
@@ -208,7 +270,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongNumericOp(Ops.MOD) {
+            new LongNumericOp(Maps.MOD) {
               @Override
               public double doDouble(long in, double arg) {
                 return in % arg;
@@ -220,7 +282,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongNumericOp(Ops.DIV, true) {
+            new LongNumericOp(Maps.DIV, true) {
               @Override
               public double doDouble(long in, double arg) {
                 return in / arg;
@@ -232,7 +294,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongBooleanOp(Ops.GT) {
+            new LongBooleanOp(Maps.GT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a > b;
@@ -244,7 +306,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongBooleanOp(Ops.GTE) {
+            new LongBooleanOp(Maps.GTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a >= b;
@@ -256,7 +318,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongBooleanOp(Ops.LT) {
+            new LongBooleanOp(Maps.LT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a < b;
@@ -268,7 +330,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongBooleanOp(Ops.LTE) {
+            new LongBooleanOp(Maps.LTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a <= b;
@@ -280,7 +342,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new LongBooleanOp(Ops.EQ) {
+            new LongBooleanOp(Maps.EQ) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a == b;
@@ -297,7 +359,7 @@ public class LongStorage extends Storage {
               }
             })
         .add(
-            new UnaryMapOperation<>(Ops.IS_MISSING) {
+            new UnaryMapOperation<>(Maps.IS_MISSING) {
               @Override
               public Storage run(LongStorage storage) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);

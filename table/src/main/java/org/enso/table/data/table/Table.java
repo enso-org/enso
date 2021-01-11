@@ -11,6 +11,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.table.aggregate.AggregateTable;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 
@@ -186,6 +187,10 @@ public class Table {
    */
   @SuppressWarnings("unchecked")
   public Table join(Table other, boolean dropUnmatched, String on, String lsuffix, String rsuffix) {
+    if (other.index == index) {
+      // The tables have exactly the same indexes, so they may be just be concatenated horizontally
+      return hconcat(other, lsuffix, rsuffix);
+    }
     int s = (int) nrows();
     List<Integer>[] matches = new List[s];
     if (on == null) {
@@ -248,5 +253,31 @@ public class Table {
 
   private String suffixIfNecessary(Set<String> names, String name, String suffix) {
     return names.contains(name) ? name + suffix : name;
+  }
+
+  private Table hconcat(Table other, String lsuffix, String rsuffix) {
+    Column[] newColumns = new Column[this.columns.length + other.columns.length];
+    Set<String> lnames =
+        Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toSet());
+    Set<String> rnames =
+        Arrays.stream(other.columns).map(Column::getName).collect(Collectors.toSet());
+    for (int i = 0; i < columns.length; i++) {
+      Column original = columns[i];
+      newColumns[i] =
+          new Column(
+              suffixIfNecessary(rnames, original.getName(), lsuffix), index, original.getStorage());
+    }
+    for (int i = 0; i < other.columns.length; i++) {
+      Column original = other.columns[i];
+      newColumns[i + columns.length] =
+          new Column(
+              suffixIfNecessary(lnames, original.getName(), rsuffix), index, original.getStorage());
+    }
+    return new Table(newColumns, index);
+  }
+
+  public AggregateTable group(String by) {
+    Table t = by == null ? this : indexFromColumn(by);
+    return new AggregateTable(t);
   }
 }

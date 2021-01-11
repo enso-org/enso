@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
@@ -122,7 +123,7 @@ public class ObjectStorage extends Storage {
   private static MapOpStorage<ObjectStorage> buildOps() {
     MapOpStorage<ObjectStorage> ops = new MapOpStorage<>();
     ops.add(
-        new UnaryMapOperation<>(Ops.IS_MISSING) {
+        new UnaryMapOperation<>(Maps.IS_MISSING) {
           @Override
           protected Storage run(ObjectStorage storage) {
             BitSet r = new BitSet();

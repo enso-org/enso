@@ -1,6 +1,13 @@
 package org.enso.table.data.column.storage;
 
+import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.operation.aggregate.Aggregator;
+import org.enso.table.data.column.operation.aggregate.CountAggregator;
+import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
+
 import java.util.BitSet;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.table.data.column.builder.object.Builder;
@@ -50,7 +57,7 @@ public abstract class Storage {
   }
 
   /** A container for names of vectorizable operation. */
-  public static final class Ops {
+  public static final class Maps {
     public static final String EQ = "==";
     public static final String LT = "<";
     public static final String LTE = "<=";
@@ -68,6 +75,14 @@ public abstract class Storage {
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
     public static final String CONTAINS = "contains";
+  }
+
+  public static final class Aggregators {
+    public static final String SUM = "sum";
+    public static final String MEAN = "mean";
+    public static final String MAX = "max";
+    public static final String MIN = "min";
+    public static final String COUNT = "count";
   }
 
   protected abstract boolean isOpVectorized(String name);
@@ -100,6 +115,36 @@ public abstract class Storage {
       }
     }
     return builder.seal();
+  }
+
+  protected Aggregator getVectorizedAggregator(String name, int resultSize) {
+    if (name.equals(Aggregators.COUNT)) {
+      return new CountAggregator(this, resultSize);
+    }
+    return null;
+  }
+
+  /**
+   * Returns an aggregator created based on the provided parameters.
+   *
+   * @param name name of a vectorized operation that can be used if possible. If null is passed,
+   *     this parameter is unused.
+   * @param fallback the function to use if a vectorized operation is not available.
+   * @param skipNa whether missing values should be passed to the {@code fallback} function.
+   * @param resultSize the number of times the {@link Aggregator#nextGroup(List)} method will be
+   *     called.
+   * @return an aggregator satisfying the above properties.
+   */
+  public final Aggregator getAggregator(
+      String name, Function<List<Object>, Object> fallback, boolean skipNa, int resultSize) {
+    Aggregator result = null;
+    if (name != null) {
+      result = getVectorizedAggregator(name, resultSize);
+    }
+    if (result == null) {
+      result = new FunctionAggregator(fallback, this, skipNa, resultSize);
+    }
+    return result;
   }
 
   /**

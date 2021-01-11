@@ -27,6 +27,15 @@ public class Column {
     this.index = index;
   }
 
+  /**
+   * Converts this column to a single-column table.
+   *
+   * @return a table containing only this column
+   */
+  public Table toTable() {
+    return new Table(new Column[] {this}, index);
+  }
+
   /** @return the column name */
   public String getName() {
     return name;
