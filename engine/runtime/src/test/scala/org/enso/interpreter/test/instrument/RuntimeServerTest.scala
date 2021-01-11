@@ -2079,7 +2079,7 @@ class RuntimeServerTest
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              false
+              wasCached = true
             )
           )
         )
@@ -2093,7 +2093,7 @@ class RuntimeServerTest
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              false
+              wasCached = false
             )
           )
         )
@@ -2107,7 +2107,7 @@ class RuntimeServerTest
               Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              true
+              wasCached = false
             )
           )
         )
