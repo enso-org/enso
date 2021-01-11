@@ -26,6 +26,18 @@ public class ObjectStorage extends Storage {
     return size;
   }
 
+  /** @inheritDoc */
+  @Override
+  public int countMissing() {
+    int count = 0;
+    for (int i = 0; i < size; i++) {
+      if (data[i] == null) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
   /**
    * @param idx an index
    * @return the data item contained at the given index.

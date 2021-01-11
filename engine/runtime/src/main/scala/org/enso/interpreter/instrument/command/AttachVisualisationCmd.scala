@@ -1,11 +1,7 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.{
-  EnsureCompiledJob,
-  ExecuteJob,
-  UpsertVisualisationJob
-}
+import org.enso.interpreter.instrument.job.{ExecuteJob, UpsertVisualisationJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -54,17 +50,9 @@ class AttachVisualisationCmd(
         )
       )
 
-    maybeFutureExecutable flatMap {
-      case None =>
-        Future.successful(())
-
-      case Some(executable) =>
-        for {
-          _ <- Future {
-            ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
-          }
-          _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
-        } yield ()
+    maybeFutureExecutable.flatMap {
+      case None             => Future.successful(())
+      case Some(executable) => ctx.jobProcessor.run(new ExecuteJob(executable))
     }
   }
 

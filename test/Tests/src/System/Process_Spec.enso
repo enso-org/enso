@@ -6,7 +6,12 @@ import Test
 
 spec = describe "Process" <|
     it "should call simple command" <|
-        case Process.execute "echo" of
+        result = case Platform.os of
+            Platform.Windows ->
+                Process.run_command "PowerShell" ["-Command", "exit 0"]
+            _ ->
+                Process.run_command "bash" ["-c", "exit 0"]
+        case result of
             Exit_Success -> Test.Success
             Exit_Failure code -> Test.fail ("Process failed with code " + code)
     it "should return exit code" <|

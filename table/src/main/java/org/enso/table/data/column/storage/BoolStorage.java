@@ -28,6 +28,12 @@ public class BoolStorage extends Storage {
     return size;
   }
 
+  /** @inheritDoc */
+  @Override
+  public int countMissing() {
+    return isMissing.cardinality();
+  }
+
   @Override
   public long getType() {
     return Type.BOOL;
@@ -279,5 +285,16 @@ public class BoolStorage extends Storage {
               }
             });
     return ops;
+  }
+
+  /** Creates a mask that selects elements corresponding to true entries in the passed storage. */
+  public static BitSet toMask(BoolStorage storage) {
+    BitSet mask = new BitSet();
+    mask.or(storage.getValues());
+    if (storage.isNegated()) {
+      mask.flip(0, storage.size());
+    }
+    mask.andNot(storage.getIsMissing());
+    return mask;
   }
 }

@@ -120,6 +120,24 @@ spec =
             both = gt_const && gt_b
             both.to_vector.should_equal [False, False, True, Nothing, False]
 
+        it "should handle Text operations" <|
+            a = Column.from_vector 'a' ["abab", "abc", Nothing, "bca", "acca"]
+            nils = [Nothing, Nothing, Nothing, Nothing, Nothing]
+
+            a.starts_with "ab" . to_vector . should_equal [True, True, Nothing, False, False]
+            b = Column.from_vector 'b' ["ba", "ab", "d", Nothing, "ac"]
+            a.starts_with b . to_vector . should_equal [False, True, Nothing, Nothing, True]
+            a.starts_with Nothing . to_vector . should_equal nils
+
+            a.ends_with "ca" . to_vector . should_equal [False, False, Nothing, True, True]
+            c = Column.from_vector 'c' ["ab", "b", "d", Nothing, "cc"]
+            a.ends_with c . to_vector . should_equal [True, False, Nothing, Nothing, False]
+            a.ends_with Nothing . to_vector . should_equal nils
+
+            a.contains "c" . to_vector . should_equal [False, True, Nothing, True, True]
+            a.contains c . to_vector . should_equal [True, True, Nothing, Nothing, True]
+            a.contains Nothing . to_vector . should_equal nils
+
     describe "Masking Tables" <|
         it "should allow selecting table rows based on a boolean column" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
@@ -133,6 +151,24 @@ spec =
             r.at "a" . to_vector . should_equal [4]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
+        it "should work correctly if a mask is bigger than the table itself" <|
+            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            r = df.where (Column.from_vector 'x' [True, False, False, False, True])
+            r.at "a" . to_vector . should_equal [1]
+            r.at "b" . to_vector . should_equal [2]
+            r.at "c" . to_vector . should_equal [Nothing]
+
+    describe "Masking Columns" <|
+        it "should allow selecting column rows based on a boolean column" <|
+            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            mask = Column.from_vector 'x' [True, False, False, True]
+            df.at "a" . where mask . to_vector . should_equal [1, 10]
+            df.at "c" . where mask . to_vector . should_equal [Nothing, 12]
+
+        it "should work correctly if a mask is bigger than the column itself" <|
+            col = Column.from_vector "col" [1, 2]
+            mask = Column.from_vector 'x' [True, False, False, True]
+            col.where mask . to_vector . should_equal [1]
 
     describe "Joining Tables" <|
         a_0 = ['x', [0, 1, 7, 3, 6]]
@@ -226,3 +262,41 @@ spec =
             decimals_filled = decimals.fill_missing 1.0
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
+
+    describe "Counting Values" <|
+        it "should count missing and non-missing values" <|
+            col = Column.from_vector 'x' [1, Nothing, 2]
+            col.length . should_equal 3
+            col.count . should_equal 2
+            col.count_missing . should_equal 1
+
+    describe "Dropping Missing Values" <|
+        it "should drop missing rows in a Column" <|
+            col = Column.from_vector 'x' [1, Nothing, 2, Nothing]
+            col.drop_missing.to_vector . should_equal [1, 2]
+
+        it "should drop rows that contain at least one missing column in a Table" <|
+            t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
+            d = t.drop_missing_rows
+            d.at "a" . to_vector . should_equal [1, 4]
+            d.at "b" . to_vector . should_equal [1, "x"]
+
+        it "should drop columns that contain at least one missing row in a Table" <|
+            a = ["a", [1, Nothing, 3, 4]]
+            b = ["b", [1, 2, Nothing, "x"]]
+            c = ["c", [10, 20, 30, 40]]
+            t = Table.new [a, b, c]
+            d = t.drop_missing_columns
+            d.columns.map name . should_equal ["c"]
+            d.at "c" . to_vector . should_equal [10, 20, 30, 40]
+
+    describe "Info" <|
+        it "should return Table information" <|
+            a = ["strs", ["a", "b", Nothing, "a"]]
+            b = ["ints", [1, 2, Nothing, Nothing]]
+            c = ["objs", [1, "a", "c", Any]]
+            r = Table.new [a, b, c]
+            i = r.info
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
+            i.at "Items Count" . to_vector . should_equal [3, 2, 4]
+            i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]

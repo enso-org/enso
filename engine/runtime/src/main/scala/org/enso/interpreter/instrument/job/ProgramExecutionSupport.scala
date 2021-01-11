@@ -155,7 +155,11 @@ trait ProgramExecutionSupport {
     updatedVisualisations: Seq[Api.ExpressionId],
     sendMethodCallUpdates: Boolean
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    ctx.executionService.getLogger.log(Level.FINEST, s"Run program $stack")
+    val logger = ctx.executionService.getLogger
+    logger.log(
+      Level.FINEST,
+      s"Run program updatedVisualisations=$updatedVisualisations sendMethodCallUpdates=$sendMethodCallUpdates"
+    )
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -172,34 +176,25 @@ trait ProgramExecutionSupport {
       }
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
-        s"ON_CACHED_CALL ${value.getExpressionId}"
-      )
+      logger.log(Level.FINEST, s"ON_CACHED_CALL ${value.getExpressionId}")
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
     }
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId)) {
-        ctx.executionService.getLogger.log(
-          Level.FINEST,
-          s"ON_CACHED_VALUE ${value.getExpressionId}"
-        )
+        logger.log(Level.FINEST, s"ON_CACHED_VALUE ${value.getExpressionId}")
         fireVisualisationUpdates(contextId, value)
       }
     }
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
-        s"ON_COMPUTED ${value.getExpressionId}"
-      )
+      logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
       sendValueUpdate(contextId, value, sendMethodCallUpdates)
       fireVisualisationUpdates(contextId, value)
     }
 
     val onExceptionalCallback: Consumer[Throwable] = { value =>
-      ctx.executionService.getLogger.log(Level.FINEST, s"ON_ERROR $value")
+      logger.log(Level.FINEST, s"ON_ERROR $value")
       sendErrorUpdate(contextId, value)
     }
 
@@ -223,8 +218,7 @@ trait ProgramExecutionSupport {
           )
           .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
-    ctx.executionService.getLogger
-      .log(Level.FINEST, s"Run program result $executionResult")
+    logger.log(Level.FINEST, s"Execution finished: $executionResult")
     executionResult.fold(Some(_), _ => None)
   }
 
@@ -396,21 +390,39 @@ trait ProgramExecutionSupport {
         value.getExpressionId
       )
     visualisations foreach { visualisation =>
-      emitVisualisationUpdate(contextId, value, visualisation)
+      emitVisualisationUpdate(
+        contextId,
+        visualisation,
+        value.getExpressionId,
+        value.getValue
+      )
     }
   }
 
-  private def emitVisualisationUpdate(
+  /** Compute the visualisation of the expression value and send an update.
+    *
+    * @param contextId an identifier of an execution context
+    * @param visualisation the visualisation data
+    * @param expressionId the id of expression to visualise
+    * @param expressionValue the value of expression to visualise
+    * @param ctx the runtime context
+    */
+  def emitVisualisationUpdate(
     contextId: ContextId,
-    value: ExpressionValue,
-    visualisation: Visualisation
+    visualisation: Visualisation,
+    expressionId: UUID,
+    expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Unit = {
     val errorMsgOrVisualisationData =
       Either
         .catchNonFatal {
+          ctx.executionService.getLogger.log(
+            Level.FINEST,
+            s"Executing visualisation ${visualisation.expressionId}"
+          )
           ctx.executionService.callFunction(
             visualisation.callback,
-            value.getValue
+            expressionValue
           )
         }
         .leftMap(_.getMessage)
@@ -432,13 +444,17 @@ trait ProgramExecutionSupport {
         )
 
       case Right(data) =>
+        ctx.executionService.getLogger.log(
+          Level.FINEST,
+          s"Sending visualisation ${visualisation.expressionId}"
+        )
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualisationUpdate(
               Api.VisualisationContext(
                 visualisation.id,
                 contextId,
-                value.getExpressionId
+                expressionId
               ),
               data
             )

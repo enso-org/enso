@@ -40,7 +40,7 @@ trait ServiceWithActorSystem extends Service {
     val loggers: java.lang.Iterable[String] =
       Seq("akka.event.Logging$StandardOutLogger").asJava
     val config = ConfigFactory
-      .load()
+      .empty()
       .withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))
       .withValue(
         "akka.logging-filter",
@@ -51,6 +51,7 @@ trait ServiceWithActorSystem extends Service {
         "akka.coordinated-shutdown.run-by-actor-system-terminate",
         ConfigValueFactory.fromAnyRef("off")
       )
+      .withValue("akka.daemonic", ConfigValueFactory.fromAnyRef("on"))
     ActorSystem(
       name,
       config,
