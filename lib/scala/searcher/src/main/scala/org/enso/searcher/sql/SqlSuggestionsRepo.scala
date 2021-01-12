@@ -153,7 +153,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   private def initQuery: DBIO[Unit] = {
     // Initialize schema suppressing errors. Workaround for slick/slick#1999.
     def initSchema(schema: SQLiteProfile.SchemaDescription) =
-      schema.createIfNotExists.asTry >> DBIO.successful(())
+      schema.createIfNotExists >> DBIO.successful(())
     val schemas =
       Seq(Suggestions.schema, Arguments.schema, SuggestionsVersions.schema)
     DBIO.sequence(schemas.map(initSchema)) >> DBIO.successful(())
