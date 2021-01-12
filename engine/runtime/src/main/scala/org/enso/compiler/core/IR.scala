@@ -2093,7 +2093,9 @@ object IR {
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Name {
+    ) extends Name
+        with IR.Module.Scope.Definition
+        with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
       /** Creates a copy of `this`.
@@ -5699,7 +5701,8 @@ object IR {
           s"$base is not a valid numeric base."
       }
 
-      case class InvalidNumberForBase(base: String, number: String) extends Reason {
+      case class InvalidNumberForBase(base: String, number: String)
+          extends Reason {
         override def explanation: String =
           s"$number is not valid in $base."
       }

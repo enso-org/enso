@@ -6,7 +6,7 @@ import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
-case object Annotations extends IRPass {
+case object ExpressionAnnotations extends IRPass {
   case object TailCallAnnotated extends IRPass.Metadata {
     override val metadataName: String                 = "TailCallAnnotated"
     override def duplicate(): Option[IRPass.Metadata] = Some(this)

@@ -126,6 +126,7 @@ object AstToIr {
     */
   def translateModuleSymbol(inputAst: AST): Module.Scope.Definition = {
     inputAst match {
+      case AST.Ident.Annotation.any(annotation) => ???
       case AstView.Atom(consName, args) =>
         Module.Scope.Definition
           .Atom(

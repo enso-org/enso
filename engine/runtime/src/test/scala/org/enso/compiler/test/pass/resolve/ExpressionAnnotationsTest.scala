@@ -3,11 +3,11 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.resolve.Annotations
+import org.enso.compiler.pass.resolve.ExpressionAnnotations
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-class AnnotationsTest extends CompilerTest {
+class ExpressionAnnotationsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
@@ -19,7 +19,7 @@ class AnnotationsTest extends CompilerTest {
   val passes = new Passes
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(Annotations).get
+    passes.getPrecursors(ExpressionAnnotations).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
@@ -38,7 +38,7 @@ class AnnotationsTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext): IR.Module = {
-      Annotations.runModule(ir, context)
+      ExpressionAnnotations.runModule(ir, context)
     }
   }
 
@@ -93,8 +93,8 @@ class AnnotationsTest extends CompilerTest {
         .asInstanceOf[IR.Application.Prefix]
       correct.function.asInstanceOf[IR.Name].name shouldEqual "bar"
       correct.arguments.length shouldEqual 1
-      correct.getMetadata(Annotations) should contain(
-        Annotations.TailCallAnnotated
+      correct.getMetadata(ExpressionAnnotations) should contain(
+        ExpressionAnnotations.TailCallAnnotated
       )
     }
   }

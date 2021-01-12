@@ -94,9 +94,10 @@ public class Context {
                 Collectors.toMap(
                     srcFile -> srcFile.qualifiedName().toString(),
                     srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
-    topScope = new TopLevelScope(new Builtins(this), knownFiles);
+    Builtins builtins = new Builtins(this);
+    topScope = new TopLevelScope(builtins, knownFiles);
 
-    this.compiler = new Compiler(this);
+    this.compiler = new Compiler(this, builtins);
   }
 
   public TruffleFile getTruffleFile(File file) {

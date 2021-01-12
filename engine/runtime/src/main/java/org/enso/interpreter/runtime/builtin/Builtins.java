@@ -1,5 +1,14 @@
 package org.enso.interpreter.runtime.builtin;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import org.enso.compiler.Passes;
+import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.exception.CompilerError;
+import org.enso.compiler.phase.BuiltinsIrBuilder;
+import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
@@ -22,6 +31,7 @@ import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerM
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.Module.CompilationStage;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -29,6 +39,7 @@ import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
+  public static final String SOURCE_NAME = "Builtins.enso";
   public static final String MODULE_NAME = "Builtins.Main";
 
   /** Container for method names needed outside this class. */
@@ -158,8 +169,31 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
+  }
 
-    module.unsafeBuildIrStub();
+  /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
+  public boolean isIrInitialized() {
+    return this.module.getIr() != null;
+  }
+
+  /**
+   * Initialize the IR for the builtins module from the builtins source file.
+   *
+   * @param freshNameSupply the compiler's fresh name supply
+   * @param passes the passes manager for the compiler
+   */
+  public void initializedBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
+    try {
+      var builtinsModuleBytes =
+          Objects.requireNonNull(
+                  getClass().getClassLoader().getResourceAsStream(Builtins.SOURCE_NAME))
+              .readAllBytes();
+      String source = new String(builtinsModuleBytes, StandardCharsets.UTF_8);
+      module.setLiteralSource(source);
+      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
+    } catch (IOException e) {
+      throw new CompilerError("Fatal, unable to read Builtins source file.");
+    }
   }
 
   /**

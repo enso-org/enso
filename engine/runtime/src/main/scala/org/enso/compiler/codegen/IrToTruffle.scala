@@ -19,7 +19,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
-  Annotations,
+  ExpressionAnnotations,
   MethodDefinitions,
   Patterns,
   UppercaseNames
@@ -304,7 +304,7 @@ class IrToTruffle(
   ): BaseNode.TailStatus = {
     val isTailPosition =
       expression.getMetadata(TailCall).contains(TailCall.TailPosition.Tail)
-    val isTailAnnotated = expression.getMetadata(Annotations).isDefined
+    val isTailAnnotated = expression.getMetadata(ExpressionAnnotations).isDefined
     if (isTailPosition) {
       if (isTailAnnotated) {
         BaseNode.TailStatus.TAIL_LOOP
