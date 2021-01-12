@@ -36,9 +36,9 @@ async function get_project_manager_url(): Promise<string> {
     const config = await get_build_config()
     const target_platform = config.target
     console.log('webpack target ' + target_platform)
-    const version = '0.1.2-rc.18'
+    const version = '0.2.0'
     let base_url: string = 'https://github.com/enso-org/'
-    base_url += 'enso-staging/releases/download/'
+    base_url += 'enso/releases/download/'
     base_url += `enso-${version}/enso-project-manager-${version}`
     let postfix
     if (target_platform === 'linux') {
