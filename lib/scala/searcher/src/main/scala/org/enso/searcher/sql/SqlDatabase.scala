@@ -60,7 +60,7 @@ object SqlDatabase {
 
   /** Create JDBC URL from the file path. */
   private def jdbcUrl(filename: String): String =
-    s"jdbc:sqlite:${escapePath(filename)}"
+    s"jdbc:sqlite:file:${escapePath(filename)}?vfs=unix-excl"
 
   /** Escape Windows path. */
   private def escapePath(path: String): String =
