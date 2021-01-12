@@ -46,7 +46,6 @@ class Compiler(val context: Context, private val builtins:Builtins) {
   def run(module: Module): Unit = {
     if (!builtins.isIrInitialized) {
       builtins.initializedBuiltinsIr(freshNameSupply,passes)
-//      throw new RuntimeException
     }
     parseModule(module)
     val importedModules = importResolver.mapImports(module)

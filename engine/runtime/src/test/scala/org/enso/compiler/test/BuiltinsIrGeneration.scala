@@ -11,11 +11,10 @@ class BuiltinsIrGeneration extends InterpreterTest {
     interpreterContext: InterpreterContext
   ): Unit = {
     "initialize the builtins IR from the builtins stub source file" in {
-      pending
       val code =
         """from Builtins import all
           |
-          |main = 0
+          |main = False && True
           |""".stripMargin
 
       eval(code)

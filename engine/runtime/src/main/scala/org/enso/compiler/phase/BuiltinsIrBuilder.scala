@@ -34,20 +34,21 @@ object BuiltinsIrBuilder {
     @unused passes: Passes
   ): Unit = {
     val passManager = passes.passManager
-    module.ensureScopeExists()
-    module.getScope.reset()
     val moduleContext = ModuleContext(
       module          = module,
       freshNameSupply = Some(freshNameSupply)
     )
     val parsedAst = Parser().runWithIds(module.getSource.getCharacters.toString)
-
     val initialIr = AstToIr.translate(parsedAst)
     val irAfterModDiscovery = passManager.runPassesOnModule(
       initialIr,
       moduleContext,
       passes.moduleDiscoveryPasses
     )
+    module.unsafeSetIr(irAfterModDiscovery)
+    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+
+    new ExportsResolution().run(List(module))
     val irAfterCompilation = passManager.runPassesOnModule(
       irAfterModDiscovery,
       moduleContext,
