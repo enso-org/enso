@@ -114,6 +114,11 @@ case object TailCall extends IRPass {
           "Type signatures should not exist at the top level during " +
           "tail call analysis."
         )
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+            "tail call analysis."
+        )
       case err: IR.Error => err
     }
   }

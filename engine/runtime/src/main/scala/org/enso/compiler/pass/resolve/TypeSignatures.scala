@@ -122,6 +122,11 @@ case object TypeSignatures extends IRPass {
           "Complex type definitions should not be present during type " +
           "signature resolution."
         )
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+            "type signature resolution."
+        )
       case _: IR.Comment.Documentation =>
         throw new CompilerError(
           "Documentation comments should not be present during type " +

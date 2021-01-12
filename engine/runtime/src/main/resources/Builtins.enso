@@ -7,5 +7,5 @@ type Boolean
 
        The boolean type represents the two truth values of boolean logic. It is
        primarily used for control-flow.
-    @Builtin_Type
+    #@Builtin_Type
     type Boolean

@@ -10,7 +10,13 @@ import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.Shape.{SegmentEscape, SegmentExpr, SegmentPlain, SegmentRawEscape, TextUnclosed}
+import org.enso.syntax.text.Shape.{
+  SegmentEscape,
+  SegmentExpr,
+  SegmentPlain,
+  SegmentRawEscape,
+  TextUnclosed
+}
 import org.enso.syntax.text.ast.text.Escape
 import org.enso.syntax.text.ast.text.Escape.Unicode
 
@@ -126,7 +132,8 @@ object AstToIr {
     */
   def translateModuleSymbol(inputAst: AST): Module.Scope.Definition = {
     inputAst match {
-      case AST.Ident.Annotation.any(annotation) => ???
+      case AST.Ident.Annotation.any(annotation) =>
+        IR.Name.Annotation(annotation.name, getIdentifiedLocation(annotation))
       case AstView.Atom(consName, args) =>
         Module.Scope.Definition
           .Atom(
@@ -272,6 +279,8 @@ object AstToIr {
       .getOrElse(maybeParensedInput)
 
     inputAst match {
+      case AST.Ident.Annotation.any(ann) =>
+        IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
       case AST.Ident.Cons.any(include)         => translateIdent(include)
       case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)

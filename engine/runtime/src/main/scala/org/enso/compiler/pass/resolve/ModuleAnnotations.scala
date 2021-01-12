@@ -2,6 +2,8 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Name
+import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -37,16 +39,25 @@ case object ModuleAnnotations extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-//    var lastAnnotations = Seq()
+    var lastAnnotations:Seq[IR.Name.Annotation] = Seq()
     val newBindings = for (binding <- ir.bindings) yield {
-//      println(binding.pretty)
-      val newBinding = binding
-      newBinding
+      binding match {
+        case ann: Name.Annotation =>
+          lastAnnotations :+= ann
+          None
+        case comment: IR.Comment => Some(comment)
+        case entity =>
+          val res = Some(
+            entity.updateMetadata(this -->> ModuleAnnotated(lastAnnotations))
+          )
+          lastAnnotations = Seq()
+          res
+      }
     }
-    ir.copy(bindings = newBindings)
+    ir.copy(bindings = newBindings.flatten)
   }
 
-  // TODO [AA] Need to move annotations in the type signatures pass.
+  // TODO [AA] Need to move annotations in the type signatures and complex type passes.
   def resolveModuleDef(
     @unused binding: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
@@ -72,8 +83,9 @@ case object ModuleAnnotations extends IRPass {
     *
     * @param annotations the initial annotations for the container
     */
-  case class ModuleAnnotated(annotations: Seq[String]) extends IRPass.Metadata {
-    override val metadataName: String = "ModuleAnnotated"
+  case class ModuleAnnotated(annotations: Seq[IR.Name.Annotation])
+      extends IRPass.Metadata {
+    override val metadataName: String                 = "ModuleAnnotated"
     override def duplicate(): Option[IRPass.Metadata] = Some(this.copy())
 
     /** Add an annotation to the annotations container.
@@ -81,7 +93,7 @@ case object ModuleAnnotations extends IRPass {
       * @param annotation the annotation to add
       * @return `this`, with `annotation` added to it
       */
-    def addAnnotation(annotation: String): ModuleAnnotated =
+    def addAnnotation(annotation: IR.Name.Annotation): ModuleAnnotated =
       this.copy(annotations = this.annotations :+ annotation)
   }
 }
