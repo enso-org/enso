@@ -7,11 +7,6 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
 case object ExpressionAnnotations extends IRPass {
-  case object TailCallAnnotated extends IRPass.Metadata {
-    override val metadataName: String                 = "TailCallAnnotated"
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
-  }
-
   val tailCallName = "@Tail_Call"
 
   /** The type of the metadata object that the pass writes to the IR. */
@@ -102,4 +97,8 @@ case object ExpressionAnnotations extends IRPass {
         }
     }
 
+  case object TailCallAnnotated extends IRPass.Metadata {
+    override val metadataName: String                 = "TailCallAnnotated"
+    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  }
 }

@@ -18,7 +18,7 @@ import scala.annotation.unused
   * associating them with the corresponding construct.
   */
 case object ModuleAnnotations extends IRPass {
-  override type Metadata = ModuleAnnotated
+  override type Metadata = Annotations
   override type Config   = IRPass.Configuration.Default
   override val precursorPasses: Seq[IRPass] = Seq()
   override val invalidatedPasses: Seq[IRPass] = Seq(
@@ -51,14 +51,14 @@ case object ModuleAnnotations extends IRPass {
         case typ: Definition.Type =>
           val res = Some(
             resolveComplexType(typ).updateMetadata(
-              this -->> ModuleAnnotated(lastAnnotations)
+              this -->> Annotations(lastAnnotations)
             )
           )
           lastAnnotations = Seq()
           res
         case entity =>
           val res = Some(
-            entity.updateMetadata(this -->> ModuleAnnotated(lastAnnotations))
+            entity.updateMetadata(this -->> Annotations(lastAnnotations))
           )
           lastAnnotations = Seq()
           res
@@ -81,7 +81,7 @@ case object ModuleAnnotations extends IRPass {
       case comment: IR.Comment => Some(comment)
       case entity =>
         val res = Some(
-          entity.updateMetadata(this -->> ModuleAnnotated(lastAnnotations))
+          entity.updateMetadata(this -->> Annotations(lastAnnotations))
         )
         lastAnnotations = Seq()
         res
@@ -104,13 +104,13 @@ case object ModuleAnnotations extends IRPass {
     @unused inlineContext: InlineContext
   ): IR.Expression = ir
 
-  /** A container for annotations at the module level.
+  /** A container for annotations on an IR construct.
     *
     * @param annotations the initial annotations for the container
     */
-  case class ModuleAnnotated(annotations: Seq[IR.Name.Annotation])
+  case class Annotations(annotations: Seq[IR.Name.Annotation])
       extends IRPass.Metadata {
-    override val metadataName: String                 = "ModuleAnnotated"
+    override val metadataName: String                 = "Annotations"
     override def duplicate(): Option[IRPass.Metadata] = Some(this.copy())
 
     /** Add an annotation to the annotations container.
@@ -118,7 +118,7 @@ case object ModuleAnnotations extends IRPass {
       * @param annotation the annotation to add
       * @return `this`, with `annotation` added to it
       */
-    def addAnnotation(annotation: IR.Name.Annotation): ModuleAnnotated =
+    def addAnnotation(annotation: IR.Name.Annotation): Annotations =
       this.copy(annotations = this.annotations :+ annotation)
   }
 }

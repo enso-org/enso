@@ -14,7 +14,20 @@ import scala.annotation.unused
   */
 object BuiltinsIrBuilder {
 
-  // TODO [AA] Run the compilation pipeline as far as needed.
+  /** Builds the IR for the builtins module based on the builtins source file.
+   *
+   * We guarantee that the builtins file neither imports anything or restricts
+   * any exports, and are hence safe to unconditionally run most of the compiler
+   * pipeline. We do not want to run codegen, however, as these definitions
+   * would conflict with the existing builtins.
+   *
+   * This is kept as a separate flow as it is independent of the true
+   * compilation pipeline
+   *
+   * @param module the module to build the IR for
+   * @param freshNameSupply the compiler's fresh name supply
+   * @param passes the compiler's pass manager
+   */
   def build(
     @unused module: Module,
     @unused freshNameSupply: FreshNameSupply,

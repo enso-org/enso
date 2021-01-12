@@ -183,17 +183,18 @@ public class Builtins {
    * @param passes the passes manager for the compiler
    */
   public void initializedBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
-    try {
-      var builtinsModuleBytes =
-          Objects.requireNonNull(
-                  getClass().getClassLoader().getResourceAsStream(Builtins.SOURCE_NAME))
-              .readAllBytes();
-      String source = new String(builtinsModuleBytes, StandardCharsets.UTF_8);
-      module.setLiteralSource(source);
-      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
-    } catch (IOException e) {
-      throw new CompilerError("Fatal, unable to read Builtins source file.");
-    }
+    StubIrBuilder.build(module);
+//    try {
+//      var builtinsModuleBytes =
+//          Objects.requireNonNull(
+//                  getClass().getClassLoader().getResourceAsStream(Builtins.SOURCE_NAME))
+//              .readAllBytes();
+//      String source = new String(builtinsModuleBytes, StandardCharsets.UTF_8);
+//      module.setLiteralSource(source);
+//      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
+//    } catch (IOException e) {
+//      throw new CompilerError("Fatal, unable to read Builtins source file.");
+//    }
   }
 
   /**
