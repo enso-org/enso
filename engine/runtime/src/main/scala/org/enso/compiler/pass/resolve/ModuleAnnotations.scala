@@ -2,6 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Name
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
@@ -35,17 +36,26 @@ case object ModuleAnnotations extends IRPass {
     *  @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
+  // TODO [AA] Need to move annotations in the type signatures and complex type passes.
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    var lastAnnotations:Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
     val newBindings = for (binding <- ir.bindings) yield {
       binding match {
         case ann: Name.Annotation =>
           lastAnnotations :+= ann
           None
         case comment: IR.Comment => Some(comment)
+        case typ: Definition.Type =>
+          val res = Some(
+            resolveComplexType(typ).updateMetadata(
+              this -->> ModuleAnnotated(lastAnnotations)
+            )
+          )
+          lastAnnotations = Seq()
+          res
         case entity =>
           val res = Some(
             entity.updateMetadata(this -->> ModuleAnnotated(lastAnnotations))
@@ -57,11 +67,26 @@ case object ModuleAnnotations extends IRPass {
     ir.copy(bindings = newBindings.flatten)
   }
 
-  // TODO [AA] Need to move annotations in the type signatures and complex type passes.
-  def resolveModuleDef(
-    @unused binding: IR.Module.Scope.Definition
-  ): IR.Module.Scope.Definition = {
-    ???
+  /** Resolves top level annotations within a complex type.
+    *
+    * @param typ the type in which to resolve annotations
+    * @return `typ` with all top-level annotations resolved
+    */
+  def resolveComplexType(typ: Definition.Type): Definition.Type = {
+    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    val newBodyElems = typ.body.flatMap {
+      case ann: Name.Annotation =>
+        lastAnnotations :+= ann
+        None
+      case comment: IR.Comment => Some(comment)
+      case entity =>
+        val res = Some(
+          entity.updateMetadata(this -->> ModuleAnnotated(lastAnnotations))
+        )
+        lastAnnotations = Seq()
+        res
+    }
+    typ.copy(body = newBodyElems)
   }
 
   /** Execute the pass on an expression.

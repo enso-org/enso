@@ -144,9 +144,9 @@ object AstToIr {
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
         val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Atom => true
-          case _: IR.Name.Literal                 => true
-          case _                                  => false
+          case _: IR.Module.Scope.Definition.Atom   => true
+          case _: IR.Name.Literal                   => true
+          case _                                    => false
         }
         val hasArgs = args.nonEmpty
 
