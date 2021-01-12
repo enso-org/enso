@@ -26,7 +26,8 @@ case object TypeSignatures extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] = List(
-    TypeFunctions
+    TypeFunctions,
+    ModuleAnnotations,
   )
   override val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
@@ -93,21 +94,34 @@ case object TypeSignatures extends IRPass {
                 newMethod.updateMetadata(DocumentationComments -->> doc)
               )
               .getOrElse(newMethod)
+            val newMethodWithAnnotations = asc
+              .getMetadata(ModuleAnnotations)
+              .map(annotations =>
+                newMethodWithDoc.updateMetadata(
+                  ModuleAnnotations -->> annotations
+                )
+              )
+              .getOrElse(newMethodWithDoc)
 
             typed match {
               case ref: IR.Name.MethodReference =>
                 if (ref isSameReferenceAs methodRef) {
                   Some(
-                    newMethodWithDoc.updateMetadata(this -->> Signature(sig))
+                    newMethodWithAnnotations.updateMetadata(
+                      this -->> Signature(sig)
+                    )
                   )
                 } else {
                   List(
                     IR.Error.Unexpected.TypeSignature(asc),
-                    newMethodWithDoc
+                    newMethodWithAnnotations
                   )
                 }
               case _ =>
-                List(IR.Error.Unexpected.TypeSignature(asc), newMethodWithDoc)
+                List(
+                  IR.Error.Unexpected.TypeSignature(asc),
+                  newMethodWithAnnotations
+                )
             }
           case None => Some(newMethod)
         }
@@ -125,7 +139,7 @@ case object TypeSignatures extends IRPass {
       case _: IR.Name.Annotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
-            "type signature resolution."
+          "type signature resolution."
         )
       case _: IR.Comment.Documentation =>
         throw new CompilerError(

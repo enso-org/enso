@@ -4,7 +4,11 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.pass.resolve.{DocumentationComments, TypeSignatures}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  ModuleAnnotations,
+  TypeSignatures
+}
 import org.enso.compiler.test.CompilerTest
 
 class TypeSignaturesTest extends CompilerTest {
@@ -86,7 +90,6 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
     }
 
-    // TODO [AA] This isn't consistent.
     "allow dotted paths in type signatures" in {
       val ir =
         """
@@ -96,7 +99,6 @@ class TypeSignaturesTest extends CompilerTest {
 
       ir.bindings.length shouldEqual 1
       ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
-//      println(ir.bindings.head.getMetadata(TypeSignatures).get.signature.pretty)
     }
 
     "raise an error if a signature is divorced from its definition" in {
@@ -130,6 +132,18 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
       ir.bindings.head.getMetadata(DocumentationComments) shouldBe defined
+    }
+
+    "reattach annotations to method definitions" in {
+      val ir =
+        """@Builtin_Type
+          |bar : Number -> Number -> Number
+          |bar a b = a + b
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 1
+      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
+      ir.bindings.head.getMetadata(ModuleAnnotations) shouldBe defined
     }
 
     "work inside type definition bodies" in {

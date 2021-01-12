@@ -5435,10 +5435,10 @@ object IR {
       /** An error coming from a tail call annotation placed in a syntactically
         * incorrect position.
         */
-      case object UnexpectedTailCallAnnotation extends Reason {
+      case object UnexpectedAnnotation extends Reason {
         override def explain(originalName: Name): String =
-          s"Unexpected @TailCall annotation. This annotation can only be " +
-          s"used with function applications."
+          s"Unexpected ${originalName.name} annotation. This annotation can " +
+          s"only be used with function applications."
       }
 
       /** An error coming from an unexpected occurence of a polyglot symbol.

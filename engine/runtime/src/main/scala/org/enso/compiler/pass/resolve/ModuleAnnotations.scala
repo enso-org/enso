@@ -36,7 +36,6 @@ case object ModuleAnnotations extends IRPass {
     *  @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
-  // TODO [AA] Need to move annotations in the type signatures and complex type passes.
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext

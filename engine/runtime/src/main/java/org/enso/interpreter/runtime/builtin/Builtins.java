@@ -183,7 +183,7 @@ public class Builtins {
    * @param passes the passes manager for the compiler
    */
   public void initializedBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
-    StubIrBuilder.build(module);
+    module.unsafeBuildIrStub();
 //    try {
 //      var builtinsModuleBytes =
 //          Objects.requireNonNull(
