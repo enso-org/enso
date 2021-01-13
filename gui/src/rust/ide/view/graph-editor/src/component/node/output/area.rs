@@ -478,6 +478,10 @@ impl Area {
     pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
         self.model.id_crumbs_map.borrow().get(&id).cloned()
     }
+
+    pub fn whole_expr_id(&self) -> Option<ast::Id> {
+        self.model.expression.borrow().whole_expr_id
+    }
 }
 
 
