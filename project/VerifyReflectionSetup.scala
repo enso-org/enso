@@ -5,6 +5,11 @@ object VerifyReflectionSetup {
     "org.apache.commons.compress.archivers.zip.X5455_ExtendedTimestamp"
   private val unwantedPointerInfix = "/0x00"
 
+  /** A task that checks if the reflection configuration is set-up properly.
+    *
+    * It checks if the configuration contains entries for handling ZIP archives
+    * and does not contain ephemeral classes.
+    */
   def run = Def.task {
     val root = Keys.baseDirectory.value
     val name = Keys.name.value
