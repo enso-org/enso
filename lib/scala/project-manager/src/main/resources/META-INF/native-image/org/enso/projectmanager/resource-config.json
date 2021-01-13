@@ -3,6 +3,9 @@
     { "pattern": "\\QMETA-INF/MANIFEST.MF\\E" },
     { "pattern": "\\Qakka-http-version.conf\\E" },
     { "pattern": "\\Qapplication.conf\\E" },
+    {
+      "pattern": "\\Qorg/enso/projectmanager/boot/ProjectManager$$anonfun$1.class\\E"
+    },
     { "pattern": "\\Qorg/enso/projectmanager/boot/ProjectManager$.class\\E" },
     {
       "pattern": "\\Qorg/enso/projectmanager/control/core/CovariantFlatMapOps.class\\E"
