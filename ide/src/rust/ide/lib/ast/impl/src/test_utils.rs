@@ -12,12 +12,12 @@ use utils::test::ExpectTuple;
 
 /// "Downcasts" given AST's Shape to `T`. Panics if the shape doesn't match.
 pub fn expect_shape<'t,T>(ast:&'t Ast) -> &'t T
-    where &'t Shape<Ast>: TryInto<&'t T> {
+    where &'t Shape<Ast> : TryInto<&'t T> {
     match ast.shape().try_into() {
         Ok(shape) => shape,
         _         => {
             let expected_typename = std::any::type_name::<T>();
-            panic!("failed converting shape into {}",expected_typename)
+            panic!("failed converting shape into {}, got {:?}",expected_typename,ast)
         },
     }
 }

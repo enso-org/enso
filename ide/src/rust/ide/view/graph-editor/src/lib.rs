@@ -10,6 +10,7 @@
 #![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(overlapping_marker_traits)]
+#![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
@@ -1528,6 +1529,12 @@ impl GraphEditorModel {
     fn set_node_expression_usage_type(&self, node_id:impl Into<NodeId>, ast_id:ast::Id, maybe_type:Option<Type>) {
         let node_id  = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            // TODO[ao]: we must update root output port according to the whole expression type
+            //     due to a bug in engine https://github.com/enso-org/enso/issues/1038.
+            if node.view.model.output.whole_expr_id().contains(&ast_id) {
+                let crumbs = span_tree::Crumbs::default();
+                node.view.model.output.set_expression_usage_type(crumbs,maybe_type.clone());
+            }
             let crumbs = node.view.model.get_crumbs_by_id(ast_id);
             if let Some(crumbs) = crumbs {
                 node.view.frp.set_expression_usage_type.emit((crumbs,maybe_type));
