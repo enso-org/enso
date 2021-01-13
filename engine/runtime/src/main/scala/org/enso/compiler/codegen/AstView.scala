@@ -419,6 +419,12 @@ object AstView {
       }
   }
 
+  sealed trait MethodOrExpr {
+    def ast: AST
+  }
+  case class Method(override val ast: AST.Ident) extends MethodOrExpr
+  case class Expr(override val ast: AST)         extends MethodOrExpr
+
   object Application {
 
     /** Matches an arbitrary function application. This includes both method
@@ -429,13 +435,13 @@ object AstView {
       * @return the name of the function, and a list of its arguments (including
       *         the `self` argument if using method-call syntax)
       */
-    def unapply(ast: AST): Option[(AST, List[AST])] =
+    def unapply(ast: AST): Option[(MethodOrExpr, List[AST])] =
       SpacedList.unapply(ast).flatMap {
         case fun :: args =>
           fun match {
             case MethodCall(target, function, methodArgs) =>
-              Some((function, target :: methodArgs ++ args))
-            case _ => Some((fun, args))
+              Some((Method(function), target :: methodArgs ++ args))
+            case _ => Some((Expr(fun), args))
           }
         case _ => None
       }
@@ -462,7 +468,7 @@ object AstView {
       */
     def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] =
       ast match {
-        case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
+        case OperatorDot(target, Application(Expr(ConsOrVar(ident)), args)) =>
           Some((target, consToVar(ident), args))
         case AST.App.Section.Left(
               MethodCall(target, ident, List()),

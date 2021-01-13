@@ -10,7 +10,13 @@ import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.Shape.{SegmentEscape, SegmentExpr, SegmentPlain, SegmentRawEscape, TextUnclosed}
+import org.enso.syntax.text.Shape.{
+  SegmentEscape,
+  SegmentExpr,
+  SegmentPlain,
+  SegmentRawEscape,
+  TextUnclosed
+}
 import org.enso.syntax.text.ast.text.Escape
 import org.enso.syntax.text.ast.text.Escape.Unicode
 
@@ -164,7 +170,7 @@ object AstToIr {
           val pathSegments = targetPath.collect { case AST.Ident.Cons.any(c) =>
             c
           }
-          val pathNames = pathSegments.map(buildName)
+          val pathNames = pathSegments.map(buildName(_))
 
           val methodSegments = pathNames :+ buildName(nameId)
 
@@ -340,7 +346,8 @@ object AstToIr {
             )
           case _ =>
             IR.Application.Prefix(
-              IR.Name.Literal("negate", isReferent = false, None),
+              IR.Name
+                .Literal("negate", isReferent = false, isMethod = true, None),
               List(
                 IR.CallArgument.Specified(
                   None,
@@ -398,7 +405,7 @@ object AstToIr {
 
             // Note [Uniform Call Syntax Translation]
             Application.Prefix(
-              translateIdent(name),
+              buildName(name, isMethod = true),
               (target :: validArguments).map(translateCallArgument(_)),
               hasDefaultsSuspended = hasDefaultsSuspended,
               getIdentifiedLocation(inputAst)
@@ -748,8 +755,14 @@ object AstToIr {
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)
 
+        val fun = name match {
+          case AstView.Method(ast) => buildName(ast, isMethod = true)
+          case AstView.Expr(ast) =>
+            translateExpression(ast, insideTypeAscription)
+        }
+
         Application.Prefix(
-          translateExpression(name, insideTypeAscription),
+          fun,
           validArguments.map(translateCallArgument(_, insideTypeAscription)),
           hasDefaultsSuspended,
           getIdentifiedLocation(callable)
@@ -801,7 +814,7 @@ object AstToIr {
           AST.Ident.Var(realNameSegments.mkString("_"))
 
         Application.Prefix(
-          translateExpression(functionName, insideTypeAscription),
+          buildName(functionName, isMethod = true),
           args.map(translateCallArgument(_, insideTypeAscription)).toList,
           hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
@@ -839,6 +852,9 @@ object AstToIr {
           buildName(sides.opr),
           getIdentifiedLocation(sides)
         )
+      case AST.App.Section
+            .Right(AST.Ident.Opr("."), AstView.ConsOrVar(ident)) =>
+        buildName(ident, isMethod = true)
       case AST.App.Section.Right.any(right) =>
         val rightArg = translateCallArgument(right.arg)
 
@@ -1000,11 +1016,11 @@ object AstToIr {
     imp match {
       case AST.Import(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Import.Module(
-          IR.Name.Qualified(path.map(buildName).toList, None),
-          rename.map(buildName),
+          IR.Name.Qualified(path.map(buildName(_)).toList, None),
+          rename.map(buildName(_)),
           isAll,
-          onlyNames.map(_.map(buildName).toList),
-          hiddenNames.map(_.map(buildName).toList),
+          onlyNames.map(_.map(buildName(_)).toList),
+          hiddenNames.map(_.map(buildName(_)).toList),
           getIdentifiedLocation(imp)
         )
       case _ =>
@@ -1022,11 +1038,11 @@ object AstToIr {
     imp match {
       case AST.Export(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Export(
-          IR.Name.Qualified(path.map(buildName).toList, None),
-          rename.map(buildName),
+          IR.Name.Qualified(path.map(buildName(_)).toList, None),
+          rename.map(buildName(_)),
           isAll,
-          onlyNames.map(_.map(buildName).toList),
-          hiddenNames.map(_.map(buildName).toList),
+          onlyNames.map(_.map(buildName(_)).toList),
+          hiddenNames.map(_.map(buildName(_)).toList),
           getIdentifiedLocation(imp)
         )
     }
@@ -1092,6 +1108,14 @@ object AstToIr {
       case _                     => false
     }
 
-  private def buildName(ident: AST.Ident): IR.Name.Literal =
-    IR.Name.Literal(ident.name, isReferant(ident), getIdentifiedLocation(ident))
+  private def buildName(
+    ident: AST.Ident,
+    isMethod: Boolean = false
+  ): IR.Name.Literal =
+    IR.Name.Literal(
+      ident.name,
+      isReferant(ident),
+      isMethod || AST.Opr.any.unapply(ident).isDefined,
+      getIdentifiedLocation(ident)
+    )
 }

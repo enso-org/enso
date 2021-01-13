@@ -323,6 +323,7 @@ class AstToIrTest extends CompilerTest with Inside {
       fn.function shouldEqual IR.Name.Literal(
         "negate",
         isReferent = false,
+        isMethod   = true,
         None
       )
 

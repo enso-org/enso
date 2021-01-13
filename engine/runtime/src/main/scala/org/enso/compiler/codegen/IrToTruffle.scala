@@ -847,7 +847,7 @@ class IrToTruffle(
       */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(nameStr, _, _, _, _) =>
+        case IR.Name.Literal(nameStr, _, _, _, _, _) =>
           val useInfo = name
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -889,6 +889,7 @@ class IrToTruffle(
             IR.Name.Literal(
               Constants.Names.THIS_ARGUMENT,
               isReferent = false,
+              isMethod   = false,
               location,
               passData
             )

@@ -15,9 +15,9 @@ class GlobalScopeTest extends InterpreterTest {
         """from Builtins import all
           |
           |Nothing.a = 10
-          |Nothing.addTen = b -> a Nothing + b
+          |Nothing.add_ten = b -> Nothing.a + b
           |
-          |main = addTen Nothing 5
+          |main = Nothing.add_ten 5
         """.stripMargin
 
       eval(code) shouldEqual 15

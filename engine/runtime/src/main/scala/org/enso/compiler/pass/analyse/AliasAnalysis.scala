@@ -201,6 +201,7 @@ case object AliasAnalysis extends IRPass {
     lambdaReuseScope: Boolean = false
   ): IR.Expression = {
     expression match {
+      case err: IR.Error => err
       case fn: IR.Function =>
         analyseFunction(fn, graph, parentScope, lambdaReuseScope)
       case name: IR.Name =>
@@ -483,10 +484,24 @@ case object AliasAnalysis extends IRPass {
       val occurrence =
         Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
       parentScope.add(occurrence)
-      graph.resolveUsage(occurrence)
-    }
+      if (name.isVariable) {
+        graph.resolveLocalUsage(occurrence) match {
+          case None =>
+            return IR.Error
+              .Resolution(
+                name,
+                IR.Error.Resolution.VariableNotInScope
+              )
+              .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+          case _ => ()
+        }
+      } else {
+        graph.resolveGlobalUsage(occurrence)
 
+      }
+    }
     name.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+
   }
 
   /** Performs alias analysis on a case expression.
@@ -699,7 +714,7 @@ case object AliasAnalysis extends IRPass {
       * @param occurrence the symbol usage
       * @return the link, if it exists
       */
-    def resolveUsage(
+    def resolveLocalUsage(
       occurrence: Graph.Occurrence.Use
     ): Option[Graph.Link] = {
       scopeFor(occurrence.id) match {
@@ -708,13 +723,25 @@ case object AliasAnalysis extends IRPass {
             case Some(link) =>
               links += link
               Some(link)
-            case None =>
-              globalSymbols
-                .get(occurrence.symbol)
-                .map(g =>
-                  Graph.Link(occurrence.id, scope.scopesToRoot + 1, g.id)
-                )
+            case None => None
           }
+        case None => None
+      }
+    }
+
+    /** Resolves any links for the given usage of a symbol.
+      *
+      * @param occurrence the symbol usage
+      * @return the link, if it exists
+      */
+    def resolveGlobalUsage(
+      occurrence: Graph.Occurrence.Use
+    ): Option[Graph.Link] = {
+      scopeFor(occurrence.id) match {
+        case Some(scope) =>
+          globalSymbols
+            .get(occurrence.symbol)
+            .map(g => Graph.Link(occurrence.id, scope.scopesToRoot + 1, g.id))
         case None => None
       }
     }

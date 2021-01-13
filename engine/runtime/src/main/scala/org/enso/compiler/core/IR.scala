@@ -1709,13 +1709,15 @@ object IR {
       */
     def isReferent: Boolean
 
+    def isMethod: Boolean = false
+
     /** Checks whether a name is in variable form.
       *
       * Please see the syntax specification for more details on this form.
       *
       * @return `true` if `this` is in referent form, otherwise `false`
       */
-    def isVariable: Boolean = !isReferent
+    def isVariable: Boolean = !isReferent && !isMethod
   }
   object Name {
 
@@ -2016,6 +2018,7 @@ object IR {
     sealed case class Literal(
       override val name: String,
       override val isReferent: Boolean,
+      override val isMethod: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -2035,12 +2038,14 @@ object IR {
       def copy(
         name: String                         = name,
         isReferent: Boolean                  = isReferent,
+        isMethod: Boolean                    = isMethod,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Literal = {
-        val res = Literal(name, isReferent, location, passData, diagnostics)
+        val res =
+          Literal(name, isReferent, isMethod, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2241,7 +2246,7 @@ object IR {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
 
-      override def isReferent: Boolean = false
+      override def isReferent: Boolean = true
 
       /** Creates a copy of `this`.
         *
@@ -5461,6 +5466,11 @@ object IR {
           s"but methods are not allowed in $context."
       }
 
+      case object VariableNotInScope extends Reason {
+        override def explain(originalName: Name): String =
+          s"Variable `${originalName.name}` is not defined."
+      }
+
       /** An error coming from name resolver.
         *
         * @param err the original error.
@@ -5699,7 +5709,8 @@ object IR {
           s"$base is not a valid numeric base."
       }
 
-      case class InvalidNumberForBase(base: String, number: String) extends Reason {
+      case class InvalidNumberForBase(base: String, number: String)
+          extends Reason {
         override def explanation: String =
           s"$number is not valid in $base."
       }
