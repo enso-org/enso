@@ -26,5 +26,4 @@ EXPOSE 30002
 
 VOLUME /home/enso/workspace
 
-CMD ["--server", "--daemon", "--rpc-port", "30001", "--data-port", "30002", "--root-id", "00000000-0000-0000-0000-000000000001", "--path", "/home/enso/workspace", "--interface", "0.0.0.0", "--log-level", "DEBUG"]
-
+CMD ["--server", "--daemon", "--rpc-port", "30001", "--data-port", "30002", "--root-id", "00000000-0000-0000-0000-000000000001", "--path", "/home/enso/workspace", "--interface", "0.0.0.0", "--log-level", "INFO"]
