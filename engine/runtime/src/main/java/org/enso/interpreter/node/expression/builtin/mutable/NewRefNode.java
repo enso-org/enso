@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Ref;
 
-@BuiltinMethod(type = "Ref", name = "new", description = "Creates an empty ref.")
+@BuiltinMethod(type = "Ref", name = "new", description = "Creates a new ref.")
 public class NewRefNode extends Node {
 
   Object execute(Object _this, Object value) {
