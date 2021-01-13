@@ -31,7 +31,7 @@ class GlobalScopeTest extends InterpreterTest {
           |
           |main =
           |    fn = multiply ->
-          |        res = adder Nothing 1 2
+          |        res = Nothing.adder 1 2
           |        doubled = res * multiply
           |        doubled
           |    fn 2
@@ -80,7 +80,7 @@ class GlobalScopeTest extends InterpreterTest {
           |Nothing.a = 10/0
           |
           |Nothing.b = Nothing.a
-          |main = b
+          |main = .b
         """.stripMargin
 
       noException should be thrownBy eval(code)
