@@ -4,7 +4,7 @@ import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 /** Testing the initialization of the builtins IR.
   */
-class BuiltinsIrGeneration extends InterpreterTest {
+class BuiltinsIrBuilderTest extends InterpreterTest {
   override def subject: String = "Builtins IR Generation"
 
   override def specify(implicit
@@ -14,10 +14,10 @@ class BuiltinsIrGeneration extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |main = False && True
+          |main = Debug.eval "1 + 1"
           |""".stripMargin
 
-      eval(code)
+      println(eval(code))
     }
   }
 }
