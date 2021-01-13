@@ -240,3 +240,215 @@ type Panic
     catch : Any -> Any
     catch ~action = @Builtin_Method "Panic.catch"
 
+# Function types.
+type Function
+
+    ## A function is any type that represents a not-yet evaluated computation.
+
+       Methods are represented as functions with dynamic dispatch semantics on
+       the `this` argument.
+    @Builtin_Type
+    type Function
+
+    ## Forces evaluation of a fully-applied but not evaluated function.
+
+       This is particularly useful when you want to call a function that is
+       fully applied with default arguments.
+
+       This is usually _not_ the correct solution to a problem, and so should be
+       used sparingly.
+
+       > Example
+         Evaluate a fully applied function to get 4.
+            f (a = 2) = a * a
+            f.call
+    call : Any
+    call = @Builtin_Method "Function.call"
+
+    ## Takes a function and an argument and applies the function to the argument
+
+       Arguments:
+       - `argument`: The argument to apply `this` to.
+
+       > Example
+         Applying identity to a value produced by a block to get 3.
+             (x -> x) <|
+                 a = 1
+                 b = 2
+                 a + b
+    <| : (Any -> Any) -> Any -> Any
+    <| argument = @Builtin_Method "Function.<|"
+
+## Generic utilities for interacting with other languages.
+type Polyglot
+
+    ## A type representing interactions with polyglot languages.
+
+       Polyglot is a term that refers to other languages (such as Java) that are
+       running on the same JVM.
+    @Builtin_Type
+    type Polyglot
+
+    ## PRIVATE
+
+       Evaluates the provided `code` in the provided `language` to produce a
+       value.
+
+       Arguments:
+       - `language`: The polyglot language in which to evaluate the code. The
+         available languages depend on what is installed on your platform.
+       - `code`: The code in `language` to evaluate.
+    eval : Text -> Text -> Any
+    eval language code = @Builtin_Method "Polyglot.eval"
+
+    ## PRIVATE
+
+       Executes a polyglot function object (e.g. a lambda).
+
+       Arguments:
+       - `callable`: The polyglot function object to execute.
+       - `arguments`: A vector of arguments to `callable`.
+    execute : Any -> Vector -> Any
+    execute callable arguments = @Builtin_Method "Polyglot.execute"
+
+    ## Performs a by-name lookup for a member in a polyglot object.
+
+       Arguments:
+       - `object`: The polyglot object on which to perform the member lookup.
+       - `member_name`: The textual name of the member to lookup.
+
+       > Example
+         Look up the field `a` on an object `o`.
+             Polyglot.get_member o "a"
+    get_member : Any -> Text
+    get_member object member_name = @Builtin_Method "Polyglot.get_member"
+
+    ## Returns a polyglot array of all of the members of the provided `object`.
+
+       Arguments:
+       - `object`: The object from which to get a list of member names.
+
+       > Example
+         Get a list of the fields for an object `o`.
+             Polyglot.get_members o
+    get_members : Any -> Array
+    get_members object = @Builtin_Method "Polyglot.get_members"
+
+    ## Instantiates a polyglot object using the provided `constructor`.
+
+       Arguments:
+       - `constructor`: The constructor with which to instantiate the object.
+       - `arguments`: A vector of the arguments to pass to the polyglot
+         constructor.
+
+       > Example
+         Instantiate a new Java `Integer` with the value `1`.
+             Polyglot.new Integer [1]
+    new : Any -> Vector -> Any
+    new constructor arguments = @Bultin_Method "Polglot.new"
+
+    ## Invokes a method on a polyglot object by name.
+
+       Arguments:
+       - `target`: The polyglot object on which to call the method.
+       - `name`: The name of the method.
+       - `arguments`: The arguments to pass to the method given by `name`.
+    invoke : Any -> Text -> Vector -> Any
+    invoke target name arguments = @Builtin_Method "Polyglot.invoke"
+
+## Utilities for working with Java polyglot objects.
+type Java
+
+    ## A type for operations specific to Java polyglot objects.
+    type Java
+
+    ## Adds the provided entry to the host class path.
+
+       Arguments:
+       - `path`: The java classpath entry to add.
+
+       > Example
+         Adding `Random` to the classpath.
+            Java.add_to_class_path "java.util.Random"
+    add_to_class_path : Text -> Nothing
+    add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+
+    ## Looks up a java symbol on the classpath by name.
+
+       Arguments:
+       - `name`: The name of the java symbol to look up.
+
+       > Example
+         Look up java's `Random` class.
+             Java.lookup_class "java.util.Random"
+    lookup_class : Text -> Any
+    lookup_class name = @Builtin_Method "Java.lookup_class"
+
+## Primitive IO operations internal to the runtime.
+type Prim_Io
+
+    ## PRIVATE
+
+       A type for primitive IO operations.
+    type Prim_Io
+
+    ## PRIVATE
+
+       Gets a file corresponding to the current working directory of the
+       program.
+    get_cwd : File
+    get_cwd = @Builtin_Method "Prim_Io.get_cwd"
+
+    ## PRIVATE
+
+       Gets a file corresponding to the provided `path`.
+
+       Arguments:
+       - `path`: The path to obtain a file at.
+    get_file : Text -> File
+    get_file path = @Builtin_Method "Prim_Io.get_file"
+
+    ## PRIVATE
+
+       Gets the textual path to the user's system-defined home directory.
+    user_home : Text
+    user_home = @Builtin_Method "Prim_Io.user_home"
+
+## Built in IO operations.
+type IO
+
+    ## A type containing basic operations for performing input and output.
+    type IO
+
+    ## Prints the provided message to standard error.
+
+       Arguments:
+       - `message`: The message to print. It will have `to_text` called on it to
+         generate a textual representation that is then printed.
+
+       > Example
+         Print the message "Oh no!" to standard error.
+             IO.print_err "Oh no!"
+    print_err : Any -> Nothing
+    print_err message = @Builtin_Method "IO.print_err"
+
+    ## Prints the provided message to standard output.
+
+       Arguments:
+       - `message`: The message to print. It will have `to_text` called on it to
+         generate a textual representation that is then printed.
+
+       > Example
+         Print the message "Oh yes!" to standard output.
+             IO.println "Oh yes!"
+    println : Any -> Nothing
+    println message = @Builtin_Method "IO.println"
+
+    ## Reads a line from standard input.
+
+       > Example
+         Read a line from standard input into a variable.
+             input = IO.readln
+    readln : Text
+    readln = @Builtin_Method "IO.readln"
+
