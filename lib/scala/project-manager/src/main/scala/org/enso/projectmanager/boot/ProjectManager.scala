@@ -16,7 +16,6 @@ import org.enso.projectmanager.boot.Globals.{
 }
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
-import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
