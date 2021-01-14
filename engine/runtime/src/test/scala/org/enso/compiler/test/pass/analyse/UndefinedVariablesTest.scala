@@ -55,7 +55,7 @@ class UndefinedVariablesTest extends CompilerTest {
 
       val ir =
         """
-          |main (fn = foobar) (w = fn) =
+          |my_func (fn = foobar) (w = fn) =
           |    x = [1, 2, y]
           |    x.map (+ 5)
           |    x.fold .to_json
