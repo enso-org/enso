@@ -48,6 +48,8 @@ public final class Language extends TruffleLanguage<Context> {
   /**
    * Creates a new Enso context.
    *
+   * <p>This method is meant to be fast, and hence should not perform any long-running logic.
+   *
    * @param env the language execution environment
    * @return a new Enso context
    */
@@ -60,6 +62,16 @@ public final class Language extends TruffleLanguage<Context> {
         env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
     env.registerService(new ExecutionService(context, idExecutionInstrumentService));
     return context;
+  }
+
+  /**
+   * Initialize the context.
+   *
+   * @param context the language context
+   */
+  @Override
+  protected void initializeContext(Context context) throws Exception {
+    context.initialize();
   }
 
   /**

@@ -9,7 +9,11 @@ import org.enso.compiler.core.IR.Expression
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{ExportCycleException, ExportsResolution, ImportResolver}
+import org.enso.compiler.phase.{
+  ExportCycleException,
+  ExportsResolution,
+  ImportResolver
+}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
@@ -28,13 +32,21 @@ import scala.jdk.OptionConverters._
   *
   * @param context the language context
   */
-class Compiler(val context: Context, private val builtins:Builtins) {
+class Compiler(val context: Context, private val builtins: Builtins) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
+
+  /** Lazy-initializes the IR for the builtins module.
+    */
+  def initializeBuiltinsIr(): Unit = {
+    if (!builtins.isIrInitialized) {
+      builtins.initializedBuiltinsIr(freshNameSupply, passes)
+    }
+  }
 
   /** Processes the provided language sources, registering any bindings in the
     * given scope.
@@ -44,9 +56,6 @@ class Compiler(val context: Context, private val builtins:Builtins) {
     *         executable functionality in the module corresponding to `source`.
     */
   def run(module: Module): Unit = {
-    if (!builtins.isIrInitialized) {
-      builtins.initializedBuiltinsIr(freshNameSupply,passes)
-    }
     parseModule(module)
     val importedModules = importResolver.mapImports(module)
     val requiredModules =
