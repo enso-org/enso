@@ -1,11 +1,11 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.core.IR
-import org.enso.interpreter.runtime.Module
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedMethod}
 import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.interpreter.runtime.Module
 
 import scala.jdk.CollectionConverters._
 

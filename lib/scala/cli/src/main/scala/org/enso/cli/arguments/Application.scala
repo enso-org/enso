@@ -191,7 +191,7 @@ object Application {
     prettyName: String,
     helpHeader: String,
     commands: NonEmptyList[Command[Unit => Int]]
-  ): Application[()] =
+  ): Application[Unit] =
     new Application(
       commandName,
       prettyName,

@@ -1,10 +1,17 @@
 package org.enso.interpreter.runtime.builtin;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import org.enso.compiler.Passes;
+import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.exception.CompilerError;
+import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
@@ -29,6 +36,7 @@ import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
+  public static final String SOURCE_NAME = "Builtins.enso";
   public static final String MODULE_NAME = "Builtins.Main";
 
   /** Container for method names needed outside this class. */
@@ -40,7 +48,7 @@ public class Builtins {
 
   private final AtomConstructor any;
   private final AtomConstructor debug;
-  private final AtomConstructor ensoProject;
+  private final AtomConstructor projectDescription;
   private final AtomConstructor function;
   private final AtomConstructor nothing;
 
@@ -70,8 +78,8 @@ public class Builtins {
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
-    ensoProject =
-        new AtomConstructor("Enso_Project", scope)
+    projectDescription =
+        new AtomConstructor("Project_Description", scope)
             .initializeFields(
                 new ArgumentDefinition(
                     0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE));
@@ -116,7 +124,7 @@ public class Builtins {
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
-    scope.registerConstructor(ensoProject);
+    scope.registerConstructor(projectDescription);
     scope.registerConstructor(runtime);
 
     scope.registerConstructor(java);
@@ -135,7 +143,7 @@ public class Builtins {
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
-    scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
+    scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
     scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch", CatchErrorMethodGen.makeFunction(language));
 
@@ -158,8 +166,31 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
+  }
 
-    module.unsafeBuildIrStub();
+  /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
+  public boolean isIrInitialized() {
+    return this.module.getIr() != null;
+  }
+
+  /**
+   * Initialize the IR for the builtins module from the builtins source file.
+   *
+   * @param freshNameSupply the compiler's fresh name supply
+   * @param passes the passes manager for the compiler
+   */
+  public void initializedBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
+    try {
+      var builtinsModuleBytes =
+          Objects.requireNonNull(
+                  getClass().getClassLoader().getResourceAsStream(Builtins.SOURCE_NAME))
+              .readAllBytes();
+      String source = new String(builtinsModuleBytes, StandardCharsets.UTF_8);
+      module.setLiteralSource(source);
+      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
+    } catch (IOException e) {
+      throw new CompilerError("Fatal, unable to read Builtins source file.");
+    }
   }
 
   /**
@@ -227,8 +258,8 @@ public class Builtins {
   }
 
   /** @return the {@code Enso_Project} atom constructor */
-  public AtomConstructor getEnsoProject() {
-    return ensoProject;
+  public AtomConstructor getProjectDescription() {
+    return projectDescription;
   }
 
   /** @return the {@code System} atom constructor. */
