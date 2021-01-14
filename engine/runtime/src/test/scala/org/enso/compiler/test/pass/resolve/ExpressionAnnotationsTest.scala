@@ -47,7 +47,6 @@ class ExpressionAnnotationsTest extends CompilerTest {
     }
   }
 
-  // TODO [AA] Doc this
   implicit class AnalyseExpression(ir: IR.Expression) {
     def analyse(implicit context: InlineContext): IR.Expression = {
       ExpressionAnnotations.runExpression(ir, context)

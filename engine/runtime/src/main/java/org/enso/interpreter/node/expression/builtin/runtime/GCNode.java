@@ -21,20 +21,13 @@ public abstract class GCNode extends Node {
   }
 
   @Specialization
-  Object doGc(
-      Object _this,
-      @CachedContext(Language.class) Context context,
-      @Cached("buildNothing(context)") Atom nothing) {
+  Object doGc(Object _this, @CachedContext(Language.class) Context context) {
     runGC();
-    return nothing;
+    return context.getBuiltins().nothing().newInstance();
   }
 
   @CompilerDirectives.TruffleBoundary
   private void runGC() {
     System.gc();
-  }
-
-  Atom buildNothing(Context context) {
-    return context.getBuiltins().nothing().newInstance();
   }
 }

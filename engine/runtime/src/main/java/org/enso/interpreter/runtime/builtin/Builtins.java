@@ -11,7 +11,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
@@ -143,7 +143,7 @@ public class Builtins {
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
-    scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
+    scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
     scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch", CatchErrorMethodGen.makeFunction(language));
 
@@ -180,7 +180,6 @@ public class Builtins {
    * @param passes the passes manager for the compiler
    */
   public void initializedBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
-//    module.unsafeBuildIrStub();
     try {
       var builtinsModuleBytes =
           Objects.requireNonNull(

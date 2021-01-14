@@ -39,7 +39,7 @@ type Boolean
          Computing the conjunction of `False` and `True` (to get `False`).
              `False` && `True`
     && : Boolean -> Boolean
-    && ~that = @Builtin_Method "Boolean.&&"
+    && that = @Builtin_Method "Boolean.&&"
 
     ## Computes the logical or (disjunction) of two booleans.
 
@@ -55,7 +55,7 @@ type Boolean
          Computing the disjunction of `True` and `False` (to get `True`).
              `True` || `False`
     || : Boolean -> Boolean
-    || ~that = @Builtin_Method "Boolean.||"
+    || that = @Builtin_Method "Boolean.||"
 
     ## Computes the logical negation of `this`.
 
@@ -104,8 +104,6 @@ type Boolean
     if_then : Any -> Any | Nothing
     if_then ~on_true = @Builtin_Method "Boolean.if_then"
 
-# TODO [AA] Can I move these?
-
 ## The constructor for the value `True`.
 @Builtin_Type
 type True
@@ -121,7 +119,9 @@ type Debug
     @Builtin_Type
     type Debug
 
-    ## Places a breakpoint in the program's execution, dropping the user into an
+    ## TEXT_ONLY
+
+       Places a breakpoint in the program's execution, dropping the user into an
        interactive debugging REPL.
 
        From the REPL, the user is able to manipulate both the program state and
@@ -257,12 +257,12 @@ type No_Such_Method_Error target symbol
 ## An error that occurred across a polyglot boundary.
 
    Arguments:
-   - `cause`: A description of the reason for the error.
+   - `cause`: A polyglot object corresponding to the original error.
 @Builtin_Type
 type Polyglot_Error cause
 
-## An error that occurs when the requested module does not exist in the package
-   from which it is requested.
+## An error that occurs when the `enso_project` function is called in a file
+   that is not part of a project.
 @Builtin_Type
 type Module_Not_In_Package_Error
 
@@ -321,9 +321,9 @@ type Panic
 
        > Example
          Handling a panic for a panicking action.
-             Panic.catch (Panic.throw "Oh no!")
-    catch : Any -> Any
-    catch ~action = @Builtin_Method "Panic.catch"
+             Panic.recover (Panic.throw "Oh no!")
+    recover : Any -> Any
+    recover ~action = @Builtin_Method "Panic.catch"
 
 # Function types.
 type Function
@@ -386,9 +386,7 @@ type Polyglot
     eval : Text -> Text -> Any
     eval language code = @Builtin_Method "Polyglot.eval"
 
-    ## PRIVATE
-
-       Executes a polyglot function object (e.g. a lambda).
+    ## Executes a polyglot function object (e.g. a lambda).
 
        Arguments:
        - `callable`: The polyglot function object to execute.
@@ -452,6 +450,9 @@ type Java
        Arguments:
        - `path`: The java classpath entry to add.
 
+       Use of the actual polyglot imports system should be preferred to use of
+       this method.
+
        > Example
          Adding `Random` to the classpath.
             Java.add_to_class_path "java.util.Random"
@@ -462,6 +463,9 @@ type Java
 
        Arguments:
        - `name`: The name of the java symbol to look up.
+
+       Use of the actual polyglot imports system should be preferred to use of
+       this method.
 
        > Example
          Look up java's `Random` class.
@@ -1228,8 +1232,7 @@ type Integer
 ## Decimal numbers.
 type Decimal
 
-    ## Deimal is the type of decimal numbers in Enso. They are of unbounded
-       size and can grow as large as necessary.
+    ## Decimal is the type of decimal numbers in Enso.
 
        ? Representation
          Enso's decimal numbers are represented as IEEE754 double-precision
@@ -1498,7 +1501,9 @@ type Runtime
     @Builtin_Type
     type Runtime
 
-    ## Suggests that the runtime perform garbage collection.
+    ## ADVANCED
+
+       Suggests that the runtime perform garbage collection.
 
        It is not _guaranteed_ to perform garbage collection, but in practice
        will _usually_ begin a garbage collection cycle.
@@ -1509,7 +1514,9 @@ type Runtime
     gc : Nothing
     gc = @Builtin_Method "Runtime.gc"
 
-    ## Executes the provided `action` without allowing it to inline.
+    ## ADVANCED
+
+       Executes the provided `action` without allowing it to inline.
 
        Arguments:
        - `action`: The computation to be executed.
@@ -1556,7 +1563,7 @@ type State
        > Example
          Get the value of state for a key.
              State.get Decimal
-    get : Any -> Any | Uninitialized_State
+    get : Any -> Any ! Uninitialized_State
     get key = @Builtin_Method "State.get"
 
     ## Associates a `new_state` with the provided `key` in the runtime's monadic
@@ -1677,7 +1684,9 @@ type Thread
     @Builtin_Type
     type Thread
 
-    ## Executes an `action` with a handler for the executing thread being
+    ## ADVANCED
+
+       Executes an `action` with a handler for the executing thread being
        interrupted.
 
        Arguments:
@@ -1687,7 +1696,7 @@ type Thread
 
        > Example
          Die on thread interrupts.
-             Thread.with_interrupt_handler (1 + 1) <| System.exit 0
+             Thread.with_interrupt_handler (1 + 1) <| IO.println "I died!"
     with_interrupt_handler : Any -> Any -> Any
     with_interrupt_handler ~action ~interrupt_handler =
         @Builtin_Method "Thread.with_interrupt_handler"
