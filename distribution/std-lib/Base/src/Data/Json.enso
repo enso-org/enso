@@ -69,12 +69,12 @@ type Json
     ## Recursively unwraps the JSON value into primitive values.
     unwrap : Any
     unwrap = case this of
-        Json.Array its -> its.map unwrap
+        Json.Array its -> its.map .unwrap
         Json.Boolean b -> b
         Json.Number n -> n
         Json.String t -> t
         Json.Null -> Nothing
-        Json.Object f -> f.map unwrap
+        Json.Object f -> f.map .unwrap
 
 ## A failure indicating malformed text input into the JSON parser.
 

@@ -15,9 +15,9 @@ class GlobalScopeTest extends InterpreterTest {
         """from Builtins import all
           |
           |Nothing.a = 10
-          |Nothing.addTen = b -> a Nothing + b
+          |Nothing.add_ten = b -> Nothing.a + b
           |
-          |main = addTen Nothing 5
+          |main = Nothing.add_ten 5
         """.stripMargin
 
       eval(code) shouldEqual 15
@@ -31,7 +31,7 @@ class GlobalScopeTest extends InterpreterTest {
           |
           |main =
           |    fn = multiply ->
-          |        res = adder Nothing 1 2
+          |        res = Nothing.adder 1 2
           |        doubled = res * multiply
           |        doubled
           |    fn 2
@@ -80,7 +80,7 @@ class GlobalScopeTest extends InterpreterTest {
           |Nothing.a = 10/0
           |
           |Nothing.b = Nothing.a
-          |main = b
+          |main = .b
         """.stripMargin
 
       noException should be thrownBy eval(code)

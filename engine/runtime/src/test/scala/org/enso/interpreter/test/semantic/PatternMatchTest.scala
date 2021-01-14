@@ -23,7 +23,7 @@ class PatternMatchTest extends InterpreterTest {
           |        Builtins.Cons a _ -> a
           |        Builtins.Nil -> -10
           |
-          |    (Builtins.Cons 10 Builtins.Nil . f) - Nil.f
+          |    f (Builtins.Cons 10 Builtins.Nil) - f Nil
           |""".stripMargin
 
       eval(code) shouldEqual 20
@@ -40,7 +40,7 @@ class PatternMatchTest extends InterpreterTest {
           |        MyAtom a -> a
           |        _ -> -100
           |
-          |    (MyAtom 50 . f) + Nil.f
+          |    f (MyAtom 50) + f Nil
           |""".stripMargin
 
       eval(code) shouldEqual -50
@@ -56,7 +56,7 @@ class PatternMatchTest extends InterpreterTest {
           |        MyAtom a -> a
           |        a -> a + 5
           |
-          |    (MyAtom 50 . f) + 30.f
+          |    f (MyAtom 50) + f 30
           |""".stripMargin
 
       eval(code) shouldEqual 85

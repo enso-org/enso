@@ -8,22 +8,22 @@ polyglot java import java.lang.String
 polyglot java import java.util.ArrayList
 polyglot java import java.lang.StringBuilder as Java_String_Builder
 
-spec = describe "Java FFI" <|
-    it "should call methods imported from Java" <|
+spec = Test.group "Java FFI" <|
+    Test.specify "should call methods imported from Java" <|
         Long.sum [1, 2] . should_equal 3
 
     ## TODO
        https://github.com/enso-org/enso/issues/1163
-    it "should call constructors imported from Java" pending=True <|
+    Test.specify "should call constructors imported from Java" pending=True <|
         list = ArrayList.new []
         list.add 432
         list.get [0] . should_equal 432
-    it "should auto-convert numeric types across the polyglot boundary" <|
+    Test.specify "should auto-convert numeric types across the polyglot boundary" <|
         (Float.valueOf ["123.3"] + 5).should_equal 128.3 epsilon=0.0001
         (Integer.sum [1, 2] + 3) . should_equal 6
-    it "should auto-convert strings across the polyglot boundary" <|
+    Test.specify "should auto-convert strings across the polyglot boundary" <|
         (String.format ["%s bar %s", "baz", "quux"] + " foo").should_equal "baz bar quux foo"
-    it "should support Java import renaming" <|
+    Test.specify "should support Java import renaming" <|
         builder = Java_String_Builder.new [].to_array
         builder.append ["foo"]
         builder.append ["bar"]

@@ -2009,7 +2009,7 @@ class RuntimeServerTest
         |main =
         |    x = 15.overloaded 1
         |    "foo".overloaded 2
-        |    overloaded 10 x
+        |    10.overloaded x
         |    Nothing
         |
         |Text.overloaded arg = arg + 1
@@ -3363,7 +3363,7 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar x y
+      """main = this.bar .x .y
         |
         |bar one two = one + two
         |""".stripMargin.linesIterator.mkString("\n")
@@ -3417,7 +3417,7 @@ class RuntimeServerTest
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(0, 7), model.Position(0, 19)))
+                  Some(model.Range(model.Position(0, 7), model.Position(0, 21)))
                 )
               )
             )
@@ -3583,7 +3583,7 @@ class RuntimeServerTest
         |    x = this.baz
         |    x
         |baz =
-        |    x = 1 + quux
+        |    x = 1 + .quux
         |    x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -3631,7 +3631,7 @@ class RuntimeServerTest
                   "Main.baz",
                   Some(mainFile),
                   Some(
-                    model.Range(model.Position(11, 8), model.Position(11, 16))
+                    model.Range(model.Position(11, 8), model.Position(11, 17))
                   )
                 ),
                 Api.StackTraceElement(
@@ -3851,7 +3851,7 @@ class RuntimeServerTest
         |
         |main =
         |    x = Panic.recover @
-        |    IO.println (x.catch to_text)
+        |    IO.println (x.catch .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -3912,7 +3912,7 @@ class RuntimeServerTest
         |
         |main =
         |    x = Panic.recover ()
-        |    IO.println (x.catch to_text)
+        |    IO.println (x.catch .to_text)
         |
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)

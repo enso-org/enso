@@ -193,9 +193,9 @@ type Locale
     to_json =
         b = Vector.new_builder
         b.append ["type", "Locale"]
-        if not this.language.is_nothing then b.append ["language", this.language]
-        if not this.country.is_nothing then b.append ["country", this.country]
-        if not this.variant.is_nothing then b.append ["variant", this.variant]
+        if this.language.is_nothing.not then b.append ["language", this.language]
+        if this.country.is_nothing.not then b.append ["country", this.country]
+        if this.variant.is_nothing.not then b.append ["variant", this.variant]
         Json.from_pairs b.to_vector
 
 ## PRIVATE

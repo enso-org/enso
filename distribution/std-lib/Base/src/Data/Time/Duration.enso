@@ -83,26 +83,26 @@ type Duration
     to_json =
         b = Vector.new_builder
         b.append ["type", "Duration"]
-        if not this.years==0 then b.append ["years", this.years]
-        if not this.months==0 then b.append ["months", this.months]
-        if not this.days==0 then b.append ["days", this.days]
-        if not this.hours==0 then b.append ["hours", this.hours]
-        if not this.minutes==0 then b.append ["minutes", this.minutes]
-        if not this.seconds==0 then b.append ["seconds", this.seconds]
-        if not this.nanoseconds==0 then b.append ["nanoseconds", this.nanoseconds]
+        if this.years==0 . not then b.append ["years", this.years]
+        if this.months==0 . not then b.append ["months", this.months]
+        if this.days==0 . not then b.append ["days", this.days]
+        if this.hours==0 . not then b.append ["hours", this.hours]
+        if this.minutes==0 . not then b.append ["minutes", this.minutes]
+        if this.seconds==0 . not then b.append ["seconds", this.seconds]
+        if this.nanoseconds==0 . not then b.append ["nanoseconds", this.nanoseconds]
         Json.from_pairs b.to_vector
 
     ## Check if this duration is date-based.
     is_date : Boolean
-    is_date = (not this.years==0) || (not this.months==0) || (not this.days==0)
+    is_date = (this.years==0 . not) || (this.months==0 . not) || (this.days==0 . not)
 
     ## Check if this duration is time-based.
     is_time : Boolean
-    is_time = (not this.hours==0) || (not this.minutes==0) || (not this.seconds==0) || (not this.nanoseconds==0)
+    is_time = (this.hours==0 . not) || (this.minutes==0 . not) || (this.seconds==0 . not) || (this.nanoseconds==0 . not)
 
     ## Check if this duration represents an empty time-span.
     is_empty : Boolean
-    is_empty = (not this.is_date) && (not this.is_time)
+    is_empty = this.is_date.not && this.is_time.not
 
     ## Check the durations equality.
     == : Duration -> Boolean

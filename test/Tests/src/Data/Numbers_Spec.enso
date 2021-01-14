@@ -12,41 +12,41 @@ spec =
     almost_max_long_times_three_plus_1 = 27670116110564327419
     almost_max_long_times_three_decimal = 27670116110564327418.8
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
-    describe "Integers" <|
-        it "should be of unbound size when multiplied" <|
+    Test.group "Integers" <|
+        Test.specify "should be of unbound size when multiplied" <|
             1.up_to 101 . fold 1 (*) . should_equal hundred_factorial
-        it "should be of unbound size when added" <|
+        Test.specify "should be of unbound size when added" <|
             (almost_max_long + almost_max_long + almost_max_long).should_equal almost_max_long_times_three
-        it "should be of unbound size when subtracted" <| (0 - almost_max_long - almost_max_long - almost_max_long).should_equal almost_max_long_times_three.negate
-        it "should be of unbound size when dividing" <|
+        Test.specify "should be of unbound size when subtracted" <| (0 - almost_max_long - almost_max_long - almost_max_long).should_equal almost_max_long_times_three.negate
+        Test.specify "should be of unbound size when dividing" <|
             expected = 3372816184472482867110284450043137767873196479305249187406461598235841786750685581361224832688174410089430537516012695688121622150430744676
             ((1.up_to 101 . fold 1 (*)).div  3*almost_max_long).should_equal expected
-        it "should be of unbound size when taking remainder" <|
+        Test.specify "should be of unbound size when taking remainder" <|
             expected = 3191479909175673432
             ((1.up_to 101 . fold 1 (*)) % 3*almost_max_long).should_equal expected
-        it "should allow defining extension methods through the Integer type for any number size" <|
+        Test.specify "should allow defining extension methods through the Integer type for any number size" <|
             876543.is_even.should_be_false
             (1.up_to 101 . fold 1 (*)).is_even.should_be_true
-        it "should handle the negation edge cases" <|
+        Test.specify "should handle the negation edge cases" <|
             x = 9223372036854775808
             y = -x
             z = -9223372036854775808
             y.should_equal z
-        it "should handle equality between small and big integers" <|
+        Test.specify "should handle equality between small and big integers" <|
             (1 == hundred_factorial).should_be_false
             (hundred_factorial == 1).should_be_false
-        it "should properly handle going to big numbers and back" <|
+        Test.specify "should properly handle going to big numbers and back" <|
             ((almost_max_long * 3) / 3) . should_equal almost_max_long
-        it "should use floating point arithmetic for division" <|
+        Test.specify "should use floating point arithmetic for division" <|
             (3 / 4) . should_equal 0.75 epsilon=eps
             (almost_max_long * 2 / almost_max_long_times_three) . should_equal 0.6666666 epsilon=eps
-        it "should support integral binary literals" <|
+        Test.specify "should support integral binary literals" <|
             lit = 2_01101101
             lit . should_equal 109
-        it "should support integral hexadecimal literals" <|
+        Test.specify "should support integral hexadecimal literals" <|
             lit = 16_6D
             lit . should_equal 109
-        it "should support bitwise and" <|
+        Test.specify "should support bitwise and" <|
             left  = 2_01101101
             right = 2_11000100
             big_left = 16_17ffffffffffffffa
@@ -55,7 +55,7 @@ spec =
             left.bit_and big_right . should_equal 2_01101100
             big_left.bit_and right . should_equal 2_11000000
             big_left.bit_and big_right . should_equal 16_17ffffffffffffff8
-        it "should support bitwise or" <|
+        Test.specify "should support bitwise or" <|
             left  = 2_01101101
             right = 2_11000100
             big_left = 16_17ffffffffffffffa
@@ -64,7 +64,7 @@ spec =
             left.bit_or big_right . should_equal 16_17ffffffffffffffd
             big_left.bit_or right . should_equal 16_17ffffffffffffffe
             big_left.bit_or right . should_equal 16_17ffffffffffffffe
-        it "should support bitwise exclusive or" <|
+        Test.specify "should support bitwise exclusive or" <|
             left  = 2_01101101
             right = 2_11000100
             big_left = 16_17ffffffffffffffa
@@ -73,14 +73,14 @@ spec =
             left.bit_xor big_right . should_equal 16_17fffffffffffff91
             big_left.bit_xor right . should_equal 16_17fffffffffffff3e
             big_left.bit_xor big_right . should_equal 2_00000110
-        it "should support bitwise negation" <|
+        Test.specify "should support bitwise negation" <|
             bits  = 2_01101101
             big_bits = 16_17ffffffffffffffa
             bits.bit_not . should_equal -2_01101110
             bits.bit_not.bit_not . should_equal bits
             big_bits.bit_not . should_equal -16_17ffffffffffffffb
             big_bits.bit_not.bit_not . should_equal big_bits
-        it "should support left bit shifts" <|
+        Test.specify "should support left bit shifts" <|
             positive_bits = 2_01101101
             negative_bits = -2_01101101
             positive_big_bits = almost_max_long_times_three
@@ -113,7 +113,7 @@ spec =
             negative_big_bits.bit_shift_l -100 . should_equal -1
             Test.expect_fail_with (negative_big_bits.bit_shift_l positive_big_bits) Arithmetic_Error
             negative_big_bits.bit_shift_l negative_big_bits . should_equal -1
-        it "should support right bit shifts, preserving sign" <|
+        Test.specify "should support right bit shifts, preserving sign" <|
             positive_bits = 2_01101101
             negative_bits = -2_01101101
             positive_big_bits = almost_max_long_times_three
@@ -146,24 +146,24 @@ spec =
             negative_big_bits.bit_shift_r -100 . should_equal (negative_big_bits.bit_shift_l 100)
             Test.expect_fail_with (negative_big_bits.bit_shift_r negative_big_bits) Arithmetic_Error
             negative_big_bits.bit_shift_r positive_big_bits . should_equal -1
-    describe "Decimals" <|
-        it "should exist and expose basic arithmetic operations" <|
+    Test.group "Decimals" <|
+        Test.specify "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
-        it "should allow defining extension methods through the Decimal type" <|
+        Test.specify "should allow defining extension methods through the Decimal type" <|
             32.5.get_fun_factor.should_equal "Wow, 32.5 is such a fun number!"
-    describe "Numbers" <|
-        it "should define addition" <|
+    Test.group "Numbers" <|
+        Test.specify "should define addition" <|
             2+3 . should_equal 5
-        it "should define multiplication" <|
+        Test.specify "should define multiplication" <|
             2*3 . should_equal 6
-        it "should expose comparison operators" <|
+        Test.specify "should expose comparison operators" <|
             (3 < hundred_factorial).should_be_true
             (hundred_factorial < 3).should_be_false
             (3.0 < hundred_factorial).should_be_true
             (3.0 <= 3.4).should_be_true
             (3.0 >= 2).should_be_true
             (-hundred_factorial > 0).should_be_false
-        it "should expose exponentiation operations" <|
+        Test.specify "should expose exponentiation operations" <|
             (3.14 ^ 2.71).should_equal 22.216689546 epsilon=eps
             (3.14 ^ 14).should_equal 9057640.36635 epsilon=eps
             a = almost_max_long
@@ -171,18 +171,18 @@ spec =
             (2 ^ 10).should_equal 1024
             (2 ^ 0.5).should_equal 1.41421356237 epsilon=eps
             (a^2)^0.5 . should_equal a epsilon=eps
-        it "should expose more involved mathematical functions" <|
+        Test.specify "should expose more involved mathematical functions" <|
             Math.Pi.sin.should_equal 0 epsilon=eps
             (Math.Pi / 4).sin.should_equal (2 ^ 0.5)/2 epsilon=eps
             (Math.Pi / 6).cos.should_equal (3.sqrt / 2) epsilon=eps
             (17 ^ 0.13).log base=17 . should_equal 0.13 epsilon=eps
             0.exp.should_equal 1
-        it "should allow calculating the floor value" <|
+        Test.specify "should allow calculating the floor value" <|
             1.2314.floor . should_equal 1
             1.floor . should_equal 1
             almost_max_long_times_three_decimal.floor.to_decimal . should_equal almost_max_long_times_three.to_decimal
             almost_max_long_times_three.floor . should_equal almost_max_long_times_three
-        it "should allow calculating the ceil value" <|
+        Test.specify "should allow calculating the ceil value" <|
             1.2314.ceil . should_equal 2
             1.ceil . should_equal 1
             almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal

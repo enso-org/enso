@@ -138,7 +138,12 @@ case object LambdaShorthandToLambda extends IRPass {
         IR.Function.Lambda(
           List(
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal(newName.name, isReferent = false, None),
+              IR.Name.Literal(
+                newName.name,
+                isReferent = false,
+                isMethod   = false,
+                None
+              ),
               None,
               suspended = false,
               None
@@ -214,7 +219,12 @@ case object LambdaShorthandToLambda extends IRPass {
             List(
               IR.DefinitionArgument.Specified(
                 IR.Name
-                  .Literal(updatedName.get, isReferent = false, fn.location),
+                  .Literal(
+                    updatedName.get,
+                    isReferent = false,
+                    isMethod   = false,
+                    fn.location
+                  ),
                 None,
                 suspended = false,
                 None
@@ -329,6 +339,7 @@ case object LambdaShorthandToLambda extends IRPass {
             IR.Name.Literal(
               value.asInstanceOf[IR.Name.Literal].name,
               isReferent = false,
+              isMethod   = false,
               None
             )
 

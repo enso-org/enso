@@ -78,12 +78,13 @@ balance_right k x l r = case l of
         Bin _ _ _ Tip Tip -> Bin 2 k x Tip r
         Bin _ rk rx Tip rr -> Bin 3 rk rx (Bin 1 k x Tip Tip) rr
         Bin _ rk rx (Bin _ rlk rlx _ _) Tip -> Bin 3 rlk rlx (Bin 1 k x Tip Tip) (Bin 1 rk rx Tip Tip)
-        Bin rs rk rx (Bin rls rlk rlx rll rlr) rr -> case rr of
-            Bin rrs _ _ _ _ ->
-                if rls < Ratio*rrs then Bin 1+rs rk rx (Bin 1+rls k x Tip rl) rr else
-                    srll = here.size rll
-                    srlr = here.size rlr
-                    Bin 1+rs rlk rlx (Bin 1+srll k x Tip rll) (Bin 1+rrs+srlr rk rx rlr rr)
+        Bin rs rk rx rl rr -> case rl of
+            Bin rls rlk rlx rll rlr -> case rr of
+                Bin rrs _ _ _ _ ->
+                    if rls < Ratio*rrs then Bin 1+rs rk rx (Bin 1+rls k x Tip rl) rr else
+                        srll = here.size rll
+                        srlr = here.size rlr
+                        Bin 1+rs rlk rlx (Bin 1+srll k x Tip rll) (Bin 1+rrs+srlr rk rx rlr rr)
 
 ## PRIVATE
 

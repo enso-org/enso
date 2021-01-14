@@ -1709,13 +1709,19 @@ object IR {
       */
     def isReferent: Boolean
 
+    /** Checks whether a name is a call-site method name.
+      *
+      * @return `true` if the name was created through a method call
+      */
+    def isMethod: Boolean = false
+
     /** Checks whether a name is in variable form.
       *
       * Please see the syntax specification for more details on this form.
       *
       * @return `true` if `this` is in referent form, otherwise `false`
       */
-    def isVariable: Boolean = !isReferent
+    def isVariable: Boolean = !isReferent && !isMethod
   }
   object Name {
 
@@ -2009,6 +2015,7 @@ object IR {
       *
       * @param name the literal text of the name
       * @param isReferent is this a referent name
+      * @param isMethod is this a method call name
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -2016,6 +2023,7 @@ object IR {
     sealed case class Literal(
       override val name: String,
       override val isReferent: Boolean,
+      override val isMethod: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -2026,6 +2034,7 @@ object IR {
         *
         * @param name the literal text of the name
         * @param isReferent is this a referent name
+        * @param isMethod is this a method call name
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -2035,12 +2044,14 @@ object IR {
       def copy(
         name: String                         = name,
         isReferent: Boolean                  = isReferent,
+        isMethod: Boolean                    = isMethod,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Literal = {
-        val res = Literal(name, isReferent, location, passData, diagnostics)
+        val res =
+          Literal(name, isReferent, isMethod, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2069,6 +2080,7 @@ object IR {
         |IR.Name.Literal(
         |name = $name,
         |isReferent = $isReferent,
+        |isMethod = $isMethod,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -2243,7 +2255,7 @@ object IR {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
 
-      override def isReferent: Boolean = false
+      override def isReferent: Boolean = true
 
       /** Creates a copy of `this`.
         *
@@ -5461,6 +5473,13 @@ object IR {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a method, " +
           s"but methods are not allowed in $context."
+      }
+
+      /** An error coming from usage of an undefined variable name.
+        */
+      case object VariableNotInScope extends Reason {
+        override def explain(originalName: Name): String =
+          s"Variable `${originalName.name}` is not defined."
       }
 
       /** An error coming from name resolver.
