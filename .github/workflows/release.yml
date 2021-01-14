@@ -330,12 +330,21 @@ jobs:
       - name: Prepare Project Manager Bundles
         shell: bash
         run: |
+          mkdir artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/dist/
+          mkdir artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/dist/
+          mkdir artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/dist/
+          mkdir artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime/
+          mkdir artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime/
+          mkdir artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime/
+
           cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/dist/${{ env.DIST_VERSION }}
           cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/dist/${{ env.DIST_VERSION }}
           cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-windows-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/dist/${{ env.DIST_VERSION }}
+
           cp -r graalvm-linux/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
           cp -r graalvm-macos/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
           cp -r graalvm-windows/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
+
           cp repo/distribution/enso.bundle.template artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/.enso.bundle
           cp repo/distribution/enso.bundle.template artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/.enso.bundle
           cp repo/distribution/enso.bundle.template artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/.enso.bundle
