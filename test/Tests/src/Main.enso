@@ -19,7 +19,6 @@ import Tests.Data.Ordering_Spec
 import Tests.Data.Range_Spec
 import Tests.Data.Text_Spec
 import Tests.Data.Time.Spec as Time_Spec
-import Tests.Data.Time.Locale_Spec
 import Tests.Data.Vector_Spec
 import Tests.Network.Http.Header_Spec as Http_Header_Spec
 import Tests.Network.Http.Request_Spec as Http_Request_Spec
@@ -41,7 +40,6 @@ main = Test.Suite.runMain <|
     Java_Interop_Spec.spec
     Json_Spec.spec
     List_Spec.spec
-    Locale_Spec.spec
     Map_Spec.spec
     Meta_Spec.spec
     Names_Spec.spec

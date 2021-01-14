@@ -101,7 +101,7 @@ case object AliasAnalysis extends IRPass {
           )
         )
         .shouldWriteToContext
-//    println(shouldWriteState)
+
     inlineContext.localScope
       .map { localScope =>
         val scope =
@@ -474,11 +474,8 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): IR.Name = {
     val occurrenceId = graph.nextId()
-    if (name.isInstanceOf[IR.Error]) {
-      val occurrence =
-        Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
-      parentScope.add(occurrence)
-    } else if (isInPatternContext && name.isVariable) {
+
+    if (isInPatternContext && name.isVariable) {
       val occurrence =
         Occurrence.Def(occurrenceId, name.name, name.getId, name.getExternalId)
       parentScope.add(occurrence)
@@ -486,21 +483,8 @@ case object AliasAnalysis extends IRPass {
       val occurrence =
         Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
       parentScope.add(occurrence)
-      println(parentScope.parent.map(_.occurrences))
       if (name.isVariable) {
-        graph.resolveLocalUsage(occurrence) match {
-          case None =>
-            if (name.name == "x") {
-              println("X not found")
-            }
-//            return IR.Error
-//              .Resolution(
-//                name,
-//                IR.Error.Resolution.VariableNotInScope
-//              )
-//              .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
-          case _ => println("X found")
-        }
+        graph.resolveLocalUsage(occurrence)
       } else {
         graph.resolveGlobalUsage(occurrence)
       }
@@ -728,13 +712,9 @@ case object AliasAnalysis extends IRPass {
             case Some(link) =>
               links += link
               Some(link)
-            case None =>
-              println("failing nest")
-              None
+            case None => None
           }
-        case None =>
-          println("failing top")
-          None
+        case None => None
       }
     }
 
@@ -984,9 +964,7 @@ case object AliasAnalysis extends IRPass {
         val childScopeCopies: mutable.ListBuffer[Scope] = ListBuffer()
         this.childScopes.foreach(scope => childScopeCopies += scope.copy)
 
-        val cp = new Scope(childScopeCopies.toList, occurrences)
-        cp.parent = parent
-        cp
+        new Scope(childScopeCopies.toList, occurrences)
       }
 
       /** Checks whether `this` is equal to `obj`.

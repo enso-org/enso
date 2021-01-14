@@ -12,14 +12,14 @@ Any.== that = if Meta.is_same_object this that then True else
         Cons (Meta.Atom _) (Meta.Atom _) ->
             c_1 = this_meta.constructor
             c_2 = that_meta.constructor
-            if not (Meta.is_same_object c_1 c_2) then False else
+            if Meta.is_same_object c_1 c_2 . not then False else
                 f_1 = this_meta.fields
                 f_2 = that_meta.fields
                 0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
         Cons (Meta.Error _) (Meta.Error _) -> this_meta.payload == that_meta.payload
         Cons (Meta.Polyglot o_1) (Meta.Polyglot o_2) ->
             langs_match = this_meta.language == Meta.Java && that_meta.language == Meta.Java
-            if not langs_match then False else o_1.equals [o_2]
+            if langs_match.not then False else o_1.equals [o_2]
         ## Constructor comparison is covered by the identity equality.
            Primitive objects should define their own equality.
            Therefore, there is no more cases to handle in this method.
