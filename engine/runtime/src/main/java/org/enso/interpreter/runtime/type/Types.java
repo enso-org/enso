@@ -112,24 +112,30 @@ public class Types {
    * @return the string representation of object's type.
    */
   public static String getName(Object value) {
-    if (TypesGen.isLong(value) || TypesGen.isImplicitLong(value)) {
-      return "Number";
+    if (TypesGen.isLong(value)
+        || TypesGen.isImplicitLong(value)
+        || TypesGen.isEnsoBigInteger(value)) {
+      return Constants.INTEGER;
+    } else if (TypesGen.isDouble(value)) {
+      return Constants.DECIMAL;
     } else if (TypesGen.isBoolean(value)) {
-      return "Boolean";
+      return Constants.BOOLEAN;
     } else if (TypesGen.isText(value)) {
-      return "Text";
+      return Constants.TEXT;
     } else if (TypesGen.isFunction(value)) {
-      return "Function";
+      return Constants.FUNCTION;
     } else if (TypesGen.isAtom(value)) {
-      return TypesGen.asAtom(value).getConstructor().getName();
+      return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
     } else if (TypesGen.isAtomConstructor(value)) {
-      return TypesGen.asAtomConstructor(value).getName();
+      return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
     } else if (TypesGen.isThunk(value)) {
-      return "Thunk";
+      return Constants.THUNK;
     } else if (TypesGen.isRuntimeError(value)) {
-      return "Error " + TypesGen.asRuntimeError(value).getPayload().toString();
+      return Constants.ERROR;
     } else if (TypesGen.isArray(value)) {
-      return "Array";
+      return Constants.ARRAY;
+    } else if (TypesGen.isRef(value)) {
+      return Constants.REF;
     } else {
       return null;
     }

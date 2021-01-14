@@ -156,7 +156,7 @@ public class BoolStorage extends Storage {
   private static MapOpStorage<BoolStorage> buildOps() {
     MapOpStorage<BoolStorage> ops = new MapOpStorage<>();
     ops.add(
-            new UnaryMapOperation<>(Ops.NOT) {
+            new UnaryMapOperation<>(Maps.NOT) {
               @Override
               protected Storage run(BoolStorage storage) {
                 return new BoolStorage(
@@ -164,7 +164,7 @@ public class BoolStorage extends Storage {
               }
             })
         .add(
-            new MapOperation<>(Ops.EQ) {
+            new MapOperation<>(Maps.EQ) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean) {
@@ -196,7 +196,7 @@ public class BoolStorage extends Storage {
               }
             })
         .add(
-            new MapOperation<>(Ops.AND) {
+            new MapOperation<>(Maps.AND) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean) {
@@ -240,7 +240,7 @@ public class BoolStorage extends Storage {
               }
             })
         .add(
-            new MapOperation<>(Ops.OR) {
+            new MapOperation<>(Maps.OR) {
               @Override
               public Storage runMap(BoolStorage storage, Object arg) {
                 if (arg instanceof Boolean) {

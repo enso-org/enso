@@ -262,9 +262,119 @@ type Column
         fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
         Json.Object fields
 
+    ## Efficiently joins two tables based on either the index or the specified
+       key column.
+
+       The resulting table contains rows of `this` extended with rows of
+       `other` with matching indexes. If the index values in `other` are not
+       unique, the corresponding rows of `this` will be duplicated in the
+       result.
+
+       Arguments:
+         - other: the table being the right operand of this join operation.
+         - on: the column of `this` that should be used as the join key. If
+               this argument is not provided, the index of `this` will be used.
+         - drop_unmatched: whether the rows of `this` without corresponding
+                           matches in `other` should be dropped from the result.
+         - left_suffix: a suffix that should be added to the columns of `this`
+                        when there's a name conflict with a column of `other`.
+         - right_suffix: a suffix that should be added to the columns of `other`
+                         when there's a name conflict with a column of `this`.
+    join : Table.Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
+    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
+        this.to_table.join other on drop_unmatched left_suffix right_suffix
+
+    ## Converts this column into a single-column table.
+    to_table : Table.Table
+    to_table = Table.Table (this.java_column.toTable [])
+
 ## Creates a new column given a name and a vector of elements.
 from_vector : Text -> Vector -> Column
 from_vector name items = Column (Java_Column.fromItems [name, items.to_array])
+
+## Wraps a column grouped by its index. Allows performing aggregation operations
+   on the contained values.
+type Aggregate_Column
+    type Aggregate_Column java_column
+
+    ## Converts this aggregate column into a column, aggregating groups
+       with the provided `function`.
+
+       Arguments:
+         - function: the function used for value aggregation. Values belonging
+                     to each group are passed to this function in a vector.
+         - skip_missing: controls whether missing values should be included
+                         in groups.
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    reduce : (Vector.Vector -> Any) -> Boolean -> Text -> Column
+    reduce function skip_missing=True name_suffix="_result" =
+        f arr = function (Vector.Vector arr)
+        r = this.java_column.aggregate [Nothing, name_suffix, f, skip_missing]
+        Column r
+
+    ## Sums the values in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    sum : Text -> Column
+    sum name_suffix='_sum' =
+        r = this.java_column.aggregate ['sum', name_suffix, (x-> Vector.Vector x . reduce (+)), True]
+        Column r
+
+    ## Computes the maximum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    max : Text -> Column
+    max name_suffix='_max' =
+        r = this.java_column.aggregate ['max', name_suffix, (x-> Vector.Vector x . reduce max), True]
+        Column r
+
+    ## Computes the minimum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    min : Text -> Column
+    min name_suffix='_min' =
+        r = this.java_column.aggregate ['min', name_suffix, (x-> Vector.Vector x . reduce min), True]
+        Column r
+
+    ## Computes the number of non-missing elements in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    count : Text -> Column
+    count name_suffix='_count' =
+        r = this.java_column.aggregate ['count', name_suffix, (x-> x.length), True]
+        Column r
+
+    ## Computes the mean of non-missing elements in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    mean : Text -> Column
+    mean name_suffix='_mean' =
+        vec_mean v = if v.length == 0 then Nothing else
+            (Vector.Vector v).reduce (+) / v.length
+        r = this.java_column.aggregate ['mean', name_suffix, vec_mean, True]
+        Column r
+
+    ## Gathers all elements in a group into a vector and returns a column of
+       such vectors.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    values : Text -> Column
+    values name_suffix='_values' =
+        r = this.java_column.aggregate [Nothing, name_suffix, Vector.Vector, False]
+        Column r
 
 ## PRIVATE
 run_vectorized_binary_op column name fallback_fn operand = case operand of

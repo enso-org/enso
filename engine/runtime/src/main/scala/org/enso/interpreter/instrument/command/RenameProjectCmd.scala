@@ -57,8 +57,8 @@ class RenameProjectCmd(
       case InstrumentFrame(call: Api.StackItem.ExplicitCall, cache) =>
         val moduleName = QualifiedName
           .fromString(call.methodPointer.module)
-          .map(_.renameProject(projectName).toString)
-          .getOrElse(call.methodPointer.module)
+          .renameProject(projectName)
+          .toString
         val methodPointer = call.methodPointer.copy(module = moduleName)
         InstrumentFrame(call.copy(methodPointer = methodPointer), cache)
       case item => item
