@@ -1,7 +1,6 @@
 package org.enso.projectmanager.boot
 
 import java.io.IOException
-import java.nio.file.{InvalidPathException, Path}
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import akka.http.scaladsl.Http
@@ -15,7 +14,6 @@ import org.enso.projectmanager.boot.Globals.{
   SuccessExitCode
 }
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
-import org.enso.projectmanager.versionmanagement.DefaultDistributionConfiguration
 import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
@@ -120,44 +118,7 @@ object ProjectManager extends App with LazyLogging {
     } else {
       val verbosity = options.getOptions.count(_ == Cli.option.verbose)
       logger.info("Starting Project Manager...")
-
-      def parsePath(string: String) = ZIO.effect(Path.of(string))
-      def parseOptionalPath(string: Option[String]) =
-        string.map(parsePath).map(_.map(Some(_))).getOrElse(ZIO.succeed(None))
-
-      val initializeLocalRepositories = for {
-        enginePath <- parseOptionalPath(
-          Option(options.getOptionValue(Cli.LOCAL_ENGINE_REPOSITORY))
-        )
-        graalPath <- parseOptionalPath(
-          Option(options.getOptionValue(Cli.LOCAL_GRAAL_REPOSITORY))
-        )
-        _ <- ZIO.effect(
-          DefaultDistributionConfiguration.setupLocalRepositories(
-            enginePath,
-            graalPath
-          )
-        )
-      } yield ()
-
-      val initializeRepositoryOrLogError = initializeLocalRepositories
-        .catchSome { case error: InvalidPathException =>
-          ZIO.effectTotal(
-            logger
-              .error(s"Could not parse a local repository path: $error", error)
-          )
-        }
-        .catchAll { th =>
-          ZIO.effectTotal(
-            logger.error(
-              "Failed to initialize local repositories, " +
-              "default ones will be used.",
-              th
-            )
-          )
-        }
-
-      setupLogging(verbosity) *> initializeRepositoryOrLogError *>
+      setupLogging(verbosity) *>
       mainProcess.fold(
         th => {
           logger.error("Main process execution failed.", th)
