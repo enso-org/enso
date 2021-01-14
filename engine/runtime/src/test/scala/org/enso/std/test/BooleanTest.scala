@@ -98,7 +98,7 @@ class BooleanTest extends InterpreterTest {
           |main =
           |    IO.println True.not
           |    IO.println False.not
-          |    IO.println (not 1==2)
+          |    IO.println (1==2 . not)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("False", "True", "True")

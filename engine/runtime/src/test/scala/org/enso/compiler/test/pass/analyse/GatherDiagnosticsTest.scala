@@ -56,7 +56,7 @@ class GatherDiagnosticsTest extends CompilerTest {
 
       val error3 = IR.Error.Syntax(
         AST.Invalid.Unexpected("whoa, that was also not expected", List()),
-        IR.Error.Syntax.UnexpectedExpression
+        IR.Error.Syntax.AmbiguousExpression
       )
 
       val typeName =
