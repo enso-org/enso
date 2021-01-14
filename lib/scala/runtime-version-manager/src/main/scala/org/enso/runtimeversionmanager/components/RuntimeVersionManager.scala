@@ -351,7 +351,7 @@ class RuntimeVersionManager(
       if (!Files.isWritable(engine.path)) {
         val message =
           s"$engine cannot be uninstalled because it is placed in a " +
-          s"read-only location."
+          s"read-only location (bundled versions cannot be uninstalled)."
         logger.error(message)
         throw UninstallationError(message)
       }
