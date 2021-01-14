@@ -21,6 +21,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
 
   val moduleDiscoveryPasses = new PassGroup(
     List(
+      ModuleAnnotations,
       DocumentationComments,
       MainImportAndExport,
       ComplexType,
@@ -43,7 +44,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       IgnoredBindings,
       TypeFunctions,
       TypeSignatures,
-      Annotations,
+      ExpressionAnnotations,
       AliasAnalysis,
       UppercaseNames,
       VectorLiterals,

@@ -24,19 +24,19 @@ public abstract class CopyNode extends Node {
   }
 
   abstract Object execute(
-      Object _this, Object src, long source_index, Array that, long dest_index, long count);
+      Object _this, Object src, long source_index, Array dest, long dest_index, long count);
 
   @Specialization
   Object doArray(
       Object _this,
       Array src,
       long source_index,
-      Array that,
+      Array dest,
       long dest_index,
       long count,
       @CachedContext(Language.class) Context ctx) {
     System.arraycopy(
-        src.getItems(), (int) source_index, that.getItems(), (int) dest_index, (int) count);
+        src.getItems(), (int) source_index, dest.getItems(), (int) dest_index, (int) count);
     return ctx.getBuiltins().nothing().newInstance();
   }
 
@@ -45,14 +45,14 @@ public abstract class CopyNode extends Node {
       Object _this,
       Object src,
       long source_index,
-      Array that,
+      Array dest,
       long dest_index,
       long count,
       @CachedLibrary(limit = "3") InteropLibrary arrays,
       @CachedContext(Language.class) Context ctx) {
     try {
       for (int i = 0; i < count; i++) {
-        that.getItems()[(int) dest_index + i] = arrays.readArrayElement(src, source_index + i);
+        dest.getItems()[(int) dest_index + i] = arrays.readArrayElement(src, source_index + i);
       }
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Unreachable");
@@ -65,7 +65,7 @@ public abstract class CopyNode extends Node {
 
   @Fallback
   Object doOther(
-      Object _this, Object src, long source_index, Array that, long dest_index, long count) {
+      Object _this, Object src, long source_index, Array dest, long dest_index, long count) {
     Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
     throw new PanicException(
         builtins.error().makeTypeError(builtins.mutable().array().newInstance(), src), this);

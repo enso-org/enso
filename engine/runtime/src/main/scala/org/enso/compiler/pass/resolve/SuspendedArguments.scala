@@ -139,6 +139,11 @@ case object SuspendedArguments extends IRPass {
         throw new CompilerError("Type ascriptions should not be present.")
       case _: IR.Comment =>
         throw new CompilerError("Comments should not be present.")
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+          "suspended arguments analysis."
+        )
     }
   }
 

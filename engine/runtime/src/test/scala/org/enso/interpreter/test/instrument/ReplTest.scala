@@ -9,8 +9,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
 
   override def subject: String = "Repl"
 
-  override def contextModifiers: Context#Builder => Context#Builder =
-    _.option(DebugServerInfo.ENABLE_OPTION, "true")
+  override def contextModifiers: Option[Context#Builder => Context#Builder] =
+    Some(_.option(DebugServerInfo.ENABLE_OPTION, "true"))
 
   override def specify(implicit
     interpreterContext: InterpreterContext

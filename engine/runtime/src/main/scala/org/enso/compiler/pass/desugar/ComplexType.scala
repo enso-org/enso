@@ -20,7 +20,8 @@ import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
   LambdaConsolidate
 }
-import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.compiler.pass.resolve.{IgnoredBindings, ModuleAnnotations}
+import org.enso.compiler.core.ir.MetadataStorage._
 
 import scala.annotation.unused
 
@@ -41,7 +42,7 @@ case object ComplexType extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List()
+  override val precursorPasses: Seq[IRPass] = List(ModuleAnnotations)
   override val invalidatedPasses: Seq[IRPass] =
     List(
       AliasAnalysis,
@@ -102,12 +103,15 @@ case object ComplexType extends IRPass {
   def desugarComplexType(
     typ: IR.Module.Scope.Definition.Type
   ): List[IR.Module.Scope.Definition] = {
-    val atomDefs = typ.body.collect { case d: IR.Module.Scope.Definition.Atom =>
-      d
-    }
-    val atomIncludes = typ.body.collect { case n: IR.Name =>
-      n
-    }
+    val annotations = typ.getMetadata(ModuleAnnotations)
+    val atomDefs = typ.body
+      .collect { case d: IR.Module.Scope.Definition.Atom => d }
+      .map(atom =>
+        annotations
+          .map(ann => atom.updateMetadata(ModuleAnnotations -->> ann))
+          .getOrElse(atom)
+      )
+    val atomIncludes           = typ.body.collect { case n: IR.Name => n }
     val namesToDefineMethodsOn = atomIncludes ++ atomDefs.map(_.name)
 
     val remainingEntities = typ.body.filterNot {

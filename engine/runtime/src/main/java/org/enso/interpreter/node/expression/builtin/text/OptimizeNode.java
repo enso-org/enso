@@ -7,7 +7,7 @@ import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
-    type = "Prim_Text_Helpers",
+    type = "Prim_Text_Helper",
     name = "optimize",
     description = "Forces flattening of a text value, for testing or purposes.")
 public class OptimizeNode extends Node {

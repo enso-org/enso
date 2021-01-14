@@ -1,7 +1,5 @@
 package org.enso.compiler.codegen
 
-import java.math.BigInteger
-
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
@@ -19,7 +17,6 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
-  Annotations,
   MethodDefinitions,
   Patterns,
   UppercaseNames
@@ -37,13 +34,7 @@ import org.enso.interpreter.node.callable.{
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
-import org.enso.interpreter.node.expression.constant.{
-  ConstantObjectNode,
-  ConstructorNode,
-  DynamicSymbolNode,
-  EnsoProjectNode,
-  ErrorNode
-}
+import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.literal.{
   BigIntegerLiteralNode,
   DecimalLiteralNode,
@@ -73,6 +64,7 @@ import org.enso.interpreter.runtime.error.DuplicateArgumentNameException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 
+import java.math.BigInteger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -304,7 +296,7 @@ class IrToTruffle(
   ): BaseNode.TailStatus = {
     val isTailPosition =
       expression.getMetadata(TailCall).contains(TailCall.TailPosition.Tail)
-    val isTailAnnotated = expression.getMetadata(Annotations).isDefined
+    val isTailAnnotated = TailCall.isTailAnnotated(expression)
     if (isTailPosition) {
       if (isTailAnnotated) {
         BaseNode.TailStatus.TAIL_LOOP
