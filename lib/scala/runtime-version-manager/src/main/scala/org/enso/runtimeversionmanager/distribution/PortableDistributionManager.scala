@@ -59,6 +59,11 @@ class PortableDistributionManager(env: Environment)
     portable
   }
 
+  /** Detects paths for the portable distribution.
+    *
+    * A portable distribution does not include bundle paths, because if
+    * anything was bundled with it, it is already part of its primary installation.
+    */
   override protected def detectPaths(): DistributionPaths =
     if (isRunningPortable) {
       val root = env.getPathToRunningExecutable.getParent.getParent
@@ -66,6 +71,7 @@ class PortableDistributionManager(env: Environment)
         dataRoot                 = root,
         runtimes                 = root / RUNTIMES_DIRECTORY,
         engines                  = root / ENGINES_DIRECTORY,
+        bundle                   = None,
         config                   = root / CONFIG_DIRECTORY,
         locks                    = root / LOCK_DIRECTORY,
         logs                     = root / LOG_DIRECTORY,
