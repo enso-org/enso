@@ -25,12 +25,6 @@ spec = describe "Pattern Matches" <|
         case Integer of
             Integer -> Nothing
             _ -> Test.fail "Expected the Integer constructor to match."
-        case Big_Integer of
-            Integer -> Nothing
-            _ -> Test.fail "Expected the Big_Integer constructor to match."
-        case Small_Integer of
-            Integer -> Nothing
-            _ -> Test.fail "Expected the Small_Integer constructor to match."
     it "should be able to match on the Decimal type" <|
         case 1.7 of
             Decimal -> Nothing
@@ -51,12 +45,6 @@ spec = describe "Pattern Matches" <|
         case Number of
             Number -> Nothing
             _ -> Test.fail "Expected the Number constructor to match."
-        case Small_Integer of
-            Number -> Nothing
-            _ -> Test.fail "Expected the Small_Integer constructor to match."
-        case Big_Integer of
-            Number -> Nothing
-            _ -> Test.fail "Expected the Big_Integer constructor to match."
         case Integer of
             Number -> Nothing
             _ -> Test.fail "Expected the Integer constructor to match."

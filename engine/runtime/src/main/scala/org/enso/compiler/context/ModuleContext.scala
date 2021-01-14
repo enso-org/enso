@@ -12,5 +12,6 @@ import org.enso.interpreter.runtime.Module
 case class ModuleContext(
   module: Module,
   freshNameSupply: Option[FreshNameSupply]     = None,
-  passConfiguration: Option[PassConfiguration] = None
+  passConfiguration: Option[PassConfiguration] = None,
+  noWarnings: Boolean                          = false
 )

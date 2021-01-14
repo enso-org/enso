@@ -117,6 +117,11 @@ case object CachePreferenceAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "cache preference analysis."
         )
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+          "cache preference analysis."
+        )
       case err: IR.Error => err
     }
 

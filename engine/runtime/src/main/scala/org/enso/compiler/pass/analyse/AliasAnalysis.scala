@@ -175,6 +175,11 @@ case object AliasAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "alias analysis."
         )
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of alias " +
+            "analysis."
+        )
       case err: IR.Error => err
     }
   }

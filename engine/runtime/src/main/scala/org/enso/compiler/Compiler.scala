@@ -1,7 +1,6 @@
 package org.enso.compiler
 
 import java.io.StringReader
-
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -19,6 +18,7 @@ import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
@@ -32,13 +32,21 @@ import scala.jdk.OptionConverters._
   *
   * @param context the language context
   */
-class Compiler(val context: Context) {
+class Compiler(val context: Context, private val builtins: Builtins) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator()
+
+  /** Lazy-initializes the IR for the builtins module.
+    */
+  def initializeBuiltinsIr(): Unit = {
+    if (!builtins.isIrInitialized) {
+      builtins.initializedBuiltinsIr(freshNameSupply, passes)
+    }
+  }
 
   /** Processes the provided language sources, registering any bindings in the
     * given scope.

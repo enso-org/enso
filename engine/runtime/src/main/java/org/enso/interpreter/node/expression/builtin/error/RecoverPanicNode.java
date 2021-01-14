@@ -11,20 +11,19 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
     type = "Panic",
-    name = "catch",
+    name = "recover",
     description = "Executes an action and converts any Panic thrown by it into an Error")
-public abstract class CatchPanicNode extends Node {
+public abstract class RecoverPanicNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
-  static CatchPanicNode build() {
-    return CatchPanicNodeGen.create();
+  static RecoverPanicNode build() {
+    return RecoverPanicNodeGen.create();
   }
 
   abstract Stateful execute(@MonadicState Object state, Object _this, @Suspend Object action);

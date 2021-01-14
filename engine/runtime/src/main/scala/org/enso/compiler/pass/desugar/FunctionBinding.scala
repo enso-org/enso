@@ -148,6 +148,11 @@ case object FunctionBinding extends IRPass {
           "Documentation should not be present during function binding" +
           "desugaring."
         )
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+            "function binding desugaring."
+        )
       case a: IR.Type.Ascription => a
       case e: IR.Error           => e
     }
