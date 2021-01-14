@@ -23,7 +23,6 @@ arguments.
 - [Lambdas](#lambdas)
 - [Defining Functions](#defining-functions)
 - [Methods](#methods)
-- [Universal Call Syntax](#universal-call-syntax)
 - [Code Blocks](#code-blocks)
 - [Operators](#operators)
   - [Precedence](#precedence)
