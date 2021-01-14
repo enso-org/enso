@@ -309,22 +309,15 @@ jobs:
           (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip enso )
           echo "Windows Launcher packaged"
 
-          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/ && tar -czf ../../enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz enso )
-          echo "Linux Project Manager packaged"
-          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/ && tar -czf ../../enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz enso )
-          echo "MacOS Project Manager packaged"
-          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip enso )
-          echo "Windows Project Manager packaged"
-
-      - name: Prepare Bundles
+      - name: Prepare Launcher Bundles
         shell: bash
         run: |
           cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/dist/${{ env.DIST_VERSION }}
           cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/dist/${{ env.DIST_VERSION }}
           cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-windows-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/dist/${{ env.DIST_VERSION }}
-          mv graalvm-linux/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
-          mv graalvm-macos/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
-          mv graalvm-windows/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
+          cp -r graalvm-linux/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
+          cp -r graalvm-macos/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
+          cp -r graalvm-windows/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
 
           echo "Bundles prepared"
           (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/ && tar -czf ../../enso-bundle-${{ env.DIST_VERSION }}-linux-amd64.tar.gz enso )
@@ -332,6 +325,27 @@ jobs:
           (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/ && tar -czf ../../enso-bundle-${{ env.DIST_VERSION }}-macos-amd64.tar.gz enso )
           echo "MacOS Bundle packaged"
           (cd artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-bundle-${{ env.DIST_VERSION }}-windows-amd64.zip enso )
+          echo "Windows Bundle packaged"
+
+      - name: Prepare Project Manager Bundles
+        shell: bash
+        run: |
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/dist/${{ env.DIST_VERSION }}
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-macos-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/dist/${{ env.DIST_VERSION }}
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}-windows-amd64/enso-${{ env.DIST_VERSION }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/dist/${{ env.DIST_VERSION }}
+          cp -r graalvm-linux/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
+          cp -r graalvm-macos/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
+          cp -r graalvm-windows/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
+          cp repo/distribution/enso.bundle.template artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/enso/.enso.bundle
+          cp repo/distribution/enso.bundle.template artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/enso/.enso.bundle
+          cp repo/distribution/enso.bundle.template artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/enso/.enso.bundle
+
+          echo "Bundles prepared"
+          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64/ && tar -czf ../../enso-project-manager-${{ env.DIST_VERSION }}-linux-amd64.tar.gz enso )
+          echo "Linux Bundle packaged"
+          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64/ && tar -czf ../../enso-project-manager-${{ env.DIST_VERSION }}-macos-amd64.tar.gz enso )
+          echo "MacOS Bundle packaged"
+          (cd artifacts/enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64/ && zip -q -r ../../enso-project-manager-${{ env.DIST_VERSION }}-windows-amd64.zip enso )
           echo "Windows Bundle packaged"
 
       - name: Create Release
