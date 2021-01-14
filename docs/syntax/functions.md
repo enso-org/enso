@@ -275,7 +275,7 @@ best demonstrated by example. Consider the following code:
 list       = 1 .. 100
 randomList = list . each random
 headOfList = randomList . take 10
-result     = headOfList . sortAstTo
+result     = headOfList . sort
 ```
 
 This could easily be refactored to the following one-liner:
