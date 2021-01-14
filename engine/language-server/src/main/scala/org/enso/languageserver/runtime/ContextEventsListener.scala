@@ -181,6 +181,7 @@ final class ContextEventsListener(
       diagnostic.message,
       diagnostic.file.flatMap(config.findRelativePath),
       diagnostic.location,
+      diagnostic.expressionId,
       diagnostic.stack.map(toStackTraceElement)
     )
 

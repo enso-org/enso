@@ -1,7 +1,6 @@
 package org.enso.languageserver.runtime
 
 import java.util.UUID
-
 import enumeratum._
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
@@ -161,6 +160,7 @@ object ContextRegistryProtocol {
     * @param message the error message
     * @param path the file path
     * @param location the range in the source text containing a diagnostic
+    * @param expressionId the id of related expression
     * @param stack the stack trace
     */
   case class ExecutionDiagnostic(
@@ -168,6 +168,7 @@ object ContextRegistryProtocol {
     message: String,
     path: Option[Path],
     location: Option[model.Range],
+    expressionId: Option[UUID],
     stack: Vector[ExecutionStackTraceElement]
   )
 

@@ -664,7 +664,8 @@ class RuntimeServerTest
                         .Argument("this", "Test.Main", false, false, None),
                       Suggestion
                         .Argument("a", Constants.ANY, false, false, None),
-                      Suggestion.Argument("b", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("b", Constants.ANY, false, false, None)
                     ),
                     "Test.Main",
                     Constants.ANY,
@@ -791,7 +792,8 @@ class RuntimeServerTest
                         .Argument("this", "Test.Main", false, false, None),
                       Suggestion
                         .Argument("a", Constants.ANY, false, false, None),
-                      Suggestion.Argument("b", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("b", Constants.ANY, false, false, None)
                     ),
                     "Test.Main",
                     Constants.ANY,
@@ -1167,7 +1169,8 @@ class RuntimeServerTest
                         .Argument("this", "Test.Main", false, false, None),
                       Suggestion
                         .Argument("a", Constants.ANY, false, false, None),
-                      Suggestion.Argument("b", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("b", Constants.ANY, false, false, None)
                     ),
                     "Test.Main",
                     Constants.ANY,
@@ -1349,7 +1352,8 @@ class RuntimeServerTest
                           false,
                           None
                         ),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     Constants.NUMBER,
                     Constants.ANY,
@@ -1806,7 +1810,8 @@ class RuntimeServerTest
                         false,
                         None
                       ),
-                      Suggestion.Argument("y", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("y", Constants.ANY, false, false, None)
                     ),
                     Constants.NUMBER,
                     Constants.ANY,
@@ -2641,7 +2646,9 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some(Constants.INTEGER), None))
+          Vector(
+            Api.ExpressionValueUpdate(idMain, Some(Constants.INTEGER), None)
+          )
         )
       )
     val version = contentsVersion(context.Main.code)
@@ -2767,7 +2774,8 @@ class RuntimeServerTest
                     Seq(
                       Suggestion
                         .Argument("this", Constants.NUMBER, false, false, None),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     Constants.NUMBER,
                     Constants.ANY,
@@ -3342,6 +3350,7 @@ class RuntimeServerTest
               "Object 42 is not invokable.",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
+              None,
               Vector(
                 Api.StackTraceElement(
                   "Main.main",
@@ -3406,6 +3415,7 @@ class RuntimeServerTest
               "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
               Some(mainFile),
               Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
+              None,
               Vector(
                 Api.StackTraceElement(
                   "Main.bar",
@@ -3475,6 +3485,7 @@ class RuntimeServerTest
           Seq(
             Api.ExecutionResult.Diagnostic.error(
               "Unexpected type provided for argument `that` in Text.+",
+              None,
               None,
               None,
               Vector(
@@ -3550,6 +3561,7 @@ class RuntimeServerTest
               "No_Such_Method_Error Number UnresolvedSymbol<pi>",
               Some(mainFile),
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
+              None,
               Vector(
                 Api.StackTraceElement(
                   "Main.main",
@@ -3623,6 +3635,7 @@ class RuntimeServerTest
           Seq(
             Api.ExecutionResult.Diagnostic.error(
               "Unexpected type provided for argument `that` in Integer.+",
+              None,
               None,
               None,
               Vector(
@@ -4149,7 +4162,8 @@ class RuntimeServerTest
                         false,
                         None
                       ),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Visualisation",
                     Constants.ANY,
@@ -4173,7 +4187,8 @@ class RuntimeServerTest
                         false,
                         None
                       ),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Visualisation",
                     Constants.ANY,
@@ -4322,7 +4337,8 @@ class RuntimeServerTest
                         false,
                         None
                       ),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Visualisation",
                     Constants.ANY,
@@ -4346,7 +4362,8 @@ class RuntimeServerTest
                         false,
                         None
                       ),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Visualisation",
                     Constants.ANY,
@@ -4513,7 +4530,8 @@ class RuntimeServerTest
                         false,
                         None
                       ),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Visualisation",
                     Constants.ANY,
@@ -4537,7 +4555,8 @@ class RuntimeServerTest
                         false,
                         None
                       ),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Visualisation",
                     Constants.ANY,
@@ -4637,7 +4656,8 @@ class RuntimeServerTest
                     Seq(
                       Suggestion
                         .Argument("this", Constants.NUMBER, false, false, None),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     Constants.NUMBER,
                     Constants.ANY,
