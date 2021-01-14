@@ -175,7 +175,7 @@ type Aggregate_Table
     ## Returns a table containing columns resulting from calling `values` on
        each column in `this`.
     values : Table
-    values = this.columns . map (_.values name_suffix='') . reduce join
+    values = this.columns . map (_.values name_suffix='') . reduce .join
 
     ## Returns a column containing the number of elements in each group.
     count : Column
@@ -212,7 +212,7 @@ new columns =
    derived from one original table into a new table.
 join : Vector -> Table
 join tables =
-    tables.reduce join
+    tables.reduce .join
 
 ## PRIVATE
 pad txt len =

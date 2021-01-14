@@ -330,7 +330,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
-        r = this.java_column.aggregate ['max', name_suffix, (x-> Vector.Vector x . reduce max), True]
+        r = this.java_column.aggregate ['max', name_suffix, (x-> Vector.Vector x . reduce Math.max), True]
         Column r
 
     ## Computes the minimum element of each group.
@@ -340,7 +340,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
-        r = this.java_column.aggregate ['min', name_suffix, (x-> Vector.Vector x . reduce min), True]
+        r = this.java_column.aggregate ['min', name_suffix, (x-> Vector.Vector x . reduce Math.min), True]
         Column r
 
     ## Computes the number of non-missing elements in each group.
