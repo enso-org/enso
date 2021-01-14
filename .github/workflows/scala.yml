@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.4.1
+        uses: ilammy/msvc-dev-cmd@v1.5.0
       - name: Setup Go
         uses: actions/setup-go@v2
       - name: Disable TCP/UDP Offloading (macOS)
