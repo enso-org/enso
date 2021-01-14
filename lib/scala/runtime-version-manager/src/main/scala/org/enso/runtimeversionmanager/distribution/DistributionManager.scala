@@ -46,6 +46,7 @@ case class DistributionPaths(
        |  dataRoot = $dataRoot,
        |  runtimes = $runtimes,
        |  engines  = $engines,
+       |  bundle   = $bundle,
        |  config   = $config,
        |  locks    = $locks,
        |  tmp      = $unsafeTemporaryDirectory

@@ -210,32 +210,36 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
       def installedRuntimes =
         manager.listInstalledGraalRuntimes().map(_.version)
 
-      val enginePath  = getTestDirectory / "dist" / "enso-0.1.0"
+      val enginePath  = getTestDirectory / "dist" / "0.1.0"
       val runtimePath = getTestDirectory / "runtime" / "graalvm-ce-java11-1.0.0"
 
       enginePath.toFile.setWritable(false)
+      try {
+        intercept[UninstallationError] {
+          manager.uninstallEngine(engineVersion)
+        }
 
-      intercept[UninstallationError] {
-        manager.uninstallEngine(engineVersion)
+        installedEngines shouldEqual Seq(engineVersion)
+        installedRuntimes shouldEqual Seq(runtimeVersion)
+      } finally {
+        enginePath.toFile.setWritable(true)
       }
 
-      installedEngines shouldEqual Seq(engineVersion)
-      installedRuntimes shouldEqual Seq(runtimeVersion)
-
-      enginePath.toFile.setWritable(true)
       runtimePath.toFile.setWritable(false)
+      try {
+        manager.uninstallEngine(engineVersion)
 
-      manager.uninstallEngine(engineVersion)
+        installedEngines shouldEqual Seq()
+        installedRuntimes shouldEqual Seq(runtimeVersion)
 
-      installedEngines shouldEqual Seq()
-      installedRuntimes shouldEqual Seq(runtimeVersion)
+        manager.cleanupRuntimes()
+        installedRuntimes shouldEqual Seq(runtimeVersion)
+      } finally {
+        runtimePath.toFile.setWritable(true)
+      }
 
       manager.cleanupRuntimes()
-      installedRuntimes shouldEqual Seq(runtimeVersion)
-
-      runtimePath.toFile.setWritable(true)
-      manager.cleanupRuntimes()
-      installedRuntimes shouldEqual Seq(runtimeVersion)
+      installedRuntimes shouldEqual Seq()
     }
 
     "include both bundled and installed components in list" in {
@@ -283,13 +287,13 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
                      |minimum-project-manager-version: 0.0.1
                      |graal-vm-version: 1.0.0
                      |graal-java-version: 11""".stripMargin
-    val root     = searchPath / s"enso-$version"
+    val root     = searchPath / version.toString
     Files.createDirectories(root)
     FileSystem.writeTextFile(root / "manifest.yaml", manifest)
     val components = root / "component"
     Files.createDirectories(components)
     makePlaceholder(components / "runner.jar")
-    FileSystem.writeTextFile(components / "runner.jar", "placeholder")
+    FileSystem.writeTextFile(components / "runtime.jar", "placeholder")
   }
 
   private def fakeInstallRuntime(
@@ -297,7 +301,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
     version: GraalVMVersion
   ): Unit = {
     val root =
-      searchPath / s"grallvm-ce-java${version.java}-${version.graalVersion}"
+      searchPath / s"graalvm-ce-java${version.java}-${version.graalVersion}"
     val bin =
       if (OS.operatingSystem == OS.MacOS) root / "Contents" / "Home" / "bin"
       else root / "bin"

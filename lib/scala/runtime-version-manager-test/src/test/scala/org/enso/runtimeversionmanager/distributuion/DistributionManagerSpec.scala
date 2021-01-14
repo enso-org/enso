@@ -1,8 +1,8 @@
 package org.enso.runtimeversionmanager.distributuion
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
-import org.enso.runtimeversionmanager.Environment
+import org.enso.runtimeversionmanager.{Environment, FileSystem}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.distribution.{
   DistributionManager,
@@ -12,6 +12,7 @@ import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   WithTemporaryDirectory
 }
+import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -19,7 +20,8 @@ class DistributionManagerSpec
     extends AnyWordSpec
     with Matchers
     with WithTemporaryDirectory
-    with FakeEnvironment {
+    with FakeEnvironment
+    with OptionValues {
 
   "DistributionManager" should {
     "detect portable distribution" in {
@@ -35,6 +37,7 @@ class DistributionManagerSpec
       distributionManager.paths.runtimes shouldEqual
       getTestDirectory / "runtime"
       distributionManager.paths.engines shouldEqual getTestDirectory / "dist"
+      distributionManager.paths.bundle shouldEqual None
     }
 
     "detect installed distribution" in {
@@ -45,6 +48,21 @@ class DistributionManagerSpec
 
       val distributionManager = new PortableDistributionManager(fakeEnvironment)
       distributionManager.isRunningPortable shouldEqual false
+      distributionManager.paths.bundle shouldEqual None
+    }
+
+    "detect bundles" in {
+      val executable = fakeExecutablePath()
+      FileSystem.writeTextFile(getTestDirectory / ".enso.bundle", "placeholder")
+
+      val fakeEnvironment = new Environment {
+        override def getPathToRunningExecutable: Path = executable
+      }
+
+      val distributionManager = new PortableDistributionManager(fakeEnvironment)
+      val bundle              = distributionManager.paths.bundle.value
+      assert(Files.isSameFile(bundle.engines, getTestDirectory / "dist"))
+      assert(Files.isSameFile(bundle.runtimes, getTestDirectory / "runtime"))
     }
 
     "respect environment variable overrides " +

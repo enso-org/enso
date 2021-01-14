@@ -226,9 +226,10 @@ class RuntimeVersionManager(
           Failure(
             UnrecognizedComponentError(
               s"The engine $version is already installed, but cannot be " +
-              s"loaded due to $e. Please try running " +
-              s"`enso uninstall engine $version` " +
-              s"followed by `enso install engine $version`.",
+              s"loaded due to $e " +
+              s"Please try reinstalling by running " +
+              s"`enso uninstall engine $version` followed by " +
+              s"`enso install engine $version`.",
               e
             )
           )
