@@ -47,6 +47,17 @@ case class DistributionPaths(
        |  locks    = $locks,
        |  tmp      = $unsafeTemporaryDirectory
        |)""".stripMargin
+
+  /** Sequence of paths to search for engine installations, in order of
+    * precedence.
+    */
+  def engineSearchPaths: Seq[Path] = Seq(engines) ++ bundle.map(_.engines).toSeq
+
+  /** Sequence of paths to search for runtime installations, in order of
+    * precedence.
+    */
+  def runtimeSearchPaths: Seq[Path] =
+    Seq(runtimes) ++ bundle.map(_.runtimes).toSeq
 }
 
 /** Paths to secondary directories for additionally bundled engine

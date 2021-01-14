@@ -60,13 +60,11 @@ class RuntimeVersionManager(
     */
   def findGraalRuntime(version: GraalVMVersion): Option[GraalRuntime] = {
     val name = graalRuntimeNameForVersion(version)
-    val path = distributionManager.paths.runtimes / name
-    if (Files.exists(path)) {
-      // TODO [RW] for now an exception is thrown if the installation is
-      //  corrupted, in #1052 offer to repair the broken installation
-      loadGraalRuntime(path)
-        .map(Some(_))
-        .recoverWith { case e: Exception =>
+    firstExisting(distributionManager.paths.runtimeSearchPaths.map(_ / name))
+      .map { path =>
+        // TODO [RW] for now an exception is thrown if the installation is
+        //  corrupted, in #1052 offer to repair the broken installation
+        loadGraalRuntime(path).recoverWith { case e: Exception =>
           Failure(
             UnrecognizedComponentError(
               s"The runtime $version is already installed, but cannot be " +
@@ -77,9 +75,8 @@ class RuntimeVersionManager(
               e
             )
           )
-        }
-        .get
-    } else None
+        }.get
+      }
   }
 
   /** Executes the provided action with a requested engine version.
@@ -187,16 +184,21 @@ class RuntimeVersionManager(
         }
     }
 
+  /** Returns the first path from the sequence that exists on the file system,
+    * or None if no path from the sequence exists.
+    */
+  private def firstExisting(paths: Seq[Path]): Option[Path] =
+    paths.find(Files.exists(_))
+
   /** Finds an installed engine with the given `version` and reports any errors.
     */
   private def getEngine(version: SemVer): Try[Engine] = {
     val name = engineNameForVersion(version)
-    val path = distributionManager.paths.engines / name
-    if (Files.exists(path)) {
-      // TODO [RW] right now we return an exception, in the future (#1052) we
-      //  will try recovery
-      loadEngine(path)
-    } else Failure(ComponentMissingError(s"Engine $version is not installed."))
+    firstExisting(distributionManager.paths.engineSearchPaths.map(_ / name))
+      .map(loadEngine)
+      .getOrElse {
+        Failure(ComponentMissingError(s"Engine $version is not installed."))
+      }
   }
 
   /** Finds an engine with the given `version` or returns None if it is not
@@ -224,8 +226,8 @@ class RuntimeVersionManager(
           Failure(
             UnrecognizedComponentError(
               s"The engine $version is already installed, but cannot be " +
-              s"loaded due to $e. Until the launcher gets an auto-repair " +
-              s"feature, please try running `enso uninstall engine $version` " +
+              s"loaded due to $e. Please try running " +
+              s"`enso uninstall engine $version` " +
               s"followed by `enso install engine $version`.",
               e
             )
@@ -328,6 +330,13 @@ class RuntimeVersionManager(
         throw ComponentMissingError(s"Enso Engine $version is not installed.")
       }
 
+      if (!Files.isWritable(engine.path)) {
+        val message =
+          s"$engine cannot be uninstalled because it is placed in a " +
+          s"read-only location."
+        logger.error(message)
+        throw UninstallationError(message)
+      }
       safelyRemoveComponent(engine.path)
       userInterface.logInfo(s"Uninstalled $engine.")
       cleanupGraalRuntimes()
@@ -697,7 +706,14 @@ class RuntimeVersionManager(
           s"Removing $runtime, because it is not used by any installed Enso " +
           s"versions."
         )
-        safelyRemoveComponent(runtime.path)
+        if (Files.isWritable(runtime.path)) {
+          safelyRemoveComponent(runtime.path)
+        } else {
+          logger.warn(
+            s"$runtime cannot be uninstalled because it is placed in a " +
+            s"read-only location."
+          )
+        }
       }
     }
   }
