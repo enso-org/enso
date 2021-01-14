@@ -14,16 +14,16 @@ Ord.compare_to that = if this.number == that.number then Ordering.Equal else
 # === The Tests ===
 
 spec =
-    describe "Ordering" <|
-        it "should allow comparing Less" <|
+    Test.group "Ordering" <|
+        Test.specify "should allow comparing Less" <|
             left = Ord 1032
             right = Ord 101111
             left.compare_to right . should_equal Ordering.Less
-        it "should allow comparing Equal" <|
+        Test.specify "should allow comparing Equal" <|
             left = Ord 1032
             right = Ord 1032
             left.compare_to right . should_equal Ordering.Equal
-        it "should allow comparing Greater" <|
+        Test.specify "should allow comparing Greater" <|
             left = Ord 1032
             right = Ord -1
             left.compare_to right . should_equal Ordering.Greater

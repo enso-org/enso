@@ -13,8 +13,8 @@ My.frobnicate = case this of
     My x1 y1 -> My y1 x1
 
 spec =
-    describe "Parsing" <|
-        it "should parse a simple numeric table" <|
+    Test.group "Parsing" <|
+        Test.specify "should parse a simple numeric table" <|
             simple_empty = (Enso_Project.data / "simple_empty.csv") . read_csv
             c_1_data = [1, 4, 7, 10]
             c_2_data = [2, Nothing, 8, 11]
@@ -26,8 +26,8 @@ spec =
 
             expected = Json.from_pairs [["columns", [c_1, c_2, c_3]]]
 
-            simple_empty.to_json.should equal expected
-        it "should correctly infer types of varied-type columns" <|
+            simple_empty.to_json.should_equal expected
+        Test.specify "should correctly infer types of varied-type columns" <|
             varied_column = (Enso_Project.data / "varied_column.csv") . read_csv has_header=False
             c_1_data = ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]
             c_2_data = ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]
@@ -44,10 +44,10 @@ spec =
             c_6 = Json.from_pairs [["name", "C5"], ["data", c_6_data]]
 
             expected = Json.from_pairs [["columns", [c_1, c_2, c_3, c_4, c_5, c_6]]]
-            varied_column.to_json.should equal expected
+            varied_column.to_json.should_equal expected
 
-    describe "JSON serialization" <|
-        it "should serialize all column types to correct JSON" <|
+    Test.group "JSON serialization" <|
+        Test.specify "should serialize all column types to correct JSON" <|
             c_1 = [1, 2, 3, Nothing]
             c_2 = [1.2, 3.4, 5.6, 7.8]
             c_3 = [Nothing, 'foo', 'bar', 'baz']
@@ -66,19 +66,19 @@ spec =
 
             t.to_json.should_equal expected
 
-    describe "JSON construction" <|
-        it "should allow converting a JSON array into a table" <|
+    Test.group "JSON construction" <|
+        Test.specify "should allow converting a JSON array into a table" <|
             r_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
             r_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
             r_3 = Json.from_pairs [['baz', False], ['foo', 13]]
             t = [r_1, r_2, r_3].to_json.to_table ['foo', 'bar', 'baz']
-            t.columns.map name . should_equal ['foo', 'bar', 'baz']
+            t.columns.map .name . should_equal ['foo', 'bar', 'baz']
             t.at 'foo' . to_vector . should_equal [20, Nothing, 13]
             t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
             t.at 'baz' . to_vector . should_equal [False, True, False]
 
-    describe "Mapping Operations" <|
-        it "should allow mapping a function over a column" <|
+    Test.group "Mapping Operations" <|
+        Test.specify "should allow mapping a function over a column" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             c_str.map (+ "x") . to_vector . should_equal ['ax', 'bx', Nothing, 'bx']
             c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
@@ -90,13 +90,13 @@ spec =
             c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
             c_any.map (_.frobnicate) . to_vector . should_equal [My 6 1, My 3 6, My 5 2, My 4 3, My 300 200]
 
-        it "should allow zipping columns with a custom function" <|
+        Test.specify "should allow zipping columns with a custom function" <|
             b = Column.from_vector 'w' [6.3, 3.1, 5.2, 4.6, 8.0]
             a = Column.from_vector 'z' ['foo', 'bar', 'baz', 'spam', 'eggs']
             c = a.zip b x-> y-> x + y.to_text
             c.to_vector.should_equal ['foo6.3', 'bar3.1', 'baz5.2', 'spam4.6', 'eggs8.0']
 
-        it "should handle vectorized equality and fall back on non-vectorized if needed" <|
+        Test.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             (c_str == 'b').to_vector.should_equal [False, True, Nothing, True]
             c_int = Column.from_vector 'x' [1, 2, 1, 5, 1]
@@ -108,7 +108,7 @@ spec =
             c_any = Column.from_vector 'x' [My 1 6, My 6 3, My 2 5, My 3 4, My 200 300]
             (c_any == My 7 0).to_vector.should_equal [True, False, True, True, False]
 
-        it "should switch between maps and zips based on argument type" <|
+        Test.specify "should switch between maps and zips based on argument type" <|
             a = Column.from_vector 'x' [0, 1, 7, 3, 6]
             b = Column.from_vector 'w' [6.3, 3.1, 5.2, Nothing, 8]
             (a + 3.2).to_vector.should_equal [3.2, 4.2, 10.2, 6.2, 9.2]
@@ -120,7 +120,7 @@ spec =
             both = gt_const && gt_b
             both.to_vector.should_equal [False, False, True, Nothing, False]
 
-        it "should handle Text operations" <|
+        Test.specify "should handle Text operations" <|
             a = Column.from_vector 'a' ["abab", "abc", Nothing, "bca", "acca"]
             nils = [Nothing, Nothing, Nothing, Nothing, Nothing]
 
@@ -138,39 +138,39 @@ spec =
             a.contains c . to_vector . should_equal [True, True, Nothing, Nothing, True]
             a.contains Nothing . to_vector . should_equal nils
 
-    describe "Masking Tables" <|
-        it "should allow selecting table rows based on a boolean column" <|
+    Test.group "Masking Tables" <|
+        Test.specify "should allow selecting table rows based on a boolean column" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
             r = df.where (Column.from_vector 'x' [True, False, False, True])
             r.at "a" . to_vector . should_equal [1, 10]
             r.at "b" . to_vector . should_equal [2, 11]
             r.at "c" . to_vector . should_equal [Nothing, 12]
-        it "should treat NA values in the mask as false and extend the mask with NAs" <|
+        Test.specify "should treat NA values in the mask as false and extend the mask with NAs" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
             r = df.where (Column.from_vector 'x' [Nothing, True, False])
             r.at "a" . to_vector . should_equal [4]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
-        it "should work correctly if a mask is bigger than the table itself" <|
+        Test.specify "should work correctly if a mask is bigger than the table itself" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
             r = df.where (Column.from_vector 'x' [True, False, False, False, True])
             r.at "a" . to_vector . should_equal [1]
             r.at "b" . to_vector . should_equal [2]
             r.at "c" . to_vector . should_equal [Nothing]
 
-    describe "Masking Columns" <|
-        it "should allow selecting column rows based on a boolean column" <|
+    Test.group "Masking Columns" <|
+        Test.specify "should allow selecting column rows based on a boolean column" <|
             df = (Enso_Project.data / "simple_empty.csv").read_csv
             mask = Column.from_vector 'x' [True, False, False, True]
             df.at "a" . where mask . to_vector . should_equal [1, 10]
             df.at "c" . where mask . to_vector . should_equal [Nothing, 12]
 
-        it "should work correctly if a mask is bigger than the column itself" <|
+        Test.specify "should work correctly if a mask is bigger than the column itself" <|
             col = Column.from_vector "col" [1, 2]
             mask = Column.from_vector 'x' [True, False, False, True]
             col.where mask . to_vector . should_equal [1]
 
-    describe "Joining Tables" <|
+    Test.group "Joining Tables" <|
         a_0 = ['x', [0, 1, 7, 3, 6]]
         a_1 = ['y', ["foo", "bar", "baz", "spam", "eggs"]]
         a = Table.new [a_0, a_1]
@@ -178,7 +178,7 @@ spec =
         b_1 = ['z', ["foo", "foo", "bar", "spam", "bar", "eggs"]]
         b = Table.new [b_0, b_1]
 
-        it "should allow joining tables index-on-index" <|
+        Test.specify "should allow joining tables index-on-index" <|
             r_1 = a.set_index 'x' . join (b.set_index 'w')
             r_1.at 'y' . to_vector . should_equal ['foo', 'bar', 'baz', 'spam', 'spam', 'spam', 'eggs']
             r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, Nothing, 'foo', 'bar', 'eggs', 'foo']
@@ -186,7 +186,7 @@ spec =
             r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
             r_2.at 'w' . to_vector . should_equal [6, 3, 5, 3, 5, 3]
 
-        it "should allow joining tables column-on-index" <|
+        Test.specify "should allow joining tables column-on-index" <|
             r_1 = a.join (b.set_index 'w') on='x'
             r_1.at 'y' . to_vector . should_equal ['foo', 'bar', 'baz', 'spam', 'spam', 'spam', 'eggs']
             r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, Nothing, 'foo', 'bar', 'eggs', 'foo']
@@ -194,7 +194,7 @@ spec =
             r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
             r_2.at 'w' . to_vector . should_equal [6, 3, 5, 3, 5, 3]
 
-        it "should allow joining tables on the default index" <|
+        Test.specify "should allow joining tables on the default index" <|
             x = Table.new [['x', [1, 2, 4, 6]]]
             y = Table.new [['y', [8, 9]]]
             r_1 = x.join y
@@ -205,17 +205,17 @@ spec =
             r_2.at 'x' . to_vector . should_equal [1, 2]
             r_2.at 'y' . to_vector . should_equal [8, 9]
 
-        it "should append suffixes to disambiguate column names" <|
+        Test.specify "should append suffixes to disambiguate column names" <|
             x = Table.new [['x', [1, 2, 4, 6]]]
             y = Table.new [['x', [8, 9]]]
             r_1 = x.join y
-            r_1.columns.map name . should_equal ['x_left', 'x_right']
+            r_1.columns.map .name . should_equal ['x_left', 'x_right']
 
             r_2 = x.join y left_suffix='_old' right_suffix='_new'
-            r_2.columns.map name . should_equal ['x_old', 'x_new']
+            r_2.columns.map .name . should_equal ['x_old', 'x_new']
 
-    describe "Filling Missing Values" <|
-        it "should coerce non-coercible types to Object" <|
+    Test.group "Filling Missing Values" <|
+        Test.specify "should coerce non-coercible types to Object" <|
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
             strs_filled = strs.fill_missing False
             strs_filled.to_vector . should_equal ["a", False, "b", False]
@@ -231,7 +231,7 @@ spec =
             bools_filled.to_vector . should_equal [True, False, "X"]
             bools_filled.storage_type . should_equal Storage.Any
 
-        it "should coerce long and double types to double" <|
+        Test.specify "should coerce long and double types to double" <|
             ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
             ints_filled = ints.fill_missing 0.5
             ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
@@ -242,7 +242,7 @@ spec =
             decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
 
-        it "should keep String, Boolean, Long and Double type" <|
+        Test.specify "should keep String, Boolean, Long and Double type" <|
             strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
             strs_filled = strs.fill_missing "X"
             strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
@@ -263,35 +263,35 @@ spec =
             decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
             decimals_filled.storage_type . should_equal Storage.Decimal
 
-    describe "Counting Values" <|
-        it "should count missing and non-missing values" <|
+    Test.group "Counting Values" <|
+        Test.specify "should count missing and non-missing values" <|
             col = Column.from_vector 'x' [1, Nothing, 2]
             col.length . should_equal 3
             col.count . should_equal 2
             col.count_missing . should_equal 1
 
-    describe "Dropping Missing Values" <|
-        it "should drop missing rows in a Column" <|
+    Test.group "Dropping Missing Values" <|
+        Test.specify "should drop missing rows in a Column" <|
             col = Column.from_vector 'x' [1, Nothing, 2, Nothing]
             col.drop_missing.to_vector . should_equal [1, 2]
 
-        it "should drop rows that contain at least one missing column in a Table" <|
+        Test.specify "should drop rows that contain at least one missing column in a Table" <|
             t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
             d = t.drop_missing_rows
             d.at "a" . to_vector . should_equal [1, 4]
             d.at "b" . to_vector . should_equal [1, "x"]
 
-        it "should drop columns that contain at least one missing row in a Table" <|
+        Test.specify "should drop columns that contain at least one missing row in a Table" <|
             a = ["a", [1, Nothing, 3, 4]]
             b = ["b", [1, 2, Nothing, "x"]]
             c = ["c", [10, 20, 30, 40]]
             t = Table.new [a, b, c]
             d = t.drop_missing_columns
-            d.columns.map name . should_equal ["c"]
+            d.columns.map .name . should_equal ["c"]
             d.at "c" . to_vector . should_equal [10, 20, 30, 40]
 
-    describe "Info" <|
-        it "should return Table information" <|
+    Test.group "Info" <|
+        Test.specify "should return Table information" <|
             a = ["strs", ["a", "b", Nothing, "a"]]
             b = ["ints", [1, 2, Nothing, Nothing]]
             c = ["objs", [1, "a", "c", Any]]
@@ -301,21 +301,21 @@ spec =
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
 
-    describe "Aggregation" <|
+    Test.group "Aggregation" <|
         name = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
         price = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
         quantity = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
         t = Table.new [name, price, quantity]
         agg = t.group by='name'
 
-        it "should allow counting group sizes" <|
+        Test.specify "should allow counting group sizes" <|
             agg.count.to_vector.should_equal [3, 2, 1, 1]
 
-        it "should allow aggregating columns with basic arithmetic aggregators" <|
+        Test.specify "should allow aggregating columns with basic arithmetic aggregators" <|
             agg.at 'price' . mean . to_vector . should_equal [0.4, 50.25, 6.7, Nothing]
             agg.at 'price' . min . to_vector . should_equal [0.4, 3.5, 6.7, Nothing]
 
-        it "should allow aggregating with user-defined aggregate functions" <|
+        Test.specify "should allow aggregating with user-defined aggregate functions" <|
             median vec =
                 sorted = vec.sort
                 if sorted.is_empty then Nothing else sorted.at (sorted.length-1 / 2).floor

@@ -21,7 +21,7 @@ type Table
         col_names = [index.getName[]] + cols.map (_.getName [])
         col_vals = cols.map (_.getStorage [])
         num_rows = this.java_table.nrows []
-        display_rows = min num_rows show_rows
+        display_rows = Math.min num_rows show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
                 if col.isNa [row_num] then "Nothing" else Column.get_item_string col row_num
@@ -42,7 +42,7 @@ type Table
     ## Converts this table to a JSON structure.
     to_json : Json
     to_json =
-        col_jsons = this.columns.map to_json
+        col_jsons = this.columns.map .to_json
         cols_json = Json.Array col_jsons
         fields = Map.singleton "columns" cols_json
         Json.Object fields
@@ -116,7 +116,7 @@ type Table
         cols = this.columns
         case cols.not_empty of
             True ->
-                any_missing_mask = cols.map is_missing . reduce (||)
+                any_missing_mask = cols.map .is_missing . reduce (||)
                 non_missing_mask = any_missing_mask.not
                 this.where non_missing_mask
             False -> this
@@ -126,7 +126,7 @@ type Table
     drop_missing_columns =
         non_missing = this.columns . filter (col -> col.count_missing == 0)
         index = this.java_table.getIndex []
-        Table (Java_Table.new [non_missing.map java_column . to_array, index].to_array)
+        Table (Java_Table.new [non_missing.map .java_column . to_array, index].to_array)
 
     ## Returns the amount of rows in this table.
     nrows : Integer
@@ -139,7 +139,7 @@ type Table
     info : Table
     info =
         cols = this.columns
-        here.new [["Column", cols.map name], ["Items Count", cols.map count], ["Storage Type", cols.map storage_type]]
+        here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
 
     ## Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.
@@ -175,7 +175,7 @@ type Aggregate_Table
     ## Returns a table containing columns resulting from calling `values` on
        each column in `this`.
     values : Table
-    values = this.columns . map (_.values name_suffix='') . reduce join
+    values = this.columns . map (_.values name_suffix='') . reduce .join
 
     ## Returns a column containing the number of elements in each group.
     count : Column
@@ -212,7 +212,7 @@ new columns =
    derived from one original table into a new table.
 join : Vector -> Table
 join tables =
-    tables.reduce join
+    tables.reduce .join
 
 ## PRIVATE
 pad txt len =
@@ -229,12 +229,12 @@ ansi_bold enabled txt =
 ## PRIVATE
 print_table header rows format_term =
     content_lengths = Vector.new header.length i->
-        max_row = 0.up_to rows.length . fold 0 a-> j-> max a (rows.at j . at i . characters . length)
-        max max_row (header.at i . characters . length)
-    header_line = zip header content_lengths here.pad . map (here.ansi_bold format_term) . join ' | '
+        max_row = 0.up_to rows.length . fold 0 a-> j-> Math.max a (rows.at j . at i . characters . length)
+        Math.max max_row (header.at i . characters . length)
+    header_line = header.zip content_lengths here.pad . map (here.ansi_bold format_term) . join ' | '
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
-        x = zip r content_lengths here.pad
+        x = r.zip content_lengths here.pad
         with_bold_ix = [here.ansi_bold format_term (x.at 0)] + x.drop_start 1
         y = with_bold_ix . join ' | '
         " " + y

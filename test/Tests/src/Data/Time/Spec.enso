@@ -5,6 +5,7 @@ import Tests.Data.Time.Time_Of_Day_Spec
 import Tests.Data.Time.Date_Spec
 import Tests.Data.Time.Time_Spec
 import Tests.Data.Time.Zone_Spec
+import Tests.Data.Time.Locale_Spec
 
 spec =
     Zone_Spec.spec
@@ -12,3 +13,4 @@ spec =
     Date_Spec.spec
     Time_Spec.spec
     Duration_Spec.spec
+    Locale_Spec.spec

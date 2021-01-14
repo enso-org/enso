@@ -166,7 +166,7 @@ into_helper fmt json = case fmt of
                     cons = Meta.Constructor m.constructor
                     fnames = cons.fields
                     ffmts = m.fields
-                    field_values = zip fnames ffmts n-> inner_fmt->
+                    field_values = fnames.zip ffmts n-> inner_fmt->
                         fjson = json_fields . get n . catch _->
                             Panic.throw (Missing_Field_Error json fmt n)
                         here.into_helper inner_fmt fjson

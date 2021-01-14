@@ -2,6 +2,6 @@ import Test
 import Tests.Semantic.Deep_Export.Internal
 
 spec =
-    describe "Deep Exports" <|
-        it "should allow to re-export a symbol through a module hierarchy" <|
+    Test.group "Deep Exports" <|
+        Test.specify "should allow to re-export a symbol through a module hierarchy" <|
             Internal.my_fun.should_equal 478

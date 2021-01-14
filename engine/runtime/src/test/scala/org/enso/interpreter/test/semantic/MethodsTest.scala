@@ -17,10 +17,11 @@ class MethodsTest extends InterpreterTest {
         """
           |type Foo
           |Foo.bar = number -> number + 1
-          |main = bar Foo 10
+          |main = Foo.bar 10
           |""".stripMargin
       eval(code) shouldEqual 11
     }
+
     "execute `this` argument once" in {
       val code =
         """from Builtins import all
@@ -79,7 +80,7 @@ class MethodsTest extends InterpreterTest {
         """
           |type Foo
           |Foo.bar = 1
-          |main = bar Foo + 5
+          |main = Foo.bar + 5
           |""".stripMargin
       eval(code) shouldEqual 6
     }
@@ -104,28 +105,18 @@ class MethodsTest extends InterpreterTest {
           |
           |Nil.sum = acc -> acc
           |Cons.sum = acc -> case this of
-          |  Cons h t -> sum t (h + acc)
+          |  Cons h t -> t.sum (h + acc)
           |
-          |main = sum (Cons 1 (Cons 2 Nil)) 0
+          |main = Cons 1 (Cons 2 Nil) . sum 0
           |""".stripMargin
 
       eval(code) shouldEqual 3
     }
 
-    "allow passing the call target by-name" in {
-      val code =
-        """from Builtins import all
-          |
-          |Nothing.testMethod = x -> y -> z -> x + y + z
-          |main = testMethod x=1 y=2 this=Nothing z=3
-          |""".stripMargin
-      eval(code) shouldEqual 6
-    }
-
     "throw an exception when non-existent" in {
       val code =
         """
-          |main = foo 7
+          |main = 7.foo
           |""".stripMargin
       the[InterpreterException] thrownBy eval(
         code
@@ -164,7 +155,7 @@ class MethodsTest extends InterpreterTest {
           |
           |Nil.sum = 0
           |Cons.sum = case this of
-          |  Cons h t -> h + sum t
+          |  Cons h t -> h + t.sum
           |
           |main =
           |    myList = Cons 1 (Cons 2 (Cons 3 Nil))

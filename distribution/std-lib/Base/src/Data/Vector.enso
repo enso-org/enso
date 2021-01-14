@@ -183,7 +183,7 @@ type Vector
              [].not_empty == False
              [1].not_empty == True
     not_empty : Boolean
-    not_empty = not this.is_empty
+    not_empty = this.is_empty.not
 
     ## Selects all elements of this vector which satisfy a predicate.
 
@@ -345,12 +345,12 @@ type Vector
              zip [1, 2, 3] [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector -> (Any -> Any -> Any) -> Vector
     zip that function=[_,_] =
-        len = min this.length that.length
+        len = Math.min this.length that.length
         here.new len i-> function (this.at i) (that.at i)
 
     ## Vector to JSON conversion.
     to_json : Json.Array
-    to_json = Json.Array (this.map to_json)
+    to_json = Json.Array (this.map .to_json)
 
     ## Get the first element from the vector.
 
