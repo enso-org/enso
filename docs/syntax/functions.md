@@ -23,6 +23,7 @@ arguments.
 - [Lambdas](#lambdas)
 - [Defining Functions](#defining-functions)
 - [Methods](#methods)
+- [Calling Functions and Methods](#calling-functions-and-methods)
 - [Code Blocks](#code-blocks)
 - [Operators](#operators)
   - [Precedence](#precedence)
@@ -140,6 +141,17 @@ floor (this : Number) = case this of
 If the user does not explicitly specify the `this` argument by name when
 defining a method (e.g. they use the `Type.name` syntax), it is implicitly added
 to the start of the argument list.
+
+## Calling Functions and Methods
+
+Enso makes the distinction between functions and methods. Methods are entities
+that are dispatched _dynamically_ and looked up at runtime, while functions are
+defined locally and are looked up at compile time. In order to provide good
+diagnostics, we distinguish between how functions and methods are called.
+
+- To call a function `f` on arguments `a` and `b`, we write `f a b`.
+- To call a method `f` defined on a type `A` (value `a`, here) on argument `b`,
+  we write `a.f b`.
 
 ## Code Blocks
 
@@ -263,7 +275,7 @@ best demonstrated by example. Consider the following code:
 list       = 1 .. 100
 randomList = list . each random
 headOfList = randomList . take 10
-result     = headOfList . sort
+result     = headOfList . sortAstTo
 ```
 
 This could easily be refactored to the following one-liner:

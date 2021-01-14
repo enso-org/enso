@@ -4,13 +4,9 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.FreshNameSupply
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.optimise.ApplicationSaturation.{
-  CallSaturation,
-  FunctionSpec,
-  Metadata
-}
+import org.enso.compiler.pass.optimise.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
@@ -59,7 +55,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
   val passes: Passes = new Passes
 
-  val precursorPasses = passes.getPrecursors(ApplicationSaturation).get
+  val precursorPasses = passes.getPrecursors(TailCall).get
 
   val knownPassConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> knownFunctions,
