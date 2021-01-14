@@ -10,8 +10,9 @@ import org.enso.runtimeversionmanager.test.{
   TestRuntimeVersionManagementUserInterface
 }
 import org.enso.runtimeversionmanager.{components, FileSystem, OS}
+import org.enso.testkit.OsSpec
 
-class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
+class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
 
   "RuntimeVersionManager" should {
     "find the latest engine version in semver ordering " +
@@ -198,7 +199,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
       manager.findGraalRuntime(runtimeVersion).value.ensureValid()
     }
 
-    "fail to uninstall a read-only bundled component" in {
+    "fail to uninstall a read-only bundled component" taggedAs OsUnix in {
       val engineVersion  = SemVer(0, 1, 0)
       val runtimeVersion = GraalVMVersion(SemVer(1, 0, 0), "11")
       prepareBundle(
