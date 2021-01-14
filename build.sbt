@@ -711,6 +711,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           "--enable-all-security-services" // Note [HTTPS in the Native Images]
         )
       )
+      .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1170,6 +1171,7 @@ lazy val launcher = project
         )
       )
       .dependsOn(assembly)
+      .dependsOn(VerifyReflectionSetup.run)
       .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
