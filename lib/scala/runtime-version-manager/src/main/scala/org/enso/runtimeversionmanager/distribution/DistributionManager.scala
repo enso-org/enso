@@ -14,9 +14,12 @@ import scala.util.control.NonFatal
   * @param dataRoot the root of the data directory; for a portable distribution
   *                 this is the root of the distribution, for a locally
   *                 installed distribution, it corresponds to `ENSO_DATA_DIR`
-  * @param runtimes location of runtimes, corresponding to `runtime` directory
-  * @param engines location of engine versions, corresponding to `dist`
+  * @param runtimes primary location of runtimes, corresponding to `runtime`
+  *                 directory
+  * @param engines primary location of engine versions, corresponding to `dist`
   *                directory
+  * @param bundle optional bundle description, containing secondary engine and
+  *               runtime directories
   * @param config location of configuration
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components

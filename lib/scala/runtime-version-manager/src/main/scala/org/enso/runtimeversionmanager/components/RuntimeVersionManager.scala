@@ -272,20 +272,37 @@ class RuntimeVersionManager(
 
   /** Lists all installed GrallVM runtimes. */
   def listInstalledGraalRuntimes(): Seq[GraalRuntime] =
-    FileSystem
-      .listDirectory(distributionManager.paths.runtimes)
-      .filter(isNotIgnoredDirectory)
+    findComponents(distributionManager.paths.runtimeSearchPaths)
       .map(path => (path, loadGraalRuntime(path)))
       .flatMap(handleErrorsAsWarnings[GraalRuntime]("A runtime"))
 
   /** Lists all installed engines. */
   def listInstalledEngines(): Seq[Engine] = {
-    FileSystem
-      .listDirectory(distributionManager.paths.engines)
-      .filter(isNotIgnoredDirectory)
+    findComponents(distributionManager.paths.engineSearchPaths)
       .map(path => (path, loadEngine(path)))
       .flatMap(handleErrorsAsWarnings[Engine]("An engine"))
   }
+
+  /** Returns components found in `searchPaths`.
+    *
+    * If there are duplicate components in multiple paths, the one from the
+    * earliest search path is kept.
+    */
+  private def findComponents(searchPaths: Seq[Path]): Seq[Path] =
+    searchPaths
+      .foldLeft(Map.empty[String, Path]) { case (map, searchPath) =>
+        val componentsHere =
+          FileSystem.listDirectory(searchPath).filter(isNotIgnoredDirectory)
+        componentsHere.foldLeft(map) { case (map, componentPath) =>
+          val componentName = componentPath.getFileName.toString
+          map.updatedWith(componentName) {
+            case Some(alreadyPresent) => Some(alreadyPresent)
+            case None                 => Some(componentPath)
+          }
+        }
+      }
+      .values
+      .toSeq
 
   private def isNotIgnoredDirectory(path: Path): Boolean = {
     val fileName  = path.getFileName.toString
