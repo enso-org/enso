@@ -1,12 +1,15 @@
 package org.enso.runtimeversionmanager.components
 
+import java.nio.file.{Files, Path}
+
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.components
+import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.test.{
   RuntimeVersionManagerTest,
   TestRuntimeVersionManagementUserInterface
 }
+import org.enso.runtimeversionmanager.{components, FileSystem, OS}
 
 class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
 
@@ -176,5 +179,135 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest {
       }
       upgradeException.expectedVersion shouldEqual bigVersion
     }
+
+    "support bundled components" in {
+      val engineVersion  = SemVer(0, 1, 0)
+      val runtimeVersion = GraalVMVersion(SemVer(1, 0, 0), "11")
+      prepareBundle(
+        engines  = Seq(engineVersion),
+        runtimes = Seq(runtimeVersion)
+      )
+      val manager = makeRuntimeVersionManager()
+
+      val engine = manager.findEngine(engineVersion).value
+      engine.version shouldEqual engineVersion
+      engine.isMarkedBroken shouldEqual false
+      engine.ensureValid()
+
+      manager.findGraalRuntime(engine).value.version shouldEqual runtimeVersion
+      manager.findGraalRuntime(runtimeVersion).value.ensureValid()
+    }
+
+    "fail to uninstall a read-only bundled component" in {
+      val engineVersion  = SemVer(0, 1, 0)
+      val runtimeVersion = GraalVMVersion(SemVer(1, 0, 0), "11")
+      prepareBundle(
+        engines  = Seq(engineVersion),
+        runtimes = Seq(runtimeVersion)
+      )
+      val manager          = makeRuntimeVersionManager()
+      def installedEngines = manager.listInstalledEngines().map(_.version)
+      def installedRuntimes =
+        manager.listInstalledGraalRuntimes().map(_.version)
+
+      val enginePath  = getTestDirectory / "dist" / "enso-0.1.0"
+      val runtimePath = getTestDirectory / "runtime" / "graalvm-ce-java11-1.0.0"
+
+      enginePath.toFile.setWritable(false)
+
+      intercept[UninstallationError] {
+        manager.uninstallEngine(engineVersion)
+      }
+
+      installedEngines shouldEqual Seq(engineVersion)
+      installedRuntimes shouldEqual Seq(runtimeVersion)
+
+      enginePath.toFile.setWritable(true)
+      runtimePath.toFile.setWritable(false)
+
+      manager.uninstallEngine(engineVersion)
+
+      installedEngines shouldEqual Seq()
+      installedRuntimes shouldEqual Seq(runtimeVersion)
+
+      manager.cleanupRuntimes()
+      installedRuntimes shouldEqual Seq(runtimeVersion)
+
+      runtimePath.toFile.setWritable(true)
+      manager.cleanupRuntimes()
+      installedRuntimes shouldEqual Seq(runtimeVersion)
+    }
+
+    "include both bundled and installed components in list" in {
+      prepareBundle(
+        engines  = Seq(SemVer(0, 0, 1)),
+        runtimes = Seq(GraalVMVersion(SemVer(1, 0, 0), "11"))
+      )
+      val manager = makeRuntimeVersionManager()
+      manager.findOrInstallEngine(SemVer(0, 1, 0))
+
+      manager
+        .listInstalledEngines()
+        .map(_.version) should contain theSameElementsAs Seq(
+        SemVer(0, 0, 1),
+        SemVer(0, 1, 0)
+      )
+
+      val runtimeVersions = manager.listInstalledGraalRuntimes().map(_.version)
+      runtimeVersions.map(_.graalVersion) should contain theSameElementsAs Seq(
+        SemVer(1, 0, 0),
+        SemVer(2, 0, 0)
+      )
+      runtimeVersions.map(_.java).toSet shouldEqual Set("11")
+    }
+  }
+
+  private def prepareBundle(
+    engines: Seq[SemVer],
+    runtimes: Seq[GraalVMVersion]
+  ): Unit = {
+    FileSystem.writeTextFile(
+      getTestDirectory / ".enso.bundle",
+      "Enso Bundle Marker"
+    )
+    for (engineVersion <- engines) {
+      fakeInstallEngine(getTestDirectory / "dist", engineVersion)
+    }
+    for (runtimeVersion <- runtimes) {
+      fakeInstallRuntime(getTestDirectory / "runtime", runtimeVersion)
+    }
+  }
+
+  private def fakeInstallEngine(searchPath: Path, version: SemVer): Unit = {
+    val manifest = """minimum-launcher-version: 0.0.1
+                     |minimum-project-manager-version: 0.0.1
+                     |graal-vm-version: 1.0.0
+                     |graal-java-version: 11""".stripMargin
+    val root     = searchPath / s"enso-$version"
+    Files.createDirectories(root)
+    FileSystem.writeTextFile(root / "manifest.yaml", manifest)
+    val components = root / "component"
+    Files.createDirectories(components)
+    makePlaceholder(components / "runner.jar")
+    FileSystem.writeTextFile(components / "runner.jar", "placeholder")
+  }
+
+  private def fakeInstallRuntime(
+    searchPath: Path,
+    version: GraalVMVersion
+  ): Unit = {
+    val root =
+      searchPath / s"grallvm-ce-java${version.java}-${version.graalVersion}"
+    val bin =
+      if (OS.operatingSystem == OS.MacOS) root / "Contents" / "Home" / "bin"
+      else root / "bin"
+    Files.createDirectories(bin)
+    val executable = if (OS.isWindows) "java.exe" else "java"
+    makePlaceholder(bin / executable)
+  }
+
+  private def makePlaceholder(path: Path): Unit = {
+    FileSystem.writeTextFile(path, "placeholder")
+    path.toFile.setExecutable(true)
   }
 }

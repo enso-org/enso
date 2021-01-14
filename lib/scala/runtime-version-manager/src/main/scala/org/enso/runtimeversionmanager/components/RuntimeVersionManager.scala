@@ -356,8 +356,22 @@ class RuntimeVersionManager(
       }
       safelyRemoveComponent(engine.path)
       userInterface.logInfo(s"Uninstalled $engine.")
-      cleanupGraalRuntimes()
+      internalCleanupGraalRuntimes()
     }
+
+  /** Removes runtimes that are not used by any installed engines.
+    *
+    * Runtimes are automatically cleaned after installation, so currently this
+    * function is only useful for tests.
+    */
+  def cleanupRuntimes(): Unit = {
+    resourceManager.withResources(
+      userInterface,
+      Resource.AddOrRemoveComponents -> LockType.Exclusive
+    ) {
+      internalCleanupGraalRuntimes()
+    }
+  }
 
   /** Checks if the component version specified in the release's manifest is
     * compatible with the current installer version.
@@ -716,7 +730,7 @@ class RuntimeVersionManager(
     *
     * The caller must hold [[Resource.AddOrRemoveComponents]] exclusively.
     */
-  private def cleanupGraalRuntimes(): Unit = {
+  private def internalCleanupGraalRuntimes(): Unit = {
     for (runtime <- listInstalledGraalRuntimes()) {
       if (findEnginesUsingRuntime(runtime).isEmpty) {
         userInterface.logInfo(
