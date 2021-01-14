@@ -490,7 +490,6 @@ case object AliasAnalysis extends IRPass {
       }
     }
     name.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
-
   }
 
   /** Performs alias analysis on a case expression.
