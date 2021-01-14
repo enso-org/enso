@@ -19,7 +19,7 @@ type Column
         col_name = java_col.getName []
         storage = java_col.getStorage []
         num_rows = java_col.getSize []
-        display_rows = min num_rows show_rows
+        display_rows = Math.min num_rows show_rows
         items = Vector.new display_rows num->
             row = if storage.isNa [num] then "Nothing" else
                 here.get_item_string storage num
@@ -130,7 +130,7 @@ type Column
     ## Boolean negation of each element in this column.
     not : Column
     not =
-        here.run_vectorized_unary_op this "not" not
+        here.run_vectorized_unary_op this "not" .not
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -257,7 +257,7 @@ type Column
             Storage.Integer -> Json.Number
             Storage.Decimal -> Json.Number
             Storage.Boolean -> Json.Boolean
-            _ -> to_json
+            _ -> .to_json
         storage_json = Json.Array (here.storage_to_json storage json_factory)
         fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
         Json.Object fields
