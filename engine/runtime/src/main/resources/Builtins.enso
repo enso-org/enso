@@ -1714,14 +1714,14 @@ type Unsafe
     set_atom_field atom index value = @Builtin_Method "Unsafe.set_atom_field"
 
 ## Functionality for inspecting the current project.
-type Enso_Project
+type Project_Description
 
     ## A representation of an Enso project.
 
        Arguments:
        - `prim_root_file`: The primitive root file of the project.
     @Builtin_Type
-    type Enso_Project prim_root_file
+    type Project_Description prim_root_file
 
 ## The type that has only a singleton value.
 

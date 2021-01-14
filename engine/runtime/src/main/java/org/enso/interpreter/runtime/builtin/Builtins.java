@@ -5,10 +5,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.core.IR;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
-import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
@@ -31,7 +29,6 @@ import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerM
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.Module.CompilationStage;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -51,7 +48,7 @@ public class Builtins {
 
   private final AtomConstructor any;
   private final AtomConstructor debug;
-  private final AtomConstructor ensoProject;
+  private final AtomConstructor projectDescription;
   private final AtomConstructor function;
   private final AtomConstructor nothing;
 
@@ -81,8 +78,8 @@ public class Builtins {
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
-    ensoProject =
-        new AtomConstructor("Enso_Project", scope)
+    projectDescription =
+        new AtomConstructor("Project_Description", scope)
             .initializeFields(
                 new ArgumentDefinition(
                     0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE));
@@ -127,7 +124,7 @@ public class Builtins {
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
-    scope.registerConstructor(ensoProject);
+    scope.registerConstructor(projectDescription);
     scope.registerConstructor(runtime);
 
     scope.registerConstructor(java);
@@ -262,8 +259,8 @@ public class Builtins {
   }
 
   /** @return the {@code Enso_Project} atom constructor */
-  public AtomConstructor getEnsoProject() {
-    return ensoProject;
+  public AtomConstructor getProjectDescription() {
+    return projectDescription;
   }
 
   /** @return the {@code System} atom constructor. */
