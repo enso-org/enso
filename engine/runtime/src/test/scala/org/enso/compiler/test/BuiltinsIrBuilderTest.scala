@@ -17,7 +17,7 @@ class BuiltinsIrBuilderTest extends InterpreterTest {
           |main = Debug.eval "1 + 1"
           |""".stripMargin
 
-      println(eval(code))
+      eval(code)
     }
   }
 }
