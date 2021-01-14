@@ -11,8 +11,8 @@ import org.graalvm.polyglot.Context
 class OverloadsResolutionErrorTest extends InterpreterTest {
   override def subject: String = "Symbol Overloads"
 
-  override def contextModifiers: Context#Builder => Context#Builder =
-    _.option(RuntimeOptions.STRICT_ERRORS, "true")
+  override def contextModifiers: Option[Context#Builder => Context#Builder] =
+    Some(_.option(RuntimeOptions.STRICT_ERRORS, "true"))
 
   override def specify(implicit
     interpreterContext: InterpreterContext

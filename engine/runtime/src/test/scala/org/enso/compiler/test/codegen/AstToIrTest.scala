@@ -852,38 +852,70 @@ class AstToIrTest extends CompilerTest with Inside {
     }
   }
 
-  "properly support different kinds of imports" in {
-    val imports = List(
-      "import Foo.Bar as Baz",
-      "import Foo.Bar",
-      "from Foo.Bar import Baz",
-      "from Foo.Bar import Baz, Spam",
-      "from Foo.Bar import all",
-      "from Foo.Bar as Eggs import all hiding Spam",
-      "from Foo.Bar import all hiding Spam, Eggs"
-    )
-    imports
-      .mkString("\n")
-      .toIrModule
-      .imports
-      .map(_.showCode()) shouldEqual imports
+  "AST translation of top-level annotations" should {
+    "support annotations at the top level" in {
+      val ir =
+        """@My_Annotation
+          |type Foo a b
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Name.Annotation]
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+    }
+
+    "support annotations inside complex type bodies" in {
+      val ir =
+        """type My_Type
+          |  @My_Annotation
+          |  type Foo
+          |
+          |  @My_Annotation
+          |  add a = this + a
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Type]
+      val complexType =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Type]
+
+      complexType.body.head shouldBe an[IR.Name.Annotation]
+      complexType.body(2) shouldBe an[IR.Name.Annotation]
+    }
   }
 
-  "properly support different kinds of exports" in {
-    val exports = List(
-      "export Foo.Bar as Baz",
-      "export Foo.Bar",
-      "from Foo.Bar export Baz",
-      "from Foo.Bar export baz, Spam",
-      "from Foo.Bar export all",
-      "from Foo.Bar as Eggs export all hiding Spam",
-      "from Foo.Bar export all hiding Spam, eggs"
-    )
-    exports
-      .mkString("\n")
-      .toIrModule
-      .exports
-      .map(_.showCode()) shouldEqual exports
+  "AST translation for imports and exports" should {
+    "properly support different kinds of imports" in {
+      val imports = List(
+        "import Foo.Bar as Baz",
+        "import Foo.Bar",
+        "from Foo.Bar import Baz",
+        "from Foo.Bar import Baz, Spam",
+        "from Foo.Bar import all",
+        "from Foo.Bar as Eggs import all hiding Spam",
+        "from Foo.Bar import all hiding Spam, Eggs"
+      )
+      imports
+        .mkString("\n")
+        .toIrModule
+        .imports
+        .map(_.showCode()) shouldEqual imports
+    }
+
+    "properly support different kinds of exports" in {
+      val exports = List(
+        "export Foo.Bar as Baz",
+        "export Foo.Bar",
+        "from Foo.Bar export Baz",
+        "from Foo.Bar export baz, Spam",
+        "from Foo.Bar export all",
+        "from Foo.Bar as Eggs export all hiding Spam",
+        "from Foo.Bar export all hiding Spam, eggs"
+      )
+      exports
+        .mkString("\n")
+        .toIrModule
+        .exports
+        .map(_.showCode()) shouldEqual exports
+    }
   }
 
   "AST translation of erroneous constructs" should {

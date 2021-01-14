@@ -46,8 +46,9 @@ case object UnusedBindings extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): IR.Module = if (!moduleContext.noWarnings) {
     ir.mapExpressions(runExpression(_, InlineContext(moduleContext.module)))
+  } else ir
 
   /** Lints an arbitrary expression.
     *
@@ -60,12 +61,13 @@ case object UnusedBindings extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): IR.Expression = if (!inlineContext.noWarnings) {
     ir.transformExpressions {
       case binding: IR.Expression.Binding => lintBinding(binding, inlineContext)
       case function: IR.Function          => lintFunction(function, inlineContext)
       case cse: IR.Case                   => lintCase(cse, inlineContext)
     }
+  } else ir
 
   // === Pass Internals =======================================================
 

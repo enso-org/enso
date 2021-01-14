@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.resolve.Annotations
+import org.enso.compiler.pass.resolve.ExpressionAnnotations
 
 /** This pass performs tail call analysis on the Enso IR.
   *
@@ -114,6 +114,11 @@ case object TailCall extends IRPass {
           "Type signatures should not exist at the top level during " +
           "tail call analysis."
         )
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+          "tail call analysis."
+        )
       case err: IR.Error => err
     }
   }
@@ -130,11 +135,8 @@ case object TailCall extends IRPass {
     isInTailPosition: Boolean
   ): IR.Expression = {
     val expressionWithWarning =
-      if (
-        expression
-          .getMetadata(Annotations)
-          .contains(Annotations.TailCallAnnotated) && !isInTailPosition
-      ) expression.addDiagnostic(IR.Warning.WrongTco(expression.location))
+      if (isTailAnnotated(expression) && !isInTailPosition)
+        expression.addDiagnostic(IR.Warning.WrongTco(expression.location))
       else expression
     expressionWithWarning match {
       case empty: IR.Empty =>
@@ -479,5 +481,22 @@ case object TailCall extends IRPass {
     implicit def toBool(tailPosition: TailPosition): Boolean = {
       tailPosition.isTail
     }
+  }
+
+  /** Checks if the provided `expression` is annotated with a tail call
+    * annotation.
+    *
+    * @param expression the expression to check
+    * @return `true` if `expression` is annotated with `@Tail_Call`, otherwise
+    *         `false`
+    */
+  def isTailAnnotated(expression: IR.Expression): Boolean = {
+    expression
+      .getMetadata(ExpressionAnnotations)
+      .exists(anns =>
+        anns.annotations.exists(a =>
+          a.name == ExpressionAnnotations.tailCallName
+        )
+      )
   }
 }

@@ -111,6 +111,9 @@ state. The documentation syntax supports the following tags:
   of the library.
 - `REMOVED`: Used to describe constructs that have been removed and are no
   longer functional.
+- `PRIVATE`: Used to describe constructs that are private in the language.
+- `ADVANCED`: Items that are _not_ private, but are for power users.
+- `TEXT_ONLY`: Items that do not apply to the graphical mode.
 
 Tags are added at the _top_ of the documentation block, and may also be
 accompanied by a description. This description directly follows the tag

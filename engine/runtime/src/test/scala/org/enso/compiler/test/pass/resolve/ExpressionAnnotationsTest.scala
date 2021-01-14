@@ -1,13 +1,13 @@
 package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.resolve.Annotations
+import org.enso.compiler.pass.resolve.ExpressionAnnotations
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-class AnnotationsTest extends CompilerTest {
+class ExpressionAnnotationsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
@@ -16,10 +16,15 @@ class AnnotationsTest extends CompilerTest {
       freshNameSupply = Some(new FreshNameSupply)
     )
 
+  def mkInlineContext: InlineContext =
+    buildInlineContext(
+      freshNameSupply = Some(new FreshNameSupply)
+    )
+
   val passes = new Passes
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(Annotations).get
+    passes.getPrecursors(ExpressionAnnotations).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
@@ -38,7 +43,13 @@ class AnnotationsTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext): IR.Module = {
-      Annotations.runModule(ir, context)
+      ExpressionAnnotations.runModule(ir, context)
+    }
+  }
+
+  implicit class AnalyseExpression(ir: IR.Expression) {
+    def analyse(implicit context: InlineContext): IR.Expression = {
+      ExpressionAnnotations.runExpression(ir, context)
     }
   }
 
@@ -52,39 +63,44 @@ class AnnotationsTest extends CompilerTest {
         |foo x =
         |    @Tail_Call
         |    @Unknown_Annotation foo bar baz
+        |    @Builtin_Method "myBuiltin"
         |    foo @Tail_Call
         |    foo (@Tail_Call bar baz)
         |""".stripMargin.preprocessModule.analyse
 
-    "resolve and mark annotations" in {
-      val items = ir.bindings.head
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Expression.Block]
+    val items = ir.bindings.head
+      .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Expression.Block]
+
+    "create an error when discovering an unexpected annotation" in {
       items.expressions(0) shouldBe an[IR.Error.Resolution]
       items
         .expressions(0)
         .asInstanceOf[IR.Error.Resolution]
-        .reason shouldEqual IR.Error.Resolution.UnexpectedTailCallAnnotation
+        .reason shouldEqual IR.Error.Resolution.UnexpectedAnnotation
 
+    }
+
+    "create an error when discovering an unknown annotation" in {
       val unknown =
         items.expressions(1).asInstanceOf[IR.Application.Prefix].function
       unknown shouldBe an[IR.Error.Resolution]
       unknown
         .asInstanceOf[IR.Error.Resolution]
         .reason shouldEqual IR.Error.Resolution.UnknownAnnotation
+    }
 
-      val misplaced = items
-        .expressions(2)
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments(0)
-        .value
-      misplaced shouldBe an[IR.Error.Resolution]
-      misplaced
-        .asInstanceOf[IR.Error.Resolution]
-        .reason shouldEqual IR.Error.Resolution.UnexpectedTailCallAnnotation
+    "associate the annotation with the annotated definition" in {
+      val correctDef = items.expressions(2).asInstanceOf[IR.Literal.Text]
+      correctDef.text shouldEqual "myBuiltin"
+      correctDef
+        .unsafeGetMetadata(ExpressionAnnotations, "")
+        .annotations
+        .head
+        .name shouldEqual "@Builtin_Method"
 
       val correct = items.returnValue
         .asInstanceOf[IR.Application.Prefix]
@@ -93,9 +109,24 @@ class AnnotationsTest extends CompilerTest {
         .asInstanceOf[IR.Application.Prefix]
       correct.function.asInstanceOf[IR.Name].name shouldEqual "bar"
       correct.arguments.length shouldEqual 1
-      correct.getMetadata(Annotations) should contain(
-        Annotations.TailCallAnnotated
-      )
+      correct
+        .getMetadata(ExpressionAnnotations)
+        .get
+        .annotations
+        .head
+        .name shouldEqual "@Tail_Call"
+    }
+
+    "create an error on a misplaced annotation" in {
+      val misplaced = items
+        .expressions(3)
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments(0)
+        .value
+      misplaced shouldBe an[IR.Error.Resolution]
+      misplaced
+        .asInstanceOf[IR.Error.Resolution]
+        .reason shouldEqual IR.Error.Resolution.UnexpectedAnnotation
     }
   }
 }
