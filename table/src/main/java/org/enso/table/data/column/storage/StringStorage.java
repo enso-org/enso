@@ -78,7 +78,7 @@ public class StringStorage extends ObjectStorage {
   private static MapOpStorage<StringStorage> buildOps() {
     MapOpStorage<StringStorage> t = ObjectStorage.ops.makeChild();
     t.add(
-        new MapOperation<>(Ops.EQ) {
+        new MapOperation<>(Maps.EQ) {
           @Override
           public Storage runMap(StringStorage storage, Object arg) {
             BitSet r = new BitSet();
@@ -108,21 +108,21 @@ public class StringStorage extends ObjectStorage {
           }
         });
     t.add(
-        new StringBooleanOp(Ops.STARTS_WITH) {
+        new StringBooleanOp(Maps.STARTS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
             return a.startsWith(b);
           }
         });
     t.add(
-        new StringBooleanOp(Ops.ENDS_WITH) {
+        new StringBooleanOp(Maps.ENDS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
             return a.endsWith(b);
           }
         });
     t.add(
-        new StringBooleanOp(Ops.CONTAINS) {
+        new StringBooleanOp(Maps.CONTAINS) {
           @Override
           protected boolean doString(String a, String b) {
             return a.contains(b);

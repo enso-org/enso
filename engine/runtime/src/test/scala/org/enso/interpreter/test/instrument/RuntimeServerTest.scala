@@ -2,6 +2,13 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.{Context => EnsoContext}
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -162,7 +169,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idMainX,
-                  Some("Number"),
+                  Some(Constants.INTEGER),
                   None,
                   Vector(ProfilingInfo.ExecutionTime(0)),
                   false
@@ -178,8 +185,14 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idMainY,
-                  Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Number", "foo")),
+                  Some(Constants.INTEGER),
+                  Some(
+                    Api.MethodPointer(
+                      "Test.Main",
+                      Constants.NUMBER,
+                      "foo"
+                    )
+                  ),
                   Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
@@ -194,7 +207,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idMainZ,
-                  Some("Number"),
+  Some(Constants.INTEGER),
                   None,
                   Vector(ProfilingInfo.ExecutionTime(0)),
                   false
@@ -210,7 +223,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idFooY,
-                  Some("Number"),
+  Some(Constants.INTEGER),
                   None,
                   Vector(ProfilingInfo.ExecutionTime(0)),
                   false
@@ -226,7 +239,7 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   Main.idFooZ,
-                  Some("Number"),
+  Some(Constants.INTEGER),
                   None,
                   Vector(ProfilingInfo.ExecutionTime(0)),
                   false
@@ -272,8 +285,8 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   idMainY,
-                  Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Main", "foo")),
+  Some(Constants.INTEGER),
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "foo")),
                   Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
@@ -288,9 +301,9 @@ class RuntimeServerTest
               Vector(
                 Api.ExpressionValueUpdate(
                   idMainZ,
-                  Some("Number"),
-                  Some(Api.MethodPointer("Test.Main", "Main", "bar")),
-                  Vector(ProfilingInfo.ExecutionTime(0)),
+  Some(Constants.INTEGER),
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "bar")),
+                    Vector(ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -352,7 +365,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
       None,
       Vector()
     )
@@ -381,7 +394,7 @@ class RuntimeServerTest
 
     // push method pointer on top of the non-empty stack
     val invalidExplicitCall = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
       None,
       Vector()
     )
@@ -405,9 +418,11 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              Some("Number"),
-              Some(Api.MethodPointer("Test.Main", "Number", "foo")),
-              Vector(ProfilingInfo.ExecutionTime(0)),
+  Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer("Test.Main", Constants.NUMBER, "foo")
+              ),
+                Vector(ProfilingInfo.ExecutionTime(0)),
               true
             )
           )
@@ -427,6 +442,182 @@ class RuntimeServerTest
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.EmptyStackError(contextId))
     )
+  }
+
+  it should "send method pointer updates" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata = new Metadata
+    val idMain   = metadata.addItem(94, 121)
+    val idMainX  = metadata.addItem(121, 8)
+    val idMainY  = metadata.addItem(138, 8)
+    val idMainM  = metadata.addItem(155, 5)
+    val idMainP  = metadata.addItem(169, 5)
+    val idMainQ  = metadata.addItem(183, 5)
+    val idMainF  = metadata.addItem(205, 9)
+
+    val code =
+      """from Builtins import all
+        |import Test.A
+        |
+        |type Quux
+        |    type Quux
+        |
+        |    foo = 42
+        |
+        |bar = 7
+        |
+        |main =
+        |    f a b = a + b
+        |    x = Quux.foo
+        |    y = here.bar
+        |    m = A.A x
+        |    p = m.foo
+        |    q = A.bar
+        |    IO.println (f x+y p+q)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    val aCode =
+      """from Builtins import all
+        |
+        |type A
+        |    type A un_a
+        |
+        |    foo = 11
+        |
+        |bar = 19
+        |""".stripMargin
+    val aFile = context.writeInSrcDir("A", aCode)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+    context.send(Api.Request(Api.OpenFileNotification(aFile, aCode, true)))
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(9) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainX,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer("Test.Main", "Test.Main.Quux", "foo")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainY,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer("Test.Main", "Test.Main", "bar")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainM,
+              Some("Test.A.A"),
+              None
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainP,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer("Test.A", "Test.A.A", "foo")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainQ,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer("Test.A", "Test.A", "bar")
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainF,
+              Some(Constants.INTEGER),
+              None
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some(Constants.NOTHING),
+              None
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("79")
   }
 
   it should "send updates from last line" in {
@@ -469,7 +660,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -484,9 +675,9 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainFoo,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "foo")),
-              Vector(ProfilingInfo.ExecutionTime(0)),
+  Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "foo")),
+                Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -498,7 +689,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Number"),
+              Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -520,12 +711,14 @@ class RuntimeServerTest
                     moduleName,
                     "foo",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("a", "Any", false, false, None),
-                      Suggestion.Argument("b", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
+                      Suggestion
+                        .Argument("a", Constants.ANY, false, false, None),
+                      Suggestion.Argument("b", Constants.ANY, false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -539,10 +732,11 @@ class RuntimeServerTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -597,7 +791,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -612,9 +806,9 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainFoo,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "foo")),
-              Vector(ProfilingInfo.ExecutionTime(0)),
+  Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "foo")),
+                Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -626,7 +820,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Nothing"),
+  Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -648,12 +842,14 @@ class RuntimeServerTest
                     moduleName,
                     "foo",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("a", "Any", false, false, None),
-                      Suggestion.Argument("b", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
+                      Suggestion
+                        .Argument("a", Constants.ANY, false, false, None),
+                      Suggestion.Argument("b", Constants.ANY, false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -667,10 +863,11 @@ class RuntimeServerTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -725,7 +922,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -740,9 +937,9 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainBar,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "bar")),
-              Vector(ProfilingInfo.ExecutionTime(0)),
+  Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "bar")),
+                Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -754,7 +951,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Nothing"),
+  Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -775,9 +972,12 @@ class RuntimeServerTest
                     Some(idMain),
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -790,9 +990,12 @@ class RuntimeServerTest
                     None,
                     moduleName,
                     "bar",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -849,7 +1052,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -864,9 +1067,9 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainBar,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "bar")),
-              Vector(ProfilingInfo.ExecutionTime(0)),
+  Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "bar")),
+                Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
           )
@@ -878,7 +1081,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Nothing"),
+              Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -899,9 +1102,12 @@ class RuntimeServerTest
                     Some(idMain),
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -914,9 +1120,12 @@ class RuntimeServerTest
                     None,
                     moduleName,
                     "bar",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -973,7 +1182,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -988,8 +1197,8 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainFoo,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "foo")),
+              Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "foo")),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1002,7 +1211,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Number"),
+              Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1024,12 +1233,14 @@ class RuntimeServerTest
                     moduleName,
                     "foo",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("a", "Any", false, false, None),
-                      Suggestion.Argument("b", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None),
+                      Suggestion
+                        .Argument("a", Constants.ANY, false, false, None),
+                      Suggestion.Argument("b", Constants.ANY, false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1043,10 +1254,11 @@ class RuntimeServerTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1073,7 +1285,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Number"),
+  Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1104,7 +1316,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -1130,9 +1342,12 @@ class RuntimeServerTest
                     Some(idMain),
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1144,7 +1359,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainX),
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -1161,7 +1376,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainY),
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -1178,7 +1393,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainZ),
                         moduleName,
                         "z",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -1198,11 +1413,18 @@ class RuntimeServerTest
                     moduleName,
                     "foo",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion
+                        .Argument(
+                          "this",
+                          Constants.NUMBER,
+                          false,
+                          false,
+                          None
+                        ),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Number",
-                    "Any",
+                    Constants.NUMBER,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1214,7 +1436,7 @@ class RuntimeServerTest
                         Some(context.Main.idFooY),
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(9, 17),
@@ -1231,7 +1453,7 @@ class RuntimeServerTest
                         Some(context.Main.idFooZ),
                         moduleName,
                         "z",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(9, 17),
                           Suggestion.Position(12, 5)
@@ -1272,8 +1494,10 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              Some("Number"),
-              Some(Api.MethodPointer("Test.Main", "Number", "foo")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer("Test.Main", Constants.NUMBER, "foo")
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               true
             )
@@ -1329,7 +1553,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -1344,7 +1568,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idResult,
-              Some("Number"),
+  Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1358,7 +1582,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idPrintln,
-              Some("Nothing"),
+              Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1372,7 +1596,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Nothing"),
+              Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1393,9 +1617,12 @@ class RuntimeServerTest
                     Some(idMain),
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1407,7 +1634,7 @@ class RuntimeServerTest
                         Some(idResult),
                         moduleName,
                         "result",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 21)
@@ -1448,7 +1675,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idResult,
-              Some("Text"),
+              Some(Constants.TEXT),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1509,7 +1736,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -1524,7 +1751,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Number"),
+              Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1538,7 +1765,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainP,
-              Some("Nothing"),
+              Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1552,7 +1779,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Nothing"),
+              Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1573,9 +1800,12 @@ class RuntimeServerTest
                     Some(idMain),
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1587,7 +1817,7 @@ class RuntimeServerTest
                         Some(idMainA),
                         moduleName,
                         "a",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 0)
@@ -1606,10 +1836,11 @@ class RuntimeServerTest
                     moduleName,
                     "pie",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1623,10 +1854,11 @@ class RuntimeServerTest
                     moduleName,
                     "uwu",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1640,10 +1872,11 @@ class RuntimeServerTest
                     moduleName,
                     "hie",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
                     ),
-                    "Main",
-                    "Any",
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1657,11 +1890,17 @@ class RuntimeServerTest
                     moduleName,
                     "x",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("y", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        Constants.NUMBER,
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("y", Constants.ANY, false, false, None)
                     ),
-                    "Number",
-                    "Any",
+                    Constants.NUMBER,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1697,8 +1936,8 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "x")),
+              Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, Constants.NUMBER, "x")),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1723,9 +1962,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(
-      context.executionComplete(contextId)
-    )
+    context.receive(1) shouldEqual Seq(context.executionComplete(contextId))
     context.consumeOut shouldEqual List("5")
 
     // Edit s/1000.x 5/Main.pie/
@@ -1749,8 +1986,8 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "pie")),
+              Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "pie"))
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1782,8 +2019,8 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Main", "uwu")),
+              Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "uwu"))
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1815,8 +2052,8 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Text"),
-              Some(Api.MethodPointer(moduleName, "Main", "hie")),
+              Some(Constants.TEXT),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "hie"))
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1848,7 +2085,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Text"),
+              Some(Constants.TEXT),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1906,7 +2143,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -1921,7 +2158,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Nothing"),
+              Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -1935,8 +2172,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id1,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1949,8 +2192,11 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id2,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api
+                  .MethodPointer(moduleName, Constants.TEXT, "overloaded")
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1963,8 +2209,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id3,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -1984,9 +2236,12 @@ class RuntimeServerTest
                     Some(idMain),
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1998,7 +2253,7 @@ class RuntimeServerTest
                         Some(id1),
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(7, 0)
@@ -2017,11 +2272,18 @@ class RuntimeServerTest
                     moduleName,
                     "overloaded",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("arg", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        Constants.TEXT,
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion
+                        .Argument("arg", Constants.ANY, false, false, None)
                     ),
-                    "Text",
-                    "Any",
+                    Constants.TEXT,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2035,11 +2297,18 @@ class RuntimeServerTest
                     moduleName,
                     "overloaded",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("arg", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        Constants.NUMBER,
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion
+                        .Argument("arg", Constants.ANY, false, false, None)
                     ),
-                    "Number",
-                    "Any",
+                    Constants.NUMBER,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2078,8 +2347,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id1,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               wasCached = true
             )
@@ -2092,8 +2367,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id2,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.TEXT,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               wasCached = false
             )
@@ -2106,8 +2387,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id3,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               wasCached = false
             )
@@ -2142,8 +2429,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id1,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               true
             )
@@ -2156,8 +2449,11 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id2,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api
+                  .MethodPointer(moduleName, Constants.TEXT, "overloaded")
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -2170,8 +2466,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id3,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -2206,8 +2508,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id1,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               true
             )
@@ -2220,8 +2528,11 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id2,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Text", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api
+                  .MethodPointer(moduleName, Constants.TEXT, "overloaded")
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -2234,8 +2545,14 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id3,
-              Some("Number"),
-              Some(Api.MethodPointer(moduleName, "Number", "overloaded")),
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
             )
@@ -2279,7 +2596,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(moduleName, "Main", "main"),
+              Api.MethodPointer(moduleName, "Test.Main", "main"),
               None,
               Vector()
             )
@@ -2301,9 +2618,12 @@ class RuntimeServerTest
                     None,
                     "Test.Main",
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2379,7 +2699,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(moduleName, "Main", "main"),
+              Api.MethodPointer(moduleName, "Test.Main", "main"),
               None,
               Vector()
             )
@@ -2394,7 +2714,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Number"),
+              Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -2415,9 +2735,12 @@ class RuntimeServerTest
                     Some(idMain),
                     "Test.Main",
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2462,7 +2785,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Number"),
+              Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -2494,7 +2817,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Main", "main"),
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
       None,
       Vector()
     )
@@ -2520,9 +2843,12 @@ class RuntimeServerTest
                     Some(idMain),
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2534,7 +2860,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainX),
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -2551,7 +2877,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainY),
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -2568,7 +2894,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainZ),
                         moduleName,
                         "z",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -2588,11 +2914,12 @@ class RuntimeServerTest
                     moduleName,
                     "foo",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", Constants.NUMBER, false, false, None),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Number",
-                    "Any",
+                    Constants.NUMBER,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2604,7 +2931,7 @@ class RuntimeServerTest
                         Some(context.Main.idFooY),
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(9, 17),
@@ -2621,7 +2948,7 @@ class RuntimeServerTest
                         Some(context.Main.idFooZ),
                         moduleName,
                         "z",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(9, 17),
                           Suggestion.Position(12, 5)
@@ -2662,8 +2989,8 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              Some("Number"),
-              Some(Api.MethodPointer("Test.Main", "Number", "foo")),
+              Some(Constants.INTEGER),
+              Some(Api.MethodPointer("Test.Main", Constants.NUMBER, "foo")),
               Vector(ProfilingInfo.ExecutionTime(0)),
               true
             )
@@ -2720,7 +3047,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(moduleName, "Main", "main"),
+              Api.MethodPointer(moduleName, "Test.Main", "main"),
               None,
               Vector()
             )
@@ -2742,9 +3069,12 @@ class RuntimeServerTest
                     None,
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2798,9 +3128,12 @@ class RuntimeServerTest
                     None,
                     moduleName,
                     "lucky",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Number",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", Constants.NUMBER, false, false, None)
+                    ),
+                    Constants.NUMBER,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -2842,7 +3175,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Main", "main"),
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
       None,
       Vector()
     )
@@ -2888,7 +3221,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Main", "main"),
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
       None,
       Vector()
     )
@@ -2940,7 +3273,7 @@ class RuntimeServerTest
     context.receiveNone shouldEqual None
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Main", "main"),
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
       None,
       Vector()
     )
@@ -2998,7 +3331,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Unnamed.Main", "Main", "main"),
+            Api.MethodPointer("Unnamed.Main", "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3042,7 +3375,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Test.Main", "Unexpected", "main"),
+            Api.MethodPointer("Test.Main", "Test.Unexpected", "main"),
             None,
             Vector()
           )
@@ -3089,7 +3422,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Test.Main", "Main", "ooops"),
+            Api.MethodPointer("Test.Main", "Test.Main", "ooops"),
             None,
             Vector()
           )
@@ -3143,7 +3476,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3207,7 +3540,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3278,7 +3611,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3351,7 +3684,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3426,7 +3759,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3509,7 +3842,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3569,7 +3902,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3629,7 +3962,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3693,7 +4026,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3755,7 +4088,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3815,7 +4148,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Main", "main"),
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
           )
@@ -3859,7 +4192,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
       None,
       Vector()
     )
@@ -3921,7 +4254,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Main", "main"),
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
       None,
       Vector()
     )
@@ -3939,7 +4272,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some("Number"),
+              Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
@@ -3962,11 +4295,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "encode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -3980,11 +4319,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "incAndEncode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4123,11 +4468,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "encode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4141,11 +4492,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "incAndEncode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4274,7 +4631,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Main", "main"),
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
       None,
       Vector()
     )
@@ -4302,11 +4659,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "encode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4320,11 +4683,17 @@ class RuntimeServerTest
                     "Test.Visualisation",
                     "incAndEncode",
                     List(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion.Argument(
+                        "this",
+                        "Test.Visualisation",
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Visualisation",
-                    "Any",
+                    "Test.Visualisation",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4348,9 +4717,12 @@ class RuntimeServerTest
                     None,
                     moduleName,
                     "main",
-                    Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                    "Main",
-                    "Any",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4362,7 +4734,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainX),
                         moduleName,
                         "x",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -4379,7 +4751,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainY),
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -4396,7 +4768,7 @@ class RuntimeServerTest
                         Some(context.Main.idMainZ),
                         moduleName,
                         "z",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(3, 6),
@@ -4416,11 +4788,12 @@ class RuntimeServerTest
                     moduleName,
                     "foo",
                     Seq(
-                      Suggestion.Argument("this", "Any", false, false, None),
-                      Suggestion.Argument("x", "Any", false, false, None)
+                      Suggestion
+                        .Argument("this", Constants.NUMBER, false, false, None),
+                      Suggestion.Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Number",
-                    "Any",
+                    Constants.NUMBER,
+                    Constants.ANY,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -4432,7 +4805,7 @@ class RuntimeServerTest
                         Some(context.Main.idFooY),
                         moduleName,
                         "y",
-                        "Any",
+                        Constants.ANY,
                         Suggestion
                           .Scope(
                             Suggestion.Position(9, 17),
@@ -4449,7 +4822,7 @@ class RuntimeServerTest
                         Some(context.Main.idFooZ),
                         moduleName,
                         "z",
-                        "Any",
+                        Constants.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(9, 17),
                           Suggestion.Position(12, 5)
@@ -4571,7 +4944,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
       None,
       Vector()
     )
@@ -4718,7 +5091,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
       None,
       Vector()
     )
@@ -4818,7 +5191,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Test.Main", "Main", "main"),
+            Api.MethodPointer("Test.Main", "Test.Main", "main"),
             None,
             Vector()
           )
@@ -4867,7 +5240,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              Some("Number"),
+              Some(Constants.INTEGER),
               Some(Api.MethodPointer("Foo.Main", "Number", "foo")),
               Vector(ProfilingInfo.ExecutionTime(0)),
               false

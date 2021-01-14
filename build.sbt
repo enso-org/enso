@@ -370,7 +370,7 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "29.0-jre"
 val jlineVersion            = "3.15.0"
-val kindProjectorVersion    = "0.11.0"
+val kindProjectorVersion    = "0.11.2"
 val mockitoScalaVersion     = "1.14.8"
 val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.5.9"
@@ -711,6 +711,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
           "--enable-all-security-services" // Note [HTTPS in the Native Images]
         )
       )
+      .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1170,6 +1171,7 @@ lazy val launcher = project
         )
       )
       .dependsOn(assembly)
+      .dependsOn(VerifyReflectionSetup.run)
       .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(

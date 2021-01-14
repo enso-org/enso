@@ -462,7 +462,7 @@ type Vector
            not want to sort in place on the original vector, as `sort` is not
            intended to be mutable.
         new_vec_arr = Array.new this.length
-        this.to_array.copy 0 new_vec_arr 0 this.length
+        Array.copy this.to_array 0 new_vec_arr 0 this.length
 
         ## As we want to account for both custom projections and custom
            comparisons we need to construct a comparator for internal use that

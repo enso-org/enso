@@ -220,7 +220,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       } else {
         moduleName = null;
         typeName = null;
-        functionName = rootNode.getQualifiedName();
+        functionName = rootNode.getName();
       }
     }
 

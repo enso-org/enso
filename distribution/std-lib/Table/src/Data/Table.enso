@@ -84,11 +84,13 @@ type Table
     select : Vector -> Table
     select columns = Table (this.java_table.selectColumns [columns.to_array])
 
-    ## Efficiently joins two tables based on either the index or a key column.
+    ## Efficiently joins two tables based on either the index or the specified
+       key column.
 
        The resulting table contains rows of `this` extended with rows of
-       `other` with matching indexes. If the index in `other` is not unique,
-       the corresponding rows of `this` will be duplicated in the result.
+       `other` with matching indexes. If the index values in `other` are not
+       unique, the corresponding rows of `this` will be duplicated in the
+       result.
 
        Arguments:
          - other: the table being the right operand of this join operation.
@@ -100,9 +102,12 @@ type Table
                         when there's a name conflict with a column of `other`.
          - right_suffix: a suffix that should be added to the columns of `other`
                          when there's a name conflict with a column of `this`.
-    join : Table -> Text | Nothing -> Boolean -> Text -> Text -> Table
+    join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        Table (this.java_table.join [other.java_table, drop_unmatched, on, left_suffix, right_suffix])
+        case other of
+            Column.Column _ -> this.join other.to_table on drop_unmatched left_suffix right_suffix
+            Table t ->
+                Table (this.java_table.join [t, drop_unmatched, on, left_suffix, right_suffix])
 
     ## Returns a new Table without rows that contained missing values in any of
        the columns.
@@ -136,6 +141,59 @@ type Table
         cols = this.columns
         here.new [["Column", cols.map name], ["Items Count", cols.map count], ["Storage Type", cols.map storage_type]]
 
+    ## Returns an aggregate table resulting from grouping the elements by the
+       value of the specified column.
+
+       If the `by` argument is not set, the index is used for grouping instead.
+
+       > Example
+         Creates a simple table and computes aggregation statistics:
+            name = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
+            price = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
+            quantity = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
+            t = Table.new [name, price, quantity]
+
+            agg = t.group by='name'
+
+            records_num = agg.count
+            total_quantity = agg.at 'quantity' . sum
+            mean_price = agg.at 'price' . mean
+
+            Table.join [records_num, total_quantity, mean_price]
+    group : Text | Nothing -> Aggregate_Table
+    group by=Nothing =
+        Aggregate_Table (this.java_table.group [by])
+
+## Represents a table with grouped rows.
+type Aggregate_Table
+    type Aggregate_Table java_table
+
+    ## Returns a vector of aggregate columns in this table.
+    columns : Vector.Vector
+    columns = Vector.Vector (this.java_table.getColumns []) . map Column.Aggregate_Column
+
+    ## Returns a table containing columns resulting from calling `values` on
+       each column in `this`.
+    values : Table
+    values = this.columns . map (_.values name_suffix='') . reduce join
+
+    ## Returns a column containing the number of elements in each group.
+    count : Column
+    count = Column.Column (this.java_table.count [])
+
+    ## Returns an aggregate column with the given name, contained in this table.
+    at : Text -> Column | Nothing
+    at name = case this.java_table.getColumnByName [name] of
+        Nothing -> Nothing
+        c -> Column.Aggregate_Column c
+
+    ## Prints an ASCII-art table with this data to the standard output.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    print : Integer -> Nothing
+    print show_rows=10 = this.values.print show_rows
+
 ## PRIVATE
 from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
 
@@ -148,6 +206,13 @@ new columns =
     cols = columns.map c->
         Column.from_vector (c.at 0) (c.at 1) . java_column
     here.from_columns cols
+
+## Joins a vector of tables (or columns) into a single table, using each table's
+   index as the join key. Particularly useful for joining multiple columns
+   derived from one original table into a new table.
+join : Vector -> Table
+join tables =
+    tables.reduce join
 
 ## PRIVATE
 pad txt len =

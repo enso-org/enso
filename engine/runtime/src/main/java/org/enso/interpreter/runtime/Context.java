@@ -1,8 +1,19 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
@@ -17,13 +28,6 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * The language context is the internal state of the language that is associated with each thread in
  * a running Enso program.
@@ -37,11 +41,13 @@ public class Context {
   private final PrintStream err;
   private final InputStream in;
   private final BufferedReader inReader;
-  private final List<Package<TruffleFile>> packages;
-  private final TopLevelScope topScope;
+  private List<Package<TruffleFile>> packages;
+  private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ResourceManager resourceManager;
   private final boolean isCachingDisabled;
+  private final Builtins builtins;
+  private final String home;
 
   /**
    * Creates a new Enso context.
@@ -59,8 +65,18 @@ public class Context {
     this.threadManager = new ThreadManager();
     this.resourceManager = new ResourceManager(this);
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
-    TruffleFileSystem fs = new TruffleFileSystem();
+    this.home = home;
 
+    builtins = new Builtins(this);
+
+    this.compiler = new Compiler(this, builtins);
+  }
+
+  /** Perform expensive initialization logic for the context. */
+  public void initialize() {
+    this.getCompiler().initializeBuiltinsIr();
+
+    TruffleFileSystem fs = new TruffleFileSystem();
     packages = new ArrayList<>();
 
     if (home != null) {
@@ -94,9 +110,8 @@ public class Context {
                 Collectors.toMap(
                     srcFile -> srcFile.qualifiedName().toString(),
                     srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
-    topScope = new TopLevelScope(new Builtins(this), knownFiles);
 
-    this.compiler = new Compiler(this);
+    topScope = new TopLevelScope(builtins, knownFiles);
   }
 
   public TruffleFile getTruffleFile(File file) {

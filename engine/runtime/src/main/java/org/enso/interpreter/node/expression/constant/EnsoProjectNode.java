@@ -24,7 +24,7 @@ public class EnsoProjectNode extends RootNode {
     if (pkgOpt.isPresent()) {
       Package<TruffleFile> pkg = pkgOpt.get();
       Object rootPath = context.getEnvironment().asGuestValue(new EnsoFile(pkg.root().normalize()));
-      result = context.getBuiltins().getEnsoProject().newInstance(rootPath);
+      result = context.getBuiltins().getProjectDescription().newInstance(rootPath);
     } else {
       result =
           new RuntimeError(context.getBuiltins().error().moduleNotInPackageError().newInstance());

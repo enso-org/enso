@@ -6,7 +6,7 @@ import Table.Data.Column
 
 from Table.Io.Csv export all hiding Parser
 export Table.Data.Column
-from Table.Data.Table export new
+from Table.Data.Table export new, join
 
 ## Converts a JSON array into a dataframe, by looking up the requested keys
    from each item.

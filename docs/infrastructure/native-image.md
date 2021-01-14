@@ -178,10 +178,11 @@ the test scenarios by starting it with:
 java -agentlib:native-image-agent=config-merge-dir=lib/scala/project-manager/src/main/resources/META-INF/native-image/org/enso/projectmanager -jar project-manager.jar
 ```
 
-For now it seems that it is enough to start the Project Manager and connect an
-IDE to it to trace all relevant reflection paths. You can try interacting with
-it a bit more, for example, rename a project or install a new engine version, to
-be sure all scenarios are covered.
+To trace relevant reflection paths, the primary scenario is to start the Project
+Manager and connect an IDE to it. Since the Project Manager is able to install
+engine versions, similar steps should be taken to force it to extract a zip
+archive, as described in [Launcher Configuration](#launcher-configuration)
+above. If necessary, other scenarios, like project renaming may be covered.
 
 Remember to run the cleanup script as described above, as tracing the Project
 Manager seems to find recursive accesses of some ephemeral-like classes named

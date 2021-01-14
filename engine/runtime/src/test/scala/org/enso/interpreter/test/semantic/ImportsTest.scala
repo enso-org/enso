@@ -7,7 +7,7 @@ class ImportsTest extends PackageTest {
     evalTestProject("TestSimpleImports") shouldEqual 20
   }
 
-  "Methods defined together with atom" should "be visible even if not imported" in {
+  "Methods defined together with atoms" should "be visible even if not imported" in {
     evalTestProject("TestNonImportedOwnMethods") shouldEqual 10
   }
 
