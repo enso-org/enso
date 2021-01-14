@@ -698,7 +698,8 @@ case object AliasAnalysis extends IRPass {
       nextId
     }
 
-    /** Resolves any links for the given usage of a symbol.
+    /** Resolves any links for the given usage of a symbol, assuming the symbol
+      * is a local variable.
       *
       * @param occurrence the symbol usage
       * @return the link, if it exists
@@ -718,7 +719,8 @@ case object AliasAnalysis extends IRPass {
       }
     }
 
-    /** Resolves any links for the given usage of a symbol.
+    /** Resolves any links for the given usage of a symbol, assuming the symbol
+      * is global (i.e. method, constructor etc.)
       *
       * @param occurrence the symbol usage
       * @return the link, if it exists

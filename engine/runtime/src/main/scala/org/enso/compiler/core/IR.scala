@@ -1709,6 +1709,10 @@ object IR {
       */
     def isReferent: Boolean
 
+    /** Checks whether a name is a call-site method name.
+      *
+      * @return `true` if the name was created through a method call
+      */
     def isMethod: Boolean = false
 
     /** Checks whether a name is in variable form.
@@ -2011,6 +2015,7 @@ object IR {
       *
       * @param name the literal text of the name
       * @param isReferent is this a referent name
+      * @param isMethod is this a method call name
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -2029,6 +2034,7 @@ object IR {
         *
         * @param name the literal text of the name
         * @param isReferent is this a referent name
+        * @param isMethod is this a method call name
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -2074,6 +2080,7 @@ object IR {
         |IR.Name.Literal(
         |name = $name,
         |isReferent = $isReferent,
+        |isMethod = $isMethod,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -5466,6 +5473,8 @@ object IR {
           s"but methods are not allowed in $context."
       }
 
+      /** An error coming from usage of an undefined variable name.
+        */
       case object VariableNotInScope extends Reason {
         override def explain(originalName: Name): String =
           s"Variable `${originalName.name}` is not defined."

@@ -8,11 +8,6 @@ import org.enso.compiler.core.IR
 class FreshNameSupply {
   private var counter: Long = 0
 
-  /** Creates a new name instance using the provided number.
-    *
-    * @param numId the numeric identifier to use in the name
-    * @return a new name
-    */
   private def mkName(
     numId: Long,
     isReferent: Boolean,
@@ -30,6 +25,7 @@ class FreshNameSupply {
   /** Generates a name guaranteed not to exist in this program.
     *
     * @param isReferent whether or not the name should be marked as referent.
+    * @param isMethod whether or not the name should represent a method name.
     * @return a new name
     */
   def newName(

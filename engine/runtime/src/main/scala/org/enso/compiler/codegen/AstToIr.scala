@@ -403,7 +403,6 @@ object AstToIr {
             val (validArguments, hasDefaultsSuspended) =
               calculateDefaultsSuspension(args)
 
-            // Note [Uniform Call Syntax Translation]
             Application.Prefix(
               buildName(name, isMethod = true),
               (target :: validArguments).map(translateCallArgument(_)),
@@ -456,16 +455,6 @@ object AstToIr {
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
   }
-
-  /* Note [Uniform Call Syntax Translation]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * As the uniform call syntax must work for both methods and functions, the
-   * conversion can't take advantage of any by-name application semantics at the
-   * current time.
-   *
-   * This means that it is a purely _positional_ conversion on the first
-   * argument and cannot be performed any other way.
-   */
 
   def translateDecimalLiteral(
     ast: AST,

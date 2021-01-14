@@ -62,7 +62,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       DataflowAnalysis,
       CachePreferenceAnalysis,
       UnusedBindings,
-      UndefinedVariablesAnalysis
+      UndefinedVariables
     )
   )
 

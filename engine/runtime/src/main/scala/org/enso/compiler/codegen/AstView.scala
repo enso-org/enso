@@ -419,11 +419,18 @@ object AstView {
       }
   }
 
-  sealed trait MethodOrExpr {
-    def ast: AST
-  }
-  case class Method(override val ast: AST.Ident) extends MethodOrExpr
-  case class Expr(override val ast: AST)         extends MethodOrExpr
+  /** A union type for application matchers. */
+  sealed trait MethodOrExpr
+
+  /** A wrapper for applications denoting the name as being a method name.
+    * @param ast the original identifier
+    */
+  case class Method(ast: AST.Ident) extends MethodOrExpr
+
+  /** A wrapper for applications denoting the function as not-a-method.
+    * @param ast the original AST
+    */
+  case class Expr(ast: AST) extends MethodOrExpr
 
   object Application {
 

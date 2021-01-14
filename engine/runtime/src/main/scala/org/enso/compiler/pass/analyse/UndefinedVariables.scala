@@ -4,7 +4,10 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
-case object UndefinedVariablesAnalysis extends IRPass {
+/** Reports errors for local variables that are not linked to a definition
+  *  after Alias Analysis.
+  */
+case object UndefinedVariables extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = IRPass.Metadata.Empty
