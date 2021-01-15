@@ -1,3 +1,41 @@
+# Enso 0.2.1 (2021-01-15)
+
+## Language
+
+- Removed Uniform Function Call Syntax, making the language much more
+  predictable and allowing the compiler to provide improved diagnostics for
+  common mistakes.
+
+## Interpreter/Runtime
+
+- Return correct qualified names for modules at runtime, ensuring that the
+  compiler and interpreter agree.
+
+## Tooling
+
+- Improve the handling of bundled components with the Project Manager, ensuring
+  rapid startup and easy integration with the IDE.
+- Fixed the reflection configuration for the Project Manager, fixing a bug where
+  it was unable to extract archives on Windows.
+- The Language Server now uses qualified names in its messages, fixing a class
+  of bugs where the IDE and Tooling did not agree on what a given expression
+  was.
+- Fixed mis-handling of tags in the documentation parsing infrastructure.
+
+## Libraries
+
+- Implemented a stub file for the functionality built into the interpreter. This
+  allows us to provide comprehensive documentation about this functionality for
+  display in the IDE and for reading by library users.
+- Added aggregation functionality to the Table library, allowing users to group
+  their data.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-01-15)
+  for issues opened before the release date.
+
 # Enso 0.2.0 (2021-01-05)
 
 ## Language
