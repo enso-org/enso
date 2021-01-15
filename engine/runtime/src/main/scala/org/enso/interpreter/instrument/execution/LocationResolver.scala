@@ -6,10 +6,24 @@ import org.enso.interpreter.runtime.Module
 import org.enso.syntax.text.Location
 import org.enso.text.editing.{model, IndexedSource}
 
+/** Helper methods to convert between the `IR` and source locations, and
+  * resolving the expression ids in the source text.
+  */
 object LocationResolver {
 
+  /** Identifier of the `IR` node with an external id.
+    *
+    * @param internalId the internal node id
+    * @param externalId the external node id
+    */
   case class ExpressionId(internalId: IR.Identifier, externalId: IR.ExternalId)
 
+  /** Resolve expression id of the given source section.
+    *
+    * @param section the source section
+    * @param ctx the runtime context
+    * @return the expression id of the given source section
+    */
   def getExpressionId(section: SourceSection)(implicit
     ctx: RuntimeContext
   ): Option[ExpressionId] = {
@@ -23,6 +37,11 @@ object LocationResolver {
     }
   }
 
+  /** Resolve expression id of the given source section.
+    * @param section the source section
+    * @param module the module of the section
+    * @return the expression id of the given source section
+    */
   def getExpressionId(
     section: SourceSection,
     module: Module
@@ -31,6 +50,12 @@ object LocationResolver {
     getExpressionId(module.getIr, location)
   }
 
+  /** Resolve expression id of the given `IR` location.
+    *
+    * @param ir the corresponding `IR`
+    * @param location the location in the `IR`
+    * @return the expression id of the location in the given ir
+    */
   def getExpressionId(
     ir: IR,
     location: IR.IdentifiedLocation
@@ -39,6 +64,12 @@ object LocationResolver {
       .find(_.location.contains(location))
       .flatMap(getExpressionId)
 
+  /** Resolve expression id of the given source location.
+    *
+    * @param ir the corresponding `IR`
+    * @param location the location in the source text
+    * @return the expression id of the source location in the given ir
+    */
   def getExpressionId(
     ir: IR,
     location: Location
@@ -47,6 +78,11 @@ object LocationResolver {
       .find(_.location.map(_.location).contains(location))
       .flatMap(getExpressionId)
 
+  /** Get the id of the given `IR`.
+    *
+    * @param ir the `IR` to get id from
+    * @return the id of the given `IR`
+    */
   def getExpressionId(ir: IR): Option[ExpressionId] =
     ir.getExternalId.map(ExpressionId(ir.getId, _))
 

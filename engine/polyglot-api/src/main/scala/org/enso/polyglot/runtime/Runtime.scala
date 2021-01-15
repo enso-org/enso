@@ -263,6 +263,7 @@ object Runtime {
       methodCall: Option[MethodPointer]
     )
 
+    /** Base trait for expression updates. */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
       Array(
@@ -283,17 +284,34 @@ object Runtime {
     sealed trait ExpressionUpdate
     object ExpressionUpdate {
 
+      /** An update about computed expression.
+        *
+        * @param expressionId the expression id
+        * @param expressionType the type of expression
+        * @param methodCall the pointer to a method definithin
+        */
       case class ExpressionComputed(
         expressionId: ExpressionId,
         expressionType: Option[String],
         methodCall: Option[MethodPointer]
       ) extends ExpressionUpdate
 
+      /** An update about failed expression.
+        *
+        * @param expressionId the expression id
+        * @param message the error message
+        */
       case class ExpressionFailed(
         expressionId: ExpressionId,
         message: String
       ) extends ExpressionUpdate
 
+      /** An update about expression not executed due to a failed dependency.
+        *
+        * @param expressionId the expression id
+        * @param failedExpressionId failed expression that blocks the execution
+        * of this expression
+        */
       case class ExpressionPoisoned(
         expressionId: ExpressionId,
         failedExpressionId: ExpressionId
