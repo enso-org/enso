@@ -184,6 +184,7 @@ object DistributionPackage {
     val archs = Seq(X64)
   }
 
+  /** A helper class that manages building distribution artifacts. */
   class Builder(
     ensoVersion: String,
     graalVersion: String,
@@ -281,8 +282,13 @@ object DistributionPackage {
       IO.copyDirectory(engine / s"enso-$ensoVersion", distDir / ensoVersion)
     }
 
+    def makeExecutable(file: File): Unit = {
+      val ownerOnly = false
+      file.setExecutable(true, ownerOnly)
+    }
+
     def fixLauncher(root: File, os: OS): Unit = {
-      (root / "enso" / "bin" / os.executableName("enso")).setExecutable(true)
+      makeExecutable(root / "enso" / "bin" / os.executableName("enso"))
       IO.createDirectories(
         Seq("dist", "config", "runtime").map(root / "enso" / _)
       )
@@ -316,12 +322,14 @@ object DistributionPackage {
       }
     }
 
+    /** Path to an arbitrary built artifact. */
     def builtArtifact(
       component: String,
       os: OS,
       architecture: Architecture
     ): File = artifactRoot / artifactName(component, os, architecture)
 
+    /** Path to the artifact that is built on this local machine. */
     def localArtifact(component: String): File = {
       val architecture = Architecture.X64
       val os =
@@ -332,6 +340,10 @@ object DistributionPackage {
       artifactRoot / artifactName(component, os, architecture)
     }
 
+    /** Path to a built archive.
+      *
+      * These archives are built by [[makePackages]] and [[makeBundles]].
+      */
     def builtArchive(
       component: String,
       os: OS,
@@ -343,6 +355,18 @@ object DistributionPackage {
         architecture
       ) + os.archiveExt)
 
+    /** Creates compressed and ready for release packages for the launcher and
+      * engine.
+      *
+      * A project manager package is not created, as we release only its bundle.
+      * See [[makeBundles]].
+      *
+      * It does not trigger any builds. Instead, it uses available artifacts
+      * placed in `artifactRoot`. These artifacts may be created using the
+      * `enso/build*Distribution` tasks or they may come from other workers (as
+      * is the case in the release CI where the artifacts are downloaded from
+      * other jobs).
+      */
     def makePackages = Command.command("makePackages") { state =>
       val log = state.log
       for {
@@ -360,7 +384,7 @@ object DistributionPackage {
         val engine = builtArtifact("engine", os, arch)
         if (engine.exists()) {
           if (os.isUNIX) {
-            (engine / s"enso-$ensoVersion" / "bin" / "enso").setExecutable(true)
+            makeExecutable(engine / s"enso-$ensoVersion" / "bin" / "enso")
           }
           val archive = builtArchive("engine", os, arch)
           makeArchive(engine, s"enso-$ensoVersion", archive)
@@ -376,6 +400,18 @@ object DistributionPackage {
       }
     }
 
+    /** Creates launcher and project-manager bundles that include the component
+      * itself, the engine and a Graal runtime.
+      *
+      * It will download the GraalVM runtime and cache it in `artifactRoot` so
+      * further invocations for the same version will not need to download it.
+      *
+      * It does not trigger any builds. Instead, it uses available artifacts
+      * placed in `artifactRoot`. These artifacts may be created using the
+      * `enso/build*Distribution` tasks or they may come from other workers (as
+      * is the case in the release CI where the artifacts are downloaded from
+      * other jobs).
+      */
     def makeBundles = Command.command("makeBundles") { state =>
       val log = state.log
       for {
@@ -400,7 +436,7 @@ object DistributionPackage {
         val pm = builtArtifact("project-manager", os, arch)
         if (pm.exists()) {
           if (os.isUNIX) {
-            (pm / "enso" / "bin" / "project-manager").setExecutable(true)
+            makeExecutable(pm / "enso" / "bin" / "project-manager")
           }
 
           copyEngine(os, arch, pm / "enso" / "dist")
