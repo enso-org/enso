@@ -1,6 +1,9 @@
-import sbt.{file, singleFileFinder, File, IO}
+import sbt.internal.util.ManagedLogger
+import sbt._
 import sbt.io.syntax.fileToRichFile
 import sbt.util.{CacheStore, CacheStoreFactory, FileInfo, Tracked}
+
+import scala.sys.process._
 
 object DistributionPackage {
   def copyDirectoryIncremental(
@@ -143,5 +146,280 @@ object DistributionPackage {
       distributionRoot,
       cacheFactory.make("launcher-rootfiles")
     )
+  }
+
+  sealed trait OS {
+    def name: String
+    def graalName: String                    = name
+    def executableName(base: String): String = base
+    def archiveExt: String                   = ".tar.gz"
+    def isUNIX: Boolean                      = true
+  }
+  object OS {
+    case object Linux extends OS {
+      override def name: String = "linux"
+    }
+    case object MacOS extends OS {
+      override def name: String      = "macos"
+      override def graalName: String = "darwin"
+    }
+    case object Windows extends OS {
+      override def name: String                         = "windows"
+      override def executableName(base: String): String = base + ".exe"
+      override def archiveExt: String                   = ".zip"
+      override def isUNIX: Boolean                      = false
+    }
+
+    val platforms = Seq(Linux, MacOS, Windows)
+  }
+
+  sealed trait Architecture {
+    def name: String
+  }
+  object Architecture {
+    case object X64 extends Architecture {
+      override def name: String = "amd64"
+    }
+
+    val archs = Seq(X64)
+  }
+
+  class Builder(
+    ensoVersion: String,
+    graalVersion: String,
+    graalJavaVersion: String,
+    artifactRoot: File
+  ) {
+
+    def artifactName(
+      component: String,
+      os: OS,
+      architecture: Architecture
+    ): String =
+      s"enso-$component-$ensoVersion-${os.name}-${architecture.name}"
+
+    def graalInPackageName: String =
+      s"graalvm-ce-java$graalJavaVersion-$graalVersion"
+
+    private def extractZip(archive: File, root: File): Unit = {
+      IO.createDirectory(root)
+      val exitCode = Process(
+        Seq("unzip", "-q", archive.toPath.toAbsolutePath.normalize.toString),
+        cwd = Some(root)
+      ).!
+      if (exitCode != 0) {
+        throw new RuntimeException(s"Cannot extract $archive.")
+      }
+    }
+
+    private def extractTarGz(archive: File, root: File): Unit = {
+      IO.createDirectory(root)
+      val exitCode = Process(
+        Seq(
+          "tar",
+          "xf",
+          archive.toPath.toAbsolutePath.toString
+        ),
+        cwd = Some(root)
+      ).!
+      if (exitCode != 0) {
+        throw new RuntimeException(s"Cannot extract $archive.")
+      }
+    }
+
+    private def extract(archive: File, root: File): Unit = {
+      if (archive.getName.endsWith("zip")) {
+        extractZip(archive, root)
+      } else {
+        extractTarGz(archive, root)
+      }
+    }
+
+    def copyGraal(
+      log: ManagedLogger,
+      os: OS,
+      architecture: Architecture,
+      runtimeDir: File
+    ): Unit = {
+      val packageName = s"graalvm-${os.name}-${architecture.name}-" +
+        s"$graalVersion-$graalJavaVersion"
+      val root = artifactRoot / packageName
+      if (!root.exists()) {
+        log.info(
+          s"Downloading GraalVM $graalVersion Java $graalJavaVersion " +
+          s"for $os $architecture"
+        )
+        val graalUrl =
+          s"https://github.com/graalvm/graalvm-ce-builds/releases/download/" +
+          s"vm-$graalVersion/" +
+          s"graalvm-ce-java$graalJavaVersion-${os.graalName}-" +
+          s"${architecture.name}-$graalVersion${os.archiveExt}"
+        val archive  = artifactRoot / (packageName + os.archiveExt)
+        val exitCode = (url(graalUrl) #> archive).!
+        if (exitCode != 0) {
+          throw new RuntimeException(s"Graal download from $graalUrl failed.")
+        }
+
+        extract(archive, root)
+      }
+
+      IO.copyDirectory(
+        root / graalInPackageName,
+        runtimeDir / graalInPackageName
+      )
+    }
+
+    def copyEngine(os: OS, architecture: Architecture, distDir: File): Unit = {
+      val engine = builtArtifact("engine", os, architecture)
+      if (!engine.exists()) {
+        throw new IllegalStateException(
+          s"Cannot create bundle for $os / $architecture because corresponding " +
+          s"engine has not been built."
+        )
+      }
+
+      IO.copyDirectory(engine / s"enso-$ensoVersion", distDir / ensoVersion)
+    }
+
+    def fixLauncher(root: File, os: OS): Unit = {
+      (root / "enso" / "bin" / os.executableName("enso")).setExecutable(true)
+      IO.createDirectories(
+        Seq("dist", "config", "runtime").map(root / "enso" / _)
+      )
+    }
+
+    def makeArchive(root: File, rootDir: String, target: File): Unit = {
+      val exitCode = if (target.getName.endsWith("zip")) {
+        Process(
+          Seq(
+            "zip",
+            "-q",
+            "-r",
+            target.toPath.toAbsolutePath.normalize.toString,
+            rootDir
+          ),
+          cwd = Some(root)
+        ).!
+      } else {
+        Process(
+          Seq(
+            "tar",
+            "-czf",
+            target.toPath.toAbsolutePath.normalize.toString,
+            rootDir
+          ),
+          cwd = Some(root)
+        ).!
+      }
+      if (exitCode != 0) {
+        throw new RuntimeException(s"Failed to create archive $target")
+      }
+    }
+
+    def builtArtifact(
+      component: String,
+      os: OS,
+      architecture: Architecture
+    ): File = artifactRoot / artifactName(component, os, architecture)
+
+    def localArtifact(component: String): File = {
+      val architecture = Architecture.X64
+      val os =
+        if (Platform.isWindows) OS.Windows
+        else if (Platform.isLinux) OS.Linux
+        else if (Platform.isMacOS) OS.MacOS
+        else throw new IllegalStateException("Unknown OS")
+      artifactRoot / artifactName(component, os, architecture)
+    }
+
+    def builtArchive(
+      component: String,
+      os: OS,
+      architecture: Architecture
+    ): File =
+      artifactRoot / (artifactName(
+        component,
+        os,
+        architecture
+      ) + os.archiveExt)
+
+    def makePackages = Command.command("makePackages") { state =>
+      val log = state.log
+      for {
+        os   <- OS.platforms
+        arch <- Architecture.archs
+      } {
+        val launcher = builtArtifact("launcher", os, arch)
+        if (launcher.exists()) {
+          fixLauncher(launcher, os)
+          val archive = builtArchive("launcher", os, arch)
+          makeArchive(launcher, "enso", archive)
+          log.info(s"Created $archive")
+        }
+
+        val engine = builtArtifact("engine", os, arch)
+        if (engine.exists()) {
+          if (os.isUNIX) {
+            (engine / s"enso-$ensoVersion" / "bin" / "enso").setExecutable(true)
+          }
+          val archive = builtArchive("engine", os, arch)
+          makeArchive(engine, s"enso-$ensoVersion", archive)
+          log.info(s"Created $archive")
+        }
+      }
+      state
+    }
+
+    private def cleanDirectory(dir: File): Unit = {
+      for (f <- IO.listFiles(dir)) {
+        IO.delete(f)
+      }
+    }
+
+    def makeBundles = Command.command("makeBundles") { state =>
+      val log = state.log
+      for {
+        os   <- OS.platforms
+        arch <- Architecture.archs
+      } {
+        val launcher = builtArtifact("launcher", os, arch)
+        if (launcher.exists()) {
+          fixLauncher(launcher, os)
+          copyEngine(os, arch, launcher / "enso" / "dist")
+          copyGraal(log, os, arch, launcher / "enso" / "runtime")
+
+          val archive = builtArchive("bundle", os, arch)
+          makeArchive(launcher, "enso", archive)
+
+          cleanDirectory(launcher / "enso" / "dist")
+          cleanDirectory(launcher / "enso" / "runtime")
+
+          log.info(s"Created $archive")
+        }
+
+        val pm = builtArtifact("project-manager", os, arch)
+        if (pm.exists()) {
+          if (os.isUNIX) {
+            (pm / "enso" / "bin" / "project-manager").setExecutable(true)
+          }
+
+          copyEngine(os, arch, pm / "enso" / "dist")
+          copyGraal(log, os, arch, pm / "enso" / "runtime")
+          IO.copyFile(
+            file("distribution/enso.bundle.template"),
+            pm / "enso" / ".enso.bundle"
+          )
+
+          val archive = builtArchive("project-manager", os, arch)
+          makeArchive(pm, "enso", archive)
+
+          cleanDirectory(pm / "enso" / "dist")
+          cleanDirectory(pm / "enso" / "runtime")
+
+          log.info(s"Created $archive")
+        }
+      }
+      state
+    }
   }
 }
