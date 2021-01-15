@@ -268,7 +268,15 @@ object Runtime {
       Array(
         new JsonSubTypes.Type(
           value = classOf[ExpressionUpdate.ExpressionComputed],
-          name  = "expressionComputed"
+          name  = "expressionUpdateComputed"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExpressionUpdate.ExpressionFailed],
+          name  = "expressionUpdateFailed"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExpressionUpdate.ExpressionPoisoned],
+          name  = "expressionUpdatePoisoned"
         )
       )
     )

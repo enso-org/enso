@@ -6,7 +6,7 @@ import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 
-object ErrorHandler {
+object ErrorResolver {
 
   def createUpdates(error: Throwable)(implicit
     ctx: RuntimeContext

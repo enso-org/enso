@@ -15,7 +15,7 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionValue
 }
 import org.enso.interpreter.instrument.execution.{
-  ErrorHandler,
+  ErrorResolver,
   LocationResolver,
   RuntimeContext
 }
@@ -247,7 +247,7 @@ trait ProgramExecutionSupport {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
-    sendExpressionUpdates(contextId, ErrorHandler.createUpdates(error).take(0))
+    sendExpressionUpdates(contextId, ErrorResolver.createUpdates(error))
     executionUpdate.getOrElse(
       Api.ExecutionResult
         .Failure(s"Error in function $itemName.", None)
