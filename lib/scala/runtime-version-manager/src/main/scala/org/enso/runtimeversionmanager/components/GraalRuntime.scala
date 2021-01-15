@@ -43,7 +43,7 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
       Failure(
         CorruptedComponentError(
           s"Runtime's java executable (expected at " +
-          s"${javaExecutable.toAbsolutePath.normalize}) is missing."
+          s"`${javaExecutable.toAbsolutePath.normalize}`) is missing."
         )
       )
     else if (!Files.isExecutable(javaExecutable))

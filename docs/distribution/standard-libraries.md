@@ -3,7 +3,7 @@ layout: developer-doc
 title: Standard Libraries
 category: distribution
 tags: [distribution, stdlib]
-order: 9
+order: 8
 ---
 
 # Standard Libraries
