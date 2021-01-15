@@ -110,6 +110,99 @@ class ExpressionErrorsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  it should "return all expressions in method body" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val fooBodyId  = metadata.addItem(21, 5)
+    @scala.annotation.unused
+    val xId       = metadata.addItem(35, 9)
+    val yId       = metadata.addItem(53, 8)
+    val mainResId = metadata.addItem(66, 7)
+
+    val code =
+      """main =
+        |    foo a b = a + b
+        |    x = undefined
+        |    y = foo x 42
+        |    foo y 1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionUpdates(
+          contextId,
+          Seq(
+            Api.ExpressionUpdate.ExpressionFailed(
+              fooBodyId,
+              "No_Such_Method_Error UnresolvedSymbol<undefined> UnresolvedSymbol<+>"
+            ),
+            Api.ExpressionUpdate.ExpressionPoisoned(yId, fooBodyId),
+            Api.ExpressionUpdate.ExpressionPoisoned(mainResId, fooBodyId)
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "No_Such_Method_Error UnresolvedSymbol<undefined> UnresolvedSymbol<+>",
+              Some(mainFile),
+              Some(model.Range(model.Position(1, 14), model.Position(1, 19))),
+              Some(fooBodyId),
+              Vector(
+                Api.StackTraceElement(
+                  "foo",
+                  Some(mainFile),
+                  Some(
+                    model.Range(model.Position(1, 14), model.Position(1, 19))
+                  )
+                ),
+                Api.StackTraceElement(
+                  "Main.main",
+                  Some(mainFile),
+                  Some(model.Range(model.Position(3, 8), model.Position(3, 16)))
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "return error unresolved symbol" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
