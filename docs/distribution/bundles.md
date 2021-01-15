@@ -14,23 +14,25 @@ any additional dependencies.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Project Manager Bundle](#project-manager-bundle)
+- [Launcher Bundles](#launcher-bundles)
+
 <!-- /MarkdownTOC -->
 
 ## Project Manager Bundle
 
 The Project Manager is distributed with latest engine version and its
-corresponding Graal runtime bundled in to avoid having to download it at first
-startup.
+corresponding Graal runtime to avoid having to download them at first startup.
 
 The bundled components are placed in their respective subdirectories (not as
-packages, but extracted and ready to use) and a bundle mark file called
+packages, but extracted and ready to use) and a bundle marker file called
 `.enso.bundle` must be placed next to these directories so that the Project
 Manager can detect the bundle.
 
-The `project-manager` executable looks for the `.enso.bundle` mark in the parent
-directory of the directory that it is itself located in. So overall, the bundle
-should have the following structure (the actual engine and Graal versions may of
-course differ):
+The `project-manager` executable looks for the `.enso.bundle` marker in the
+parent directory of the directory that it is, itself, located in. So overall,
+the bundle should have the following structure (the actual engine and Graal
+versions may of course differ):
 
 ```
 enso
@@ -54,7 +56,7 @@ to the bundles.
 
 In fact, it is possible for the bundle directory to be read-only (which may be
 the case for example if the Project Manager bundle is packaged as part of IDE's
-AppImage package). In such situation, it may be impossible to uninstall the
+AppImage package). In such situation, it will be impossible to uninstall the
 bundled components and a relevant error message will be returned.
 
 ## Launcher Bundles
