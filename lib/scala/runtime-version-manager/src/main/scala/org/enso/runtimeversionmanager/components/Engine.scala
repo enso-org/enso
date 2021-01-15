@@ -48,14 +48,14 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
       Failure(
         CorruptedComponentError(
           s"Engine's runner.jar (expected at " +
-          s"${runnerPath.toAbsolutePath.normalize} is missing."
+          s"`${runnerPath.toAbsolutePath.normalize}`) is missing."
         )
       )
     else if (!Files.exists(runtimePath))
       Failure(
         CorruptedComponentError(
-          s"Engine's runtime.jar (expected at " +
-          s"${runtimePath.toAbsolutePath.normalize} is missing."
+          s"`Engine's runtime.jar (expected at " +
+          s"${runtimePath.toAbsolutePath.normalize}`) is missing."
         )
       )
     else Success(())

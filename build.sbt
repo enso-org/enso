@@ -93,6 +93,13 @@ openLegalReviewReport := {
 lazy val analyzeDependency = inputKey[Unit]("...")
 analyzeDependency := GatherLicenses.analyzeDependency.evaluated
 
+val packageBuilder = new DistributionPackage.Builder(
+  ensoVersion      = ensoVersion,
+  graalVersion     = graalVersion,
+  graalJavaVersion = javaVersion,
+  artifactRoot     = file("built-distribution")
+)
+
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 // ============================================================================
@@ -201,6 +208,9 @@ lazy val enso = (project in file("."))
     testkit
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
+  .settings(
+    commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
+  )
 
 // ============================================================================
 // === Dependency Versions ====================================================
@@ -1338,9 +1348,11 @@ lazy val launcherDistributionRoot =
 lazy val projectManagerDistributionRoot =
   settingKey[File]("Root of built project manager distribution")
 
-engineDistributionRoot := file("built-distribution/engine")
-launcherDistributionRoot := file("built-distribution/launcher")
-projectManagerDistributionRoot := file("built-distribution/project-manager")
+engineDistributionRoot :=
+  packageBuilder.localArtifact("engine") / s"enso-$ensoVersion"
+launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
+projectManagerDistributionRoot :=
+  packageBuilder.localArtifact("project-manager") / "enso"
 
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
