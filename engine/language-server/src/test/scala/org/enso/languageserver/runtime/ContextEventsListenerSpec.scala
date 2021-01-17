@@ -240,6 +240,7 @@ class ContextEventsListenerSpec
                   message,
                   None,
                   None,
+                  None,
                   Vector()
                 )
               )

@@ -147,11 +147,13 @@ object ContextRegistryProtocol {
     * @param functionName the function containing the stack call
     * @param path the location of a file
     * @param location the location of the element in a file
+    * @param expressionId the id of related expression
     */
   case class ExecutionStackTraceElement(
     functionName: String,
     path: Option[Path],
-    location: Option[model.Range]
+    location: Option[model.Range],
+    expressionId: Option[UUID]
   )
 
   /** A diagnostic message produced as a compilation outcome.

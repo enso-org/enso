@@ -335,12 +335,13 @@ trait ProgramExecutionSupport {
     val node = element.getLocation
     node.getEncapsulatingSourceSection match {
       case null =>
-        Api.StackTraceElement(node.getRootNode.getName, None, None)
+        Api.StackTraceElement(node.getRootNode.getName, None, None, None)
       case section =>
         Api.StackTraceElement(
           element.getTarget.getRootNode.getName,
           findFileByModuleName(section.getSource.getName),
-          Some(LocationResolver.sectionToRange(section))
+          Some(LocationResolver.sectionToRange(section)),
+          LocationResolver.getExpressionId(section).map(_.externalId)
         )
     }
   }

@@ -211,7 +211,8 @@ final class ContextEventsListener(
     ExecutionStackTraceElement(
       element.functionName,
       element.file.flatMap(config.findRelativePath),
-      element.location
+      element.location,
+      element.expressionId
     )
 }
 

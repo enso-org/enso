@@ -3355,7 +3355,10 @@ class RuntimeServerTest
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(0, 7), model.Position(0, 24)))
+                  Some(
+                    model.Range(model.Position(0, 7), model.Position(0, 24))
+                  ),
+                  None
                 )
               )
             )
@@ -3422,12 +3425,16 @@ class RuntimeServerTest
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(2, 14), model.Position(2, 23))
-                  )
+                  ),
+                  None
                 ),
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(0, 7), model.Position(0, 21)))
+                  Some(
+                    model.Range(model.Position(0, 7), model.Position(0, 21))
+                  ),
+                  None
                 )
               )
             )
@@ -3489,18 +3496,22 @@ class RuntimeServerTest
               None,
               None,
               Vector(
-                Api.StackTraceElement("Text.+", None, None),
+                Api.StackTraceElement("Text.+", None, None, None),
                 Api.StackTraceElement(
                   "Main.bar",
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(2, 10), model.Position(2, 15))
-                  )
+                  ),
+                  None
                 ),
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(0, 7), model.Position(0, 23)))
+                  Some(
+                    model.Range(model.Position(0, 7), model.Position(0, 23))
+                  ),
+                  None
                 )
               )
             )
@@ -3566,7 +3577,10 @@ class RuntimeServerTest
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(2, 7), model.Position(2, 16)))
+                  Some(
+                    model.Range(model.Position(2, 7), model.Position(2, 16))
+                  ),
+                  None
                 )
               )
             )
@@ -3639,28 +3653,38 @@ class RuntimeServerTest
               None,
               None,
               Vector(
-                Api.StackTraceElement("Small_Integer.+", None, None),
+                Api.StackTraceElement("Small_Integer.+", None, None, None),
                 Api.StackTraceElement(
                   "Main.baz",
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(11, 8), model.Position(11, 17))
-                  )
+                  ),
+                  None
                 ),
                 Api.StackTraceElement(
                   "Main.bar",
                   Some(mainFile),
-                  Some(model.Range(model.Position(8, 8), model.Position(8, 16)))
+                  Some(
+                    model.Range(model.Position(8, 8), model.Position(8, 16))
+                  ),
+                  None
                 ),
                 Api.StackTraceElement(
                   "Main.foo",
                   Some(mainFile),
-                  Some(model.Range(model.Position(5, 8), model.Position(5, 16)))
+                  Some(
+                    model.Range(model.Position(5, 8), model.Position(5, 16))
+                  ),
+                  None
                 ),
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(2, 7), model.Position(2, 15)))
+                  Some(
+                    model.Range(model.Position(2, 7), model.Position(2, 15))
+                  ),
+                  None
                 )
               )
             )
@@ -3720,7 +3744,8 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 7), model.Position(2, 8)))
+              Some(model.Range(model.Position(2, 7), model.Position(2, 8))),
+              None
             )
           )
         )

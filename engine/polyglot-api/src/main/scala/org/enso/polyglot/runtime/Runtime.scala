@@ -547,11 +547,13 @@ object Runtime {
       * @param functionName the function containing the stack call
       * @param file the location of a file
       * @param location the location of the element in a file
+      * @param expressionId the id of an expression
       */
     case class StackTraceElement(
       functionName: String,
       file: Option[File],
-      location: Option[Range]
+      location: Option[Range],
+      expressionId: Option[ExpressionId]
     )
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

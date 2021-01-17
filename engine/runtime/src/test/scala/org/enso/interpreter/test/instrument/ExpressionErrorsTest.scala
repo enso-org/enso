@@ -110,7 +110,7 @@ class ExpressionErrorsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  it should "return all expressions in method body" in {
+  it should "return all errors in method body" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
@@ -187,12 +187,16 @@ class ExpressionErrorsTest
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(1, 14), model.Position(1, 19))
-                  )
+                  ),
+                  Some(fooBodyId)
                 ),
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(3, 8), model.Position(3, 16)))
+                  Some(
+                    model.Range(model.Position(3, 8), model.Position(3, 16))
+                  ),
+                  Some(yId)
                 )
               )
             )
@@ -277,19 +281,24 @@ class ExpressionErrorsTest
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(4, 12), model.Position(4, 19))
-                  )
+                  ),
+                  Some(bazId)
                 ),
                 Api.StackTraceElement(
                   "Main.bar",
                   Some(mainFile),
                   Some(
                     model.Range(model.Position(2, 12), model.Position(2, 26))
-                  )
+                  ),
+                  Some(barId)
                 ),
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
-                  Some(model.Range(model.Position(0, 7), model.Position(0, 19)))
+                  Some(
+                    model.Range(model.Position(0, 7), model.Position(0, 19))
+                  ),
+                  Some(mainId)
                 )
               )
             )
