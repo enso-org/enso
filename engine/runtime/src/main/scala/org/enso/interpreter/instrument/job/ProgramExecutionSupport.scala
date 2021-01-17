@@ -361,7 +361,7 @@ trait ProgramExecutionSupport {
 
   private def sendExpressionUpdates(
     contextId: ContextId,
-    updates: Seq[Api.ExpressionUpdate]
+    updates: Set[Api.ExpressionUpdate]
   )(implicit ctx: RuntimeContext): Unit = {
     if (updates.nonEmpty) {
       ctx.endpoint.sendToClient(
@@ -383,12 +383,27 @@ trait ProgramExecutionSupport {
       !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
       !Objects.equals(value.getType, value.getCachedType)
     ) {
+      // TODO: [DB] Remove when IDE implements new updates API
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionValuesComputed(
             contextId,
             Vector(
               Api.ExpressionValueUpdate(
+                value.getExpressionId,
+                Option(value.getType),
+                methodPointer
+              )
+            )
+          )
+        )
+      )
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionUpdates(
+            contextId,
+            Set(
+              Api.ExpressionUpdate.ExpressionComputed(
                 value.getExpressionId,
                 Option(value.getType),
                 methodPointer

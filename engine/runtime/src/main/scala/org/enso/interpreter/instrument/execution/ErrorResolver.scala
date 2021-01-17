@@ -18,7 +18,7 @@ object ErrorResolver {
     */
   def createUpdates(error: Throwable)(implicit
     ctx: RuntimeContext
-  ): Seq[Api.ExpressionUpdate] = {
+  ): Set[Api.ExpressionUpdate] = {
     getErrorSource(error) match {
       case Some(section) =>
         val moduleName = section.getSource.getName
@@ -32,24 +32,23 @@ object ErrorResolver {
             LocationResolver
               .getExpressionId(section, module)
               .map { expressionId =>
-                val poisoned = meta
+                val poisoned: Set[Api.ExpressionUpdate] = meta
                   .getExternal(toDataflowDependencyType(expressionId))
                   .getOrElse(Set())
                   .map(
                     Api.ExpressionUpdate
                       .ExpressionPoisoned(_, expressionId.externalId)
                   )
-                  .toSeq
                 val failed =
                   Api.ExpressionUpdate
                     .ExpressionFailed(expressionId.externalId, error.getMessage)
-                failed +: poisoned
+                poisoned + failed
               }
-              .getOrElse(Seq())
+              .getOrElse(Set())
           }
-          .orElse(Seq())
+          .orElse(Set())
       case None =>
-        Seq()
+        Set()
     }
   }
 

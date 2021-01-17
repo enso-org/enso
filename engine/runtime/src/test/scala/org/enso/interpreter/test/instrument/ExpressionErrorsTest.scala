@@ -162,7 +162,7 @@ class ExpressionErrorsTest
       Api.Response(
         Api.ExpressionUpdates(
           contextId,
-          Seq(
+          Set(
             Api.ExpressionUpdate.ExpressionFailed(
               fooBodyId,
               "No_Such_Method_Error UnresolvedSymbol<undefined> UnresolvedSymbol<+>"
@@ -258,7 +258,7 @@ class ExpressionErrorsTest
       Api.Response(
         Api.ExpressionUpdates(
           contextId,
-          Seq(
+          Set(
             Api.ExpressionUpdate.ExpressionFailed(
               bazId,
               "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>"

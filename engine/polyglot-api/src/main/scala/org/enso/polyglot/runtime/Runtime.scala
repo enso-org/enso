@@ -366,7 +366,7 @@ object Runtime {
       */
     case class ExpressionUpdates(
       contextId: ContextId,
-      updates: Seq[ExpressionUpdate]
+      updates: Set[ExpressionUpdate]
     ) extends ApiNotification
 
     /** Represents a visualisation context.
