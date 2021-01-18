@@ -1608,7 +1608,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMain,
-              Some(Constants.INTEGER),
+              Some(Constants.NOTHING),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
               false
