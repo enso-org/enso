@@ -25,6 +25,7 @@ module.exports = {
         new CopyWebpackPlugin([
             path.resolve(thisPath,'src','index.html'),
             path.resolve(thisPath,'src','run.js'),
+            path.resolve(thisPath,'src','style.css'),
             path.resolve(wasmPath,'ide.wasm'),
         ]),
     ],

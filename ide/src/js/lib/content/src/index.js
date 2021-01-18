@@ -44,11 +44,12 @@ function wasm_instantiate_streaming(resource,imports) {
 
 
 /// Downloads the WASM binary and its dependencies. Displays loading progress bar unless provided
-/// with `{no_loader:true}` option.
-async function download_content(urlCfg) {
-    let wasm_glue_fetch = await fetch('/assets/wasm_imports.js')
-    let wasm_fetch      = await fetch('/assets/ide.wasm')
-    let loader          = new loader_module.Loader([wasm_glue_fetch,wasm_fetch],urlCfg)
+/// with `{use_loader:false}` option.
+async function download_content(config) {
+    let wasm_glue_fetch = await fetch(config.wasm_glue_url)
+    let wasm_fetch      = await fetch(config.wasm_url)
+    let loader =
+        new loader_module.Loader([wasm_glue_fetch,wasm_fetch], config)
 
     loader.done.then(() => {
         console.groupEnd()
@@ -313,9 +314,8 @@ async function reportCrash(message) {
 // === Main Entry Point ===
 // ========================
 
-let root = document.getElementById('root')
-
 function style_root() {
+    let root = document.getElementById('root')
     root.style.backgroundColor = '#f6f3f199'
 }
 
@@ -348,9 +348,14 @@ function ok(value) {
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 API.main = async function (inputConfig) {
+    let defaultConfig = {
+        use_loader    : true,
+        wasm_url      : '/assets/ide.wasm',
+        wasm_glue_url : '/assets/wasm_imports.js'
+    }
     let urlParams = new URLSearchParams(window.location.search);
     let urlConfig = Object.fromEntries(urlParams.entries())
-    let config    = Object.assign({},inputConfig,urlConfig)
+    let config    = Object.assign(defaultConfig,inputConfig,urlConfig)
     API[globalConfig.windowAppScopeConfigName] = config
 
     initCrashHandling()
@@ -360,10 +365,10 @@ API.main = async function (inputConfig) {
     disableContextMenu()
 
     let entryTarget = ok(config.entry) ? config.entry : main_entry_point
-    let useLoader   = entryTarget === main_entry_point
+    config.use_loader = config.use_loader && (entryTarget === main_entry_point)
 
     await windowShowAnimation()
-    let {wasm,loader} = await download_content({no_loader:!useLoader})
+    let {wasm,loader} = await download_content(config)
 
     if (entryTarget) {
         let fn_name = wasm_entry_point_pfx + entryTarget

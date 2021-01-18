@@ -36,5 +36,8 @@ ensogl::read_args! {
         frame                : bool,
         dark_theme           : bool,
         high_contrast        : bool,
+        use_loader           : bool,
+        wasm_url             : String,
+        wasm_glue_url        : String,
     }
 }
