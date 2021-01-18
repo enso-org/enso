@@ -24,6 +24,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`StackItem`](#stackitem)
   - [`MethodPointer`](#methodpointer)
   - [`ExpressionValueUpdate`](#expressionvalueupdate)
+  - [`ExpressionUpdate`](#expressionupdate)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
@@ -111,6 +112,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+  - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
@@ -239,6 +241,62 @@ interface ExpressionValueUpdate {
 
   /** The updated pointer to the method call */
   methodPointer?: SuggestionId;
+}
+```
+
+### `ExpressionUpdate`
+
+```typescript
+type ExpressionUpdate = Computed | Failed | Poisoned;
+
+/**
+ * An update about computed expression.
+ */
+interface Computed {
+  /**
+   * The id of updated expression.
+   */
+  expressionId: ExpressionId;
+
+  /**
+   * The updated type of the expression.
+   */
+  type?: String;
+
+  /**
+   * The updated pointer to the method call.
+   */
+  methodPointer?: SuggestionId;
+}
+
+/**
+ * An update about failed expression.
+ */
+interface Failed {
+  /**
+   * The id of updated expression.
+   */
+  expressionId: ExpressionId;
+
+  /**
+   * The error message.
+   */
+  message: String;
+}
+
+/**
+ * An update about expression not executed due to the failed dependency.
+ */
+interface Poisoned {
+  /**
+   * The id of updated expression.
+   */
+  expressionId: ExpressionId;
+
+  /**
+   * The failed expression that prevents the execution of this expression.
+   */
+  failedExpressionId: ExpressionId;
 }
 ```
 
@@ -1200,6 +1258,7 @@ given execution context.
 #### Enables
 
 - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+- [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
 - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
 - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
 
@@ -2570,6 +2629,31 @@ expressions becoming available.
 {
   contextId: ContextId;
   updates: [ExpressionValueUpdate];
+}
+```
+
+#### Errors
+
+None
+
+### `executionContext/expressionUpdates`
+
+Sent from the server to the client to inform about new information for certain
+expressions becoming available. Supersedes the
+`executionContext/expressionValuesComputed` notification, that will be removed
+in future versions.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+  updates: [ExpressionUpdate];
 }
 ```
 

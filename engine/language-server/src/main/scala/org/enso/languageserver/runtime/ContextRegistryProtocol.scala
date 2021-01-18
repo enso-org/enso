@@ -149,7 +149,6 @@ object ContextRegistryProtocol {
     }
 
     private object ExpressionUpdateType {
-
       val Computed = "Computed"
 
       val Failed = "Failed"
