@@ -9,7 +9,7 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 enso-frp = { path = "../../../lib/frp" }
-enso-prelude = { version = "0.1.8" }
+enso-prelude = { version = "0.1.9" }
 enso-shapely = { version = "0.1.3" }
 enso-types = { path = "../../../lib/types" }
 ensogl-core = { path = "../../../ensogl/lib/core" }

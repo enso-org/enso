@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 ensogl = { path = "../../../ensogl" }
-enso-prelude = { version = "0.1.8" }
-enso-logger = { version = "0.2.1" }
+enso-prelude = { version = "0.1.9" }
+enso-logger = { version = "0.2.2" }
