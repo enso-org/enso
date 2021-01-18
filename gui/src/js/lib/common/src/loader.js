@@ -40,7 +40,7 @@ export class ProgressIndicator {
         this.set(0)
         this.set_opacity(0)
 
-        if(!cfg.no_loader) {
+        if(cfg.use_loader) {
             this.initialized = this.animate_show()
         } else {
             this.initialized = new Promise((resolve) => {resolve()})
