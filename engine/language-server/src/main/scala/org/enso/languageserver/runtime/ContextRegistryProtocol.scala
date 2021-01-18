@@ -1,7 +1,11 @@
 package org.enso.languageserver.runtime
 
 import java.util.UUID
+
 import enumeratum._
+import io.circe.generic.auto._
+import io.circe.syntax._
+import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
@@ -100,7 +104,7 @@ object ContextRegistryProtocol {
   case class ExpressionUpdatesNotification(
     contextId: ContextId,
     updates: Vector[ExpressionUpdate],
-    updatesOld: Vector[ExpressionValueUpdate]
+    updatesOld: Option[Vector[ExpressionValueUpdate]]
   )
 
   sealed trait ExpressionUpdate
@@ -138,6 +142,58 @@ object ContextRegistryProtocol {
       expressionId: UUID,
       failedExpressionId: UUID
     ) extends ExpressionUpdate
+
+    private object CodecField {
+
+      val Type = "type"
+    }
+
+    private object ExpressionUpdateType {
+
+      val Computed = "Computed"
+
+      val Failed = "Failed"
+
+      val Poisoned = "Poisoned"
+    }
+
+    implicit val encoder: Encoder[ExpressionUpdate] =
+      Encoder.instance[ExpressionUpdate] {
+        case m: ExpressionUpdate.ExpressionComputed =>
+          Encoder[ExpressionUpdate.ExpressionComputed]
+            .apply(m)
+            .deepMerge(
+              Json.obj(CodecField.Type -> ExpressionUpdateType.Computed.asJson)
+            )
+
+        case m: ExpressionUpdate.ExpressionFailed =>
+          Encoder[ExpressionUpdate.ExpressionFailed]
+            .apply(m)
+            .deepMerge(
+              Json.obj(CodecField.Type -> ExpressionUpdateType.Failed.asJson)
+            )
+
+        case m: ExpressionUpdate.ExpressionPoisoned =>
+          Encoder[ExpressionUpdate.ExpressionPoisoned]
+            .apply(m)
+            .deepMerge(
+              Json.obj(CodecField.Type -> ExpressionUpdateType.Poisoned.asJson)
+            )
+      }
+
+    implicit val decoder: Decoder[ExpressionUpdate] =
+      Decoder.instance { cursor =>
+        cursor.downField(CodecField.Type).as[String].flatMap {
+          case ExpressionUpdateType.Computed =>
+            Decoder[ExpressionUpdate.ExpressionComputed].tryDecode(cursor)
+
+          case ExpressionUpdateType.Failed =>
+            Decoder[ExpressionUpdate.ExpressionFailed].tryDecode(cursor)
+
+          case ExpressionUpdateType.Poisoned =>
+            Decoder[ExpressionUpdate.ExpressionFailed].tryDecode(cursor)
+        }
+      }
   }
 
   /** Signals that user doesn't have access to the requested context.

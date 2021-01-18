@@ -108,11 +108,13 @@ class ContextEventsListenerSpec
                   Some(suggestionIds(1).get)
                 )
               ),
-              Vector(
-                ExpressionValueUpdate(
-                  Suggestions.method.externalId.get,
-                  Some(Suggestions.method.returnType),
-                  Some(suggestionIds(1).get)
+              Some(
+                Vector(
+                  ExpressionValueUpdate(
+                    Suggestions.method.externalId.get,
+                    Some(Suggestions.method.returnType),
+                    Some(suggestionIds(1).get)
+                  )
                 )
               )
             )
@@ -143,7 +145,7 @@ class ContextEventsListenerSpec
                   "Method failure"
                 )
               ),
-              Vector()
+              None
             )
           )
         )
@@ -172,7 +174,7 @@ class ContextEventsListenerSpec
                   Suggestions.method.externalId.get
                 )
               ),
-              Vector()
+              None
             )
           )
         )
@@ -233,16 +235,18 @@ class ContextEventsListenerSpec
                   None
                 )
               ),
-              Vector(
-                ExpressionValueUpdate(
-                  Suggestions.method.externalId.get,
-                  None,
-                  None
-                ),
-                ExpressionValueUpdate(
-                  Suggestions.local.externalId.get,
-                  None,
-                  None
+              Some(
+                Vector(
+                  ExpressionValueUpdate(
+                    Suggestions.method.externalId.get,
+                    None,
+                    None
+                  ),
+                  ExpressionValueUpdate(
+                    Suggestions.local.externalId.get,
+                    None,
+                    None
+                  )
                 )
               )
             )

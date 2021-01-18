@@ -120,7 +120,7 @@ final class ContextEventsListener(
       val notification = ContextRegistryProtocol.ExpressionUpdatesNotification(
         contextId,
         updates.result(),
-        Vector()
+        None
       )
       if (notification.updates.nonEmpty) {
         sessionRouter ! DeliverToJsonController(
@@ -180,7 +180,7 @@ final class ContextEventsListener(
         val payload = ContextRegistryProtocol.ExpressionUpdatesNotification(
           contextId,
           computedExpressions,
-          computedExpressions.map(toExpressionValueUpdate)
+          Some(computedExpressions.map(toExpressionValueUpdate))
         )
         DeliverToJsonController(rpcSession.clientId, payload)
 
