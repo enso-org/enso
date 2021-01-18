@@ -70,7 +70,7 @@ final class ContextRegistry(
 
   override def preStart(): Unit = {
     context.system.eventStream
-      .subscribe(self, classOf[Api.ExpressionValuesComputed])
+      .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
       .subscribe(self, classOf[Api.VisualisationUpdate])
     context.system.eventStream
@@ -88,7 +88,7 @@ final class ContextRegistry(
     case Ping =>
       sender() ! Pong
 
-    case update: Api.ExpressionValuesComputed =>
+    case update: Api.ExpressionUpdates =>
       store.getListener(update.contextId).foreach(_ ! update)
 
     case update: Api.VisualisationUpdate =>

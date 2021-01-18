@@ -92,15 +92,53 @@ object ContextRegistryProtocol {
     */
   case class RecomputeContextResponse(contextId: ContextId)
 
-  /** A notification that new information about some expressions is available.
+  /** A notification about updated expressions of execution context.
     *
     * @param contextId execution context identifier
-    * @param updates a list of updated expressions
+    * @param updates a list of updated expressions.
     */
-  case class ExpressionValuesComputedNotification(
+  case class ExpressionUpdatesNotification(
     contextId: ContextId,
-    updates: Vector[ExpressionValueUpdate]
+    updates: Vector[ExpressionUpdate],
+    updatesOld: Vector[ExpressionValueUpdate]
   )
+
+  sealed trait ExpressionUpdate
+  object ExpressionUpdate {
+
+    /** An update about computed expression.
+      *
+      * @param expressionId the id of updated expression
+      * @param `type` the updated type of expression
+      * @param methodPointer the suggestion id of the updated method pointer
+      */
+    case class ExpressionComputed(
+      expressionId: UUID,
+      `type`: Option[String],
+      methodPointer: Option[Long]
+    ) extends ExpressionUpdate
+
+    /** An update about failed expression.
+      *
+      * @param expressionId the expression id
+      * @param message the error message
+      */
+    case class ExpressionFailed(
+      expressionId: UUID,
+      message: String
+    ) extends ExpressionUpdate
+
+    /** An update about expression not executed due to the failed dependency.
+      *
+      * @param expressionId the expression id
+      * @param failedExpressionId failed expression that blocks the execution
+      * of this expression
+      */
+    case class ExpressionPoisoned(
+      expressionId: UUID,
+      failedExpressionId: UUID
+    ) extends ExpressionUpdate
+  }
 
   /** Signals that user doesn't have access to the requested context.
     */

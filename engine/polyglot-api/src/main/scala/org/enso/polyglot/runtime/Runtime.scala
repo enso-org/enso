@@ -349,6 +349,7 @@ object Runtime {
           extends InvalidatedExpressions
     }
 
+    // TODO: [DB] Remove when IDE implements new updates API
     /** A notification about updated expressions of the context.
       *
       * @param contextId the context's id.

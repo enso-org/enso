@@ -64,9 +64,7 @@ final class ContextEventsListener(
 
   override def receive: Receive = withState(Vector())
 
-  def withState(
-    expressionUpdates: Vector[Api.ExpressionValueUpdate]
-  ): Receive = {
+  def withState(expressionUpdates: Vector[Api.ExpressionUpdate]): Receive = {
     case Api.VisualisationUpdate(ctx, data) if ctx.contextId == contextId =>
       val payload =
         VisualisationUpdate(
@@ -79,8 +77,10 @@ final class ContextEventsListener(
         )
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
 
-    case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
-      context.become(withState(expressionUpdates :++ apiUpdates))
+    case Api.ExpressionUpdates(`contextId`, apiUpdates) =>
+      context.become(
+        withState(expressionUpdates :++ apiUpdates)
+      )
 
     case Api.ExecutionFailed(`contextId`, error) =>
       val payload =
@@ -101,57 +101,98 @@ final class ContextEventsListener(
     case Api.VisualisationEvaluationFailed(`contextId`, msg) =>
       val payload =
         ContextRegistryProtocol.VisualisationEvaluationFailed(contextId, msg)
-
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
-      def toMethodPointer(call: Api.MethodPointer): (String, String, String) =
-        (call.module, call.definedOnType, call.name)
-      val methodPointerToExpression = expressionUpdates
-        .flatMap(update =>
-          update.methodCall.map(call =>
-            toMethodPointer(call) -> update.expressionId
-          )
+      val updates = Vector.newBuilder[ContextRegistryProtocol.ExpressionUpdate]
+      val computedExpressions =
+        Vector.newBuilder[Api.ExpressionUpdate.ExpressionComputed]
+      expressionUpdates.foreach {
+        case m: Api.ExpressionUpdate.ExpressionComputed =>
+          computedExpressions += m
+        case m: Api.ExpressionUpdate.ExpressionFailed =>
+          updates += ContextRegistryProtocol.ExpressionUpdate
+            .ExpressionFailed(m.expressionId, m.message)
+        case m: Api.ExpressionUpdate.ExpressionPoisoned =>
+          updates += ContextRegistryProtocol.ExpressionUpdate
+            .ExpressionPoisoned(m.expressionId, m.failedExpressionId)
+      }
+      val notification = ContextRegistryProtocol.ExpressionUpdatesNotification(
+        contextId,
+        updates.result(),
+        Vector()
+      )
+      if (notification.updates.nonEmpty) {
+        sessionRouter ! DeliverToJsonController(
+          rpcSession.clientId,
+          notification
         )
-        .toMap
-      val methodPointers = methodPointerToExpression.keys.toSeq
-      repo
-        .getAllMethods(methodPointers)
-        .map { suggestionIds =>
-          val methodPointerToSuggestion =
-            methodPointers
-              .zip(suggestionIds)
-              .collect { case (ptr, Some(suggestionId)) =>
-                ptr -> suggestionId
-              }
-              .toMap
-          val valueUpdates = expressionUpdates.map { update =>
-            ExpressionValueUpdate(
-              update.expressionId,
-              update.expressionType,
-              update.methodCall.flatMap { call =>
-                val pointer = toMethodPointer(call)
-                methodPointerToSuggestion.get(pointer) match {
-                  case suggestionId @ Some(_) => suggestionId
-                  case None =>
-                    log.error(s"Unable to find suggestion for $pointer")
-                    None
-                }
-              }
-            )
-          }
-          val payload =
-            ContextRegistryProtocol.ExpressionValuesComputedNotification(
-              contextId,
-              valueUpdates
-            )
-          DeliverToJsonController(rpcSession.clientId, payload)
-        }
-        .pipeTo(sessionRouter)
+      }
+      runExpressionComputed(computedExpressions.result())
       context.become(withState(Vector()))
 
     case RunExpressionUpdates if expressionUpdates.isEmpty =>
   }
+
+  /** Process `ExpressionComputed` notifications.
+    *
+    * Function resolves method pointers to the corresponding suggestion ids in
+    * the suggestions database, and creates the API updates.
+    */
+  private def runExpressionComputed(
+    expressionUpdates: Vector[Api.ExpressionUpdate.ExpressionComputed]
+  ): Unit = {
+    def toMethodPointer(call: Api.MethodPointer): (String, String, String) =
+      (call.module, call.definedOnType, call.name)
+
+    val methodPointerToExpression =
+      expressionUpdates.flatMap { update =>
+        update.methodCall.map(call =>
+          toMethodPointer(call) -> update.expressionId
+        )
+      }.toMap
+    val methodPointers = methodPointerToExpression.keys.toSeq
+    repo
+      .getAllMethods(methodPointers)
+      .map { suggestionIds =>
+        val methodPointerToSuggestion =
+          methodPointers
+            .zip(suggestionIds)
+            .collect { case (ptr, Some(suggestionId)) =>
+              ptr -> suggestionId
+            }
+            .toMap
+        val computedExpressions = expressionUpdates.map { update =>
+          ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
+            update.expressionId,
+            update.expressionType,
+            update.methodCall.flatMap { call =>
+              val pointer = toMethodPointer(call)
+              methodPointerToSuggestion.get(pointer) match {
+                case suggestionId @ Some(_) => suggestionId
+                case None =>
+                  log.error(s"Unable to find suggestion for $pointer")
+                  None
+              }
+            }
+          )
+        }
+        val payload = ContextRegistryProtocol.ExpressionUpdatesNotification(
+          contextId,
+          computedExpressions,
+          computedExpressions.map(toExpressionValueUpdate)
+        )
+        DeliverToJsonController(rpcSession.clientId, payload)
+
+      }
+      .pipeTo(sessionRouter)
+  }
+
+  /** Conversion between the new and the old expression update message. */
+  private def toExpressionValueUpdate(
+    m: ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed
+  ): ExpressionValueUpdate =
+    ExpressionValueUpdate(m.expressionId, m.`type`, m.methodPointer)
 
   /** Convert the runtime failure message to the context registry protocol
     * representation.
@@ -220,6 +261,7 @@ object ContextEventsListener {
 
   /** The action to process the expression updates. */
   case object RunExpressionUpdates
+  case object RunExpressionUpdatesOld
 
   /** Creates a configuration object used to create a [[ContextEventsListener]].
     *
