@@ -123,7 +123,7 @@ class ErrorsTest extends InterpreterTest {
           |
           |main =
           |    myErr = Error.throw (MyError 20)
-          |    IO.println(myErr.catch recover)
+          |    IO.println(myErr.catch .recover)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(MyRecovered 20)")

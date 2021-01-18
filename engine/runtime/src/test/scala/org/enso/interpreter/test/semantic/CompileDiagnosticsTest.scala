@@ -29,7 +29,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |
           |main =
           |    x = Panic.recover @
-          |    x.catch to_text
+          |    x.catch .to_text
           |""".stripMargin
       eval(code) shouldEqual "(Syntax_Error 'Unrecognized token.')"
     }
@@ -42,9 +42,22 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    x = 1
           |    x = 2
           |
-          |main = Panic.recover here.foo . catch to_text
+          |main = Panic.recover here.foo . catch .to_text
           |""".stripMargin
       eval(code) shouldEqual "(Compile_Error 'Variable x is being redefined.')"
+    }
+
+    "surface non-existent variable errors in the language" in {
+      val code =
+        """from Builtins import all
+          |
+          |foo =
+          |    my_var = 10
+          |    my_vra
+          |
+          |main = Panic.recover here.foo . catch .to_text
+          |""".stripMargin
+      eval(code) shouldEqual "(Compile_Error 'Variable `my_vra` is not defined.')"
     }
   }
 }

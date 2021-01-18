@@ -3,7 +3,7 @@ layout: developer-doc
 title: Fallback Launcher Release Infrastructure
 category: distribution
 tags: [distribution, launcher, fallback]
-order: 6
+order: 7
 ---
 
 # Fallback Launcher Release Infrastructure

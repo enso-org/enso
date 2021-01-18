@@ -26,7 +26,7 @@ type Range
              0.up_to 0 . not_empty == False
              0.up_to 100 . not_empty == True
     not_empty : Boolean
-    not_empty = not this.is_empty
+    not_empty = this.is_empty.not
 
     ## Applies a function for each element in the range.
 

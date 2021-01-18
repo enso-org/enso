@@ -239,7 +239,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
       }
       eval(code)
       val errorMsg =
-        "Unexpected type provided for argument `that` in Integer.+"
+        "Compile_Error Variable `undefined` is not defined."
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 

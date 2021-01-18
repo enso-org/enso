@@ -23,7 +23,7 @@ arguments.
 - [Lambdas](#lambdas)
 - [Defining Functions](#defining-functions)
 - [Methods](#methods)
-- [Universal Call Syntax](#universal-call-syntax)
+- [Calling Functions and Methods](#calling-functions-and-methods)
 - [Code Blocks](#code-blocks)
 - [Operators](#operators)
   - [Precedence](#precedence)
@@ -142,23 +142,16 @@ If the user does not explicitly specify the `this` argument by name when
 defining a method (e.g. they use the `Type.name` syntax), it is implicitly added
 to the start of the argument list.
 
-## Universal Call Syntax
+## Calling Functions and Methods
 
-Calling a function or method is, in general, as simple as applying it to some
-arguments. However, as Enso supports both methods and functions, it is very
-important that users do not have to think about which of the two they are using
-when calling it. To that end, Enso supports what is known as Uniform Call Syntax
-(UCS).
+Enso makes the distinction between functions and methods. Methods are entities
+that are dispatched _dynamically_ and looked up at runtime, while functions are
+defined locally and are looked up at compile time. In order to provide good
+diagnostics, we distinguish between how functions and methods are called.
 
-- Where the syntax for calling methods differs from the syntax for calling
-  functions, there are needless constraints on writing generic code.
-- This is a needless constraint as both notations have their advantages.
-- Enso has two notations, but one unified semantics.
-
-The rules for the uniform syntax call translation in Enso are as follows:
-
-1. For an expression `t.fn <args>`, this is equivalent to `fn t <args>`.
-2. For an expression `fn t <args>`, this is equivalent to `t.fn <args>`.
+- To call a function `f` on arguments `a` and `b`, we write `f a b`.
+- To call a method `f` defined on a type `A` (value `a`, here) on argument `b`,
+  we write `a.f b`.
 
 ## Code Blocks
 
@@ -280,17 +273,14 @@ best demonstrated by example. Consider the following code:
 
 ```ruby
 list       = 1 .. 100
-randomList = each random list
-headOfList = take 10 randomList
-result     = sort headOfList
+randomList = list . each random
+headOfList = randomList . take 10
+result     = headOfList . sort
 ```
 
-This could easily be refactored to the following one-liner, and then transformed
-using UCS to an expression that reads left to right:
+This could easily be refactored to the following one-liner:
 
 ```ruby
-result = sort (take 10 (each random (1 .. 100)))
-
 result = (((1 .. 100).each random).take 10).sort
 ```
 

@@ -13,10 +13,10 @@ type Behavior name result
 Behavior.is_fail = this.result.is_fail
 
 ## PRIVATE
-Spec.is_fail = this.behaviors.any is_fail
+Spec.is_fail = this.behaviors.any .is_fail
 
 ## PRIVATE
-Suite.is_fail = this.specs.any is_fail
+Suite.is_fail = this.specs.any .is_fail
 
 ## PRIVATE
 type Assertion
@@ -43,7 +43,7 @@ type Verbs
 
     be subject argument = this.equal subject argument
 
-Any.should verb argument = Verbs.verb this argument
+Any.should verb argument = verb Verbs this argument
 
 ## Fail a test with the given message.
 fail message = Panic.throw (Failure message)
@@ -99,13 +99,13 @@ Spec.print_report =
 
    > Example
          Suite.run <|
-             describe "Number" <|
-                 it "should define addition" <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
                      2+3 . should_equal 5
-                 it "should define multiplication" <|
+                 Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
-Text.describe ~behaviors =
-    r = State.run Spec (Spec this Nil) <|
+group name ~behaviors =
+    r = State.run Spec (Spec name  Nil) <|
         behaviors
         State.get Spec
     r.print_report
@@ -122,10 +122,10 @@ Text.describe ~behaviors =
                      2+3 . should_equal 5
                  it "should define multiplication" <|
                      2*3 . should_equal 6
-Text.it ~behavior pending=False =
+specify label ~behavior pending=False =
     result = if pending then Pending else here.run_spec behavior
     spec = State.get Spec
-    new_spec = Spec spec.name (Cons (Behavior this result) spec.behaviors)
+    new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
     State.put Spec new_spec
 
 run_spec ~behavior =
@@ -141,16 +141,15 @@ run_spec ~behavior =
     result
 
 
-## Runs a suite of tests, consisting of multiple `describe` blocks.
-
-   Returns a `Suite` object containing the test report.
+## Creates a new test group, desribing properties of the object
+   described by `this`.
 
    > Example
          Suite.run <|
-             describe "Number" <|
-                 it "should define addition" <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
                      2+3 . should_equal 5
-                 it "should define multiplication" <|
+                 Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
 Suite.run ~specs =
     r = State.run Suite (Suite Nil) <|
@@ -158,16 +157,15 @@ Suite.run ~specs =
         State.get Suite
     r
 
-## Runs a suite of tests, consisting of multiple `describe` blocks.
-
-   Exits the process with code `1` if the suite failed and `0` otherwise.
+## Creates a new test group, desribing properties of the object
+   described by `this`.
 
    > Example
          Suite.run <|
-             describe "Number" <|
-                 it "should define addition" <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
                      2+3 . should_equal 5
-                 it "should define multiplication" <|
+                 Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
 Suite.runMain ~specs =
     r = this.run specs

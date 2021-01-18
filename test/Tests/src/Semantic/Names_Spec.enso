@@ -1,4 +1,4 @@
-from Tests.Names.Definitions import My_Type, Another_Constant
+from Tests.Semantic.Names.Definitions import My_Type, Another_Constant
 import Test
 
 Definitions.Foo.my_method = case this of
@@ -11,27 +11,27 @@ constant = 1
 add_one (x = 0) = x + 1
 
 spec =
-    describe "Qualified Names" <|
-        it "should allow to call constructors in a qualified manner" <|
+    Test.group "Qualified Names" <|
+        Test.specify "should allow to call constructors in a qualified manner" <|
             Definitions.Foo 1 2 3 . sum . should_equal 6
             Definitions . Foo 1 2 3 . sum . should_equal 6
-        it "should allow pattern matching in a qualified manner" <|
+        Test.specify "should allow pattern matching in a qualified manner" <|
             v = Definitions.Foo 1 2 3
             res = case v of
                 Definitions.Foo a b c -> a + b + c
             res.should_equal 6
-        it "should allow defining methods on qualified names" <|
+        Test.specify "should allow defining methods on qualified names" <|
             v = Definitions.Foo 2 3 5
             v.my_method.should_equal 30
-        it "should allow using constructors from value-bound modules" <|
+        Test.specify "should allow using constructors from value-bound modules" <|
             v = here.get_foo Definitions 1 2 3
             v.sum.should_equal 6
-    describe "Uppercase Methods" <|
-        it "should allow calling methods without a target, through uppercase resolution" <|
+    Test.group "Uppercase Methods" <|
+        Test.specify "should allow calling methods without a target, through uppercase resolution" <|
             v = Constant
             v.should_equal 1
-        it "should allow calling methods that use defaulted arguments" <|
+        Test.specify "should allow calling methods that use defaulted arguments" <|
             Add_One.should_equal 1
             Add_One 100 . should_equal 101
-        it "should allow calling methods imported from another module" <|
+        Test.specify "should allow calling methods imported from another module" <|
             Another_Constant.should_equal 10

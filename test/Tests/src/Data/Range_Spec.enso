@@ -1,38 +1,38 @@
 from Base import all
 import Test
 
-spec = describe "Range" <|
-    it "should be created with a start and an end" <|
+spec = Test.group "Range" <|
+    Test.specify "should be created with a start and an end" <|
         range = 1.up_to 100
         range.start . should_equal 1
         range.end . should_equal 100
-    it "should have a length" <|
+    Test.specify "should have a length" <|
         range = 0.up_to 100
         range.length . should_equal 100
-    it "should allow checking for emptiness" <|
+    Test.specify "should allow checking for emptiness" <|
         0.up_to 0 . is_empty . should_be_true
         0.up_to -100 . is_empty . should_be_true
         0.up_to 1 . is_empty . should_be_false
         0.up_to 5 . is_empty . should_be_false
-    it "should allow checking for non emptiness" <|
+    Test.specify "should allow checking for non emptiness" <|
         0.up_to 0 . not_empty . should_be_false
         0.up_to -100 . not_empty . should_be_false
         0.up_to 1 . not_empty . should_be_true
         0.up_to 5 . not_empty . should_be_true
-    it "should allow iteration" <|
+    Test.specify "should allow iteration" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)
         vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
-    it "should be able to be folded" <|
+    Test.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
-    it "should check all" <|
+    Test.specify "should check all" <|
         1.up_to 10 . all (> 0) . should_be_true
         1.up_to 10 . all (< 0) . should_be_false
-    it "should check exists" <|
+    Test.specify "should check exists" <|
         1.up_to 10 . exists (> 5) . should_be_true
         1.up_to 10 . exists (> 10) . should_be_false
-    it "should check any" <|
+    Test.specify "should check any" <|
         1.up_to 10 . any (> 5) . should_be_true
         1.up_to 10 . any (> 10) . should_be_false
-    it "should allow conversion to vector" <|
+    Test.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]

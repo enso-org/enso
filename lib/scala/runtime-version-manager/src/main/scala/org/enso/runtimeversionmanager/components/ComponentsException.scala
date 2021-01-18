@@ -65,3 +65,7 @@ case class UpgradeRequiredError(
       s"Minimum version required to use this engine is " +
       s"$expectedVersion."
     )
+
+/** Indicates uninstallation failure. */
+case class UninstallationError(message: String)
+    extends ComponentsException(message)

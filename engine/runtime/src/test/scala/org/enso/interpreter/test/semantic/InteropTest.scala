@@ -48,7 +48,7 @@ class InteropTest extends InterpreterTest {
           |
           |Any.method = this
           |
-          |main = x -> method
+          |main = x -> .method
           |""".stripMargin
 
       val fun = eval(code)
@@ -62,7 +62,7 @@ class InteropTest extends InterpreterTest {
           |Number.add x = x + this
           |Text.add x = this + x
           |
-          |main = add
+          |main = .add
           |""".stripMargin
       val symbol = eval(code)
       symbol.call(1, 2) shouldEqual 3
@@ -71,7 +71,7 @@ class InteropTest extends InterpreterTest {
     }
 
     "work with unresolved symbols from builtin scope" in {
-      val code   = "main = to_text"
+      val code   = "main = .to_text"
       val symbol = eval(code)
       symbol.call(1) shouldEqual "1"
       symbol.execute("Foo") shouldEqual "'Foo'"
