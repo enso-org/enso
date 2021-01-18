@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import java.io.{File, IOException}
 import java.util.logging.Level
+
 import cats.implicits._
 import org.enso.compiler.context.{
   Changeset,

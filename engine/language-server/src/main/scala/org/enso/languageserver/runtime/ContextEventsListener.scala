@@ -261,7 +261,6 @@ object ContextEventsListener {
 
   /** The action to process the expression updates. */
   case object RunExpressionUpdates
-  case object RunExpressionUpdatesOld
 
   /** Creates a configuration object used to create a [[ContextEventsListener]].
     *
