@@ -1583,7 +1583,7 @@ class RuntimeServerTest
               Some(Constants.INTEGER),
               None,
               Vector(ProfilingInfo.ExecutionTime(0)),
-              true
+              false
             )
           )
         )
