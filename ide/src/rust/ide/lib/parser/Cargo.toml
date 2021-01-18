@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ast = { path = "../ast/impl" }
 enso-data = { version = "0.1.4" }
-enso-prelude = { version = "0.1.8" }
+enso-prelude = { version = "0.1.9" }
 utils = { path = "../utils" }
 console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1" }

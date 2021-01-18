@@ -9,10 +9,10 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../../ast/impl" }
-enso-prelude = { version = "0.1.8" }
+enso-prelude = { version = "0.1.9" }
 span-tree = { path = "../../span-tree" }
 ensogl-system-web = { path = "../../../../lib/system/web" }
-enso-logger = { version = "0.2.1" }
+enso-logger = { version = "0.2.2" }
 wasm-bindgen = { version = "=0.2.58", features = [
   "nightly",
   "serde-serialize"
