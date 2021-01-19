@@ -444,13 +444,13 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(45, 24)
-    val idMainFoo = metadata.addItem(61, 8)
+    val idMain    = metadata.addItem(49, 24)
+    val idMainFoo = metadata.addItem(65, 8)
 
     val code =
       """from Builtins import all
         |
-        |foo a=0 = a
+        |foo a=0 = a + 1
         |
         |main =
         |    IO.println here.foo
@@ -516,7 +516,7 @@ class RuntimeServerTest
       ),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("0")
+    context.consumeOut shouldEqual List("1")
 
     // push foo call
     context.send(
@@ -529,7 +529,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("0")
+    context.consumeOut shouldEqual List("1")
   }
 
   it should "send method pointer updates" in {
