@@ -3,7 +3,6 @@ package org.enso.polyglot.runtime
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
@@ -192,6 +191,7 @@ object Runtime {
     )
   )
   sealed trait Api
+  sealed trait ApiEnvelope     extends Api
   sealed trait ApiRequest      extends Api
   sealed trait ApiResponse     extends Api
   sealed trait ApiNotification extends ApiResponse
@@ -231,7 +231,6 @@ object Runtime {
       )
     )
     sealed trait StackItem
-
     object StackItem {
 
       /** A call performed at the top of the stack, to initialize the context.
@@ -252,12 +251,40 @@ object Runtime {
       * @param expressionId expression id.
       * @param expressionType the type of expression.
       * @param methodCall the pointer to a method definition.
+      * @param profilingInfo profiling information about the execution of this
+      *                      expression
+      * @param fromCache whether or not the value for this expression came from
+      *                  the cache
       */
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
-      methodCall: Option[MethodPointer]
+      methodCall: Option[MethodPointer],
+      profilingInfo: Vector[ProfilingInfo],
+      fromCache: Boolean
     )
+
+    /** An object representing profiling information about an executed
+      * expression.
+      */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ProfilingInfo.ExecutionTime],
+          name  = "executionTime"
+        )
+      )
+    )
+    sealed trait ProfilingInfo
+    object ProfilingInfo {
+
+      /** A representation of the time elapsed during execution.
+        *
+        * @param nanoTime the time elapsed during execution in nanoseconds
+        */
+      case class ExecutionTime(nanoTime: Long) extends ProfilingInfo
+    }
 
     /** An object representing invalidated expressions selector.
       */
@@ -275,7 +302,6 @@ object Runtime {
       )
     )
     sealed trait InvalidatedExpressions
-
     object InvalidatedExpressions {
 
       /** An object representing invalidation of all expressions.
@@ -468,7 +494,6 @@ object Runtime {
     )
     sealed trait DiagnosticType
     object DiagnosticType {
-
       case class Error()   extends DiagnosticType
       case class Warning() extends DiagnosticType
     }
@@ -638,6 +663,7 @@ object Runtime {
       * @param payload the request payload.
       */
     case class Request(requestId: Option[RequestId], payload: ApiRequest)
+        extends ApiEnvelope
 
     object Request {
 
@@ -665,6 +691,7 @@ object Runtime {
       * @param payload response
       */
     case class Response(correlationId: Option[RequestId], payload: ApiResponse)
+        extends ApiEnvelope
 
     object Response {
 

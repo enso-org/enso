@@ -137,7 +137,12 @@ final class ContextEventsListener(
                     log.error(s"Unable to find suggestion for $pointer")
                     None
                 }
-              }
+              },
+              update.profilingInfo.map {
+                case Api.ProfilingInfo.ExecutionTime(t) =>
+                  ProfilingInfo.ExecutionTime(t)
+              },
+              update.fromCache
             )
           }
           val payload =
