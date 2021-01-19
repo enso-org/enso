@@ -24,6 +24,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`StackItem`](#stackitem)
   - [`MethodPointer`](#methodpointer)
   - [`ExpressionValueUpdate`](#expressionvalueupdate)
+  - [`ProfilingInfo`](#profilinginfo)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
@@ -65,8 +66,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/canModify`](#executioncontextcanmodify)
   - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
   - [`search/receivesSuggestionsDatabaseUpdates`](#searchreceivessuggestionsdatabaseupdates)
-  - [Enables](#enables-4)
-  - [Disables](#disables-4)
+  - [Enables](#enables)
+  - [Disables](#disables)
 - [File Management Operations](#file-management-operations)
   - [`file/write`](#filewrite)
   - [`file/read`](#fileread)
@@ -125,21 +126,21 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
   - [`search/import`](#searchimport)
-- [Input/Output Operations](#input-output-operations)
-  - [`io/redirectStandardOutput`](#ioredirectstdardoutput)
-  - [`io/suppressStandardOutput`](#iosuppressstdardoutput)
+- [Input/Output Operations](#inputoutput-operations)
+  - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
+  - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
   - [`io/standardOutputAppended`](#iostandardoutputappended)
   - [`io/redirectStandardError`](#ioredirectstandarderror)
   - [`io/suppressStandardError`](#iosuppressstandarderror)
   - [`io/standardErrorAppended`](#iostandarderrorappended)
   - [`io/feedStandardInput`](#iofeedstandardinput)
   - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
-- [Errors](#errors-57)
+- [Errors](#errors)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
   - [`ContentRootNotFoundError`](#contentrootnotfounderror)
   - [`FileNotFound`](#filenotfound)
-  - [`FileExists`](#fileexists)
+  - [`FileExists`](#fileexists-1)
   - [`OperationTimeoutError`](#operationtimeouterror)
   - [`NotDirectory`](#notdirectory)
   - [`StackItemNotFoundError`](#stackitemnotfounderror)
@@ -160,6 +161,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror)
   - [`ProjectNotFoundError`](#projectnotfounderror)
   - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror)
+  - [`SuggestionNotFoundError`](#suggestionnotfounderror)
 
 <!-- /MarkdownTOC -->
 
@@ -229,6 +231,8 @@ interface MethodPointer {
 
 ### `ExpressionValueUpdate`
 
+Metadata on an updated expression.
+
 ```typescript
 interface ExpressionValueUpdate {
   /** The id of updated expression */
@@ -239,6 +243,33 @@ interface ExpressionValueUpdate {
 
   /** The updated pointer to the method call */
   methodPointer?: SuggestionId;
+
+  /** Profiling information for the expression */
+  profilingInfo: ProfilingInfo[];
+
+  /** Whether the expression value came from the cache or not */
+  fromCache: bool;
+}
+```
+
+Currently, the `profilingInfo` array is guaranteed to contain at least the
+`ExecutionTime` information.
+
+### `ProfilingInfo`
+
+Profiling information on an executed expression. It is implemented as a union as
+additional types of information will be added in the future.
+
+```typescript
+type ProfilingInfo = ExecutionTime;
+```
+
+Where:
+
+```typescript
+interface ExecutionTime {
+  /** The time elapsed during the expression's evaluation, in nanoseconds */
+  nanoTime: Number;
 }
 ```
 

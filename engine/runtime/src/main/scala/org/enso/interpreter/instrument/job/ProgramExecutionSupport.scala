@@ -1,10 +1,5 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
-import java.util.{Objects, UUID}
-import java.util.function.Consumer
-import java.util.logging.Level
-
 import cats.implicits._
 import com.oracle.truffle.api.source.SourceSection
 import com.oracle.truffle.api.{
@@ -22,6 +17,7 @@ import org.enso.interpreter.instrument.job.ProgramExecutionSupport.{
   ExecutionItem,
   LocalCallFrame
 }
+import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
   MethodCallsCache,
@@ -41,8 +37,12 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.text.editing.model
 
-import scala.jdk.OptionConverters._
+import java.io.File
+import java.util.function.Consumer
+import java.util.logging.Level
+import java.util.{Objects, UUID}
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
@@ -119,7 +119,9 @@ trait ProgramExecutionSupport {
               expressionType,
               expressionType,
               expressionCall,
-              expressionCall
+              expressionCall,
+              Array(ExecutionTime.empty()),
+              true
             )
           )
         }
@@ -372,7 +374,11 @@ trait ProgramExecutionSupport {
               Api.ExpressionValueUpdate(
                 value.getExpressionId,
                 Option(value.getType),
-                methodPointer
+                methodPointer,
+                value.getProfilingInfo.map { case e: ExecutionTime =>
+                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
+                }.toVector,
+                value.wasCached()
               )
             )
           )
