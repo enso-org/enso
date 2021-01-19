@@ -30,9 +30,9 @@ public class CatchErrorNode extends Node {
   }
 
   Stateful execute(VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {
-    if (executionProfile.profile(TypesGen.isRuntimeError(_this))) {
+    if (executionProfile.profile(TypesGen.isDataflowError(_this))) {
       return invokeCallableNode.execute(
-          handler, frame, state, new Object[] {TypesGen.asRuntimeError(_this).getPayload()});
+          handler, frame, state, new Object[] {TypesGen.asDataflowError(_this).getPayload()});
     } else {
       return new Stateful(state, _this);
     }

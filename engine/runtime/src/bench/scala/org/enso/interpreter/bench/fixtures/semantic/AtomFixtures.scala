@@ -58,12 +58,12 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Builtins import all
       |
       |Cons.reverse = acc -> case this of
-      |    Cons h t -> @Tail_Call reverse t (Cons h acc)
+      |    Cons h t -> @Tail_Call t.reverse (Cons h acc)
       |
       |Nil.reverse = acc -> acc
       |
       |main = list ->
-      |    res = reverse list Nil
+      |    res = list.reverse Nil
       |    res
       |""".stripMargin
   val reverseListMethods = getMain(reverseListMethodsCode)
@@ -112,10 +112,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |Nil.sum = acc -> acc
       |Cons.sum = acc -> case this of
-      |    Cons h t -> @Tail_Call sum t h+acc
+      |    Cons h t -> @Tail_Call t.sum h+acc
       |
       |main = list ->
-      |    res = sum list 0
+      |    res = list.sum 0
       |    res
       |""".stripMargin
   val sumListMethods = getMain(sumListMethodsCode)
@@ -125,10 +125,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
-      |    Cons h t -> @Tail_Call mapReverse t f (Cons (f h) acc)
+      |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |
       |main = list ->
-      |    res = mapReverse list (x -> x + 1) Nil
+      |    res = list.mapReverse (x -> x + 1) Nil
       |    res
       |""".stripMargin
   val mapReverseList = getMain(mapReverseListCode)
@@ -138,11 +138,11 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
-      |    Cons h t -> @Tail_Call mapReverse t f (Cons (f h) acc)
+      |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |
       |main = list ->
       |    adder = x -> y -> x + y
-      |    res = mapReverse list (adder 1) Nil
+      |    res = list.mapReverse (adder 1) Nil
       |    res
       |""".stripMargin
   val mapReverseListCurry = getMain(mapReverseListCurryCode)

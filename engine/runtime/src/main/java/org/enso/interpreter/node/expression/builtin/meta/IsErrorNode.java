@@ -10,6 +10,6 @@ import org.enso.interpreter.runtime.type.TypesGen;
     description = "Checks if the argument is an error.")
 public class IsErrorNode extends Node {
   boolean execute(Object _this, Object value) {
-    return TypesGen.isRuntimeError(value);
+    return TypesGen.isDataflowError(value);
   }
 }

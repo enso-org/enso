@@ -156,5 +156,16 @@ class ErrorsTest extends InterpreterTest {
         """For input string: "oops""""
       )
     }
+
+    "do the thing" in {
+      val code =
+        """from Builtins import all
+          |
+          |main =
+          |    Error.throw "Foo"
+          |""".stripMargin
+
+      eval(code)
+    }
   }
 }

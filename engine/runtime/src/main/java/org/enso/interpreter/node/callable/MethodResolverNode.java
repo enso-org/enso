@@ -16,8 +16,8 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 /**
@@ -261,7 +261,7 @@ public abstract class MethodResolverNode extends Node {
       limit = "CACHE_SIZE")
   Function resolveErrorCached(
       UnresolvedSymbol symbol,
-      RuntimeError _this,
+      DataflowError _this,
       @CachedContext(Language.class) Context context,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("resolveMethodOnError(context, cachedSymbol)") Function function) {
@@ -270,7 +270,7 @@ public abstract class MethodResolverNode extends Node {
 
   @Specialization(replaces = "resolveErrorCached")
   Function resolveError(
-      UnresolvedSymbol symbol, RuntimeError _this, @CachedContext(Language.class) Context context) {
+      UnresolvedSymbol symbol, DataflowError _this, @CachedContext(Language.class) Context context) {
     Function function = resolveMethodOnError(context, symbol);
     return throwIfNull(context, function, _this, symbol);
   }
