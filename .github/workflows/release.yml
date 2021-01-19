@@ -309,11 +309,17 @@ jobs:
           username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
           password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
 
+      - name: Copy the docker entrypoint script
+        shell: bash
+        run: |
+          sleep 1
+          cp ./repo/tools/ci/docker/docker-entrypoint.sh ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin
+
       - name: Publish Runtime Docker Image
         shell: bash
         run: |
           sleep 1
-          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./repo/tools/ci/docker/Dockerfile ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/component
+          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./repo/tools/ci/docker/Dockerfile ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}
           docker push ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
 
       # Publish the launcher packages to the backup/fallback S3 bucket
