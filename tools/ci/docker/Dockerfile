@@ -11,9 +11,9 @@ ADD runtime.jar /opt/enso/runtime.jar
 RUN chown -hR enso:enso /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso
 
-RUN mkdir -p /home/enso/workspace
-RUN chown -hR enso:enso /home/enso/workspace
-RUN chmod -R u=rwX,g=rwX /home/enso/workspace
+RUN mkdir -p /volumes
+RUN chown -hR enso:enso /volumes
+RUN chmod -R u=rwX,g=rwX /volumes
 
 USER enso:enso
 
@@ -24,7 +24,6 @@ ENTRYPOINT ["java", "-jar",  "-Dtruffle.class.path.append=runtime.jar", "-Dpolyg
 EXPOSE 30001
 EXPOSE 30002
 
-VOLUME /home/enso/workspace
+VOLUME /volumes/workspace
 
-CMD ["--server", "--rpc-port", "30001", "--data-port", "30002", "--root-id", "00000000-0000-0000-0000-000000000001", "--path", "/home/enso/workspace", "--interface", "0.0.0.0"]
-
+CMD ["--server", "--daemon", "--rpc-port", "30001", "--data-port", "30002", "--root-id", "00000000-0000-0000-0000-000000000001", "--path", "/volumes/workspace", "--interface", "0.0.0.0", "--log-level", "INFO"]
