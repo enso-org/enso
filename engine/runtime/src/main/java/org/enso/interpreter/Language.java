@@ -45,6 +45,8 @@ import org.graalvm.options.OptionDescriptors;
   IdentifiedTag.class
 })
 public final class Language extends TruffleLanguage<Context> {
+  private IdExecutionInstrument idExecutionInstrument;
+
   /**
    * Creates a new Enso context.
    *
@@ -58,9 +60,8 @@ public final class Language extends TruffleLanguage<Context> {
     Context context = new Context(this, getLanguageHome(), env);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
-    IdExecutionInstrument idExecutionInstrumentService =
-        env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
-    env.registerService(new ExecutionService(context, idExecutionInstrumentService));
+    idExecutionInstrument = env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
+    env.registerService(new ExecutionService(context, idExecutionInstrument));
     return context;
   }
 
@@ -113,5 +114,10 @@ public final class Language extends TruffleLanguage<Context> {
   @Override
   protected Iterable<Scope> findTopScopes(Context context) {
     return Collections.singleton(context.getTopScope().getScope());
+  }
+
+  /** @return a reference to the execution instrument */
+  public IdExecutionInstrument getIdExecutionInstrument() {
+    return idExecutionInstrument;
   }
 }

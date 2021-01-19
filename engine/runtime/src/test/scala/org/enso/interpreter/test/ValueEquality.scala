@@ -9,6 +9,7 @@ trait ValueEquality {
       case _: Long   => a.isNumber && a.fitsInLong && a.asLong == b
       case _: Int    => a.isNumber && a.fitsInInt && a.asInt == b
       case _: String => a.isString && a.asString == b
+      case _: Value  => a == b
       case _         => false
     }
 }
