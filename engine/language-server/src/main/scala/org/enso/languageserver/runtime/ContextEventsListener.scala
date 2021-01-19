@@ -174,7 +174,11 @@ final class ContextEventsListener(
                   log.error(s"Unable to find suggestion for $pointer")
                   None
               }
-            }
+            },
+            update.profilingInfo.map { case Api.ProfilingInfo.ExecutionTime(t) =>
+              ProfilingInfo.ExecutionTime(t)
+            },
+            update.fromCache
           )
         }
         val payload = ContextRegistryProtocol.ExpressionUpdatesNotification(
@@ -192,7 +196,13 @@ final class ContextEventsListener(
   private def toExpressionValueUpdate(
     m: ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed
   ): ExpressionValueUpdate =
-    ExpressionValueUpdate(m.expressionId, m.`type`, m.methodPointer)
+    ExpressionValueUpdate(
+      m.expressionId,
+      m.`type`,
+      m.methodPointer,
+      m.profilingInfo,
+      m.fromCache
+    )
 
   /** Convert the runtime failure message to the context registry protocol
     * representation.

@@ -295,11 +295,17 @@ object Runtime {
         * @param expressionId the expression id
         * @param expressionType the type of expression
         * @param methodCall the pointer to a method definithin
+        * @param profilingInfo profiling information about the execution of this
+        * expression
+        * @param fromCache whether or not the value for this expression came
+        * from the cache
         */
       case class ExpressionComputed(
         expressionId: ExpressionId,
         expressionType: Option[String],
-        methodCall: Option[MethodPointer]
+        methodCall: Option[MethodPointer],
+        profilingInfo: Vector[ProfilingInfo],
+        fromCache: Boolean
       ) extends ExpressionUpdate
 
       /** An update about failed expression.

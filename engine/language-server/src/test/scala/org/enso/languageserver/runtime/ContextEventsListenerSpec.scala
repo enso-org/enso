@@ -117,7 +117,9 @@ class ContextEventsListenerSpec
                   ExpressionValueUpdate(
                     Suggestions.method.externalId.get,
                     Some(Suggestions.method.returnType),
-                    Some(suggestionIds(1).get)
+                    Some(suggestionIds(1).get),
+                    Vector(),
+                    false
                   )
                 )
               )
@@ -252,12 +254,16 @@ class ContextEventsListenerSpec
                   ExpressionValueUpdate(
                     Suggestions.method.externalId.get,
                     None,
-                    None
+                    None,
+                    Vector(),
+                    false
                   ),
                   ExpressionValueUpdate(
                     Suggestions.local.externalId.get,
                     None,
-                    None
+                    None,
+                    Vector(),
+                    false
                   )
                 )
               )

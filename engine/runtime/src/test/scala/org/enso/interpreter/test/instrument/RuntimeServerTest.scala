@@ -8,7 +8,6 @@ import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ProfilingInfo
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
@@ -133,7 +132,7 @@ class RuntimeServerTest
           Api.ExpressionUpdates(
             contextId,
             Set(
-              Api.ExpressionUpdate.ExpressionComputed(expressionId, None, None)
+              Api.ExpressionUpdate.ExpressionComputed(expressionId, None, None, Vector(Api.ProfilingInfo.ExecutionTime(0)), false)
             )
           )
         )
@@ -150,7 +149,9 @@ class RuntimeServerTest
               Api.ExpressionUpdate.ExpressionComputed(
                 expressionId,
                 Some(expressionType),
-                None
+                None,
+                Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                false
               )
             )
           )
@@ -162,6 +163,15 @@ class RuntimeServerTest
         expressionType: String,
         methodPointer: Api.MethodPointer
       ): Api.Response =
+        update(contextId, expressionId, expressionType, methodPointer, false)
+
+      def update(
+        contextId: UUID,
+        expressionId: UUID,
+        expressionType: String,
+        methodPointer: Api.MethodPointer,
+        fromCache: Boolean
+      ): Api.Response =
         Api.Response(
           Api.ExpressionUpdates(
             contextId,
@@ -169,7 +179,9 @@ class RuntimeServerTest
               Api.ExpressionUpdate.ExpressionComputed(
                 expressionId,
                 Some(expressionType),
-                Some(methodPointer)
+                Some(methodPointer),
+                Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                fromCache
               )
             )
           )
@@ -182,7 +194,7 @@ class RuntimeServerTest
         Api.Response(
           Api.ExpressionValuesComputed(
             contextId,
-            Vector(Api.ExpressionValueUpdate(expressionId, None, None))
+            Vector(Api.ExpressionValueUpdate(expressionId, None, None, Vector(Api.ProfilingInfo.ExecutionTime(0)), false))
           )
         )
 
@@ -198,7 +210,9 @@ class RuntimeServerTest
               Api.ExpressionValueUpdate(
                 expressionId,
                 Some(expressionType),
-                None
+                None,
+                Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                false
               )
             )
           )
@@ -210,6 +224,15 @@ class RuntimeServerTest
         expressionType: String,
         methodPointer: Api.MethodPointer
       ): Api.Response =
+        updateOld(contextId, expressionId, expressionType, methodPointer, false)
+
+      def updateOld(
+        contextId: UUID,
+        expressionId: UUID,
+        expressionType: String,
+        methodPointer: Api.MethodPointer,
+        fromCache: Boolean
+      ): Api.Response =
         Api.Response(
           Api.ExpressionValuesComputed(
             contextId,
@@ -217,7 +240,9 @@ class RuntimeServerTest
               Api.ExpressionValueUpdate(
                 expressionId,
                 Some(expressionType),
-                Some(methodPointer)
+                Some(methodPointer),
+                Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                fromCache
               )
             )
           )
@@ -256,7 +281,7 @@ class RuntimeServerTest
 
       object Update {
 
-        def mainX(contextId: UUID): Api.Response =
+        def mainX(contextId: UUID, fromCache: Boolean = false): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -264,13 +289,15 @@ class RuntimeServerTest
                 Api.ExpressionUpdate.ExpressionComputed(
                   Main.idMainX,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def mainY(contextId: UUID): Api.Response =
+        def mainY(contextId: UUID, fromCache: Boolean = false): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -284,13 +311,15 @@ class RuntimeServerTest
                       Constants.NUMBER,
                       "foo"
                     )
-                  )
+                  ),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def mainZ(contextId: UUID): Api.Response =
+        def mainZ(contextId: UUID, fromCache: Boolean = false): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -298,13 +327,15 @@ class RuntimeServerTest
                 Api.ExpressionUpdate.ExpressionComputed(
                   Main.idMainZ,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def fooY(contextId: UUID): Api.Response =
+        def fooY(contextId: UUID, fromCache: Boolean = false): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -312,13 +343,15 @@ class RuntimeServerTest
                 Api.ExpressionUpdate.ExpressionComputed(
                   Main.idFooY,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def fooZ(contextId: UUID): Api.Response =
+        def fooZ(contextId: UUID, fromCache: Boolean = false): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -326,7 +359,9 @@ class RuntimeServerTest
                 Api.ExpressionUpdate.ExpressionComputed(
                   Main.idFooZ,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
@@ -335,7 +370,7 @@ class RuntimeServerTest
 
       object UpdateOld {
 
-        def mainX(contextId: UUID) =
+        def mainX(contextId: UUID, fromCache: Boolean = false) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -344,14 +379,14 @@ class RuntimeServerTest
                   Main.idMainX,
                   Some(Constants.INTEGER),
                   None,
-                  Vector(ProfilingInfo.ExecutionTime(0)),
-                  false
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def mainY(contextId: UUID) =
+        def mainY(contextId: UUID, fromCache: Boolean = false) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -366,14 +401,14 @@ class RuntimeServerTest
                       "foo"
                     )
                   ),
-                  Vector(ProfilingInfo.ExecutionTime(0)),
-                  false
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def mainZ(contextId: UUID) =
+        def mainZ(contextId: UUID, fromCache: Boolean = false) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -382,14 +417,14 @@ class RuntimeServerTest
                   Main.idMainZ,
                   Some(Constants.INTEGER),
                   None,
-                  Vector(ProfilingInfo.ExecutionTime(0)),
-                  false
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def fooY(contextId: UUID) =
+        def fooY(contextId: UUID, fromCache: Boolean = false) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -398,14 +433,14 @@ class RuntimeServerTest
                   Main.idFooY,
                   Some(Constants.INTEGER),
                   None,
-                  Vector(ProfilingInfo.ExecutionTime(0)),
-                  false
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
           )
 
-        def fooZ(contextId: UUID) =
+        def fooZ(contextId: UUID, fromCache: Boolean = false) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -414,8 +449,8 @@ class RuntimeServerTest
                   Main.idFooZ,
                   Some(Constants.INTEGER),
                   None,
-                  Vector(ProfilingInfo.ExecutionTime(0)),
-                  false
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  fromCache
                 )
               )
             )
@@ -459,7 +494,9 @@ class RuntimeServerTest
                 Api.ExpressionUpdate.ExpressionComputed(
                   idMainY,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", "Test.Main", "foo"))
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "foo")),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -473,7 +510,9 @@ class RuntimeServerTest
                 Api.ExpressionUpdate.ExpressionComputed(
                   idMainZ,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", "Test.Main", "bar"))
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "bar")),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -491,7 +530,7 @@ class RuntimeServerTest
                   idMainY,
                   Some(Constants.INTEGER),
                   Some(Api.MethodPointer("Test.Main", "Test.Main", "foo")),
-                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -507,7 +546,7 @@ class RuntimeServerTest
                   idMainZ,
                   Some(Constants.INTEGER),
                   Some(Api.MethodPointer("Test.Main", "Test.Main", "bar")),
-                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   false
                 )
               )
@@ -620,8 +659,8 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.UpdateOld.mainY(contextId, true),
-      context.Main.Update.mainY(contextId, true),
+      context.Main.UpdateOld.mainY(contextId, fromCache = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -766,33 +805,6 @@ class RuntimeServerTest
         idMainQ,
         Constants.INTEGER,
         Api.MethodPointer("Test.A", "Test.A", "bar")
-||||||| 3b48fc7e
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              idMain,
-              Some(Constants.NOTHING),
-              None
-            )
-          )
-        )
-=======
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              idMain,
-              Some(Constants.NOTHING),
-              None,
-              Vector(ProfilingInfo.ExecutionTime(0)),
-              false
-            )
-          )
-        )
->>>>>>> main
       ),
       context.Message.updateOld(contextId, idMainF, Constants.INTEGER),
       context.Message.update(contextId, idMainF, Constants.INTEGER),
@@ -1596,8 +1608,8 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.UpdateOld.mainY(contextId),
-      context.Main.Update.mainY(contextId),
+      context.Main.UpdateOld.mainY(contextId, fromCache = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -2180,45 +2192,6 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
-||||||| 3b48fc7e
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              )
-            )
-          )
-        )
-=======
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              ),
-              Vector(ProfilingInfo.ExecutionTime(0)),
-              false
-            )
-          )
-        )
->>>>>>> main
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -2342,13 +2315,15 @@ class RuntimeServerTest
         contextId,
         id1,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.Message.update(
         contextId,
         id1,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.Message.updateOld(
         contextId,
@@ -2373,45 +2348,6 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
-||||||| 3b48fc7e
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              )
-            )
-          )
-        )
-=======
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              ),
-              Vector(ProfilingInfo.ExecutionTime(0)),
-              fromCache = false
-            )
-          )
-        )
->>>>>>> main
       ),
       context.executionComplete(contextId)
     )
@@ -2439,13 +2375,15 @@ class RuntimeServerTest
         contextId,
         id1,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.Message.update(
         contextId,
         id1,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.Message.updateOld(
         contextId,
@@ -2470,45 +2408,6 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
-||||||| 3b48fc7e
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              )
-            )
-          )
-        )
-=======
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              ),
-              Vector(ProfilingInfo.ExecutionTime(0)),
-              false
-            )
-          )
-        )
->>>>>>> main
       ),
       context.executionComplete(contextId)
     )
@@ -2536,13 +2435,15 @@ class RuntimeServerTest
         contextId,
         id1,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.Message.update(
         contextId,
         id1,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        fromCache = true
       ),
       context.Message.updateOld(
         contextId,
@@ -2567,45 +2468,6 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
-||||||| 3b48fc7e
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              )
-            )
-          )
-        )
-=======
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              id3,
-              Some(Constants.INTEGER),
-              Some(
-                Api.MethodPointer(
-                  moduleName,
-                  Constants.NUMBER,
-                  "overloaded"
-                )
-              ),
-              Vector(ProfilingInfo.ExecutionTime(0)),
-              false
-            )
-          )
-        )
->>>>>>> main
       ),
       context.executionComplete(contextId)
     )
@@ -3011,8 +2873,8 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.UpdateOld.mainY(contextId),
-      context.Main.Update.mainY(contextId),
+      context.Main.UpdateOld.mainY(contextId, fromCache = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
