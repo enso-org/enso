@@ -19,11 +19,11 @@ import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.testkit.RetrySpec
-import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model.Position
+import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -594,10 +594,12 @@ class SuggestionsHandlerSpec
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config          = newConfig(testContentRoot.toFile)
-    val router          = TestProbe("session-router")
-    val connector       = TestProbe("runtime-connector")
-    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
+    val config    = newConfig(testContentRoot.toFile)
+    val router    = TestProbe("session-router")
+    val connector = TestProbe("runtime-connector")
+    val sqlDatabase = SqlDatabase(
+      config.directories.suggestionsDatabaseFile.toString
+    )
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
     val handler = newSuggestionsHandler(
