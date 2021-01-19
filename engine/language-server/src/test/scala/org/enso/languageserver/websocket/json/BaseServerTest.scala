@@ -81,13 +81,13 @@ class BaseServerTest extends JsonRpcServerTestKit {
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
+  val zioExec = ZioExec(zio.Runtime.default)
+  val sqlDatabase =
+    SqlDatabase(config.directories.suggestionsDatabaseFile.toString)
+  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
+
   override def clientControllerFactory: ClientControllerFactory = {
-
-    val zioExec         = ZioExec(zio.Runtime.default)
-    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
-    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =

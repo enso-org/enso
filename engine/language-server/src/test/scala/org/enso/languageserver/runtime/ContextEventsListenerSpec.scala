@@ -89,9 +89,11 @@ class ContextEventsListenerSpec
                 Api.MethodPointer(
                   Suggestions.method.module,
                   Suggestions.method.selfType,
-                  Suggestions.method.name
+                  Suggestions.method.name,
                 )
-              )
+              ),
+              Vector(),
+              false
             )
           )
         )
@@ -105,7 +107,9 @@ class ContextEventsListenerSpec
                 ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
                   Suggestions.method.externalId.get,
                   Some(Suggestions.method.returnType),
-                  Some(suggestionIds(1).get)
+                  Some(suggestionIds(1).get),
+                  Vector(),
+                  false
                 )
               ),
               Some(
@@ -200,7 +204,9 @@ class ContextEventsListenerSpec
             Api.ExpressionUpdate.ExpressionComputed(
               Suggestions.method.externalId.get,
               None,
-              None
+              None,
+              Vector(),
+              false
             )
           )
         )
@@ -211,7 +217,9 @@ class ContextEventsListenerSpec
             Api.ExpressionUpdate.ExpressionComputed(
               Suggestions.local.externalId.get,
               None,
-              None
+              None,
+              Vector(),
+              false
             )
           )
         )
@@ -227,12 +235,16 @@ class ContextEventsListenerSpec
                 ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
                   Suggestions.method.externalId.get,
                   None,
-                  None
+                  None,
+                  Vector(),
+                  false
                 ),
                 ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
                   Suggestions.local.externalId.get,
                   None,
-                  None
+                  None,
+                  Vector(),
+                  false
                 )
               ),
               Some(

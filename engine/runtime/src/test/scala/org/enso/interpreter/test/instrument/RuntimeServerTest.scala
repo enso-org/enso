@@ -1,31 +1,42 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.ByteBuffer
-import java.nio.file.Files
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
+import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
+import org.enso.polyglot.runtime.Runtime.Api.ProfilingInfo
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
+import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeServerTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
+
+  // === Test Timer ===========================================================
+
+  class TestTimer extends Timer {
+    override def getTime(): Long = 0
+  }
+
+  // === Test Utilities =======================================================
 
   var context: TestContext = _
 
@@ -69,6 +80,15 @@ class RuntimeServerTest
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
+
+    val languageContext = executionContext.context
+      .getBindings(LanguageInfo.ID)
+      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+      .asHostObject[EnsoContext]
+    val info =
+      languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
+    languageContext.getLanguage.getIdExecutionInstrument
+      .overrideTimer(new TestTimer)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -204,6 +224,8 @@ class RuntimeServerTest
         )
     }
 
+    // === The Tests ==========================================================
+
     object Main {
 
       val metadata = new Metadata
@@ -321,7 +343,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainX,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -341,7 +365,9 @@ class RuntimeServerTest
                       Constants.NUMBER,
                       "foo"
                     )
-                  )
+                  ),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -355,7 +381,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainZ,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -369,7 +397,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idFooY,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -383,7 +413,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idFooZ,
                   Some(Constants.INTEGER),
-                  None
+                  None,
+                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -458,7 +490,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainY,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", "Test.Main", "foo"))
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "foo")),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -472,7 +506,9 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainZ,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", "Test.Main", "bar"))
+                  Some(Api.MethodPointer("Test.Main", "Test.Main", "bar")),
+                  Vector(ProfilingInfo.ExecutionTime(0)),
+                  false
                 )
               )
             )
@@ -584,8 +620,8 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.UpdateOld.mainY(contextId),
-      context.Main.Update.mainY(contextId),
+      context.Main.UpdateOld.mainY(contextId, true),
+      context.Main.Update.mainY(contextId, true),
       context.executionComplete(contextId)
     )
 
@@ -730,6 +766,33 @@ class RuntimeServerTest
         idMainQ,
         Constants.INTEGER,
         Api.MethodPointer("Test.A", "Test.A", "bar")
+||||||| 3b48fc7e
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some(Constants.NOTHING),
+              None
+            )
+          )
+        )
+=======
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some(Constants.NOTHING),
+              None,
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
+        )
+>>>>>>> main
       ),
       context.Message.updateOld(contextId, idMainF, Constants.INTEGER),
       context.Message.update(contextId, idMainF, Constants.INTEGER),
@@ -2117,6 +2180,45 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+||||||| 3b48fc7e
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              )
+            )
+          )
+        )
+=======
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
+        )
+>>>>>>> main
       ),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -2271,6 +2373,45 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+||||||| 3b48fc7e
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              )
+            )
+          )
+        )
+=======
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              fromCache = false
+            )
+          )
+        )
+>>>>>>> main
       ),
       context.executionComplete(contextId)
     )
@@ -2329,6 +2470,45 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+||||||| 3b48fc7e
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              )
+            )
+          )
+        )
+=======
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
+        )
+>>>>>>> main
       ),
       context.executionComplete(contextId)
     )
@@ -2387,6 +2567,45 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+||||||| 3b48fc7e
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              )
+            )
+          )
+        )
+=======
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some(Constants.INTEGER),
+              Some(
+                Api.MethodPointer(
+                  moduleName,
+                  Constants.NUMBER,
+                  "overloaded"
+                )
+              ),
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
+        )
+>>>>>>> main
       ),
       context.executionComplete(contextId)
     )
@@ -2481,7 +2700,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionComplete(contextId))
+    context.receive shouldEqual Some(
+      context.executionComplete(contextId)
+    )
     context.consumeOut shouldEqual List("I'm a modified!")
 
     // Close the file
@@ -2583,7 +2804,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(context.executionComplete(contextId))
+    context.receive shouldEqual Some(
+      context.executionComplete(contextId)
+    )
   }
 
   it should "send suggestion notifications when file is executed" in {
@@ -5024,7 +5247,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, isIndexed = true))
     )
     context.receiveNone shouldEqual None
 
