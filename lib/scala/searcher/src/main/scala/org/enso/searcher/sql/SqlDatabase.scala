@@ -1,9 +1,8 @@
 package org.enso.searcher.sql
 
-import java.io.File
-
 import com.typesafe.config.{Config, ConfigFactory}
 import org.enso.searcher.Database
+import org.enso.searcher.sqlite.LockingMode
 import slick.dbio.DBIO
 import slick.jdbc.SQLiteProfile
 import slick.jdbc.SQLiteProfile.api._
@@ -43,24 +42,31 @@ object SqlDatabase {
     * @param filename the database file path
     * @return new sql database instance
     */
-  def apply(filename: File): SqlDatabase =
-    apply(filename.toString)
-
-  /** Create [[SqlDatabase]] instance.
-    *
-    * @param filename the database file path
-    * @return new sql database instance
-    */
-  def apply(filename: String): SqlDatabase = {
+  def apply(
+    filename: String,
+    maybeLockingMode: Option[LockingMode] = None
+  ): SqlDatabase = {
     val config = ConfigFactory
-      .parseString(s"""$configPath.url = "${jdbcUrl(filename)}"""")
+      .parseString(
+        s"""$configPath.url = "${jdbcUrl(filename, maybeLockingMode)}""""
+      )
       .withFallback(ConfigFactory.load())
     new SqlDatabase(Some(config))
   }
 
   /** Create JDBC URL from the file path. */
-  private def jdbcUrl(filename: String): String =
-    s"jdbc:sqlite:${escapePath(filename)}"
+  private def jdbcUrl(
+    filename: String,
+    maybeLockingMode: Option[LockingMode]
+  ): String = {
+    maybeLockingMode match {
+      case None =>
+        s"jdbc:sqlite:${escapePath(filename)}"
+
+      case Some(lockingMode) =>
+        s"jdbc:sqlite:file:${escapePath(filename)}?vfs=${lockingMode.name}"
+    }
+  }
 
   /** Escape Windows path. */
   private def escapePath(path: String): String =
