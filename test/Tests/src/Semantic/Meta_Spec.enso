@@ -9,24 +9,24 @@ My_Type.my_method = this.foo + this.bar + this.baz
 
 type Test_Type x
 
-spec = describe "Meta-Value Manipulation" <|
-    it "should allow manipulating unresolved symbols" <|
-        sym = does_not_exist
+spec = Test.group "Meta-Value Manipulation" <|
+    Test.specify "should allow manipulating unresolved symbols" <|
+        sym = .does_not_exist
         meta_sym = Meta.meta sym
-        meta_sym.name.should equal "does_not_exist"
+        meta_sym.name.should_equal "does_not_exist"
         new_sym = meta_sym . rename "my_method"
         object = My_Type 1 2 3
-        new_sym object . should equal 6
-    it "should allow manipulating atoms" <|
+        new_sym object . should_equal 6
+    Test.specify "should allow manipulating atoms" <|
         atom = My_Type 1 "foo" Nothing
         meta_atom = Meta.meta atom
-        meta_atom.constructor.should equal My_Type
-        meta_atom.fields.should equal [1, "foo", Nothing]
-        Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should equal atom
-    it "should correctly return representations of different classes of objects" <|
-        Meta.meta 1 . should equal (Meta.Primitive 1)
-        Meta.meta "foo" . should equal (Meta.Primitive "foo")
-    it "should allow checking if a value is of a certain type" <|
+        meta_atom.constructor.should_equal My_Type
+        meta_atom.fields.should_equal [1, "foo", Nothing]
+        Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should_equal atom
+    Test.specify "should correctly return representations of different classes of objects" <|
+        Meta.meta 1 . should_equal (Meta.Primitive 1)
+        Meta.meta "foo" . should_equal (Meta.Primitive "foo")
+    Test.specify "should allow checking if a value is of a certain type" <|
         1.is_an Any . should_be_true
         1.2.is_an Any . should_be_true
         (My_Type 1 "foo" Nothing).is_an Any . should_be_true

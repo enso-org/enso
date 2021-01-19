@@ -10,12 +10,12 @@ build_long n =
     res
 
 build_long_bldr n =
-    bldr = new StringBuilder [].to_array
+    bldr = StringBuilder.new [].to_array
     1.up_to n . each n-> bldr.append [n]
     res = bldr.toString []
     res
 
 main =
-    Bench.measure (here.build_long_bldr 1000000) "string append bldr" 100 10
-    Bench.measure (here.build_long 1000000) "string append" 100 10
+    Bench.measure (here.build_long_bldr 1000000) "string append bldr" 1 1
+    Bench.measure (here.build_long 1000000) "string append" 1 1
     IO.println "Bye"

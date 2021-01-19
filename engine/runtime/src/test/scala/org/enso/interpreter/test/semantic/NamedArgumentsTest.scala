@@ -18,9 +18,9 @@ class NamedArgumentsTest extends InterpreterTest {
         """from Builtins import all
           |
           |Nothing.a = 10
-          |Nothing.addTen = b -> a Nothing + b
+          |Nothing.add_ten = b -> Nothing.a + b
           |
-          |main = addTen Nothing (b = 10)
+          |main = Nothing.add_ten (b = 10)
       """.stripMargin
 
       eval(code) shouldEqual 20
@@ -32,7 +32,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |
           |Nothing.subtract = a -> b -> a - b
           |
-          |main = subtract Nothing (b = 10) (a = 5)
+          |main = Nothing.subtract (b = 10) (a = 5)
     """.stripMargin
 
       eval(code) shouldEqual -5
@@ -55,9 +55,9 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Nothing.addNum = a -> (num = 10) -> a + num
+          |Nothing.add_num = a -> (num = 10) -> a + num
           |
-          |main = addNum Nothing 5
+          |main = Nothing.add_num 5
     """.stripMargin
 
       eval(code) shouldEqual 15
@@ -68,9 +68,9 @@ class NamedArgumentsTest extends InterpreterTest {
         """from Builtins import all
           |
           |Nothing.add = a -> b -> a + b
-          |Nothing.doThing = a -> (b = add Nothing 1 2) -> a + b
+          |Nothing.do_thing = a -> (b = Nothing.add 1 2) -> a + b
           |
-          |main = doThing Nothing 10
+          |main = Nothing.do_thing 10
           |""".stripMargin
 
       eval(code) shouldEqual 13
@@ -93,9 +93,9 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Nothing.addTogether = (a = 5) -> (b = 6) -> a + b
+          |Nothing.add_together = (a = 5) -> (b = 6) -> a + b
           |
-          |main = addTogether Nothing
+          |main = Nothing.add_together
     """.stripMargin
 
       eval(code) shouldEqual 11
@@ -105,9 +105,9 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Nothing.addNum = a -> (num = 10) -> a + num
+          |Nothing.add_num = a -> (num = 10) -> a + num
           |
-          |main = addNum Nothing 1 (num = 1)
+          |main = Nothing.add_num 1 (num = 1)
     """.stripMargin
 
       eval(code) shouldEqual 2
@@ -117,9 +117,9 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Nothing.addNum = a -> (num = 10) -> a + num
+          |Nothing.add_num = a -> (num = 10) -> a + num
           |
-          |main = addNum Nothing 1 2
+          |main = Nothing.add_num 1 2
           |""".stripMargin
 
       eval(code) shouldEqual 3
@@ -135,7 +135,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |  res = summator (current = sumTo)
           |  res
           |
-          |main = summer Nothing 100
+          |main = Nothing.summer 100
     """.stripMargin
 
       eval(code) shouldEqual 5050
@@ -161,7 +161,7 @@ class NamedArgumentsTest extends InterpreterTest {
         """from Builtins import all
           |
           |Nothing.foo = a -> b -> c -> a -> a
-          |main = foo Nothing 20 (a = 10) 0 0
+          |main = Nothing.foo 20 (a = 10) 0 0
           |""".stripMargin
 
       eval(code) shouldEqual 10
@@ -171,9 +171,9 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Nothing.doubleOrAdd = a -> (b = a) -> a + b
+          |Nothing.double_or_add = a -> (b = a) -> a + b
           |
-          |main = doubleOrAdd Nothing 5
+          |main = Nothing.double_or_add 5
           |""".stripMargin
 
       eval(code) shouldEqual 10
@@ -183,9 +183,9 @@ class NamedArgumentsTest extends InterpreterTest {
       val code =
         """from Builtins import all
           |
-          |Nothing.badArgFn = a -> (b = c) -> (c = a) -> a + b + c
+          |Nothing.bad_arg_fn = a -> (b = c) -> (c = a) -> a + b + c
           |
-          |main = badArgFn Nothing 3
+          |main = Nothing.bad_arg_fn 3
           |""".stripMargin
 
       an[InterpreterException] should be thrownBy eval(code)
@@ -198,13 +198,13 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Nil2
           |
           |main =
-          |    genList = i -> if i == 0 then Nil2 else Cons2 (rest = genList i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + t.sum
+          |        Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
-          |    10.genList.sum
+          |    sum (gen_list 10)
         """.stripMargin
 
       eval(code) shouldEqual 55
@@ -217,13 +217,13 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Cons2 head (rest = Nil2)
           |
           |main =
-          |    genList = i -> if i == 0 then Nil2 else Cons2 (rest = genList i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + t.sum
+          |        Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
-          |    5.genList.sum
+          |    sum (gen_list 5)
         """.stripMargin
 
       eval(code) shouldEqual 15
@@ -248,11 +248,11 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Cons2 head (rest = Nil2)
           |type Nil2
           |
-          |Nothing.sumList = list -> case list of
-          |  Cons2 h t -> h + Nothing.sumList t
+          |Nothing.sum_list = list -> case list of
+          |  Cons2 h t -> h + Nothing.sum_list t
           |  Nil2 -> 0
           |
-          |main = Nothing.sumList (Cons2 10)
+          |main = Nothing.sum_list (Cons2 10)
         """.stripMargin
 
       eval(code) shouldEqual 10

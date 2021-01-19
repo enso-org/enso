@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.4.1
+        uses: ilammy/msvc-dev-cmd@v1.5.0
       - name: Setup Go
         uses: actions/setup-go@v2
       - name: Disable TCP/UDP Offloading (macOS)
@@ -188,7 +188,7 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt 'set launcherDistributionRoot := file("${{ env.LAUNCHER_DIST_DIR }}"); buildLauncherDistribution'
+          sbt buildLauncherDistribution
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
@@ -201,13 +201,13 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt 'set engineDistributionRoot := file("${{ env.ENGINE_DIST_DIR }}"); buildEngineDistribution'
+          sbt buildEngineDistribution
 
       - name: Prepare Project Manager Distribution
         shell: bash
         run: |
           sleep 1
-          sbt 'set projectManagerDistributionRoot := file("${{ env.PROJECTMANAGER_DIST_DIR }}"); buildProjectManagerDistribution'
+          sbt buildProjectManagerDistribution
 
       # Test Distribution
       - name: Prepare Engine Test Environment
@@ -243,17 +243,17 @@ jobs:
       - name: Publish the Engine Distribution Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.ENGINE_DIST_ROOT }}
+          name: ${{ env.ENGINE_DIST_NAME }}
           path: ${{ env.ENGINE_DIST_ROOT }}
       - name: Publish the Launcher
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.LAUNCHER_DIST_ROOT }}
+          name: ${{ env.LAUNCHER_DIST_NAME }}
           path: ${{ env.LAUNCHER_DIST_ROOT }}
       - name: Publish the Project Manager
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+          name: ${{ env.PROJECTMANAGER_DIST_NAME }}
           path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
 
       - name: Prepare the FlatBuffers Schemas for Upload

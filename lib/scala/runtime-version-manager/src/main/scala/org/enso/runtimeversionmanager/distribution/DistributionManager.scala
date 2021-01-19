@@ -14,9 +14,12 @@ import scala.util.control.NonFatal
   * @param dataRoot the root of the data directory; for a portable distribution
   *                 this is the root of the distribution, for a locally
   *                 installed distribution, it corresponds to `ENSO_DATA_DIR`
-  * @param runtimes location of runtimes, corresponding to `runtime` directory
-  * @param engines location of engine versions, corresponding to `dist`
+  * @param runtimes primary location of runtimes, corresponding to `runtime`
+  *                 directory
+  * @param engines primary location of engine versions, corresponding to `dist`
   *                directory
+  * @param bundle optional bundle description, containing secondary engine and
+  *               runtime directories
   * @param config location of configuration
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components
@@ -29,6 +32,7 @@ case class DistributionPaths(
   dataRoot: Path,
   runtimes: Path,
   engines: Path,
+  bundle: Option[Bundle],
   config: Path,
   locks: Path,
   logs: Path,
@@ -42,11 +46,35 @@ case class DistributionPaths(
        |  dataRoot = $dataRoot,
        |  runtimes = $runtimes,
        |  engines  = $engines,
+       |  bundle   = $bundle,
        |  config   = $config,
        |  locks    = $locks,
        |  tmp      = $unsafeTemporaryDirectory
        |)""".stripMargin
+
+  /** Sequence of paths to search for engine installations, in order of
+    * precedence.
+    */
+  def engineSearchPaths: Seq[Path] = Seq(engines) ++ bundle.map(_.engines).toSeq
+
+  /** Sequence of paths to search for runtime installations, in order of
+    * precedence.
+    */
+  def runtimeSearchPaths: Seq[Path] =
+    Seq(runtimes) ++ bundle.map(_.runtimes).toSeq
 }
+
+/** Paths to secondary directories for additionally bundled engine
+  * distributions.
+  *
+  * These paths are only relevant for an installed distribution which may also
+  * use some locally bundled distributions (possibly located on a read-only
+  * filesystem).
+  *
+  * For portable distributions, bundled packages are already included in the
+  * primary directory.
+  */
+case class Bundle(engines: Path, runtimes: Path)
 
 /** A helper class that encapsulates management of paths to components of the
   * distribution.
@@ -82,12 +110,39 @@ class DistributionManager(val env: Environment) {
       dataRoot                 = dataRoot,
       runtimes                 = dataRoot / RUNTIMES_DIRECTORY,
       engines                  = dataRoot / ENGINES_DIRECTORY,
+      bundle                   = detectBundle(),
       config                   = configRoot,
       locks                    = runRoot / LOCK_DIRECTORY,
       logs                     = LocallyInstalledDirectories.logDirectory,
       unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY
     )
   }
+
+  /** Name of the file that should be placed in the distribution root to mark it
+    * as running in portable mode.
+    */
+  private val BUNDLE_MARK_FILENAME = ".enso.bundle"
+
+  /** Root directory of a bundle.
+    *
+    * If the bundle is present, it will be located next to the `bin/` directory
+    * that contains the executable that we are currently running.
+    */
+  private def possibleBundleRoot =
+    env.getPathToRunningExecutable.getParent.getParent
+
+  /** Checks if [[possibleBundleRoot]] contains the bundle mark file and returns
+    * directories for the bundle if it was found.
+    */
+  private def detectBundle(): Option[Bundle] =
+    if (Files.exists(possibleBundleRoot / BUNDLE_MARK_FILENAME))
+      Some(
+        Bundle(
+          engines  = possibleBundleRoot / ENGINES_DIRECTORY,
+          runtimes = possibleBundleRoot / RUNTIMES_DIRECTORY
+        )
+      )
+    else None
 
   /** Removes unused lockfiles.
     */

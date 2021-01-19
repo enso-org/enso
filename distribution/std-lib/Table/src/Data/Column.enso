@@ -19,7 +19,7 @@ type Column
         col_name = java_col.getName []
         storage = java_col.getStorage []
         num_rows = java_col.getSize []
-        display_rows = min num_rows show_rows
+        display_rows = Math.min num_rows show_rows
         items = Vector.new display_rows num->
             row = if storage.isNa [num] then "Nothing" else
                 here.get_item_string storage num
@@ -130,7 +130,7 @@ type Column
     ## Boolean negation of each element in this column.
     not : Column
     not =
-        here.run_vectorized_unary_op this "not" not
+        here.run_vectorized_unary_op this "not" .not
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -257,7 +257,7 @@ type Column
             Storage.Integer -> Json.Number
             Storage.Decimal -> Json.Number
             Storage.Boolean -> Json.Boolean
-            _ -> to_json
+            _ -> .to_json
         storage_json = Json.Array (here.storage_to_json storage json_factory)
         fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
         Json.Object fields
@@ -330,7 +330,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
-        r = this.java_column.aggregate ['max', name_suffix, (x-> Vector.Vector x . reduce max), True]
+        r = this.java_column.aggregate ['max', name_suffix, (x-> Vector.Vector x . reduce Math.max), True]
         Column r
 
     ## Computes the minimum element of each group.
@@ -340,7 +340,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
-        r = this.java_column.aggregate ['min', name_suffix, (x-> Vector.Vector x . reduce min), True]
+        r = this.java_column.aggregate ['min', name_suffix, (x-> Vector.Vector x . reduce Math.min), True]
         Column r
 
     ## Computes the number of non-missing elements in each group.

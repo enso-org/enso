@@ -114,7 +114,7 @@ type List
              Nil.not_empty == false
              Cons 1 Nil . not_empty == true
     not_empty : Boolean
-    not_empty = not this.is_empty
+    not_empty = this.is_empty.not
 
     ## Selects all elements of this list which satisfy a predicate.
 

@@ -4,8 +4,8 @@ import Test
 type My_Type foo
 
 spec =
-    describe "No Method Errors" <|
-        it "should be recoverable" <|
+    Test.group "No Method Errors" <|
+        Test.specify "should be recoverable" <|
             err_1 = Panic.recover (123 . foobar "baz") . catch e->e
             err_2 = Panic.recover ("foo" . baz 123) . catch e->e
             err_3 = Panic.recover (My_Type False . nope) . catch e->e

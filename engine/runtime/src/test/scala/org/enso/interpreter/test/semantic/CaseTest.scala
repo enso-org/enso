@@ -18,7 +18,7 @@ class CaseTest extends InterpreterTest {
           |from Builtins import all
           |
           |main =
-          |    x = Cons a Nil
+          |    x = Cons 0 Nil
           |    case x of
           |        Cons2 a b -> a + b
           |        Nil2 -> 0
@@ -35,7 +35,7 @@ class CaseTest extends InterpreterTest {
           |from Builtins import all
           |
           |main =
-          |    x = Cons a Nil
+          |    x = Cons 0 Nil
           |    case x of
           |        Cons a -> a
           |""".stripMargin

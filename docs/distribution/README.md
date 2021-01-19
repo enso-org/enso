@@ -27,7 +27,7 @@ dependencies, and Enso projects for use by our users.
   Explanation of the fallback infrastructure that can be enabled to keep
   launcher updates functioning even if the primary release provider stops
   working.
-- [**Local Repository:**](local-repository.md) Explanation of local repository
-  structure that is used for bundling engine with project manager distributions.
 - [**Standard Libraries:**](standard-libraries.md) A brief explanation of the
   standard libraries for Enso.
+- [**Bundles**](bundles.md) An explanation of distributed bundles that contain
+  all components necessary to run Enso out of the box.

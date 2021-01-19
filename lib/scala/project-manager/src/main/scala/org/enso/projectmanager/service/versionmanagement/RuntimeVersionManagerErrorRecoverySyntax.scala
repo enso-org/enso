@@ -2,19 +2,8 @@ package org.enso.projectmanager.service.versionmanagement
 
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.service.ProjectServiceFailure
-import org.enso.projectmanager.service.ProjectServiceFailure.{
-  BrokenComponentFailure,
-  ComponentInstallationFailure,
-  MissingComponentFailure,
-  ProjectManagerUpgradeRequiredFailure
-}
-import org.enso.runtimeversionmanager.components.{
-  BrokenComponentError,
-  ComponentMissingError,
-  ComponentsException,
-  InstallationError,
-  UpgradeRequiredError
-}
+import org.enso.projectmanager.service.ProjectServiceFailure._
+import org.enso.runtimeversionmanager.components._
 
 object RuntimeVersionManagerErrorRecoverySyntax {
   implicit class ErrorRecovery[F[+_, +_]: ErrorChannel, A](
@@ -42,6 +31,8 @@ object RuntimeVersionManagerErrorRecoverySyntax {
             ProjectManagerUpgradeRequiredFailure(
               upgradeRequired.expectedVersion
             )
+          case UninstallationError(message) =>
+            ComponentUninstallationFailure(message)
           case _ => mapDefault(componentsException)
         }
       case other: Throwable =>

@@ -38,7 +38,7 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
     true
 
   /** @inheritdoc */
-  override def logInfo(message: => String): Unit = logger.debug(message)
+  override def logInfo(message: => String): Unit = logger.info(message)
 
   override def startWaitingForResource(resource: Resource): Unit =
     logger.debug(s"Waiting on ${resource.name}")

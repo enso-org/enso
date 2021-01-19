@@ -45,7 +45,7 @@ class OperatorToFunctionTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Operators" should {
-    val opName   = IR.Name.Literal("=:=", isReferent = false, None)
+    val opName   = IR.Name.Literal("=:=", isReferent = false,isMethod = true, None)
     val left     = IR.Empty(None)
     val right    = IR.Empty(None)
     val rightArg = IR.CallArgument.Specified(None, IR.Empty(None), None)
