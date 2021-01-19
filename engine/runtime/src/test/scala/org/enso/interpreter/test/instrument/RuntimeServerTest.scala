@@ -2369,7 +2369,7 @@ class RuntimeServerTest
                 )
               ),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              wasCached = true
+              fromCache = true
             )
           )
         )
@@ -2389,7 +2389,7 @@ class RuntimeServerTest
                 )
               ),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              wasCached = false
+              fromCache = false
             )
           )
         )
@@ -2409,7 +2409,7 @@ class RuntimeServerTest
                 )
               ),
               Vector(ProfilingInfo.ExecutionTime(0)),
-              wasCached = false
+              fromCache = false
             )
           )
         )

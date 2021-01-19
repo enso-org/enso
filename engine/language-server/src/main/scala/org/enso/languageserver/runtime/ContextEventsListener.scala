@@ -142,7 +142,7 @@ final class ContextEventsListener(
                 case Api.ProfilingInfo.ExecutionTime(t) =>
                   ProfilingInfo.ExecutionTime(t)
               },
-              update.wasCached
+              update.fromCache
             )
           }
           val payload =

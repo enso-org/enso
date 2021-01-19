@@ -251,13 +251,17 @@ object Runtime {
       * @param expressionId expression id.
       * @param expressionType the type of expression.
       * @param methodCall the pointer to a method definition.
+      * @param profilingInfo profiling information about the execution of this
+      *                      expression
+      * @param fromCache whether or not the value for this expression came from
+      *                  the cache
       */
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
       methodCall: Option[MethodPointer],
       profilingInfo: Vector[ProfilingInfo],
-      wasCached: Boolean
+      fromCache: Boolean
     )
 
     /** An object representing profiling information about an executed

@@ -247,8 +247,8 @@ interface ExpressionValueUpdate {
   /** Profiling information for the expression */
   profilingInfo: ProfilingInfo[];
 
-  /** Whether the expression value was cached or not */
-  wasCached: bool;
+  /** Whether the expression value came from the cache or not */
+  fromCache: bool;
 }
 ```
 
