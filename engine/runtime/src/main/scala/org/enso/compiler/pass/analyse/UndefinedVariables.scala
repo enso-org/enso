@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 
 /** Reports errors for local variables that are not linked to a definition
@@ -61,7 +62,9 @@ case object UndefinedVariables extends IRPass {
         occ.graph.defLinkFor(occ.id) match {
           case Some(_) => name
           case None =>
-            IR.Error.Resolution(name, IR.Error.Resolution.VariableNotInScope)
+            val errorResolutionNode =
+              IR.Error.Resolution(name, IR.Error.Resolution.VariableNotInScope)
+            errorResolutionNode.updateMetadata(AliasAnalysis -->> occ)
         }
       } else { name }
 
