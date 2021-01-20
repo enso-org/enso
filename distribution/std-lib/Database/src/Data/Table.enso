@@ -25,17 +25,10 @@ type Table
     ## Converts this table to a JSON structure.
     to_json : Json
     to_json =
-        Error.throw "TODO"
-        # TODO
-#        col_jsons = this.columns.map to_json
-#        cols_json = Json.Array col_jsons
-#        fields = Map.singleton "columns" cols_json
-#        Json.Object fields
-
-    ## PRIVATE
-    make_column : Pair Text IR.Expression -> Column
-    make_column pair =
-        Column pair.first this.connection pair.second this.context
+        col_jsons = this.columns.map .to_json
+        cols_json = Json.Array col_jsons
+        fields = Map.singleton "columns" cols_json
+        Json.Object fields
 
     ## Returns the column with the given name.
     at : Text -> Column | Nothing
@@ -44,17 +37,22 @@ type Table
         p -> this.make_column p
 
     ## Selects only the rows of this table that correspond to `True` values in
-       `indexes`.
+       `filter`.
        This is useful for filtering the rows by given predicate.
        > Example
          Select only the rows of `my_table` where the `"Status"` column has the
          value `"Valid"`
              my_table.where (my_table.at "Status" == "Valid")
     where : Column -> Table
-    where indexes =
-        # Table (this.java_table.mask [indexes.java_column])
-        # TODO
-        Error.throw "TODO"
+    where filter =
+        case filter.context == this.context of
+            False ->
+                # TODO [RW] more descriptive errors
+                Error.throw "Filtering over a column with differing context."
+            True ->
+                new_filters = this.context.where_filters + [filter.expression]
+                new_ctx = this.context.set_where_filters new_filters
+                this.updated_context new_ctx
 
     ## Sets the column value at the given name. If a column with the given name
        already exists, it will be replaced. Otherwise a new column is added.
@@ -74,14 +72,14 @@ type Table
             Vector -> index
             _ -> [index]
         new_context = this.context.set_index ind
-        Table this.connection this.internal_columns new_context
+        this.updated_context new_context
 
     ## Selects a subset of columns from this table by name.
     select : Vector Text -> Table
     select columns =
         find_col = (name -> this.internal_columns.find (p -> p.name == name))
         selected_cols = columns.map find_col . filter (!= Nothing)
-        Table this.connection selected_cols this.context
+        this.updated_columns selected_cols
 
     ## Efficiently joins two tables based on either the index or a key column.
 
@@ -132,7 +130,7 @@ type Table
     to_sql : Text
     to_sql =
         col_expressions = this.internal_columns . map .first
-        IR.generate_sql this.connection.db_type col_expressions this.context
+        IR.generate_sql this.connection.dialect col_expressions this.context
 
     explain_query_plan : Text
     explain_query_plan =
@@ -146,6 +144,17 @@ type Table
     info =
         cols = this.columns
         here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
+
+    ## PRIVATE
+    make_column : Pair Text IR.Expression -> Column
+    make_column pair =
+        Column pair.first this.connection pair.second this.context
+
+    ## PRIVATE
+    updated_columns columns = Table this.connection columns this.context
+
+    ## PRIVATE
+    updated_context ctx = Table this.connection this.internal_columns ctx
 
 
 make_table : Connection -> Text -> Vector Text -> Table

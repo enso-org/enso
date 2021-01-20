@@ -1,0 +1,14 @@
+import Test
+import Database.Connection.Connection
+
+#main = Test.Suite.runMain <|
+#    Table_Spec.spec
+
+main =
+    IO.print "Hello"
+    conn = Connection.make_fake_connection "PostgreSQL"
+    conn.java_connection.addTable ["T1", ["A", "B", "C"].to_array]
+    t1 = conn.access_table "T1"
+    IO.print t1.to_sql
+    IO.print t1
+

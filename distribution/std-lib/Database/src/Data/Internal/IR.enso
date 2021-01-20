@@ -1,6 +1,10 @@
 type Expression
     # type Column (origin : Text) (name : Text)
     type Column origin name
+
+    # type Constant (value : Any)
+    type Constant value
+
     # type Operation (kind : Text) (expressions : Vector Expression)
     type Operation kind expressions
 
@@ -14,12 +18,19 @@ type Context
     set_index new_index =
         Context this.from_spec this.where_filters this.orders this.groups index
 
+    set_where_filters : Vector Expression -> Context
+    set_where_filters new_filters =
+        Context this.from_spec new_filters this.orders this.groups this.meta_index
+
 type FromSpec
-    # type FromTable (table_name : Text)
-    type FromTable table_name
+    # type FromTable (table_name : Text) (alias : Text)
+    type FromTable table_name alias
     # type Join (kind : JoinKind) (left_spec : FromSpec) (right_spec : FromSpec)
     #           (on : Vector Expression)
     type Join kind left_spec right_spec on
+    # type SubQuery (expressions : Vector Expression) (context : Context)
+    #               (alias : Text)
+    type SubQuery expressions context alias
 
 type JoinKind
     type InnerJoin
@@ -32,5 +43,5 @@ make_ctx_from table_name =
     Context (FromTable table_name) [] [] [] []
 
 generate_sql : Text -> Vector Expression -> Context -> Text
-generate_sql db_type expressions context =
+generate_sql dialect expressions context =
     "TODO"

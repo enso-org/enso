@@ -1,7 +1,17 @@
 import Database.Data.Table
+polyglot java import org.enso.database.connection.FakeTestConnection
 
 type Connection
     type Connection java_connection
 
-    access_table : String -> Table
-    access_table name = Panic.throw "TODO"
+    access_table : Text -> Table
+    access_table name =
+        column_names = this.java_connection.fetchColumnNamesForTable [name]
+        Table.make_table this name column_names
+
+    dialect : Text
+    dialect = this.java_connection.getDialect []
+
+## PRIVATE
+make_fake_connection dialect =
+    Connection (FakeTestConnection.new [dialect])
