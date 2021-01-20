@@ -59,10 +59,10 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       TailCall,
       Patterns,
       AliasAnalysis,
+      UndefinedVariables,
       DataflowAnalysis,
       CachePreferenceAnalysis,
-      UnusedBindings,
-      UndefinedVariables
+      UnusedBindings
     )
   )
 
