@@ -322,7 +322,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
     // The `frobnicate` return expression
     val frobExpr = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]
-    val frobFn   = frobExpr.function.asInstanceOf[IR.Name.Literal]
+    val frobFn   = frobExpr.function.asInstanceOf[IR.Error.Resolution]
     val frobArgA =
       frobExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
     val frobArgAExpr = frobArgA.value.asInstanceOf[IR.Name.Literal]
@@ -705,7 +705,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val app   = ir.asInstanceOf[IR.Application.Prefix]
-      val appFn = app.function.asInstanceOf[IR.Name.Literal]
+      val appFn = app.function.asInstanceOf[IR.Error.Resolution]
       val appArg10 =
         app.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       val appArg10Expr = appArg10.value.asInstanceOf[IR.Literal.Number]
