@@ -1,3 +1,4 @@
+from Base import all
 import Database.Connection.Connection
 
 connect : String -> Connection

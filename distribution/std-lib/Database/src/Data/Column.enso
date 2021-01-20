@@ -1,3 +1,4 @@
+from Base import all
 import Database.Data.Internal.IR
 
 type Column

@@ -1,3 +1,4 @@
+from Base import all
 import Database.Data.Table
 polyglot java import org.enso.database.connection.FakeTestConnection
 
@@ -6,7 +7,8 @@ type Connection
 
     access_table : Text -> Table
     access_table name =
-        column_names = this.java_connection.fetchColumnNamesForTable [name]
+        cols = this.java_connection.fetchColumnNamesForTable [name]
+        column_names = Vector.Vector cols
         Table.make_table this name column_names
 
     dialect : Text
@@ -14,4 +16,4 @@ type Connection
 
 ## PRIVATE
 make_fake_connection dialect =
-    Connection (FakeTestConnection.new [dialect])
+    Connection (FakeTestConnection . new [dialect].to_array)

@@ -1,3 +1,5 @@
+from Base import all
+
 type Expression
     # type Column (origin : Text) (name : Text)
     type Column origin name
@@ -16,7 +18,7 @@ type Context
 
     set_index : Vector Text -> Context
     set_index new_index =
-        Context this.from_spec this.where_filters this.orders this.groups index
+        Context this.from_spec this.where_filters this.orders this.groups new_index
 
     set_where_filters : Vector Expression -> Context
     set_where_filters new_filters =
@@ -40,7 +42,7 @@ type JoinKind
 
 make_ctx_from : Text -> Context
 make_ctx_from table_name =
-    Context (FromTable table_name) [] [] [] []
+    Context (FromTable table_name table_name) [] [] [] []
 
 generate_sql : Text -> Vector Expression -> Context -> Text
 generate_sql dialect expressions context =

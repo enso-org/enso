@@ -1,3 +1,7 @@
+from Base import all
+from Database.Data.Column import all
+import Database.Data.Internal.IR
+
 ## Represents a column-oriented table data structure backed by a database.
 type Table
     # type Table (connection : Connection)
@@ -157,7 +161,9 @@ type Table
     updated_context ctx = Table this.connection this.internal_columns ctx
 
 
+## PRIVATE
 make_table : Connection -> Text -> Vector Text -> Table
 make_table connection table_name column_names =
     ctx = IR.make_ctx_from table_name
-    column_names.map (name -> Column connection (Column table_name name) ctx)
+    cols = column_names.map (name -> Pair name (IR.Column table_name name))
+    Table connection cols ctx
