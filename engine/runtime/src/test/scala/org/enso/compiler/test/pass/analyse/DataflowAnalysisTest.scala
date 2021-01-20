@@ -845,6 +845,31 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
     }
 
+    "work properly for undefined variables" in {
+      implicit val inlineContext: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |x = undefined
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
+
+      val binding     = ir.asInstanceOf[IR.Expression.Binding]
+      val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
+      val bindingExpr = binding.expression.asInstanceOf[IR.Error.Resolution]
+
+      // The IDs
+      val bindingId     = mkStaticDep(binding.getId)
+      val bindingNameId = mkStaticDep(bindingName.getId)
+      val bindingExprId = mkStaticDep(bindingExpr.getId)
+
+      // The Test
+      depInfo.getDirect(bindingId) should not be defined
+      depInfo.getDirect(bindingNameId) shouldEqual Some(Set(bindingId))
+      depInfo.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
+    }
+
     "work properly for vector literals" in {
       implicit val inlineContext: InlineContext = mkInlineContext
 
