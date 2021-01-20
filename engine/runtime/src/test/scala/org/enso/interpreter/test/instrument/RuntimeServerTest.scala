@@ -438,6 +438,100 @@ class RuntimeServerTest
     )
   }
 
+  it should "push method with default arguments" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idMain    = metadata.addItem(49, 24)
+    val idMainFoo = metadata.addItem(65, 8)
+
+    val code =
+      """from Builtins import all
+        |
+        |foo a=0 = a + 1
+        |
+        |main =
+        |    IO.println here.foo
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainFoo,
+              Some(Constants.INTEGER),
+              Some(Api.MethodPointer(moduleName, "Test.Main", "foo")),
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some(Constants.NOTHING),
+              None,
+              Vector(ProfilingInfo.ExecutionTime(0)),
+              false
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("1")
+
+    // push foo call
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(idMainFoo))
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("1")
+  }
+
   it should "send method pointer updates" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
