@@ -110,13 +110,13 @@ class ExpressionErrorsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  it should "return all errors in method body" in {
+  it should "return dataflow errors in method body" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
     val metadata   = new Metadata
-    val fooBodyId  = metadata.addItem(21, 5)
     @scala.annotation.unused
+    val fooBodyId = metadata.addItem(21, 5)
     val xId       = metadata.addItem(35, 9)
     val yId       = metadata.addItem(53, 8)
     val mainResId = metadata.addItem(66, 7)
@@ -157,18 +157,32 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Variable `undefined` is not defined.",
+              Some(mainFile),
+              Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
+              Some(xId),
+              Vector()
+            )
+          )
+        )
+      ),
       Api.Response(
         Api.ExpressionUpdates(
           contextId,
           Set(
             Api.ExpressionUpdate.ExpressionFailed(
-              fooBodyId,
-              "No_Such_Method_Error UnresolvedSymbol<undefined> UnresolvedSymbol<+>"
+              xId,
+              "Compile_Error Variable `undefined` is not defined."
             ),
-            Api.ExpressionUpdate.ExpressionPoisoned(yId, fooBodyId),
-            Api.ExpressionUpdate.ExpressionPoisoned(mainResId, fooBodyId)
+            Api.ExpressionUpdate.ExpressionPoisoned(yId, xId),
+            Api.ExpressionUpdate.ExpressionPoisoned(mainResId, xId)
           )
         )
       ),
@@ -177,128 +191,18 @@ class ExpressionErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method_Error UnresolvedSymbol<undefined> UnresolvedSymbol<+>",
+              "Compile_Error Variable `undefined` is not defined.",
               Some(mainFile),
-              Some(model.Range(model.Position(1, 14), model.Position(1, 19))),
-              Some(fooBodyId),
+              Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
+              Some(xId),
               Vector(
-                Api.StackTraceElement(
-                  "foo",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 14), model.Position(1, 19))
-                  ),
-                  Some(fooBodyId)
-                ),
                 Api.StackTraceElement(
                   "Main.main",
                   Some(mainFile),
                   Some(
-                    model.Range(model.Position(3, 8), model.Position(3, 16))
+                    model.Range(model.Position(2, 8), model.Position(2, 17))
                   ),
-                  Some(yId)
-                )
-              )
-            )
-          )
-        )
-      ),
-      context.executionComplete(contextId)
-    )
-  }
-
-  it should "return error unresolved symbol" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    @scala.annotation.unused
-    val mainId = metadata.addItem(7, 12)
-    @scala.annotation.unused
-    val barId = metadata.addItem(33, 14)
-    val bazId = metadata.addItem(61, 7)
-    val code =
-      """main = here.bar x 2
-        |
-        |bar x1 x2 = here.baz x1 x2
-        |
-        |baz y1 y2 = y1 + y2
-        |""".stripMargin.linesIterator.mkString("\n")
-    val contents = metadata.appendToCode(code)
-    val mainFile = context.writeMain(contents)
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Open the new file
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
-    )
-    context.receiveNone shouldEqual None
-
-    // push main
-    context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
-            None,
-            Vector()
-          )
-        )
-      )
-    )
-    context.receive(4) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate.ExpressionFailed(
-              bazId,
-              "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>"
-            )
-          )
-        )
-      ),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
-              Some(mainFile),
-              Some(model.Range(model.Position(4, 12), model.Position(4, 19))),
-              Some(bazId),
-              Vector(
-                Api.StackTraceElement(
-                  "Main.baz",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(4, 12), model.Position(4, 19))
-                  ),
-                  Some(bazId)
-                ),
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 12), model.Position(2, 26))
-                  ),
-                  Some(barId)
-                ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(0, 7), model.Position(0, 19))
-                  ),
-                  Some(mainId)
+                  Some(xId)
                 )
               )
             )
