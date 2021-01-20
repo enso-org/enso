@@ -1,0 +1,6 @@
+import Database.Data.Internal.IR
+
+type Column
+    # type Column (name : Text) (connection : Connection)
+    #             (expression : IR.Expression) (context : IR.Context)
+    type Column name connection expression context

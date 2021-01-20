@@ -1,0 +1,36 @@
+type Expression
+    # type Column (origin : Text) (name : Text)
+    type Column origin name
+    # type Operation (kind : Text) (expressions : Vector Expression)
+    type Operation kind expressions
+
+type Context
+    # type Context (from_spec : FromSpec) (where_filters : Vector Expression)
+    #              (orders : Vector Expression) (groups : Vector Expression)
+    #              (meta_index : Vector Expression)
+    type Context from_spec where_filters orders groups meta_index
+
+    set_index : Vector Text -> Context
+    set_index new_index =
+        Context this.from_spec this.where_filters this.orders this.groups index
+
+type FromSpec
+    # type FromTable (table_name : Text)
+    type FromTable table_name
+    # type Join (kind : JoinKind) (left_spec : FromSpec) (right_spec : FromSpec)
+    #           (on : Vector Expression)
+    type Join kind left_spec right_spec on
+
+type JoinKind
+    type InnerJoin
+    type LeftJoin
+    type RightJoin
+    type CrossJoin
+
+make_ctx_from : Text -> Context
+make_ctx_from table_name =
+    Context (FromTable table_name) [] [] [] []
+
+generate_sql : Text -> Vector Expression -> Context -> Text
+generate_sql db_type expressions context =
+    "TODO"
