@@ -723,36 +723,22 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              idMainFoo,
-              Some(Constants.INTEGER),
-              Some(Api.MethodPointer(moduleName, "Test.Main", "foo")),
-              Vector(ProfilingInfo.ExecutionTime(0)),
-              false
-            )
-          )
-        )
+      context.Message.updateOld(
+        contextId,
+        idMainFoo,
+        Constants.INTEGER,
+        Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              idMain,
-              Some(Constants.NOTHING),
-              None,
-              Vector(ProfilingInfo.ExecutionTime(0)),
-              false
-            )
-          )
-        )
+      context.Message.update(
+        contextId,
+        idMainFoo,
+        Constants.INTEGER,
+        Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
+      context.Message.updateOld(contextId, idMain, Constants.NOTHING),
+      context.Message.update(contextId, idMain, Constants.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1")
