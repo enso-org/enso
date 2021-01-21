@@ -1,4 +1,14 @@
-let win = require('electron').remote.getCurrentWindow()
+const remote = require('electron').remote
+
+let win;
+if (remote !== undefined){
+    win = remote.getCurrentWindow()
+}
+
+if (win === undefined) {
+    console.warn("Could not get current window object for window startup animation.")
+}
+
 
 
 // =============================
@@ -26,7 +36,9 @@ function animate_show(target) {
     })
 }
 
-window.showAnimation = animate_show(win)
+if (win !== undefined) {
+    window.showAnimation = animate_show(win)
+}
 
 
 

@@ -72,18 +72,28 @@ function command(docs) {
     return {docs}
 }
 
-// FIXME: this does not work if project manager was not downloaded yet.
-//function run_project_manager() {
-//    const bin_path = paths.get_project_manager_path(paths.dist.bin)
-//    console.log(`Starting the language server from "${bin_path}".`)
-//    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
-//        console.error(stderr)
-//        if (error) {
-//            throw error
-//        }
-//        console.log(stdout)
-//    })
-//}
+/// Build the project manager module, which downloads the project manager binary for the current
+/// platform.
+async function build_project_manager() {
+    console.log(`Getting project manager manager.`)
+    await cmd.with_cwd(paths.js.lib.projectManager , async () => {
+        await run('npm',['run-script build'])
+    })
+}
+
+/// Run the local project manager binary.
+function run_project_manager() {
+   const bin_path = paths.get_project_manager_path(paths.dist.bin)
+   console.log(`Starting the project manager from "${bin_path}".`)
+   child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+       console.error(stderr)
+       if (error) {
+           throw error
+       }
+       console.log(stdout)
+       console.log(`Project manager running.`)
+   })
+}
 
 // ================
 // === Commands ===
@@ -181,10 +191,14 @@ commands.start.rust = async function(argv) {
    await commands.build.rust(argv2)
 }
 
-commands.start.js = async function() {
-    console.log(`Building JS target.`)
+commands.start.js = async function (argv) {
+    console.log(`Building JS target.` + argv)
+    const args = targetArgs.concat([
+        `--backend-path ${paths.get_project_manager_path(paths.dist.bin)}`,
+    ])
+    if (argv.dev) { args.push('--dev') }
     await cmd.with_cwd(paths.js.root, async () => {
-        await run('npm',['run','start','--'].concat(targetArgs))
+        await run('npm', ['run', 'start', '--'].concat(args))
     })
 }
 
@@ -238,12 +252,13 @@ commands.watch.options  = Object.assign({},commands.build.options)
 commands.watch.parallel = true
 commands.watch.rust = async function(argv) {
     let build_args = []
-    if (argv.crate != undefined) {
+    if (argv.crate !== undefined) {
         build_args.push(`--crate=${argv.crate}`)
     }
+    if (argv.backend !== 'false') {
+        build_project_manager().then(run_project_manager)
+    }
 
-    // FIXME: See fixme on fn definition.
-    // run_project_manager()
     build_args = build_args.join(' ')
     let target =
         '"' +
@@ -323,6 +338,12 @@ optParser.options('target', {
         'Set the build target. Defaults to the current platform. ' +
         'Valid values are: "linux" "macos" and "win"',
     type: 'string',
+})
+
+optParser.options('backend', {
+    describe: 'Start the backend process automatically [true]',
+    type: 'bool',
+    default: true,
 })
 
 let commandList = Object.keys(commands)
