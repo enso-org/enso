@@ -8,7 +8,7 @@ import cats.implicits._
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
-import org.enso.compiler.exception.UnhandledEntity
+import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.Shape.{
   SegmentEscape,
@@ -144,9 +144,9 @@ object AstToIr {
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
         val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Atom   => true
-          case _: IR.Name.Literal                   => true
-          case _                                    => false
+          case _: IR.Module.Scope.Definition.Atom => true
+          case _: IR.Name.Literal                 => true
+          case _                                  => false
         }
         val hasArgs = args.nonEmpty
 
@@ -202,6 +202,33 @@ object AstToIr {
           translateExpression(definition),
           getIdentifiedLocation(inputAst)
         )
+      case AstView.FunctionSugar(
+            AST.Ident.Var("foreign"),
+            AST.Ident.Var(lang) :: AST.Ident.Var.any(name) :: args,
+            body
+          ) =>
+        body.shape match {
+          case AST.Literal.Text.Block.Raw(lines, _, _) =>
+            val code = lines
+              .map(t =>
+                t.text.collect {
+                  case AST.Literal.Text.Segment.Plain(str)   => str
+                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
+                }.mkString
+              )
+              .mkString("\n")
+            val typeName   = Name.Here(None)
+            val methodName = buildName(name)
+            val methodRef =
+              Name.MethodReference(typeName, methodName, methodName.location)
+            Module.Scope.Definition.Method.Binding(
+              methodRef,
+              args.map(translateArgumentDefinition(_)),
+              IR.Foreign.Definition(lang, code, None),
+              None
+            )
+          case _ => throw new CompilerError("I don't care")
+        }
       case AstView.FunctionSugar(name, args, body) =>
         val typeName   = Name.Here(None)
         val methodName = buildName(name)

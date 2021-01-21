@@ -64,7 +64,7 @@ public abstract class EvalNode extends Node {
     String languageStr = toJavaStringNode.execute(language);
     String codeStr = toJavaStringNode.execute(code);
 
-    Source source = Source.newBuilder(languageStr, codeStr, "<polyglot_eval>").build();
-    return context.getEnvironment().parsePublic(source);
+    Source source = Source.newBuilder("epb", codeStr, "<polyglot_eval>").build();
+    return context.getEnvironment().parseInternal(source);
   }
 }

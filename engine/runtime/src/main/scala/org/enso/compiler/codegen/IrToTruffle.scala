@@ -1,6 +1,6 @@
 package org.enso.compiler.codegen
 
-import com.oracle.truffle.api.Truffle
+import com.oracle.truffle.api.{RootCallTarget, Truffle}
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -63,8 +63,10 @@ import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
-
 import java.math.BigInteger
+
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition.ExecutionMode
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -246,23 +248,40 @@ class IrToTruffle(
 
         val function = methodDef.body match {
           case fn: IR.Function =>
-            val (body, arguments) =
-              expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
-            val rootNode = MethodRootNode.build(
-              language,
-              expressionProcessor.scope,
-              moduleScope,
-              body,
-              makeSection(methodDef.location),
-              cons,
-              methodDef.methodName.name
-            )
-            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-            new RuntimeFunction(
-              callTarget,
-              null,
-              new FunctionSchema(arguments: _*)
-            )
+            fn.body match {
+              case foreign: IR.Foreign.Definition =>
+                val argNames = fn.arguments.map(_.name.name)
+                val arguments = {
+                  argNames.zipWithIndex.map { case (arg, pos) =>
+                    new ArgumentDefinition(pos, arg, ExecutionMode.EXECUTE)
+                  }
+                }
+                val src = Source
+                  .newBuilder("epb", foreign.lang + "#" + foreign.code, methodDef.methodName.name)
+                  .build()
+                val ct = context.getEnvironment
+                  .parseInternal(src, argNames: _*)
+                  .asInstanceOf[RootCallTarget]
+                new RuntimeFunction(ct, null, new FunctionSchema(arguments: _*))
+              case _ =>
+                val (body, arguments) =
+                  expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+                val rootNode = MethodRootNode.build(
+                  language,
+                  expressionProcessor.scope,
+                  moduleScope,
+                  body,
+                  makeSection(methodDef.location),
+                  cons,
+                  methodDef.methodName.name
+                )
+                val ct = Truffle.getRuntime.createCallTarget(rootNode)
+                new RuntimeFunction(
+                  ct,
+                  null,
+                  new FunctionSchema(arguments: _*)
+                )
+            }
           case _ =>
             throw new CompilerError(
               "Method bodies must be functions at the point of codegen."

@@ -15,7 +15,7 @@ polyglot java import org.enso.table.format.csv.Parser
        inferred from the CSV header row or set manually.
 File.File.read_csv : Boolean -> Text -> Table
 File.File.read_csv has_header=True prefix='C' =
-    parser_inst = Parser.create [has_header, prefix]
+    parser_inst = Parser.create has_header prefix
     this.with_input_stream [File.Option.Read] stream->
         stream.with_java_stream java_stream->
-            Table.Table (parser_inst.parse [java_stream])
+            Table.Table (parser_inst.parse java_stream)

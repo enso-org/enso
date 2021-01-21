@@ -196,6 +196,10 @@ public class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(Context context) {
+    if (this == context.getBuiltins().getModule()) {
+      context.getCompiler().initializeBuiltinsIr();
+      return scope;
+    }
     ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {

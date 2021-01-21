@@ -34,7 +34,7 @@ class ContextFactory {
     strictErrors: Boolean = false
   ): PolyglotContext = {
     val context = Context
-      .newBuilder(LanguageInfo.ID)
+      .newBuilder(LanguageInfo.ID, "js", "R", "epb", "ruby", "python")
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .option(RuntimeOptions.PACKAGES_PATH, packagesPath)

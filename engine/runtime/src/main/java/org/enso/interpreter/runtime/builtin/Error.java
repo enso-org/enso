@@ -5,6 +5,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -20,6 +21,8 @@ public class Error {
   private final AtomConstructor moduleNotInPackageError;
   private final AtomConstructor arithmeticError;
   private final AtomConstructor invalidArrayIndexError;
+  private final AtomConstructor arityError;
+  private final AtomConstructor unsupportedArgumentsError;
 
   private final Atom arithmeticErrorShiftTooBig;
   private final Atom arithmeticErrorDivideByZero;
@@ -78,6 +81,17 @@ public class Error {
                 new ArgumentDefinition(0, "array", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "index", ArgumentDefinition.ExecutionMode.EXECUTE));
 
+    arityError =
+        new AtomConstructor("Arity_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "expected", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(0, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
+
+    unsupportedArgumentsError =
+        new AtomConstructor("Unsupported_Argument_Types", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
+
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(typeError);
     scope.registerConstructor(compileError);
@@ -88,6 +102,9 @@ public class Error {
     scope.registerConstructor(moduleNotInPackageError);
     scope.registerConstructor(arithmeticError);
     scope.registerConstructor(invalidArrayIndexError);
+    scope.registerConstructor(typeError);
+    scope.registerConstructor(arityError);
+    scope.registerConstructor(unsupportedArgumentsError);
   }
 
   /** @return the builtin {@code Syntax_Error} atom constructor. */
@@ -179,5 +196,13 @@ public class Error {
    */
   public Atom makeInvalidArrayIndexError(Object array, Object index) {
     return invalidArrayIndexError.newInstance(array, index);
+  }
+
+  public Atom makeArityError(long expected, long actual) {
+    return arityError.newInstance(expected, actual);
+  }
+
+  public Atom makeUnsupportedArgumentsError(Object[] args) {
+    return unsupportedArgumentsError.newInstance(new Array(args));
   }
 }

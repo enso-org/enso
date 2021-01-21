@@ -90,6 +90,11 @@ public class BaseResolverNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
+  Function resolveMethodOnAny(Context context, UnresolvedSymbol symbol) {
+    return symbol.resolveFor(context.getBuiltins().any());
+  }
+
+  @CompilerDirectives.TruffleBoundary
   Function resolveMethodOnArray(Context context, UnresolvedSymbol symbol) {
     return symbol.resolveFor(context.getBuiltins().mutable().array(), context.getBuiltins().any());
   }
