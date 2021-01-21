@@ -20,6 +20,10 @@ type Statement
     empty : Boolean
     empty = this.text.length == 0
 
+    prefix_if_present : Text -> SQL.Statement
+    prefix_if_present prefix =
+        if this.empty then this else (SQL.raw_statement prefix)+this
+
 raw_statement : Text -> Vector Any -> Statement
 raw_statement text parameters=[] =
     Statement text parameters

@@ -1,19 +1,32 @@
 from Base import all
+from Database.Data.Helpers import all
 import Database.Data.Internal.IR
+import Database.Data.Table
 
 type Column
     # type Column (name : Text) (connection : Connection)
     #             (expression : IR.Expression) (context : IR.Context)
     type Column name connection expression context
 
+    ## Converts this column to JSON.
     to_json : Json
     to_json = Error.throw "TODO"
+
+    ## Converts this column into a single-column table.
+    to_table : Table.Table
+    to_table =
+        cols = [Pair this.name this.expression]
+        Table.Table this.connection cols this.context
+
+    ## Returns a vector containing all the elements in this column.
+    to_vector : Vector
+    to_vector = Error.throw "TODO"
 
     make_binary_op : Text -> Text -> (Column | Any) -> Column
     make_binary_op op_kind op_name operand =
         case operand of
-            Column other_name _ other_expr other_ctx ->
-                case other_ctx == this.context of
+            Column other_name _ other_expr _ ->
+                case Helpers.check_integrity this operand of
                     False ->
                         Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
@@ -130,9 +143,26 @@ type Column
     fill_missing : Any -> Column
     fill_missing default = this.make_binary_op "FILLNULL" "fillnull" default
 
-#    ## Returns a new column without rows that had missing values.
-#    drop_missing : Any -> Column
-#    drop_missing =
-#        this.where this.is_missing.not
+    ## Selects only the rows of this column that correspond to `True` values in
+       `indexes`.
+       This is useful for filtering the rows by given predicate.
+       > Example
+         Select only the rows of `my_column` where the `status_column` column
+         has the value `"Valid"`
+             my_column.where (status_column == "Valid")
+    where : Column -> Column
+    where filter =
+        case Helpers.check_integrity this filter of
+            False ->
+                # TODO [RW] more descriptive errors
+                Error.throw "Filtering over a column with differing context."
+            True ->
+                new_filters = this.context.where_filters + [filter.expression]
+                new_ctx = this.context.set_where_filters new_filters
+                Column this.name this.connection this.expression new_ctx
+
+    ## Returns a new column without rows that had missing values.
+    drop_missing : Any -> Column
+    drop_missing = this.where this.is_missing.not
 
 # TODO [RW] starts_with, ends_with, contains

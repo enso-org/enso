@@ -12,8 +12,8 @@ type Expression
 
 type Context
     # type Context (from_spec : FromSpec) (where_filters : Vector Expression)
-    #              (orders : Vector Expression) (groups : Vector Expression)
-    #              (meta_index : Vector Expression)
+    #              (orders : Vector (Pair Expression OrderType))
+    #              (groups : Vector Expression) (meta_index : Vector Expression)
     type Context from_spec where_filters orders groups meta_index
 
     set_index : Vector Text -> Context
@@ -39,6 +39,10 @@ type JoinKind
     type LeftJoin
     type RightJoin
     type CrossJoin
+
+type OrderType
+    type Ascending
+    type Descending
 
 type Query
     type Select expressions context

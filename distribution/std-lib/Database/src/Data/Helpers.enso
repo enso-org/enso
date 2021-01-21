@@ -1,0 +1,14 @@
+from Base import all
+from Database.Data.Table as Table_Module import Table
+from Database.Data.Column as Column_Module import Column
+
+check_integrity : (Table | Column) -> (Table | Column) -> Boolean
+check_integrity entity1 entity2 =
+    con = entity1.connection == entity2.connection
+    ctx = entity1.context == entity2.context
+    con && ctx
+
+unify_vector_singleton : (Any | Vector.Vector Any) -> Vector.Vector Any
+unify_vector_singleton x = case x of
+    Vector.Vector _ -> x
+    _ -> [x]

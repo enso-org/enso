@@ -22,6 +22,14 @@ make_unary_op name =
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
+make_right_unary_op name =
+    arguments ->
+        case arguments.length == 1 of
+            True ->
+                (arguments.at 0)+(SQL.raw_statement " "+name) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
 make_function name =
     arguments ->
         (SQL.raw_statement name) + (SQL.join ", " arguments . paren)
@@ -33,8 +41,9 @@ base_dialect =
     arith = [["+", bin "+"], ["-", bin "-"], ["*", bin "*"], ["/", bin "/"]]
     logic = [["AND", bin "AND"], ["OR", bin "OR"], ["NOT", unary "NOT"]]
     compare = [["=", bin "="], ["!=", bin "!="], ["<", bin "<"], [">", bin ">"], ["<=", bin "<="], [">=", bin ">="]]
-#    nulls = [["ISNULL", ]]
-    base_map = Map.from_vector (arith + logic + compare)
+    agg = [["COUNT", fun "COUNT"], ["MAX", fun "MAX"], ["MIN", fun "MIN"], ["AVG", fun "AVG"]]
+    nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", fun "COALESCE"]]
+    base_map = Map.from_vector (arith + logic + compare + agg + nulls)
     InternalDialect base_map
 
 generate_expression : InternalDialect -> IR.Expression -> SQL.Statement
@@ -56,17 +65,22 @@ generate_from_part dialect from_spec = case from_spec of
         sub = here.generate_query dialect (IR.Select expressions context)
         sub.paren.alias as_name
 
-prefix_if_present : Text -> Statement -> Statement
-prefix_if_present prefix statement =
-    if statement.empty then statement else (SQL.raw_statement prefix)+statement
+generate_order : InternalDialect -> Pair Expression IR.OrderType -> SQL.Statement
+generate_order dialect pair =
+    suffix = case pair.second of
+        IR.Ascending -> SQL.raw_statement " ASC"
+        IR.Descending -> SQL.raw_statement " DESC"
+    (here.generate_expression (pair.first)) + suffix
 
 generate_query : InternalDialect -> Query -> SQL.Statement
 generate_query dialect query = case query of
     IR.Select columns ctx ->
-        cols = SQL.join ", " (columns.map (here.generate_expression dialect))
+        gen_exprs exprs = exprs.map (here.generate_expression dialect)
+        cols = SQL.join ", " (gen_exprs columns)
         from_part = here.generate_from_part dialect ctx.from_spec
-        where_expressions = ctx.where_filters.map (here.generate_expression dialect)
-        where_part = here.prefix_if_present " WHERE " (SQL.join " AND " where_expressions)
-        # TODO [RW] GROUP, ORDER
-        (SQL.raw_statement "SELECT ") + cols + (SQL.raw_statement " FROM ") + from_part + where_part
+        where_part = (SQL.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
+        group_part = (SQL.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+        orders = ctx.orders.map (here.generate_order dialect)
+        order_part = (SQL.join ", " orders) . prefix_if_present " ORDER BY "
+        (SQL.raw_statement "SELECT ") + cols + (SQL.raw_statement " FROM ") + from_part + where_part + group_part + order_part
     _ -> Error.throw "Unsupported query type."
