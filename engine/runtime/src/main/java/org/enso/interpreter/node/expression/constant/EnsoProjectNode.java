@@ -27,7 +27,7 @@ public class EnsoProjectNode extends RootNode {
       result = context.getBuiltins().getProjectDescription().newInstance(rootPath);
     } else {
       result =
-          new DataflowError(
+          DataflowError.withDefaultTrace(
               context.getBuiltins().error().moduleNotInPackageError().newInstance(), this);
     }
   }

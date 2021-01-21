@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import javax.xml.crypto.Data;
 
 /**
  * A runtime object representing an arbitrary, user-created dataflow error.
@@ -16,16 +17,41 @@ import com.oracle.truffle.api.nodes.Node;
  * they are handled. Another term used to describe these errors is "broken values".
  */
 @ExportLibrary(InteropLibrary.class)
-public class DataflowError implements TruffleObject, TruffleException {
+public class DataflowError extends RuntimeException implements TruffleObject, TruffleException {
   private final Object payload;
   private final Node location;
 
-  /**
-   * Creates an instance of this error.
+  /** Construct a new dataflow error with the default stack trace.
    *
-   * @param payload arbitrary, user-provided payload to be carried by this object.
+   * The default stack trace has the throwing location as the top element of the stack trace.
+   *
+   * @param payload the user-provided value carried by the error
+   * @param location the node in which the error was created
+   * @return a new dataflow error
    */
-  public DataflowError(Object payload, Node location) {
+  public static DataflowError withDefaultTrace(Object payload, Node location) {
+    var error = new DataflowError(payload, location);
+    error.fillInStackTrace();
+    return error;
+  }
+
+  /** Construct a new dataflow error with the provided stack trace.
+   *
+   * This is useful for when the dataflow error is created from the recovery of a panic, and we want
+   * to point to the original location of the panic.
+   *
+   * @param payload the user-provided value carried by the error
+   * @param location the node in which the error was located
+   * @param trace a specific stack trace
+   * @return a new dataflow error
+   */
+  public static DataflowError withTrace(Object payload, Node location, StackTraceElement[] trace) {
+    var error = new DataflowError(payload, location);
+    error.setStackTrace(trace);
+    return error;
+  }
+
+  DataflowError(Object payload, Node location) {
     this.payload = payload;
     this.location = location;
   }

@@ -41,5 +41,6 @@ type Deterministic_Random
         gen = Random.new [seed].to_array
         value_range = (interval.end.n - interval.start.n).abs
         offset = (interval.start.n)
+        gen.nextDouble []
         val = gen.nextDouble []
         (val * value_range) + offset

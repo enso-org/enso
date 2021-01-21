@@ -37,12 +37,15 @@ public abstract class RecoverPanicNode extends Node {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
-      return new Stateful(state, new DataflowError(e.getExceptionObject(), this));
+      return new Stateful(
+          state, DataflowError.withTrace(e.getExceptionObject(), this, e.getStackTrace()));
     } catch (Throwable e) {
       if (ctx.getEnvironment().isHostException(e)) {
         Object cause = ((TruffleException) e).getExceptionObject();
         return new Stateful(
-            state, new DataflowError(ctx.getBuiltins().error().makePolyglotError(cause), this));
+            state,
+            DataflowError.withTrace(
+                ctx.getBuiltins().error().makePolyglotError(cause), this, e.getStackTrace()));
       }
       throw e;
     }
