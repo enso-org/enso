@@ -32,8 +32,10 @@ paths.dist.wasm.glue      = path.join(paths.dist.wasm.root,'ide.js')
 paths.dist.wasm.mainOpt   = path.join(paths.dist.wasm.root,'ide_opt.wasm')
 paths.dist.wasm.mainOptGz = path.join(paths.dist.wasm.root,'ide_opt.wasm.gz')
 
-paths.js                  = {}
-paths.js.root             = path.join(paths.root,'src','js')
+paths.js                    = {}
+paths.js.lib                = {}
+paths.js.root               = path.join(paths.root, 'src', 'js')
+paths.js.lib.projectManager = path.join(paths.js.root, 'lib', 'project-manager')
 
 paths.rust                = {}
 paths.rust.root           = path.join(paths.root,'src','rust')
