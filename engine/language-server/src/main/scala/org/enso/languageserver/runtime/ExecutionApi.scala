@@ -98,6 +98,19 @@ object ExecutionApi {
     }
   }
 
+  case object ExecutionContextExpressionUpdates
+      extends Method("executionContext/expressionUpdates") {
+
+    case class Params(
+      contextId: ContextId,
+      updates: Vector[ContextRegistryProtocol.ExpressionUpdate]
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextExpressionUpdates.Params
+    }
+  }
+
   case object ExecutionContextExecutionFailed
       extends Method("executionContext/executionFailed") {
 

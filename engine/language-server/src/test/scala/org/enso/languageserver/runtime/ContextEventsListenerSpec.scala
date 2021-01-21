@@ -3,7 +3,6 @@ package org.enso.languageserver.runtime
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -21,7 +20,7 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   ExecutionDiagnosticNotification,
   ExecutionFailedNotification,
   ExecutionFailure,
-  ExpressionValuesComputedNotification,
+  ExpressionUpdatesNotification,
   VisualisationContext,
   VisualisationEvaluationFailed,
   VisualisationUpdate
@@ -80,10 +79,10 @@ class ContextEventsListenerSpec
           Timeout
         )
 
-        listener ! Api.ExpressionValuesComputed(
+        listener ! Api.ExpressionUpdates(
           contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
+          Set(
+            Api.ExpressionUpdate.ExpressionComputed(
               Suggestions.method.externalId.get,
               Some(Suggestions.method.returnType),
               Some(
@@ -102,17 +101,86 @@ class ContextEventsListenerSpec
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            ContextRegistryProtocol.ExpressionValuesComputedNotification(
+            ContextRegistryProtocol.ExpressionUpdatesNotification(
               contextId,
               Vector(
-                ExpressionValueUpdate(
+                ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
                   Suggestions.method.externalId.get,
                   Some(Suggestions.method.returnType),
                   Some(suggestionIds(1).get),
                   Vector(),
                   false
                 )
+              ),
+              Some(
+                Vector(
+                  ExpressionValueUpdate(
+                    Suggestions.method.externalId.get,
+                    Some(Suggestions.method.returnType),
+                    Some(suggestionIds(1).get),
+                    Vector(),
+                    false
+                  )
+                )
               )
+            )
+          )
+        )
+    }
+
+    "send failure updates" taggedAs Retry in withDb {
+      (clientId, contextId, _, router, listener) =>
+        listener ! Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate.ExpressionFailed(
+              Suggestions.method.externalId.get,
+              "Method failure"
+            )
+          )
+        )
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            ContextRegistryProtocol.ExpressionUpdatesNotification(
+              contextId,
+              Vector(
+                ContextRegistryProtocol.ExpressionUpdate.ExpressionFailed(
+                  Suggestions.method.externalId.get,
+                  "Method failure"
+                )
+              ),
+              None
+            )
+          )
+        )
+    }
+
+    "send poisoning updates" taggedAs Retry in withDb {
+      (clientId, contextId, _, router, listener) =>
+        listener ! Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate.ExpressionPoisoned(
+              Suggestions.local.externalId.get,
+              Suggestions.method.externalId.get
+            )
+          )
+        )
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            ContextRegistryProtocol.ExpressionUpdatesNotification(
+              contextId,
+              Vector(
+                ContextRegistryProtocol.ExpressionUpdate.ExpressionPoisoned(
+                  Suggestions.local.externalId.get,
+                  Suggestions.method.externalId.get
+                )
+              ),
+              None
             )
           )
         )
@@ -132,10 +200,10 @@ class ContextEventsListenerSpec
           Timeout
         )
 
-        listener ! Api.ExpressionValuesComputed(
+        listener ! Api.ExpressionUpdates(
           contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
+          Set(
+            Api.ExpressionUpdate.ExpressionComputed(
               Suggestions.method.externalId.get,
               None,
               None,
@@ -145,10 +213,10 @@ class ContextEventsListenerSpec
           )
         )
 
-        listener ! Api.ExpressionValuesComputed(
+        listener ! Api.ExpressionUpdates(
           contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
+          Set(
+            Api.ExpressionUpdate.ExpressionComputed(
               Suggestions.local.externalId.get,
               None,
               None,
@@ -163,22 +231,40 @@ class ContextEventsListenerSpec
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            ExpressionValuesComputedNotification(
+            ExpressionUpdatesNotification(
               contextId,
               Vector(
-                ExpressionValueUpdate(
+                ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
                   Suggestions.method.externalId.get,
                   None,
                   None,
                   Vector(),
                   false
                 ),
-                ExpressionValueUpdate(
+                ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
                   Suggestions.local.externalId.get,
                   None,
                   None,
                   Vector(),
                   false
+                )
+              ),
+              Some(
+                Vector(
+                  ExpressionValueUpdate(
+                    Suggestions.method.externalId.get,
+                    None,
+                    None,
+                    Vector(),
+                    false
+                  ),
+                  ExpressionValueUpdate(
+                    Suggestions.local.externalId.get,
+                    None,
+                    None,
+                    Vector(),
+                    false
+                  )
                 )
               )
             )
@@ -250,6 +336,7 @@ class ContextEventsListenerSpec
                 ExecutionDiagnostic(
                   ExecutionDiagnosticKind.Error,
                   message,
+                  None,
                   None,
                   None,
                   Vector()

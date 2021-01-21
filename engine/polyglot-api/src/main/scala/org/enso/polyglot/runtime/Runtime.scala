@@ -13,6 +13,7 @@ import com.fasterxml.jackson.module.scala.{
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.text.ContentVersion
+import org.enso.text.editing.model
 import org.enso.text.editing.model.{Range, TextEdit}
 
 import scala.util.Try
@@ -107,6 +108,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.ExpressionValuesComputed],
         name  = "expressionValuesComputed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ExpressionUpdates],
+        name  = "expressionUpdates"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.RenameProject],
@@ -264,6 +269,67 @@ object Runtime {
       fromCache: Boolean
     )
 
+    /** Base trait for expression updates. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ExpressionUpdate.ExpressionComputed],
+          name  = "expressionUpdateComputed"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExpressionUpdate.ExpressionFailed],
+          name  = "expressionUpdateFailed"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExpressionUpdate.ExpressionPoisoned],
+          name  = "expressionUpdatePoisoned"
+        )
+      )
+    )
+    sealed trait ExpressionUpdate
+    object ExpressionUpdate {
+
+      /** An update about computed expression.
+        *
+        * @param expressionId the expression id
+        * @param expressionType the type of expression
+        * @param methodCall the pointer to a method definithin
+        * @param profilingInfo profiling information about the execution of this
+        * expression
+        * @param fromCache whether or not the value for this expression came
+        * from the cache
+        */
+      case class ExpressionComputed(
+        expressionId: ExpressionId,
+        expressionType: Option[String],
+        methodCall: Option[MethodPointer],
+        profilingInfo: Vector[ProfilingInfo],
+        fromCache: Boolean
+      ) extends ExpressionUpdate
+
+      /** An update about failed expression.
+        *
+        * @param expressionId the expression id
+        * @param message the error message
+        */
+      case class ExpressionFailed(
+        expressionId: ExpressionId,
+        message: String
+      ) extends ExpressionUpdate
+
+      /** An update about expression not executed due to a failed dependency.
+        *
+        * @param expressionId the expression id
+        * @param failedExpressionId failed expression that blocks the execution
+        * of this expression
+        */
+      case class ExpressionPoisoned(
+        expressionId: ExpressionId,
+        failedExpressionId: ExpressionId
+      ) extends ExpressionUpdate
+    }
+
     /** An object representing profiling information about an executed
       * expression.
       */
@@ -316,6 +382,7 @@ object Runtime {
           extends InvalidatedExpressions
     }
 
+    // TODO: [DB] Remove when IDE implements new updates API
     /** A notification about updated expressions of the context.
       *
       * @param contextId the context's id.
@@ -324,6 +391,16 @@ object Runtime {
     case class ExpressionValuesComputed(
       contextId: ContextId,
       updates: Vector[ExpressionValueUpdate]
+    ) extends ApiNotification
+
+    /** A notification about updated expressions of the context.
+      *
+      * @param contextId the context's id.
+      * @param updates a list of updates.
+      */
+    case class ExpressionUpdates(
+      contextId: ContextId,
+      updates: Set[ExpressionUpdate]
     ) extends ApiNotification
 
     /** Represents a visualisation context.
@@ -503,11 +580,13 @@ object Runtime {
       * @param functionName the function containing the stack call
       * @param file the location of a file
       * @param location the location of the element in a file
+      * @param expressionId the id of an expression
       */
     case class StackTraceElement(
       functionName: String,
       file: Option[File],
-      location: Option[Range]
+      location: Option[Range],
+      expressionId: Option[ExpressionId]
     )
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -533,13 +612,15 @@ object Runtime {
         * @param message the diagnostic message
         * @param file the location of a file
         * @param location the location of the diagnostic object in a file
+        * @param expressionId the id of related expression
         * @param stack the stack trace
         */
       case class Diagnostic(
         kind: DiagnosticType,
         message: String,
         file: Option[File],
-        location: Option[Range],
+        location: Option[model.Range],
+        expressionId: Option[ExpressionId],
         stack: Vector[StackTraceElement]
       ) extends ExecutionResult
 
@@ -550,36 +631,48 @@ object Runtime {
           * @param message the diagnostic message
           * @param file the location of a file
           * @param location the location of the diagnostic object in a file
+          * @param expressionId the id of related expression
           * @param stack the stack trace
           * @return the instance of an error [[Diagnostic]] message
           */
         def error(
           message: String,
-          file: Option[File]               = None,
-          location: Option[Range]          = None,
-          stack: Vector[StackTraceElement] = Vector()
+          file: Option[File]                 = None,
+          location: Option[model.Range]      = None,
+          expressionId: Option[ExpressionId] = None,
+          stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
-          new Diagnostic(DiagnosticType.Error(), message, file, location, stack)
+          new Diagnostic(
+            DiagnosticType.Error(),
+            message,
+            file,
+            location,
+            expressionId,
+            stack
+          )
 
         /** Create a warning diagnostic message.
           *
           * @param message the diagnostic message
           * @param file the location of a file
           * @param location the location of the diagnostic object in a file
+          * @param expressionId the id of related expression
           * @param stack the stack trace
           * @return the instance of a warning [[Diagnostic]] message
           */
         def warning(
           message: String,
-          file: Option[File]               = None,
-          location: Option[Range]          = None,
-          stack: Vector[StackTraceElement] = Vector()
+          file: Option[File],
+          location: Option[model.Range]      = None,
+          expressionId: Option[ExpressionId] = None,
+          stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
           new Diagnostic(
             DiagnosticType.Warning(),
             message,
             file,
             location,
+            expressionId,
             stack
           )
       }
