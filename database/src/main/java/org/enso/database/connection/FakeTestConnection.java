@@ -4,18 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FakeTestConnection implements Connection {
-  private final String fakedDialect;
-
   private Map<String, String[]> tables;
 
-  public FakeTestConnection(String dialect) {
-    fakedDialect = dialect;
+  public FakeTestConnection() {
     tables = new HashMap<>();
-  }
-
-  @Override
-  public String getDialect() {
-    return fakedDialect;
   }
 
   @Override

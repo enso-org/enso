@@ -48,6 +48,7 @@ spec = Test.group "Maps" <|
         m = Map.empty . insert 2 3
         m.get_or_else 2 0 . should_equal 3
         m.get_or_else 1 10 . should_equal 10
+        m.get_or_else 2 (Panic.throw "missing") . should_equal 3
     Test.specify "should allow transforming the map" <|
         m = Map.empty . insert 1 2 . insert 2 4
         expected = Map.empty . insert "1" 4 . insert "2" 8

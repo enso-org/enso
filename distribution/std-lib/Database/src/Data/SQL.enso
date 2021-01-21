@@ -1,0 +1,36 @@
+from Base import all
+
+type Statement
+    # TODO may want to use a different underyling structure for parameters to amortize concatenation time
+    # type Statement (text : Text) (parameters : Vector Any)
+    type Statement text parameters
+
+    + : Statement -> Statement
+    + other =
+        Statement (this.text + other.text) (this.parameters + other.parameters)
+
+    alias : Text -> Statement
+    alias name =
+        this + here.raw_statement " AS "+name
+
+    paren : Statement
+    paren =
+        Statement ("(" + this.text + ")") this.parameters
+
+    empty : Boolean
+    empty = this.text.length == 0
+
+raw_statement : Text -> Vector Any -> Statement
+raw_statement text parameters=[] =
+    Statement text parameters
+
+paren : Statement -> Statement
+paren inner =
+
+
+join : Text -> Vector Statement -> Statement
+join separator statements =
+    texts = statements.map .text
+    text = texts.join separator
+    parameters = statements.fold [] (acc -> stmt -> acc + stmt.parameters)
+    Statement text parameters

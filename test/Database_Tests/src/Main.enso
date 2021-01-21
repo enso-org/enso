@@ -1,16 +1,25 @@
 from Base import all
 import Test
 import Database.Connection.Connection
+import Database.Data.Internal.Dialect
 
 #main = Test.Suite.runMain <|
 #    Table_Spec.spec
 
 main =
     IO.println "Hello"
-    conn = Connection.make_fake_connection "PostgreSQL"
+    conn = Connection.make_fake_connection Dialect.sqlite
     IO.println conn.dialect
     conn.java_connection.addTable ["T1", ["A", "B", "C"].to_array]
+
     t1 = conn.access_table "T1"
-    IO.println t1.to_sql
     IO.println t1
+    IO.println t1.to_sql
+
+    mask = (t1.at "A" < t1.at "B") && (t1.at "C" == 42)
+    IO.println mask
+
+    t2 = t1.where mask
+    IO.println t2
+    IO.println t2.to_sql
 

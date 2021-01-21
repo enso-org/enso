@@ -40,10 +40,14 @@ type JoinKind
     type RightJoin
     type CrossJoin
 
+type Query
+    type Select expressions context
+
 make_ctx_from : Text -> Context
 make_ctx_from table_name =
     Context (FromTable table_name table_name) [] [] [] []
 
-generate_sql : Text -> Vector Expression -> Context -> Text
-generate_sql dialect expressions context =
-    "TODO"
+make_constant : Any -> Expression
+make_constant x =
+    # TODO [RW] may add some sanitization, like checking if the value type is supported
+    Constant x

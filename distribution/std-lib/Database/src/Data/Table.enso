@@ -1,5 +1,5 @@
 from Base import all
-from Database.Data.Column import all
+from Database.Data.Column as Column_Module import all
 import Database.Data.Internal.IR
 
 ## Represents a column-oriented table data structure backed by a database.
@@ -131,14 +131,15 @@ type Table
     to_dataframe limit=Nothing =
         Error.throw "TODO"
 
-    to_sql : Text
+    to_sql : SQL.Statement
     to_sql =
-        col_expressions = this.internal_columns . map .first
-        IR.generate_sql this.connection.dialect col_expressions this.context
+        col_expressions = this.internal_columns . map .second
+        query = IR.Select col_expressions this.context
+        this.connection.dialect.generate_sql query
 
     explain_query_plan : Text
     explain_query_plan =
-        Error.throw "TODO"
+        this.connection.explain_query_plan this.to_sql
 
     ## Returns a Table describing this table's contents.
 

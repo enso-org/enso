@@ -1,0 +1,72 @@
+from Base import all
+import Database.Data.SQL
+import Database.Data.Internal.IR
+
+type InternalDialect
+    type InternalDialect operation_map
+
+make_binary_op name =
+    arguments ->
+        case arguments.length == 2 of
+            True ->
+                op = SQL.raw_statement " "+name+" "
+                (arguments.at 0)+op+(arguments.at 1) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+make_unary_op name =
+    arguments ->
+        case arguments.length == 1 of
+            True ->
+                (SQL.raw_statement name+" ")+(arguments.at 0) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+make_function name =
+    arguments ->
+        (SQL.raw_statement name) + (SQL.join ", " arguments . paren)
+
+base_dialect =
+    bin = here.make_binary_op
+    unary = here.make_unary_op
+    fun = here.make_function
+    arith = [["+", bin "+"], ["-", bin "-"], ["*", bin "*"], ["/", bin "/"]]
+    logic = [["AND", bin "AND"], ["OR", bin "OR"], ["NOT", unary "NOT"]]
+    compare = [["=", bin "="], ["!=", bin "!="], ["<", bin "<"], [">", bin ">"], ["<=", bin "<="], [">=", bin ">="]]
+#    nulls = [["ISNULL", ]]
+    base_map = Map.from_vector (arith + logic + compare)
+    InternalDialect base_map
+
+generate_expression : InternalDialect -> IR.Expression -> SQL.Statement
+generate_expression dialect expr = case expr of
+    IR.Column origin name -> SQL.raw_statement origin+"."+name
+    IR.Constant value -> SQL.raw_statement "?" [value]
+    IR.Operation kind arguments ->
+        op = dialect.operation_map.get_or_else kind (Error.throw "Operation "+op+" is not supported.")
+        parsed_args = arguments.map (here.generate_expression dialect)
+        op parsed_args
+
+generate_from_part : InternalDialect -> FromSpec -> SQL.Statement
+generate_from_part dialect from_spec = case from_spec of
+    IR.FromTable name as_name ->
+        SQL.raw_statement name . alias as_name
+    IR.Join kind left_spec right_spec on ->
+        Error.throw "TODO"
+    IR.SubQuery expressions context as_name ->
+        sub = here.generate_query dialect (IR.Select expressions context)
+        sub.paren.alias as_name
+
+prefix_if_present : Text -> Statement -> Statement
+prefix_if_present prefix statement =
+    if statement.empty then statement else (SQL.raw_statement prefix)+statement
+
+generate_query : InternalDialect -> Query -> SQL.Statement
+generate_query dialect query = case query of
+    IR.Select columns ctx ->
+        cols = SQL.join ", " (columns.map (here.generate_expression dialect))
+        from_part = here.generate_from_part dialect ctx.from_spec
+        where_expressions = ctx.where_filters.map (here.generate_expression dialect)
+        where_part = here.prefix_if_present " WHERE " (SQL.join " AND " where_expressions)
+        # TODO [RW] GROUP, ORDER
+        (SQL.raw_statement "SELECT ") + cols + (SQL.raw_statement " FROM ") + from_part + where_part
+    _ -> Error.throw "Unsupported query type."

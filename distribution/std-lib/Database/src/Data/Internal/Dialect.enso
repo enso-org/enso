@@ -1,0 +1,18 @@
+from Base import all
+import Database.Data.SQL
+import Database.Data.Internal.BaseGenerator
+
+type Dialect
+    # type Dialect (name : Text)
+    #              (generate_sql : Query -> SQL.Statement)
+    type Dialect name generate_sql
+
+postgresql : Dialect
+postgresql =
+    dialect = BaseGenerator.base_dialect
+    Dialect "PostgreSQL" (BaseGenerator.generate_query dialect)
+
+sqlite : Dialect
+sqlite =
+    dialect = BaseGenerator.base_dialect
+    Dialect "SQLite" (BaseGenerator.generate_query dialect)
