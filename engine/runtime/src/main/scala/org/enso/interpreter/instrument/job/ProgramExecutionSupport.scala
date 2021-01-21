@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.job
 
 import cats.implicits._
-import com.oracle.truffle.api.source.SourceSection
 import com.oracle.truffle.api.{
   TruffleException,
   TruffleStackTrace,
@@ -11,10 +10,13 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
 }
-import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.execution.{
+  ErrorResolver,
+  LocationResolver,
+  RuntimeContext
+}
 import org.enso.interpreter.instrument.job.ProgramExecutionSupport.{
   ExecutionFrame,
-  ExecutionItem,
   LocalCallFrame
 }
 import org.enso.interpreter.instrument.profiling.ExecutionTime
@@ -31,11 +33,9 @@ import org.enso.interpreter.service.error.{
   MethodNotFoundException,
   ServiceException
 }
-import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
-import org.enso.text.editing.model
 
 import java.io.File
 import java.util.function.Consumer
@@ -219,7 +219,7 @@ trait ProgramExecutionSupport {
               onExceptionalCallback
             )
           )
-          .leftMap(onExecutionError(stackItem.item, _))
+          .leftMap(onExecutionError(contextId, stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
     executionResult.fold(Some(_), _ => None)
@@ -227,11 +227,13 @@ trait ProgramExecutionSupport {
 
   /** Execution error handler.
     *
+    * @param contextId an identifier of an execution context
     * @param item the stack item being executed
     * @param error the execution error
     * @return the error message
     */
   private def onExecutionError(
+    contextId: ContextId,
     item: ExecutionItem,
     error: Throwable
   )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
@@ -248,6 +250,7 @@ trait ProgramExecutionSupport {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
+    sendExpressionUpdates(contextId, ErrorResolver.createUpdates(error))
     executionUpdate.getOrElse(
       Api.ExecutionResult
         .Failure(s"Error in function $itemName.", None)
@@ -276,7 +279,10 @@ trait ProgramExecutionSupport {
           Api.ExecutionResult.Diagnostic.error(
             ex.getMessage,
             section.flatMap(sec => findFileByModuleName(sec.getSource.getName)),
-            section.map(toLocation),
+            section.map(LocationResolver.sectionToRange),
+            section
+              .flatMap(LocationResolver.getExpressionId(_))
+              .map(_.externalId),
             getStackTrace(ex)
           )
         )
@@ -332,12 +338,13 @@ trait ProgramExecutionSupport {
     val node = element.getLocation
     node.getEncapsulatingSourceSection match {
       case null =>
-        Api.StackTraceElement(node.getRootNode.getName, None, None)
+        Api.StackTraceElement(node.getRootNode.getName, None, None, None)
       case section =>
         Api.StackTraceElement(
           element.getTarget.getRootNode.getName,
           findFileByModuleName(section.getSource.getName),
-          Some(toLocation(section))
+          Some(LocationResolver.sectionToRange(section)),
+          LocationResolver.getExpressionId(section).map(_.externalId)
         )
     }
   }
@@ -355,6 +362,19 @@ trait ProgramExecutionSupport {
     )
   }
 
+  private def sendExpressionUpdates(
+    contextId: ContextId,
+    updates: Set[Api.ExpressionUpdate]
+  )(implicit ctx: RuntimeContext): Unit = {
+    if (updates.nonEmpty) {
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionUpdates(contextId, updates)
+        )
+      )
+    }
+  }
+
   private def sendValueUpdate(
     contextId: ContextId,
     value: ExpressionValue,
@@ -366,12 +386,31 @@ trait ProgramExecutionSupport {
       !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
       !Objects.equals(value.getType, value.getCachedType)
     ) {
+      // TODO: [DB] Remove when IDE implements new updates API
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionValuesComputed(
             contextId,
             Vector(
               Api.ExpressionValueUpdate(
+                value.getExpressionId,
+                Option(value.getType),
+                methodPointer,
+                value.getProfilingInfo.map { case e: ExecutionTime =>
+                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
+                }.toVector,
+                value.wasCached()
+              )
+            )
+          )
+        )
+      )
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionUpdates(
+            contextId,
+            Set(
+              Api.ExpressionUpdate.ExpressionComputed(
                 value.getExpressionId,
                 Option(value.getType),
                 methodPointer,
@@ -483,17 +522,6 @@ trait ProgramExecutionSupport {
       call.getFunctionName
     )
 
-  /** Convert truffle source section to the range of text.
-    *
-    * @param section the source section
-    * @return the correponding range in the text file
-    */
-  private def toLocation(section: SourceSection): model.Range =
-    model.Range(
-      model.Position(section.getStartLine - 1, section.getStartColumn - 1),
-      model.Position(section.getEndLine - 1, section.getEndColumn)
-    )
-
   /** Find source file path by the module name.
     *
     * @param module the module name
@@ -531,42 +559,4 @@ object ProgramExecutionSupport {
     expressionId: UUID,
     cache: RuntimeCache
   )
-
-  /** An execution item. */
-  sealed private trait ExecutionItem
-  private object ExecutionItem {
-
-    /** The explicit method call.
-      *
-      * @param module the module containing the method
-      * @param constructor the type on which the method is defined
-      * @param function the method name
-      */
-    case class Method(
-      module: QualifiedName,
-      constructor: QualifiedName,
-      function: String
-    ) extends ExecutionItem
-
-    object Method {
-
-      /** Construct the method call from the [[Api.StackItem.ExplicitCall]].
-        *
-        * @param call the Api call
-        * @return the method call
-        */
-      def apply(call: Api.StackItem.ExplicitCall): Method =
-        Method(
-          QualifiedName.fromString(call.methodPointer.module),
-          QualifiedName.fromString(call.methodPointer.definedOnType),
-          call.methodPointer.name
-        )
-    }
-
-    /** The call data captured during the program execution.
-      *
-      * @param callData the fucntion call data
-      */
-    case class CallData(callData: FunctionCall) extends ExecutionItem
-  }
 }

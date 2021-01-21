@@ -3,6 +3,9 @@ package org.enso.languageserver.runtime
 import java.util.UUID
 
 import enumeratum._
+import io.circe.generic.auto._
+import io.circe.syntax._
+import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
@@ -93,15 +96,108 @@ object ContextRegistryProtocol {
     */
   case class RecomputeContextResponse(contextId: ContextId)
 
-  /** A notification that new information about some expressions is available.
+  /** A notification about updated expressions of execution context.
     *
     * @param contextId execution context identifier
-    * @param updates a list of updated expressions
+    * @param updates a list of updated expressions.
     */
-  case class ExpressionValuesComputedNotification(
+  case class ExpressionUpdatesNotification(
     contextId: ContextId,
-    updates: Vector[ExpressionValueUpdate]
+    updates: Vector[ExpressionUpdate],
+    updatesOld: Option[Vector[ExpressionValueUpdate]]
   )
+
+  sealed trait ExpressionUpdate
+  object ExpressionUpdate {
+
+    /** An update about computed expression.
+      *
+      * @param expressionId the id of updated expression
+      * @param `type` the updated type of expression
+      * @param methodPointer the suggestion id of the updated method pointer
+      * @param profilingInfo profiling information about the expression
+      * @param fromCache whether or not the expression's value came from the cache
+      */
+    case class ExpressionComputed(
+      expressionId: UUID,
+      `type`: Option[String],
+      methodPointer: Option[Long],
+      profilingInfo: Vector[ProfilingInfo],
+      fromCache: Boolean
+    ) extends ExpressionUpdate
+
+    /** An update about failed expression.
+      *
+      * @param expressionId the expression id
+      * @param message the error message
+      */
+    case class ExpressionFailed(
+      expressionId: UUID,
+      message: String
+    ) extends ExpressionUpdate
+
+    /** An update about expression not executed due to the failed dependency.
+      *
+      * @param expressionId the expression id
+      * @param failedExpressionId failed expression that blocks the execution
+      * of this expression
+      */
+    case class ExpressionPoisoned(
+      expressionId: UUID,
+      failedExpressionId: UUID
+    ) extends ExpressionUpdate
+
+    private object CodecField {
+
+      val Type = "type"
+    }
+
+    private object ExpressionUpdateType {
+      val Computed = "Computed"
+
+      val Failed = "Failed"
+
+      val Poisoned = "Poisoned"
+    }
+
+    implicit val encoder: Encoder[ExpressionUpdate] =
+      Encoder.instance[ExpressionUpdate] {
+        case m: ExpressionUpdate.ExpressionComputed =>
+          Encoder[ExpressionUpdate.ExpressionComputed]
+            .apply(m)
+            .deepMerge(
+              Json.obj(CodecField.Type -> ExpressionUpdateType.Computed.asJson)
+            )
+
+        case m: ExpressionUpdate.ExpressionFailed =>
+          Encoder[ExpressionUpdate.ExpressionFailed]
+            .apply(m)
+            .deepMerge(
+              Json.obj(CodecField.Type -> ExpressionUpdateType.Failed.asJson)
+            )
+
+        case m: ExpressionUpdate.ExpressionPoisoned =>
+          Encoder[ExpressionUpdate.ExpressionPoisoned]
+            .apply(m)
+            .deepMerge(
+              Json.obj(CodecField.Type -> ExpressionUpdateType.Poisoned.asJson)
+            )
+      }
+
+    implicit val decoder: Decoder[ExpressionUpdate] =
+      Decoder.instance { cursor =>
+        cursor.downField(CodecField.Type).as[String].flatMap {
+          case ExpressionUpdateType.Computed =>
+            Decoder[ExpressionUpdate.ExpressionComputed].tryDecode(cursor)
+
+          case ExpressionUpdateType.Failed =>
+            Decoder[ExpressionUpdate.ExpressionFailed].tryDecode(cursor)
+
+          case ExpressionUpdateType.Poisoned =>
+            Decoder[ExpressionUpdate.ExpressionFailed].tryDecode(cursor)
+        }
+      }
+  }
 
   /** Signals that user doesn't have access to the requested context.
     */
@@ -148,11 +244,13 @@ object ContextRegistryProtocol {
     * @param functionName the function containing the stack call
     * @param path the location of a file
     * @param location the location of the element in a file
+    * @param expressionId the id of related expression
     */
   case class ExecutionStackTraceElement(
     functionName: String,
     path: Option[Path],
-    location: Option[model.Range]
+    location: Option[model.Range],
+    expressionId: Option[UUID]
   )
 
   /** A diagnostic message produced as a compilation outcome.
@@ -161,6 +259,7 @@ object ContextRegistryProtocol {
     * @param message the error message
     * @param path the file path
     * @param location the range in the source text containing a diagnostic
+    * @param expressionId the id of related expression
     * @param stack the stack trace
     */
   case class ExecutionDiagnostic(
@@ -168,6 +267,7 @@ object ContextRegistryProtocol {
     message: String,
     path: Option[Path],
     location: Option[model.Range],
+    expressionId: Option[UUID],
     stack: Vector[ExecutionStackTraceElement]
   )
 
