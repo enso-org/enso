@@ -17,13 +17,15 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
-import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.execution.{
+  LocationResolver,
+  RuntimeContext
+}
 import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.model.{Position, Range}
 
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
@@ -296,23 +298,18 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     module: Module,
     diagnostic: IR.Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
-    val fileOpt = Option(module.getPath).map(new File(_))
-    val locationOpt =
-      diagnostic.location.map { loc =>
-        val section = module.getSource.createSection(
-          loc.location.start,
-          loc.location.length
-        )
-        Range(
-          Position(section.getStartLine - 1, section.getStartColumn - 1),
-          Position(section.getEndLine - 1, section.getEndColumn)
-        )
-      }
     Api.ExecutionResult.Diagnostic(
       kind,
       diagnostic.message,
-      fileOpt,
-      locationOpt,
+      Option(module.getPath).map(new File(_)),
+      diagnostic.location
+        .map(loc =>
+          LocationResolver
+            .locationToRange(loc.location, module.getLiteralSource)
+        ),
+      diagnostic.location
+        .flatMap(LocationResolver.getExpressionId(module.getIr, _))
+        .map(_.externalId),
       Vector()
     )
   }
