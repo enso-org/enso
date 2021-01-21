@@ -48,7 +48,7 @@ base_dialect =
 
 generate_expression : InternalDialect -> IR.Expression -> SQL.Statement
 generate_expression dialect expr = case expr of
-    IR.Column origin name -> SQL.raw_statement origin+"."+name
+    IR.Column origin name -> SQL.raw_statement (origin + "." + name)
     IR.Constant value -> SQL.raw_statement "?" [value]
     IR.Operation kind arguments ->
         op = dialect.operation_map.get_or_else kind (Error.throw "Operation "+op+" is not supported.")
@@ -60,7 +60,15 @@ generate_from_part dialect from_spec = case from_spec of
     IR.FromTable name as_name ->
         SQL.raw_statement name . alias as_name
     IR.Join kind left_spec right_spec on ->
-        Error.throw "TODO"
+        left = here.generate_from_part dialect left_spec
+        right = here.generate_from_part dialect right_spec
+        prefix = case kind of
+            IR.InnerJoin -> "INNER JOIN"
+            IR.LeftJoin -> "LEFT OUTER JOIN"
+            IR.RightJoin -> "RIGHT OUTER JOIN"
+            IR.CrossJoin -> "CROSS JOIN"
+        ons = SQL.join " AND " (on.map (here.generate_expression dialect)) . prefix_if_present " ON "
+        left.paren + (SQL.raw_statement " "+prefix+" ") + right.paren + ons
     IR.SubQuery expressions context as_name ->
         sub = here.generate_query dialect (IR.Select expressions context)
         sub.paren.alias as_name
@@ -76,6 +84,7 @@ generate_query : InternalDialect -> Query -> SQL.Statement
 generate_query dialect query = case query of
     IR.Select columns ctx ->
         gen_exprs exprs = exprs.map (here.generate_expression dialect)
+        # TODO [RW] column name aliases!!!
         cols = SQL.join ", " (gen_exprs columns)
         from_part = here.generate_from_part dialect ctx.from_spec
         where_part = (SQL.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "

@@ -82,15 +82,20 @@ type Table
         new_ctx = this.context.set_index (Helpers.unify_vector_singleton index)
         this.updated_context new_ctx
 
-    order_by : Column | Vector Column -> Table
-    order_by columns =
-        cols = Helpers.unify_vector_singleton columns
-        case cols.forall (Helpers.check_integrity this) of
-            True ->
-                new_ctx = this.context.set_orders (cols.map .expression)
+    order : Nothing | Column | Vector Column -> Table
+    order by=Nothing = case by of
+        Nothing ->
+            if this.context.meta_index.is_empty then Error.throw "Trying to order by an empty index." else
+                new_ctx = this.context.set_orders this.context.meta_index
                 this.updated_context new_ctx
-            False ->
-                Error.throw "The columns to be ordered by come from a different context."
+        _ ->
+            cols = Helpers.unify_vector_singleton by
+            case cols.forall (Helpers.check_integrity this) of
+                True ->
+                    new_ctx = this.context.set_orders (cols.map .expression)
+                    this.updated_context new_ctx
+                False ->
+                    Error.throw "The columns to be ordered by come from a different context."
 
     ## Selects a subset of columns from this table by name.
     select : Vector Text -> Table
@@ -107,7 +112,7 @@ type Table
 
        Arguments:
          - other: the table being the right operand of this join operation.
-         - on: the column of `this` that should be used as the join key. If
+         - on: the column(s) of `this` that should be used as the join key. If
                this argument is not provided, the index of `this` will be used.
          - drop_unmatched: whether the rows of `this` without corresponding
                            matches in `other` should be dropped from the result.
@@ -115,9 +120,36 @@ type Table
                         when there's a name conflict with a column of `other`.
          - right_suffix: a suffix that should be added to the columns of `other`
                          when there's a name conflict with a column of `this`.
-    join : Table -> Text | Nothing -> Boolean -> Text -> Text -> Table
+    join : Table -> Vector Text | Text | Nothing -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        Error.throw "TODO"
+        kind = if drop_unmatched then IR.InnerJoin else IR.LeftJoin
+        my_index : Vector Expression
+        my_index = case on == Nothing of
+            True -> this.context.meta_index
+            False ->
+                (Helpers.unify_vector_singleton on).map (name -> this.at name . expression)
+        other_index = other.context.meta_index
+        case my_index.length == other_index.length of
+            False -> Error.throw "Cannot join with multi-indexes of different lengths."
+            True ->
+                # TODO [RW] we can easily avoid creating subqueries if there are no groups, orders or wheres, so it may be worth optimizing that here
+                left_alias = "TLeft" # TODO [RW]
+                right_alias = "TRight" # TODO [RW]
+                new_index = [] # TODO [RW] should join preserve left index?
+                # TODO [RW] renaming expressions!!!
+                left_query = IR.SubQuery this.internal_columns this.context left_alias
+                right_query = IR.SubQuery other.internal_columns other.context right_alias
+
+                on_exprs = my_index.zip other_index (l -> r -> l == r)
+                new_from = IR.Join left_query right_query on_exprs
+                new_ctx = IR.Context new_from [] [] [] new_index
+
+                # TODO [RW] renaming columns
+                new_left_columns = this.internal_columns.map (p -> Pair p.first (IR.Column left_alias p.first))
+                new_right_columns = other.internal_columns.map (p -> Pair p.first (IR.Column right_alias p.first))
+                new_columns = new_left_columns + new_right_columns
+                Table this.connection new_columns new_ctx
+
 
     ## Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.

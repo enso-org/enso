@@ -23,3 +23,6 @@ main =
     IO.println t2
     IO.println t2.to_sql
 
+    t3 = t2.join (t2.set_index "A" ) on="B"
+    IO.println t3
+    IO.println t3.to_sql

@@ -30,8 +30,8 @@ type FromSpec
     # type Join (kind : JoinKind) (left_spec : FromSpec) (right_spec : FromSpec)
     #           (on : Vector Expression)
     type Join kind left_spec right_spec on
-    # type SubQuery (expressions : Vector Expression) (context : Context)
-    #               (alias : Text)
+    # type SubQuery (columns : Vector (Pair Text Expression))
+    #               (context : Context) (alias : Text)
     type SubQuery expressions context alias
 
 type JoinKind
