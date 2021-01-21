@@ -35,10 +35,7 @@ object ErrorResolver {
                 val poisoned: Set[Api.ExpressionUpdate] = meta
                   .getExternal(toDataflowDependencyType(expressionId))
                   .getOrElse(Set())
-                  .map(
-                    Api.ExpressionUpdate
-                      .ExpressionPoisoned(_, expressionId.externalId)
-                  )
+                  .map(Api.ExpressionUpdate.ExpressionPoisoned(_, Seq()))
                 val failed =
                   Api.ExpressionUpdate
                     .ExpressionFailed(expressionId.externalId, error.getMessage)

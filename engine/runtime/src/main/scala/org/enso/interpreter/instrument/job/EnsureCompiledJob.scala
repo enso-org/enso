@@ -269,20 +269,30 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def runCompilationDiagnostics(module: Module)(implicit
     ctx: RuntimeContext
   ): CompilationStatus = {
-    val errors = GatherDiagnostics
+    val pass = GatherDiagnostics
       .runModule(module.getIr, ModuleContext(module))
       .unsafeGetMetadata(
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
-    val diagnostics = errors.collect {
+    val diagnostics = pass.collect {
       case warn: IR.Warning =>
         createDiagnostic(Api.DiagnosticType.Warning(), module, warn)
       case error: IR.Error =>
         createDiagnostic(Api.DiagnosticType.Error(), module, error)
     }
+    val expressionUpdates = pass.flatMap {
+      case warn: IR.Warning =>
+        createExpressionDiagnosticUpdate(
+          Api.DiagnosticType.Warning(),
+          module,
+          warn
+        )
+      case _ => None
+    }
     sendDiagnosticUpdates(diagnostics)
+    sendExpressionUpdates(expressionUpdates)
     getCompilationStatus(diagnostics)
   }
 
@@ -313,6 +323,22 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       Vector()
     )
   }
+
+  private def createExpressionDiagnosticUpdate(
+    kind: Api.DiagnosticType,
+    module: Module,
+    diagnostic: IR.Diagnostic
+  ): Option[Api.ExpressionUpdate] =
+    for {
+      location     <- diagnostic.location
+      expressionId <- LocationResolver.getExpressionId(module.getIr, location)
+    } yield {
+      Api.ExpressionUpdate.ExpressionDiagnostic(
+        expressionId.externalId,
+        diagnostic.message,
+        kind
+      )
+    }
 
   /** Compile the module.
     *
@@ -433,6 +459,15 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         ctx.endpoint.sendToClient(
           Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
         )
+      }
+    }
+
+  private def sendExpressionUpdates(
+    updates: Seq[Api.ExpressionUpdate]
+  )(implicit ctx: RuntimeContext): Unit =
+    if (updates.nonEmpty) {
+      ctx.contextManager.getAll.keys.foreach { contextId =>
+        Api.Response(Api.ExpressionUpdates(contextId, updates.toSet))
       }
     }
 
