@@ -15,7 +15,7 @@ RUN chown -hR enso:enso /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso
 RUN chmod a+x /opt/enso/bin/*
 
-RUN mkdir -p /volumes/workspace
+RUN mkdir -p /volumes
 RUN chown -hR enso:enso /volumes
 RUN chmod -R u=rwX,g=rwX /volumes
 
@@ -27,7 +27,5 @@ ENTRYPOINT [ "/opt/enso/bin/docker-entrypoint.sh" ]
 
 EXPOSE 30001
 EXPOSE 30002
-
-VOLUME /volumes/workspace
 
 CMD ["--server", "--daemon", "--rpc-port", "30001", "--data-port", "30002", "--root-id", "00000000-0000-0000-0000-000000000001", "--path", "/volumes/workspace", "--interface", "0.0.0.0"]

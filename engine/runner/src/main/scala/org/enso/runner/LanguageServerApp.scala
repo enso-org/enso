@@ -28,7 +28,12 @@ object LanguageServerApp {
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       Await.result(server.stop(), 40.seconds)
     }))
-    Await.result(server.start(), 1.minute)
+    try Await.result(server.start(), 1.minute)
+    catch {
+      case ex: Throwable =>
+        ex.printStackTrace()
+        System.exit(1)
+    }
     if (deamonize) {
       val lock = new AnyRef
       lock.synchronized {
