@@ -271,10 +271,7 @@ impl NavigatorEvents {
                         data.set_movement_type(Some(MovementType::Pan))
                     },
                     mouse::SecondaryButton => {
-                        let focus = Vector2::new(event.offset_x() as f32, event.offset_y() as f32);
-                        // FIXME: This gives bad results sometimes on zoom with MMB.
-                        //        See: https://github.com/enso-org/ide/issues/926
-                        // println!("FOCUS: {:?}",focus);
+                        let focus = event.position_relative_to_event_handler();
                         data.set_movement_type(Some(MovementType::Zoom{focus}))
                     },
                     _ => ()
@@ -315,7 +312,8 @@ impl NavigatorEvents {
                 if data.events_disabled() {
                     event.prevent_default();
                 }
-                let position = Vector2::new(event.offset_x() as f32, event.offset_y() as f32);
+
+                let position = event.position_relative_to_event_handler();
                 data.set_mouse_position(position);
                 let movement = data.mouse_position() - data.last_mouse_position();
 
