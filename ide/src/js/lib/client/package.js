@@ -58,8 +58,10 @@ config.build = {
         category: 'Development',
     },
     files: [
-        { from: paths.dist.content, to: '.' },
-        { from: paths.dist.bin, to: '.' },
+        { from: paths.dist.content, to: '.' }
+    ],
+    extraResources: [
+        { from: paths.dist.bin, to: '.' , filter: ["!**.tar.gz", "!**.zip"]}
     ],
     fileAssociations: [
         {
