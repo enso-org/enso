@@ -1,40 +1,112 @@
 from Base import all
+import Database.Data.Internal.VectorBuilder
+
+type SqlFragment
+    # type SqlCodePart (code : Text)
+    type SqlCodePart code
+
+    # type SqlInterpolation (object : Any)
+    type SqlInterpolation object
 
 type Statement
-    # TODO may want to use a different underyling structure for parameters to amortize concatenation time
-    # type Statement (text : Text) (parameters : Vector Any)
-    type Statement text parameters
+    # type Statement (internal_fragments : Vector SqlFragment)
+    type Statement internal_fragments
 
-    + : Statement -> Statement
-    + other =
-        Statement (this.text + other.text) (this.parameters + other.parameters)
+    fragments : VectorBuilder SqlFragment
+    fragments = this.internal_fragments
 
-    alias : Text -> Statement
+    ## TODO [RW] documentation clearly stating that this function is unsafe and must be used with care
+    unsafe_to_sql : Text
+    unsafe_to_sql = Error.throw "TODO"
+
+    ## Returns a pair consisting of the SQL code with holes for values and
+       a list for values that should be substituted.
+    to_prepared_sql_with_substitutions : Pair Text (Vector Any)
+    to_prepared_sql_with_substitutions =
+        to_code fragment = case fragment of
+            SqlCodePart code -> code
+            SqlInterpolation _ -> "?"
+        to_subst fragment = case fragment of
+            SqlCodePart _ -> []
+            SqlInterpolation obj -> [obj]
+        sql = this.fragments.map to_code . join ""
+        substitutions = this.fragments.flat_map to_subst
+        Pair sql substitutions
+
+type Builder
+    # type Builder (fragments : VectorBuilder.VectorBuilder SqlFragment)
+    type Builder fragments
+
+    ++ : Builder -> Builder
+    ++ other = Builder (this.fragments ++ other.fragments)
+
+    is_empty : Boolean
+    is_empty = this.fragments.is_empty
+
+    build : Statement
+    build =
+        fragments = here.optimize_fragments this.fragments.build
+        Statement fragments
+
+    alias : Text -> Builder
     alias name =
-        this + here.raw_statement " AS "+name
+        this ++ here.code " AS "+name
 
-    paren : Statement
+    paren : Builder
     paren =
-        Statement ("(" + this.text + ")") this.parameters
+        l = here.code "("
+        r = here.code ")"
+        l ++ this ++ r
 
-    empty : Boolean
-    empty = this.text.length == 0
-
-    prefix_if_present : Text -> SQL.Statement
+    prefix_if_present : Text | Builder -> Builder
     prefix_if_present prefix =
-        if this.empty then this else (SQL.raw_statement prefix)+this
+        pref = case prefix of
+            Builder _ -> prefix
+            _ -> here.code prefix
+        if this.is_empty then this else pref++this
 
-raw_statement : Text -> Vector Any -> Statement
-raw_statement text parameters=[] =
-    Statement text parameters
+empty : Builder
+empty = Builder (VectorBuilder.empty)
 
-paren : Statement -> Statement
-paren inner =
+code : Text -> Builder
+code text =
+    vec = if text.is_empty then [] else [SqlCodePart text]
+    Builder (VectorBuilder.from_vector vec)
 
+interpolation : Any -> Builder
+interpolation object = Builder (VectorBuilder.from_vector [SqlInterpolation object])
 
-join : Text -> Vector Statement -> Statement
+join : Builder | Text -> Vector Builder -> Builder
 join separator statements =
-    texts = statements.map .text
-    text = texts.join separator
-    parameters = statements.fold [] (acc -> stmt -> acc + stmt.parameters)
-    Statement text parameters
+    sep = case separator of
+        Builder _ -> separator
+        _ -> here.code separator
+
+    if statements.length == 0 then here.empty else
+        (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
+
+optimize_fragments : Vector SqlFragment -> Vector SqlFragment
+optimize_fragments fragments =
+    builder = Vector.new_builder
+    go elem =
+        last_part = State.get SqlCodePart
+        case elem of
+            SqlCodePart code ->
+                new_part = case last_part of
+                    Nothing -> SqlCodePart code
+                    SqlCodePart other -> SqlCodePart other+code
+                State.put SqlCodePart new_part
+            SqlInterpolation _ ->
+                case last_part of
+                    Nothing -> Nothing
+                    SqlCodePart _ ->
+                        builder.append last_part
+                        State.put SqlCodePart Nothing
+                builder.append elem
+    State.run SqlCodePart Nothing <|
+        fragments.each go
+        last_part = State.get SqlCodePart
+        case last_part of
+            Nothing -> Nothing
+            SqlCodePart _ -> builder.append last_part
+    builder.to_vector

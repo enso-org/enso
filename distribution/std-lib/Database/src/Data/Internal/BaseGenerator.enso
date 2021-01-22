@@ -3,36 +3,41 @@ import Database.Data.SQL
 import Database.Data.Internal.IR
 
 type InternalDialect
+    # type InternalDialect (operation_map : Map Text (Vector SQL.Builder -> SQL.Builder))
     type InternalDialect operation_map
 
+make_binary_op : Text -> Vector SQL.Builder -> SQL.Builder
 make_binary_op name =
     arguments ->
         case arguments.length == 2 of
             True ->
-                op = SQL.raw_statement " "+name+" "
-                (arguments.at 0)+op+(arguments.at 1) . paren
+                op = SQL.code " "+name+" "
+                (arguments.at 0)++op++(arguments.at 1) . paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
+make_unary_op : Text -> Vector SQL.Builder -> SQL.Builder
 make_unary_op name =
     arguments ->
         case arguments.length == 1 of
             True ->
-                (SQL.raw_statement name+" ")+(arguments.at 0) . paren
+                (SQL.code name+" ")++(arguments.at 0) . paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
+make_right_unary_op : Text -> Vector SQL.Builder -> SQL.Builder
 make_right_unary_op name =
     arguments ->
         case arguments.length == 1 of
             True ->
-                (arguments.at 0)+(SQL.raw_statement " "+name) . paren
+                (arguments.at 0)++(SQL.code " "+name) . paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
+make_function : Text -> Vector SQL.Builder -> SQL.Builder
 make_function name =
     arguments ->
-        (SQL.raw_statement name) + (SQL.join ", " arguments . paren)
+        (SQL.code name) ++ (SQL.join ", " arguments . paren)
 
 base_dialect =
     bin = here.make_binary_op
@@ -46,19 +51,19 @@ base_dialect =
     base_map = Map.from_vector (arith + logic + compare + agg + nulls)
     InternalDialect base_map
 
-generate_expression : InternalDialect -> IR.Expression -> SQL.Statement
+generate_expression : InternalDialect -> IR.Expression -> SQL.Builder
 generate_expression dialect expr = case expr of
-    IR.Column origin name -> SQL.raw_statement (origin + "." + name)
-    IR.Constant value -> SQL.raw_statement "?" [value]
+    IR.Column origin name -> SQL.code origin+"."+name
+    IR.Constant value -> SQL.interpolation value
     IR.Operation kind arguments ->
         op = dialect.operation_map.get_or_else kind (Error.throw "Operation "+op+" is not supported.")
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 
-generate_from_part : InternalDialect -> FromSpec -> SQL.Statement
+generate_from_part : InternalDialect -> FromSpec -> SQL.Builder
 generate_from_part dialect from_spec = case from_spec of
     IR.FromTable name as_name ->
-        SQL.raw_statement name . alias as_name
+        SQL.code name . alias as_name
     IR.Join kind left_spec right_spec on ->
         left = here.generate_from_part dialect left_spec
         right = here.generate_from_part dialect right_spec
@@ -68,19 +73,19 @@ generate_from_part dialect from_spec = case from_spec of
             IR.RightJoin -> "RIGHT OUTER JOIN"
             IR.CrossJoin -> "CROSS JOIN"
         ons = SQL.join " AND " (on.map (here.generate_expression dialect)) . prefix_if_present " ON "
-        left.paren + (SQL.raw_statement " "+prefix+" ") + right.paren + ons
+        left.paren ++ (SQL.code " "+prefix+" ") ++ right.paren ++ ons
     IR.SubQuery columns context as_name ->
         sub = here.generate_query dialect (IR.Select columns context)
         sub.paren.alias as_name
 
-generate_order : InternalDialect -> Pair Expression IR.OrderType -> SQL.Statement
+generate_order : InternalDialect -> Pair Expression IR.OrderType -> SQL.Builder
 generate_order dialect pair =
     suffix = case pair.second of
-        IR.Ascending -> SQL.raw_statement " ASC"
-        IR.Descending -> SQL.raw_statement " DESC"
-    (here.generate_expression (pair.first)) + suffix
+        IR.Ascending -> SQL.code " ASC"
+        IR.Descending -> SQL.code " DESC"
+    (here.generate_expression (pair.first)) ++ suffix
 
-generate_query : InternalDialect -> Query -> SQL.Statement
+generate_query : InternalDialect -> Query -> SQL.Builder
 generate_query dialect query = case query of
     IR.Select columns ctx ->
         gen_exprs exprs = exprs.map (here.generate_expression dialect)
@@ -95,5 +100,5 @@ generate_query dialect query = case query of
         orders = ctx.orders.map (here.generate_order dialect)
         order_part = (SQL.join ", " orders) . prefix_if_present " ORDER BY "
 
-        (SQL.raw_statement "SELECT ") + cols + (SQL.raw_statement " FROM ") + from_part + where_part + group_part + order_part
+        (SQL.code "SELECT ") ++ cols ++ (SQL.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part
     _ -> Error.throw "Unsupported query type."

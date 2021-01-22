@@ -1,7 +1,7 @@
 from Base import all
 import Test
 import Database.Connection.Connection
-import Database.Data.Internal.Dialect
+import Database.Data.Dialect
 
 #main = Test.Suite.runMain <|
 #    Table_Spec.spec
@@ -14,6 +14,7 @@ main =
 
     t1 = conn.access_table "T1"
     IO.println t1
+    t1.to_sql.fragments.each IO.println
     IO.println t1.to_sql
 
     mask = (t1.at "A" < t1.at "B") && (t1.at "C" == 42)

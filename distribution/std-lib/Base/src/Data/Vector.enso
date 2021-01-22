@@ -231,6 +231,25 @@ type Vector
         here.new this.length i-> function (this.at i)
 
     ## Applies a function to each element of the vector, returning the vector
+       that contains all results concatenated.
+
+       > Example
+         In the following example, we replace each number `n` with itself
+         repeated `n` times:
+            [0, 1, 2] . flat_map (n -> Vector.fill n n)
+         The result of running the code above is:
+            [1, 2, 2]
+    flat_map : (Any -> Vector) -> Vector
+    flat_map function =
+        mapped = this.map function
+        length = mapped.map .length . fold 0 (+)
+        arr = Array.new length
+        mapped.fold 0 i-> vec->
+            vec.map_with_index j-> elem-> arr.set_at i+j elem
+            i + vec.length
+        Vector arr
+
+    ## Applies a function to each element of the vector, returning the vector
        of results.
 
        The function is called with both the element index as well as the

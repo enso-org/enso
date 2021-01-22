@@ -1,5 +1,5 @@
 from Base import all
-from Database.Data.Helpers import all
+import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
 import Database.Data.Table
 
@@ -167,6 +167,7 @@ type Column
 
     rename : Text -> Column
     rename new_name =
+        # TODO [RW] ensure that the error poisons the result
         Helpers.ensure_name_is_sane new_name
         Column new_name this.connection this.expression this.context
 

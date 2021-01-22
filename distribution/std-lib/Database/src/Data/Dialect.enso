@@ -10,9 +10,9 @@ type Dialect
 postgresql : Dialect
 postgresql =
     dialect = BaseGenerator.base_dialect
-    Dialect "PostgreSQL" (BaseGenerator.generate_query dialect)
+    Dialect "PostgreSQL" (query -> BaseGenerator.generate_query dialect query . build)
 
 sqlite : Dialect
 sqlite =
     dialect = BaseGenerator.base_dialect
-    Dialect "SQLite" (BaseGenerator.generate_query dialect)
+    Dialect "SQLite" (query -> BaseGenerator.generate_query dialect query . build)

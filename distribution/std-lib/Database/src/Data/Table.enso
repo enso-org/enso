@@ -1,6 +1,6 @@
 from Base import all
 from Database.Data.Column as Column_Module import all
-from Database.Data.Helpers import all
+import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
 
 ## Represents a column-oriented table data structure backed by a database.
