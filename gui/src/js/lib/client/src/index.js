@@ -20,6 +20,15 @@ const fss = require('fs')
 
 
 
+// =============
+// === Paths ===
+// =============
+
+const root = Electron.app.getAppPath()
+const resources = path.join(root, "..")
+
+
+
 // FIXME default options parsed wrong
 // https://github.com/yargs/yargs/issues/1590
 
@@ -322,7 +331,7 @@ Electron.app.on('web-contents-created', (event,contents) => {
 async function withBackend(opts) {
     let binPath = args['backend-path']
     if (!binPath) {
-        binPath = paths.get_project_manager_path(root)
+        binPath = paths.get_project_manager_path(resources)
     }
     let binExists = fss.existsSync(binPath)
     assert(binExists, `Could not find the project manager binary at ${binPath}.`)
@@ -350,7 +359,6 @@ async function backendVersion() {
 // === Main ===
 // ============
 
-let root = Electron.app.getAppPath()
 let hideInsteadOfQuit = false
 
 let server     = null
