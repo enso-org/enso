@@ -584,7 +584,7 @@ pub type SuggestionsDatabaseVersion = usize;
 pub struct SuggestionEntryArgument {
     /// The argument name.
     pub name:String,
-    /// The argument type. String 'Any' is used to specify generic types.
+    /// The argument type. String 'Builtins.Main.Any' is used to specify generic types.
     pub repr_type:String,
     /// Indicates whether the argument is lazy.
     pub is_suspended:bool,

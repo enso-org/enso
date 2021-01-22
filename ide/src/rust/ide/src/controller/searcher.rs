@@ -987,6 +987,7 @@ pub mod test {
     use crate::model::suggestion_database::entry::Kind;
     use crate::model::suggestion_database::entry::Scope;
     use crate::test::mock::data::MAIN_FINISH;
+    use crate::test::mock::data::MODULE_NAME;
     use crate::test::mock::data::PROJECT_NAME;
 
     use enso_protocol::language_server::types::test::value_update_with_type;
@@ -1060,19 +1061,34 @@ pub mod test {
     impl Fixture {
         fn new_custom<F>(client_setup:F) -> Self
         where F : FnOnce(&mut MockData,&mut language_server::MockClient) {
+            info!(DefaultDebugLogger::new("Test"),"1");
             let test       = TestWithLocalPoolExecutor::set_up();
+            info!(DefaultDebugLogger::new("Test"),"2");
             let mut data   = MockData::default();
+            info!(DefaultDebugLogger::new("Test"),"3");
             let mut client = language_server::MockClient::default();
+            info!(DefaultDebugLogger::new("Test"),"4");
             client.require_all_calls();
+            info!(DefaultDebugLogger::new("Test"),"5");
             client_setup(&mut data,&mut client);
+            info!(DefaultDebugLogger::new("Test"),"6");
             let end_of_code = TextLocation::at_document_end(&data.graph.module.code);
             let code_range  = TextLocation::at_document_begin()..=end_of_code;
+            info!(DefaultDebugLogger::new("Test"),"7");
             let graph       = data.graph.controller();
+            info!(DefaultDebugLogger::new("Test"),"8");
             let node        = &graph.graph().nodes().unwrap()[0];
+            info!(DefaultDebugLogger::new("Test"),"9");
             let this        = ThisNode::new(vec![node.info.id()],&graph.graph());
+            info!(DefaultDebugLogger::new("Test"),"10");
             let this        = data.selected_node.and_option(this);
+            info!(DefaultDebugLogger::new("Test"),"11");
             let logger      = Logger::new("Searcher");// new_empty
+            info!(DefaultDebugLogger::new("Test"),"12");
             let database    = Rc::new(SuggestionDatabase::new_empty(&logger));
+            info!(DefaultDebugLogger::new("Test"),"13");
+            let module_name = QualifiedName::from_segments(PROJECT_NAME, &[MODULE_NAME]).unwrap();
+            info!(DefaultDebugLogger::new("Test"),"14");
             let searcher = Searcher {
                 graph,logger,database,
                 data             : default(),
@@ -1102,7 +1118,7 @@ pub mod test {
             let entry3 = model::suggestion_database::Entry {
                 name          : "testMethod1".to_string(),
                 kind          : Kind::Method,
-                self_type     : Some(crate::test::mock::data::MODULE_NAME.to_string()),
+                self_type     : Some(module_name.clone().into()),
                 scope         : Scope::Everywhere,
                 arguments     : vec![
                     Argument {
@@ -1123,8 +1139,8 @@ pub mod test {
                 ..entry1.clone()
             };
             let entry4 = model::suggestion_database::Entry {
-                self_type : Some("Test".to_string()),
-                module    : "Test.Test".to_string().try_into().unwrap(),
+                self_type : Some("Test.Test".to_owned().try_into().unwrap()),
+                module    : "Test.Test".to_owned().try_into().unwrap(),
                 arguments : vec![
                     Argument {
                         repr_type     : "Any".to_string(),
@@ -1291,10 +1307,9 @@ pub mod test {
         let Fixture{searcher,..} = &mut fixture;
 
         // Known functions cases
-        let module_name = crate::test::mock::data::MODULE_NAME;
         searcher.set_input("Test.testMethod1 ".to_string()).unwrap();
         searcher.set_input("here.testMethod1 ".to_string()).unwrap();
-        searcher.set_input(iformat!("{module_name}.testMethod1 ")).unwrap();
+        searcher.set_input(iformat!("{MODULE_NAME}.testMethod1 ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
         // Unknown functions case
@@ -1600,7 +1615,7 @@ pub mod test {
         let (node1,node2) = searcher.graph.graph().nodes().unwrap().expect_tuple();
         let expected_intended_method = Some(MethodId {
             module          : "Test.Test".to_string().try_into().unwrap(),
-            defined_on_type : "Test".to_string(),
+            defined_on_type : "Test.Test".to_string().try_into().unwrap(),
             name            : "testMethod1".to_string(),
         });
         assert_eq!(node2.metadata.unwrap().intended_method, expected_intended_method);
@@ -1632,7 +1647,7 @@ pub mod test {
         // Node had intended method, but it's outdated.
         let intended_method = MethodId {
             module          : "Test.Test".to_string().try_into().unwrap(),
-            defined_on_type : "Test".to_string(),
+            defined_on_type : "Test.Test".to_string().try_into().unwrap(),
             name            : "testMethod1".to_string()
         };
         graph.module.with_node_metadata(node_id, Box::new(|md| {

@@ -195,7 +195,7 @@ impl SuggestionDatabase {
     (&self, name:impl Str, module:&QualifiedName) -> Option<Rc<Entry>> {
         self.entries.borrow().values().cloned().find(|entry| {
             let is_method             = entry.kind == Kind::Method;
-            let is_defined_for_module = entry.has_self_type(module.name());
+            let is_defined_for_module = entry.has_self_type(module);
             is_method && is_defined_for_module && entry.matches_name(name.as_ref())
         })
     }

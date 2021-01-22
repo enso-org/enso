@@ -31,7 +31,7 @@ impl Action {
     pub fn caption(&self) -> String {
         match self {
             Self::Suggestion(completion) => if let Some(self_type) = completion.self_type.as_ref() {
-                format!("{}.{}",self_type,completion.name)
+                format!("{}.{}",self_type.name,completion.name)
             } else {
                 completion.name.clone()
             }

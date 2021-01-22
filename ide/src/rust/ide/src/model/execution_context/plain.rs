@@ -219,7 +219,7 @@ pub mod test {
         pub fn main_method_pointer(&self) -> MethodPointer {
             MethodPointer {
                 module          : self.module_qualified_name().to_string(),
-                defined_on_type : self.module_path.module_name().to_string(),
+                defined_on_type : self.module_qualified_name().to_string(),
                 name            : self.root_definition.to_string(),
             }
         }

@@ -21,7 +21,8 @@ use uuid::Uuid;
 // TODO[ao] We need to set a big timeout on Project Manager to make sure it will have time to
 //     download required version of Engine. This should be handled properly when implementing
 //     https://github.com/enso-org/ide/issues/1034
-const PROJECT_MANAGER_TIMEOUT_SEC:u64 = 2 * 60 * 60;
+const PROJECT_MANAGER_TIMEOUT_SEC     : u64          = 2 * 60 * 60;
+const ENGINE_VERSION_FOR_NEW_PROJECTS : Option<&str> = Some("0.2.1");
 
 
 
@@ -168,7 +169,7 @@ impl WithProjectManager {
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
         info!(self.logger,"Creating a new project named '{self.project_name}'.");
-        let version           = None;
+        let version           = ENGINE_VERSION_FOR_NEW_PROJECTS.map(ToOwned::to_owned);
         let ProjectName(name) = &self.project_name;
         let response          = self.project_manager.create_project(name,&version,&Install);
         Ok(response.await?.project_id)

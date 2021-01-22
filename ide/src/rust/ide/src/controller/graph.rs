@@ -459,7 +459,7 @@ impl Handle {
         let root_id     = project.content_root_id();
         let module_path = model::module::Path::from_method(root_id,&method)?;
         let module      = project.module(module_path).await?;
-        let definition  = module.lookup_method(&method)?;
+        let definition  = module.lookup_method(project.name().as_ref(),&method)?;
         Self::new(parent,module,project.suggestion_db(),project.parser(),definition)
     }
 
