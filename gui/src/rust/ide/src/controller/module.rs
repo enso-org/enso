@@ -115,31 +115,6 @@ impl Handle {
         module::QualifiedName::new(project_name,self.model.id())
     }
 
-    /// Get pointer to the method identified by its definition ID.
-    ///
-    /// Note that there might exist multiple definition IDs for the same method pointer, as
-    /// definition IDs include information about definition syntax whereas method pointer identifies
-    /// the desugared entity.
-    pub fn method_pointer
-    (&self, project_name:ReferentName, id:&double_representation::graph::Id)
-    -> FallibleResult<language_server::MethodPointer> {
-        let crumb = match id.crumbs.as_slice() {
-            [crumb] => crumb,
-            _       => return Err(InvalidGraphId(id.clone()).into()),
-        };
-
-        let defined_on_type = if crumb.extended_target.is_empty() {
-            self.model.path().module_name().to_string()
-        } else {
-            crumb.extended_target.iter().map(|segment| segment.as_str()).join(".")
-        };
-        Ok(language_server::MethodPointer {
-            defined_on_type,
-            module : self.qualified_name(project_name).to_string(),
-            name   : crumb.name.item.clone(),
-        })
-    }
-
     /// Modify module by modifying its `Info` description (which is a wrapper directly over module's
     /// AST).
     pub fn modify<R>(&self, f:impl FnOnce(&mut module::Info) -> R) -> FallibleResult<R> {

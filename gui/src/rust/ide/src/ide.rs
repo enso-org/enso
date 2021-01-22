@@ -82,7 +82,7 @@ impl Ide {
 
         let method = main_method_ptr(project.name(),&module_path);
         let module = project.module(module_path).await?;
-        add_main_if_missing(&module,&method,&project.parser())?;
+        add_main_if_missing(project.name().as_ref(),&module,&method,&project.parser())?;
 
         // Here, we should be relatively certain (except race conditions in case of multiple clients
         // that we currently do not support) that main module exists and contains main method.
@@ -121,8 +121,9 @@ pub async fn recreate_if_missing(project:&model::Project, path:&FilePath, defaul
 ///
 /// The lookup will be done using the given `main_ptr` value.
 pub fn add_main_if_missing
-(module:&model::Module, main_ptr:&MethodPointer, parser:&Parser) -> FallibleResult {
-    if module.lookup_method(main_ptr).is_err() {
+(project_name:&str, module:&model::Module, main_ptr:&MethodPointer, parser:&Parser)
+-> FallibleResult {
+    if module.lookup_method(project_name,main_ptr).is_err() {
         let mut info  = module.info();
         let main_code = default_main_method_code();
         let main_ast  = parser.parse_line(main_code)?;
@@ -155,15 +156,15 @@ mod tests {
         let empty_module_code = "";
         data.set_code(empty_module_code);
         let module = data.module();
-        assert!(module.lookup_method(&main_ptr).is_err());
-        add_main_if_missing(&module,&main_ptr,&parser).unwrap();
-        assert!(module.lookup_method(&main_ptr).is_ok());
+        assert!(module.lookup_method(&data.project_name,&main_ptr).is_err());
+        add_main_if_missing(&data.project_name,&module,&main_ptr,&parser).unwrap();
+        assert!(module.lookup_method(&data.project_name,&main_ptr).is_ok());
 
         // Now check that modules that have main already defined won't get modified.
         let mut expect_intact = move |code:&str| {
             data.set_code(code);
             let module = data.module();
-            add_main_if_missing(&module,&main_ptr,&parser).unwrap();
+            add_main_if_missing(&data.project_name,&module,&main_ptr,&parser).unwrap();
             assert_eq!(code,module.ast().repr());
         };
         expect_intact("main = 5");

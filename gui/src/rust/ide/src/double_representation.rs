@@ -10,6 +10,7 @@ pub mod module;
 pub mod node;
 pub mod refactorings;
 pub mod text;
+pub mod tp;
 
 #[cfg(test)]
 pub mod test_utils;
