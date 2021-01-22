@@ -1,6 +1,7 @@
 from Base import all
 from Database.Data.Table as Table_Module import Table
 from Database.Data.Column as Column_Module import Column
+polyglot java import java.util.regex.Pattern
 
 check_integrity : (Table | Column) -> (Table | Column) -> Boolean
 check_integrity entity1 entity2 =
@@ -12,3 +13,17 @@ unify_vector_singleton : (Any | Vector.Vector Any) -> Vector.Vector Any
 unify_vector_singleton x = case x of
     Vector.Vector _ -> x
     _ -> [x]
+
+## PRIVATE
+   This is used to check if the new name is safe for use in SQL queries.
+   In a future version we will decouple the internal SQL-safe names from the
+   external names shown to the user, but as a temporary solution we only allow
+   SQL-safe names for columns.
+
+   # TODO [RW] better name handling in Tables
+ensure_name_is_sane : Text -> Nothing ! RuntimeError
+ensure_name_is_sane name =
+    is_safe =
+        Pattern.matches ["[A-Za-z_0-9]+", name]
+    if is_safe then Nothing else
+        Error.throw (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")

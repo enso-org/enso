@@ -5,10 +5,10 @@ import Database.Data.Internal.IR
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
-    # type Table (connection : Connection)
+    # type Table (name : Text) (connection : Connection)
     #            (internal_columns : Vector (Pair Text IR.Expression))
     #            (context : IR.Context)
-    type Table connection internal_columns context
+    type Table name connection internal_columns context
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
@@ -63,11 +63,12 @@ type Table
        already exists, it will be replaced. Otherwise a new column is added.
     set : Text -> Column -> Table
     set name column =
+        Helpers.ensure_name_is_sane name
         new_col = Pair name column.expression
-        replace = this.internal_columns.exists (c -> c.name == name)
+        replace = this.internal_columns.exists (c -> c.first == name)
         case replace of
             True ->
-                new_cols = this.internal_columns.map (c -> if c.name == name then new_col else c)
+                new_cols = this.internal_columns.map (c -> if c.first == name then new_col else c)
                 this.updated_columns new_cols
             False ->
                 this.updated_columns (this.internal_columns + [new_col])
@@ -79,7 +80,8 @@ type Table
     ## Sets the index of this table, using the column with the provided name.
     set_index : Text | Vector Text -> Table
     set_index index =
-        new_ctx = this.context.set_index (Helpers.unify_vector_singleton index)
+        new_index = (Helpers.unify_vector_singleton index).map (name -> this.internal_at name . second)
+        new_ctx = this.context.set_index new_index
         this.updated_context new_ctx
 
     order : Nothing | Column | Vector Column -> Table
@@ -127,29 +129,35 @@ type Table
         my_index = case on == Nothing of
             True -> this.context.meta_index
             False ->
-                (Helpers.unify_vector_singleton on).map (name -> this.at name . expression)
+                (Helpers.unify_vector_singleton on).map (name -> this.internal_at name . second)
         other_index = other.context.meta_index
         case my_index.length == other_index.length of
             False -> Error.throw "Cannot join with multi-indexes of different lengths."
             True ->
                 # TODO [RW] we can easily avoid creating subqueries if there are no groups, orders or wheres, so it may be worth optimizing that here
-                left_alias = "TLeft" # TODO [RW]
-                right_alias = "TRight" # TODO [RW]
+
+                new_table_name = this.name + "_" + other.name
+                aliases = case this.name == other.name of
+                    True -> Pair this.name+"_left" other.name+"_right"
+                    False -> Pair this.name other.name
+                left_alias = aliases.first
+                right_alias = aliases.second
+
                 new_index = [] # TODO [RW] should join preserve left index?
                 # TODO [RW] renaming expressions!!!
                 left_query = IR.SubQuery this.internal_columns this.context left_alias
                 right_query = IR.SubQuery other.internal_columns other.context right_alias
 
-                on_exprs = my_index.zip other_index (l -> r -> l == r)
-                new_from = IR.Join left_query right_query on_exprs
+                # TODO [RW] the join expression should be properly renamed with new subquery aliases
+                on_exprs = my_index.zip other_index (l -> r -> IR.Operation "=" [l, r])
+                new_from = IR.Join kind left_query right_query on_exprs
                 new_ctx = IR.Context new_from [] [] [] new_index
 
-                # TODO [RW] renaming columns
+                # TODO [RW] renaming conflicting columns
                 new_left_columns = this.internal_columns.map (p -> Pair p.first (IR.Column left_alias p.first))
                 new_right_columns = other.internal_columns.map (p -> Pair p.first (IR.Column right_alias p.first))
                 new_columns = new_left_columns + new_right_columns
-                Table this.connection new_columns new_ctx
-
+                Table new_table_name this.connection new_columns new_ctx
 
     ## Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.
@@ -198,8 +206,8 @@ type Table
 
     to_sql : SQL.Statement
     to_sql =
-        col_expressions = this.internal_columns . map .second
-        query = IR.Select col_expressions this.context
+        cols = this.internal_columns
+        query = IR.Select cols this.context
         this.connection.dialect.generate_sql query
 
     explain_query_plan : Text
@@ -221,15 +229,26 @@ type Table
         Column pair.first this.connection pair.second this.context
 
     ## PRIVATE
-    updated_columns columns = Table this.connection columns this.context
+    internal_at : Text -> InternalColumn
+    internal_at name =
+        res = this.internal_columns.find (c -> c.first == name)
+        case res of
+            Nothing -> Error.throw "Column "+name+" not found."
+            _ -> res
 
     ## PRIVATE
-    updated_context ctx = Table this.connection this.internal_columns ctx
+    updated_columns columns = Table this.name this.connection columns this.context
 
+    ## PRIVATE
+    updated_context ctx = Table this.name this.connection this.internal_columns ctx
+
+
+type InternalColumn
+    type InternalColumn external_name internal_name expression
 
 ## PRIVATE
 make_table : Connection -> Text -> Vector Text -> Table
 make_table connection table_name column_names =
     ctx = IR.make_ctx_from table_name
     cols = column_names.map (name -> Pair name (IR.Column table_name name))
-    Table connection cols ctx
+    Table table_name connection cols ctx

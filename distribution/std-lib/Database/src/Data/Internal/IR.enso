@@ -32,7 +32,7 @@ type FromSpec
     type Join kind left_spec right_spec on
     # type SubQuery (columns : Vector (Pair Text Expression))
     #               (context : Context) (alias : Text)
-    type SubQuery expressions context alias
+    type SubQuery columns context alias
 
 type JoinKind
     type InnerJoin
@@ -45,7 +45,8 @@ type OrderType
     type Descending
 
 type Query
-    type Select expressions context
+    # type Select (expressions : Pair Text Expression) (context : Context)
+    type Select columns context
 
 make_ctx_from : Text -> Context
 make_ctx_from table_name =

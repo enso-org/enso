@@ -165,4 +165,9 @@ type Column
     drop_missing : Any -> Column
     drop_missing = this.where this.is_missing.not
 
+    rename : Text -> Column
+    rename new_name =
+        Helpers.ensure_name_is_sane new_name
+        Column new_name this.connection this.expression this.context
+
 # TODO [RW] starts_with, ends_with, contains
