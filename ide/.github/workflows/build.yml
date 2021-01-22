@@ -26,11 +26,41 @@ jobs:
           toolchain: nightly-2019-11-04
           override: true
 
-      - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack --version 0.9.1
+      - name: Install wasm-pack (MacOS)
+        # We could use cargo install wasm-pack, but that takes 3.5 minutes compared to few seconds.
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-apple-darwin
+        run: |
+          curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+          mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+          rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'macOS-latest'
+
+      - name: Install wasm-pack (Linux)
+        # We could use cargo install wasm-pack, but that takes 3.5 minutes compared to few seconds.
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-unknown-linux-musl
+        run: |
+          curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+          mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+          rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: Install wasm-pack (Windows)
+        # We could use cargo install wasm-pack, but that takes 3.5 minutes compared to few seconds.
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-pc-windows-msvc
+        run: |
+          curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+          mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+          rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'windows-latest'
 
       - name: Install Node
         uses: actions/setup-node@v1
