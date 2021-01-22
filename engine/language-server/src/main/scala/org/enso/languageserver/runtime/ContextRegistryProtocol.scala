@@ -126,25 +126,39 @@ object ContextRegistryProtocol {
       fromCache: Boolean
     ) extends ExpressionUpdate
 
+    /** A diagnostic information about the expression.
+      *
+      * @param expressionId the expression id
+      * @param message the error message
+      * @param kind the type of diagnostic message
+      */
+    case class ExpressionDiagnostic(
+      expressionId: UUID,
+      message: String,
+      kind: ExecutionDiagnosticKind
+    ) extends ExpressionUpdate
+
     /** An update about failed expression.
       *
       * @param expressionId the expression id
       * @param message the error message
+      * @param trace the stack trace
       */
     case class ExpressionFailed(
       expressionId: UUID,
-      message: String
+      message: String,
+      trace: Seq[ExecutionStackTraceElement]
     ) extends ExpressionUpdate
 
     /** An update about expression not executed due to the failed dependency.
       *
       * @param expressionId the expression id
-      * @param failedExpressionId failed expression that blocks the execution
-      * of this expression
+      * @param trace the list of expressions leading to the root expression
+      * that failed
       */
     case class ExpressionPoisoned(
       expressionId: UUID,
-      failedExpressionId: UUID
+      trace: Seq[UUID]
     ) extends ExpressionUpdate
 
     private object CodecField {
@@ -154,6 +168,8 @@ object ContextRegistryProtocol {
 
     private object ExpressionUpdateType {
       val Computed = "Computed"
+
+      val Diagnostic = "Diagnostic"
 
       val Failed = "Failed"
 
@@ -167,6 +183,15 @@ object ContextRegistryProtocol {
             .apply(m)
             .deepMerge(
               Json.obj(CodecField.Type -> ExpressionUpdateType.Computed.asJson)
+            )
+
+        case m: ExpressionUpdate.ExpressionDiagnostic =>
+          Encoder[ExpressionUpdate.ExpressionDiagnostic]
+            .apply(m)
+            .deepMerge(
+              Json.obj(
+                CodecField.Type -> ExpressionUpdateType.Diagnostic.asJson
+              )
             )
 
         case m: ExpressionUpdate.ExpressionFailed =>
@@ -189,6 +214,9 @@ object ContextRegistryProtocol {
         cursor.downField(CodecField.Type).as[String].flatMap {
           case ExpressionUpdateType.Computed =>
             Decoder[ExpressionUpdate.ExpressionComputed].tryDecode(cursor)
+
+          case ExpressionUpdateType.Diagnostic =>
+            Decoder[ExpressionUpdate.ExpressionDiagnostic].tryDecode(cursor)
 
           case ExpressionUpdateType.Failed =>
             Decoder[ExpressionUpdate.ExpressionFailed].tryDecode(cursor)

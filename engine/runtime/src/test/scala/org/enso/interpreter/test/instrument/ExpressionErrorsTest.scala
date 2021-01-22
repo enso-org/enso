@@ -179,7 +179,8 @@ class ExpressionErrorsTest
           Set(
             Api.ExpressionUpdate.ExpressionFailed(
               xId,
-              "Compile_Error Variable `undefined` is not defined."
+              "Compile_Error Variable `undefined` is not defined.",
+              Seq()
             ),
             Api.ExpressionUpdate.ExpressionPoisoned(yId, Seq()),
             Api.ExpressionUpdate.ExpressionPoisoned(mainResId, Seq())

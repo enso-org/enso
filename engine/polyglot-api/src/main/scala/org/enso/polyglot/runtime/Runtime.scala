@@ -312,16 +312,19 @@ object Runtime {
         *
         * @param expressionId the expression id
         * @param message the error message
+        * @param trace the stack trace
         */
       case class ExpressionFailed(
         expressionId: ExpressionId,
-        message: String
+        message: String,
+        trace: Seq[StackTraceElement]
       ) extends ExpressionUpdate
 
-      /** An diagnostic information about the expression.
+      /** A diagnostic information about the expression.
         *
         * @param expressionId the expression id
         * @param message the error message
+        * @param kind the type of diagnostic message
         */
       case class ExpressionDiagnostic(
         expressionId: ExpressionId,
@@ -332,25 +335,14 @@ object Runtime {
       /** An update about expression not executed due to a failed dependency.
         *
         * @param expressionId the expression id
-        * @param trace the list of expressions leading to the root cause
+        * @param trace the list of expressions leading to the root expression
+        * that failed
         */
       case class ExpressionPoisoned(
         expressionId: ExpressionId,
-        trace: Seq[Expression]
+        trace: Seq[ExpressionId]
       ) extends ExpressionUpdate
     }
-
-    /** An expression
-      *
-      * @param expressionId the id of this expression
-      * @param file the file path
-      * @param location the location of the element in a file
-      */
-    case class Expression(
-      expressionId: Option[ExpressionId],
-      file: Option[File],
-      location: Option[Range]
-    )
 
     /** An object representing profiling information about an executed
       * expression.

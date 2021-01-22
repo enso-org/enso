@@ -37,8 +37,11 @@ object ErrorResolver {
                   .getOrElse(Set())
                   .map(Api.ExpressionUpdate.ExpressionPoisoned(_, Seq()))
                 val failed =
-                  Api.ExpressionUpdate
-                    .ExpressionFailed(expressionId.externalId, error.getMessage)
+                  Api.ExpressionUpdate.ExpressionFailed(
+                    expressionId.externalId,
+                    error.getMessage,
+                    Seq()
+                  )
                 poisoned + failed
               }
               .getOrElse(Set())

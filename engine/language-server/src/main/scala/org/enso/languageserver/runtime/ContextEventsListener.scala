@@ -110,12 +110,23 @@ final class ContextEventsListener(
       expressionUpdates.foreach {
         case m: Api.ExpressionUpdate.ExpressionComputed =>
           computedExpressions += m
+        case m: Api.ExpressionUpdate.ExpressionDiagnostic =>
+          updates += ContextRegistryProtocol.ExpressionUpdate
+            .ExpressionDiagnostic(
+              m.expressionId,
+              m.message,
+              toDiagnosticType(m.kind)
+            )
         case m: Api.ExpressionUpdate.ExpressionFailed =>
           updates += ContextRegistryProtocol.ExpressionUpdate
-            .ExpressionFailed(m.expressionId, m.message)
+            .ExpressionFailed(
+              m.expressionId,
+              m.message,
+              m.trace.map(toStackTraceElement)
+            )
         case m: Api.ExpressionUpdate.ExpressionPoisoned =>
           updates += ContextRegistryProtocol.ExpressionUpdate
-            .ExpressionPoisoned(m.expressionId, m.failedExpressionId)
+            .ExpressionPoisoned(m.expressionId, m.trace)
       }
       val notification = ContextRegistryProtocol.ExpressionUpdatesNotification(
         contextId,
@@ -175,8 +186,9 @@ final class ContextEventsListener(
                   None
               }
             },
-            update.profilingInfo.map { case Api.ProfilingInfo.ExecutionTime(t) =>
-              ProfilingInfo.ExecutionTime(t)
+            update.profilingInfo.map {
+              case Api.ProfilingInfo.ExecutionTime(t) =>
+                ProfilingInfo.ExecutionTime(t)
             },
             update.fromCache
           )

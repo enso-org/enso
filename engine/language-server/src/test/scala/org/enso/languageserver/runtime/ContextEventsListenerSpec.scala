@@ -89,7 +89,7 @@ class ContextEventsListenerSpec
                 Api.MethodPointer(
                   Suggestions.method.module,
                   Suggestions.method.selfType,
-                  Suggestions.method.name,
+                  Suggestions.method.name
                 )
               ),
               Vector(),
@@ -135,7 +135,8 @@ class ContextEventsListenerSpec
           Set(
             Api.ExpressionUpdate.ExpressionFailed(
               Suggestions.method.externalId.get,
-              "Method failure"
+              "Method failure",
+              Seq()
             )
           )
         )
@@ -148,7 +149,8 @@ class ContextEventsListenerSpec
               Vector(
                 ContextRegistryProtocol.ExpressionUpdate.ExpressionFailed(
                   Suggestions.method.externalId.get,
-                  "Method failure"
+                  "Method failure",
+                  Seq()
                 )
               ),
               None
@@ -164,7 +166,7 @@ class ContextEventsListenerSpec
           Set(
             Api.ExpressionUpdate.ExpressionPoisoned(
               Suggestions.local.externalId.get,
-              Suggestions.method.externalId.get
+              Seq(Suggestions.method.externalId.get)
             )
           )
         )
@@ -177,7 +179,7 @@ class ContextEventsListenerSpec
               Vector(
                 ContextRegistryProtocol.ExpressionUpdate.ExpressionPoisoned(
                   Suggestions.local.externalId.get,
-                  Suggestions.method.externalId.get
+                  Seq(Suggestions.method.externalId.get)
                 )
               ),
               None
