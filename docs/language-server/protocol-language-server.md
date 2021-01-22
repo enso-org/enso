@@ -278,7 +278,7 @@ interface ExecutionTime {
 ### `ExpressionUpdate`
 
 ```typescript
-type ExpressionUpdate = Computed | Failed | Poisoned;
+type ExpressionUpdate = Computed | Diagnostic | Failed | Poisoned;
 
 /**
  * An update about computed expression.
@@ -298,6 +298,36 @@ interface Computed {
    * The updated pointer to the method call.
    */
   methodPointer?: SuggestionId;
+
+  /**
+   * Profiling information about the expression.
+   */
+  profilingInfo: ProfilingInfo[];
+
+  /**
+   * wether or not the expression's value came from the cache.
+   */
+  fromCache: bool;
+}
+
+/**
+ * A diagnostic information about the expression.
+ */
+interface Diagnostic {
+  /**
+   * The id of updated expression.
+   */
+  expressionId: ExpressionId;
+
+  /**
+   * The error message.
+   */
+  message: String;
+
+  /**
+   * The type of diagnostic message.
+   */
+  kind: DiagnosticKind;
 }
 
 /**
@@ -313,6 +343,11 @@ interface Failed {
    * The error message.
    */
   message: String;
+
+  /**
+   * The stack trace.
+   */
+  trace: StackTraceElement[];
 }
 
 /**
@@ -325,9 +360,9 @@ interface Poisoned {
   expressionId: ExpressionId;
 
   /**
-   * The failed expression that prevents the execution of this expression.
+   * The list of expressions leading to the root expression that failed.
    */
-  failedExpressionId: ExpressionId;
+  trace: ExpressionId[];
 }
 ```
 
@@ -886,6 +921,11 @@ interface Diagnostic {
    * The location of the diagnostic object in a file.
    */
   location?: Range;
+
+  /**
+   * The id of related expression.
+   */
+  expressionId?: ExpressionId;
 
   /**
    * The stack trace.
