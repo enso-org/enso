@@ -316,6 +316,8 @@ interface ExpressionUpdate {
 
 ### `ExpressionUpdatePayload`
 
+An information about the computed value.
+
 ```typescript
 type ExpressionUpdatePayload = Value | DatafalowError | RuntimeError | Poisoned;
 
