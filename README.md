@@ -15,10 +15,6 @@
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="http://chat.luna-lang.org">
-    <img src="https://img.shields.io/discord/401396655599124480?label=Chat&color=2ec352&labelColor=2c3239"
-         alt="Chat">
-  </a>
 </p>
 
 ## Get insights you can act on, fast.
