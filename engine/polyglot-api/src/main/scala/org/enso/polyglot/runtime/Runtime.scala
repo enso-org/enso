@@ -326,7 +326,7 @@ object Runtime {
           */
         case class DataflowError(trace: Seq[ExpressionId]) extends Payload
 
-        /** An information about the runtime exception.
+        /** Indicates that the expression failed with the runtime exception.
           *
           * @param message the error message
           * @param trace the stack trace
@@ -336,7 +336,7 @@ object Runtime {
           trace: Seq[ExpressionId]
         ) extends Payload
 
-        /** Indicates that the expression was not computed due a dependency,
+        /** Indicates that the expression was not computed due to a dependency,
           * that failed with the runtime exception.
           *
           * @param trace the list of expressions leading to the root error.
