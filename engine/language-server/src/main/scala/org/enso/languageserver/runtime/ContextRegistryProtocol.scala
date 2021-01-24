@@ -107,48 +107,40 @@ object ContextRegistryProtocol {
     updatesOld: Option[Vector[ExpressionValueUpdate]]
   )
 
-  sealed trait ExpressionUpdate
+  /** An update about computed expression.
+    *
+    * @param expressionId the id of updated expression
+    * @param `type` the updated type of expression
+    * @param methodPointer the suggestion id of the updated method pointer
+    * @param profilingInfo profiling information about the expression
+    * @param fromCache whether or not the expression's value came from the cache
+    */
+  case class ExpressionUpdate(
+    expressionId: UUID,
+    `type`: Option[String],
+    methodPointer: Option[Long],
+    profilingInfo: Vector[ProfilingInfo],
+    fromCache: Boolean
+  )
   object ExpressionUpdate {
 
-    /** An update about computed expression.
-      *
-      * @param expressionId the id of updated expression
-      * @param `type` the updated type of expression
-      * @param methodPointer the suggestion id of the updated method pointer
-      * @param profilingInfo profiling information about the expression
-      * @param fromCache whether or not the expression's value came from the cache
-      */
-    case class ExpressionComputed(
-      expressionId: UUID,
-      `type`: Option[String],
-      methodPointer: Option[Long],
-      profilingInfo: Vector[ProfilingInfo],
-      fromCache: Boolean
-    ) extends ExpressionUpdate
+    sealed trait Payload
+    object Payload {
 
-    /** A diagnostic information about the expression.
-      *
-      * @param expressionId the expression id
-      * @param message the error message
-      * @param kind the type of diagnostic message
-      */
-    case class ExpressionDiagnostic(
-      expressionId: UUID,
-      message: String,
-      kind: ExecutionDiagnosticKind
-    ) extends ExpressionUpdate
+      /** An information about computed expression. */
+      case object Value extends Payload
 
-    /** An update about failed expression.
-      *
-      * @param expressionId the expression id
-      * @param message the error message
-      * @param trace the stack trace
-      */
-    case class ExpressionFailed(
-      expressionId: UUID,
-      message: String,
-      trace: Seq[ExecutionStackTraceElement]
-    ) extends ExpressionUpdate
+      /** An information about the error.
+        *
+        * @param message the error message
+        * @param trace the stack trace
+        */
+      case class Error(
+        message: String,
+        trace: Seq[UUID]
+      ) extends Payload
+
+    }
 
     /** An update about expression not executed due to the failed dependency.
       *

@@ -269,79 +269,80 @@ object Runtime {
       fromCache: Boolean
     )
 
-    /** Base trait for expression updates. */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[ExpressionUpdate.ExpressionComputed],
-          name  = "expressionUpdateComputed"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[ExpressionUpdate.ExpressionFailed],
-          name  = "expressionUpdateFailed"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[ExpressionUpdate.ExpressionPoisoned],
-          name  = "expressionUpdatePoisoned"
-        )
-      )
+    /** An update about computed expression.
+      *
+      * @param expressionId the expression id
+      * @param expressionType the type of expression
+      * @param methodCall the pointer to a method definition
+      * @param profilingInfo profiling information about the execution of this
+      * expression
+      * @param fromCache whether or not the value for this expression came
+      * from the cache
+      * @param payload an extra information about the computed value
+      */
+    case class ExpressionUpdate(
+      expressionId: ExpressionId,
+      expressionType: Option[String],
+      methodCall: Option[MethodPointer],
+      profilingInfo: Vector[ProfilingInfo],
+      fromCache: Boolean,
+      payload: ExpressionUpdate.Payload
     )
-    sealed trait ExpressionUpdate
     object ExpressionUpdate {
 
-      /** An update about computed expression.
-        *
-        * @param expressionId the expression id
-        * @param expressionType the type of expression
-        * @param methodCall the pointer to a method definithin
-        * @param profilingInfo profiling information about the execution of this
-        * expression
-        * @param fromCache whether or not the value for this expression came
-        * from the cache
-        */
-      case class ExpressionComputed(
-        expressionId: ExpressionId,
-        expressionType: Option[String],
-        methodCall: Option[MethodPointer],
-        profilingInfo: Vector[ProfilingInfo],
-        fromCache: Boolean
-      ) extends ExpressionUpdate
+      /** Base trait for expression payloads. */
+      @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+      @JsonSubTypes(
+        Array(
+          new JsonSubTypes.Type(
+            value = classOf[Payload.Value],
+            name  = "expressionUpdatePayloadValue"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[Payload.DataflowError],
+            name  = "expressionUpdatePayloadDataflowError"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[Payload.RuntimeError],
+            name  = "expressionUpdatePayloadRuntimeError"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[Payload.Poisoned],
+            name  = "expressionUpdatePayloadPoisoned"
+          )
+        )
+      )
+      sealed trait Payload
+      object Payload {
 
-      /** An update about failed expression.
-        *
-        * @param expressionId the expression id
-        * @param message the error message
-        * @param trace the stack trace
-        */
-      case class ExpressionFailed(
-        expressionId: ExpressionId,
-        message: String,
-        trace: Seq[StackTraceElement]
-      ) extends ExpressionUpdate
+        /** An empty payload. Indicates that the expression was computed to a
+          * value.
+          */
+        case class Value() extends Payload
 
-      /** A diagnostic information about the expression.
-        *
-        * @param expressionId the expression id
-        * @param message the error message
-        * @param kind the type of diagnostic message
-        */
-      case class ExpressionDiagnostic(
-        expressionId: ExpressionId,
-        message: String,
-        kind: DiagnosticType
-      ) extends ExpressionUpdate
+        /** Indicates that the expression was computed to an error.
+          *
+          * @param trace the list of expressions leading to the root error.
+          */
+        case class DataflowError(trace: Seq[ExpressionId]) extends Payload
 
-      /** An update about expression not executed due to a failed dependency.
-        *
-        * @param expressionId the expression id
-        * @param trace the list of expressions leading to the root expression
-        * that failed
-        */
-      case class ExpressionPoisoned(
-        expressionId: ExpressionId,
-        trace: Seq[ExpressionId]
-      ) extends ExpressionUpdate
+        /** An information about the runtime exception.
+          *
+          * @param message the error message
+          * @param trace the stack trace
+          */
+        case class RuntimeError(
+          message: String,
+          trace: Seq[ExpressionId]
+        ) extends Payload
+
+        /** Indicates that the expression was not computed due a dependency,
+          * that failed with the runtime exception.
+          *
+          * @param trace the list of expressions leading to the root error.
+          */
+        case class Poisoned(trace: Seq[ExpressionId]) extends Payload
+      }
     }
 
     /** An object representing profiling information about an executed

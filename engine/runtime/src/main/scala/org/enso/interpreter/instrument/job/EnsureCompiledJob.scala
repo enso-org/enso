@@ -282,17 +282,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       case error: IR.Error =>
         createDiagnostic(Api.DiagnosticType.Error(), module, error)
     }
-    val expressionUpdates = pass.flatMap {
-      case warn: IR.Warning =>
-        createExpressionDiagnosticUpdate(
-          Api.DiagnosticType.Warning(),
-          module,
-          warn
-        )
-      case _ => None
-    }
     sendDiagnosticUpdates(diagnostics)
-    sendExpressionUpdates(expressionUpdates)
     getCompilationStatus(diagnostics)
   }
 
@@ -323,22 +313,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       Vector()
     )
   }
-
-  private def createExpressionDiagnosticUpdate(
-    kind: Api.DiagnosticType,
-    module: Module,
-    diagnostic: IR.Diagnostic
-  ): Option[Api.ExpressionUpdate] =
-    for {
-      location     <- diagnostic.location
-      expressionId <- LocationResolver.getExpressionId(module.getIr, location)
-    } yield {
-      Api.ExpressionUpdate.ExpressionDiagnostic(
-        expressionId.externalId,
-        diagnostic.message,
-        kind
-      )
-    }
 
   /** Compile the module.
     *
@@ -459,15 +433,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         ctx.endpoint.sendToClient(
           Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
         )
-      }
-    }
-
-  private def sendExpressionUpdates(
-    updates: Seq[Api.ExpressionUpdate]
-  )(implicit ctx: RuntimeContext): Unit =
-    if (updates.nonEmpty) {
-      ctx.contextManager.getAll.keys.foreach { contextId =>
-        Api.Response(Api.ExpressionUpdates(contextId, updates.toSet))
       }
     }
 
