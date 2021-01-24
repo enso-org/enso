@@ -269,7 +269,7 @@ object Runtime {
       fromCache: Boolean
     )
 
-    /** An update about computed expression.
+    /** An update about the computed expression.
       *
       * @param expressionId the expression id
       * @param expressionType the type of expression
