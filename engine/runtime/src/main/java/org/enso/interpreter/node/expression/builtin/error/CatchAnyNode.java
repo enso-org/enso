@@ -13,14 +13,14 @@ import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
-    type = "Error",
+    type = "Any",
     name = "catch",
     description =
         "If called on an error, executes the provided handler on the error's payload. Otherwise acts as identity.")
-public class CatchErrorNode extends Node {
+public class CatchAnyNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
-  CatchErrorNode() {
+  CatchAnyNode() {
     this.invokeCallableNode =
         InvokeCallableNode.build(
             new CallArgumentInfo[] {new CallArgumentInfo()},
@@ -30,8 +30,7 @@ public class CatchErrorNode extends Node {
   }
 
   Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, DataflowError _this, Object handler) {
-    return invokeCallableNode.execute(
-        handler, frame, state, new Object[] {TypesGen.asDataflowError(_this).getPayload()});
+      VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {
+    return new Stateful(state, _this);
   }
 }
