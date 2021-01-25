@@ -132,7 +132,14 @@ class RuntimeServerTest
           Api.ExpressionUpdates(
             contextId,
             Set(
-              Api.ExpressionUpdate.ExpressionComputed(expressionId, None, None, Vector(Api.ProfilingInfo.ExecutionTime(0)), false)
+              Api.ExpressionUpdate(
+                expressionId,
+                None,
+                None,
+                Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                false,
+                Api.ExpressionUpdate.Payload.Value()
+              )
             )
           )
         )
@@ -146,12 +153,13 @@ class RuntimeServerTest
           Api.ExpressionUpdates(
             contextId,
             Set(
-              Api.ExpressionUpdate.ExpressionComputed(
+              Api.ExpressionUpdate(
                 expressionId,
                 Some(expressionType),
                 None,
                 Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                false
+                false,
+                Api.ExpressionUpdate.Payload.Value()
               )
             )
           )
@@ -176,12 +184,13 @@ class RuntimeServerTest
           Api.ExpressionUpdates(
             contextId,
             Set(
-              Api.ExpressionUpdate.ExpressionComputed(
+              Api.ExpressionUpdate(
                 expressionId,
                 Some(expressionType),
                 Some(methodPointer),
                 Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                fromCache
+                fromCache,
+                Api.ExpressionUpdate.Payload.Value()
               )
             )
           )
@@ -194,7 +203,15 @@ class RuntimeServerTest
         Api.Response(
           Api.ExpressionValuesComputed(
             contextId,
-            Vector(Api.ExpressionValueUpdate(expressionId, None, None, Vector(Api.ProfilingInfo.ExecutionTime(0)), false))
+            Vector(
+              Api.ExpressionValueUpdate(
+                expressionId,
+                None,
+                None,
+                Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                false
+              )
+            )
           )
         )
 
@@ -286,12 +303,13 @@ class RuntimeServerTest
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate.ExpressionComputed(
+                Api.ExpressionUpdate(
                   Main.idMainX,
                   Some(Constants.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache
+                  fromCache,
+                  Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
@@ -302,18 +320,13 @@ class RuntimeServerTest
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate.ExpressionComputed(
+                Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(Constants.INTEGER),
-                  Some(
-                    Api.MethodPointer(
-                      "Test.Main",
-                      Constants.NUMBER,
-                      "foo"
-                    )
-                  ),
+                  Some(Api.MethodPointer("Test.Main", Constants.NUMBER, "foo")),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache
+                  fromCache,
+                  Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
@@ -324,12 +337,13 @@ class RuntimeServerTest
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate.ExpressionComputed(
+                Api.ExpressionUpdate(
                   Main.idMainZ,
                   Some(Constants.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache
+                  fromCache,
+                  Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
@@ -340,12 +354,13 @@ class RuntimeServerTest
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate.ExpressionComputed(
+                Api.ExpressionUpdate(
                   Main.idFooY,
                   Some(Constants.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache
+                  fromCache,
+                  Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
@@ -356,12 +371,13 @@ class RuntimeServerTest
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate.ExpressionComputed(
+                Api.ExpressionUpdate(
                   Main.idFooZ,
                   Some(Constants.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache
+                  fromCache,
+                  Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
@@ -491,12 +507,13 @@ class RuntimeServerTest
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate.ExpressionComputed(
+                Api.ExpressionUpdate(
                   idMainY,
                   Some(Constants.INTEGER),
                   Some(Api.MethodPointer("Test.Main", "Test.Main", "foo")),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  false
+                  false,
+                  Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
@@ -507,12 +524,13 @@ class RuntimeServerTest
             Api.ExpressionUpdates(
               contextId,
               Set(
-                Api.ExpressionUpdate.ExpressionComputed(
+                Api.ExpressionUpdate(
                   idMainZ,
                   Some(Constants.INTEGER),
                   Some(Api.MethodPointer("Test.Main", "Test.Main", "bar")),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  false
+                  false,
+                  Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
@@ -660,7 +678,7 @@ class RuntimeServerTest
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       context.Main.UpdateOld.mainY(contextId, fromCache = true),
-      context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainY(contextId, fromCache    = true),
       context.executionComplete(contextId)
     )
 
@@ -1689,7 +1707,7 @@ class RuntimeServerTest
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       context.Main.UpdateOld.mainY(contextId, fromCache = true),
-      context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainY(contextId, fromCache    = true),
       context.executionComplete(contextId)
     )
 
@@ -2954,7 +2972,7 @@ class RuntimeServerTest
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       context.Main.UpdateOld.mainY(contextId, fromCache = true),
-      context.Main.Update.mainY(contextId, fromCache = true),
+      context.Main.Update.mainY(contextId, fromCache    = true),
       context.executionComplete(contextId)
     )
 
@@ -5189,7 +5207,9 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, isIndexed = true))
+      Api.Request(
+        Api.OpenFileNotification(mainFile, contents, isIndexed = true)
+      )
     )
     context.receiveNone shouldEqual None
 

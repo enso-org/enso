@@ -82,18 +82,19 @@ class ContextEventsListenerSpec
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate.ExpressionComputed(
+            Api.ExpressionUpdate(
               Suggestions.method.externalId.get,
               Some(Suggestions.method.returnType),
               Some(
                 Api.MethodPointer(
                   Suggestions.method.module,
                   Suggestions.method.selfType,
-                  Suggestions.method.name,
+                  Suggestions.method.name
                 )
               ),
               Vector(),
-              false
+              false,
+              Api.ExpressionUpdate.Payload.Value()
             )
           )
         )
@@ -104,12 +105,13 @@ class ContextEventsListenerSpec
             ContextRegistryProtocol.ExpressionUpdatesNotification(
               contextId,
               Vector(
-                ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
+                ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
                   Some(Suggestions.method.returnType),
                   Some(suggestionIds(1).get),
                   Vector(),
-                  false
+                  false,
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value
                 )
               ),
               Some(
@@ -128,14 +130,20 @@ class ContextEventsListenerSpec
         )
     }
 
-    "send failure updates" taggedAs Retry in withDb {
+    "send dataflow error updates" taggedAs Retry in withDb {
       (clientId, contextId, _, router, listener) =>
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate.ExpressionFailed(
+            Api.ExpressionUpdate(
               Suggestions.method.externalId.get,
-              "Method failure"
+              None,
+              None,
+              Vector(),
+              false,
+              Api.ExpressionUpdate.Payload.DataflowError(
+                Seq(Suggestions.function.externalId.get)
+              )
             )
           )
         )
@@ -146,9 +154,14 @@ class ContextEventsListenerSpec
             ContextRegistryProtocol.ExpressionUpdatesNotification(
               contextId,
               Vector(
-                ContextRegistryProtocol.ExpressionUpdate.ExpressionFailed(
+                ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
-                  "Method failure"
+                  None,
+                  None,
+                  Vector(),
+                  false,
+                  ContextRegistryProtocol.ExpressionUpdate.Payload
+                    .DataflowError(Seq(Suggestions.function.externalId.get))
                 )
               ),
               None
@@ -157,14 +170,18 @@ class ContextEventsListenerSpec
         )
     }
 
-    "send poisoning updates" taggedAs Retry in withDb {
+    "send runtime error updates" taggedAs Retry in withDb {
       (clientId, contextId, _, router, listener) =>
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate.ExpressionPoisoned(
-              Suggestions.local.externalId.get,
-              Suggestions.method.externalId.get
+            Api.ExpressionUpdate(
+              Suggestions.method.externalId.get,
+              None,
+              None,
+              Vector(),
+              false,
+              Api.ExpressionUpdate.Payload.RuntimeError("Method failure", Seq())
             )
           )
         )
@@ -175,9 +192,54 @@ class ContextEventsListenerSpec
             ContextRegistryProtocol.ExpressionUpdatesNotification(
               contextId,
               Vector(
-                ContextRegistryProtocol.ExpressionUpdate.ExpressionPoisoned(
+                ContextRegistryProtocol.ExpressionUpdate(
+                  Suggestions.method.externalId.get,
+                  None,
+                  None,
+                  Vector(),
+                  false,
+                  ContextRegistryProtocol.ExpressionUpdate.Payload
+                    .RuntimeError("Method failure", Seq())
+                )
+              ),
+              None
+            )
+          )
+        )
+    }
+
+    "send poisoning error updates" taggedAs Retry in withDb {
+      (clientId, contextId, _, router, listener) =>
+        listener ! Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              Suggestions.local.externalId.get,
+              None,
+              None,
+              Vector(),
+              false,
+              Api.ExpressionUpdate.Payload.Poisoned(
+                Seq(Suggestions.method.externalId.get)
+              )
+            )
+          )
+        )
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            ContextRegistryProtocol.ExpressionUpdatesNotification(
+              contextId,
+              Vector(
+                ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.local.externalId.get,
-                  Suggestions.method.externalId.get
+                  None,
+                  None,
+                  Vector(),
+                  false,
+                  ContextRegistryProtocol.ExpressionUpdate.Payload
+                    .Poisoned(Seq(Suggestions.method.externalId.get))
                 )
               ),
               None
@@ -203,12 +265,13 @@ class ContextEventsListenerSpec
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate.ExpressionComputed(
+            Api.ExpressionUpdate(
               Suggestions.method.externalId.get,
               None,
               None,
               Vector(),
-              false
+              false,
+              Api.ExpressionUpdate.Payload.Value()
             )
           )
         )
@@ -216,12 +279,13 @@ class ContextEventsListenerSpec
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate.ExpressionComputed(
+            Api.ExpressionUpdate(
               Suggestions.local.externalId.get,
               None,
               None,
               Vector(),
-              false
+              false,
+              Api.ExpressionUpdate.Payload.Value()
             )
           )
         )
@@ -234,19 +298,21 @@ class ContextEventsListenerSpec
             ExpressionUpdatesNotification(
               contextId,
               Vector(
-                ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
+                ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
                   None,
                   None,
                   Vector(),
-                  false
+                  false,
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value
                 ),
-                ContextRegistryProtocol.ExpressionUpdate.ExpressionComputed(
+                ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.local.externalId.get,
                   None,
                   None,
                   Vector(),
-                  false
+                  false,
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value
                 )
               ),
               Some(
