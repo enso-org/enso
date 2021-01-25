@@ -11,7 +11,6 @@ import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.nio.file.Files
@@ -102,6 +101,38 @@ class ExpressionErrorsTest
       Api.Response(Api.ExecutionComplete(contextId))
   }
 
+  object Update {
+
+    def error(
+      expressionId: UUID,
+      payload: Api.ExpressionUpdate.Payload
+    ): Api.ExpressionUpdate =
+      Api.ExpressionUpdate(
+        expressionId,
+        None,
+        None,
+        Vector(Api.ProfilingInfo.ExecutionTime(0)),
+        false,
+        payload
+      )
+
+    def runtimeError(
+      expressionId: UUID,
+      message: String
+    ): Api.ExpressionUpdate =
+      Api.ExpressionUpdate(
+        expressionId,
+        None,
+        None,
+        Vector(Api.ProfilingInfo.ExecutionTime(0)),
+        false,
+        Api.ExpressionUpdate.Payload.RuntimeError(message, Seq())
+      )
+
+    def poisonedError(expressionId: UUID): Api.ExpressionUpdate =
+      error(expressionId, Api.ExpressionUpdate.Payload.Poisoned(Seq()))
+  }
+
   def contentsVersion(content: String): ContentVersion =
     Sha3_224VersionCalculator.evalVersion(content)
 
@@ -177,12 +208,12 @@ class ExpressionErrorsTest
         Api.ExpressionUpdates(
           contextId,
           Set(
-            Api.ExpressionUpdate.ExpressionFailed(
+            Update.runtimeError(
               xId,
               "Compile_Error Variable `undefined` is not defined."
             ),
-            Api.ExpressionUpdate.ExpressionPoisoned(yId, xId),
-            Api.ExpressionUpdate.ExpressionPoisoned(mainResId, xId)
+            Update.poisonedError(yId),
+            Update.poisonedError(mainResId)
           )
         )
       ),
