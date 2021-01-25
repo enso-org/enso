@@ -26,9 +26,9 @@ object LanguageServerApp {
   ): Unit = {
     val server = new LanguageServerComponent(config, logLevel)
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
-      Await.result(server.stop(), 20.seconds)
+      Await.result(server.stop(), 40.seconds)
     }))
-    Await.result(server.start(), 20.seconds)
+    Await.result(server.start(), 1.minute)
     if (deamonize) {
       val lock = new AnyRef
       lock.synchronized {
