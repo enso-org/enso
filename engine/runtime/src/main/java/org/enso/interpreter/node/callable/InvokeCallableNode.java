@@ -5,7 +5,10 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.UUID;
+import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -15,11 +18,9 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.state.Stateful;
-
-import java.util.UUID;
-import java.util.concurrent.locks.Lock;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -76,8 +77,9 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   @Child private InvokeFunctionNode invokeFunctionNode;
-  @Child private MethodResolverNode methodResolverNode;
+  @Child private InvokeMethodNode invokeMethodNode;
   @Child private ThunkExecutorNode thisExecutor;
+  private final ConditionProfile functionErrorProfile = ConditionProfile.createCountingProfile();
 
   private final boolean canApplyThis;
   private final int thisArgumentPosition;
@@ -97,7 +99,8 @@ public abstract class InvokeCallableNode extends BaseNode {
 
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
-    this.methodResolverNode = MethodResolverNode.build();
+    this.invokeMethodNode =
+        InvokeMethodNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   public static Integer thisArgumentPosition(CallArgumentInfo[] schema) {
@@ -127,46 +130,18 @@ public abstract class InvokeCallableNode extends BaseNode {
     return InvokeCallableNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
-  /**
-   * Invokes a function directly on the arguments contained in this node.
-   *
-   * @param function the function to be executed
-   * @param callerFrame the caller frame to pass to the function
-   * @param state the state to pass to the function
-   * @param arguments the arguments to the function
-   * @return the result of executing {@code callable} on the known arguments
-   */
   @Specialization
   Stateful invokeFunction(
       Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
     return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
   }
 
-  /**
-   * Invokes a constructor directly on the arguments contained in this node.
-   *
-   * @param constructor the constructor to be executed
-   * @param callerFrame the caller frame to pass to the function
-   * @param state the state to pass to the function
-   * @param arguments the arguments to the constructor
-   * @return the result of executing {@code constructor} on the known arguments
-   */
   @Specialization
   Stateful invokeConstructor(
       AtomConstructor constructor, VirtualFrame callerFrame, Object state, Object[] arguments) {
     return invokeFunction(constructor.getConstructorFunction(), callerFrame, state, arguments);
   }
 
-  /**
-   * Invokes a dynamic symbol after resolving it for the actual symbol for the {@code this}
-   * argument.
-   *
-   * @param symbol the name of the requested symbol
-   * @param callerFrame the caller frame to pass to the function
-   * @param state the state to pass to the function
-   * @param arguments the arguments to the dynamic symbol
-   * @return the result of resolving and executing the symbol for the {@code this} argument
-   */
   @Specialization
   public Stateful invokeDynamicSymbol(
       UnresolvedSymbol symbol, VirtualFrame callerFrame, Object state, Object[] arguments) {
@@ -190,25 +165,12 @@ public abstract class InvokeCallableNode extends BaseNode {
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;
       }
-      Function function = methodResolverNode.execute(symbol, selfArgument);
-      return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
+      return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
   }
 
-  /**
-   * A fallback that should never be called.
-   *
-   * <p>If this is called, something has gone horribly wrong. It throws a {@link
-   * NotInvokableException} to signal this.
-   *
-   * @param callable the callable to be executed
-   * @param callerFrame the caller frame to pass to the function
-   * @param state the state to pass to the function
-   * @param arguments the arguments to the callable
-   * @return error
-   */
   @Fallback
   public Stateful invokeGeneric(
       Object callable, VirtualFrame callerFrame, Object state, Object[] arguments) {
@@ -236,6 +198,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   public void setTailStatus(TailStatus isTail) {
     super.setTailStatus(isTail);
     invokeFunctionNode.setTailStatus(isTail);
+    invokeMethodNode.setTailStatus(isTail);
   }
 
   /** @return the source section for this node. */
@@ -252,5 +215,6 @@ public abstract class InvokeCallableNode extends BaseNode {
    */
   public void setId(UUID id) {
     invokeFunctionNode.setId(id);
+    invokeMethodNode.setId(id);
   }
 }

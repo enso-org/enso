@@ -1,27 +1,21 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.state.Stateful;
-
-import java.util.concurrent.locks.Lock;
 
 /**
  * Invokes any callable with given arguments.
@@ -109,9 +103,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode,
-      @Cached ThunkExecutorNode thisExecutor,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Cached IndirectInvokeMethodNode invokeMethodNode,
+      @Cached ThunkExecutorNode thisExecutor) {
     Integer thisArg = InvokeCallableNode.thisArgumentPosition(schema);
     boolean canApplyThis = thisArg != null;
     int thisArgumentPosition = thisArg == null ? 0 : thisArg;
@@ -124,11 +117,11 @@ public abstract class IndirectInvokeCallableNode extends Node {
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;
       }
-      Function function = methodResolverNode.execute(symbol, selfArgument);
-      return invokeFunctionNode.execute(
-          function,
+      return invokeMethodNode.execute(
           callerFrame,
           state,
+          symbol,
+          selfArgument,
           arguments,
           schema,
           defaultsExecutionMode,

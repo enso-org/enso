@@ -11,7 +11,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.RuntimeError;
 
 @BuiltinMethod(type = "IO", name = "readln", description = "Reads a line from standard in.")
 public abstract class ReadlnNode extends Node {
