@@ -208,6 +208,22 @@ type Error
     throw : Any -> Error
     throw payload = @Builtin_Method "Error.throw"
 
+    ## Executes the provided handler on a dataflow error, or executes as
+       identity on a non-error value.
+
+       Arguments:
+       - handler: The function to call on this if it is an error value.
+
+       > Example
+         Catching an erroneous value to perform some operation on it.
+           (Time.Time_Error "Message").catch (err -> IO.println err)
+    catch : (Error -> Any) -> Any
+    catch handler = @Builtin_Method "Any.catch"
+
+    ## Converts an error to a corresponding textual representation.
+    to_text : Text
+    to_text = @Builtin_Method "Error.to_text"
+
 ## The runtime representation of a syntax error.
 
    Arguments:

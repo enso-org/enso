@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.Ref;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.RuntimeError;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -37,7 +37,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
   Atom.class,
   AtomConstructor.class,
   Thunk.class,
-  RuntimeError.class,
+  DataflowError.class,
   UnresolvedSymbol.class,
   Array.class,
   EnsoBigInteger.class,
@@ -130,7 +130,7 @@ public class Types {
       return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
     } else if (TypesGen.isThunk(value)) {
       return Constants.THUNK;
-    } else if (TypesGen.isRuntimeError(value)) {
+    } else if (TypesGen.isDataflowError(value)) {
       return Constants.ERROR;
     } else if (TypesGen.isArray(value)) {
       return Constants.ARRAY;

@@ -141,6 +141,7 @@ public final class AtomConstructor implements TruffleObject {
    * @param arguments the runtime arguments to the constructor
    * @return a new instance of the atom represented by this constructor
    */
+  // TODO [AA] Check where this can be called from user code.
   public Atom newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
     return new Atom(this, arguments);
