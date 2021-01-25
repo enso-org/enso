@@ -12,8 +12,8 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -54,7 +54,7 @@ public abstract class CaseNode extends ExpressionNode {
    * @return the result of executing the case expression on {@code error}
    */
   @Specialization
-  public Object doError(VirtualFrame frame, RuntimeError error) {
+  public Object doError(VirtualFrame frame, DataflowError error) {
     return error;
   }
 
@@ -66,7 +66,7 @@ public abstract class CaseNode extends ExpressionNode {
    * @param ctx the language context reference
    * @return the result of executing the case expression on {@code object}
    */
-  @Specialization(guards = "!isError(object)")
+  @Specialization(guards = "!isDataflowError(object)")
   @ExplodeLoop
   public Object doMatch(
       VirtualFrame frame,
@@ -88,8 +88,8 @@ public abstract class CaseNode extends ExpressionNode {
     }
   }
 
-  boolean isError(Object error) {
-    return TypesGen.isRuntimeError(error);
+  boolean isDataflowError(Object error) {
+    return TypesGen.isDataflowError(error);
   }
 
   /* Note [Branch Selection Control Flow]

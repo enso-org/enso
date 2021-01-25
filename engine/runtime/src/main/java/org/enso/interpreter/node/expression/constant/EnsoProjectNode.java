@@ -8,7 +8,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
-import org.enso.interpreter.runtime.error.RuntimeError;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.pkg.Package;
 
@@ -27,7 +27,8 @@ public class EnsoProjectNode extends RootNode {
       result = context.getBuiltins().getProjectDescription().newInstance(rootPath);
     } else {
       result =
-          new RuntimeError(context.getBuiltins().error().moduleNotInPackageError().newInstance());
+          DataflowError.withDefaultTrace(
+              context.getBuiltins().error().moduleNotInPackageError().newInstance(), this);
     }
   }
 

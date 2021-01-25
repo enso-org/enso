@@ -11,8 +11,8 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
@@ -37,12 +37,15 @@ public abstract class RecoverPanicNode extends Node {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
-      return new Stateful(state, new RuntimeError(e.getExceptionObject()));
+      return new Stateful(
+          state, DataflowError.withTrace(e.getExceptionObject(), this, e.getStackTrace()));
     } catch (Throwable e) {
       if (ctx.getEnvironment().isHostException(e)) {
         Object cause = ((TruffleException) e).getExceptionObject();
         return new Stateful(
-            state, new RuntimeError(ctx.getBuiltins().error().makePolyglotError(cause)));
+            state,
+            DataflowError.withTrace(
+                ctx.getBuiltins().error().makePolyglotError(cause), this, e.getStackTrace()));
       }
       throw e;
     }
