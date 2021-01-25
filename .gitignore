@@ -19,7 +19,6 @@ target/
 ## Rust ##
 ##########
 
-Cargo.lock
 **/*.rs.bk
 wasm-pack.log
 generated/

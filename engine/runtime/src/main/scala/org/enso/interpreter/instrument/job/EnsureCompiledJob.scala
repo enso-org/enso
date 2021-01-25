@@ -269,14 +269,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def runCompilationDiagnostics(module: Module)(implicit
     ctx: RuntimeContext
   ): CompilationStatus = {
-    val errors = GatherDiagnostics
+    val pass = GatherDiagnostics
       .runModule(module.getIr, ModuleContext(module))
       .unsafeGetMetadata(
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
-    val diagnostics = errors.collect {
+    val diagnostics = pass.collect {
       case warn: IR.Warning =>
         createDiagnostic(Api.DiagnosticType.Warning(), module, warn)
       case error: IR.Error =>
