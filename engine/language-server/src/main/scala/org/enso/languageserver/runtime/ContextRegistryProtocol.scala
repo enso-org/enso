@@ -107,96 +107,114 @@ object ContextRegistryProtocol {
     updatesOld: Option[Vector[ExpressionValueUpdate]]
   )
 
-  sealed trait ExpressionUpdate
+  /** An update about computed expression.
+    *
+    * @param expressionId the id of updated expression
+    * @param `type` the updated type of expression
+    * @param methodPointer the suggestion id of the updated method pointer
+    * @param profilingInfo profiling information about the expression
+    * @param fromCache whether or not the expression's value came from the cache
+    * @param payload an extra information about the computed value
+    */
+  case class ExpressionUpdate(
+    expressionId: UUID,
+    `type`: Option[String],
+    methodPointer: Option[Long],
+    profilingInfo: Vector[ProfilingInfo],
+    fromCache: Boolean,
+    payload: ExpressionUpdate.Payload
+  )
   object ExpressionUpdate {
 
-    /** An update about computed expression.
-      *
-      * @param expressionId the id of updated expression
-      * @param `type` the updated type of expression
-      * @param methodPointer the suggestion id of the updated method pointer
-      * @param profilingInfo profiling information about the expression
-      * @param fromCache whether or not the expression's value came from the cache
-      */
-    case class ExpressionComputed(
-      expressionId: UUID,
-      `type`: Option[String],
-      methodPointer: Option[Long],
-      profilingInfo: Vector[ProfilingInfo],
-      fromCache: Boolean
-    ) extends ExpressionUpdate
+    sealed trait Payload
+    object Payload {
 
-    /** An update about failed expression.
-      *
-      * @param expressionId the expression id
-      * @param message the error message
-      */
-    case class ExpressionFailed(
-      expressionId: UUID,
-      message: String
-    ) extends ExpressionUpdate
+      /** An information about computed expression. */
+      case object Value extends Payload
 
-    /** An update about expression not executed due to the failed dependency.
-      *
-      * @param expressionId the expression id
-      * @param failedExpressionId failed expression that blocks the execution
-      * of this expression
-      */
-    case class ExpressionPoisoned(
-      expressionId: UUID,
-      failedExpressionId: UUID
-    ) extends ExpressionUpdate
+      /** Indicates that the expression was computed to an error.
+        *
+        * @param trace the list of expressions leading to the root error.
+        */
+      case class DataflowError(trace: Seq[UUID]) extends Payload
 
-    private object CodecField {
+      /** Indicates that the expression failed with the runtime exception.
+        *
+        * @param message the error message
+        * @param trace the stack trace
+        */
+      case class RuntimeError(
+        message: String,
+        trace: Seq[UUID]
+      ) extends Payload
 
-      val Type = "type"
-    }
+      /** Indicates that the expression was not computed due to a dependency,
+        * that failed with the runtime exception.
+        *
+        * @param trace the list of expressions leading to the root error.
+        */
+      case class Poisoned(trace: Seq[UUID]) extends Payload
 
-    private object ExpressionUpdateType {
-      val Computed = "Computed"
+      private object CodecField {
 
-      val Failed = "Failed"
-
-      val Poisoned = "Poisoned"
-    }
-
-    implicit val encoder: Encoder[ExpressionUpdate] =
-      Encoder.instance[ExpressionUpdate] {
-        case m: ExpressionUpdate.ExpressionComputed =>
-          Encoder[ExpressionUpdate.ExpressionComputed]
-            .apply(m)
-            .deepMerge(
-              Json.obj(CodecField.Type -> ExpressionUpdateType.Computed.asJson)
-            )
-
-        case m: ExpressionUpdate.ExpressionFailed =>
-          Encoder[ExpressionUpdate.ExpressionFailed]
-            .apply(m)
-            .deepMerge(
-              Json.obj(CodecField.Type -> ExpressionUpdateType.Failed.asJson)
-            )
-
-        case m: ExpressionUpdate.ExpressionPoisoned =>
-          Encoder[ExpressionUpdate.ExpressionPoisoned]
-            .apply(m)
-            .deepMerge(
-              Json.obj(CodecField.Type -> ExpressionUpdateType.Poisoned.asJson)
-            )
+        val Type = "type"
       }
 
-    implicit val decoder: Decoder[ExpressionUpdate] =
-      Decoder.instance { cursor =>
-        cursor.downField(CodecField.Type).as[String].flatMap {
-          case ExpressionUpdateType.Computed =>
-            Decoder[ExpressionUpdate.ExpressionComputed].tryDecode(cursor)
+      private object PayloadType {
 
-          case ExpressionUpdateType.Failed =>
-            Decoder[ExpressionUpdate.ExpressionFailed].tryDecode(cursor)
+        val Value = "Value"
 
-          case ExpressionUpdateType.Poisoned =>
-            Decoder[ExpressionUpdate.ExpressionFailed].tryDecode(cursor)
+        val DataflowError = "DataflowError"
+
+        val RuntimeError = "RuntimeError"
+
+        val Poisoned = "Poisoned"
+      }
+
+      implicit val encoder: Encoder[Payload] =
+        Encoder.instance[Payload] {
+          case Payload.Value =>
+            Json.obj(CodecField.Type -> PayloadType.Value.asJson)
+
+          case m: Payload.DataflowError =>
+            Encoder[Payload.DataflowError]
+              .apply(m)
+              .deepMerge(
+                Json.obj(CodecField.Type -> PayloadType.DataflowError.asJson)
+              )
+
+          case m: Payload.RuntimeError =>
+            Encoder[Payload.RuntimeError]
+              .apply(m)
+              .deepMerge(
+                Json.obj(CodecField.Type -> PayloadType.RuntimeError.asJson)
+              )
+
+          case m: Payload.Poisoned =>
+            Encoder[Payload.Poisoned]
+              .apply(m)
+              .deepMerge(
+                Json.obj(CodecField.Type -> PayloadType.Poisoned.asJson)
+              )
         }
-      }
+
+      implicit val decoder: Decoder[Payload] =
+        Decoder.instance { cursor =>
+          cursor.downField(CodecField.Type).as[String].flatMap {
+            case PayloadType.Value =>
+              Right(Payload.Value)
+
+            case PayloadType.DataflowError =>
+              Decoder[Payload.DataflowError].tryDecode(cursor)
+
+            case PayloadType.RuntimeError =>
+              Decoder[Payload.RuntimeError].tryDecode(cursor)
+
+            case PayloadType.Poisoned =>
+              Decoder[Payload.Poisoned].tryDecode(cursor)
+          }
+        }
+    }
   }
 
   /** Signals that user doesn't have access to the requested context.
