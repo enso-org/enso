@@ -35,13 +35,26 @@ object ErrorResolver {
                 val poisoned: Set[Api.ExpressionUpdate] = meta
                   .getExternal(toDataflowDependencyType(expressionId))
                   .getOrElse(Set())
-                  .map(
-                    Api.ExpressionUpdate
-                      .ExpressionPoisoned(_, expressionId.externalId)
-                  )
+                  .map { id =>
+                    Api.ExpressionUpdate(
+                      id,
+                      None,
+                      None,
+                      Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                      false,
+                      Api.ExpressionUpdate.Payload.Poisoned(Seq())
+                    )
+                  }
                 val failed =
-                  Api.ExpressionUpdate
-                    .ExpressionFailed(expressionId.externalId, error.getMessage)
+                  Api.ExpressionUpdate(
+                    expressionId.externalId,
+                    None,
+                    None,
+                    Vector(Api.ProfilingInfo.ExecutionTime(0)),
+                    false,
+                    Api.ExpressionUpdate.Payload
+                      .RuntimeError(error.getMessage, Seq())
+                  )
                 poisoned + failed
               }
               .getOrElse(Set())
@@ -84,4 +97,6 @@ object ErrorResolver {
     DataflowAnalysis.DependencyInfo.Type
       .Static(id.internalId, Some(id.externalId))
 
+  val DependencyFailed: String =
+    "Dependency failed."
 }
