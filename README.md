@@ -50,7 +50,7 @@ Enso is an interactive data processing environment with both a visual and a text
 * Available on MacOS, Windows, and Linux.
 
 <a href="https://www.youtube.com/watch?v=XReCQMZUmuE">See it in action.<br>
-<img width="600" alt="An example Enso graph" src="https://user-images.githubusercontent.com/1790822/105632239-7056d480-5e52-11eb-98fd-476254b1df8b.png">
+<img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png">
 </a>
 
 <br/>
