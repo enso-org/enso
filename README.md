@@ -81,7 +81,7 @@ a single language.
 
 ### Getting Started
 
-- Download Enso from the [GitHub
+- Download Enso from our [GitHub
   Releases](https://github.com/enso-org/ide/releases).
 - Follow [the Enso 101 tutorial](https://github.com/enso-org/tutorial_101) to
   take your first steps with Enso.
@@ -90,8 +90,8 @@ a single language.
   to learn more and improve your skills.
 - [Keep up with the latest updates](https://medium.com/@enso_org) with our
   developer blog, or subscribe to the [mailing list](http://eepurl.com/bRru9j).
-- Join us in the [Enso Discord](https://discord.gg/enso) to get help, share use
-  cases, meet the team behind Enso and other Enso users.
+- Join us in the [Enso Discord](https://discord.gg/enso) to get help, share your
+  use cases, meet the team behind Enso and other Enso users.
 
 <br/>
 
