@@ -58,9 +58,10 @@ Enso is an interactive data processing environment with both a visual and a text
 ### Getting Started
 
 * Download Enso from the [GitHub Releases](https://github.com/enso-org/ide/releases).
-* Follow [the 101 tutorial](https://github.com/enso-org/tutorial_101) to take your first steps with Enso.
+* Follow [the Enso 101 tutorial](https://github.com/enso-org/tutorial_101) to take your first steps with Enso.
+* Watch [the Enso YouTube tutorials](https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0) to learn more and improve your skills.
 * [Keep up with the latest updates](https://medium.com/@enso_org) with our developer blog, or subscribe to the [mailing list](http://eepurl.com/bRru9j).
-* Join us in the [Enso Discord](https://discord.gg/enso) to get help, share use cases, and meet other Enso users. 
+* Join us in the [Enso Discord](https://discord.gg/enso) to get help, share use cases, meet the team behind Enso and other Enso users. 
 
 <br/>
 
@@ -68,20 +69,17 @@ Enso is an interactive data processing environment with both a visual and a text
 
 Enso consists of several sub projects:
 
-* The [Enso Language Compiler](https://github.com/enso-org/enso).
-* The [Enso Integrated Development Environment (IDE)](https://github.com/enso-org/ide).
+  * **Enso Engine**  
+    The [Enso Engine](./engine/) is the , which consists of the
+    compiler, type-checker, runtime and language server. These components implement
+    Enso the language in its entirety, and are usable in isolation. 
 
-#### Enso Engine
-This repository contains [Enso Engine](./engine/), which consists of the
-compiler, type-checker, runtime and language server. These components implement
-Enso the language in its entirety, and are usable in isolation. 
+    You can download the Enso Engine from the [GitHub Releases](https://github.com/enso-org/enso/releases) of this repository. For more information on how to run the Enso Engine, please refer to the documentation on [getting Enso](https://github.com/enso-org/enso/blob/main/docs/getting-enso.md).
 
-You can download the Enso Engine from the [GitHub Releases](https://github.com/enso-org/enso/releases) of this repository. For more information on how to run the Enso Engine, please refer to the documentation on [getting Enso](https://github.com/enso-org/enso/blob/main/docs/getting-enso.md).
+  * **Enso IDE**. 
+    The [Enso IDE](https://github.com/enso-org/ide) is the desktop application that allows working with visual Enso. It consists of an Electron application, a high     performance WebGL UI framework, and the Searcher which provides search, hints, and documentation for Enso functions.
 
-#### Enso IDE
-The [Enso IDE](https://github.com/enso-org/ide) is the desktop application that allows working with visual Enso. It consists of an Electron application, a high performance WebGL UI framework, and the Searcher which provides search, hints, and documentation for Enso functions.
-
-You can download the Enso IDE from the [GitHub Releases of the IDE repository](https://github.com/enso-org/ide/releases). For more information on usage of the IDE, please refer to the [101 tutorial](https://github.com/enso-org/tutorial_101) and the [product documentation](https://dev.enso.org/docs/ide/product/).
+    You can download the Enso IDE from the [GitHub Releases of the IDE repository](https://github.com/enso-org/ide/releases). For more information on usage of the IDE, please refer to the [101 tutorial](https://github.com/enso-org/tutorial_101) and the [product documentation](https://dev.enso.org/docs/ide/product/).
 
 <br/>
 
