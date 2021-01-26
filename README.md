@@ -79,16 +79,10 @@ Enso is an award-winning general-purpose programming language and interactive da
 Enso consists of several sub projects:
 
   * **Enso Engine**  
-    The [Enso Engine](./engine/) is the , which consists of the
-    compiler, type-checker, runtime and language server. These components implement
-    Enso the language in its entirety, and are usable in isolation. 
-
-    You can download the Enso Engine from the [GitHub Releases](https://github.com/enso-org/enso/releases) of this repository. For more information on how to run the Enso Engine, please refer to the documentation on [getting Enso](https://github.com/enso-org/enso/blob/main/docs/getting-enso.md).
+    The [Enso Engine](./engine/) is a set of tools building the Enso backend ecosystem, including a just-in-time compiler, type-checker, runtime and language server. These components implement Enso the language in its entirety, and are usable in isolation. 
 
   * **Enso IDE**. 
     The [Enso IDE](https://github.com/enso-org/ide) is the desktop application that allows working with visual Enso. It consists of an Electron application, a high     performance WebGL UI framework, and the Searcher which provides search, hints, and documentation for Enso functions.
-
-    You can download the Enso IDE from the [GitHub Releases of the IDE repository](https://github.com/enso-org/ide/releases). For more information on usage of the IDE, please refer to the [101 tutorial](https://github.com/enso-org/tutorial_101) and the [product documentation](https://dev.enso.org/docs/ide/product/).
 
 <br/>
 
