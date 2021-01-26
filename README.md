@@ -43,16 +43,16 @@
   </a>
 </p>
 
-Enso is an award-winning general-purpose programming language and interactive data processing environment, selected by Singularity University as a technology with the potential to impact the lives of one-billion people worldwide. It spans the entire stack, from high-level visualisation and communication, to the nitty-gritty of running backend services in a single language.
+Enso is an award-winning general-purpose programming language and interactive data processing environment. It spans the entire stack, from high-level visualisation and communication, to the nitty-gritty of running backend services in a single language.
 
 * 🔗 **Connect to all the tools you're already using**  
   Enso ships with dozens of connectors and libraries allowing you to work with local files, data bases, HTTP services, and other applications in a seamless fashion.<br/><br/>
 * 📊 **Cutting-edge visualization engine**  
-  Enso is equipped with a highly-tailored WebGL visualization engine, capable of displaying even millions of data points 60 frames per second in a web browser.<br/><br/>
+  Enso is equipped with a highly-tailored WebGL visualization engine capable of displaying even millions of data points 60 frames per second in a web browser.<br/><br/>
 * 🌐 **Polyglot**  
-  Enso allows you to literally copy-paste code from Java and use it with close-to-zero performance overhead. Other languages will be supported soon, including Python, JavaScript, and R.<br/><br/>
+  Enso allows you to use any Java library. Soon, it will also allow you to literally copy-paste code from Python, JavaScript, Ruby, and R with close-to-zero runtime performance overhead.<br/><br/>
 * ⚡ **High performance**  
-  Enso graphs and code can run even up to 200x faster than analoguous Python code.<br/><br/>
+  Enso graphs and code can run even up to 100x faster than analoguous Python code.<br/><br/>
 * 🛡️ **Results you can trust**  
   Enso incorporates many recent innovations in data processing and programming language design to allow you to work fast and trust the results you get. It is a purely functional programming language providing higher-order functions, user-defined algebraic datatypes, pattern-matching, and a rich set of primitive datatypes.<br/><br/>
 * 🌎 **Runs everywhere**  
@@ -79,7 +79,7 @@ Enso is an award-winning general-purpose programming language and interactive da
 Enso consists of several sub projects:
 
   * **Enso Engine**  
-    The [Enso Engine](./engine/) is a set of tools building the Enso backend ecosystem, including a just-in-time compiler, type-checker, runtime and language server. These components implement Enso the language in its entirety, and are usable in isolation. 
+    The [Enso Engine](./engine/) is a set of tools building the Enso backend ecosystem, including a just-in-time compiler, type-checker, runtime and language server. These components implement Enso the language in its entirety, and can be used standalone. 
 
   * **Enso IDE**. 
     The [Enso IDE](https://github.com/enso-org/ide) is the desktop application that allows working with visual Enso. It consists of an Electron application, a high     performance WebGL UI framework, and the Searcher which provides search, hints, and documentation for Enso functions.
