@@ -45,17 +45,17 @@
 
 Enso is an award-winning general-purpose programming language and interactive data processing environment, selected by Singularity University as a technology with the potential to impact the lives of one-billion people worldwide. It spans the entire stack, from high-level visualisation and communication, to the nitty-gritty of running backend services in a single language.
 
-* **Connect to all the tools you're already using**  
+* 🔗 **Connect to all the tools you're already using**  
   Enso ships with dozens of connectors and libraries allowing you to work with local files, data bases, HTTP services, and other applications in a seamless fashion.<br/><br/>
-* **Cutting-edge visualization engine**  
+* 📊 **Cutting-edge visualization engine**  
   Enso is equipped with a highly-tailored WebGL visualization engine, capable of displaying even millions of data points 60 frames per second in a web browser.<br/><br/>
-* **Polyglot**  
+* 🌐 **Polyglot**  
   Enso allows you to literally copy-paste code from Java and use it with close-to-zero performance overhead. Other languages will be supported soon, including Python, JavaScript, and R.<br/><br/>
-* **High performance**  
+* ⚡ **High performance**  
   Enso graphs and code can run even up to 200x faster than analoguous Python code.<br/><br/>
-* **Results you can trust**  
+* 🛡️ **Results you can trust**  
   Enso incorporates many recent innovations in data processing and programming language design to allow you to work fast and trust the results you get. It is a purely functional programming language providing higher-order functions, user-defined algebraic datatypes, pattern-matching, and a rich set of primitive datatypes.<br/><br/>
-* **Runs everywhere**  
+* 🌎 **Runs everywhere**  
   Enso is available on MacOS, Windows, and Linux. The Enso GUI runs in a web-browser, so you can run it on your tablet or phone as well!<br/><br/>
 
 <a href="https://www.youtube.com/watch?v=XReCQMZUmuE">See it in action.<br>
